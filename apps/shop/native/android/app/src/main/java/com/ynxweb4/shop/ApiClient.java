@@ -16,9 +16,10 @@ final class ApiClient {
     private final ExecutorService executor = Executors.newFixedThreadPool(3);
     private final Handler main = new Handler(Looper.getMainLooper());
     private final SecureStore secure;
+    private volatile boolean closed;
     ApiClient(SecureStore secure) { this.secure = secure; }
     ProductSession session() throws Exception { return ProductSession.parse(secure.get("commerce_session"),Instant.now()); }
-    private boolean current(ProductSession expected) throws Exception { ProductSession actual=session();return expected==null?actual==null:expected.same(actual); }
+    private boolean current(ProductSession expected) throws Exception { if(closed)return false;ProductSession actual=session();return expected==null?actual==null:expected.same(actual); }
     void request(String method,String path,JSONObject body,Callback callback) {
         final ProductSession expected;
         final JSONObject frozenBody;
@@ -37,6 +38,10 @@ final class ApiClient {
     JSONObject requestForAccount(String method,String path,JSONObject body,String account) throws Exception {
         ProductSession expected=session();
         if(expected==null||!expected.account.equals(account))throw new SecurityException("Queued request belongs to a different or expired account");
+        return requestSync(method,path,body,expected);
+    }
+    JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected) throws Exception {
+        if(expected==null)throw new SecurityException("An active Shop session is required");
         return requestSync(method,path,body,expected);
     }
     private JSONObject requestSync(String method,String path,JSONObject body,ProductSession expected) throws Exception {
@@ -59,7 +64,7 @@ final class ApiClient {
             return value;
         }finally{connection.disconnect();}
     }
-    void close(){executor.shutdownNow();main.removeCallbacksAndMessages(null);}
+    void close(){closed=true;executor.shutdownNow();main.removeCallbacksAndMessages(null);}
     private static String read(InputStream input) throws IOException {
         if(input==null)return "";
         try(input;ByteArrayOutputStream out=new ByteArrayOutputStream()){

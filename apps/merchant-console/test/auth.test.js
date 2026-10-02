@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyGatewayCompletion } from "@ynx-chain/wallet-auth";
-import { beginWalletSignIn, connectStandardWallet, finishWalletSignIn, launchMerchantWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
+import { beginWalletSignIn, cancelWalletSignIn, connectStandardWallet, finishWalletSignIn, launchMerchantWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
 
 const records=new Map();
 globalThis.sessionStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)};
@@ -78,4 +78,57 @@ test("private service degradation preserves an established standard connection",
   assert.equal(state.account,"0x2222222222222222222222222222222222222222");
   assert.equal(state.privateService.state,"PRIVATE_SERVICE_DEGRADED");
   assert.equal(state.privateService.code,"PRODUCT_SESSION_GATEWAY_UNREACHABLE");
+});
+
+function controlledApproval(){
+  const now=new Date("2026-07-18T12:00:00.000Z");
+  const request=parseWalletDeepLink(beginWalletSignIn("mrc_truth123",now),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}).request;
+  const approval=signAuthorization(request,{accountSecret:"0".repeat(63)+"1",issuedAt:now.toISOString()});
+  const challenge=createGatewayChallenge(approval,{challenge:"gateway_merchant_challenge_1234567890",expiresAt:new Date(now.getTime()+120_000).toISOString()},now);
+  return {now,approval,challenge,callback:createCallbackURL(approval)};
+}
+
+test("cancelled and replaced approvals cannot complete or consume the next recovery record",async t=>{
+  for(const replace of [false,true])await t.test(replace?"replacement":"cancel",async()=>{
+    records.clear();const {now,challenge,callback}=controlledApproval();const originalFetch=globalThis.fetch;
+    let finish,calls=0;globalThis.fetch=async()=>{calls++;return new Promise(resolve=>finish=resolve)};
+    try{
+      const result=finishWalletSignIn(callback,"https://gateway.example",now);
+      if(replace)beginWalletSignIn("mrc_replacement",now);else cancelWalletSignIn();
+      const preserved=records.get("ynx-merchant-wallet-auth-v1");
+      finish(new Response(JSON.stringify(challenge)));
+      await assert.rejects(result,error=>error.code==="COMMERCE_CONTEXT_CHANGED");
+      assert.equal(calls,1,"obsolete approval must not send completion");
+      assert.equal(records.get("ynx-merchant-wallet-auth-v1"),preserved);
+    }finally{globalThis.fetch=originalFetch;cancelWalletSignIn()}
+  });
+});
+
+test("duplicate callback is rejected while first completion is pending",async()=>{
+  records.clear();const {now,approval,challenge,callback}=controlledApproval();const originalFetch=globalThis.fetch;
+  let finish;globalThis.fetch=async url=>url.endsWith("/challenges")?new Promise(resolve=>finish=resolve):new Response(JSON.stringify({token:"controlled-test-session",account:approval.account,role:"owner",merchant:{id:"mrc_truth123"}}));
+  try{
+    const first=finishWalletSignIn(callback,"https://gateway.example",now);
+    await assert.rejects(()=>finishWalletSignIn(callback,"https://gateway.example",now),/already being completed/);
+    finish(new Response(JSON.stringify(challenge)));
+    assert.equal((await first).account,approval.account);
+  }finally{globalThis.fetch=originalFetch;cancelWalletSignIn()}
+});
+
+test("Gateway session must match the approved account and selected merchant",async()=>{
+  records.clear();const {now,approval,challenge,callback}=controlledApproval();const originalFetch=globalThis.fetch;
+  globalThis.fetch=async url=>new Response(JSON.stringify(url.endsWith("/challenges")?challenge:{token:"controlled-test-session",account:approval.account,role:"owner",merchant:{id:"mrc_other"}}));
+  try{await assert.rejects(()=>finishWalletSignIn(callback,"https://gateway.example",now),/mismatched merchant session/);assert.ok(records.has("ynx-merchant-wallet-auth-v1"))}finally{globalThis.fetch=originalFetch;cancelWalletSignIn()}
+});
+
+test("late completion preserves a replacement approval instead of consuming its secret",async()=>{
+  records.clear();const {now,approval,challenge,callback}=controlledApproval();const originalFetch=globalThis.fetch;
+  let finish,started;const completing=new Promise(resolve=>started=resolve);
+  globalThis.fetch=async url=>url.endsWith("/challenges")?new Response(JSON.stringify(challenge)):new Promise(resolve=>{finish=resolve;started()});
+  try{
+    const result=finishWalletSignIn(callback,"https://gateway.example",now);await completing;
+    beginWalletSignIn("mrc_replacement",now);const preserved=records.get("ynx-merchant-wallet-auth-v1");
+    finish(new Response(JSON.stringify({token:"controlled-test-session",account:approval.account,role:"owner",merchant:{id:"mrc_truth123"}})));
+    await assert.rejects(result,error=>error.code==="COMMERCE_CONTEXT_CHANGED");assert.equal(records.get("ynx-merchant-wallet-auth-v1"),preserved);
+  }finally{globalThis.fetch=originalFetch;cancelWalletSignIn()}
 });

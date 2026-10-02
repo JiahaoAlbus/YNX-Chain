@@ -13,7 +13,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-final class SecureStore {
+final class SecureStore implements OfflineMutationQueue.Storage {
     private static final String ALIAS = "ynx_shop_secure_store_v1";
     private final SharedPreferences prefs;
 
@@ -21,7 +21,7 @@ final class SecureStore {
         prefs = context.getSharedPreferences("secure", Context.MODE_PRIVATE);
     }
 
-    synchronized void put(String key, String value) throws Exception {
+    public synchronized void put(String key, String value) throws Exception {
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key());
         byte[] ciphertext = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
@@ -29,7 +29,7 @@ final class SecureStore {
         if (!prefs.edit().putString(key, encoded).commit()) throw new IllegalStateException("secure storage write failed");
     }
 
-    synchronized String get(String key) throws Exception {
+    public synchronized String get(String key) throws Exception {
         String encoded = prefs.getString(key, "");
         if (encoded == null || encoded.isEmpty()) return "";
         String[] pieces = encoded.split("\\.", 2);

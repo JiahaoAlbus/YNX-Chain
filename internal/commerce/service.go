@@ -390,7 +390,14 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 		return Order{}, err
 	}
 	if replay {
-		return s.s.Orders[h], nil
+		o, ok := s.s.Orders[h]
+		if !ok {
+			return Order{}, ErrConflict
+		}
+		if o.Buyer != actor {
+			return Order{}, ErrUnauthorized
+		}
+		return cloneOrder(o), nil
 	}
 	lines := []OrderLine{}
 	var total int64
@@ -448,7 +455,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 
 func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (Order, error) {
@@ -478,7 +485,7 @@ func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (O
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 
 func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, error) {
@@ -489,7 +496,7 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 		return Order{}, ErrNotFound
 	}
 	if o.Status == "paid" && o.Settlement != nil && o.Settlement.TransactionHash == e.TransactionHash {
-		return o, nil
+		return cloneOrder(o), nil
 	}
 	if o.Status != "payment_pending" || o.InvoiceID == "" || e.InvoiceID != o.InvoiceID || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.PayoutAddress != o.PayPayoutAddress || e.Status != "paid" || e.Currency != NativeSymbol || len(e.TransactionHash) != 66 || !strings.HasPrefix(e.TransactionHash, "0x") || len(e.AuditHash) != 64 || e.Payer != o.Buyer || e.BlockHeight == 0 || e.AmountYNXT != o.TotalYNXT || e.ConfirmedAt.IsZero() {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
@@ -516,7 +523,7 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 
 func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Order, error) {
@@ -531,7 +538,7 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 		return Order{}, ErrUnauthorized
 	}
 	if o.Status == "refunded" && o.Refund != nil && o.Refund.ID == e.ID && o.Refund.TransactionHash == e.TransactionHash {
-		return o, nil
+		return cloneOrder(o), nil
 	}
 	validTxHash := (len(e.TransactionHash) == 64 && !strings.HasPrefix(e.TransactionHash, "0x")) || (len(e.TransactionHash) == 66 && strings.HasPrefix(e.TransactionHash, "0x"))
 	if o.Status != "refund_approved" || o.Settlement == nil || e.ID == "" || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.Currency != NativeSymbol || e.Status != "recorded" || e.AmountYNXT != o.TotalYNXT || e.BlockHeight == 0 || e.RecordedAt.IsZero() || !validTxHash || len(e.AuditHash) != 64 || len(e.RequestHash) != 64 {
@@ -541,8 +548,10 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 	o.RefundStatus = "recorded_by_authoritative_pay"
 	o.Status = "refunded"
 	if o.Resolution != nil {
-		o.Resolution.Status = "refunded"
-		o.Resolution.UpdatedAt = s.now()
+		resolution := *o.Resolution
+		resolution.Status = "refunded"
+		resolution.UpdatedAt = s.now()
+		o.Resolution = &resolution
 	}
 	o.UpdatedAt = s.now()
 	s.orderEventLocked(&o, actor, role, "pay_refund_bound", "refunded", e.TransactionHash)
@@ -551,7 +560,7 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 
 func (s *Store) Order(actor, role, id string) (Order, error) {
@@ -561,16 +570,20 @@ func (s *Store) Order(actor, role, id string) (Order, error) {
 	if !ok {
 		return Order{}, ErrNotFound
 	}
-	if role == "buyer" && o.Buyer != actor {
-		return Order{}, ErrUnauthorized
-	}
-	if role == "seller" {
+	switch role {
+	case "buyer":
+		if o.Buyer != actor {
+			return Order{}, ErrUnauthorized
+		}
+	case "seller":
 		sellerRole, ok := s.sellerRoleLocked(o.StoreID, actor)
 		if !ok || !sellerRoleAllows(sellerRole, permissionSellerRead) {
 			return Order{}, ErrUnauthorized
 		}
+	default:
+		return Order{}, ErrUnauthorized
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 func (s *Store) Orders(actor, role string) []Order {
 	s.mu.Lock()
@@ -583,7 +596,7 @@ func (s *Store) Orders(actor, role string) []Order {
 			allowed = ok && sellerRoleAllows(sellerRole, permissionSellerRead)
 		}
 		if allowed {
-			out = append(out, o)
+			out = append(out, cloneOrder(o))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
@@ -593,6 +606,20 @@ func (s *Store) Orders(actor, role string) []Order {
 func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (Order, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Enrich private copies only: retry hashes must keep representing the
+	// caller's original intent, and later caller edits must not change evidence.
+	if shipment != nil {
+		value := *shipment
+		shipment = &value
+	}
+	if res != nil {
+		value := *res
+		res = &value
+	}
+	if review != nil {
+		value := *review
+		review = &value
+	}
 	if shipment != nil && (len(shipment.Carrier) > 120 || len(shipment.TrackingNumber) > 200) {
 		return Order{}, errors.New("shipment fields exceed limits")
 	}
@@ -601,6 +628,37 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	}
 	if review != nil && len(review.Body) > 5000 {
 		return Order{}, errors.New("review exceeds limits")
+	}
+	o, ok := s.s.Orders[id]
+	if !ok {
+		return Order{}, ErrNotFound
+	}
+	buyer := role == "buyer" && o.Buyer == actor
+	sellerRole := ""
+	if role == "seller" {
+		sellerRole, _ = s.sellerRoleLocked(o.StoreID, actor)
+	}
+	canFulfill := sellerRoleAllows(sellerRole, permissionFulfillmentWrite)
+	canResolveReturn := sellerRoleAllows(sellerRole, permissionReturnResolve)
+	canApproveRefund := sellerRoleAllows(sellerRole, permissionRefundApprove)
+	// A replay may return a later order state, but it still requires the
+	// actor's current authority for this action before exposing that record or
+	// allowing the HTTP handler to retry downstream Pay/Trust work.
+	authorized := false
+	switch next {
+	case "cancelled", "return_requested", "refund_requested", "disputed", "reviewed":
+		authorized = buyer
+	case "shipped":
+		authorized = canFulfill
+	case "delivered":
+		authorized = buyer || canFulfill
+	case "return_approved", "return_rejected":
+		authorized = canResolveReturn
+	case "refund_approved", "refund_rejected":
+		authorized = canApproveRefund
+	}
+	if !authorized {
+		return Order{}, ErrInvalidState
 	}
 	request := struct {
 		OrderID, Next string
@@ -617,25 +675,12 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 			return Order{}, err
 		}
 		if replay {
-			existing, ok := s.s.Orders[requestDigest]
-			if !ok {
+			if requestDigest != id {
 				return Order{}, ErrConflict
 			}
-			return existing, nil
+			return cloneOrder(o), nil
 		}
 	}
-	o, ok := s.s.Orders[id]
-	if !ok {
-		return Order{}, ErrNotFound
-	}
-	buyer := role == "buyer" && o.Buyer == actor
-	sellerRole := ""
-	if role == "seller" {
-		sellerRole = s.s.SellerRoles[o.StoreID][actor]
-	}
-	canFulfill := sellerRoleAllows(sellerRole, permissionFulfillmentWrite)
-	canResolveReturn := sellerRoleAllows(sellerRole, permissionReturnResolve)
-	canApproveRefund := sellerRoleAllows(sellerRole, permissionRefundApprove)
 	allowed := false
 	switch next {
 	case "cancelled":
@@ -718,7 +763,7 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return o, nil
+	return cloneOrder(o), nil
 }
 
 func validateStoreFields(name, description, policy, trustURL, settlementAccount string) error {

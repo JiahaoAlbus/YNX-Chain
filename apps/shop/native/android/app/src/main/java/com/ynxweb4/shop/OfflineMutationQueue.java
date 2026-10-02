@@ -6,10 +6,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 final class OfflineMutationQueue {
-    interface Storage {String get(String key)throws Exception;void put(String key,String value)throws Exception;}
-    interface Sender {ProductSession session()throws Exception;JSONObject requestForAccount(String method,String path,JSONObject body,String account)throws Exception;}
+    interface Storage extends CheckoutIntent.Storage {}
+    interface Sender {ProductSession session()throws Exception;JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session)throws Exception;}
     private final Storage secure;
-    OfflineMutationQueue(SecureStore store){this(new Storage(){public String get(String key)throws Exception{return store.get(key);}public void put(String key,String value)throws Exception{store.put(key,value);}});}
+    private boolean flushing;
     OfflineMutationQueue(Storage store){this.secure=store;}
     synchronized String enqueue(String method,String path,JSONObject body) throws Exception{
         ProductSession session=ProductSession.parse(secure.get("commerce_session"),Instant.now());if(session==null)throw new SecurityException("An active account is required to save a pending request");if(!method.equals("POST")||!(path.equals("/orders")||path.matches("/orders/[^/]+/transition")))throw new SecurityException("Only reviewed order actions can be queued");if(path.endsWith("/transition")&&!java.util.Set.of("cancelled","delivered","return_requested","refund_requested","disputed","reviewed").contains(body.optString("Action")))throw new SecurityException("Queued action is not a buyer review action");String key=body.optString("IdempotencyKey");if(key.isBlank())throw new SecurityException("A purchase intent key is required");JSONArray queue=read();
@@ -19,11 +19,34 @@ final class OfflineMutationQueue {
         secure.put("offline_mutations",queue.toString());return id;
     }
     synchronized int size() throws Exception{return read().length();}
-    synchronized int flush(ApiClient api) throws Exception{return flush(new Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject requestForAccount(String method,String path,JSONObject body,String account)throws Exception{return api.requestForAccount(method,path,body,account);}});}
-    synchronized int flush(Sender api) throws Exception{
-        JSONArray queue=read(),remaining=new JSONArray();int completed=0;
-        for(int i=0;i<queue.length();i++){JSONObject item=queue.getJSONObject(i);String account=item.optString("account");ProductSession current=api.session();if(account.isEmpty()||current==null||!account.equals(current.account)){remaining.put(item);continue;}try{api.requestForAccount(item.getString("method"),item.getString("path"),item.getJSONObject("body"),account);completed++;}catch(Exception error){for(int j=i;j<queue.length();j++)remaining.put(queue.get(j));break;}}
-        secure.put("offline_mutations",remaining.toString());return completed;
+    int flush(ApiClient api,ProductSession expected) throws Exception{return flush(new Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session)throws Exception{return api.requestForSession(method,path,body,session);}},expected);}
+    int flush(Sender api) throws Exception{return flush(api,api.session());}
+    int flush(Sender api,ProductSession expected) throws Exception{
+        if(expected==null)throw new SecurityException("Connect Wallet to restore this account's pending actions");
+        final JSONArray pending;
+        synchronized(this){if(flushing)throw new IllegalStateException("Pending actions are already being restored");pending=read();flushing=true;}
+        int completed=0;
+        try{
+            for(int i=0;i<pending.length();i++){
+                JSONObject item=pending.getJSONObject(i);String account=item.optString("account");
+                if(!expected.same(api.session()))break;
+                if(!account.equals(expected.account))continue;
+                try{
+                    JSONObject body=item.getJSONObject("body");String path=item.getString("path");
+                    api.requestForSession(item.getString("method"),path,body,expected);
+                    synchronized(this){
+                        if(path.equals("/orders"))CheckoutIntent.confirmed(secure,account,body);
+                        // Read again so requests added during the network call
+                        // remain queued. No UI enqueue waits for the network.
+                        JSONArray stored=read(),remaining=new JSONArray();
+                        for(int j=0;j<stored.length();j++){JSONObject entry=stored.getJSONObject(j);if(!WalletAuth.canonical(item).equals(WalletAuth.canonical(entry)))remaining.put(entry);}
+                        secure.put("offline_mutations",remaining.toString());
+                    }
+                    completed++;
+                }catch(Exception error){break;}
+            }
+            return completed;
+        }finally{synchronized(this){flushing=false;}}
     }
     private JSONArray read() throws Exception{String raw=secure.get("offline_mutations");return raw.isEmpty()?new JSONArray():new JSONArray(raw);}
 }

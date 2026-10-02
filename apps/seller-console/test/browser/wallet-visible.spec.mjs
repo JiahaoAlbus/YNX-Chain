@@ -13,7 +13,7 @@ test('private Wallet launch keeps Seller visible and exposes official fallback c
 
 // This verifies product UI with a controlled legacy gateway response. It is not
 // proof of installed Wallet approval, canonical v2 SSO or a public deployment.
-async function installPrivateWorkspace(page) {
+async function installPrivateWorkspace(page,{noStores=false,storeARole="catalog",storeAPermissions=["seller.read","catalog.write"],orders=[]}={}) {
   const account='ynx1'+'q'.repeat(38),expiresAt=new Date(Date.now()+120000).toISOString();
   const pending={nonce:'controlled-private-ui',chainId:'ynx_6423-1',requestingProduct:'shop-seller',productClientId:'ynx-seller-v1',bundleId:'com.ynxweb4.seller-console',productDeviceAlgorithm:'p256-sha256',productDeviceKey:'controlled-device-binding',callback:'ynxseller://wallet-auth/callback',purpose:'Controlled local UI test',scopes:['account:read','shop:seller:operate'],expiresAt};
   const response={...pending,account,grantedScopes:pending.scopes,requestDigest:'controlled-ui-digest'};
@@ -24,15 +24,16 @@ async function installPrivateWorkspace(page) {
     const request=route.request(),url=new URL(request.url());let body;
     if(url.pathname==='/api/auth/gateway/challenges')body={challenge:{nonce:'controlled-challenge'}};
     else if(url.pathname==='/api/auth/gateway/sessions')body={account,token:'controlled-product-bearer-1234567890',expiresAt};
-    else if(url.pathname==='/api/seller/stores')body={stores:[{ID:'storeA',Name:'Catalog store',Status:'active'},{ID:'storeB',Name:'Inventory store',Status:'active'}],access:{storeA:{role:'catalog',permissions:['seller.read','catalog.write']},storeB:{role:'inventory',permissions:['seller.read','inventory.write']}}};
-    else if(url.pathname==='/api/orders')body={orders:[]};
+    else if(url.pathname==='/api/seller/stores')body={stores:noStores?[]:[{ID:'storeA',Name:'Catalog store',Status:'active'},{ID:'storeB',Name:'Inventory store',Status:'active'}],access:{storeA:{role:storeARole,permissions:storeAPermissions},storeB:{role:'inventory',permissions:['seller.read','inventory.write']}}};
+    else if(url.pathname==='/api/orders')body={orders};
     else if(url.pathname==='/api/seller/products')body={products:[product(url.searchParams.get('storeId'))]};
     else if(url.pathname.startsWith('/api/seller/products/')&&request.method()==='PUT'){saved.push(request.postDataJSON());body=product('storeA');}
     else {await route.fulfill({status:403,contentType:'application/json',body:'{"error":"role denied"}'});return;}
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
   });
   await page.goto('/?response='+Buffer.from(JSON.stringify(response)).toString('base64url'));
-  await expect(page.locator('#storeSelect')).toContainText('Catalog store');
+  await expect(page.locator('#storeSelect')).toContainText(noStores?'No store':'Catalog store');
+  await expect(page.locator('#privateSession')).toHaveText('Private session active');
   return {saved};
 }
 
@@ -82,4 +83,81 @@ test('closing an AI dialog fences a late run result before reopening',async({pag
   await expect(page.locator('#aiState')).toContainText('Context review required');
   await expect(page.locator('#aiReview')).toBeHidden();
   await expect(page.locator('#aiGrant')).toBeEnabled();
+});
+
+test('onboarding retries a lost create response with the same intent and preserved fields',async({page})=>{
+  await installPrivateWorkspace(page,{noStores:true});
+  const accepted=new Map(),requests=[];
+  await page.route('**/api/seller/stores',async route=>{
+    if(route.request().method()==='GET')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({stores:[...accepted.values()],access:{'created-store':{role:'owner',permissions:['seller.read','catalog.write']}}})});
+    const body=route.request().postDataJSON();requests.push(body);
+    if(!accepted.has(body.IdempotencyKey))accepted.set(body.IdempotencyKey,{ID:'created-store',Name:body.Name,Policy:body.Policy,Status:'onboarding'});
+    if(requests.length===1)return route.abort('connectionreset');
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(accepted.get(body.IdempotencyKey))});
+  });
+  await page.getByRole('button',{name:'Start onboarding',exact:true}).click();
+  await page.locator('#storeForm [name="name"]').fill('My QA store');
+  await page.locator('#storeForm [name="policy"]').fill('Return within seven days');
+  await page.getByRole('button',{name:'Save store',exact:true}).click();
+  await expect(page.locator('#storeState')).not.toBeEmpty();
+  await expect(page.locator('#storeForm [name="name"]')).toHaveValue('My QA store');
+  await expect(page.getByRole('button',{name:'Save store',exact:true})).toBeEnabled();
+  await page.getByRole('button',{name:'Save store',exact:true}).click();
+  await expect(page.locator('#storeDialog')).not.toBeVisible();
+  expect(requests).toHaveLength(2);expect(requests[1]).toEqual(requests[0]);expect(accepted.size).toBe(1);
+  await expect(page.locator('#storeSelect')).toContainText('My QA store');
+});
+
+test('fulfillment retries preserve the accepted shipment intent after a lost response',async({page})=>{
+  const order={ID:'qa-order',StoreID:'storeA',Buyer:'qa-buyer',Status:'paid',TotalYNXT:10,Lines:[],Timeline:[]};
+  await installPrivateWorkspace(page,{storeARole:'fulfillment',storeAPermissions:['seller.read','fulfillment.write'],orders:[order]});
+  const accepted=new Set(),requests=[];
+  await page.route('**/api/orders/qa-order/transition',async route=>{
+    const body=route.request().postDataJSON();requests.push(body);accepted.add(body.IdempotencyKey);order.Status='shipped';
+    if(requests.length===1)return route.abort('connectionreset');
+    return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(order)});
+  });
+  await page.locator('[data-view="orders"]').click();
+  await page.getByRole('button',{name:'Add shipment'}).click();
+  await page.locator('#orderForm [name="carrier"]').fill('QA carrier');
+  await page.locator('#orderForm [name="trackingNumber"]').fill('QA123456');
+  await page.getByRole('button',{name:'Confirm authorized action'}).click();
+  await expect(page.locator('#orderState')).not.toBeEmpty();
+  await expect(page.locator('#orderForm [name="trackingNumber"]')).toHaveValue('QA123456');
+  await page.getByRole('button',{name:'Confirm authorized action'}).click();
+  await expect(page.locator('#orderDialog')).not.toBeVisible();
+  expect(requests).toHaveLength(2);expect(requests[1]).toEqual(requests[0]);expect(accepted.size).toBe(1);
+  await expect(page.locator('#content')).toContainText('shipped');
+});
+
+test('logout while private configuration is pending prevents a late approval launch',async({page})=>{
+  await page.addInitScript(()=>Object.defineProperty(globalThis,'__YNX_SELLER_RUNTIME__',{value:Object.freeze({endpoints:Object.freeze({sellerProductApi:Object.freeze({status:'VERIFIED'})})}),configurable:false,writable:false}));
+  await installProvider(page);
+  let release,started=false;const gate=new Promise(resolve=>release=resolve);
+  await page.route('**/api/auth/config?surface=seller',async route=>{
+    started=true;await gate;
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({version:'1',gateway:'available',chainId:'ynx_6423-1',requestingProduct:'shop-seller',productClientId:'ynx-seller-v1',bundleId:'com.ynxweb4.seller-console',productDeviceAlgorithm:'p256-sha256',callback:'ynxseller://wallet-auth/callback',scopes:['account:read','shop:seller:operate']})}).catch(()=>{});
+  });
+  await page.goto('/');await page.locator('#wallet').click();await page.locator('#privateSession').click();
+  await expect.poll(()=>started).toBe(true);
+  await page.locator('#disconnectWallet').click();release();
+  await expect(page.locator('#state')).toContainText('Signed out.');
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(()=>sessionStorage.getItem('ynx_wallet_pending'))).toBeNull();
+  await expect(page.locator('#wallet')).toHaveText('Connect Wallet');
+  await expect(page.locator('#state')).toContainText('Signed out.');
+});
+
+test('an authoritative expired session clears seller records and closes private editing',async({page})=>{
+  await installPrivateWorkspace(page);
+  await page.locator('[data-view="catalog"]').click();
+  await expect(page.locator('#content')).toContainText('storeA product');
+  await page.getByRole('button',{name:'Edit draft',exact:true}).click();
+  await page.route('**/api/seller/products/product-storeA',route=>route.fulfill({status:401,contentType:'application/json',body:'{"error":"session expired"}'}));
+  await page.getByRole('button',{name:'Save unpublished draft'}).click();
+  await expect(page.locator('#state')).toContainText('session expired');
+  await expect(page.locator('#product')).not.toBeVisible();
+  await expect(page.locator('#content')).toBeEmpty();
+  await expect(page.locator('#storeSelect')).toContainText('No store');
+  await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
 });

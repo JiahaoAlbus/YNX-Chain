@@ -107,13 +107,15 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 
 	profile := s.s.BuyerProfiles[actor]
 	profile.Account = actor
+	profile.Addresses = append([]Address(nil), profile.Addresses...)
 	cart := s.s.Carts[actor]
 	cart.Buyer = actor
+	cart.Items = append([]CartItem(nil), cart.Items...)
 
 	orders := make([]Order, 0)
 	for _, order := range s.s.Orders {
 		if order.Buyer == actor {
-			orders = append(orders, order)
+			orders = append(orders, cloneOrder(order))
 		}
 	}
 	sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAt.After(orders[j].CreatedAt) })

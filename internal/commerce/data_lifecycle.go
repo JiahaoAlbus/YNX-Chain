@@ -78,7 +78,7 @@ func (s *Store) ExportSellerData(actor, storeID, purpose string) (SellerDataExpo
 		if product.StoreID != storeID {
 			continue
 		}
-		products = append(products, product)
+		products = append(products, cloneProduct(product))
 		objectIDs[product.ID] = struct{}{}
 	}
 	sort.Slice(products, func(i, j int) bool { return products[i].ID < products[j].ID })
@@ -88,7 +88,7 @@ func (s *Store) ExportSellerData(actor, storeID, purpose string) (SellerDataExpo
 		if order.StoreID != storeID {
 			continue
 		}
-		orders = append(orders, order)
+		orders = append(orders, cloneOrder(order))
 		objectIDs[order.ID] = struct{}{}
 	}
 	sort.Slice(orders, func(i, j int) bool { return orders[i].ID < orders[j].ID })

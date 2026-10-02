@@ -106,7 +106,8 @@ func (s *Store) BindTrustCase(actor, orderID string, evidence *TrustCaseEvidence
 			return Order{}, errors.New("invalid Trust case evidence")
 		}
 		order.TrustStatus = evidence.Status
-		order.TrustCase = evidence
+		value := *evidence
+		order.TrustCase = &value
 	}
 	order.UpdatedAt = s.now()
 	s.s.Orders[order.ID] = order
@@ -114,5 +115,5 @@ func (s *Store) BindTrustCase(actor, orderID string, evidence *TrustCaseEvidence
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
-	return order, nil
+	return cloneOrder(order), nil
 }

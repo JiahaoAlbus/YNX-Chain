@@ -1,4 +1,5 @@
 import { launchWebAuthorization } from '@ynx-chain/wallet-auth';
+import { createRequestContext } from './request-context.js';
 
 const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
@@ -6,19 +7,23 @@ const REPLAY_STORE = 'replays';
 let bearer = '';
 let approvedSession = null;
 let sessionRevision = 0;
+const authRequests = createRequestContext(() => sessionRevision);
 const privateListeners = new Set();
 export const onPrivateSessionChange = listener => { privateListeners.add(listener); return () => privateListeners.delete(listener); };
 export const privateSession = () => { token(); return approvedSession; };
 function publishPrivateSession() { for (const listener of privateListeners) listener(approvedSession); }
-function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
+function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; authRequests.invalidate(); bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
 
 export const token = () => { if (approvedSession && approvedSession.expiresAt <= Date.now()) discardPrivateSession(); return bearer; };
 
 export async function startWalletAuth(surface) {
+  sessionRevision++; authRequests.invalidate(); sessionStorage.removeItem('ynx_wallet_pending');
+  const assertCurrent = authRequests.capture();
   const config = await requestJSON('/api/auth/config?surface=' + encodeURIComponent(surface));
   if (config.gateway !== 'available') throw new Error('Central Wallet Gateway is unavailable.');
   exactConfig(config, surface);
   const pair = await deviceKey(surface);
+  assertCurrent();
   const publicRaw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
   const compressed = new Uint8Array(33);
   compressed[0] = 2 + (publicRaw[64] & 1);
@@ -39,12 +44,14 @@ export async function startWalletAuth(surface) {
     issuedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + 4 * 60_000).toISOString(),
   };
+  assertCurrent();
   sessionStorage.setItem('ynx_wallet_pending', canonicalJSON(request));
   return launchWebAuthorization(request, { document, window, timeoutMs: 1500 });
 }
 
 export async function completeWalletCallback() {
   const revision = sessionRevision;
+  const assertCurrent = authRequests.capture();
   const query = new URLSearchParams(location.search);
   const encoded = query.get('response');
   if (!encoded) return null;
@@ -60,11 +67,14 @@ export async function completeWalletCallback() {
   }
   const replayKey = response.requestDigest + ':' + response.nonce;
   if (await replaySeen(replayKey)) throw new Error('Wallet callback replay rejected.');
+  assertCurrent();
   const challengeEnvelope = await requestJSON('/api/auth/gateway/challenges', { method: 'POST', body: JSON.stringify(response) });
   const challenge = challengeEnvelope.challenge || challengeEnvelope;
   const pair = await deviceKey(response.productClientId.includes('seller') ? 'seller' : 'buyer');
+  assertCurrent();
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V1\n' + canonicalJSON(challenge))));
   const completion = { challenge, deviceSignature: base64url(rawSignatureToDER(signature)) };
+  assertCurrent();
   const session = await requestJSON('/api/auth/gateway/sessions', { method: 'POST', body: JSON.stringify(completion) });
   if (typeof session.account !== 'string' || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(session.account) || typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) {
     throw new Error('Central Gateway returned an invalid product session.');
@@ -100,10 +110,7 @@ function localizedPurpose(surface) {
 
 async function requestJSON(path, options = {}) {
   if (location.pathname.startsWith('/seller-staging/') && path.startsWith('/api')) path = '/shop-api-staging' + path;
-  const response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
-  const value = await response.json().catch(() => ({ error: 'Invalid server response' }));
-  if (!response.ok) throw new Error(value.error || ('Request failed ' + response.status));
-  return value;
+  return authRequests.fetchJSON(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
 }
 
 async function deviceKey(surface) {

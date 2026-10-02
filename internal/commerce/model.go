@@ -246,3 +246,35 @@ func cloneProduct(product Product) Product {
 	}
 	return product
 }
+
+// Orders contain mutable evidence pointers as well as line and timeline slices.
+// Keep stored records and response snapshots independent after releasing the lock.
+func cloneOrder(order Order) Order {
+	order.Lines = append([]OrderLine(nil), order.Lines...)
+	order.Timeline = append([]OrderEvent(nil), order.Timeline...)
+	if order.Settlement != nil {
+		evidence := *order.Settlement
+		order.Settlement = &evidence
+	}
+	if order.Refund != nil {
+		evidence := *order.Refund
+		order.Refund = &evidence
+	}
+	if order.Shipment != nil {
+		shipment := *order.Shipment
+		order.Shipment = &shipment
+	}
+	if order.Resolution != nil {
+		resolution := *order.Resolution
+		order.Resolution = &resolution
+	}
+	if order.Review != nil {
+		review := *order.Review
+		order.Review = &review
+	}
+	if order.TrustCase != nil {
+		evidence := *order.TrustCase
+		order.TrustCase = &evidence
+	}
+	return order
+}

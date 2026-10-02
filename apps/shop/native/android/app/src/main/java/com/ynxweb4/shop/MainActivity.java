@@ -19,15 +19,16 @@ import java.time.format.*;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private static final int BLUE=Color.rgb(0,47,167),INK=Color.rgb(7,20,51),LINE=Color.rgb(220,227,242),CREATE_PRIVACY_EXPORT=6423;
+    private static final int BLUE=Color.rgb(0,47,167),INK=Color.rgb(7,20,51),LINE=Color.rgb(220,227,242);
     private SecureStore secure; private ApiClient api; private OfflineMutationQueue queue; private WalletAuth wallet; private ImageLoader images;
     private LinearLayout content; private TextView status,cartBadge; private JSONArray products=new JSONArray(),cart=new JSONArray();
-    private EditText recipient,address,city,country; private String pendingPrivacyExport="", loadedCartKey="";
+    private EditText recipient,address,city,country; private String loadedCartKey="",loadedCartText="";
+    private final PrivacyExport privacyExport=new PrivacyExport();
     private final android.os.Handler sessionClock=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Set<AlertDialog> privateDialogs=new HashSet<>();
     private ProductSession presentationSession;
     private void showDialog(AlertDialog dialog){privateDialogs.add(dialog);dialog.setOnDismissListener(d->privateDialogs.remove(dialog));dialog.show();}
-    private void clearPrivatePresentation(){for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();pendingPrivacyExport="";recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void clearPrivatePresentation(){for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -41,8 +42,20 @@ public final class MainActivity extends Activity {
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
     @Override public void onCreate(Bundle state){super.onCreate(state);secure=new SecureStore(this);api=new ApiClient(secure);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleIntent(intent);}
-    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode!=CREATE_PRIVACY_EXPORT||resultCode!=RESULT_OK||data==null||data.getData()==null||pendingPrivacyExport.isEmpty())return;try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IllegalStateException("export destination unavailable");out.write(pendingPrivacyExport.getBytes(java.nio.charset.StandardCharsets.UTF_8));pendingPrivacyExport="";status.setText(getString(R.string.privacy_export_ready));}catch(Exception error){status.setText(getString(R.string.privacy_export_unavailable));}}
-    @Override protected void onDestroy(){sessionClock.removeCallbacksAndMessages(null);for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();wallet.close();api.close();images.close();super.onDestroy();}
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
+        super.onActivityResult(requestCode,resultCode,data);if(!privacyExport.matches(requestCode))return;
+        if(resultCode!=RESULT_OK||data==null||data.getData()==null){privacyExport.cancel(requestCode);return;}
+        try{
+            String payload=privacyExport.consume(requestCode,api.session());
+            if(payload.isEmpty()){status.setText(getString(R.string.privacy_export_unavailable));return;}
+            try(OutputStream out=getContentResolver().openOutputStream(data.getData())){
+                if(out==null)throw new IllegalStateException("export destination unavailable");
+                out.write(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            }
+            status.setText(getString(R.string.privacy_export_ready));
+        }catch(Exception error){privacyExport.cancel(requestCode);status.setText(getString(R.string.privacy_export_unavailable));}
+    }
+    @Override protected void onDestroy(){privacyExport.clear();sessionClock.removeCallbacksAndMessages(null);for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();wallet.close();api.close();images.close();super.onDestroy();}
 
     private void build(){
         LinearLayout root=column();root.setBackgroundColor(Color.WHITE);
@@ -98,14 +111,17 @@ public final class MainActivity extends Activity {
     }
 
     private void addCart(JSONObject product,JSONObject variant)throws Exception{
-        syncCartContext();
-        for(int i=0;i<cart.length();i++){JSONObject item=cart.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){item.put("Quantity",item.getInt("Quantity")+1);persistCart();return;}}
-        cart.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));persistCart();
+        synchronized(secure){
+            syncCartContext();
+            for(int i=0;i<cart.length();i++){JSONObject item=cart.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){item.put("Quantity",item.getInt("Quantity")+1);persistCart();return;}}
+            cart.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));persistCart();
+        }
     }
     private String cartKey()throws Exception{ProductSession session=api.session();return session==null?"cart:guest":("cart:"+session.account);}
-    private void syncCartContext()throws Exception{if(!cartKey().equals(loadedCartKey))restoreCart();}
-    private void persistCart()throws Exception{syncCartContext();secure.put(loadedCartKey,cart.toString());cartBadge.setText(String.valueOf(cart.length()));if(hasSession())api.request("PUT","/cart",new JSONObject().put("Items",cart),(v,e)->{});status.setText(getString(R.string.add_cart));}
-    private void restoreCart(){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();status.setText(getString(R.string.security_error));}}
+    private void syncCartContext()throws Exception{String key=cartKey();if(!key.equals(loadedCartKey)||!secure.get(key).equals(loadedCartText))restoreCart();}
+    private void persistCart()throws Exception{synchronized(secure){syncCartContext();String saved=cart.toString();secure.put(loadedCartKey,saved);loadedCartText=saved;cartBadge.setText(String.valueOf(cart.length()));syncRemoteCart();status.setText(getString(R.string.add_cart));}}
+    private void syncRemoteCart()throws Exception{if(hasSession())api.request("PUT","/cart",new JSONObject().put("Items",new JSONArray(cart.toString())),(v,e)->{});}
+    private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
     private void showCart(){
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
@@ -122,12 +138,15 @@ public final class MainActivity extends Activity {
     private void checkout(){
         if(!hasSession()){signIn();return;}if(recipient.getText().toString().isBlank()||address.getText().toString().isBlank()||country.getText().toString().isBlank()){status.setText(getString(R.string.address));return;}
         try{
-            JSONObject first=cart.getJSONObject(0),product=findProduct(first.getString("ProductID"));
-            ProductSession session=api.session();if(session==null){signIn();return;}
-            JSONObject body=new JSONObject().put("StoreID",product.getString("StoreID")).put("Items",cart).put("Address",new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString()));
-            String intentStorage="checkout:"+session.account;CheckoutIntent intent=CheckoutIntent.prepare(session.account,body,secure.get(intentStorage));secure.put(intentStorage,intent.serialized);body.put("IdempotencyKey",intent.key);
+            final CheckoutIntent.Prepared prepared;
+            synchronized(secure){
+                syncCartContext();if(cart.length()==0){showCart();return;}
+                JSONObject shipping=new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString());
+                prepared=CheckoutIntent.prepareCart(secure,shipping,id->findProduct(id).getString("StoreID"));
+            }
+            ProductSession session=prepared.session;JSONObject body=prepared.body;
             if(!isOnline()){queue.enqueue("POST","/orders",body);status.setText(getString(R.string.queued_offline));return;}
-            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}try{if(intent.serialized.equals(secure.get(intentStorage)))secure.remove(intentStorage);cart=new JSONArray();persistCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
+            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}try{boolean cleared=CheckoutIntent.confirmed(secure,session.account,body);restoreCart();if(cleared)syncRemoteCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
         }catch(Exception error){status.setText(error.getMessage());}
     }
 
@@ -162,11 +181,33 @@ public final class MainActivity extends Activity {
         content.removeAllViews();content.addView(text(getString(R.string.nav_account),30,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);
-        Button retry=button(getString(R.string.restore_pending));retry.setOnClickListener(v->new Thread(()->{try{int count=queue.flush(api);runOnUiThread(()->status.setText(count+" "+getString(R.string.restore_pending)));}catch(Exception e){runOnUiThread(()->status.setText(e.getMessage()));}}).start());content.addView(retry);
+        Button retry=button(getString(R.string.restore_pending));retry.setOnClickListener(v->restorePending(retry));content.addView(retry);
         if(hasSession()){Button logout=button(getString(R.string.sign_out));logout.setOnClickListener(v->{try{wallet.signOut();}catch(Exception error){status.setText(getString(R.string.security_error));return;}reconcileSession();status.setText(getString(R.string.wallet_sign_in));});content.addView(logout);recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));for(EditText f:List.of(recipient,address,city,country))content.addView(f);Button save=primary(getString(R.string.save_profile));save.setOnClickListener(v->saveProfile());content.addView(save);content.addView(text(getString(R.string.privacy_data_title),18,true));content.addView(text(getString(R.string.privacy_data_description),13,false));Button export=button(getString(R.string.privacy_export_button));export.setOnClickListener(v->exportPrivacyData());content.addView(export);Button delete=button(getString(R.string.privacy_delete_button));delete.setTextColor(Color.rgb(180,35,24));delete.setOnClickListener(v->confirmPrivacyDeletion());content.addView(delete);}
     }
     private void saveProfile(){try{JSONObject body=new JSONObject().put("DisplayName","").put("Addresses",new JSONArray().put(new JSONObject().put("Recipient",recipient.getText()).put("Line1",address.getText()).put("City",city.getText()).put("Country",country.getText())));api.request("PUT","/profile",body,(v,e)->runOnUiThread(()->status.setText(e==null?getString(R.string.profile_saved):e.getMessage())));}catch(Exception e){status.setText(e.getMessage());}}
-    private void exportPrivacyData(){api.request("GET","/privacy/export",null,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(getString(R.string.privacy_export_unavailable));return;}pendingPrivacyExport=value.toString();Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"ynx-shop-data-"+LocalDate.now()+".json");startActivityForResult(intent,CREATE_PRIVACY_EXPORT);}));}
+    private void exportPrivacyData(){
+        try{
+            ProductSession expected=api.session();int code=privacyExport.begin(expected);
+            api.request("GET","/privacy/export",null,(value,error)->{
+                if(error!=null){privacyExport.cancel(code);status.setText(getString(R.string.privacy_export_unavailable));return;}
+                try{
+                    if(!privacyExport.ready(code,api.session(),value.toString()))return;
+                    Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"ynx-shop-data-"+LocalDate.now()+".json");
+                    startActivityForResult(intent,code);
+                }catch(Exception failure){privacyExport.cancel(code);status.setText(getString(R.string.privacy_export_unavailable));}
+            });
+        }catch(Exception error){status.setText(getString(R.string.privacy_export_unavailable));}
+    }
+    private boolean isCurrent(ProductSession expected){try{return !isFinishing()&&!isDestroyed()&&expected!=null&&expected.same(api.session());}catch(Exception error){return false;}}
+    private void restorePending(Button retry){
+        final ProductSession expected;final String previousCart;
+        try{expected=api.session();if(expected==null){signIn();return;}previousCart=secure.get("cart:"+expected.account);}catch(Exception error){status.setText(getString(R.string.security_error));return;}
+        retry.setEnabled(false);status.setText(getString(R.string.loading));
+        new Thread(()->{
+            try{int count=queue.flush(api,expected);runOnUiThread(()->{if(!isCurrent(expected))return;retry.setEnabled(true);restoreCart();try{if(!previousCart.equals(loadedCartText))syncRemoteCart();}catch(Exception error){status.setText(getString(R.string.security_error));return;}status.setText(count+" "+getString(R.string.restore_pending));});}
+            catch(Exception error){runOnUiThread(()->{if(!isCurrent(expected))return;retry.setEnabled(true);status.setText(error.getMessage());});}
+        }).start();
+    }
     private void confirmPrivacyDeletion(){EditText confirmation=input("DELETE_MY_SHOP_DATA");showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.privacy_delete_button)).setMessage(getString(R.string.privacy_delete_warning)).setView(confirmation).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.privacy_delete_action),(dialog,which)->{if(!"DELETE_MY_SHOP_DATA".equals(confirmation.getText().toString())){status.setText(getString(R.string.privacy_exact_required));return;}api.request("POST","/privacy/delete",json("confirmation","DELETE_MY_SHOP_DATA"),(value,error)->runOnUiThread(()->{if(error!=null){status.setText(getString(R.string.privacy_delete_failed));return;}try{secure.put(cartKey(),"");cart=new JSONArray();cartBadge.setText("0");status.setText(getString(R.string.privacy_deleted)+" "+value.optString("receiptId"));showAccount();}catch(Exception e){status.setText(getString(R.string.privacy_delete_failed));}}));}).create());}
 
     private void runAI(String workflow,String contextClass,String summary,long units){
