@@ -31,6 +31,7 @@ function makeQA(account,code){
 }
 async function signIn(qa){const start=await request(qa,'/sso/start?target=conversations');assert.equal(start.status,303);const state=new URL(start.headers.get('Location')).searchParams.get('state');const callback=await request(qa,`/sso/callback?state=${encodeURIComponent(state)}&code=${qa.code.repeat(43)}`);assert.equal(callback.status,303);assert.equal((await qa.identity()).account,qa.account)}
 async function authorize(qa){await qa.workspace.authorize();await qa.workspace.accept(origin+'/wallet-auth/callback?state=synthetic-approved-only')}
+async function confirmedContact(workspace,handle){const preview=await workspace.previewContact('handle',handle);await workspace.requestContact(handle,preview)}
 const a=makeQA(process.env.SOCIAL_JOURNEY_ACCOUNT_A,'a'),b=makeQA(process.env.SOCIAL_JOURNEY_ACCOUNT_B,'b');
 try{
   await signIn(a);await signIn(b);
@@ -40,10 +41,10 @@ try{
   for(const qa of [a,b]){assert.equal(qa.workspace.current.needsProfileSetup,true);assert.deepEqual(qa.workspace.current.contacts,[]);assert.deepEqual(qa.workspace.current.requests,[]);assert.deepEqual(qa.workspace.current.conversations,[])}
   await a.workspace.updateProfile({handle:'qa_alice',displayName:'QA Alice',bio:'First QA profile'});
   await b.workspace.updateProfile({handle:'qa_bob',displayName:'QA Bob',bio:'Second QA profile'});
-  await a.workspace.requestContact('qa_bob');await b.workspace.refresh();
+  await confirmedContact(a.workspace,'qa_bob');await b.workspace.refresh();
   let incoming=b.workspace.current.requests.find(item=>item.direction==='incoming'&&item.status==='pending');assert.ok(incoming);await b.workspace.transitionContact(incoming.id,'reject');await a.workspace.refresh();assert.equal(a.workspace.current.contacts.length,0);await assert.rejects(a.workspace.createConversation('qa_bob'),/accept/);
-  await a.workspace.requestContact('qa_bob');let outgoing=a.workspace.current.requests.find(item=>item.direction==='outgoing'&&item.status==='pending');assert.ok(outgoing);await a.workspace.transitionContact(outgoing.id,'withdraw');await b.workspace.refresh();assert.equal(b.workspace.current.requests.filter(item=>item.status==='pending').length,0);
-  await a.workspace.requestContact('qa_bob');await b.workspace.refresh();incoming=b.workspace.current.requests.find(item=>item.direction==='incoming'&&item.status==='pending');assert.ok(incoming);await b.workspace.transitionContact(incoming.id,'accept');await a.workspace.refresh();assert.equal(a.workspace.current.contacts[0].handle,'qa_bob');assert.equal(b.workspace.current.contacts[0].handle,'qa_alice');
+  await confirmedContact(a.workspace,'qa_bob');let outgoing=a.workspace.current.requests.find(item=>item.direction==='outgoing'&&item.status==='pending');assert.ok(outgoing);await a.workspace.transitionContact(outgoing.id,'withdraw');await b.workspace.refresh();assert.equal(b.workspace.current.requests.filter(item=>item.status==='pending').length,0);
+  await confirmedContact(a.workspace,'qa_bob');await b.workspace.refresh();incoming=b.workspace.current.requests.find(item=>item.direction==='incoming'&&item.status==='pending');assert.ok(incoming);await b.workspace.transitionContact(incoming.id,'accept');await a.workspace.refresh();assert.equal(a.workspace.current.contacts[0].handle,'qa_bob');assert.equal(b.workspace.current.contacts[0].handle,'qa_alice');
   await a.workspace.createConversation('qa_bob');const conversation=a.workspace.current.conversationId;assert.ok(conversation);
   await a.workspace.send('First encrypted message from an empty QA journey');assert.equal(a.outbox.read().length,0);await b.workspace.refresh();assert.equal(b.workspace.current.conversations.length,1);await b.workspace.select(conversation);assert.equal(b.workspace.current.messages[0].plaintext,'First encrypted message from an empty QA journey');
   // Cold controller/crypto-key structured clone retains the original device/history.
