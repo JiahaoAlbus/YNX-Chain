@@ -8,7 +8,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {dirname,resolve,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const web=resolve(dirname(fileURLToPath(import.meta.url)),'../web'),root=resolve(web,'../../..');
-const source='5e840877d3c7b6e648da70d214b9811cd9d8f688',predecessorPin='e09ed6fd0f5114f7423d90aca317a374b596c5f03d5ddd969fbbb48a9a8fc19d';
+const source='05f6e6261218aff654b87823e75d6060a3113267',predecessorPin='c14b2cfcd1f26e7229ddfef277bcfca5bdb0f2345a15bbd21f6599297d1523d6';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),read=p=>readFileSync(resolve(root,p));
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
 const frozen=execFileSync('git',['show',`${source}:apps/finance/web/wallet-verifier-manifest.json`],{cwd:root});assert.equal(sha(frozen),predecessorPin);

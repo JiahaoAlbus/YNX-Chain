@@ -2,12 +2,12 @@
   "schemaVersion": "ynx.finance.evm-read-runtime-verifier-candidate.v1",
   "status": "INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC",
   "reviewedOwnerSource": {
-    "commit": "5e840877d3c7b6e648da70d214b9811cd9d8f688",
-    "tree": "5618ceba2f3a0ef0c3a8da3b73b60f72359a89c8"
+    "commit": "05f6e6261218aff654b87823e75d6060a3113267",
+    "tree": "66439846237c36f411327ec976f94eb5f80779f3"
   },
   "sharedWalletAuthSource": {
-    "commit": "5e840877d3c7b6e648da70d214b9811cd9d8f688",
-    "tree": "4e7e2ac3a15e4dc12e9da8e1b6eb1ca350a0b309",
+    "commit": "05f6e6261218aff654b87823e75d6060a3113267",
+    "tree": "1af38a775d003a12ead3e40a7e730da8651db064",
     "packageRoot": "packages/wallet-auth/src/index.js",
     "packageLock": "packages/wallet-auth/package-lock.json"
   },
@@ -74,7 +74,7 @@
     {
       "path": "apps/finance/web/index.html",
       "bytes": 36630,
-      "sha256": "0efb8d51f9e46a968b244060ef6718e9ac530a8b202747f0268e1368b45e6b63"
+      "sha256": "b07e3a5d80377801467fee898074414ff0e5f8c8f1d8dd99710212b2ce3629e0"
     },
     {
       "path": "apps/finance/web/evm-read-session.js",
@@ -278,8 +278,8 @@
     },
     {
       "path": "apps/finance/web/private-wallet-entry.js",
-      "bytes": 14239,
-      "sha256": "021f8dd53c0dcd08b895c7943a2e09789f00bf22ed27fa67f4a8a8f9ce03e2d1"
+      "bytes": 14406,
+      "sha256": "5f92a0e2bd5cd59abc2db862b22f69f4558cd6fa07d09af48c88bfabe7fa3d07"
     },
     {
       "path": "apps/finance/web/private-finite-consent-copy.js",

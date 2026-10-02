@@ -9,14 +9,14 @@
   "evmRead": {
     "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-browser-revocation-f0b1ab4e5-20261002.json",
     "candidateBytes": 77933,
-    "candidateSha256": "06d1552dff19f5de8eea2a64bc5640df70c822afabf2186b5a602d22d0ef23a4"
+    "candidateSha256": "38b08080e322199e2d0e8ee110675ba59cde6d1be3247d2c27f121f2522c8dcd"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 776503,
-    "sha256": "ff7d771d3566cfb30e71a44413075e230a0deb7c0aa028d96113051eb954b65d"
+    "bytes": 776576,
+    "sha256": "1dc06960aea000d4b4bff076a261d2af3c3f5efcc8735d73828d19d3b2ea8918"
   },
   "files": [
     {
@@ -36,8 +36,8 @@
     },
     {
       "path": "private-wallet-entry.js",
-      "bytes": 14239,
-      "sha256": "021f8dd53c0dcd08b895c7943a2e09789f00bf22ed27fa67f4a8a8f9ce03e2d1"
+      "bytes": 14406,
+      "sha256": "5f92a0e2bd5cd59abc2db862b22f69f4558cd6fa07d09af48c88bfabe7fa3d07"
     },
     {
       "path": "endpoint-authority-entry.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 776503,
-      "sha256": "ff7d771d3566cfb30e71a44413075e230a0deb7c0aa028d96113051eb954b65d"
+      "bytes": 776576,
+      "sha256": "1dc06960aea000d4b4bff076a261d2af3c3f5efcc8735d73828d19d3b2ea8918"
     },
     {
       "path": "order-wallet.js",
@@ -92,7 +92,7 @@
     {
       "path": "index.html",
       "bytes": 36630,
-      "sha256": "0efb8d51f9e46a968b244060ef6718e9ac530a8b202747f0268e1368b45e6b63"
+      "sha256": "b07e3a5d80377801467fee898074414ff0e5f8c8f1d8dd99710212b2ce3629e0"
     },
     {
       "path": "app.js",
@@ -197,7 +197,7 @@
     {
       "path": "../evidence/evm-read-runtime-verifier-candidate-browser-revocation-f0b1ab4e5-20261002.json",
       "bytes": 77933,
-      "sha256": "06d1552dff19f5de8eea2a64bc5640df70c822afabf2186b5a602d22d0ef23a4"
+      "sha256": "38b08080e322199e2d0e8ee110675ba59cde6d1be3247d2c27f121f2522c8dcd"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
