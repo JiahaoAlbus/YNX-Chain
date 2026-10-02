@@ -1,0 +1,47 @@
+{
+  "results": [
+    {
+      "case": "ciphertext-save",
+      "expectedRejected": true,
+      "rejected": false,
+      "ciphertextRetained": false,
+      "error": "",
+      "status": "FAIL"
+    },
+    {
+      "case": "revision-load",
+      "expectedRejected": true,
+      "rejected": false,
+      "ciphertextRetained": true,
+      "error": "",
+      "status": "FAIL"
+    },
+    {
+      "case": "wrongkey-save",
+      "expectedRejected": true,
+      "rejected": false,
+      "ciphertextRetained": false,
+      "error": "",
+      "status": "FAIL"
+    },
+    {
+      "case": "wrong-origin",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "wrong-account",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    }
+  ],
+  "pass": 2,
+  "fail": 3,
+  "skip": 0
+}

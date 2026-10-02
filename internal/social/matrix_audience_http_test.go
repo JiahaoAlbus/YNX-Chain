@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -26,6 +27,98 @@ type audienceProofSpy struct {
 type syntheticAudienceActionVerifier struct {
 	body   []byte
 	scopes []string
+}
+
+// Explicit test dependency only. Production Config defaults to nil/503 and
+// must use A's approved confidential reader; this is not Native acceptance.
+type syntheticAudienceRevalidator struct {
+	run func(context.Context, productsessionv2.Session, []string) (productsessionv2.Session, error)
+}
+
+func (v syntheticAudienceRevalidator) Revalidate(ctx context.Context, original productsessionv2.Session, scopes []string) (productsessionv2.Session, error) {
+	if v.run != nil {
+		return v.run(ctx, original, scopes)
+	}
+	return original, nil
+}
+
+func TestMatrixAudienceMissingConfidentialReaderCannotObserveOrReserveNonce(t *testing.T) {
+	s, actor, _, authority := audienceFixture(t)
+	s.cfg.MatrixAudienceSessionRevalidator = nil
+	s.cfg.ProductSessions = map[string]ProductSessionAuthorizer{"native": &audienceProofSpy{account: actor, approved: []string{"social.contacts", "social.feed", "social.messaging", "social.profile"}}}
+	s.cfg.MatrixAudienceActionVerifier = &syntheticAudienceActionVerifier{}
+	observations := 0
+	authority.observe = func(MatrixAudienceMetadata) { observations++ }
+	r := httptest.NewRequest(http.MethodPost, "/social/v3/matrix/audience/resolve", bytes.NewBufferString(`{"kind":"private"}`))
+	r.Header.Set(productsessionv2.ProofHeader, base64.RawURLEncoding.EncodeToString([]byte(`{"platform":"native"}`)))
+	r.Header.Set("X-YNX-Product-Session-Action-Proof-V2", "synthetic-action")
+	w := httptest.NewRecorder()
+	(&Server{service: s}).Handler().ServeHTTP(w, r)
+	if w.Code != 503 || observations != 0 || len(s.state.MatrixAudienceNonces) != 0 {
+		t.Fatal("missing server reader reached protected work", w.Code, observations)
+	}
+}
+
+func TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent(t *testing.T) {
+	for _, status := range []int{401, 403, 503} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			s, actor, _, authority := audienceFixture(t)
+			s.cfg.ProductSessions = map[string]ProductSessionAuthorizer{"native": &audienceProofSpy{account: actor, approved: []string{"social.contacts", "social.feed", "social.messaging", "social.profile"}}}
+			s.cfg.MatrixAudienceActionVerifier = &syntheticAudienceActionVerifier{}
+			confirmed, reads := false, 0
+			authority.observe = func(MatrixAudienceMetadata) { confirmed = true }
+			s.cfg.MatrixAudienceSessionRevalidator = syntheticAudienceRevalidator{run: func(_ context.Context, original productsessionv2.Session, scopes []string) (productsessionv2.Session, error) {
+				reads++
+				if !reflect.DeepEqual(scopes, []string{"social.contacts", "social.feed", "social.messaging", "social.profile"}) {
+					t.Fatal("reader received widened or client-selected scopes")
+				}
+				if confirmed {
+					return productsessionv2.Session{}, &productsessionv2.Error{Status: status, Code: "SYNTHETIC_REVALIDATION_REJECTION"}
+				}
+				return original, nil
+			}}
+			r := httptest.NewRequest(http.MethodPost, "/social/v3/matrix/audience/resolve", bytes.NewBufferString(`{"kind":"private"}`))
+			r.Header.Set(productsessionv2.ProofHeader, base64.RawURLEncoding.EncodeToString([]byte(`{"platform":"native"}`)))
+			r.Header.Set("X-YNX-Product-Session-Action-Proof-V2", "synthetic-action")
+			w := httptest.NewRecorder()
+			(&Server{service: s}).Handler().ServeHTTP(w, r)
+			if w.Code != status || reads != 2 || len(s.state.MatrixAudiences) != 0 || len(s.state.MatrixAudienceNonces) != 1 {
+				t.Fatal("after-await rejection lost classification or original intent", w.Code, reads)
+			}
+		})
+	}
+}
+
+func TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew(t *testing.T) {
+	mutations := map[string]func(*productsessionv2.Session){
+		"actor":   func(session *productsessionv2.Session) { session.Account = "ynx1" + strings.Repeat("b", 38) },
+		"binding": func(session *productsessionv2.Session) { session.SessionBinding = "replacement" },
+		"scope":   func(session *productsessionv2.Session) { session.Scopes = append(session.Scopes, "social.ai") },
+		"expiry": func(session *productsessionv2.Session) {
+			session.ExpiresAt = time.Now().Add(24 * time.Hour).Format(time.RFC3339Nano)
+		},
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			s, actor, _, authority := audienceFixture(t)
+			s.cfg.ProductSessions = map[string]ProductSessionAuthorizer{"native": &audienceProofSpy{account: actor, approved: []string{"social.contacts", "social.feed", "social.messaging", "social.profile"}}}
+			s.cfg.MatrixAudienceActionVerifier = &syntheticAudienceActionVerifier{}
+			s.cfg.MatrixAudienceSessionRevalidator = syntheticAudienceRevalidator{run: func(_ context.Context, original productsessionv2.Session, _ []string) (productsessionv2.Session, error) {
+				mutate(&original)
+				return original, nil
+			}}
+			observations := 0
+			authority.observe = func(MatrixAudienceMetadata) { observations++ }
+			r := httptest.NewRequest(http.MethodPost, "/social/v3/matrix/audience/resolve", bytes.NewBufferString(`{"kind":"private"}`))
+			r.Header.Set(productsessionv2.ProofHeader, base64.RawURLEncoding.EncodeToString([]byte(`{"platform":"native"}`)))
+			r.Header.Set("X-YNX-Product-Session-Action-Proof-V2", "synthetic-action")
+			w := httptest.NewRecorder()
+			(&Server{service: s}).Handler().ServeHTTP(w, r)
+			if w.Code != 403 || observations != 0 || len(s.state.MatrixAudienceNonces) != 0 {
+				t.Fatal("reader silently changed original complete session", name, w.Code, observations)
+			}
+		})
+	}
 }
 
 func (a *syntheticAudienceActionVerifier) VerifyHTTPAction(_ context.Context, _ *http.Request, session productsessionv2.Session, body []byte, scopes []string) (MatrixAudienceActionReceipt, error) {

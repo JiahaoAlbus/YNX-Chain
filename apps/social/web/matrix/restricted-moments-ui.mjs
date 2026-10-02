@@ -37,7 +37,7 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
   const enabled=typeof resolveAudience==='function'&&typeof authorize==='function';
   const consumer=enabled?new RestrictedMoments({transport,authorize}):null;
   const attachments=consumer?new RestrictedMomentAttachments({consumer}):null;
-  let reviewed=null,pending=null,visibleBinding=null,selectionRecords=null,selectedFile=null,reviewing=null,editEpoch=0;
+  let reviewed=null,pending=null,visibleBinding=null,selectionRecords=null,selectedFile=null,reviewing=null,saving=null,editEpoch=0;
   // Drafts remain in this process only. Durable protected recovery is separate.
   const localDrafts=new Map();
   function remember(){if(visibleBinding)localDrafts.set(visibleBinding,{text:input.value,file:selectedFile})}
@@ -45,14 +45,14 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     let view;try{view=capture();guard(view)}catch{lock();return}
     if(visibleBinding!==view.operation.binding){remember();visibleBinding=view.operation.binding;const saved=localDrafts.get(visibleBinding);input.value=saved?.text??'';selectedFile=saved?.file??null;fileInput.value='';reviewed=null;pending=null;selectionRecords=null;group.replaceChildren();people.replaceChildren()}
     group.hidden=choice.value!=='group';people.hidden=choice.value!=='selected';
-    const busy=!!pending||!!reviewing;
+    const busy=!!pending||!!reviewing||!!saving;
     choice.disabled=!enabled||busy;group.disabled=!enabled||busy;people.disabled=!enabled||busy;input.disabled=!enabled||busy;review.disabled=!enabled||busy;
     fileInput.disabled=!enabled||busy;fileStatus.textContent=selectedFile?`Retained attachment: ${selectedFile.name}`:'No attachment selected.';
     send.disabled=!enabled||!reviewed||busy;
     saveDraft.disabled=restoreDraft.disabled=!drafts||busy;
     if(!enabled)status.textContent='Restricted publishing is not enabled: live audience authorization is not connected. Chat approval does not authorize publishing.';
   }
-  function lock(){editEpoch++;reviewing=null;remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;group.disabled=true;people.disabled=true;review.disabled=true;send.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
+  function lock(){editEpoch++;reviewing=null;saving=null;remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;group.disabled=true;people.disabled=true;review.disabled=true;send.disabled=true;saveDraft.disabled=true;restoreDraft.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
   const invalidate=()=>{editEpoch++;reviewed=null;send.disabled=true;remember();status.textContent='Review the audience and current draft before publishing.'};
   input.addEventListener('input',invalidate);group.addEventListener('change',invalidate);people.addEventListener('change',invalidate);
   fileInput.addEventListener('change',()=>{selectedFile=fileInput.files?.[0]??null;invalidate();refresh()});
@@ -71,28 +71,35 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     return {kind};
   }
   saveDraft.onclick=()=>void work(async()=>{
-    if(!drafts)return;const view=capture(),text=input.value,file=selectedFile,chosen=selection(),epoch=editEpoch;await identity(view);guard(view);
-    const encoded=await encodeDraftFile(file);guard(view);if(epoch!==editEpoch)throw new Error('Draft changed; save again');
-    await drafts.save(view,{transactionId:reviewed?.transactionId??crypto.randomUUID().replaceAll('-',''),text,selection:chosen,file:encoded,status:'draft'});guard(view);status.textContent='Draft saved in protected storage for this original account and device.';
+    if(!drafts||saving||reviewing||pending)return;
+    const view=capture(),text=input.value,file=selectedFile,chosen=selection(),epoch=editEpoch,transactionId=reviewed?.transactionId??crypto.randomUUID().replaceAll('-','');
+    const saveIntent={view,epoch};saving=saveIntent;refresh();
+    const unchanged=()=>{guard(view);if(saving!==saveIntent||epoch!==editEpoch||input.value!==text||selectedFile!==file||JSON.stringify(selection())!==JSON.stringify(chosen))throw new Error('Current draft changed; its save is not confirmed')};
+    try{
+      unchanged();await identity(view);unchanged();
+      const encoded=await encodeDraftFile(file);unchanged();
+      await drafts.save(view,{transactionId,text,selection:chosen,file:encoded,status:'draft'});unchanged();status.textContent='Draft saved in protected storage for this original account and device.';
+    }catch(error){if(visibleBinding===view.operation.binding)status.textContent='Current draft save was not confirmed. Original protected records were retained.';throw error}
+    finally{if(saving===saveIntent)saving=null;refresh()}
   });
   restoreDraft.onclick=()=>void work(async()=>{
-    if(!drafts||pending||reviewing)return;const view=capture(),restoreIntent={view};reviewing=restoreIntent;refresh();
+    if(!drafts||pending||reviewing||saving)return;const view=capture(),restoreIntent={view};reviewing=restoreIntent;refresh();
     try{
     await identity(view);guard(view);const saved=await drafts.load(view);guard(view);if(!saved){status.textContent='No protected draft is saved for this device.';return}
     if(['group','selected'].includes(saved.selection.kind)){if(typeof loadSelections!=='function')throw new Error('Current selection records are unavailable');selectionRecords=await loadSelections(view);guard(view);group.replaceChildren();people.replaceChildren();for(const [node,items] of [[group,selectionRecords.groups],[people,selectionRecords.contacts]])for(const item of items){const option=document.createElement('option');option.value=item.id;option.textContent=item.title;node.append(option)}}
     invalidate();input.value=saved.text;selectedFile=decodeDraftFile(saved.file);choice.value=saved.selection.kind;if(saved.selection.kind==='group')group.value=saved.selection.groupId;if(saved.selection.kind==='selected')for(const option of people.options)option.selected=saved.selection.selected.includes(option.value);
     if(saved.status==='delivery-unknown'){
-      if(saved.file)throw new Error('Original attachment delivery is unknown; settle its original encrypted upload before retrying. No new transaction was created');
+      if(saved.file&&!saved.preparedAttachment)throw new Error('Original attachment upload result is unknown; settle it before retrying. No new transaction was created');
       const chosen=selection();if(JSON.stringify(chosen)!==JSON.stringify(saved.selection)||!saved.audience)throw new Error('Original unknown audience is unavailable; no new transaction was created');
       const epoch=editEpoch,operation=transport.capture();await consumer.check(saved.audience,operation,{action:'read',transactionId:saved.transactionId});guard(view);if(reviewing!==restoreIntent||editEpoch!==epoch||input.value!==saved.text||JSON.stringify(selection())!==JSON.stringify(chosen))throw new Error('Restored draft changed; original delivery remains unknown');
-      reviewed={view,audience:saved.audience,draft:saved.text,file:selectedFile,transactionId:saved.transactionId,chosen,epoch:editEpoch};
+      reviewed={view,audience:saved.audience,draft:saved.text,file:selectedFile,transactionId:saved.transactionId,chosen,epoch:editEpoch,preparedAttachment:saved.preparedAttachment};
       status.textContent='Original delivery is unknown. Only an explicit retry of the retained transaction is available; downloaded copies cannot be recalled.';
     }else status.textContent='Protected draft restored. Review its current audience before publishing.';
     remember();refresh();
     }finally{if(reviewing===restoreIntent)reviewing=null;refresh()}
   });
   review.onclick=()=>void work(async()=>{
-    if(!enabled||reviewing||pending)return;
+    if(!enabled||reviewing||pending||saving)return;
     const view=capture(),draft=input.value,file=selectedFile,chosen=selection(),transactionId=crypto.randomUUID().replaceAll('-',''),epoch=editEpoch;
     const reviewIntent={view,draft,file,chosen,transactionId,epoch};reviewing=reviewIntent;reviewed=null;refresh();
     const unchanged=()=>{guard(view);if(reviewing!==reviewIntent||editEpoch!==epoch||input.value!==draft||selectedFile!==file||JSON.stringify(selection())!==JSON.stringify(chosen))throw new Error('Draft or audience changed; review again')};
@@ -114,10 +121,13 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     pending=intent;refresh();
     try{
       await identity(intent.view);unchanged();
-      if(drafts){const file=await encodeDraftFile(intent.file);unchanged();await drafts.save(intent.view,{transactionId:intent.transactionId,text:intent.draft,selection:intent.chosen,file,status:'delivery-unknown',audience:intent.audience});unchanged()}
+      let durablePayload=null;
+      if(drafts){const file=await encodeDraftFile(intent.file);unchanged();durablePayload={transactionId:intent.transactionId,text:intent.draft,selection:intent.chosen,file,status:'delivery-unknown',audience:intent.audience};if(intent.preparedAttachment){durablePayload.preparedAttachment=intent.preparedAttachment;await drafts.savePrepared(intent.view,durablePayload)}else await drafts.save(intent.view,durablePayload);unchanged()}
       let receipt;
-      if(intent.file){const bytes=await intent.file.arrayBuffer();unchanged();receipt=await attachments.publish({audience:intent.audience,text:intent.draft,bytes,name:intent.file.name,mimeType:intent.file.type||'application/octet-stream',transactionId:intent.transactionId})}
+      if(intent.file&&intent.preparedAttachment)receipt=await consumer.publish({audience:intent.audience,text:intent.draft,transactionId:intent.transactionId,attachment:intent.preparedAttachment});
+      else if(intent.file){const bytes=await intent.file.arrayBuffer();unchanged();receipt=await attachments.publish({audience:intent.audience,text:intent.draft,bytes,name:intent.file.name,mimeType:intent.file.type||'application/octet-stream',transactionId:intent.transactionId,onPrepared:async attachment=>{unchanged();if(drafts){await drafts.savePrepared(intent.view,{...durablePayload,preparedAttachment:attachment});unchanged()}intent.preparedAttachment=attachment}})}
       else receipt=await consumer.publish({audience:intent.audience,text:intent.draft,transactionId:intent.transactionId});guard(intent.view);
+      attachments.settleConfirmed(intent.transactionId);
       if(drafts){await drafts.clearConfirmed(intent.view,intent.transactionId);guard(intent.view)}
       if(reviewed===intent){input.value='';selectedFile=null;fileInput.value='';remember();reviewed=null;status.textContent=`Encrypted Moment sent and authorized index confirmed: ${receipt.eventId}.`}
     }catch(error){

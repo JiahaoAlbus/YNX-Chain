@@ -154,7 +154,7 @@ if(root&&!loginCallback){
  }
  momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work,
   resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action)=>audienceHTTP.authorize(expected,action),loadSelections:audienceChoices,
-  drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
+  drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});
  phase('locked');
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error)){sendReady=false;phase('offline')}}).finally(()=>{checkingIdentity=false})},15000);

@@ -23,6 +23,13 @@ type MatrixAudienceActionVerifier interface {
 	VerifyHTTPAction(context.Context, *http.Request, productsessionv2.Session, []byte, []string) (MatrixAudienceActionReceipt, error)
 }
 
+// Exactly the approved shared NewRevalidator(...).Revalidate contract. The
+// integration owner supplies the confidential backend reader, not a browser
+// proof replay or a fixture fallback. The production helper is web-only.
+type MatrixAudienceSessionRevalidator interface {
+	Revalidate(context.Context, productsessionv2.Session, []string) (productsessionv2.Session, error)
+}
+
 // Operator integration must observe the real encrypted room and current joined
 // membership. A client-supplied boolean/room/member list is never this authority.
 type MatrixAudienceAuthority interface {
@@ -581,6 +588,17 @@ func (s *Server) matrixAudience(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	receipt.BrowserBinding = browserGeneration
+	if s.service.cfg.MatrixAudienceSessionRevalidator == nil {
+		writeError(w, http.StatusServiceUnavailable, "Confidential live ProductSession revalidation is not configured")
+		return
+	}
+	// Freeze the entire verified session before invoking an external dependency;
+	// retain tuple/device/scopes/expiry, not just a mutable account string.
+	originalJSON, marshalErr := json.Marshal(session)
+	if marshalErr != nil {
+		writeServiceError(w, ErrUnauthorized)
+		return
+	}
 	// Recheck the real browser authority after each remote await. Do not replay
 	// the consumed introspection proof as a substitute for session liveness.
 	receipt.revalidate = func(checkCtx context.Context) error {
@@ -594,12 +612,32 @@ func (s *Server) matrixAudience(w http.ResponseWriter, r *http.Request) {
 		if generation != browserGeneration {
 			return ErrUnauthorized
 		}
+		var original productsessionv2.Session
+		if json.Unmarshal(originalJSON, &original) != nil {
+			return ErrUnauthorized
+		}
+		current, err := s.service.cfg.MatrixAudienceSessionRevalidator.Revalidate(checkCtx, original, append([]string(nil), scopes...))
+		if err != nil {
+			return err
+		}
+		// The reader must not relink, widen scopes or renew the original TTL.
+		var frozen productsessionv2.Session
+		if json.Unmarshal(originalJSON, &frozen) != nil || objectDigest(current) != objectDigest(frozen) {
+			return &productsessionv2.Error{Status: http.StatusForbidden, Code: "SESSION_BINDING_MISMATCH"}
+		}
+		if !expires.After(s.service.cfg.Now()) || !receipt.ExpiresAt.After(s.service.cfg.Now()) {
+			return ErrUnauthorized
+		}
 		return nil
 	}
 	ctx, actionCancel := context.WithDeadline(ctx, receipt.ExpiresAt)
 	defer actionCancel()
 	if s.service.cfg.MatrixAudienceAuthority == nil {
 		writeError(w, http.StatusServiceUnavailable, "Encrypted Matrix audience authority is not configured")
+		return
+	}
+	if err := revalidateAudienceReceipt(ctx, &receipt); err != nil {
+		writeBridgeError(w, err)
 		return
 	}
 	var metadata MatrixAudienceMetadata
@@ -609,7 +647,7 @@ func (s *Server) matrixAudience(w http.ResponseWriter, r *http.Request) {
 		metadata, err = s.service.authorizeMatrixAudience(ctx, session.Account, authorization, &receipt)
 	}
 	if err != nil {
-		writeServiceError(w, err)
+		writeBridgeError(w, err)
 		return
 	}
 	writeJSON(w, 200, metadata)

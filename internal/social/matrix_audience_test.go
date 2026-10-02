@@ -47,6 +47,7 @@ func audienceFixture(t *testing.T) (*Service, string, string, *syntheticAudience
 	}}
 	authority := &syntheticAudienceAuthority{}
 	s.cfg.MatrixAudienceAuthority = authority
+	s.cfg.MatrixAudienceSessionRevalidator = syntheticAudienceRevalidator{}
 	return s, a.account, b.account, authority
 }
 

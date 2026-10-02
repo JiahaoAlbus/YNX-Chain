@@ -1,0 +1,22 @@
+{
+  "tests": 1,
+  "pass": 1,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "mode": "late-save",
+      "status": "PASS",
+      "editableDuringSave": false,
+      "observed": {
+        "savedText": "Original snapshot",
+        "currentText": "Original snapshot",
+        "status": "Draft saved in protected storage for this original account and device."
+      },
+      "lockState": {
+        "saveEnabled": false,
+        "restoreEnabled": false
+      }
+    }
+  ]
+}

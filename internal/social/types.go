@@ -28,20 +28,21 @@ const (
 )
 
 type Config struct {
-	StatePath                    string
-	TokenKey                     []byte
-	Now                          func() time.Time
-	RateLimitWindow              time.Duration
-	RateLimitMax                 int
-	AIProviders                  map[string]AIProvider
-	Chat                         *chat.Service
-	Square                       *square.Service
-	AI                           AIStreamer
-	BrowserSSO                   *productsessionv2.BrowserSSO
-	ProductSessions              map[string]ProductSessionAuthorizer
-	MatrixDirectory              *MatrixDirectory
-	MatrixAudienceAuthority      MatrixAudienceAuthority
-	MatrixAudienceActionVerifier MatrixAudienceActionVerifier
+	StatePath                        string
+	TokenKey                         []byte
+	Now                              func() time.Time
+	RateLimitWindow                  time.Duration
+	RateLimitMax                     int
+	AIProviders                      map[string]AIProvider
+	Chat                             *chat.Service
+	Square                           *square.Service
+	AI                               AIStreamer
+	BrowserSSO                       *productsessionv2.BrowserSSO
+	ProductSessions                  map[string]ProductSessionAuthorizer
+	MatrixDirectory                  *MatrixDirectory
+	MatrixAudienceAuthority          MatrixAudienceAuthority
+	MatrixAudienceActionVerifier     MatrixAudienceActionVerifier
+	MatrixAudienceSessionRevalidator MatrixAudienceSessionRevalidator
 }
 
 type AIProvider struct {

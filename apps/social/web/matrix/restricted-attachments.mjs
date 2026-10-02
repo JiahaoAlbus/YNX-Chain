@@ -16,16 +16,23 @@ export class RestrictedMomentAttachments {
     this.transport=consumer.transport;
     this.pending=new Map();
   }
-  async publish({audience,text,bytes,name,mimeType,transactionId,parent=null}) {
+  /** @param {{audience:any,text:string,bytes:ArrayBuffer,name?:string,mimeType?:string,transactionId:string,parent?:any,onPrepared?:Function|null}} input */
+  async publish({audience,text,bytes,name,mimeType,transactionId,parent=null,onPrepared=null}) {
     const prepared=await this.prepare(audience,{bytes,name,mimeType,transactionId});
     const entry=this.pending.get(transactionId);
     entry.guard();
-    const receipt=await this.consumer.publish({audience:entry.audience,text,transactionId,parent,attachment:prepared.content});
+    const attachment=freeze(structuredClone(prepared.content));
+    if(onPrepared){await onPrepared(attachment);entry.guard()}
+    const receipt=await this.consumer.publish({audience:entry.audience,text,transactionId,parent,attachment});
     // Only authenticated message readback plus committed index settles this
     // preparation. Neither upload success nor local encryption is delivery.
     entry.guard();
     this.pending.delete(transactionId);
     return receipt;
+  }
+  settleConfirmed(transactionId){
+    const entry=this.pending.get(transactionId);
+    if(entry){entry.guard();this.pending.delete(transactionId)}
   }
   async prepare(audience,{bytes,name='attachment',mimeType='application/octet-stream',transactionId}) {
     if(!(bytes instanceof ArrayBuffer)||!bytes.byteLength||bytes.byteLength>limit||!transaction.test(transactionId)||typeof name!=='string'||!name.trim()||name.length>255||typeof mimeType!=='string'||!mimeType||mimeType.length>255)fail('Invalid restricted attachment');

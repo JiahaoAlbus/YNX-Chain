@@ -85,3 +85,17 @@ test('UI persists unknown before send and a fresh composer restores only origina
   const second=fixture({drafts});second.restoreDraft.onclick();await second.settle();assert.equal(second.requests[0].action,'read');assert.equal(second.requests[0].transactionId,transaction);assert.equal(second.input.value,'Original uncertain caption');
   second.form.onsubmit({preventDefault(){}});await second.settle();assert.ok(second.requests.every(request=>request.transactionId===transaction));assert.equal(record,null);assert.equal(second.input.value,'');
 });
+test('fresh composer explicitly retries original protected encrypted attachment without another upload',async()=>{
+  let record:any=null;
+  const drafts={save:async(_view:any,value:any)=>{record=structuredClone(value)},savePrepared:async(_view:any,value:any)=>{assert.equal(record.transactionId,value.transactionId);assert.equal(record.status,'delivery-unknown');record=structuredClone(value)},load:async()=>structuredClone(record),clearConfirmed:async(_view:any,transaction:string)=>{assert.equal(transaction,record.transactionId);record=null}};
+  const first=fixture({drafts}),bytes=new TextEncoder().encode('original cold file').buffer;
+  first.input.value='Original cold caption';first.file.files=[{name:'original.txt',type:'text/plain',size:bytes.byteLength,arrayBuffer:async()=>bytes}];first.file.dispatch('change');
+  first.review.onclick();await first.settle();
+  first.client.sendMessage=async()=>{assert.ok(record.preparedAttachment);throw Error('original message response lost')};
+  first.form.onsubmit({preventDefault(){}});await assert.rejects(first.settle(),/response lost/);
+  const transaction=record.transactionId,original=structuredClone(record.preparedAttachment);assert.equal(first.uploads(),1);
+  const second=fixture({drafts});second.client.uploadContent=async()=>{throw Error('cold retry must not upload')};
+  second.restoreDraft.onclick();await second.settle();assert.equal(second.requests[0].transactionId,transaction);
+  second.form.onsubmit({preventDefault(){}});await second.settle();
+  assert.ok(second.requests.every(request=>request.transactionId===transaction));assert.deepEqual(second.content().file,original.file);assert.deepEqual(second.content().info,original.info);assert.equal(second.uploads(),0);assert.equal(record,null);
+});
