@@ -12,6 +12,11 @@ test("critical Wallet controls expose accessibility roles, names and state",asyn
   assert.ok(source.includes('accessibilityRole="radio"'));
   for(const contract of ["Klein blue and white appearance","isReduceMotionEnabled","reduceMotionChanged","isHighTextContrastEnabled","Text follows the device font scale","MODAL_ANIMATION"])assert.ok(source.includes(contract),`missing adaptive accessibility contract ${contract}`);
 });
+test("Wallet header reuses the original ecosystem logo without an invented letter mark or stretching",async()=>{
+  const source=await readFile(new URL("../App.tsx",import.meta.url),"utf8");
+  assert.match(source,/<Image source=\{require\("\.\.\/\.\.\/assets\/brand\/ynx-logo\.png"\)\} style=\{styles.brandLogo\} resizeMode="contain"/);
+  assert.equal(source.includes('<Text style={styles.markText}>Y</Text>'),false);
+});
 
 function luminance(hex:string){const channels=hex.slice(1).match(/../g)!.map(value=>parseInt(value,16)/255).map(value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4);return channels[0]!*.2126+channels[1]!*.7152+channels[2]!*.0722}
 function contrast(a:string,b:string){const values=[luminance(a),luminance(b)].sort((x,y)=>y-x);return(values[0]!+.05)/(values[1]!+.05)}

@@ -7,6 +7,7 @@ import {NativeChainClient} from "../chain/nativeTransfer";
 import {NATIVE_DURABILITY_MODEL,createNativeDurabilityEvidence} from "../chain/nativeDurability";
 import {WalletPayInvoiceClient,parseWalletPayInvoice} from "../chain/walletPayInvoice";
 import {WalletPayFlow} from "./walletPayFlow";
+import {buildWalletPayReview} from "./walletPayReview";
 
 const seed="01".repeat(32),account=walletIdentity(seed).account,to=ynxAddressFromEVM("0x"+"2".repeat(40));
 const invoice=parseWalletPayInvoice({id:"invoice-001",intentId:"intent-001",merchant:"Original merchant",payoutAddress:to,amount:25,currency:"YNXT",status:"issued",createdAt:"2026-10-02T12:00:00Z",dueAt:"2026-10-03T12:00:00Z"},"invoice-001");
@@ -57,14 +58,15 @@ test("Pay binding storage readback failure prevents broadcast and cannot erase n
   await assert.rejects(()=>f.flow.payReviewed(invoice,account,f.chain,guard,async()=>signed),/PAY_BINDING_STORAGE_UNAVAILABLE/);
   assert.equal(f.broadcasts(),0);assert.equal(await f.outbox.read(account),null);
 });
-async function durableFixture(f:ReturnType<typeof setup>){
+async function durableFixture(f:ReturnType<typeof setup>,reviewed=invoice,prepared=signed){
+  const invoice=reviewed,signed=prepared;
   await f.flow.payReviewed(invoice,account,f.chain,guard,async()=>signed);
   const original=(await f.outbox.read(account))!,blockHash="0x"+"a".repeat(64);
   // Local protocol fixture passed through the production proof validator;
   // not a live-chain receipt or a mocked 'accepted' flag without evidence.
   const receipt={transactionHash:signed.hash,from:signed.transaction.from,to:signed.transaction.to,status:"0x1",contractAddress:null,
     transactionIndex:"0x0",blockNumber:"0x2",blockHash,
-    ynxNativeTransaction:{type:"transfer",amountYNXT:"25",feeYNXT:"1",nonce:"0x2"},
+    ynxNativeTransaction:{type:"transfer",amountYNXT:String(invoice.amount),feeYNXT:"1",nonce:"0x"+Number(signed.transaction.nonce).toString(16)},
     ynxDurability:{version:NATIVE_DURABILITY_MODEL.version,scope:"local-snapshot",status:"durable",transactionHash:signed.hash,
       blockNumber:"0x2",blockHash,checkpointBlockNumber:"0x2",checkpointBlockHash:blockHash,snapshotIntegrity:"0x"+"b".repeat(64)}};
   const evidence=createNativeDurabilityEvidence(f.chain.origin,NATIVE_DURABILITY_MODEL,receipt,signed.transaction,signed.hash);
@@ -136,4 +138,57 @@ test("a second invoice cannot reuse a native hash archived for the first invoice
   const flow=new WalletPayFlow(f.storage,f.outbox,pay,at);
   await assert.rejects(()=>flow.payReviewed(next,account,f.chain,guard,async()=>signed),/PAY_SIGNED_TRANSFER_ALREADY_USED/);
   assert.equal(await flow.read(account),null);assert.equal((await f.outbox.read(account))?.phase,"done");assert.equal(f.broadcasts(),1);
+});
+test("payment review actions follow retained original proof and settlement, never a paid flag",async()=>{
+  const f=setup();
+  assert.deepEqual(buildWalletPayReview(account,invoice,null,null,at()).actions,["pay"]);
+  assert.deepEqual(buildWalletPayReview(account,{...invoice,status:"paid"},null,null,at()).actions,[]);
+  await durableFixture(f);const binding=(await f.flow.read(account))!,transfer=(await f.outbox.read(account))!;
+  const confirmed=buildWalletPayReview(account,invoice,binding,transfer,at());
+  assert.equal(confirmed.state,"settlement_pending");assert.deepEqual(confirmed.actions,["settle"]);
+  const fabricated=buildWalletPayReview(account,invoice,{...binding,phase:"settled",settlement:({...settlement} as any)}, {...transfer,durabilityEvidence:null},at());
+  assert.equal(fabricated.state,"transfer_unconfirmed");assert.deepEqual(fabricated.actions,["check"]);
+  const missing=buildWalletPayReview(account,invoice,binding,null,at());
+  assert.equal(missing.state,"original_unavailable");assert.deepEqual(missing.actions,[]);
+  assert.deepEqual(buildWalletPayReview(account,invoice,null,{...transfer,phase:"done",durabilityEvidence:null},at()).actions,[]);
+  await f.flow.settleOriginal(account,guard,async()=>settlement);
+  const paid=buildWalletPayReview(account,invoice,(await f.flow.read(account))!,transfer,at());
+  assert.equal(paid.state,"settled");assert.deepEqual(paid.actions,["done"]);
+  assert.throws(()=>buildWalletPayReview(to,invoice,binding,transfer,at()),/PAY_REVIEW_ACCOUNT_OR_INVOICE_MISMATCH/);
+  assert.throws(()=>buildWalletPayReview(account,{...invoice,amount:26},binding,transfer,at()),/PAY_REVIEW_ACCOUNT_OR_INVOICE_MISMATCH/);
+});
+test("account-bound paged history is published before release and survives head write interruption",async()=>{
+  const f=setup();await durableFixture(f);await f.flow.settleOriginal(account,guard,async()=>settlement);
+  const set=f.storage.setItem.bind(f.storage);
+  f.storage.setItem=async(k,v)=>{if(k.startsWith("ynx.wallet.pay-history-head"))return;await set(k,v)};
+  await assert.rejects(()=>f.flow.acknowledgeSettled(account,signed.hash,guard),/PAY_RECEIPT_STORAGE_UNAVAILABLE/);
+  assert.equal((await f.outbox.read(account))?.phase,"accepted");assert.equal((await f.flow.read(account))?.phase,"settled");
+  f.storage.setItem=set;await f.flow.acknowledgeSettled(account,signed.hash,guard);
+  const page=await f.flow.history(account,guard,null,1);
+  assert.equal(page.receipts.length,1);assert.equal(page.receipts[0]?.binding.invoice.id,invoice.id);assert.equal(page.nextCursor,null);
+  assert.deepEqual((await f.flow.history(to,guard)).receipts,[]);
+  await assert.rejects(()=>f.flow.history(account,guard,null,51),/PAY_INVALID_HISTORY_PAGE/);
+  let current=false;await assert.rejects(()=>f.flow.history(account,()=>{if(!current)throw new Error("cancelled")}),/cancelled/);
+  const nodeKey="ynx.wallet.pay-history-node.v1."+account+"."+signed.hash;
+  const node=JSON.parse((await f.storage.getItem(nodeKey))!);node.previous=signed.hash;await f.storage.setItem(nodeKey,JSON.stringify(node));
+  await assert.rejects(()=>f.flow.history(account,guard),/PAY_RECEIPT_STORAGE_UNAVAILABLE/);
+});
+
+test("multiple completed invoices retain independent receipts across history pages and restart",async()=>{
+  const storage=new Memory(),first=setup(storage);await durableFixture(first);
+  await first.flow.settleOriginal(account,guard,async()=>settlement);await first.flow.acknowledgeSettled(account,signed.hash,guard);
+  const next=parseWalletPayInvoice({...invoice,id:"invoice-002",intentId:"intent-002",amount:26},"invoice-002");
+  const nextSigned=createSignedNativeTransfer({accountSecret:seed,to,amount:26,nonce:3}),second=setup(storage,next);
+  await durableFixture(second,next,nextSigned);
+  await second.flow.settleOriginal(account,guard,async()=>({...settlement,id:"settlement-002",invoiceId:next.id,intentId:next.intentId,amount:26,transactionHash:nextSigned.hash}));
+  await second.flow.acknowledgeSettled(account,nextSigned.hash,guard);
+  const restarted=new WalletPayFlow(storage,new NativeTransferOutbox(storage),second.pay,at);
+  const page1=await restarted.history(account,guard,null,1);
+  assert.equal(page1.receipts[0]?.binding.invoice.id,next.id);assert.equal(page1.nextCursor,signed.hash);
+  const page2=await restarted.history(account,guard,page1.nextCursor,1);
+  assert.equal(page2.receipts[0]?.binding.invoice.id,invoice.id);assert.equal(page2.nextCursor,null);
+  assert.equal((await restarted.history(account,guard)).receipts.length,2);
+  assert.equal((await restarted.receipt(account,signed.hash))?.transfer.hash,signed.hash);
+  assert.equal((await restarted.receipt(account,nextSigned.hash))?.transfer.hash,nextSigned.hash);
+  await assert.rejects(()=>restarted.payReviewed(next,account,second.chain,guard,async()=>nextSigned),/PAY_INVOICE_ALREADY_PAID/);
 });

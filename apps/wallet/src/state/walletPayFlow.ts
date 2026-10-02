@@ -10,11 +10,14 @@ import {WalletPayInvoiceClient,WalletPayError,assertWalletPayReview,parseWalletP
 const PREFIX="ynx.wallet.pay-binding.v1.";
 const RECEIPT_PREFIX="ynx.wallet.pay-receipt.v1.";
 const PAID_INVOICE_PREFIX="ynx.wallet.pay-invoice-paid.v1.";
+const HISTORY_HEAD_PREFIX="ynx.wallet.pay-history-head.v1.";
+const HISTORY_NODE_PREFIX="ynx.wallet.pay-history-node.v1.";
 const queues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
 type Guard=()=>void;
 export type WalletPayBinding=Readonly<{version:1;account:string;invoice:WalletPayInvoice;origin:string;hash:string;
   phase:"prepared"|"settlement_unknown"|"settled";idempotencyKey:string;settlement:WalletPaySettlement|null}>;
 export type WalletPayReceipt=Readonly<{binding:WalletPayBinding;transfer:NativeTransferOutboxEntry}>;
+export type WalletPayHistory=Readonly<{receipts:readonly WalletPayReceipt[];nextCursor:string|null}>;
 /** All key access and Pay session authority remain in existing owners. The UI
  * supplies its protected signing callback only after explicit payment review.
  * This controller owns public invoice/hash bindings, never a second vault. */
@@ -26,6 +29,25 @@ export class WalletPayFlow {
     const key=this.receiptKey(account,hash);
     try{const raw=await this.storage.getItem(key);return raw===null?null:this.parseReceipt(raw,account,hash)}
     catch{throw new WalletPayError("PAY_RECEIPT_STORAGE_UNAVAILABLE")}
+  })}
+  /** Linked pages keep every old receipt without an ever-growing SecureStore
+   * value or pruning history. Reads are account-bound and never use keys. */
+  history(account:string,guard:Guard,cursor:string|null=null,limit=20):Promise<WalletPayHistory>{return this.serial(async()=>{
+    evmAddressFromYNX(account);guard();
+    if(!Number.isInteger(limit)||limit<1||limit>50)throw new WalletPayError("PAY_INVALID_HISTORY_PAGE");
+    const receipts:WalletPayReceipt[]=[],seen=new Set<string>();
+    try{
+      let hash=cursor??await this.storage.getItem(HISTORY_HEAD_PREFIX+account);guard();
+      while(hash!==null&&receipts.length<limit){
+        this.receiptKey(account,hash);if(seen.has(hash))throw new Error();seen.add(hash);
+        const nodeRaw=await this.storage.getItem(HISTORY_NODE_PREFIX+account+"."+hash);guard();
+        if(nodeRaw===null)throw new Error();const node=this.parseHistoryNode(nodeRaw,account,hash);
+        const raw=await this.storage.getItem(this.receiptKey(account,hash));guard();
+        if(raw===null)throw new Error();receipts.push(this.parseReceipt(raw,account,hash));hash=node.previous;
+      }
+      if(hash!==null&&seen.has(hash))throw new Error();
+      return Object.freeze({receipts:Object.freeze(receipts),nextCursor:hash});
+    }catch(error){guard();throw new WalletPayError("PAY_RECEIPT_STORAGE_UNAVAILABLE")}
   })}
   /** Explicit completion only after a bound settlement and native durability.
    * Archive and verify the full public receipt BEFORE releasing either journal.
@@ -53,6 +75,7 @@ export class WalletPayFlow {
         if(priorInvoice!==null&&priorInvoice!==saved)throw new Error();
         if(priorInvoice===null)await this.storage.setItem(invoiceKey,saved);
         if(await this.storage.getItem(invoiceKey)!==saved)throw new Error();
+        await this.appendHistory(account,reviewedHash);
       }catch{throw new WalletPayError("PAY_RECEIPT_STORAGE_UNAVAILABLE")}
       guard();if(original.phase==="accepted")await this.outbox.acknowledge(account,reviewedHash,guard);guard();
       try{await this.storage.deleteItem(PREFIX+account);if(await this.storage.getItem(PREFIX+account)!==null)throw new Error()}
@@ -138,6 +161,29 @@ export class WalletPayFlow {
   private receiptKey(account:string,hash:string):string{
     evmAddressFromYNX(account);if(!/^0x[0-9a-f]{64}$/.test(hash))throw new WalletPayError("PAY_INVALID_RECEIPT_HASH");
     return RECEIPT_PREFIX+account+"."+hash;
+  }
+  private parseHistoryNode(raw:string,account:string,hash:string):{previous:string|null}{
+    if(raw.length>512)throw new Error();const value=JSON.parse(raw);
+    if(!value||Object.keys(value).sort().join(",")!=="account,hash,previous,version"||value.version!==1||value.account!==account||value.hash!==hash)throw new Error();
+    if(value.previous!==null){this.receiptKey(account,value.previous);if(value.previous===hash)throw new Error()}
+    return {previous:value.previous};
+  }
+  private async appendHistory(account:string,hash:string):Promise<void>{
+    const headKey=HISTORY_HEAD_PREFIX+account,nodeKey=HISTORY_NODE_PREFIX+account+"."+hash;
+    const head=await this.storage.getItem(headKey);if(head!==null)this.receiptKey(account,head);
+    const existing=await this.storage.getItem(nodeKey);
+    if(head===hash){if(existing===null)throw new Error();this.parseHistoryNode(existing,account,hash);return}
+    if(head!==null){
+      const priorNode=await this.storage.getItem(HISTORY_NODE_PREFIX+account+"."+head);
+      if(priorNode===null)throw new Error();this.parseHistoryNode(priorNode,account,head);
+      const priorReceipt=await this.storage.getItem(this.receiptKey(account,head));
+      if(priorReceipt===null)throw new Error();this.parseReceipt(priorReceipt,account,head);
+    }
+    const raw=JSON.stringify({version:1,account,hash,previous:head});
+    if(existing!==null&&existing!==raw)throw new Error();
+    if(existing===null)await this.storage.setItem(nodeKey,raw);
+    if(await this.storage.getItem(nodeKey)!==raw)throw new Error();
+    await this.storage.setItem(headKey,hash);if(await this.storage.getItem(headKey)!==hash)throw new Error();
   }
   private parseReceipt(raw:string,account:string,hash:string):WalletPayReceipt{
     if(raw.length>16384)throw new Error();const v=JSON.parse(raw);
