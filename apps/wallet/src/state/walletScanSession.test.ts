@@ -14,6 +14,11 @@ test("cancel, lock, account switch and background reject late camera results",()
     const f=fixture();f.scan.open("account-a");change(f);assert.equal(f.scan.accept(result,()=>assert.fail("late camera route")),false);
   }
 });
+test("inactive notification or cancelled input cannot leave a reusable camera route",()=>{
+  const f=fixture();f.scan.open("account-a");f.operations.setAppState("inactive");
+  assert.equal(f.scan.accept(result,()=>assert.fail("inactive route")),false);
+  f.operations.setAppState("active");assert.equal(f.scan.accept(result,()=>assert.fail("revived route")),false);
+});
 test("camera cannot open for a locked or different account",()=>{
   const f=fixture();assert.throws(()=>f.scan.open("account-b"));f.operations.lock();assert.throws(()=>f.scan.open("account-a"));
 });

@@ -219,7 +219,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const closeScan=()=>{scanSession.cancel();setScanning(false)};
   const openScan=()=>{scanSession.open(selected.account);setScanning(true)};
   useEffect(()=>operations.subscribe(()=>{scanSession.cancel();setScanning(false);setScanRecipient("");setInvoiceID(null)}),[operations,scanSession]);
-  const acceptScan=(result:WalletScanResult)=>{scanSession.accept(result,value=>{setScanning(false);if(value.kind==="payment"){setScanRecipient(value.payment.recipient);setSend(true)}else if(value.kind==="invoice")setInvoiceID(value.invoiceID);else offerWalletConnectDeepLink(`ynxwallet://wc?uri=${encodeURIComponent(value.uri)}`)})};
+  const acceptScan=(result:WalletScanResult)=>{if(!scanSession.accept(result,value=>{setScanning(false);if(value.kind==="payment"){setScanRecipient(value.payment.recipient);setSend(true)}else if(value.kind==="invoice")setInvoiceID(value.invoiceID);else offerWalletConnectDeepLink(`ynxwallet://wc?uri=${encodeURIComponent(value.uri)}`)}))closeScan()};
   const [faucet,setFaucet]=useState(false);
   const [contracts,setContracts]=useState(false);
   const [payHistory,setPayHistory]=useState(false);
