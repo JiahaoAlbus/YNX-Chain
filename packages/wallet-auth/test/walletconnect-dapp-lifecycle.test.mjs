@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
+import {fileURLToPath} from 'node:url';
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
-const entry=new URL('../src/walletconnect-dapp-connection.js',import.meta.url).pathname;
+const entry=fileURLToPath(new URL('../src/walletconnect-dapp-connection.js',import.meta.url));
 const fakeCore=`export const RELAYER_EVENTS={connect:'relayer_connect'};export class Core{constructor(options){const s=globalThis.__ynxPairLifecycleFixture;s.coreOptions.push(options);globalThis._walletConnectCore__count=(globalThis._walletConnectCore__count||0)+1;if(globalThis._walletConnectCore_)return globalThis._walletConnectCore_;this.customStoragePrefix='';this.pairing={pairings:{getAll:()=>s.pairings},disconnect:async()=>{}};this.relayer={on:(event,fn)=>s.events.set(event,fn),transportClose:async()=>{s.closed++}};globalThis._walletConnectCore_=this;}}`;
 const fakeClient=`export default class SignClient{static async init(options){const s=globalThis.__ynxPairLifecycleFixture;s.initializations++;if(s.initWait)await s.initWait;const client={core:options.core,on:()=>{},session:{getAll:()=>s.sessions},proposal:{getAll:()=>s.proposals},connect:()=>{s.connects++;return s.connectWait},disconnect:async()=>{s.retired++},request:async()=>({ok:true})};s.client=client;return client;}}`;
 let moduleSerial=0;
@@ -69,4 +70,18 @@ test('URI-less relay timeout is classified before approval and cannot create dup
     await assert.rejects(connection.connect(),error=>error.code==='YNX_PAIR_RELAY_TIMEOUT'&&error.stage==='relay');
     assert.deepEqual(stages,['initialization','relay']);await assert.rejects(connection.connect(),/TRANSPORT_DRAINING/);assert.equal(f.state.connects,1);
   }finally{f.finishConnect();await tick();f.close();}
+});
+
+test('automatic relay failure keeps cleanup unconfirmed distinct from explicit user cancellation',async()=>{
+  for(const userCancelled of [false,true]){
+    const f=await fixture();try{
+      const connection=f.connection(),notices=[];connection.on('cancelUnconfirmed',event=>notices.push(event));
+      const pending=connection.connect();const rejected=assert.rejects(pending,userCancelled?/CANCELLED/:/RELAY_UNAVAILABLE/);
+      await tick();await tick();f.state.client.core.relayer.transportClose=async()=>{throw new Error('cleanup offline');};
+      if(userCancelled)await connection.cancel();else f.finishConnect();
+      await rejected;assert.equal(notices.length,1);assert.equal(notices[0].current,true);assert.equal(notices[0].userCancelled,userCancelled);
+      if(userCancelled){await assert.rejects(connection.connect(),/TRANSPORT_DRAINING/);f.finishConnect();await tick();}
+      assert.equal(f.state.initializations,1);
+    }finally{f.finishConnect();await tick();f.close();}
+  }
 });

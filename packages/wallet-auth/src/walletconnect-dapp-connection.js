@@ -47,7 +47,7 @@ const corePairings=client=>client.core.pairing.pairings.getAll();
 // consumers receive a selected EIP-1193-shaped transport, never topics or keys
 // copied into another origin and never a product identity/session credential.
 export class WalletConnectDAppConnection{
-  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;
+  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
     if(!ORIGINS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!METHODS.has(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)||(['https://social.ynxweb4.com','https://assistant.ynxweb4.com','https://video.ynxweb4.com','https://creator.ynxweb4.com'].includes(origin)&&method!=='ynx_requestProductSessionV2')))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
@@ -56,7 +56,7 @@ export class WalletConnectDAppConnection{
   on(event,listener){if(!this.#listeners.has(event))this.#listeners.set(event,new Set());this.#listeners.get(event).add(listener);}
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
   #emit(event,value){for(const listener of this.#listeners.get(event)??[])listener(value);}
-  #unconfirmed(reason,attempt){this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt});}
+  #unconfirmed(reason,attempt){this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt,userCancelled:attempt===this.#cancelledAttempt});}
   async #wait(work,{stage='request',flight,deadline=this.#deadline}={}){let timer;const code=`YNX_PAIR_${stage.toUpperCase()}_TIMEOUT`;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error(code),{code,stage})),deadline);}),...(flight?[flight.cancelled]:[])]);}finally{clearTimeout(timer);}}
   async initialize(flight){
     if(this.#client){if(!flight&&!this.#restoring){const record=records.get(this.#client);if(record)record.externallyExposed=true;}return this.#client;}
@@ -134,7 +134,7 @@ export class WalletConnectDAppConnection{
   }
   async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}
   async #retire(client,session,attempt){if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#unconfirmed('invalid-session',attempt);return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',attempt);}}
-  async cancel(){const epoch=this.#epoch++;this.#flight?.cancel();this.#pending=null;await this.#cancelPairing(epoch);}
+  async cancel(){this.#cancelledAttempt=this.#attempt;const epoch=this.#epoch++;this.#flight?.cancel();this.#pending=null;await this.#cancelPairing(epoch);}
   async disconnect(){this.#epoch++;const session=this.#session;this.#session=null;await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});}
   provider(){const owner=this;return {isYNXWallet:true,isMetaMask:false,isYNXPair:true,providerInfo:{rdns:'com.ynx.wallet.pair'},on:(event,listener)=>owner.on(event,listener),removeListener:(event,listener)=>owner.removeListener(event,listener),request:input=>owner.request(input)};}
   async request({method,params=[]}){

@@ -22,7 +22,7 @@ function pairClient(){
   if(pair)return pair;
   pair=new WalletConnectDAppConnection({origin:ORIGIN,methods:['personal_sign','ynx_requestProductSessionV2']});
   pair.on('stage',event=>{if(pairOperation&&pairOperation.revision===intent&&!pairOperation.uriReady&&event.stage!=='approval')publishPair({status:'opening',stage:event.stage});});
-  pair.on('cancelUnconfirmed',event=>{if(event.current!==false)publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});});
+  pair.on('cancelUnconfirmed',event=>{if(event.current!==false&&event.userCancelled===true)publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});});
   pair.on('disconnect',()=>{if(activeTransport!=='pair')return;privateFinance.guest();preference(null);publishPair({status:'disconnected'});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect',disconnectReason:'permission-revoked'});});
   return pair;
 }
