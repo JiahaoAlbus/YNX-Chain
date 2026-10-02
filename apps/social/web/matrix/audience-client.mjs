@@ -46,6 +46,24 @@ export function createSocialAudienceHTTPClient({session,capture,guard,csrfToken,
     return {protocol:metadata.protocol,kind:metadata.kind,revision:metadata.revision,owner:metadata.owner,roomId:metadata.roomId,members:[...metadata.members].sort()};
   }
   return Object.freeze({
+    async indexes(after=''){
+      if(after&&!/^[a-f0-9]{64}$/.test(after))fail('Invalid private index cursor');
+      const view=capture();guard(view);
+      if(session.current?.status!=='connected'||!SCOPES.every(scope=>session.current.session?.scopes?.includes(scope)))fail('Approve the explicit Social publishing permission first');
+      const live=await session.restore();guard(view);
+      if(live.status!=='connected'||live.session.account!==view.account||!SCOPES.every(scope=>live.session.scopes.includes(scope)))fail('Current private permission does not match this account');
+      const proof=await session.proof(SCOPES);guard(view);
+      const response=await fetcher(ROOT+'indexes'+(after?'?after='+encodeURIComponent(after):''),{credentials:'same-origin',redirect:'error',cache:'no-store',headers:{'X-YNX-Product-Session-Proof-V2':proof.proofHeader}});guard(view);
+      if(!response.ok)fail(`Encrypted index reader unavailable (${response.status}); no plaintext fallback`);
+      const feed=await response.json();guard(view);
+      if(!feed||!Array.isArray(feed.indexes)||feed.indexes.length>40||Object.keys(feed).some(key=>!['indexes','after'].includes(key))||feed.after!==undefined&&!/^[a-f0-9]{64}$/.test(feed.after))fail('Invalid private index response');
+      const indexes=feed.indexes.map(row=>{
+        const keys=['actor','eventId','kind','members','owner','protocol','revision','roomId','sender','transactionId'];
+        if(!row||Object.keys(row).some(key=>!keys.includes(key)&&key!=='parentEventId')||keys.some(key=>!(key in row))||typeof row.actor!=='string'||!/^ynx1[0-9a-z]{38}$/.test(row.actor)||typeof row.sender!=='string'||!row.sender.startsWith('@')||typeof row.eventId!=='string'||!/^\$[^\s\x00-\x1f]{1,254}$/.test(row.eventId)||typeof row.transactionId!=='string'||!/^[A-Za-z0-9_-]{16,128}$/.test(row.transactionId)||row.parentEventId!==undefined&&!/^\$[^\s\x00-\x1f]{1,254}$/.test(row.parentEventId)||row.protocol!=='ynx-social-matrix-moment/v1'||!['contacts','group','selected','private'].includes(row.kind)||!/^![^\s]+$/.test(row.roomId)||!/^@[\S]+$/.test(row.owner)||!/^[a-f0-9]{64}$/.test(row.revision)||!Array.isArray(row.members)||!row.members.length||row.members.length>256||row.members.some(member=>typeof member!=='string'||!member.startsWith('@'))||new Set(row.members).size!==row.members.length||!row.members.includes(row.owner)||!row.members.includes(row.sender))fail('Invalid authorized index metadata');
+        return {audience:{protocol:row.protocol,kind:row.kind,revision:row.revision,owner:row.owner,roomId:row.roomId,members:[...row.members].sort()},eventId:row.eventId,transactionId:row.transactionId,sender:row.sender,parentEventId:row.parentEventId};
+      });
+      return {indexes,after:feed.after};
+    },
     resolve:selection=>post('resolve',selection),
     authorize:(expected,operation)=>{
       if(!operation?.action||!operation.transactionId)fail('Original action and transaction identity required');

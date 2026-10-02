@@ -1,0 +1,10 @@
+file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:2
+const deny = message => { throw new Error(message); };
+                                ^
+
+Error: Authenticated indexed Moment is unavailable
+    at deny (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:2:33)
+    at RestrictedMoments.read (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:63:393)
+    at async file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/feed-consumer-read-check.mjs:20:15
+
+Node.js v26.7.0

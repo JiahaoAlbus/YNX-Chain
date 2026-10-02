@@ -48,6 +48,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/social/v3/matrix/peer", s.matrixLogin)
 	mux.HandleFunc("/social/v3/matrix/audience/resolve", s.matrixAudience)
 	mux.HandleFunc("/social/v3/matrix/audience/authorize", s.matrixAudience)
+	mux.HandleFunc("/social/v3/matrix/audience/indexes", s.matrixAudienceIndexes)
 	if s.service.cfg.BrowserSSO != nil {
 		bridge := s.service.cfg.BrowserSSO
 		mux.HandleFunc("GET /sso/start", bridge.Start)

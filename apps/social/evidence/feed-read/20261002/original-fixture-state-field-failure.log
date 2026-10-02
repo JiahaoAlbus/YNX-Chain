@@ -1,0 +1,4 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/social [github.com/JiahaoAlbus/YNX-Chain/internal/social.test]
+internal/social/matrix_audience_feed_test.go:75:32: s.state.Profiles undefined (type persistentState has no field or method Profiles)
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social [build failed]
+FAIL

@@ -1,0 +1,17 @@
+=== RUN   TestMatrixAudienceFeedOriginalIndexMetadataOnly
+    matrix_audience_feed_test.go:64: syntheticFeed={"indexes":[{"protocol":"ynx-social-matrix-moment/v1","kind":"contacts","revision":"b425290f0f6bea6d3cf9a417a48b3accbf34885a096c312b6d740578efb06f49","owner":"@alice:example.invalid","roomId":"!synthetic:example.invalid","members":["@alice:example.invalid","@bob:example.invalid"],"actor":"ynx12q8zhxa7kwj77tfa47klrrxsf2zajsjrvjkt0l","eventId":"$original-feed-event","transactionId":"original_feed_index_transaction_001","sender":"@alice:example.invalid"}]}
+--- PASS: TestMatrixAudienceFeedOriginalIndexMetadataOnly (0.16s)
+=== RUN   TestMatrixAudienceFeedAcceptedFriendThenDeleteContact
+--- PASS: TestMatrixAudienceFeedAcceptedFriendThenDeleteContact (0.08s)
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3
+--- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS (0.20s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1 (0.09s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2 (0.06s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3 (0.06s)
+=== RUN   TestMatrixAudienceFeedRejectsDifferentObservedSender
+--- PASS: TestMatrixAudienceFeedRejectsDifferentObservedSender (0.06s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.016s

@@ -1,0 +1,10 @@
+file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:40
+    const joined=room?.getMembers().filter(member=>['join','invite'].includes(member.membership));
+                       ^
+
+TypeError: room?.getMembers is not a function
+    at RestrictedMoments.check (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:40:24)
+    at async RestrictedMoments.read (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/restricted-moments.mjs:58:5)
+    at async file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/feed-consumer-read-check.mjs:20:15
+
+Node.js v26.7.0

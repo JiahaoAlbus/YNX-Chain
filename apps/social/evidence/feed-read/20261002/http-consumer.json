@@ -1,0 +1,28 @@
+{
+  "qualification": "actual Social HTTP consumer with controlled fetch/session, not production authority",
+  "pass": 5,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "name": "actual HTTP consumer empty metadata index",
+      "status": "PASS"
+    },
+    {
+      "name": "no silent approval or scope upgrade",
+      "status": "PASS"
+    },
+    {
+      "name": "late response rejects changed captured generation",
+      "status": "PASS"
+    },
+    {
+      "name": "unexpected plaintext metadata rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid cursor rejected before request",
+      "status": "PASS"
+    }
+  ]
+}

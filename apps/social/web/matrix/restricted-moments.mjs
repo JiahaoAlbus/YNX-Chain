@@ -52,6 +52,23 @@ export class RestrictedMoments {
         semantic.owner!==expected.owner || semantic.revision!==expected.revision || semantic.audience!==expected.kind)
       deny('Verified parent event is unavailable; comment remains blocked');
   }
+  async read(index){
+    const expected=snapshot(index.audience),operation=this.transport.capture();
+    const authorization={action:'read',transactionId:index.transactionId};
+    await this.check(expected,operation,authorization);
+    const records=await this.transport.messages(expected.roomId);this.transport.guard(operation);
+    await this.check(expected,operation,authorization);
+    const event=records.find(record=>record.id===index.eventId),semantic=event?.content?.['com.ynx.social.moment'];
+    const kind=index.parentEventId?'comment':'moment';
+    if(!event?.encrypted||event.verification?.shieldColour!==0||event.sender!==index.sender||!expected.members.includes(index.sender)||semantic?.protocol!==RESTRICTED_MOMENT_PROTOCOL||semantic.kind!==kind||semantic.owner!==expected.owner||semantic.revision!==expected.revision||semantic.audience!==expected.kind||semantic.author!==index.sender||kind==='moment'&&index.sender!==expected.owner)deny('Authenticated indexed Moment is unavailable');
+    if(kind==='comment'&&!sameTypedFields(event.content['m.relates_to'],{rel_type:'m.reference',event_id:index.parentEventId}))deny('Authenticated comment parent differs from the index');
+    if(!['m.text','m.file'].includes(event.content.msgtype))deny('Unsupported encrypted Moment carrier');
+    const text=event.content.msgtype==='m.file'?semantic.text:event.content.body;
+    if(typeof text!=='string'||!text.trim()||text.length>16000)deny('Invalid encrypted Moment text');
+    if(event.content.msgtype==='m.file'&&(!event.content.file||event.content.url||event.content.file.v!=='v2'||!event.content.file.url?.startsWith('mxc://')))deny('Encrypted attachment descriptor required');
+    return {eventId:index.eventId,text,attachment:event.content.msgtype==='m.file'?structuredClone(event.content):null,
+      parent:kind==='moment'?{protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,revision:expected.revision,owner:expected.owner,eventId:index.eventId}:null};
+  }
   /** @param {{audience: object, text: string, transactionId: string, attachment?: any, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
   async publish({audience,text,transactionId,parent=null,attachment=null}) {
     const expected=snapshot(audience),operation=this.transport.capture();

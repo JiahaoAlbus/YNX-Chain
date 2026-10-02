@@ -1,0 +1,20 @@
+=== RUN   TestMatrixAudienceFeedOriginalIndexMetadataOnly
+    matrix_audience_feed_test.go:50: invalid social request
+--- FAIL: TestMatrixAudienceFeedOriginalIndexMetadataOnly (0.15s)
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1
+    matrix_audience_feed_test.go:73: invalid social request
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2
+    matrix_audience_feed_test.go:73: invalid social request
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3
+    matrix_audience_feed_test.go:73: invalid social request
+--- FAIL: TestMatrixAudienceFeedRevocationBeforeAndAfterHS (0.17s)
+    --- FAIL: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1 (0.06s)
+    --- FAIL: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2 (0.05s)
+    --- FAIL: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3 (0.07s)
+=== RUN   TestMatrixAudienceFeedRejectsDifferentObservedSender
+    matrix_audience_feed_test.go:100: invalid social request
+--- FAIL: TestMatrixAudienceFeedRejectsDifferentObservedSender (0.05s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	0.974s
+FAIL
