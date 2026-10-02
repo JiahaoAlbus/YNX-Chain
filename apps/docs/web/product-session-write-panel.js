@@ -1,5 +1,6 @@
 import {createDocsWriteClient} from './product-session-write-client.js';
 import {createDocsReadClient} from './product-session-read-client.js';
+import {withDocsPendingLock} from './pending-operation-lock.js';
 
 export function mountDocsWritePanel({root, getAdapter, origin}) {
   const panel = document.createElement('section');
@@ -52,10 +53,12 @@ export function mountDocsWritePanel({root, getAdapter, origin}) {
       if (getAdapter() !== adapter || adapter.client.current !== state || selection !== epoch) return;
       const writer = createDocsWriteClient({adapter, origin});
       const key = storageKey(state.session);
+      await withDocsPendingLock(globalThis, key, async () => {
+      if (getAdapter() !== adapter || adapter.client.current !== state || selection !== epoch) return;
       const stored = localStorage.getItem(key);
       let record = stored ? JSON.parse(stored) : null;
       if (record?.blocked) throw Error('Previous write outcome requires server readback and explicit reconciliation before another write.');
-      if (record && !confirm('Retry the exact original write? Current draft edits will not replace its submitted body.')) return;
+      if (record && !confirm(`${record.operation.method} ${record.operation.path}\nRetry the exact original write? Current draft edits will not replace its submitted body.`)) return;
       if (!record) {
         if (mode === 'save' && !selected) throw Error('Open a document or create one first.');
         const operation = mode === 'create' ? writer.prepareCreate({name: title.value, content: text.value})
@@ -69,7 +72,7 @@ export function mountDocsWritePanel({root, getAdapter, origin}) {
         localStorage.removeItem(key);
         if (getAdapter() !== adapter || adapter.client.current !== state || selection !== epoch) return;
         selected = result.object;
-        status.textContent = text.value === record.content ? `Saved version ${selected.version}${result.replayed ? ' (confirmed receipt replay)' : ''}.`
+        status.textContent = record.content === undefined ? 'Original operation confirmed. Reopen the document to review the server result; your draft is retained.' : text.value === record.content ? `Saved version ${selected.version}${result.replayed ? ' (confirmed receipt replay)' : ''}.`
           : 'Original write confirmed. Newer text in your draft is still unsaved.';
       } catch (error) {
         if (error.reconciliationRequired || error.current) {
@@ -79,6 +82,7 @@ export function mountDocsWritePanel({root, getAdapter, origin}) {
         }
         throw error;
       }
+      });
     } catch (error) { status.textContent = error.message || 'Write unconfirmed. Your draft and request are retained.'; }
     finally { busy = false; create.disabled = save.disabled = false; }
   }
@@ -87,25 +91,36 @@ export function mountDocsWritePanel({root, getAdapter, origin}) {
     if (busy) return;
     try {
       const {adapter, state} = active();
-      const pending = JSON.parse(localStorage.getItem(storageKey(state.session)) || 'null');
-      const id = pending?.current?.id || selected?.id;
+      const snapshot = localStorage.getItem(storageKey(state.session)) || null;
+      const pending = JSON.parse(snapshot || 'null');
+      const operationId = pending?.operation?.path?.match(/^\/api\/v1\/objects\/([^/]+)/)?.[1];
+      const id = pending?.current?.id || (operationId && decodeURIComponent(operationId)) || (!pending ? selected?.id : null);
       if (!id) throw Error('Creation outcome is unknown. Use the authorized document list to locate and read the actual document; do not create again blindly.');
       const epoch = selection;
       const result = await createDocsReadClient({adapter, origin}).open(id);
       if (getAdapter() !== adapter || adapter.client.current !== state || epoch !== selection) return;
-      reviewed = {result, state, adapter}; server.textContent = result.content; adopt.disabled = false;
+      reviewed = {result, state, adapter, snapshot}; server.textContent = result.content; adopt.disabled = false;
       status.textContent = `Server version ${result.metadata.version} read. Compare it with your draft before choosing a new save base.`;
     } catch (error) { status.textContent = error.message || 'Server readback failed.'; }
   };
-  adopt.onclick = () => {
+  adopt.onclick = async () => {
     try {
       const {adapter, state} = active();
       if (!reviewed || reviewed.adapter !== adapter || reviewed.state !== state) throw Error('Read the current server version again.');
+      const chosen = reviewed;
+      await withDocsPendingLock(globalThis, storageKey(state.session), () => {
+      if (getAdapter() !== adapter || adapter.client.current !== state || reviewed !== chosen) throw Error('Read the current server version again.');
+      const raw = localStorage.getItem(storageKey(state.session)) || null;
+      if (raw !== chosen.snapshot) throw Error('The pending operation changed in another tab. Read and review it again.');
+      const pending = JSON.parse(raw || 'null');
+      const operationId = pending?.operation?.path?.match(/^\/api\/v1\/objects\/([^/]+)/)?.[1];
+      if (pending && (!operationId || decodeURIComponent(operationId) !== reviewed.result.metadata.id || pending.operation.method !== 'PUT')) throw Error('Only a save conflict for this exact document can adopt a new base. Preserve the original operation for receipt reconciliation.');
       if (!confirm('Use this reviewed server version as the base of your next explicit save? Your local text is kept.')) return;
       selected = reviewed.result.metadata;
       localStorage.removeItem(storageKey(state.session));
       reviewed = null; adopt.disabled = true;
       status.textContent = 'Base version updated after review. Your draft is not saved until you explicitly save again.';
+      });
     } catch (error) { status.textContent = error.message; }
   };
   return {
@@ -115,7 +130,7 @@ export function mountDocsWritePanel({root, getAdapter, origin}) {
       selected = result.metadata; title.value = selected.name; text.value = result.content;
       try {
         const {adapter, state} = active();
-        reviewed = {result, adapter, state}; server.textContent = result.content; adopt.disabled = false;
+        reviewed = {result, adapter, state, snapshot: null}; server.textContent = result.content; adopt.disabled = false;
       } catch { reviewed = null; adopt.disabled = true; }
       status.textContent = `Opened version ${selected.version}. Saving requires editing authorization.`;
     },

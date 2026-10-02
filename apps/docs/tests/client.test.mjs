@@ -8,7 +8,7 @@ const read = (name) => readFile(new URL(name, web), 'utf8');
 test('Docs protects autosave with version and explicit conflict recovery', async () => {
   const js = await read('app-secure.js');
   assert.match(js, /baseVersion/);
-  assert.match(js, /status===409/);
+  assert.match(js, /status\s*===\s*409/);
   assert.match(js, /offline draft/i);
   assert.match(js, /nothing was overwritten/i);
   assert.match(js, /localStorage/);
@@ -34,7 +34,7 @@ test('Docs exposes folders, object operations, export evidence, versions and com
     "method: 'PATCH'",
     '/duplicate',
     '/export?format=',
-    '/resolution',
+    "editorV2Mode ? 'resolve' : 'resolution'",
     '/versions/',
     'Restore as new version',
     'selectedAnchor',

@@ -4,20 +4,21 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
 const source = await readFile(new URL('../web/app-secure.js', import.meta.url), 'utf8');
-function harness() {
+function harness(v2 = false) {
   const nodes = new Map();
   const drafts = new Map();
   const timers = new Map();
   let timer = 0;
   const node = (id) => {
-    if (!nodes.has(id)) nodes.set(id, {value: '', style: {}, addEventListener() {}});
+    if (!nodes.has(id)) nodes.set(id, {value: '', style: {}, addEventListener() {}, replaceChildren(){}, append(){}});
     return nodes.get(id);
   };
   const context = vm.createContext({
-    window: {sessionStorage: {getItem: () => '', removeItem() {}}, localStorage: {
+    window: {location:{origin:v2?'https://docs.ynxweb4.com':'https://legacy.invalid'},sessionStorage: {getItem: () => '', removeItem() {}}, localStorage: {
       getItem: (key) => drafts.get(key), setItem: (key, value) => drafts.set(key, value), removeItem: (key) => drafts.delete(key),
     }, addEventListener() {}},
-    document: {querySelector: node}, navigator: {onLine: true}, TextEncoder,
+    document: {querySelector: node,createElement:()=>({})}, navigator: {onLine: true}, TextEncoder,
+    mountDocsLanguage(){},loadDocsEditorBridge:()=>new Promise(()=>{}),
     btoa: (value) => Buffer.from(value, 'binary').toString('base64'), confirm: () => true,
     setTimeout: (fn) => { timers.set(++timer, fn); return timer; },
     clearTimeout: (id) => timers.delete(id), clearInterval: (id) => timers.delete(id),
@@ -46,6 +47,25 @@ test('edits typed during save remain dirty and are queued using the returned ver
   assert.equal(draft.content, 'submitted plus newer text');
   assert.equal(draft.baseVersion, 2);
   assert.equal(h.timers.size, 1);
+});
+
+test('v2 drafts stay with original account and legacy drafts are neither read nor migrated', () => {
+  const h=harness(true);
+  h.run("editorV2={identity:'session-A',account:'account-A',canWrite:true};state.documentAccount='account-A';");
+  h.node('#editor').value='account A draft';h.run('persistDraft()');
+  assert.equal(JSON.parse(h.drafts.get('ynx.docs.v2.draft.account-A.a')).content,'account A draft');
+  h.drafts.set('ynx.docs.draft.a',JSON.stringify({content:'legacy private text',baseVersion:1,at:new Date().toISOString()}));
+  h.run("editorV2={identity:'session-B',account:'account-B',canWrite:true};state.documentAccount='account-B';");
+  h.node('#editor').value='server B';h.run('recoverOfflineDraft()');
+  assert.equal(h.node('#editor').value,'server B');
+  assert.equal(h.drafts.has('ynx.docs.draft.a'),true);
+  assert.equal(h.drafts.has('ynx.docs.v2.draft.account-A.a'),true);
+});
+
+test('old-account draft cannot auto-save under a later connected account', async () => {
+  const h=harness(true);
+  h.run("editorV2={identity:'session-B',account:'account-B',canWrite:true};state.documentAccount='account-A';request=async()=>{throw Error('must not write');};");
+  await h.run('saveDocument()');assert.equal(h.run('state.saving'),false);
 });
 
 test('late save response cannot replace a different open document', async () => {

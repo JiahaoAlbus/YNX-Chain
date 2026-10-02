@@ -26,7 +26,9 @@ export function createDocsSessionTransport({adapter, origin, fetchImpl = globalT
     if (forbiddenHeaders.some((header) => headers.has(header))) throw new TypeError('Caller-supplied session credentials are not accepted');
     if (headers.has('Idempotency-Key')) throw new TypeError('Use the explicit idempotencyKey option');
     if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
+    const session = adapter.client?.current?.session?.sessionBinding;
     const proof = await adapter.createIntrospectionProof([...scopes]);
+    if (session && adapter.client?.current?.session?.sessionBinding !== session) throw Object.assign(new Error('Docs account changed before the request.'), {code:'SESSION_CHANGED',status:409});
     if (signal?.aborted) throw new DOMException('Request cancelled', 'AbortError');
     if (typeof proof?.proofHeader !== 'string' || !proof.proofHeader.trim() || /[\r\n]/.test(proof.proofHeader)) {
       throw new Error('Wallet SDK returned no usable session proof');

@@ -18,6 +18,10 @@ for (const [value, label] of [['read', 'Read-only access'], ['edit', 'Read and e
   const option = document.createElement('option'); option.value = value; option.textContent = label; accessPicker.append(option);
 }
 try { accessPicker.value = localStorage.getItem(accessKey) === 'edit' ? 'edit' : 'read'; } catch {}
+if (!callback && new URLSearchParams(location.search).get('access') === 'edit') {
+  accessPicker.value = 'edit';
+  try { localStorage.setItem(accessKey, 'edit'); } catch {}
+}
 document.querySelector('main').append(accessPicker);
 let readGeneration = 0;
 let readAbort;

@@ -68,3 +68,35 @@ test('restoring a persisted pending operation retains its original key without g
   assert.equal(restarted.calls[0].options.headers.get('Idempotency-Key'), stored.idempotencyKey);
   assert.equal(restarted.calls[0].options.body, stored.body);
 });
+
+for (const path of ['/api/v1/objects/one/trash', '/api/v1/objects/one/restore', '/api/v1/objects/one/versions/2/restore']) {
+  for (const body of [undefined, '']) {
+    test(`reload and explicit retry preserve empty body at ${path} (${String(body)})`, async () => {
+      const h = harness([new TypeError('offline'), Response.json({id:'one'})]);
+      const original = {method:'POST',path,body,idempotencyKey:'empty_operation_0001'};
+      const op = h.client.resumePrepared(JSON.parse(JSON.stringify(original)));
+      await assert.rejects(h.client.send(op), /offline/);
+      await h.client.send(op);
+      assert.equal(h.keys(), 0);
+      assert.equal(h.calls[0].options.body, body);
+      assert.equal(h.calls[1].options.body, body);
+      assert.equal(h.calls[1].options.headers.has('Content-Type'), false);
+      assert.equal(h.calls[1].options.headers.get('Idempotency-Key'), original.idempotencyKey);
+      assert.notEqual(h.calls[0].options.headers.get('X-YNX-Product-Session-Proof-V2'), h.calls[1].options.headers.get('X-YNX-Product-Session-Proof-V2'));
+      assert.throws(() => h.client.resumePrepared({...original,body:'{}'}), /invalid/);
+    });
+  }
+}
+
+for (const [method,path,scopes] of [
+  ['PATCH','/api/v1/objects/one',['docs.write','files.write']],
+  ['POST','/api/v1/objects/one/comments',['docs.write','files.write']],
+  ['POST','/api/v1/objects/one/comments/root/resolve',['docs.write','files.write']],
+  ['POST','/api/v1/objects/one/duplicate',['docs.read','docs.write','files.read','files.write']],
+]) {
+  test(`route-specific scope order: ${method} ${path}`, async () => {
+    const h = harness([Response.json({id:'receipt'})]);
+    await h.client.send(h.client.resumePrepared({method,path,body:'{}',idempotencyKey:'route_operation_001'}));
+    assert.deepEqual(h.scopes[0],scopes);
+  });
+}

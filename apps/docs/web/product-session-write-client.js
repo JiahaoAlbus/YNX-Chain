@@ -1,7 +1,20 @@
 import {createDocsSessionTransport} from './product-session-transport.js';
 
 export const docsWriteScopes = Object.freeze(['docs.write', 'files.write']);
+export function docsWriteScopesFor(method, path) {
+  return method === 'POST' && /^\/api\/v1\/objects\/[^/?#]+\/duplicate$/.test(path)
+    ? ['docs.read', 'docs.write', 'files.read', 'files.write'] : [...docsWriteScopes];
+}
 const keyPattern = /^[A-Za-z0-9_-]{16,128}$/;
+export function docsWriteBodyMode(method, path) {
+  if (typeof path !== 'string') return null;
+  if ((method === 'POST' && path === '/api/v1/objects') ||
+    (method === 'PUT' && /^\/api\/v1\/objects\/[^/?#]+\/document$/.test(path)) ||
+    (method === 'PATCH' && /^\/api\/v1\/objects\/[^/?#]+$/.test(path)) ||
+    (method === 'POST' && /^\/api\/v1\/objects\/[^/?#]+\/(?:duplicate|comments(?:\/[^/?#]+\/resolve)?)$/.test(path))) return 'json';
+  if (method === 'POST' && /^\/api\/v1\/objects\/[^/?#]+\/(?:trash|restore|versions\/[1-9][0-9]*\/restore)$/.test(path)) return 'empty';
+  return null;
+}
 function encodeContent(content) {
   if (typeof content !== 'string') throw new TypeError('Document content must be text');
   const bytes = new TextEncoder().encode(content);
@@ -25,9 +38,11 @@ export function createDocsWriteClient({adapter, origin, fetchImpl = globalThis.f
   }
   return {
     resumePrepared(saved) {
-      if (!saved || !keyPattern.test(saved.idempotencyKey) || typeof saved.body !== 'string' || saved.body.length > 12 * 1024 * 1024 ||
-        !((saved.method === 'POST' && saved.path === '/api/v1/objects') || (saved.method === 'PUT' && /^\/api\/v1\/objects\/[^/]+\/document$/.test(saved.path)))) throw new TypeError('Stored Docs write is invalid; preserve it for reconciliation');
-      JSON.parse(saved.body);
+      const mode = saved && docsWriteBodyMode(saved.method, saved.path);
+      if (!mode || !keyPattern.test(saved.idempotencyKey) ||
+        (mode === 'json' && (typeof saved.body !== 'string' || saved.body.length > 12 * 1024 * 1024)) ||
+        (mode === 'empty' && saved.body !== undefined && saved.body !== '')) throw new TypeError('Stored Docs write is invalid; preserve it for reconciliation');
+      if (mode === 'json') JSON.parse(saved.body);
       const operation = Object.freeze({method: saved.method, path: saved.path, body: saved.body, idempotencyKey: saved.idempotencyKey});
       operations.set(operation, {pending: null, blocked: false});
       return operation;
@@ -55,7 +70,7 @@ export function createDocsWriteClient({adapter, origin, fetchImpl = globalThis.f
       const execute = async () => {
         const response = await request(operation.path, {
           method: operation.method, body: operation.body, idempotencyKey: operation.idempotencyKey,
-          headers: {'Content-Type': 'application/json'}, scopes: [...docsWriteScopes], signal,
+          headers: docsWriteBodyMode(operation.method, operation.path) === 'json' ? {'Content-Type': 'application/json'} : {}, scopes: docsWriteScopesFor(operation.method, operation.path), signal,
         });
         let body;
         try { body = await response.json(); } catch {}

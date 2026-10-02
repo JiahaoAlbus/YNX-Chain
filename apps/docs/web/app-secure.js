@@ -1,7 +1,10 @@
-import {loadDocsEditorBridge, createDocsLocalExport} from './editor-session-bridge.js';
+import {loadDocsEditorBridge, createDocsLocalExport, docsText, mountDocsLanguage} from './editor-session-bridge.js';
 const $ = (query) => document.querySelector(query);
+const t = (message, values = {}) => typeof docsText === 'function' ? docsText(message, values) : message.replace(/\{(\w+)\}/g, (match, key) => String(values[key] ?? match));
 const editorV2Mode = window.location?.origin === 'https://docs.ynxweb4.com';
 let editorV2 = null;
+let docsListView = 'active';
+let commentsContext = null;
 function docsIdentity() { return editorV2Mode ? editorV2?.identity || '' : state.credential; }
 const storageKey = ['ynx', 'docs', 'session'].join('.');
 const headerName = ['Author', 'ization'].join('');
@@ -21,6 +24,7 @@ const state = {
   listHistory: [],
   currentFolder: null,
   current: null,
+  documentAccount: '',
   content: '',
   baseVersion: 0,
   dirty: false,
@@ -50,21 +54,30 @@ let authPending = false;
 let sessionStatus = editorV2Mode ? 'Checking Docs Product Session' : state.credential ? 'Checking saved Docs session' : 'Docs authorization required';
 
 function renderAuth() {
-  $('#wallet').textContent = sessionStatus;
+  $('#wallet').textContent = t(sessionStatus);
   if (!$('#provider-state').dataset?.standardManaged) $('#provider-state').textContent = 'Wallet connection: not verified';
-  $('#session-state').textContent = sessionStatus;
+  $('#session-state').textContent = t(sessionStatus);
   $('#auth-start').disabled = authPending;
   $('#auth-end').disabled = authPending || !docsIdentity();
   $('#auth-start').textContent = authPending ? 'Waiting for authorization...' : 'Authorize Docs with YNX Wallet';
   if (editorV2Mode) {
-    $('#auth-start').textContent = 'Open Docs Product Session';
-    $('#auth-end').disabled = !docsIdentity();
-    $('#new-doc').disabled = !editorV2?.canWrite;
-    $('#new-folder').disabled = !editorV2?.canWrite;
+    $('#auth-start').textContent = t(authPending ? 'Waiting for approval…' : 'Approve reading and editing');
+    $('#auth-end').disabled = !docsIdentity() && !editorV2?.revocationPending;
+    $('#new-doc').disabled = !editorV2?.canWrite || docsListView === 'trash';
+    $('#new-folder').disabled = !editorV2?.canWrite || docsListView === 'trash';
+    if ($('#retry-write')) $('#retry-write').disabled = !editorV2?.identity;
+    if ($('#view-trash')) $('#view-trash').disabled = !editorV2?.canBrowseTrash;
   }
 }
 
 function clearDocsSession() {
+  if (editorV2Mode) {
+    const retained = !state.dirty || !state.current || persistDraft();
+    if (retained) clearDocument();
+    state.parentId = ''; state.listCursor = ''; state.listHistory = [];
+    state.objects = []; state.folders = []; renderObjects(); $('#panel').hidden = true; commentsContext = null;
+    $('#conflict-dialog').close();
+  }
   documentAttempt += 1;
   listAttempt += 1;
   if (!editorV2Mode) {
@@ -112,13 +125,17 @@ function encodeText(text) {
 }
 
 function setStatus(text, error = false) {
-  $('#save-state').textContent = text;
+  $('#save-state').textContent = t(text);
   $('#save-state').style.color = error ? '#a12222' : '';
 }
 
 function enableDocumentActions(enabled) {
   if (editorV2Mode) {
-    for (const id of ['duplicate', 'move', 'trash', 'history', 'comments', 'ai']) $(`#${id}`).disabled = true;
+    $('#ai').disabled = true;
+    $('#duplicate').disabled = !enabled || !editorV2?.canCopy;
+    $('#comments').disabled = !enabled;
+    for (const id of ['move', 'trash']) $(`#${id}`).disabled = !enabled || !editorV2?.canWrite;
+    $('#history').disabled = !enabled;
     $('#export').disabled = !enabled;
     $('#export-format').disabled = !enabled;
     return;
@@ -155,7 +172,26 @@ function showSignIn() {
 }
 
 async function connectWallet() {
-  if (editorV2Mode) { window.location.assign('/session.html'); return; }
+  if (editorV2Mode) {
+    if (authPending) return;
+    const attempt = ++authAttempt; authPending = true; renderAuth();
+    $('#auth-state').textContent = t('Review document reading and editing in YNX Wallet.');
+    try {
+      if (!editorV2) await initializeDocsEditor();
+      if (attempt !== authAttempt) return;
+      const result = await editorV2.authorize();
+      if (attempt !== authAttempt || result?.status !== 'connected') return;
+      sessionStatus = 'Docs editing session authorized'; renderAuth();
+      authPending = false; renderAuth();
+      $('#auth-dialog').close(); await loadObjects();
+    } catch (error) {
+      if (attempt === authAttempt) {
+        $('#auth-state').textContent = t(Number(error?.code) === 4001 ? 'Approval declined. You can try again.' : 'Docs approval could not be confirmed. Retry or check your wallet.');
+        $('#auth-details').textContent = String(error?.code || 'WALLET_UNAVAILABLE');
+      }
+    } finally { if (attempt === authAttempt) { authPending = false; renderAuth(); } }
+    return;
+  }
   if (authPending) return;
   const attempt = ++authAttempt;
   authPending = true;
@@ -205,6 +241,7 @@ async function connectWallet() {
 function cancelAuthorization() {
   authAttempt += 1;
   authPending = false;
+  if (editorV2Mode) void editorV2?.cancelAuthorization().catch(() => {});
   $('#auth-state').textContent = 'Authorization dialog closed. Pending results will not activate a Docs session.';
   renderAuth();
 }
@@ -249,7 +286,7 @@ async function loadObjects() {
     const query = encodeURIComponent($('#search').value.trim());
     const parentId = encodeURIComponent(state.parentId);
     const [visible, recent] = await Promise.all([
-      request(`/objects?parentId=${parentId}&q=${query}${state.listCursor ? `&cursor=${encodeURIComponent(state.listCursor)}` : ''}`),
+      request(`/objects?${docsListView === 'trash' ? 'view=trash' : `parentId=${parentId}`}&q=${query}${state.listCursor ? `&cursor=${encodeURIComponent(state.listCursor)}` : ''}`),
       request('/objects?view=recent'),
     ]);
     if (credential !== docsIdentity() || attempt !== listAttempt) return;
@@ -279,21 +316,21 @@ function renderPagination(page) {
   const root = $('#doc-list');
   if (state.listHistory.length) {
     const previous = document.createElement('button');
-    previous.textContent = 'Previous page';
+    previous.textContent = t('Previous page');
     previous.onclick = () => { state.listCursor = state.listHistory.pop(); loadObjects(); };
     root.append(previous);
   }
   if (page.nextCursor) {
     const next = document.createElement('button');
-    next.textContent = 'Next page';
+    next.textContent = t('Next page');
     next.onclick = () => { state.listHistory.push(state.listCursor); state.listCursor = page.nextCursor; loadObjects(); };
     root.append(next);
   }
 }
 
 function renderNavigation() {
-  $('#folder-name').textContent = state.currentFolder?.name || 'All documents';
-  $('#folder-up').disabled = !state.parentId;
+  $('#folder-name').textContent = docsListView === 'trash' ? t('Trash') : state.currentFolder?.name || t('All documents');
+  $('#folder-up').disabled = docsListView === 'trash' || !state.parentId;
 }
 
 function renderObjects() {
@@ -308,19 +345,19 @@ function renderObjects() {
     button.className = `doc-item ${object.kind === 'folder' ? 'folder-item' : ''}`;
     button.dataset.id = object.id;
     if (state.current?.id === object.id) button.setAttribute('aria-current', 'page');
-    const name = document.createTextNode(object.kind === 'folder' ? `Folder · ${object.name}` : object.name);
+    const name = document.createTextNode(object.kind === 'folder' ? t('Folder: {name}', {name: object.name}) : object.name);
     const meta = document.createElement('small');
     meta.textContent = object.kind === 'folder'
       ? `Updated ${new Date(object.updatedAt).toLocaleDateString()}`
       : `v${object.version} · ${new Date(object.updatedAt).toLocaleDateString()}`;
     button.append(name, meta);
-    button.onclick = () => object.kind === 'folder' ? enterFolder(object) : openDocument(object);
+    button.onclick = () => docsListView === 'trash' ? showTrashObject(object) : object.kind === 'folder' ? enterFolder(object) : openDocument(object);
     root.append(button);
   }
   if (!objects.length) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
-    empty.textContent = $('#search').value ? 'No matching documents or folders.' : 'This folder is empty.';
+    empty.textContent = t($('#search').value ? 'No matching documents or folders.' : 'This folder is empty.');
     root.append(empty);
   }
 }
@@ -343,8 +380,9 @@ async function openParentFolder() {
 
 async function createDocument() {
   if (!docsIdentity()) return showSignIn();
-  const name = prompt('Document title', 'Untitled document')?.trim();
+  const name = prompt(t('Document title'), t('Untitled document'))?.trim();
   if (!name) return;
+  const credential = docsIdentity(), attempt = documentAttempt;
   try {
     const document = await request('/objects', {
       method: 'POST',
@@ -357,7 +395,9 @@ async function createDocument() {
         encryption: {clientSide: false},
       }),
     });
+    if (credential !== docsIdentity() || attempt !== documentAttempt) return;
     await loadObjects();
+    if (credential !== docsIdentity() || attempt !== documentAttempt) return;
     await openDocument(document);
   } catch (error) {
     setStatus(error.message, true);
@@ -366,7 +406,7 @@ async function createDocument() {
 
 async function createFolder() {
   if (!docsIdentity()) return showSignIn();
-  const name = prompt('Folder name', 'New folder')?.trim();
+  const name = prompt(t('Folder name'), t('New folder'))?.trim();
   if (!name) return;
   try {
     await request('/objects', {
@@ -390,6 +430,7 @@ async function openDocument(document) {
     ]);
     const content = await blob.text();
     if (attempt !== documentAttempt || !credential || credential !== docsIdentity()) return;
+    state.documentAccount = editorV2Mode ? editorV2.account : '';
     state.current = metadata;
     state.content = content;
     state.baseVersion = metadata.version;
@@ -397,7 +438,7 @@ async function openDocument(document) {
     state.commentAnchor = null;
     state.conflict = null;
     $('#title').value = metadata.name;
-    $('#title').disabled = editorV2Mode;
+    $('#title').disabled = editorV2Mode && !editorV2?.canWrite;
     $('#editor').value = state.content;
     $('#editor').disabled = editorV2Mode && !editorV2?.canWrite;
     $('#welcome').hidden = true;
@@ -418,6 +459,7 @@ function clearDocument() {
   documentAttempt += 1;
   clearTimeout(state.heartbeatTimer);
   state.current = null;
+  state.documentAccount = '';
   state.content = '';
   state.baseVersion = 0;
   state.dirty = false;
@@ -435,6 +477,7 @@ function clearDocument() {
 
 async function renameDocument() {
   if (!state.current) return;
+  const id = state.current.id, credential = docsIdentity();
   const name = $('#title').value.trim();
   if (!name) {
     $('#title').value = state.current.name;
@@ -443,14 +486,17 @@ async function renameDocument() {
   }
   if (name === state.current.name) return;
   try {
-    state.current = await request(`/objects/${state.current.id}`, {
+    const renamed = await request(`/objects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({name}),
     });
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
+    state.current = renamed;
     $('#title').value = state.current.name;
     await loadObjects();
     setStatus(`Renamed · version ${state.baseVersion}`);
   } catch (error) {
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
     $('#title').value = state.current.name;
     setStatus(error.message, true);
   }
@@ -458,13 +504,16 @@ async function renameDocument() {
 
 async function duplicateDocument() {
   if (!state.current) return;
-  const name = prompt('Name for the duplicate', `${state.current.name} copy`)?.trim();
+  const id = state.current.id, credential = docsIdentity();
+  const name = prompt(t('Name for the duplicate'), state.current.name)?.trim();
   if (!name) return;
+  if (editorV2Mode && !confirm(t('Copy the current server version? Unsaved edits, comments and permissions are not copied.'))) return;
   try {
-    const duplicate = await request(`/objects/${state.current.id}/duplicate`, {
+    const duplicate = await request(`/objects/${id}/duplicate`, {
       method: 'POST',
       body: JSON.stringify({parentId: state.current.parentId || '', name}),
     });
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
     state.parentId = duplicate.parentId || '';
     await loadObjects();
     await openDocument(duplicate);
@@ -473,29 +522,52 @@ async function duplicateDocument() {
   }
 }
 
-function showMovePanel() {
+async function showMovePanel() {
   if (!state.current) return;
-  const root = openPanel('OWNERSHIP-PRESERVING MOVE', 'Move document');
-  root.append(notice('Moving changes only the folder location. Ownership, versions, comments and permissions remain attached.'));
-  const destinations = [{id: '', name: 'All documents'}, ...state.folders]
-    .filter((folder) => folder.id !== state.current.parentId)
-    .sort((left, right) => left.name.localeCompare(right.name));
-  for (const destination of destinations) {
-    const button = document.createElement('button');
-    button.className = 'wide';
-    button.textContent = destination.name;
-    button.onclick = () => moveDocument(destination.id);
+  const id = state.current.id, credential = docsIdentity();
+  const root = openPanel(t('Move'), t('Move document'));
+  root.append(notice(t('Only the owner can move this document.')));
+  const add = (destination) => {
+    if (destination.id === state.current?.parentId) return;
+    const button = document.createElement('button'); button.className = 'wide'; button.textContent = destination.name;
+    button.disabled = editorV2Mode && !editorV2?.canWrite;
+    button.onclick = () => {
+      if (state.current?.id !== id || docsIdentity() !== credential) return;
+      if (confirm(t('Move to "{name}"?', {name: destination.name}))) moveDocument(destination.id);
+    };
     root.append(button);
+  };
+  add({id: '', name: t('All documents')});
+  const seen = new Set();
+  async function page(cursor = '') {
+    const loading = notice(t('Loading...')); root.append(loading);
+    try {
+      const result = await request(`/objects?view=recent&limit=100${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+      if (state.current?.id !== id || docsIdentity() !== credential || !root.contains(loading)) return;
+      for (const folder of (Array.isArray(result) ? result : result.items)) {
+        if (folder.kind === 'folder' && !folder.trashedAt) add(folder);
+      }
+      if (result.nextCursor && !seen.has(result.nextCursor)) {
+        seen.add(result.nextCursor);
+        const more = document.createElement('button'); more.textContent = t('Next page');
+        more.onclick = () => { more.remove(); page(result.nextCursor); }; root.append(more);
+      }
+    } catch (error) { root.append(notice(error.message)); }
+    finally { loading.remove(); }
   }
+  await page();
 }
 
 async function moveDocument(parentId) {
   if (!state.current) return;
+  const id = state.current.id, credential = docsIdentity();
   try {
-    state.current = await request(`/objects/${state.current.id}`, {
+    const moved = await request(`/objects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify({parentId}),
     });
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
+    state.current = moved;
     state.parentId = parentId;
     $('#panel').hidden = true;
     await loadObjects();
@@ -507,19 +579,68 @@ async function moveDocument(parentId) {
 
 async function trashDocument() {
   if (!state.current) return;
+  const id = state.current.id, credential = docsIdentity();
   if (state.dirty) {
     await saveDocument();
     if (state.dirty) return;
   }
-  if (!confirm(`Move “${state.current.name}” to Trash? Share links and edits will stop resolving.`)) return;
+  if (state.current?.id !== id || docsIdentity() !== credential) return;
+  if (!confirm(t('Move "{name}" to Trash?', {name: state.current.name}))) return;
   try {
-    await request(`/objects/${state.current.id}/trash`, {method: 'POST'});
+    await request(`/objects/${id}/trash`, {method: 'POST'});
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
     clearDocument();
     await loadObjects();
     setStatus('Moved to Trash');
   } catch (error) {
     setStatus(error.message, true);
   }
+}
+
+function showTrashObject(object) {
+  const root = openPanel(t('Trash'), object.name);
+  const credential = docsIdentity();
+  const restore = document.createElement('button'); restore.className = 'wide'; restore.textContent = t('Restore');
+  restore.disabled = !editorV2?.canWrite;
+  root.append(notice(t('Restoring requires editing authorization.')), restore);
+  restore.onclick = async () => {
+    if (docsIdentity() !== credential || !confirm(t('Restore "{name}" from Trash?', {name: object.name}))) return;
+    restore.disabled = true;
+    try {
+      await request(`/objects/${encodeURIComponent(object.id)}/restore`, {method: 'POST'});
+      if (docsIdentity() !== credential) return;
+      $('#panel').hidden = true;
+      await loadObjects(); setStatus(t('Restored. Open All documents to continue.'));
+    } catch (error) { root.append(notice(error.message)); }
+    finally { restore.disabled = !editorV2?.canWrite; }
+  };
+}
+
+function showPendingWrite() {
+  const root = openPanel(t('Pending operation'), t('Review before retrying'));
+  try {
+    const record = editorV2.getPendingWrite();
+    if (!record) { root.append(notice(t('No pending operation.'))); return; }
+    const credential = docsIdentity();
+    root.append(notice(`${record.operation.method} ${record.operation.path}`));
+    root.append(notice(t('Retry keeps the original body and key. Newer draft edits are not submitted.')));
+    const retry = document.createElement('button'); retry.textContent = t('Retry original operation'); retry.className = 'wide';
+    retry.disabled = Boolean(record.blocked) || !editorV2.canWrite;
+    root.append(retry);
+    if (record.blocked) root.append(notice(t('Read and reconcile the server result before another write.')));
+    const link = document.createElement('a'); link.href = '/session.html'; link.textContent = t('Open Docs Product Session'); root.append(link);
+    retry.onclick = async () => {
+      if (docsIdentity() !== credential || !confirm(t('Retry the original operation?'))) return;
+      clearTimeout(state.saveTimer);
+      retry.disabled = true;
+      try {
+        await editorV2.retryPendingWrite(record.snapshot);
+        if (docsIdentity() !== credential) return;
+        root.append(notice(t('Original operation confirmed. Reopen the document to review; your local draft is retained.')));
+        await loadObjects();
+      } catch (error) { root.append(notice(error.message)); retry.disabled = Boolean(editorV2.getPendingWrite()?.blocked) || !editorV2.canWrite; }
+    };
+  } catch (error) { root.append(notice(error.message)); }
 }
 
 function editDocument() {
@@ -529,12 +650,16 @@ function editDocument() {
   updateWordCount();
   persistDraft();
   clearTimeout(state.saveTimer);
-  if (navigator.onLine && docsIdentity() && !state.conflict) state.saveTimer = setTimeout(saveDocument, 900);
+  if (navigator.onLine && docsIdentity() && !state.conflict && (!editorV2Mode || !editorV2?.hasPendingWrite)) state.saveTimer = setTimeout(saveDocument, 900);
+}
+
+function draftKey(id) {
+  return editorV2Mode ? `ynx.docs.v2.draft.${state.documentAccount}.${id}` : `ynx.docs.draft.${id}`;
 }
 
 function persistDraft() {
   try {
-    window.localStorage.setItem(`ynx.docs.draft.${state.current.id}`, JSON.stringify({
+    window.localStorage.setItem(draftKey(state.current.id), JSON.stringify({
     baseVersion: state.baseVersion,
     content: $('#editor').value,
     at: new Date().toISOString(),
@@ -547,7 +672,8 @@ function persistDraft() {
 }
 
 async function saveDocument() {
-  if (!state.current || !docsIdentity() || !state.dirty || state.saving || state.conflict || !navigator.onLine) return;
+  if (!state.current || !docsIdentity() || (editorV2Mode && state.documentAccount !== editorV2.account) || !state.dirty || state.saving || state.conflict || !navigator.onLine) return;
+  if (editorV2Mode && editorV2?.hasPendingWrite) { setStatus(t('Review before retrying'), true); return; }
   const id = state.current.id;
   const credential = docsIdentity();
   const content = $('#editor').value;
@@ -570,13 +696,13 @@ async function saveDocument() {
       setStatus('Newer edits are still unsaved');
       persistDraft();
     } else {
-      try { window.localStorage.removeItem(`ynx.docs.draft.${id}`); } catch {}
+      try { window.localStorage.removeItem(draftKey(id)); } catch {}
       setStatus(`Saved · version ${document.version}`);
     }
     await loadObjects();
   } catch (error) {
     if (state.current?.id !== id || credential !== docsIdentity()) return;
-    if (error.status===409) {
+    if (error.status === 409 && error.body?.current) {
       await showConflict(error.body.current);
     } else {
       setStatus(error.message, true);
@@ -592,20 +718,26 @@ async function saveDocument() {
 
 async function showConflict(current) {
   if (!current || current.id !== state.current?.id) return;
+  const credential = docsIdentity(), attempt = documentAttempt;
   clearTimeout(state.saveTimer);
   state.conflict = current;
   const latest = await request(`/objects/${current.id}/content?version=${current.version}`);
-  if (current.id !== state.current?.id || !docsIdentity()) return;
+  const content = await latest.text();
+  if (current.id !== state.current?.id || !credential || credential !== docsIdentity() || attempt !== documentAttempt) return;
   $('#local-conflict').value = $('#editor').value;
-  $('#server-conflict').value = await latest.text();
+  $('#server-conflict').value = content;
   state.conflict = current;
   $('#conflict-dialog').showModal();
   setStatus('Conflict recovery required; nothing was overwritten', true);
 }
 
 async function keepLocalCopy() {
+  const current = state.current, credential = docsIdentity(), attempt = documentAttempt;
+  if (!current || !credential || (editorV2Mode && state.documentAccount !== editorV2.account)) return;
+  const localText = $('#local-conflict').value;
   try {
-    if (editorV2Mode) editorV2.resolveReviewedConflict();
+    if (editorV2Mode) await editorV2.resolveReviewedConflict();
+    if (state.current !== current || credential !== docsIdentity() || attempt !== documentAttempt) return;
     const document = await request('/objects', {
       method: 'POST',
       body: JSON.stringify({
@@ -613,12 +745,13 @@ async function keepLocalCopy() {
         kind: 'doc',
         name: `${state.current.name} — recovered ${new Date().toLocaleString()}`,
         mime: 'text/plain',
-        content: encodeText($('#local-conflict').value),
+        content: encodeText(localText),
         encryption: {clientSide: false},
       }),
     });
     $('#conflict-dialog').close();
     await loadObjects();
+    if (state.current !== current || credential !== docsIdentity() || attempt !== documentAttempt) return;
     await openDocument(document);
   } catch (error) {
     setStatus(error.message, true);
@@ -626,17 +759,21 @@ async function keepLocalCopy() {
 }
 
 async function useServerVersion() {
+  const current = state.conflict, credential = docsIdentity(), attempt = documentAttempt;
+  if (!current || !credential) return;
   try {
-    const current = state.conflict;
     const blob = await request(`/objects/${current.id}/content?version=${current.version}`);
-    if (editorV2Mode) editorV2.resolveReviewedConflict();
-    $('#editor').value = await blob.text();
+    const content = await blob.text();
+    if (state.conflict !== current || credential !== docsIdentity() || attempt !== documentAttempt) return;
+    if (editorV2Mode) await editorV2.resolveReviewedConflict();
+    if (state.conflict !== current || credential !== docsIdentity() || attempt !== documentAttempt) return;
+    $('#editor').value = content;
     state.current = current;
     state.baseVersion = current.version;
     state.content = $('#editor').value;
     state.dirty = false;
     state.conflict = null;
-    window.localStorage.removeItem(`ynx.docs.draft.${current.id}`);
+    window.localStorage.removeItem(draftKey(current.id));
     $('#conflict-dialog').close();
     updateWordCount();
     setStatus(`Using server version ${current.version}`);
@@ -646,7 +783,7 @@ async function useServerVersion() {
 }
 
 function recoverOfflineDraft() {
-  const key = `ynx.docs.draft.${state.current.id}`;
+  const key = draftKey(state.current.id);
   let raw;
   try { raw = window.localStorage.getItem(key); } catch {
     setStatus('Local draft storage is unavailable. Keep this page open while editing.', true);
@@ -677,7 +814,7 @@ function recoverOfflineDraft() {
 }
 
 async function sendPresence() {
-  if (editorV2Mode) { $('#presence').textContent = 'Presence is not yet supported by the v2 backend'; return; }
+  if (editorV2Mode) { $('#presence').textContent = t('Not available on this backend'); return; }
   if (!state.current || !docsIdentity()) return;
   const id = state.current.id;
   const credential = docsIdentity();
@@ -698,33 +835,37 @@ async function sendPresence() {
 
 async function showHistory() {
   if (!state.current) return;
-  const root = openPanel('VERSION EVIDENCE', 'Version history');
-  const loading = notice('Loading verified versions…');
+  const id = state.current.id, credential = docsIdentity();
+  const root = openPanel(t('Versions'), t('Version history'));
+  const loading = notice(t('Loading...'));
   root.append(loading);
   try {
-    const versions = await request(`/objects/${state.current.id}/versions`);
+    const versions = await request(`/objects/${id}/versions`);
+    if (state.current?.id !== id || docsIdentity() !== credential || !root.contains(loading)) return;
     loading.remove();
     for (const version of versions) {
       const row = document.createElement('div');
       row.className = 'version';
       const heading = document.createElement('strong');
-      heading.textContent = `Version ${version.number}`;
+      heading.textContent = t('Version {version}', {version: version.number});
       const meta = document.createElement('small');
       meta.textContent = `${new Date(version.createdAt).toLocaleString()} · ${version.author} · ${version.hash.slice(0, 12)}…`;
       const preview = document.createElement('button');
-      preview.textContent = 'Open read-only';
+      preview.textContent = t('Open read-only');
       preview.onclick = async () => {
-        const blob = await request(`/objects/${state.current.id}/content?version=${version.number}`);
-        const text = document.createElement('pre');
-        text.className = 'callout';
-        text.textContent = await blob.text();
-        row.append(text);
+        try {
+          const blob = await request(`/objects/${id}/content?version=${version.number}`);
+          const content = await blob.text();
+          if (state.current?.id !== id || docsIdentity() !== credential) return;
+          const text = document.createElement('pre'); text.dir = 'auto'; text.className = 'callout'; text.textContent = content; row.append(text);
+        } catch (error) { row.append(notice(error.message)); }
       };
       row.append(heading, document.createElement('br'), meta, document.createElement('br'), preview);
       if (version.number !== state.baseVersion) {
         const restore = document.createElement('button');
-        restore.textContent = 'Restore as new version';
-        restore.onclick = () => restoreVersion(version.number);
+        restore.textContent = t('Restore as new version');
+        restore.disabled = editorV2Mode && !editorV2?.canWrite;
+        restore.onclick = () => { if (state.current?.id === id && docsIdentity() === credential) restoreVersion(version.number); };
         row.append(restore);
       }
       root.append(row);
@@ -735,18 +876,26 @@ async function showHistory() {
 }
 
 async function restoreVersion(version) {
-  if (!state.current) return;
-  if (state.dirty && !confirm('Restoring creates a new server version. Discard current unsaved edits?')) return;
-  if (!confirm(`Restore version ${version} as a new current version?`)) return;
+  if (!state.current || state.saving) return;
+  const id = state.current.id, credential = docsIdentity();
+  if (state.dirty && !confirm(t('Discard unsaved edits and restore?'))) return;
+  if (!confirm(t('Restore version {version} as a new version?', {version}))) return;
+  clearTimeout(state.saveTimer);
+  state.saving = true;
+  $('#editor').disabled = true;
   try {
-    const restored = await request(`/objects/${state.current.id}/versions/${version}/restore`, {method: 'POST'});
+    const restored = await request(`/objects/${id}/versions/${version}/restore`, {method: 'POST'});
+    if (state.current?.id !== id || docsIdentity() !== credential) return;
     state.dirty = false;
-    window.localStorage.removeItem(`ynx.docs.draft.${state.current.id}`);
+    window.localStorage.removeItem(draftKey(state.current.id));
     $('#panel').hidden = true;
     await openDocument(restored);
     await loadObjects();
   } catch (error) {
     setStatus(error.message, true);
+  } finally {
+    state.saving = false;
+    $('#editor').disabled = !docsIdentity() || (editorV2Mode && !editorV2?.canWrite);
   }
 }
 
@@ -764,42 +913,45 @@ function selectedAnchor() {
 
 async function showComments() {
   if (!state.current) return;
-  state.commentAnchor = selectedAnchor();
-  const root = openPanel('VERSION-BOUND DISCUSSION', 'Comments');
-  root.append(notice(state.commentAnchor
-    ? `New thread anchor on v${state.baseVersion}: “${state.commentAnchor.quote}”`
-    : `New thread will cite document version ${state.baseVersion}. Select text before opening Comments to create an anchored thread.`));
+  state.commentAnchor = state.dirty ? null : selectedAnchor();
+  commentsContext = {id: state.current.id, version: state.baseVersion, credential: docsIdentity(), anchor: state.commentAnchor};
+  const root = openPanel(t('Version {version}', {version: state.baseVersion}), t('Comments'));
+  root.append(notice(t('Comments cite the saved version. Save edits before anchoring selected text.')));
+  if (state.commentAnchor) root.append(notice(state.commentAnchor.quote));
 
   const bodyLabel = document.createElement('label');
-  bodyLabel.textContent = 'Comment';
+  bodyLabel.textContent = t('Comment');
   const body = document.createElement('textarea');
   body.id = 'comment-body';
   body.rows = 3;
   bodyLabel.append(body);
 
   const mentionLabel = document.createElement('label');
-  mentionLabel.textContent = 'Mentions (ynx1…, comma separated)';
+  mentionLabel.textContent = t('Mentions (comma separated)');
   const mentions = document.createElement('input');
   mentions.id = 'mentions';
   mentionLabel.append(mentions);
 
   const add = document.createElement('button');
   add.className = 'primary wide';
-  add.textContent = `Comment on v${state.baseVersion}`;
+  add.textContent = t('Comment');
+  add.disabled = editorV2Mode && !editorV2?.canWrite;
   add.onclick = addComment;
 
   const list = document.createElement('div');
   list.id = 'comment-list';
-  list.textContent = 'Loading…';
+  list.textContent = t('Loading...');
   root.append(bodyLabel, mentionLabel, add, list);
   await loadComments();
 }
 
 async function loadComments() {
   const list = $('#comment-list');
-  if (!list || !state.current) return;
+  const context = commentsContext;
+  if (!list || !context || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
   try {
-    const comments = await request(`/objects/${state.current.id}/comments`);
+    const comments = (await request(`/objects/${context.id}/comments`)) || [];
+    if (context !== commentsContext || context.id !== state.current?.id || context.credential !== docsIdentity() || $('#comment-list') !== list) return;
     list.replaceChildren();
     const threads = new Map();
     for (const comment of comments) {
@@ -818,19 +970,21 @@ async function loadComments() {
       const actions = document.createElement('div');
       actions.className = 'comment-actions';
       const resolution = document.createElement('button');
-      resolution.textContent = rootComment.resolvedAt ? 'Reopen thread' : 'Resolve thread';
+      resolution.textContent = t(rootComment.resolvedAt ? 'Reopen thread' : 'Resolve thread');
+      resolution.disabled = editorV2Mode && !editorV2?.canWrite;
       resolution.onclick = () => setThreadResolution(threadId, !rootComment.resolvedAt);
       actions.append(resolution);
       if (!rootComment.resolvedAt) {
         const reply = document.createElement('button');
-        reply.textContent = 'Reply';
+        reply.textContent = t('Reply');
+        reply.disabled = editorV2Mode && !editorV2?.canWrite;
         reply.onclick = () => replyToThread(threadId);
         actions.append(reply);
       }
       thread.append(actions);
       list.append(thread);
     }
-    if (!comments.length) list.append(notice('No comments yet.'));
+    if (!comments.length) list.append(notice(t('No comments yet.')));
   } catch (error) {
     list.textContent = error.message;
   }
@@ -856,16 +1010,22 @@ function renderComment(comment, reply) {
 }
 
 async function addComment() {
-  const body = $('#comment-body').value.trim();
-  if (!body) return setStatus('Comment text is required', true);
+  const context = commentsContext;
+  if (!context || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
+  const input = $('#comment-body');
+  const submitted = input.value;
+  const body = submitted.trim();
+  if (!body) return setStatus(t('Comment text is required'), true);
   const mentions = $('#mentions').value.split(',').map((value) => value.trim()).filter(Boolean);
   try {
-    await request(`/objects/${state.current.id}/comments`, {
+    await request(`/objects/${context.id}/comments`, {
       method: 'POST',
-      body: JSON.stringify({version: state.baseVersion, body, mentions, anchor: state.commentAnchor}),
+      body: JSON.stringify({version: context.version, body, mentions, ...(context.anchor ? {anchor: context.anchor} : {})}),
     });
-    $('#comment-body').value = '';
+    if (context !== commentsContext || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
+    if (input.value === submitted) input.value = '';
     state.commentAnchor = null;
+    context.anchor = null;
     await loadComments();
   } catch (error) {
     setStatus(error.message, true);
@@ -873,13 +1033,16 @@ async function addComment() {
 }
 
 async function replyToThread(threadId) {
-  const body = prompt('Reply to this thread')?.trim();
+  const context = commentsContext;
+  if (!context || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
+  const body = prompt(t('Reply to this thread'))?.trim();
   if (!body) return;
   try {
-    await request(`/objects/${state.current.id}/comments`, {
+    await request(`/objects/${context.id}/comments`, {
       method: 'POST',
-      body: JSON.stringify({version: state.baseVersion, body, mentions: [], parentId: threadId}),
+      body: JSON.stringify({version: context.version, body, mentions: [], parentId: threadId}),
     });
+    if (context !== commentsContext || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
     await loadComments();
   } catch (error) {
     setStatus(error.message, true);
@@ -887,11 +1050,14 @@ async function replyToThread(threadId) {
 }
 
 async function setThreadResolution(threadId, resolved) {
+  const context = commentsContext;
+  if (!context || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
   try {
-    await request(`/objects/${state.current.id}/comments/${threadId}/resolution`, {
+    await request(`/objects/${context.id}/comments/${threadId}/${editorV2Mode ? 'resolve' : 'resolution'}`, {
       method: 'POST',
       body: JSON.stringify({resolved}),
     });
+    if (context !== commentsContext || context.id !== state.current?.id || context.credential !== docsIdentity()) return;
     await loadComments();
   } catch (error) {
     setStatus(error.message, true);
@@ -1039,14 +1205,15 @@ async function exportDocument() {
 
 function updateWordCount() {
   const text = $('#editor').value.trim();
-  $('#word-count').textContent = `${text ? text.split(/\s+/).length : 0} words`;
+  $('#word-count').textContent = t('{count} words', {count: text ? text.split(/\s+/).length : 0});
 }
 
 $('#wallet').onclick = showSignIn;
 $('#auth-start').onclick = connectWallet;
 $('#auth-end').onclick = endDocsSession;
-$('#auth-dialog').addEventListener('close', cancelAuthorization);
+$('#auth-dialog').addEventListener('close', () => { if (authPending) cancelAuthorization(); });
 $('#auth-dialog').addEventListener('cancel', cancelAuthorization);
+$('#auth-dialog').querySelector?.('form')?.addEventListener('submit', () => { if (authPending) cancelAuthorization(); });
 $('#new-doc').onclick = createDocument;
 $('#new-folder').onclick = createFolder;
 $('#folder-up').onclick = openParentFolder;
@@ -1088,11 +1255,31 @@ window.addEventListener('beforeunload', (event) => {
 enableDocumentActions(false);
 renderAuth();
 if (editorV2Mode) {
-  loadDocsEditorBridge().then((bridge) => {
+  mountDocsLanguage();
+  window.addEventListener('docs-language-change', () => { renderAuth(); renderNavigation(); updateWordCount(); });
+  $('#view-trash').onclick = () => { docsListView = 'trash'; state.listCursor = ''; state.listHistory = []; $('#search').value = ''; loadObjects(); };
+  $('#view-documents').onclick = () => { docsListView = 'active'; state.listCursor = ''; state.listHistory = []; $('#search').value = ''; loadObjects(); };
+  $('#retry-write').onclick = showPendingWrite;
+  initializeDocsEditor().catch(() => { sessionStatus = 'Docs session unavailable; retry sign in'; renderAuth(); });
+  window.addEventListener('focus', () => { if (!authPending) void editorV2?.restore().then(() => { renderAuth(); return loadObjects(); }).catch(() => {}); });
+  /* initial restoration is shared with explicit Retry */
+} else loadObjects();
+
+var editorInitialization;
+function initializeDocsEditor() {
+  if (editorV2) return Promise.resolve(editorV2);
+  if (editorInitialization) return editorInitialization;
+  editorInitialization = loadDocsEditorBridge(globalThis, (session) => {
+    if (session?.status !== 'connected' || (state.documentAccount && session.session?.account !== state.documentAccount)) clearDocsSession();
+    sessionStatus = session?.status === 'connected' ? 'Docs editing session authorized' : session?.revocationPending ? 'Sign-out is pending. Retry sign-out.' : 'Docs authorization required';
+    renderAuth();
+  }).then((bridge) => {
     editorV2 = bridge;
     sessionStatus = bridge.identity ? (bridge.canWrite ? 'Docs editing session authorized' : 'Docs read-only session authorized') : 'Docs authorization required';
     renderAuth();
-    return loadObjects();
-  }).catch(() => { sessionStatus = 'Docs session unavailable; open Product Session to retry'; renderAuth(); });
-  window.addEventListener('pagehide', () => editorV2?.close());
-} else loadObjects();
+    if (bridge.hasPendingWrite) showPendingWrite();
+    void loadObjects(); return bridge;
+  }).finally(() => { editorInitialization = undefined; });
+  return editorInitialization;
+}
+window.addEventListener('pagehide', () => editorV2?.close());
