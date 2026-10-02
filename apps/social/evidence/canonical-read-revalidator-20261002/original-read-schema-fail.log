@@ -1,0 +1,235 @@
+{
+  "qualification": "actual exact consumer and HTTP parser; service-generated metadata; controlled decrypted SDK records/authority, not real HS",
+  "pass": 7,
+  "fail": 4,
+  "skip": 0,
+  "results": [
+    {
+      "name": "actual consumer baseline",
+      "status": "PASS",
+      "expectedAccept": true,
+      "accepted": true,
+      "decoded": {
+        "eventId": "$original-feed-event",
+        "text": "Original encrypted body",
+        "attachment": null,
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "roomId": "!synthetic:example.invalid",
+          "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+          "owner": "@alice:example.invalid",
+          "eventId": "$original-feed-event"
+        }
+      },
+      "error": null,
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "mutable index switches event and transaction during SDK messages await",
+      "status": "FAIL",
+      "expectedAccept": false,
+      "accepted": true,
+      "decoded": {
+        "eventId": "$substituted-read-event",
+        "text": "Original encrypted body",
+        "attachment": null,
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "roomId": "!synthetic:example.invalid",
+          "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+          "owner": "@alice:example.invalid",
+          "eventId": "$substituted-read-event"
+        }
+      },
+      "error": null,
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "unknown authenticated semantic keys rejected like original publish readback",
+      "status": "FAIL",
+      "expectedAccept": false,
+      "accepted": true,
+      "decoded": {
+        "eventId": "$original-feed-event",
+        "text": "Original encrypted body",
+        "attachment": null,
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "roomId": "!synthetic:example.invalid",
+          "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+          "owner": "@alice:example.invalid",
+          "eventId": "$original-feed-event"
+        }
+      },
+      "error": null,
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "moment carrying comment relation cannot be canonical top-level moment",
+      "status": "FAIL",
+      "expectedAccept": false,
+      "accepted": true,
+      "decoded": {
+        "eventId": "$original-feed-event",
+        "text": "Original encrypted body",
+        "attachment": null,
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "roomId": "!synthetic:example.invalid",
+          "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+          "owner": "@alice:example.invalid",
+          "eventId": "$original-feed-event"
+        }
+      },
+      "error": null,
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "malformed encrypted attachment cannot become authenticated descriptor",
+      "status": "FAIL",
+      "expectedAccept": false,
+      "accepted": true,
+      "decoded": {
+        "eventId": "$original-feed-event",
+        "text": "Original encrypted body",
+        "attachment": {
+          "msgtype": "m.file",
+          "body": "Original encrypted body",
+          "com.ynx.social.moment": {
+            "protocol": "ynx-social-matrix-moment/v1",
+            "kind": "moment",
+            "owner": "@alice:example.invalid",
+            "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+            "audience": "contacts",
+            "author": "@alice:example.invalid",
+            "text": "Original encrypted body"
+          },
+          "file": {
+            "v": "v2",
+            "url": "mxc://"
+          }
+        },
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "roomId": "!synthetic:example.invalid",
+          "revision": "04bde95f2699494781aa110cfc3fc369be015ab60df7327261c3f9e890c82e4a",
+          "owner": "@alice:example.invalid",
+          "eventId": "$original-feed-event"
+        }
+      },
+      "error": null,
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "last authority await lock rejects readback",
+      "status": "PASS",
+      "expectedAccept": false,
+      "accepted": false,
+      "decoded": null,
+      "error": "revoked",
+      "authorizations": []
+    },
+    {
+      "name": "wrong sender rejected",
+      "status": "PASS",
+      "expectedAccept": false,
+      "accepted": false,
+      "decoded": null,
+      "error": "Authenticated indexed Moment is unavailable",
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "comment relation mismatch rejected",
+      "status": "PASS",
+      "expectedAccept": false,
+      "accepted": false,
+      "decoded": null,
+      "error": "Authenticated comment parent differs from the index",
+      "authorizations": [
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        },
+        {
+          "action": "read",
+          "transactionId": "original_feed_index_transaction_001"
+        }
+      ]
+    },
+    {
+      "name": "HTTP parser original actual service metadata",
+      "status": "PASS",
+      "accepted": true,
+      "expectedAccept": true,
+      "error": null
+    },
+    {
+      "name": "HTTP parser malformed Matrix event rejected",
+      "status": "PASS",
+      "accepted": false,
+      "expectedAccept": false,
+      "error": "Invalid authorized index metadata"
+    },
+    {
+      "name": "HTTP parser extra plaintext row field rejected",
+      "status": "PASS",
+      "accepted": false,
+      "expectedAccept": false,
+      "error": "Invalid authorized index metadata"
+    }
+  ]
+}
