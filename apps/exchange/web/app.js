@@ -87,6 +87,7 @@ function renderMarketStatus({phase,source}){const cached=!!source;$('#market-con
 async function refreshBook(){await refreshAll()}
 async function refreshAccount(){return privateAccount.refresh()}
 function renderPrivateAccount(value){
+  if(state.account!==value.account)rememberSupportDraft(state.account,value.account);
   state.privatePhase=value.phase;state.account=value.account;state.snapshot=value.snapshot;
   const messages={guest:'Guest mode. Private venue data is hidden; standard Wallet and public markets are independent.',loading:'Verifying the Exchange private account…',connected:'Read-only Exchange account verified by the private authority and Product API. No order or withdrawal permission.', 'approval-pending':'Request saved. Click Open YNX Wallet to review read-only access. Native installation is unverified; returning here alone is not approval.',degraded:'Private account unavailable. Retry can recover its protected state; your standard Wallet remains unchanged.','authorization-required':'Private account authorization expired or was rejected. Retry or start a new explicit approval.',closed:'Private account is closed.'};
   $('#private-status').textContent=`${value.phase==='approval-pending'&&value.installation==='selected-provider'?'Review Exchange read-only access in the selected Wallet. No venue data is available until its approved return is verified.':messages[value.phase]||messages.degraded}${value.code?' ('+value.code+')':''}`;
@@ -96,8 +97,28 @@ function renderPrivateAccount(value){
   $('#private-refresh').hidden=value.phase!=='connected';
   if(value.snapshot){renderAccount();$('#private-source').textContent=`${value.snapshot.sourceMetadata.status} · ${value.snapshot.sourceMetadata.coverage} · ${new Date(value.snapshot.sourceMetadata.asOf).toLocaleString()}`}
   else{for(const id of ['balances','orders','activity-head','activity-body'])$('#'+id).replaceChildren();$('#balances').textContent='Private balances are not currently verified.';$('#owned-volume').textContent='—';$('#private-source').textContent='No verified account snapshot.'}
+  renderOwnedControls();
   if(location.pathname==='/wallet-auth/callback'&&(value.phase==='connected'||value.code==='PRIVATE_SESSION_DISCONNECTED'))history.replaceState(null,'','/');
   resumeDeferredBrowserIdentity();
+}
+const supportDrafts=new Map();
+function rememberSupportDraft(previous,next){
+  if(previous)supportDrafts.set(previous,{category:$('#support-category').value,message:$('#support-message').value});
+  $('#support-form').reset();
+  const draft=next&&supportDrafts.get(next);if(draft){$('#support-category').value=draft.category;$('#support-message').value=draft.message;supportDrafts.delete(next)}
+}
+function renderOwnedControls(){
+  const snapshot=state.snapshot,security=$('#security-read-state'),root=$('#owned-support-cases');root.replaceChildren();
+  if(!snapshot){$('#security-form').reset();$('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;security.textContent='No verified account settings. Saving controls requires a separate write approval.';root.textContent='Existing support cases are not currently verified. Restore Exchange read access to view them.';return}
+  $('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;
+  const asOf=Number.isFinite(Date.parse(snapshot.security.updatedAt))?new Date(snapshot.security.updatedAt).toLocaleString():'Source timestamp unavailable';
+  security.textContent=`Verified read-only settings · ${asOf}. Saving controls requires a separate write approval.`;
+  const cases=snapshot.support.filter(item=>item.account===state.account);
+  if(!cases.length){root.textContent='No existing support cases for this approved account.';return}
+  for(const item of [...cases].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))){
+    const article=document.createElement('article'),title=document.createElement('strong'),detail=document.createElement('p'),message=document.createElement('p');
+    title.textContent=`${item.category} · ${item.status}`;detail.textContent=`${item.id} · ${new Date(item.createdAt).toLocaleString()}`;message.textContent=item.message;article.append(title,detail,message);root.append(article);
+  }
 }
 function renderBook(){renderRows('#asks',(state.book?.asks||[]).slice(0,7).reverse());renderRows('#bids',(state.book?.bids||[]).slice(0,7));const all=[...(state.book?.asks||[]),...(state.book?.bids||[])];$('#spread').textContent=all.length?'Owned venue open orders':'No public market depth'}
 function renderRows(selector,rows){const root=$(selector);root.replaceChildren();if(!rows.length){const div=document.createElement('div');div.innerHTML='<span>—</span><span>—</span><span>—</span>';root.append(div);return}rows.forEach(o=>{const div=document.createElement('div'),remaining=BigInt(o.amountMicro)-BigInt(o.filledMicro);[display(o.priceMicro),display(remaining),display(remaining*BigInt(o.priceMicro)/1_000_000n)].forEach(v=>{const span=document.createElement('span');span.textContent=v;div.append(span)});root.append(div)})}
