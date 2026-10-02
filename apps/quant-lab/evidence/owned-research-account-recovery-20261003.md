@@ -79,6 +79,17 @@ they are not a hosted artifact or production screenshot. Parent inspected all th
 
 ## Remaining boundaries and integration
 
+Follow-up risk localization: the existing Paper cash/position/reconciliation/kill
+state, explicit kill confirmation and completion messages now use all 12 supported
+languages. English wording remains compatible. The real local Go/Chromium mobile
+Arabic journey dismisses the localized confirm, observes zero kill POSTs and rereads
+unchanged persistent risk; the existing English confirmation/completion journey also
+passes. These two final browser cases passed in 2.565s. The prior 22-case business and
+browser run passed with the translation change before this expanded Arabic assertion.
+No risk API, execution engine, proof, or authority changed. The local screenshot
+`tmp/quant-lab-evidence/risk-arabic-confirmation-cancelled.png` captures the Arabic
+Paper state after cancellation; it is not a deployed-user receipt.
+
 - A owns shared Wallet/Auth/SSO/SDK/permissions, compatible asset/cache rebuild,
   public API binding, deployment and installed/public end-to-end verification.
 - The new panel labels are localized; this is not a claim that every inherited

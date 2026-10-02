@@ -162,6 +162,21 @@ const accountPanelCopy = {
   id: ["Wallet dan akun", "Riset tersedia tanpa masuk", "Wallet standar", "Identitas browser", "Akun pribadi", "Catatan Quant saya yang sudah ada"],
 };
 for (const [language, [accountPanelTitle, accountPanelHint, standardWalletTitle, browserIdentityTitle, privateAccountTitle, existingRecordsTitle]] of Object.entries(accountPanelCopy)) Object.assign(businessCopy[language], {accountPanelTitle, accountPanelHint, standardWalletTitle, browserIdentityTitle, privateAccountTitle, existingRecordsTitle});
+const paperRiskCopy = {
+  en: ["Cash (simulated)", "Position (simulated)", "Reconciliation", "Kill switch", "ACTIVE", "Armed", "Activate the persistent paper/testnet kill switch?", "Kill switch active", "Reconciliation completed: zero difference"],
+  "zh-CN": ["模拟现金", "模拟持仓", "对账", "熔断开关", "已激活", "待触发", "激活持久保存的模拟盘／测试网熔断开关？", "熔断开关已激活", "对账完成：差异为零"],
+  "zh-TW": ["模擬現金", "模擬部位", "對帳", "熔斷開關", "已啟動", "待觸發", "啟動持續保存的模擬交易／測試網熔斷開關？", "熔斷開關已啟動", "對帳完成：差異為零"],
+  ja: ["仮想現金", "仮想ポジション", "照合", "キルスイッチ", "作動中", "待機中", "保存されるペーパー取引・テストネットのキルスイッチを作動させますか？", "キルスイッチが作動しました", "照合完了：差異なし"],
+  ko: ["모의 현금", "모의 포지션", "조정", "킬 스위치", "활성화됨", "대기 중", "지속 저장되는 모의 거래/테스트넷 킬 스위치를 활성화할까요?", "킬 스위치가 활성화되었습니다", "조정 완료: 차이 없음"],
+  es: ["Efectivo simulado", "Posición simulada", "Conciliación", "Interruptor de emergencia", "ACTIVO", "Preparado", "¿Activar el interruptor de emergencia persistente de simulación/Testnet?", "Interruptor de emergencia activo", "Conciliación completada: diferencia cero"],
+  fr: ["Liquidités simulées", "Position simulée", "Rapprochement", "Arrêt d'urgence", "ACTIF", "Prêt", "Activer l'arrêt d'urgence persistant de simulation/Testnet ?", "Arrêt d'urgence actif", "Rapprochement terminé : aucun écart"],
+  de: ["Simuliertes Guthaben", "Simulierte Position", "Abstimmung", "Kill-Switch", "AKTIV", "Bereit", "Den dauerhaft gespeicherten Kill-Switch für Simulation/Testnet aktivieren?", "Kill-Switch aktiv", "Abstimmung abgeschlossen: keine Differenz"],
+  pt: ["Caixa simulado", "Posição simulada", "Reconciliação", "Interruptor de emergência", "ATIVO", "Preparado", "Ativar o interruptor de emergência persistente da simulação/Testnet?", "Interruptor de emergência ativo", "Reconciliação concluída: diferença zero"],
+  ru: ["Деньги в симуляции", "Позиция в симуляции", "Сверка", "Аварийный выключатель", "АКТИВЕН", "Готов", "Активировать сохраняемый аварийный выключатель симуляции/тестовой сети?", "Аварийный выключатель активен", "Сверка завершена: расхождений нет"],
+  ar: ["النقد المحاكى", "المركز المحاكى", "المطابقة", "مفتاح الإيقاف", "مفعّل", "جاهز", "هل تريد تفعيل مفتاح الإيقاف الدائم للمحاكاة وشبكة الاختبار؟", "مفتاح الإيقاف مفعّل", "اكتملت المطابقة: لا يوجد فرق"],
+  id: ["Kas simulasi", "Posisi simulasi", "Rekonsiliasi", "Sakelar penghentian", "AKTIF", "Siap", "Aktifkan sakelar penghentian tersimpan untuk simulasi/Testnet?", "Sakelar penghentian aktif", "Rekonsiliasi selesai: tidak ada selisih"],
+};
+for (const [language, [paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled]] of Object.entries(paperRiskCopy)) Object.assign(businessCopy[language], {paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled});
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
 const researchResultStatus = document.createElement("p");
@@ -324,7 +339,7 @@ function render() {
   const p = snapshot.paper || {};
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
-    `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>Cash (simulated)</dt><dd>${p.Cash ?? "—"}</dd></div><div><dt>Position (simulated)</dt><dd>${p.Position ?? "—"}</dd></div><div><dt>Reconciliation</dt><dd>${p.ReconciliationDelta ?? "—"}</dd></div><div><dt>Kill switch</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch === true ? "ACTIVE" : p.KillSwitch === false ? "Armed" : "—"}</dd></div></dl>`;
+    `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${p.Cash ?? "—"}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${p.Position ?? "—"}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${p.ReconciliationDelta ?? "—"}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;
   $("#audit-rows").innerHTML =
     (snapshot.audit || [])
       .slice()
@@ -622,20 +637,20 @@ $("#reconcile").onclick = async () => {
         Position: snapshot.paper.Position,
       }),
     });
-    toast("Reconciliation completed: zero difference");
+    toast(t("reconciled"));
     await refresh();
   } catch (e) {
     toast(e.message);
   }
 };
 $("#kill").onclick = async () => {
-  if (!confirm("Activate the persistent paper/testnet kill switch?")) return;
+  if (!confirm(t("confirmKill"))) return;
   try {
     await api("/v1/risk/kill", {
       method: "POST",
       body: JSON.stringify({ reason: "operator user confirmation" }),
     });
-    toast("Kill switch active");
+    toast(t("killActive"));
     await refresh();
   } catch (e) {
     toast(e.message);

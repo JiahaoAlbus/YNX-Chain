@@ -3,7 +3,27 @@ const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browse
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
 test('desktop fails closed without actual matched history and captures evidence',async()=>{const page=await browser.newPage({viewport:{width:1440,height:900},colorScheme:'light'});await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.getByText('unavailable',{exact:true}).waitFor();await page.getByRole('button',{name:'Experiments'}).click();await page.getByText('No experiments. Empty means no invented performance.').waitFor();await page.screenshot({path:path.join(evidence,'desktop-light.png'),fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(evidence,'desktop-dark.png'),fullPage:true})});
-test('mobile and Arabic RTL have no horizontal overflow',async()=>{const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','ar');assert.equal(await page.locator('html').getAttribute('dir'),'rtl');const m=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(m[0]<=m[1],m.join('/'));await page.screenshot({path:path.join(evidence,'mobile-arabic-rtl.png'),fullPage:true})});
+test('mobile Arabic risk confirmation is localized and cancellation leaves persistent risk unchanged',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});
+  await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','ar');
+  assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
+  const m=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(m[0]<=m[1],m.join('/'));
+  await page.screenshot({path:path.join(evidence,'mobile-arabic-rtl.png'),fullPage:true});
+  const oldRisk=await page.evaluate(()=>snapshot.paper.KillSwitch);let riskWrites=0;
+  page.on('request',request=>{if(request.method()==='POST'&&new URL(request.url()).pathname==='/api/v1/risk/kill')riskWrites++;});
+  await page.locator('nav button[data-view="risk"]').click();
+  const dialogPromise=page.waitForEvent('dialog'),clickPromise=page.locator('#kill').click();
+  const dialog=await dialogPromise;
+  assert.equal(dialog.type(),'confirm');
+  assert.equal(dialog.message(),'هل تريد تفعيل مفتاح الإيقاف الدائم للمحاكاة وشبكة الاختبار؟');
+  await dialog.dismiss();await clickPromise;
+  assert.equal(riskWrites,0);
+  await page.locator('#refresh').click();await page.evaluate(()=>refresh());
+  assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),oldRisk);
+  await page.locator('nav button[data-view="paper"]').click();
+  assert.match(await page.locator('#paper-state').textContent(),/النقد المحاكى.*المركز المحاكى.*المطابقة.*مفتاح الإيقاف.*جاهز/);
+  await page.screenshot({path:path.join(evidence,'risk-arabic-confirmation-cancelled.png'),fullPage:true});
+});
 test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();await page.getByRole('button',{name:'Risk'}).click();await page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.getByText('Kill switch active').waitFor();await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true})});
 test('a delayed actual-service snapshot cannot hide a newer confirmed Paper kill switch',{timeout:15000},async()=>{
   // Delay a real isolated Go response, not a fabricated risk-state result.
