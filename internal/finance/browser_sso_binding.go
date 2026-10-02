@@ -82,14 +82,25 @@ func (s *Server) authorizeBrowserSSOContext(r *http.Request, session Session) in
 		copy := r.Clone(r.Context())
 		copy.Header = r.Header.Clone()
 		copy.Header.Set("Cookie", financeSSOCookieName+"="+binding.SealedGrant)
-		if s.openSSOCookie(copy, financeSSOCookieName, &local) != nil {
+		var status int
+		local, status = s.ssoCookieGrant(copy)
+		if status != http.StatusOK {
 			return http.StatusUnauthorized
 		}
-	} else if s.openSSOCookie(r, financeSSOCookieName, &local) != nil {
-		return http.StatusUnauthorized
+	} else {
+		var status int
+		local, status = s.ssoCookieGrant(r)
+		if status != http.StatusOK {
+			return status
+		}
 	}
 	var fresh financeSSOGrant
-	status := s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &fresh)
+	status := http.StatusOK
+	if local.FamilyID != "" {
+		fresh = local
+	} else {
+		status = s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &fresh)
+	}
 	if status != http.StatusOK {
 		return status
 	}
@@ -98,10 +109,15 @@ func (s *Server) authorizeBrowserSSOContext(r *http.Request, session Session) in
 	}
 	if hasCookie && linked {
 		var current, currentFresh financeSSOGrant
-		if s.openSSOCookie(r, financeSSOCookieName, &current) != nil {
+		current, status = s.ssoCookieGrant(r)
+		if status != http.StatusOK {
 			return http.StatusUnauthorized
 		}
-		status = s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": current.GrantToken, "clientId": financeSSOClient}, &currentFresh)
+		if current.FamilyID != "" {
+			currentFresh = current
+		} else {
+			status = s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": current.GrantToken, "clientId": financeSSOClient}, &currentFresh)
+		}
 		if status != http.StatusOK {
 			return status
 		}
@@ -110,11 +126,19 @@ func (s *Server) authorizeBrowserSSOContext(r *http.Request, session Session) in
 		}
 	}
 	if !linked {
-		sealed, err := s.sealSSOValue(financeSSOCookieName, local)
+		var reference any = local
+		if local.FamilyID != "" {
+			reference = financeSSOFamilyReference{FamilyID: local.FamilyID, CSRF: local.CSRF}
+		}
+		sealed, err := s.sealSSOValue(financeSSOCookieName, reference)
 		if err != nil {
 			return http.StatusServiceUnavailable
 		}
-		grantDigest := sha256.Sum256([]byte(local.GrantToken))
+		token := local.GrantToken
+		if local.FamilyID != "" {
+			token = "family:" + local.FamilyID
+		}
+		grantDigest := sha256.Sum256([]byte(token))
 		if err = s.service.Store.bindBrowserSSO(key, FinanceBrowserSSOBinding{Account: session.Account, GrantDigest: hex.EncodeToString(grantDigest[:]), SealedGrant: sealed, ExpiresAt: session.ExpiresAt}, s.now()); err != nil {
 			return http.StatusServiceUnavailable
 		}

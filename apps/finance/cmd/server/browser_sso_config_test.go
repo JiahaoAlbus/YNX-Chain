@@ -64,3 +64,38 @@ func TestV2CentralSSOGatewayWiringPreservesLegacyIsolation(t *testing.T) {
 		}
 	}
 }
+
+func TestFiniteCentralIdentityExplicitConfigKeepsLegacyOptOut(t *testing.T) {
+	values := map[string]string{"YNX_FINANCE_CENTRAL_FINITE_IDENTITY": "true", "YNX_FINANCE_CENTRAL_FAMILY_KEY_ID": "finance-test-key", "YNX_FINANCE_CENTRAL_FAMILY_PRIVATE_KEY_FILE": "/protected/client-key.pem", "YNX_FINANCE_CENTRAL_FAMILY_SEAL_KEY_FILE": "/protected/seal.bin", "YNX_FINANCE_CENTRAL_FAMILY_STATE_PATH": "/protected/families/state.db"}
+	get := func(k string) string { return values[k] }
+	cfg, err := centralBrowserFamilyConfig("product-session-v2", true, get)
+	if err != nil || cfg.ClientID != "ynx-finance-v1-sso-v1" || cfg.Audience != "ynx:finance:identity" || cfg.Origin != finance.BrowserFinanceOrigin || cfg.RedirectURI != finance.BrowserFinanceOrigin+"/sso/callback" || cfg.Issuer != finance.BrowserWalletAuthority {
+		t.Fatal("finite tuple config changed", err)
+	}
+	for _, raw := range []string{"", "false"} {
+		values["YNX_FINANCE_CENTRAL_FINITE_IDENTITY"] = raw
+		cfg, err = centralBrowserFamilyConfig("legacy-v1", false, get)
+		if err != nil || cfg != nil {
+			t.Fatal("opt out changed legacy behavior")
+		}
+	}
+	for _, raw := range []string{"TRUE", " true", "1"} {
+		values["YNX_FINANCE_CENTRAL_FINITE_IDENTITY"] = raw
+		if _, err = centralBrowserFamilyConfig("product-session-v2", true, get); err == nil {
+			t.Fatal("loose opt in")
+		}
+	}
+	values["YNX_FINANCE_CENTRAL_FINITE_IDENTITY"] = "true"
+	for _, input := range []struct {
+		mode    string
+		central bool
+	}{{"legacy-v1", true}, {"product-session-v2", false}} {
+		if _, err = centralBrowserFamilyConfig(input.mode, input.central, get); err == nil {
+			t.Fatal("incompatible finite configuration")
+		}
+	}
+	values["YNX_FINANCE_CENTRAL_FAMILY_STATE_PATH"] = "relative.db"
+	if _, err = centralBrowserFamilyConfig("product-session-v2", true, get); err == nil {
+		t.Fatal("relative durable store accepted")
+	}
+}
