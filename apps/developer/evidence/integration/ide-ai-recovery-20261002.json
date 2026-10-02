@@ -1,0 +1,63 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "2b05fb84fe657467167acd377324cb560be168ee",
+  "existingAIContract": "/Users/huangjiahao/.codex/worktrees/ai-derived-wallet-source-20261001/apps/ai/integration/IDE_EXISTING_AI_API_CONTRACT_20261002.md",
+  "consumer": {
+    "serverOwnedConversation": true,
+    "exactGatewaySchema": true,
+    "previewMatchesSentPrompt": true,
+    "promptLimitUTF8Bytes": 8000,
+    "requestLimitUTF8Bytes": 4096,
+    "responseSessionBound": true,
+    "historySent": false,
+    "attachmentsSent": false,
+    "productContextsSent": false
+  },
+  "storage": {
+    "independentKey": true,
+    "encryptedBodies": true,
+    "ownerAndProjectScoped": true,
+    "reopen": true,
+    "interruptedRecoveryWithoutRetry": true,
+    "terminalDeletion": true,
+    "physicalErasureClaim": false
+  },
+  "tests": {
+    "services": {
+      "pass": 116,
+      "fail": 0,
+      "skip": 0,
+      "log": "/tmp/ynx-ide-ai-recovery-full-suite-20261002.log"
+    },
+    "gateway": {
+      "pass": 15,
+      "fail": 0,
+      "skip": 0,
+      "log": "/tmp/ynx-ide-ai-recovery-gateway-successor-20261002.log"
+    },
+    "firstGatewayAttempt": {
+      "pass": 11,
+      "fail": 4,
+      "log": "/tmp/ynx-ide-ai-recovery-gateway-tests-20261002.log",
+      "cause": "QA omitted retained language-service nested TypeScript5.9.3 and resolved frontend7.0.2. Added the existing dependency link, no package install or language source change."
+    },
+    "browser": {
+      "savedReopenDelete": true,
+      "cancellation": true,
+      "identityRetirement": true,
+      "contracts": true,
+      "receipt": "/tmp/ynx-ide-ai-history-browser-20261002.json",
+      "scope": "Actual React and Chromium with controlled browser routes"
+    },
+    "build": {
+      "exitCode": 0,
+      "log": "/tmp/ynx-ide-ai-recovery-build-20261002.log",
+      "warning": "Existing large-chunk warning"
+    }
+  },
+  "realProviderGeneration": false,
+  "sharedBusinessProofIntegrated": false,
+  "publicIntegrated": false,
+  "fullWorkbenchJourney": "NOT_RUN",
+  "releaseComplete": false
+}

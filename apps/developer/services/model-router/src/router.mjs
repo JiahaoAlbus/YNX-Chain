@@ -1,5 +1,6 @@
 import { createFairQueue } from "./fair-queue.mjs";
 import { readHostedStream } from "./hosted-stream.mjs";
+import { existingHostedRequest } from "./hosted-request.mjs";
 
 const PROTOCOL = "ynx-code-model-router/v1";
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/;
@@ -142,6 +143,13 @@ export function createModelRouter({
   async function hosted(input) {
     let response;
     const signal = combinedSignal(input.signal, timeoutMs);
+    const body = input.hostedSession ? existingHostedRequest(input) : {
+      prompt: `${input.system}\n\n${input.prompt}`,
+      outputLanguage: input.outputLanguage,
+      attachments: [],
+      maxOutputTokens: input.maxOutputTokens,
+      responseFormat: input.responseFormat,
+    };
     try {
       response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
         method: "POST",
@@ -150,13 +158,7 @@ export function createModelRouter({
           "content-type": "application/json",
           "x-ynx-ai-provider": "ynx-local",
         },
-        body: JSON.stringify({
-          prompt: `${input.system}\n\n${input.prompt}`,
-          outputLanguage: input.outputLanguage,
-          attachments: [],
-          maxOutputTokens: input.maxOutputTokens,
-          responseFormat: input.responseFormat,
-        }),
+        body: JSON.stringify(body),
         signal,
       });
     } catch (error) {
@@ -165,7 +167,7 @@ export function createModelRouter({
     if (!response.ok)
       throw upstreamFault(response.status, "YNX hosted model");
     let text;
-    try { text = await readHostedStream(response, signal); }
+    try { text = await readHostedStream(response, signal, input.hostedSession); }
     catch (error) {
       if (typeof error?.code === "string" && error.code.startsWith("model_")) throw error;
       throw modelConnectionFault(error, input.signal, "YNX hosted model");
@@ -216,9 +218,9 @@ function validateRequest(value) {
   const provider = String(value.provider || "ynx-hosted").toLowerCase();
   if (provider !== "ynx-hosted" && !PROVIDERS[provider])
     throw fault("AI provider is not allowlisted.", "provider_not_allowlisted", 400);
-  const prompt = typeof value.prompt === "string" ? value.prompt.trim() : "";
+  const prompt = typeof value.prompt === "string" ? (value.hostedSession ? value.prompt : value.prompt.trim()) : "";
   const system = typeof value.system === "string" ? value.system.trim() : "";
-  if (prompt.length < 4 || prompt.length > 96 * 1024 || system.length > 16 * 1024)
+  if (prompt.trim().length < 4 || prompt.length > 96 * 1024 || system.length > 16 * 1024)
     throw fault("AI context exceeds its bounded request size.", "invalid_model_context", 400);
   const apiKey = typeof value.apiKey === "string" ? value.apiKey : "";
   if (provider !== "ynx-hosted" && (apiKey.length < 12 || apiKey.length > 512))
@@ -226,8 +228,11 @@ function validateRequest(value) {
   const requestedModel = String(value.model || "").trim();
   if (requestedModel && !MODEL_PATTERN.test(requestedModel))
     throw fault("Model identifier is invalid.", "invalid_model", 400);
+  if (value.hostedSession !== undefined && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value.hostedSession))
+    throw fault("A server-owned model conversation is required.", "model_session_invalid", 400);
   return {
     provider,
+    hostedSession: value.hostedSession,
     ownerId: typeof value.ownerId === "string" && value.ownerId.length > 0 && value.ownerId.length <= 256
       ? value.ownerId : undefined,
     model: requestedModel || (provider === "ynx-hosted" ? "qwen3:4b" : PROVIDERS[provider].defaultModel),

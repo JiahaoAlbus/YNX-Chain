@@ -18,6 +18,7 @@ import { createDebugService } from "../../debug-service/src/service.mjs";
 import { createGitService } from "../../git-service/src/service.mjs";
 import { createExtensionRegistry } from "../../extension-registry/src/service.mjs";
 import { createModelRouter } from "../../model-router/src/router.mjs";
+import { createNativeAIStore } from "../../codeoss-service/src/native-ai-store.mjs";
 import { createAgentOrchestrator } from "../../agent-orchestrator/src/service.mjs";
 import { createProjectMemory } from "../../project-memory/src/service.mjs";
 import { createCollaborationService } from "../../collaboration-service/src/service.mjs";
@@ -141,7 +142,8 @@ codeossService = createCodeOSSService({
 });
 const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission,
   recordActivity: developerSSO.recordCoreActivity }) : null;
-const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
+const nativeAIStore = createNativeAIStore({ filename: join(stateDir, 'native-ai.sqlite'), keyPath: join(stateDir, 'native-ai.key') });
+const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({
     activity,
@@ -219,6 +221,9 @@ async function shutdown(signal) {
   exiting = true;
   const result = await maintain(signal);
   server.close(); server.closeIdleConnections?.(); server.closeAllConnections?.();
+  // A failed drain may still have live callbacks; leave their durable records
+  // for interrupted-request recovery rather than closing beneath those writes.
+  if (result.exitCode === 0) nativeAIStore.close();
   process.exit(result.exitCode);
 }
 // Explicit, one-way operator maintenance. No unauthenticated public mutation

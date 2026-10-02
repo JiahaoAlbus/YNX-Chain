@@ -7,12 +7,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createNativeToolsService } from '../src/tools-service.mjs';
 import { createChainService } from '../../chain-service/src/service.mjs';
+import { createNativeAIStore } from '../src/native-ai-store.mjs';
+import { createModelRouter } from '../../model-router/src/router.mjs';
 import { prepareCoreProject } from '../src/runtime-files.mjs';
 const require = createRequire(import.meta.url), { digest, validateChanges, assertWorkspacePath } = require('../../../native/ynx-tools/src/guards.cjs');
 const sessionId = '12345678-1234-1234-1234-123456789012', origin = 'https://developer.ynxweb4.com';
 async function harness(t, { realChain = false, generationHook, modelWork } = {}) {
-  let now = 100, generation = 1, revoked = false, admissions = 0; const calls = [], admittedOwners = new WeakMap();
-  const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId: 'project-A', runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
+  let now = 100, generation = 1, revoked = false, admissions = 0, projectId = 'project-A'; const calls = [], admittedOwners = new WeakMap();
+  const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId, runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
   const chain = createChainService({ ownerForRequest: req => admittedOwners.get(req), fetcher: async (url, options) => {
     calls.push({ upstream: String(url), body: options?.body });
@@ -20,13 +22,75 @@ async function harness(t, { realChain = false, generationHook, modelWork } = {})
     const value = String(url).includes('/contracts/') ? { address, functions: [] } : String(url).endsWith('/ide/call') ? { address, function: 'count', selector: '0x06661abd', returnValue: '7', executionStatus: 'source_analyzer_literal_return', artifactKind: 'source-analyzer-artifact', runtimeMode: 'local-devnet', limitations: ['not full EVM'] } : { result: '0x1917' };
     return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
   } });
-  const service = createNativeToolsService({ coreService, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
+  const directory = await mkdtemp(join(tmpdir(), 'ynx-tools-ai-'));
+  const aiStore = createNativeAIStore({ filename: join(directory, 'requests.sqlite'), keyPath: join(directory, 'requests.key') });
+  t.after(() => aiStore.close());
+  const service = createNativeToolsService({ coreService, aiStore, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); t.after(() => new Promise(resolve => server.close(resolve)));
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + '?sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
   });
-  return { send, calls, server, admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, revoke: () => revoked = true };
+  return { send, calls, server, admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
 }
+
+test('approved AI request is saved under the actual owner/project; reopening sends no model request', async t => {
+  const h = await harness(t), c = await h.send('context');
+  const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review the function', context: 'chosen text  \n' });
+  assert.ok(p.value.requestBytes <= 8000); assert.match(p.value.wirePrompt, /chosen text  \n$/);
+  const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+  assert.equal(result.status, 200); assert.equal(result.value.saved, true);
+  const id = result.value.conversationId;
+  assert.equal(h.calls[0].hostedSession, id);
+  assert.notEqual(id, sessionId); assert.notEqual(id, p.value.proposalId);
+  const listed = await h.send('ai/conversations'); assert.equal(listed.value.conversations.length, 1);
+  assert.equal(listed.value.conversations[0].prompt, undefined);
+  const read = await h.send('ai/conversations/' + id);
+  assert.equal(read.value.conversation.status, 'completed'); assert.equal(read.value.conversation.text, 'reviewed plan');
+  assert.equal(read.value.conversation.context, 'chosen text  \n'); assert.equal(h.calls.length, 1);
+  h.changeProject('project-B');
+  assert.deepEqual((await h.send('ai/conversations')).value.conversations, []);
+  assert.equal((await h.send('ai/conversations/' + id)).status, 404);
+  const wrong = await h.send('context');
+  assert.equal((await h.send('ai/conversations/' + id + '/delete', { csrf: wrong.value.csrf })).status, 404);
+  h.changeProject('project-A');
+  const authorized = await h.send('context');
+  assert.equal((await h.send('ai/conversations/' + id + '/delete', { csrf: authorized.value.csrf }, { origin: 'https://kernel.example' })).status, 403);
+  assert.equal((await h.send('ai/conversations/' + id + '/delete', { csrf: authorized.value.csrf })).status, 200);
+  assert.equal((await h.send('ai/conversations/' + id)).status, 404);
+  assert.equal((await h.send('ai/conversations/' + id + '/delete', { csrf: authorized.value.csrf })).status, 403);
+});
+
+test('actual UTF-8 Gateway prompt limit rejects preview without truncation or model dispatch', async t => {
+  const h = await harness(t), c = await h.send('context');
+  const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review these characters', context: '界'.repeat(2700) });
+  assert.equal(p.status, 413); assert.equal(p.value.code, 'model_prompt_limit');
+  assert.equal(h.calls.length, 0); assert.deepEqual((await h.send('ai/conversations')).value.conversations, []);
+});
+
+test('actual Tools HTTP reaches the existing Gateway wire contract and saves only its completed response', async t => {
+  const seen = [];
+  const upstream = createServer(async (req, res) => {
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks)); seen.push(body);
+    assert.equal(req.method, 'POST'); assert.equal(req.url, '/ai/stream');
+    assert.deepEqual(Object.keys(body).sort(), ['session','prompt','outputLanguage','includedContext','excludedContext','attachments','productContexts','continueFrom'].sort());
+    assert.equal(Buffer.byteLength(body.prompt) <= 8000, true);
+    res.writeHead(200, { 'content-type': 'text/event-stream' });
+    res.end(`event: metadata\ndata: ${JSON.stringify({ requestId: 'controlled-gateway', sessionId: body.session })}\n\nevent: token\ndata: {"text":"Completed controlled Gateway answer"}\n\nevent: done\ndata: {"requestId":"controlled-gateway"}\n\n`);
+  });
+  await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
+  t.after(() => { upstream.closeAllConnections(); upstream.close(); });
+  const router = createModelRouter({ hostedBaseURL: `http://127.0.0.1:${upstream.address().port}` });
+  const h = await harness(t, { modelWork: input => router.generate(input) });
+  const c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Suggest a plan', context: 'selected only  \n' });
+  const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+  assert.equal(result.status, 200); assert.equal(result.value.saved, true);
+  assert.equal(seen[0].prompt, p.value.wirePrompt);
+  assert.equal(seen[0].session, result.value.conversationId);
+  const restored = await h.send('ai/conversations/' + result.value.conversationId);
+  assert.equal(restored.value.conversation.text, 'Completed controlled Gateway answer');
+  assert.equal(seen.length, 1);
+});
 
 for (const transition of ['changeAccount', 'revoke', 'expire']) {
   test(`AI approval rechecks ${transition} after a delayed HTTP body before model dispatch`, async t => {

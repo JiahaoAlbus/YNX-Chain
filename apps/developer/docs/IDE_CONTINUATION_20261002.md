@@ -1,5 +1,66 @@
 # IDE continuation checkpoint — source candidate, product incomplete
 
+## Native AI request integration and private recovery successor to 2b05fb84f
+
+The IDE now implements the owned consumer work that does not require changing
+shared permission authority. Each explicitly approved request creates a real
+server-owned conversation record bound to the current owner and project. Its
+random ID is separate from the native-session locator and review ticket. The
+existing Gateway request uses session/prompt/outputLanguage/explicit context
+arrays/attachments/productContexts/continueFrom; it omits unsupported token and
+response-format fields. The frontend previews the complete model prompt and
+its exact UTF-8 byte count. Requests above Gateway's 8000-byte limit or the
+4096-byte request-field limit fail before dispatch, with no truncation.
+SSE metadata must name that exact sent conversation as well as a complete,
+consistent request ID. No browser history or inferred file attachment is sent.
+
+Original pasted-context Tools requests are preserved in a separate AES-256-GCM
+SQLite store using a new independent private key, never a Wallet/SSO key.
+Owner/project/id are authenticated data and all reads/writes are scoped to the
+current server-verified owner/project. Prompt/context/answer are encrypted;
+list responses contain only bounded metadata. Success returns saved:true only
+after the completed answer is committed. Cancel/revoke never saves a late answer
+as completed. Restart marks unfinished records interrupted and never retries.
+A singleton live-process guard prevents another backend from taking over active
+records. Missing/corrupt content keys retain the original database and fail
+closed. Quotas reserve an answer before dispatch and refuse new work when full.
+These are bounded storage admission limits, not measured OS or user capacity.
+
+Users can reopen their saved request without invoking a model, and explicitly
+confirm deletion of their own terminal requests to free capacity. Generating
+requests cannot be deleted, cross-project IDs fail, and deletion requires the
+normal same-origin one-use review token. Deletion does not promise physical
+media, WAL or backup erasure. Reopening never adds earlier requests to a new
+prompt. Selected-file resolution and multi-turn continuation are not implemented
+by this one-request flow and must not be claimed from these receipts.
+
+Actual local HTTP Tools → router → controlled Gateway SSE → SQLite → reopened
+answer passes the exact body/preview/session assertions. Real SQLite tests cover
+reopen, no plaintext markers, ownership, AEAD, missing/corrupt key, process locks,
+SIGKILL interruption and capacity/deletion. Full core/chain/router/activity suite
+116/116 passes; Gateway suite15/15 passes, including real Node server signals.
+First Gateway attempt11/15 failed because QA omitted the retained nested
+TypeScript5.9.3 dependency and incorrectly resolved frontend7.0.2. That original
+log is retained; linking the actual existing nested dependency fixed the QA
+closure without changing language source or installing a package.
+Actual Chromium/React saved-answer reload/delete/401, cancellation and contract
+paths pass with controlled browser routes. Frontend typecheck/build pass.
+
+QA briefly reused the prior2b05 build source directory; its source was restored
+and new QA moved to /tmp/ynx-ide-ai-recovery-20261002-0Ds22k. Prior packaged
+archives were not rewritten. This successor's source/build receipt is
+`../evidence/integration/ide-ai-recovery-20261002.json`.
+
+A still owns the IDE-specific business-proof adapter, approved server access
+configuration, source-bound actual provider evidence, integration and formal
+publication. Correct local request construction does not supply that authority.
+No provider key, business proof, new model, model call on the public service,
+Host action or rejected execution route was introduced by this work. The legacy
+agent-orchestrator sender remains distinct; only native Tools supplies the new
+stored-conversation contract in this successor. Full-workbench and normal final
+product gates below remain open. The earlier request-side-gap note below is
+superseded for native Tools consumer construction only.
+
 ## Existing AI contract consumption and stream successor to 0d29c26d1
 
 Read the original AI owner's exact integration contract:
