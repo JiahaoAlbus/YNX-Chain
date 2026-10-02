@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/centralbrowserfamily"
 )
 
 const financeSSOClient = "ynx-finance-v1-sso-v1"
@@ -27,6 +28,7 @@ const financeSSOPendingName = "__Host-ynx-finance-signin"
 
 type financeSSOPending struct {
 	State     string    `json:"state"`
+	IntentID  string    `json:"intentId,omitempty"`
 	Verifier  string    `json:"verifier"`
 	Target    string    `json:"target"`
 	ExpiresAt time.Time `json:"expiresAt"`
@@ -38,13 +40,20 @@ type financeSSOIdentity struct {
 	Generation int64     `json:"generation"`
 	ExpiresAt  time.Time `json:"expiresAt"`
 }
+type financeSSOFamilyReference struct {
+	FamilyID string `json:"familyId"`
+	CSRF     string `json:"csrf"`
+}
 type financeSSOGrant struct {
-	GrantToken string             `json:"grantToken,omitempty"`
-	Identity   financeSSOIdentity `json:"identity"`
-	Audience   string             `json:"audience"`
-	Scopes     []string           `json:"scopes"`
-	ExpiresAt  time.Time          `json:"expiresAt"`
-	CSRF       string             `json:"csrf,omitempty"`
+	RevocationPending bool               `json:"-"`
+	FamilyID          string             `json:"-"`
+	AbsoluteExpiresAt time.Time          `json:"-"`
+	GrantToken        string             `json:"grantToken,omitempty"`
+	Identity          financeSSOIdentity `json:"identity"`
+	Audience          string             `json:"audience"`
+	Scopes            []string           `json:"scopes"`
+	ExpiresAt         time.Time          `json:"expiresAt"`
+	CSRF              string             `json:"csrf,omitempty"`
 }
 
 func (s *Server) ssoAvailable() bool {
@@ -161,7 +170,7 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	var pending financeSSOPending
-	if s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.After(s.now()) || pending.Silent != silent {
+	if s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.After(s.now()) || pending.Silent != silent || s.cfg.CentralBrowserFamily != nil && pending.IntentID == "" {
 		state, err := ssoRandom()
 		if err != nil {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
@@ -173,6 +182,26 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pending = financeSSOPending{State: state, Verifier: verifier, Target: ssoTarget(r.URL.Query().Get("target")), ExpiresAt: s.now().Add(2 * time.Minute), Silent: silent}
+		if s.cfg.CentralBrowserFamily != nil {
+			var previous financeSSOFamilyReference
+			_ = s.openSSOCookie(r, financeSSOCookieName, &previous)
+			if previous.FamilyID != "" {
+				_, status := s.ssoCookieGrant(r)
+				if status == 401 || status == 403 {
+					previous.FamilyID = ""
+					clearSSOCookie(w, financeSSOCookieName)
+				} else if status != 200 {
+					writeJSON(w, 503, map[string]string{"code": "SSO_RECHECK_UNAVAILABLE"})
+					return
+				}
+			}
+			intent, err := s.cfg.CentralBrowserFamily.Prepare(r.Context(), centralbrowserfamily.PrepareInput{State: state, PreviousFamilyID: previous.FamilyID})
+			if err != nil || len(intent) != 43 {
+				writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+				return
+			}
+			pending.IntentID = intent
+		}
 		// Target-only denial recovery outlives authorization, never code redemption.
 		if err := s.sealSSOCookie(w, financeSSOPendingName, pending, pending.ExpiresAt.Add(8*time.Minute)); err != nil {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
@@ -279,7 +308,20 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var result financeSSOGrant
-	status := s.ssoCall(r.Context(), "/v2/browser-sessions/token", map[string]string{"clientId": financeSSOClient, "origin": BrowserFinanceOrigin, "redirectUri": BrowserFinanceOrigin + "/sso/callback", "state": pending.State, "codeVerifier": pending.Verifier, "code": r.URL.Query().Get("code")}, &result)
+	status := 200
+	if s.cfg.CentralBrowserFamily != nil {
+		grant, err := s.cfg.CentralBrowserFamily.Redeem(r.Context(), centralbrowserfamily.PKCEInput{Code: r.URL.Query().Get("code"), State: pending.State, CodeVerifier: pending.Verifier, IntentID: pending.IntentID})
+		status = familySSOStatus(err)
+		if status == 200 {
+			if !validFinanceFamilyGrant(grant, s.now()) {
+				status = 503
+			} else {
+				result = financeFamilyGrant(grant)
+			}
+		}
+	} else {
+		status = s.ssoCall(r.Context(), "/v2/browser-sessions/token", map[string]string{"clientId": financeSSOClient, "origin": BrowserFinanceOrigin, "redirectUri": BrowserFinanceOrigin + "/sso/callback", "state": pending.State, "codeVerifier": pending.Verifier, "code": r.URL.Query().Get("code")}, &result)
+	}
 	if status != 200 || !validSSOGrant(result, s.now()) || len(result.GrantToken) != 43 {
 		writeJSON(w, 503, map[string]string{"code": "SSO_CALLBACK_UNAVAILABLE"})
 		return
@@ -290,7 +332,13 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.CSRF = csrf
-	if err = s.sealSSOCookie(w, financeSSOCookieName, result, result.ExpiresAt); err != nil {
+	var cookieValue any = result
+	cookieExpires := result.ExpiresAt
+	if result.FamilyID != "" {
+		cookieValue = financeSSOFamilyReference{FamilyID: result.FamilyID, CSRF: csrf}
+		cookieExpires = result.AbsoluteExpiresAt
+	}
+	if err = s.sealSSOCookie(w, financeSSOCookieName, cookieValue, cookieExpires); err != nil {
 		writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
 		return
 	}
@@ -299,12 +347,24 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) ssoAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	var local, result financeSSOGrant
-	if !s.ssoAvailable() || s.openSSOCookie(r, financeSSOCookieName, &local) != nil || !validSSOGrant(local, s.now()) {
-		writeJSON(w, 401, map[string]string{"code": "SSO_LOGIN_REQUIRED"})
+	local, status := s.ssoCookieGrant(r)
+	var result financeSSOGrant
+	if status != 200 {
+		if status == 401 || status == 403 {
+			clearSSOCookie(w, financeSSOCookieName)
+		}
+		if local.RevocationPending {
+			writeJSON(w, 503, map[string]any{"code": "SSO_REVOKE_UNCONFIRMED", "revocationPending": true, "csrfToken": local.CSRF})
+			return
+		}
+		writeJSON(w, status, map[string]string{"code": "SSO_LOGIN_REQUIRED"})
 		return
 	}
-	status := s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &result)
+	if local.FamilyID != "" {
+		result = local
+	} else {
+		status = s.ssoCall(r.Context(), "/v2/browser-sessions/introspect", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &result)
+	}
 	if status != 200 {
 		if status == 401 || status == 403 {
 			clearSSOCookie(w, financeSSOCookieName)
@@ -320,12 +380,19 @@ func (s *Server) ssoAccount(w http.ResponseWriter, r *http.Request) {
 	// Finance already keys its owned AccountState by this verified native
 	// subject. Do not merge the separate EVM-subject namespace or return private
 	// budgets/portfolio under an identity-only central grant.
-	writeJSON(w, 200, map[string]any{"signedIn": true, "account": result.Identity.Account, "subject": result.Identity.Subject, "generation": result.Identity.Generation, "expiresAt": result.ExpiresAt, "csrfToken": local.CSRF, "scopes": result.Scopes, "privateWorkspaceAuthorized": false})
+	writeJSON(w, 200, map[string]any{"signedIn": true, "account": result.Identity.Account, "subject": result.Identity.Subject, "generation": result.Identity.Generation, "expiresAt": result.ExpiresAt, "csrfToken": local.CSRF, "scopes": result.Scopes, "privateWorkspaceAuthorized": false, "serverNow": s.now()})
 }
 func (s *Server) ssoLogout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	var local financeSSOGrant
-	if r.Header.Get("Origin") != BrowserFinanceOrigin || s.openSSOCookie(r, financeSSOCookieName, &local) != nil || subtle.ConstantTimeCompare([]byte(local.CSRF), []byte(r.Header.Get("X-YNX-SSO-CSRF"))) != 1 {
+	var family financeSSOFamilyReference
+	familyCookie := s.openSSOCookie(r, financeSSOCookieName, &family) == nil && family.FamilyID != ""
+	if familyCookie {
+		local.CSRF = family.CSRF
+	} else if s.openSSOCookie(r, financeSSOCookieName, &local) != nil {
+		local.CSRF = ""
+	}
+	if r.Header.Get("Origin") != BrowserFinanceOrigin || len(local.CSRF) != 43 || subtle.ConstantTimeCompare([]byte(local.CSRF), []byte(r.Header.Get("X-YNX-SSO-CSRF"))) != 1 {
 		writeJSON(w, 403, map[string]string{"code": "SSO_CSRF_REJECTED"})
 		return
 	}
@@ -335,7 +402,20 @@ func (s *Server) ssoLogout(w http.ResponseWriter, r *http.Request) {
 	// A product logout cancels its pending callback too, including another tab.
 	// Backend atomic code invalidation fences already in-flight redemption.
 	clearSSOCookie(w, financeSSOPendingName)
-	status := s.ssoCall(r.Context(), "/v2/browser-sessions/logout-grant", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &result)
+	var pending financeSSOPending
+	logoutIntent := ""
+	if s.openSSOCookie(r, financeSSOPendingName, &pending) == nil && pending.ExpiresAt.After(s.now()) {
+		logoutIntent = pending.IntentID
+	}
+	status := 503
+	if familyCookie {
+		if s.cfg.CentralBrowserFamily != nil {
+			status = familySSOStatus(s.cfg.CentralBrowserFamily.Logout(r.Context(), centralbrowserfamily.LogoutInput{FamilyID: family.FamilyID, IntentID: logoutIntent}))
+			result.Revoked = status == 200
+		}
+	} else {
+		status = s.ssoCall(r.Context(), "/v2/browser-sessions/logout-grant", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &result)
+	}
 	// Keep the encrypted bounded revocation target on uncertain network results;
 	// UI may hide local data, but this endpoint never claims an unverified revoke.
 	if status != 200 || !result.Revoked {
@@ -357,4 +437,116 @@ func (s *Server) ssoSilentAllowed(r *http.Request) bool {
 		}
 	}
 	return true
+}
+
+func familySSOStatus(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+	var typed *centralbrowserfamily.Error
+	if errors.As(err, &typed) {
+		if typed.RevocationPending {
+			return http.StatusServiceUnavailable
+		}
+		switch typed.Code {
+		case "SSO_GRANT_INVALID", "SSO_FAMILY_INVALID", "SSO_GENERATION_REVOKED", "SSO_FAMILY_REPLAY", centralbrowserfamily.CodeFenced, centralbrowserfamily.CodeBinding, "SSO_LOGIN_REQUIRED", "SSO_SESSION_EXPIRED", "SSO_FAMILY_EXPIRED", "SSO_FAMILY_REVOKED", "SSO_IDENTITY_CHANGED", "SSO_CONSENT_REQUIRED":
+			return http.StatusUnauthorized
+		case "SSO_CLIENT_REJECTED", "SSO_SCOPE_REJECTED":
+			return http.StatusForbidden
+		}
+	}
+	return http.StatusServiceUnavailable
+}
+func financeFamilyGrant(g centralbrowserfamily.Grant) financeSSOGrant {
+	return financeSSOGrant{FamilyID: g.FamilyID, AbsoluteExpiresAt: g.AbsoluteExpiresAt, GrantToken: g.GrantToken, Identity: financeSSOIdentity{Subject: g.Identity.Subject, Account: g.Identity.Account, Generation: g.Identity.Generation, ExpiresAt: g.Identity.ExpiresAt}, Audience: g.Audience, Scopes: g.Scopes, ExpiresAt: g.ExpiresAt}
+}
+func (s *Server) ssoCookieGrant(r *http.Request) (financeSSOGrant, int) {
+	if !s.ssoAvailable() {
+		return financeSSOGrant{}, 401
+	}
+	var reference financeSSOFamilyReference
+	if s.openSSOCookie(r, financeSSOCookieName, &reference) == nil {
+		if s.cfg.CentralBrowserFamily == nil || len(reference.FamilyID) != 43 || len(reference.CSRF) != 43 {
+			return financeSSOGrant{}, 401
+		}
+		verified, err := s.cfg.CentralBrowserFamily.Resolve(r.Context(), reference.FamilyID)
+		if status := familySSOStatus(err); status != 200 {
+			var typed *centralbrowserfamily.Error
+			if errors.As(err, &typed) && typed.LocallyFenced && typed.RevocationPending {
+				return financeSSOGrant{FamilyID: reference.FamilyID, CSRF: reference.CSRF, RevocationPending: true}, status
+			}
+			return financeSSOGrant{}, status
+		}
+		grant := financeFamilyGrant(verified)
+		grant.CSRF = reference.CSRF
+		if grant.FamilyID != reference.FamilyID || !validFinanceFamilyGrant(verified, s.now()) {
+			return financeSSOGrant{}, 401
+		}
+		return grant, 200
+	}
+	var grant financeSSOGrant
+	if s.openSSOCookie(r, financeSSOCookieName, &grant) != nil || !validSSOGrant(grant, s.now()) {
+		return grant, 401
+	}
+	return grant, 200
+}
+func (s *Server) ssoActivity(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	var reference financeSSOFamilyReference
+	if !s.ssoAvailable() || s.cfg.CentralBrowserFamily == nil || r.Header.Get("Origin") != BrowserFinanceOrigin || s.openSSOCookie(r, financeSSOCookieName, &reference) != nil || len(reference.FamilyID) != 43 || len(reference.CSRF) != 43 || subtle.ConstantTimeCompare([]byte(reference.CSRF), []byte(r.Header.Get("X-YNX-SSO-CSRF"))) != 1 {
+		writeJSON(w, 403, map[string]string{"code": "SSO_CSRF_REJECTED"})
+		return
+	}
+	var input struct {
+		EventID    string    `json:"eventId"`
+		Action     string    `json:"action"`
+		ObservedAt time.Time `json:"observedAt"`
+	}
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1025))
+	if err != nil || len(raw) > 1024 {
+		writeJSON(w, 400, map[string]string{"code": "SSO_ACTIVITY_REJECTED"})
+		return
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&input) != nil || len(input.EventID) != 43 || (input.Action != "navigate" && input.Action != "save") || input.ObservedAt.After(s.now()) || s.now().Sub(input.ObservedAt) > 30*time.Second {
+		writeJSON(w, 400, map[string]string{"code": "SSO_ACTIVITY_REJECTED"})
+		return
+	}
+	var extra any
+	if decoder.Decode(&extra) != io.EOF {
+		writeJSON(w, 400, map[string]string{"code": "SSO_ACTIVITY_REJECTED"})
+		return
+	}
+	if _, err := base64.RawURLEncoding.DecodeString(input.EventID); err != nil {
+		writeJSON(w, 400, map[string]string{"code": "SSO_ACTIVITY_REJECTED"})
+		return
+	}
+	// This local bound supplements Central's durable idempotency/rate checks.
+	now := s.now()
+	key := "sso.activity." + reference.FamilyID
+	s.rateMu.Lock()
+	if s.rate == nil {
+		s.rate = map[string][]time.Time{}
+	}
+	recent := s.rate[key][:0]
+	for _, at := range s.rate[key] {
+		if now.Sub(at) < 30*time.Second {
+			recent = append(recent, at)
+		}
+	}
+	if len(recent) >= 12 {
+		s.rate[key] = recent
+		s.rateMu.Unlock()
+		writeJSON(w, 429, map[string]string{"code": "SSO_ACTIVITY_LIMIT"})
+		return
+	}
+	s.rate[key] = append(recent, now)
+	s.rateMu.Unlock()
+	status := familySSOStatus(s.cfg.CentralBrowserFamily.Activity(r.Context(), reference.FamilyID, input.EventID, input.ObservedAt))
+	writeJSON(w, status, map[string]bool{"accepted": status == 200})
+}
+
+func validFinanceFamilyGrant(g centralbrowserfamily.Grant, now time.Time) bool {
+	return validSSOGrant(financeFamilyGrant(g), now) && len(g.FamilyID) == 43 && len(g.GrantToken) == 43 && g.AbsoluteExpiresAt.After(now) && g.IdleExpiresAt.After(now) && !g.IdleExpiresAt.After(g.AbsoluteExpiresAt) && !g.ExpiresAt.After(g.AbsoluteExpiresAt) && !g.ExpiresAt.After(g.IdleExpiresAt) && g.ApprovedProfile != "" && len(g.ApprovedClientsDigest) == 64
 }

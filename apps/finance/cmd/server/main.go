@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/centralbrowserfamily"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 )
@@ -134,7 +136,20 @@ func main() {
 			log.Fatal("invalid Finance opaque legacy cutover")
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{CentralBrowserSSO: centralBrowserSSO, BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: walletGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	familyConfig, err := centralBrowserFamilyConfig(authMode, centralBrowserSSO, os.Getenv)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var family centralbrowserfamily.Backend
+	if familyConfig != nil {
+		client, err := centralbrowserfamily.NewClient(*familyConfig)
+		if err != nil {
+			log.Fatal("Finance finite identity configuration rejected")
+		}
+		defer client.Close()
+		family = client
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{CentralBrowserSSO: centralBrowserSSO, CentralBrowserFamily: family, BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: walletGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -249,4 +264,26 @@ func split(value string) []string {
 		}
 	}
 	return out
+}
+
+// Finite identity remains an explicit operator adoption. A missing opt-in keeps
+// every legacy cookie/token flow unchanged; no browser may provision a key.
+func centralBrowserFamilyConfig(authMode string, central bool, getenv func(string) string) (*centralbrowserfamily.Config, error) {
+	raw := getenv("YNX_FINANCE_CENTRAL_FINITE_IDENTITY")
+	if raw == "" || raw == "false" {
+		return nil, nil
+	}
+	if raw != "true" || !central || authMode != "product-session-v2" {
+		return nil, errors.New("Finance finite identity requires exact true, central SSO and product-session-v2")
+	}
+	cfg := centralbrowserfamily.Config{Issuer: finance.BrowserWalletAuthority, ClientID: "ynx-finance-v1-sso-v1", Origin: finance.BrowserFinanceOrigin, RedirectURI: finance.BrowserFinanceOrigin + "/sso/callback", Audience: "ynx:finance:identity", KeyID: getenv("YNX_FINANCE_CENTRAL_FAMILY_KEY_ID"), PrivateKeyPath: getenv("YNX_FINANCE_CENTRAL_FAMILY_PRIVATE_KEY_FILE"), SealKeyPath: getenv("YNX_FINANCE_CENTRAL_FAMILY_SEAL_KEY_FILE"), StorePath: getenv("YNX_FINANCE_CENTRAL_FAMILY_STATE_PATH")}
+	if cfg.KeyID == "" || strings.TrimSpace(cfg.KeyID) != cfg.KeyID {
+		return nil, errors.New("Finance finite identity key ID required")
+	}
+	for _, path := range []string{cfg.PrivateKeyPath, cfg.SealKeyPath, cfg.StorePath} {
+		if !filepath.IsAbs(path) || filepath.Clean(path) != path {
+			return nil, errors.New("Finance finite identity requires exact absolute protected paths")
+		}
+	}
+	return &cfg, nil
 }

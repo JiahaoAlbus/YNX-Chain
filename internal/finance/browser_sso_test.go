@@ -3,7 +3,12 @@ package finance
 import (
 	"bufio"
 	"bytes"
+	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/centralbrowserfamily"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -624,4 +629,421 @@ func TestCentralBrowserSSORealGatewayFinanceCookieOwnershipRecoveryAndLogout(t *
 			}
 		}
 	})
+}
+
+// Consumer fixtures exercise the real Finance HTTP handlers; no fixture is a
+// claim that Central's durable protocol or a public Wallet flow has passed.
+type finiteSSOFixture struct {
+	pendingRevoke                           map[string]bool
+	resolveError                            error
+	mu                                      sync.Mutex
+	now                                     func() time.Time
+	grants                                  map[string]centralbrowserfamily.Grant
+	intents                                 map[string]bool
+	states                                  map[string]string
+	prepares, redeems, resolves, activities int
+	entered, resume                         chan struct{}
+	uncertain                               bool
+}
+
+func (f *finiteSSOFixture) Prepare(_ context.Context, in centralbrowserfamily.PrepareInput) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.intents == nil {
+		f.intents = map[string]bool{}
+		f.states = map[string]string{}
+	}
+	f.prepares++
+	id := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{byte(f.prepares)}, 32))
+	f.intents[id] = false
+	f.states[id] = in.State
+	return id, nil
+}
+func (f *finiteSSOFixture) Redeem(_ context.Context, in centralbrowserfamily.PKCEInput) (centralbrowserfamily.Grant, error) {
+	if f.entered != nil {
+		close(f.entered)
+		<-f.resume
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if fenced, ok := f.intents[in.IntentID]; !ok || fenced || f.states[in.IntentID] != in.State {
+		return centralbrowserfamily.Grant{}, &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeFenced}
+	}
+	f.redeems++
+	id := base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{byte(f.redeems + 100)}, 32))
+	account, _ := accountaddress.Encode(fmt.Sprintf("0x%040x", f.redeems))
+	now := f.now()
+	g := centralbrowserfamily.Grant{FamilyID: id, GrantToken: strings.Repeat("g", 43), Identity: centralbrowserfamily.Identity{Subject: account, Account: account, Generation: 1, ExpiresAt: now.Add(2 * time.Hour)}, Audience: financeSSOAudience, Scopes: []string{"identity:read"}, ExpiresAt: now.Add(5 * time.Minute), AbsoluteExpiresAt: now.Add(2 * time.Hour), IdleExpiresAt: now.Add(30 * time.Minute), ApprovedProfile: "fixture-reviewed", ApprovedClientsDigest: strings.Repeat("a", 64)}
+	if f.grants == nil {
+		f.grants = map[string]centralbrowserfamily.Grant{}
+	}
+	f.grants[id] = g
+	return g, nil
+}
+func (f *finiteSSOFixture) Resolve(_ context.Context, id string) (centralbrowserfamily.Grant, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.resolves++
+	if f.resolveError != nil {
+		return centralbrowserfamily.Grant{}, f.resolveError
+	}
+	if f.pendingRevoke[id] {
+		return centralbrowserfamily.Grant{}, &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeFenced, LocallyFenced: true, RevocationPending: true}
+	}
+	g, ok := f.grants[id]
+	if !ok || !g.IdleExpiresAt.After(f.now()) || !g.AbsoluteExpiresAt.After(f.now()) {
+		return g, &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeLoginRequired}
+	}
+	if !g.ExpiresAt.After(f.now().Add(time.Minute)) {
+		g.ExpiresAt = f.now().Add(5 * time.Minute)
+		if g.ExpiresAt.After(g.IdleExpiresAt) {
+			g.ExpiresAt = g.IdleExpiresAt
+		}
+		if g.ExpiresAt.After(g.AbsoluteExpiresAt) {
+			g.ExpiresAt = g.AbsoluteExpiresAt
+		}
+		f.grants[id] = g
+	}
+	return g, nil
+}
+func (f *finiteSSOFixture) Activity(_ context.Context, id, event string, at time.Time) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	g, ok := f.grants[id]
+	if !ok || !g.IdleExpiresAt.After(f.now()) || !g.AbsoluteExpiresAt.After(f.now()) {
+		return &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeLoginRequired}
+	}
+	f.activities++
+	g.IdleExpiresAt = at.Add(30 * time.Minute)
+	if g.IdleExpiresAt.After(g.AbsoluteExpiresAt) {
+		g.IdleExpiresAt = g.AbsoluteExpiresAt
+	}
+	f.grants[id] = g
+	return nil
+}
+func (f *finiteSSOFixture) Logout(_ context.Context, in centralbrowserfamily.LogoutInput) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.grants, in.FamilyID)
+	if in.IntentID != "" {
+		f.intents[in.IntentID] = true
+	}
+	if f.uncertain {
+		if f.pendingRevoke == nil {
+			f.pendingRevoke = map[string]bool{}
+		}
+		f.pendingRevoke[in.FamilyID] = true
+		return &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeUnavailable, LocallyFenced: true, RevocationPending: true}
+	}
+	delete(f.pendingRevoke, in.FamilyID)
+	return nil
+}
+func finiteSSOServer(now *time.Time) (*Server, *finiteSSOFixture) {
+	f := &finiteSSOFixture{now: func() time.Time { return *now }}
+	return &Server{cfg: ServerConfig{CentralBrowserSSO: true, CentralBrowserFamily: f, WalletGatewayURL: BrowserWalletAuthority, CursorSigningKey: testCursorKey}, now: f.now}, f
+}
+func finiteSSOStart(t *testing.T, s *Server, previous *http.Cookie) (*http.Cookie, string) {
+	t.Helper()
+	r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?target=planning", nil)
+	if previous != nil {
+		r.AddCookie(previous)
+	}
+	w := httptest.NewRecorder()
+	s.ssoStart(w, r)
+	if w.Code != 303 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	u, _ := url.Parse(w.Header().Get("Location"))
+	for _, c := range w.Result().Cookies() {
+		if c.Name == financeSSOPendingName {
+			return c, u.Query().Get("state")
+		}
+	}
+	t.Fatal("pending missing")
+	return nil, ""
+}
+func finiteSSOComplete(t *testing.T, s *Server, pending *http.Cookie, state string) *http.Cookie {
+	t.Helper()
+	r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/callback?state="+state+"&code="+strings.Repeat("c", 43), nil)
+	r.AddCookie(pending)
+	w := httptest.NewRecorder()
+	s.ssoCallback(w, r)
+	if w.Code != 303 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	for _, c := range w.Result().Cookies() {
+		if c.Name == financeSSOCookieName {
+			return c
+		}
+	}
+	t.Fatal("family missing")
+	return nil
+}
+func finiteSSOReference(t *testing.T, s *Server, cookie *http.Cookie) financeSSOFamilyReference {
+	t.Helper()
+	r := httptest.NewRequest("GET", "/", nil)
+	r.AddCookie(cookie)
+	var ref financeSSOFamilyReference
+	if s.openSSOCookie(r, financeSSOCookieName, &ref) != nil {
+		t.Fatal("cookie contains fields beyond opaque family+csrf")
+	}
+	return ref
+}
+func finiteSSOAccount(s *Server, cookie *http.Cookie) *httptest.ResponseRecorder {
+	r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/api/sso/account", nil)
+	r.AddCookie(cookie)
+	w := httptest.NewRecorder()
+	s.ssoAccount(w, r)
+	return w
+}
+func TestFinanceFiniteOpaqueCookieRenewAndIndependentUsers(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, a := finiteSSOStart(t, s, nil)
+	one := finiteSSOComplete(t, s, p, a)
+	p, b := finiteSSOStart(t, s, nil)
+	two := finiteSSOComplete(t, s, p, b)
+	ref := finiteSSOReference(t, s, one)
+	if one.MaxAge != 7200 || one.Expires.Before(now.Add(119*time.Minute)) {
+		t.Fatal("cookie is bound to short access/idle lifetime")
+	}
+	if ref.FamilyID == finiteSSOReference(t, s, two).FamilyID {
+		t.Fatal("users share family")
+	}
+	now = now.Add(6 * time.Minute)
+	for _, cookie := range []*http.Cookie{one, two} {
+		w := finiteSSOAccount(s, cookie)
+		if w.Code != 200 || !strings.Contains(w.Body.String(), `"privateWorkspaceAuthorized":false`) {
+			t.Fatal(w.Code, w.Body.String())
+		}
+	}
+	if f.redeems != 2 || f.activities != 0 {
+		t.Fatal("read silently logs in or attests activity")
+	}
+	now = now.Add(25 * time.Minute)
+	if finiteSSOAccount(s, one).Code != 401 {
+		t.Fatal("passive reads extended idle")
+	}
+}
+func TestFinanceFiniteLogoutFencesInflightCallbackWithoutAffectingOtherBrowser(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	old, state := finiteSSOStart(t, s, cookie)
+	other, otherState := finiteSSOStart(t, s, nil)
+	f.entered = make(chan struct{})
+	f.resume = make(chan struct{})
+	done := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/callback?state="+state+"&code="+strings.Repeat("c", 43), nil)
+		r.AddCookie(old)
+		w := httptest.NewRecorder()
+		s.ssoCallback(w, r)
+		done <- w
+	}()
+	<-f.entered
+	r := httptest.NewRequest("POST", BrowserFinanceOrigin+"/api/sso/logout", strings.NewReader("{}"))
+	r.Header.Set("Origin", BrowserFinanceOrigin)
+	r.Header.Set("X-YNX-SSO-CSRF", ref.CSRF)
+	r.AddCookie(cookie)
+	r.AddCookie(old)
+	w := httptest.NewRecorder()
+	s.ssoLogout(w, r)
+	if w.Code != 200 {
+		t.Fatal(w.Code)
+	}
+	close(f.resume)
+	late := <-done
+	for _, c := range late.Result().Cookies() {
+		if c.Name == financeSSOCookieName && c.Value != "" {
+			t.Fatal("late callback installed old family")
+		}
+	}
+	if late.Code == 303 {
+		t.Fatal("fenced callback succeeds")
+	}
+	f.entered = nil
+	f.resume = nil
+	otherCookie := finiteSSOComplete(t, s, other, otherState)
+	if finiteSSOAccount(s, otherCookie).Code != 200 || finiteSSOAccount(s, cookie).Code != 401 {
+		t.Fatal("logout isolation failed")
+	}
+}
+func TestFinanceFiniteActivityCSRFExpiryAndUncertainLogout(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	for _, sample := range []struct {
+		origin, csrf, action string
+		at                   time.Time
+		want                 int
+	}{{"https://evil.invalid", ref.CSRF, "navigate", now, 403}, {BrowserFinanceOrigin, "wrong", "navigate", now, 403}, {BrowserFinanceOrigin, ref.CSRF, "poll", now, 400}, {BrowserFinanceOrigin, ref.CSRF, "navigate", now.Add(-31 * time.Second), 400}, {BrowserFinanceOrigin, ref.CSRF, "navigate", now.Add(time.Second), 400}, {BrowserFinanceOrigin, ref.CSRF, "navigate", now, 200}} {
+		body, _ := json.Marshal(map[string]any{"eventId": strings.Repeat("a", 43), "action": sample.action, "observedAt": sample.at})
+		r := httptest.NewRequest("POST", "/api/sso/activity", bytes.NewReader(body))
+		r.Header.Set("Origin", sample.origin)
+		r.Header.Set("X-YNX-SSO-CSRF", sample.csrf)
+		r.AddCookie(cookie)
+		w := httptest.NewRecorder()
+		s.ssoActivity(w, r)
+		if w.Code != sample.want {
+			t.Fatal(w.Code, sample.want, w.Body.String())
+		}
+	}
+	if f.activities != 1 {
+		t.Fatal("invalid event attested")
+	}
+	f.uncertain = true
+	r := httptest.NewRequest("POST", "/api/sso/logout", nil)
+	r.Header.Set("Origin", BrowserFinanceOrigin)
+	r.Header.Set("X-YNX-SSO-CSRF", ref.CSRF)
+	r.AddCookie(cookie)
+	w := httptest.NewRecorder()
+	s.ssoLogout(w, r)
+	if w.Code != 503 || finiteSSOAccount(s, cookie).Code != 503 {
+		t.Fatal("uncertain logout revived family")
+	}
+}
+
+func TestFinanceFiniteRealCentralErrorsAndExpiredCookieReentry(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	// These are actual codes from CentralBrowserSessionAuthority/HTTP, not fixture-only codes.
+	for _, code := range []string{"SSO_GRANT_INVALID", "SSO_FAMILY_INVALID", "SSO_GENERATION_REVOKED"} {
+		f.resolveError = &centralbrowserfamily.Error{Code: code}
+		w := finiteSSOAccount(s, cookie)
+		if w.Code != 401 {
+			t.Fatal(code, w.Code)
+		}
+		cleared := false
+		for _, c := range w.Result().Cookies() {
+			if c.Name == financeSSOCookieName && c.MaxAge == -1 {
+				cleared = true
+			}
+		}
+		if !cleared {
+			t.Fatal("invalid family cookie stranded user")
+		}
+	}
+	f.resolveError = &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeUnavailable}
+	if w := finiteSSOAccount(s, cookie); w.Code != 503 || len(w.Result().Cookies()) != 0 {
+		t.Fatal("network error discarded credentials")
+	}
+	f.resolveError = nil
+	now = now.Add(31 * time.Minute)
+	pending, newState := finiteSSOStart(t, s, cookie)
+	newCookie := finiteSSOComplete(t, s, pending, newState)
+	if finiteSSOAccount(s, newCookie).Code != 200 {
+		t.Fatal("idle expiry blocked explicit new sign in")
+	}
+}
+func TestFinanceFinitePrivatePermissionKeepsOwnExpiryAndInvalidScopeRejected(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.service = &Service{Store: store}
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	grant := f.grants[ref.FamilyID]
+	session := Session{Account: grant.Identity.Account, Verifier: "fixture-private-proof", ProductClient: "ynx-finance-v1", SessionBinding: "fixture-private-session", ExpiresAt: now.Add(240 * time.Second)}
+	r := httptest.NewRequest("GET", "/api/overview", nil)
+	r.AddCookie(cookie)
+	if s.authorizeBrowserSSOContext(r, session) != 200 {
+		t.Fatal("family cannot bind existing private session")
+	}
+	binding, ok, err := store.browserSSOBinding(browserSSOBindingKey(session))
+	if err != nil || !ok || !binding.ExpiresAt.Equal(session.ExpiresAt) {
+		t.Fatal("private expiry changed")
+	}
+	now = now.Add(241 * time.Second)
+	if finiteSSOAccount(s, cookie).Code != 200 || s.authorizeBrowserSSOContext(r, session) != 401 {
+		t.Fatal("identity renewal expanded 240s private permission")
+	}
+	g := f.grants[ref.FamilyID]
+	g.Scopes = append(g.Scopes, "finance:write")
+	f.grants[ref.FamilyID] = g
+	if finiteSSOAccount(s, cookie).Code != 401 {
+		t.Fatal("scope superset accepted")
+	}
+}
+func TestFinanceFinitePendingLogoutSurvivesReloadAndRetry(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	f.uncertain = true
+	r := httptest.NewRequest("POST", "/api/sso/logout", nil)
+	r.Header.Set("Origin", BrowserFinanceOrigin)
+	r.Header.Set("X-YNX-SSO-CSRF", ref.CSRF)
+	r.AddCookie(cookie)
+	w := httptest.NewRecorder()
+	s.ssoLogout(w, r)
+	if w.Code != 503 {
+		t.Fatal(w.Code)
+	}
+	account := finiteSSOAccount(s, cookie)
+	if account.Code != 503 || !strings.Contains(account.Body.String(), `"revocationPending":true`) || strings.Contains(account.Body.String(), `"account"`) {
+		t.Fatal("reload lost retry or restored identity", account.Body.String())
+	}
+	f.uncertain = false
+	w = httptest.NewRecorder()
+	s.ssoLogout(w, r)
+	if w.Code != 200 {
+		t.Fatal("retry cannot confirm")
+	}
+	p, state = finiteSSOStart(t, s, cookie)
+	fresh := finiteSSOComplete(t, s, p, state)
+	if finiteSSOAccount(s, fresh).Code != 200 {
+		t.Fatal("confirmed logout cannot sign in again")
+	}
+}
+
+func TestFinanceFiniteActivityCannotExtendAbsoluteAndIsBounded(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	absolute := f.grants[ref.FamilyID].AbsoluteExpiresAt
+	send := func(event int) *httptest.ResponseRecorder {
+		body, _ := json.Marshal(map[string]any{"eventId": base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{byte(event)}, 32)), "action": "save", "observedAt": now})
+		r := httptest.NewRequest("POST", "/api/sso/activity", bytes.NewReader(body))
+		r.Header.Set("Origin", BrowserFinanceOrigin)
+		r.Header.Set("X-YNX-SSO-CSRF", ref.CSRF)
+		r.AddCookie(cookie)
+		w := httptest.NewRecorder()
+		s.ssoActivity(w, r)
+		return w
+	}
+	for i := 1; i <= 5; i++ {
+		now = now.Add(20 * time.Minute)
+		if send(i).Code != 200 || finiteSSOAccount(s, cookie).Code != 200 {
+			t.Fatal("valid user activity denied")
+		}
+	}
+	if !f.grants[ref.FamilyID].AbsoluteExpiresAt.Equal(absolute) {
+		t.Fatal("absolute identity deadline reset")
+	}
+	for i := 6; i <= 16; i++ {
+		if send(i).Code != 200 {
+			t.Fatal("bounded user events unexpectedly denied")
+		}
+	}
+	if send(17).Code != 429 {
+		t.Fatal("event burst unbounded")
+	}
+	now = absolute
+	if finiteSSOAccount(s, cookie).Code != 401 || send(18).Code != 401 {
+		t.Fatal("activity/refresh resurrected absolute expired session")
+	}
 }
