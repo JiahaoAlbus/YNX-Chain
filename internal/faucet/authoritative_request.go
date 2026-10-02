@@ -16,6 +16,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+var errUpstreamResultUnknown = errors.New("faucet result needs confirmation; retain the same request ID")
+
 func newDurableRequestID() (string, error) {
 	var value [16]byte
 	if _, err := rand.Read(value[:]); err != nil {
@@ -215,7 +217,7 @@ func (s *Service) sendDurableFaucetRequest(ctx context.Context, record admission
 	}
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return chain.Transaction{}, 503, errors.New("faucet result needs confirmation; retain the same request ID")
+		return chain.Transaction{}, 503, errUpstreamResultUnknown
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 409 {
