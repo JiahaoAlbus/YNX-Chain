@@ -96,11 +96,13 @@ export class SocialAPI {
     if(options.body!==undefined)headers["Content-Type"]="application/json";
     if(options.auth!==false){
       if(this.productProof){
+        const proofOwner=this.productProof;
         const relative=path.split("?")[0]!.replace("/social/v1/","");
         const scope=relative.startsWith("conversations")||relative.startsWith("devices/")?"social.messaging":/^(contacts?|privacy\/|invites?|notifications?)/.test(relative)?"social.contacts":"social.profile";
         if(/^(feed|media|reports?|follows?|ai\/)/.test(relative))throw new Error("This action requires a separately supported permission");
-        const proof=options.proof??await this.productProof([scope]).catch(()=>{this.setToken(null);throw new SocialAPIError("Wallet permission could not be verified; restore explicitly",401)});
-        if(epoch!==this.epoch||proof.proof.account!==this.productAccount){this.setToken(null);throw new SocialAPIError("Social account changed; reconnect explicitly",401)}
+        const proof=options.proof??await proofOwner([scope]).catch(()=>{if(epoch===this.epoch&&proofOwner===this.productProof)this.setToken(null);throw new SocialAPIError("Wallet permission could not be verified; restore explicitly",401)});
+        if(epoch!==this.epoch||proofOwner!==this.productProof)throw new SocialAPIError("Social authorization changed; old permission discarded",401);
+        if(proof.proof.account!==this.productAccount){this.setToken(null);throw new SocialAPIError("Social account changed; reconnect explicitly",401)}
         headers["X-YNX-Product-Session-Proof-V2"]=proof.proofHeader;
         if(this.csrf)headers["X-YNX-SSO-CSRF"]=this.csrf;
       }else{if(!this.token)throw new Error("Social session is locked");headers.Authorization=`Bearer ${this.token}`}
