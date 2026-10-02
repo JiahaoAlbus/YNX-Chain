@@ -32,6 +32,7 @@ export class ProductSessionGatewayHttpHandler {
     }
   }
 
+  revalidate(session,scopes,productId,at){return this.#kernel.revalidate(session,scopes,productId,at)}
   snapshot() { return this.#kernel.snapshot(); }
 }
 

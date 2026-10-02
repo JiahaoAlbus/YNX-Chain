@@ -52,7 +52,7 @@ const productHost=new ProductHost(productRegistry,{statePath:productSessionState
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
 if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OIDC requires explicit Central browser adoption');
-const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),{...loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE),oidc:loadCentralOIDCConfiguration(process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)})):null;
+const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),{...loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE),oidc:loadCentralOIDCConfiguration(process.env.YNX_CENTRAL_OIDC_CONFIG_FILE),productRevalidator:(session,scopes,productId,at)=>productHost.revalidate(session,scopes,productId,at)})):null;
 const admission=new GatewayAdmissionController({maxConcurrent:integer(process.env.YNX_WALLET_GATEWAY_MAX_CONCURRENT??"64","YNX_WALLET_GATEWAY_MAX_CONCURRENT",1,1024),maxPerWindow:integer(process.env.YNX_WALLET_GATEWAY_RATE_LIMIT??"300","YNX_WALLET_GATEWAY_RATE_LIMIT",1,100000)});
 const legacyHandler=host.handler(),productHandler=productHost.handler();
 const gatewayHandler=async(request,response)=>{

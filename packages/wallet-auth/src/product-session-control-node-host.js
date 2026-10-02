@@ -25,6 +25,7 @@ export class ProductSessionControlNodeHost {
     this.#store = new ProductSessionControlNodeStore({ statePath: options.statePath, ...(options.io ? { io: options.io } : {}) });
   }
   snapshot() { return this.#store.snapshot(); }
+  revalidate(session,scopes,productId,at){const snapshot=this.#store.snapshot(),handler=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,snapshot,this.#capacityPolicy);return handler.revalidate(session,scopes,productId,at);}
   handler() {
     return async (request, response) => {
       const requestId = validRequestId(request.headers["x-request-id"]) ? request.headers["x-request-id"] : "req_invalid_request_000";

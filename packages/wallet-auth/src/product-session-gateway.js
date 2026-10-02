@@ -29,6 +29,19 @@ export class ProductSessionGatewayKernel {
     this.#proofs = [...parsed.consumedProofs]; this.#idempotency = [...parsed.idempotency]; this.#audit = [...parsed.audit];
   }
 
+  // Trusted server-only read: no device proof replay, no new grant, no writes.
+  revalidate(sessionInput, requiredScopes, productId, at = new Date()) {
+    const session=parseProductSession(sessionInput);
+    if(session.productId!==productId||session.platform!=='web')fail('CROSS_PRODUCT_SESSION','Backend cannot inspect another registered product or native platform');
+    const current=this.#authority.snapshot().sessions.find(value=>value.sessionBinding===session.sessionBinding);
+    if(!current||canonicalJSON(current)!==canonicalJSON(session))fail('CROSS_PRODUCT_SESSION','Revalidation must retain the original complete verified session');
+    const lastSeen=this.#controlIntents===null?walletSessionControlClockFloor({consumedProofs:this.#proofs,audit:this.#audit}):productSessionControlClockFloor(this.snapshot());
+    if(validDate(at).getTime()<lastSeen)fail('CLOCK_UNAVAILABLE','Revalidation clock is behind original durable history');
+    if(this.#controlIntents!==null)assertProductSessionControlSessionAllowed(this.snapshot(),session.sessionBinding,at);
+    const {chainId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey}=session;
+    return this.#authority.introspect(session.sessionBinding,{chainId,productId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey,requiredScopes},at);
+  }
+
   dispatch(input, at = new Date()) {
     const instant = validDate(at);
     const lastSeen = this.#controlIntents === null ? walletSessionControlClockFloor({ consumedProofs: this.#proofs, audit: this.#audit }) : productSessionControlClockFloor(this.snapshot());

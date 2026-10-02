@@ -48,8 +48,10 @@ export class ProductSessionGatewayNodeHost {
     this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, stored?.snapshot);
     if (stored === null) this.#persist(this.#handler.snapshot());
     else this.#stateIdentity = stored.identity;
-    if(options.centralBrowser)this.#central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(this.#registry),new CentralBrowserSessionStore(`${this.#statePath}.browser`),{now:()=>this.#now().getTime(),tokenFactory:this.#tokens,...(options.centralBackend??{}),oidc:options.centralOIDC??null}));
+    if(options.centralBrowser)this.#central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(this.#registry),new CentralBrowserSessionStore(`${this.#statePath}.browser`),{now:()=>this.#now().getTime(),tokenFactory:this.#tokens,...(options.centralBackend??{}),oidc:options.centralOIDC??null,productRevalidator:(session,scopes,productId,at)=>this.revalidate(session,scopes,productId,at)}));
   }
+
+  revalidate(session,scopes,productId,at){this.#assertStateIdentity();const result=this.#handler.revalidate(session,scopes,productId,at);this.#assertStateIdentity();return result;}
 
   handler() {
     return async (request, response) => {
