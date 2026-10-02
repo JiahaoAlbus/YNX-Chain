@@ -213,7 +213,7 @@ export class CentralBrowserSessionAuthority {
     return this.#transaction((state,now)=>{
       const session=this.#active(state,sessionToken,now);this.#approved(state,session,this.#socialConsentClient);
       const recent=state.challenges.some(r=>r.consumed&&r.createdSessionId===session.id&&r.challenge.initiator.clientId===this.#socialConsentClient&&r.challenge.initiator.state===this.#oidc.loginState(request)&&Date.parse(r.challenge.expiresAt)>now);
-      const force=request.prompt==='login'||request.max_age!==undefined&&Math.floor(now/1000)-Math.floor(session.createdAt/1000)>Number(request.max_age);
+      const force=request.prompt==='login'||request.max_age!==undefined&&(Number(request.max_age)===0||Math.floor(now/1000)-Math.floor(session.createdAt/1000)>Number(request.max_age));
       if(force&&!recent)fail('SSO_LOGIN_REQUIRED');
       if(state.codes.some(c=>c.protocol===CENTRAL_OIDC_PROTOCOL&&c.sessionId===session.id&&c.clientId===request.client_id&&c.state===request.state))fail('OIDC_TRANSACTION_REPLAY');
       const code=this.#token();state.codes.push({protocol:CENTRAL_OIDC_PROTOCOL,codeHash:hash(code),sessionId:session.id,generation:session.generation,clientId:request.client_id,redirectUri:request.redirect_uri,scopes:request.scope.split(' '),state:request.state,nonce:request.nonce,codeChallenge:request.code_challenge,expiresAt:Math.min(now+60000,session.expiresAt,session.lastSeenAt+SESSION_IDLE),consumed:false});
@@ -367,13 +367,19 @@ export class CentralBrowserSessionNodeRoutes {
   #handleOIDC({method,parsedUrl,headers,body}){
     const path=parsedUrl.pathname;
     try{
-      if(parsedUrl.hash||path!=='/oidc/authorize'&&parsedUrl.search)fail('OIDC_REQUEST_INVALID');
+      if(parsedUrl.hash||(path!=='/oidc/authorize'||method==='POST')&&parsedUrl.search)fail('OIDC_REQUEST_INVALID');
       if(['/.well-known/openid-configuration','/oidc/jwks'].includes(path)){
         if(method!=='GET')fail('OIDC_METHOD_INVALID');return this.#reply(200,path.endsWith('/jwks')?this.#authority.oidcJwks():this.#authority.oidcMetadata());
       }
       if(path==='/oidc/authorize'){
-        if(method!=='GET'||headers.origin!==undefined&&headers.origin!==CENTRAL_BROWSER_ISSUER||headers['sec-fetch-dest']!==undefined&&headers['sec-fetch-dest']!=='document')fail('OIDC_REQUEST_INVALID');
-        const input=Object.fromEntries(parsedUrl.searchParams);if([...parsedUrl.searchParams].length!==Object.keys(input).length)fail('OIDC_REQUEST_INVALID');const request=this.#authority.oidcRequest(input);
+        if(!['GET','POST'].includes(method)||headers['sec-fetch-dest']!==undefined&&headers['sec-fetch-dest']!=='document')fail('OIDC_REQUEST_INVALID');
+        if(method==='POST'&&(typeof body!=='string'||Buffer.byteLength(body)>16384||typeof headers['content-type']!=='string'||!/^application\/x-www-form-urlencoded(?:;\s*charset=utf-8)?$/i.test(headers['content-type'])))fail('OIDC_REQUEST_INVALID');
+        if(method==='GET'&&body!=='')fail('OIDC_REQUEST_INVALID');
+        const params=method==='POST'?new URLSearchParams(body):parsedUrl.searchParams,input=Object.fromEntries(params);if([...params].length!==Object.keys(input).length)fail('OIDC_REQUEST_INVALID');const request=this.#authority.oidcRequest(input);
+        if(headers.origin!==undefined&&headers.origin!==CENTRAL_BROWSER_ISSUER&&(method!=='POST'||headers.origin!==new URL(request.redirect_uri).origin))fail('OIDC_REQUEST_INVALID');
+        // Canonical top-level GET retains the exact normalized request for the
+        // original Wallet page reload/complete path after form serialization.
+        if(method==='POST')return this.#reply(303,{redirect:true},{location:CENTRAL_BROWSER_ISSUER+'/oidc/authorize?'+new URLSearchParams(request)});
         try{const result=this.#authority.oidcAuthorize(request,centralBrowserCookieToken(headers.cookie));return this.#reply(303,{redirect:true},{location:result.redirectUri});}
         catch(error){if(error?.code!=='SSO_LOGIN_REQUIRED')throw error;
           if(request.prompt==='none')return this.#reply(303,{redirect:true},{location:this.#authority.oidcErrorRedirect(request,'login_required')});
@@ -386,13 +392,13 @@ export class CentralBrowserSessionNodeRoutes {
         const params=new URLSearchParams(body),input=Object.fromEntries(params);if([...params].length!==Object.keys(input).length)fail('OIDC_REQUEST_INVALID');return this.#reply(200,this.#authority.oidcRedeem(input,headers));
       }
       if(path==='/oidc/userinfo'){
-        if(method!=='GET')fail('OIDC_METHOD_INVALID');if(headers.origin!==undefined||headers.cookie!==undefined||headers['sec-fetch-site']!==undefined)fail('OIDC_BACKEND_ONLY');
+        if(!['GET','POST'].includes(method))fail('OIDC_METHOD_INVALID');if(body!=='')fail('OIDC_REQUEST_INVALID');if(headers.origin!==undefined||headers.cookie!==undefined||headers['sec-fetch-site']!==undefined)fail('OIDC_BACKEND_ONLY');
         if(typeof headers.authorization!=='string'||!/^Bearer [A-Za-z0-9_-]{43}$/.test(headers.authorization))fail('OIDC_TOKEN_INVALID');return this.#reply(200,this.#authority.oidcUserInfo(headers.authorization.slice(7)));
       }
       fail('OIDC_REQUEST_INVALID');
     }catch(error){
-      const code=error instanceof WalletAuthError?error.code:'OIDC_INTERNAL',client=code==='OIDC_CLIENT_AUTH_INVALID',token=path==='/oidc/userinfo',busy=code==='SSO_STATE_BUSY',status=client||token?401:busy?503:code==='OIDC_METHOD_INVALID'?405:code==='OIDC_INTERNAL'||code.startsWith('SSO_STATE')?500:400;
-      return this.#reply(status,{error:client?'invalid_client':token?'invalid_token':busy?'temporarily_unavailable':path==='/oidc/token'?'invalid_grant':'invalid_request'},client?{'www-authenticate':'Basic realm="YNX Central OpenID"'}:token?{'www-authenticate':'Bearer error="invalid_token"'}:{});
+      const code=error instanceof WalletAuthError?error.code:'OIDC_INTERNAL',client=code==='OIDC_CLIENT_AUTH_INVALID',token=path==='/oidc/userinfo',busy=code==='SSO_STATE_BUSY',infrastructure=code==='OIDC_INTERNAL'||code.startsWith('SSO_STATE'),status=code==='OIDC_METHOD_INVALID'?405:busy?503:infrastructure?500:client||token&&code!=='OIDC_REQUEST_INVALID'?401:400;
+      return this.#reply(status,{error:busy?'temporarily_unavailable':infrastructure?'server_error':client?'invalid_client':token&&status===401?'invalid_token':path==='/oidc/token'?'invalid_grant':'invalid_request'},client?{'www-authenticate':'Basic realm="YNX Central OpenID"'}:token&&status===401?{'www-authenticate':'Bearer error="invalid_token"'}:{});
     }
   }
   #reply(status,payload,headers={}){return {status,headers:{'cache-control':'no-store','content-type':'application/json; charset=utf-8','referrer-policy':'no-referrer','x-content-type-options':'nosniff',...headers},body:canonicalJSON(payload)};}

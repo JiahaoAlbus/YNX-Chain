@@ -9,7 +9,7 @@ import {createServer} from 'node:http';
 import {secp256k1} from '@noble/curves/secp256k1.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {utf8ToBytes,hexToBytes,bytesToHex} from '@noble/hashes/utils.js';
-import {canonicalJSON} from '../src/canonical.js';
+import {canonicalJSON,WalletAuthError} from '../src/canonical.js';
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
 import {walletIdentity} from '../src/crypto.js';
 import {CENTRAL_BROWSER_ISSUER,createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
@@ -89,4 +89,36 @@ test('actual gateway HTTP mount completes original Wallet consent, fixed RP code
   const exchange=await fetch(origin+'/oidc/token',{method:'POST',headers:{...basic(),'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:callback.searchParams.get('code'),redirect_uri:config.redirectUri,code_verifier:r.verifier})});assert.equal(exchange.status,200);const value=await exchange.json();const info=await fetch(origin+'/oidc/userinfo',{headers:{authorization:'Bearer '+value.access_token}});assert.equal(info.status,200);assert.equal((await info.json()).sub,identity.account);
   const jwks=await (await fetch(origin+'/oidc/jwks')).json();claims(value,jwks);
  }finally{if(server)await new Promise(resolve=>server.close(resolve));await f.close()}
+});
+test('standard POST authorization canonicalizes the same intent and POST UserInfo only accepts header Bearer',async()=>{
+ const f=await fixture();let server;try{
+  const login=f.login(),r=query(),cookie=centralBrowserCookie(login.sessionToken).split(';')[0];
+  server=createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;const value=f.routes.handle({method:req.method,url:req.url,headers:req.headers,body});res.writeHead(value.status,value.headers);res.end(value.body)});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin='http://127.0.0.1:'+server.address().port;
+  const form=new URLSearchParams(r.request).toString(),headers={'content-type':'application/x-www-form-urlencoded',origin:new URL(config.redirectUri).origin,cookie};
+  const posted=await fetch(origin+'/oidc/authorize',{method:'POST',headers,body:form,redirect:'manual'});assert.equal(posted.status,303);assert.equal(posted.headers.get('cache-control'),'no-store');const canonical=new URL(posted.headers.get('location'));assert.equal(canonical.origin,CENTRAL_BROWSER_ISSUER);assert.equal(canonical.pathname,'/oidc/authorize');assert.deepEqual(Object.fromEntries(canonical.searchParams),f.authority.oidcRequest(r.request));
+  const result=await fetch(origin+canonical.pathname+canonical.search,{headers:{cookie},redirect:'manual'});assert.equal(result.status,303);const code=new URL(result.headers.get('location')).searchParams.get('code');const value=f.redeem({...r,code});
+  const user=await fetch(origin+'/oidc/userinfo',{method:'POST',headers:{authorization:'Bearer '+value.access_token}});assert.equal(user.status,200);assert.equal((await user.json()).sub,identity.account);
+  for(const [suffix,input,override] of [['?client_id=x',form,{}],['',form+'&state=duplicate',{}],['',form,{origin:'https://evil.test'}],['',form,{'content-type':'application/json'}],['',form,{'sec-fetch-dest':'iframe'}]])assert.equal((await fetch(origin+'/oidc/authorize'+suffix,{method:'POST',headers:{...headers,...override},body:input,redirect:'manual'})).status,400);
+  assert.equal((await fetch(origin+'/oidc/userinfo',{method:'POST',headers:{authorization:'Bearer '+value.access_token,'content-type':'application/x-www-form-urlencoded'},body:'access_token='+value.access_token})).status,400);
+  assert.equal((await fetch(origin+'/oidc/userinfo',{method:'POST',headers:{authorization:'Bearer '+value.access_token,cookie}})).status,401);
+  assert.equal((await fetch(origin+'/oidc/userinfo',{method:'PUT',headers:{authorization:'Bearer '+value.access_token}})).status,405);
+ }finally{if(server)await new Promise(resolve=>server.close(resolve));await f.close()}
+});
+
+test('temporary UserInfo store failures are recoverable service errors, never false token revocation',()=>{
+ for(const [code,status,error] of [['SSO_STATE_BUSY',503,'temporarily_unavailable'],['SSO_STATE_LOST',500,'server_error']]){
+  const authority=new CentralBrowserSessionAuthority(registry,{transaction(){throw new WalletAuthError(code,'QA')}} ,{oidc:config}),routes=new CentralBrowserSessionNodeRoutes(authority);
+  const result=routes.handle({method:'POST',url:'/oidc/userinfo',headers:{authorization:'Bearer '+token()},body:''});assert.equal(result.status,status);assert.equal(JSON.parse(result.body).error,error);assert.equal(result.headers['www-authenticate'],undefined);assert.equal(result.headers['cache-control'],'no-store');
+ }
+});
+
+test('max_age zero requires exact new Wallet intent even within the original session creation second',async()=>{
+ const f=await fixture();try{
+  const prior=f.login(),r=query(),request={...r.request,max_age:'0'},url='/oidc/authorize?'+new URLSearchParams(request),cookie=centralBrowserCookie(prior.sessionToken).split(';')[0];
+  assert.throws(()=>f.authority.oidcAuthorize(request,prior.sessionToken),{code:'SSO_LOGIN_REQUIRED'});
+  const quiet=f.routes.handle({method:'GET',url:'/oidc/authorize?'+new URLSearchParams({...request,prompt:'none'}),headers:{cookie}});assert.equal(quiet.status,303);assert.equal(new URL(quiet.headers.location).searchParams.get('error'),'login_required');assert.equal(new URL(quiet.headers.location).searchParams.has('code'),false);
+  const page=f.routes.handle({method:'GET',url,headers:{cookie}});assert.equal(page.status,200);const context=JSON.parse(page.body.match(/<script id="context" type="application\/json">([^<]*)<\/script>/)[1]),bound=page.headers['set-cookie'].split(';')[0].split('=')[1];
+  const next=f.authority.complete(approve(context.challenge),bound,prior.sessionToken),result=f.routes.handle({method:'GET',url,headers:{cookie:centralBrowserCookie(next.sessionToken).split(';')[0]}});assert.equal(result.status,303);assert(new URL(result.headers.location).searchParams.get('code'));assert.throws(()=>f.authority.status(prior.sessionToken),{code:'SSO_LOGIN_REQUIRED'});
+  assert.throws(()=>f.authority.oidcAuthorize({...request,state:token()},next.sessionToken),{code:'SSO_LOGIN_REQUIRED'});
+ }finally{await f.close()}
 });
