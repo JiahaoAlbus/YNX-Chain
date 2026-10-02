@@ -2,7 +2,7 @@
   "expo": {
     "name": "YNX Wallet",
     "slug": "ynx-wallet",
-    "version": "1.0.29",
+    "version": "1.0.30",
     "orientation": "portrait",
     "scheme": "ynxwallet",
     "userInterfaceStyle": "light",
@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/app-icon.png",
-      "buildNumber": "35",
+      "buildNumber": "36",
       "bundleIdentifier": "com.ynxweb4.wallet",
       "infoPlist": {
         "NSFaceIDUsageDescription": "YNX Wallet uses Face ID to unlock local account keys and approve exact requests.",
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.ynxweb4.wallet",
-      "versionCode": 35,
+      "versionCode": 36,
       "icon": "./assets/app-icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground.png",
