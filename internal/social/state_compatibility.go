@@ -40,13 +40,20 @@ func CheckSocialState(path string, key []byte, targetReader int, action string) 
 	}
 	required := state.SchemaVersion
 	if len(state.PublicIdentities) > 0 {
-		required = SchemaVersion
+		if required < 6 {
+			required = 6
+		}
 	}
 	for _, request := range state.Requests {
 		if request.Message != "" || request.ExpiresAt != nil {
-			required = SchemaVersion
+			if required < 6 {
+				required = 6
+			}
 			break
 		}
+	}
+	if state.AudienceProofTime != nil || len(state.MatrixAudienceNonces) > 0 || state.AudiencePolicyRevision != 0 || len(state.MatrixAudiences) > 0 || len(state.RestrictedMomentIndexes) > 0 {
+		required = 7
 	}
 	result := StateCompatibility{StoredSchema: state.SchemaVersion, RequiredReaderSchema: required, Action: action}
 	if targetReader < required || targetReader > SchemaVersion {

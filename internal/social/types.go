@@ -18,7 +18,7 @@ var (
 )
 
 const (
-	SchemaVersion          = 6
+	SchemaVersion          = 7
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
@@ -28,18 +28,20 @@ const (
 )
 
 type Config struct {
-	StatePath       string
-	TokenKey        []byte
-	Now             func() time.Time
-	RateLimitWindow time.Duration
-	RateLimitMax    int
-	AIProviders     map[string]AIProvider
-	Chat            *chat.Service
-	Square          *square.Service
-	AI              AIStreamer
-	BrowserSSO      *productsessionv2.BrowserSSO
-	ProductSessions map[string]ProductSessionAuthorizer
-	MatrixDirectory *MatrixDirectory
+	StatePath                    string
+	TokenKey                     []byte
+	Now                          func() time.Time
+	RateLimitWindow              time.Duration
+	RateLimitMax                 int
+	AIProviders                  map[string]AIProvider
+	Chat                         *chat.Service
+	Square                       *square.Service
+	AI                           AIStreamer
+	BrowserSSO                   *productsessionv2.BrowserSSO
+	ProductSessions              map[string]ProductSessionAuthorizer
+	MatrixDirectory              *MatrixDirectory
+	MatrixAudienceAuthority      MatrixAudienceAuthority
+	MatrixAudienceActionVerifier MatrixAudienceActionVerifier
 }
 
 type AIProvider struct {
@@ -363,33 +365,38 @@ type idempotencyRecord struct {
 }
 
 type persistentState struct {
-	SchemaVersion    int                               `json:"schemaVersion"`
-	Sessions         map[string]Session                `json:"sessions"`
-	SessionRotations map[string]SessionRotation        `json:"sessionRotations"`
-	UsedNonces       map[string]time.Time              `json:"usedNonces"`
-	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
-	Settings         map[string]ProfileSettings        `json:"settings"`
-	PublicIdentities map[string]string                 `json:"publicIdentities,omitempty"`
-	Invites          map[string]Invite                 `json:"invites"`
-	Requests         map[string]ContactRequest         `json:"requests"`
-	Contacts         map[string]Contact                `json:"contacts"`
-	Blocks           map[string]time.Time              `json:"blocks"`
-	Mutes            map[string]time.Time              `json:"mutes"`
-	Notifications    map[string]Notification           `json:"notifications"`
-	AIJobs           map[string]AIJob                  `json:"aiJobs"`
-	Automation       map[string]AutomationRule         `json:"automation"`
-	Devices          map[string]ProductDevice          `json:"devices"`
-	Groups           map[string]GroupConversation      `json:"groups"`
-	GroupMessages    map[string][]chat.Message         `json:"groupMessages"`
-	Media            map[string]MediaObject            `json:"media"`
-	Moments          map[string]Moment                 `json:"moments"`
-	MomentComments   map[string][]MomentComment        `json:"momentComments"`
-	MomentReactions  map[string]MomentReaction         `json:"momentReactions"`
-	Reports          map[string]SocialReport           `json:"reports"`
-	Idempotency      map[string]idempotencyRecord      `json:"idempotency"`
-	Audit            []AuditEvent                      `json:"audit"`
-	IntegrityHash    string                            `json:"integrityHash"`
-	ProductBindings  map[string]productSessionBinding  `json:"productBindings,omitempty"`
+	MatrixAudienceNonces    map[string]matrixAudienceNonce    `json:"matrixAudienceNonces,omitempty"`
+	AudienceProofTime       *time.Time                        `json:"audienceProofTime,omitempty"`
+	AudiencePolicyRevision  uint64                            `json:"audiencePolicyRevision,omitempty"`
+	MatrixAudiences         map[string]matrixAudienceBinding  `json:"matrixAudiences,omitempty"`
+	RestrictedMomentIndexes map[string]RestrictedMomentIndex  `json:"restrictedMomentIndexes,omitempty"`
+	SchemaVersion           int                               `json:"schemaVersion"`
+	Sessions                map[string]Session                `json:"sessions"`
+	SessionRotations        map[string]SessionRotation        `json:"sessionRotations"`
+	UsedNonces              map[string]time.Time              `json:"usedNonces"`
+	WalletChallenges        map[string]PendingWalletChallenge `json:"walletChallenges"`
+	Settings                map[string]ProfileSettings        `json:"settings"`
+	PublicIdentities        map[string]string                 `json:"publicIdentities,omitempty"`
+	Invites                 map[string]Invite                 `json:"invites"`
+	Requests                map[string]ContactRequest         `json:"requests"`
+	Contacts                map[string]Contact                `json:"contacts"`
+	Blocks                  map[string]time.Time              `json:"blocks"`
+	Mutes                   map[string]time.Time              `json:"mutes"`
+	Notifications           map[string]Notification           `json:"notifications"`
+	AIJobs                  map[string]AIJob                  `json:"aiJobs"`
+	Automation              map[string]AutomationRule         `json:"automation"`
+	Devices                 map[string]ProductDevice          `json:"devices"`
+	Groups                  map[string]GroupConversation      `json:"groups"`
+	GroupMessages           map[string][]chat.Message         `json:"groupMessages"`
+	Media                   map[string]MediaObject            `json:"media"`
+	Moments                 map[string]Moment                 `json:"moments"`
+	MomentComments          map[string][]MomentComment        `json:"momentComments"`
+	MomentReactions         map[string]MomentReaction         `json:"momentReactions"`
+	Reports                 map[string]SocialReport           `json:"reports"`
+	Idempotency             map[string]idempotencyRecord      `json:"idempotency"`
+	Audit                   []AuditEvent                      `json:"audit"`
+	IntegrityHash           string                            `json:"integrityHash"`
+	ProductBindings         map[string]productSessionBinding  `json:"productBindings,omitempty"`
 }
 
 type Export struct {

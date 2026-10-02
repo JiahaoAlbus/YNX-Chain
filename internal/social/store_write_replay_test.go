@@ -55,7 +55,7 @@ func TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay(t *testing.T) 
 	if _, replay, err := s.SetSettings(actor, settings); err == nil || replay {
 		t.Fatal("settings receipt falsely acknowledged")
 	}
-	methods := []string{"AcknowledgeConversationMessage", "AcknowledgeGroupMessage", "AppealSocialReport", "BeginAI", "Block", "CreateDirectConversation", "CreateGroupConversation", "CreateInvite", "CreateMoment", "CreateMomentComment", "CreatePublicPost", "CreateSocialReport", "CreateWalletChallenge", "DeleteAccount", "DeleteContact", "DeleteMoment", "FollowTarget", "Login", "MarkContractNotificationRead", "MarkNotificationRead", "ModifyGroupMembers", "Mute", "RequestContact", "RevokeInvite", "RevokeSession", "RotateConversationDevice", "SendConversationMessage", "SendGroupMessage", "SetMomentReaction", "SetSettings", "StoreMedia", "StreamAI", "TransitionAI", "TransitionRequest", "UpdateContractProfile"}
+	methods := []string{"AcknowledgeConversationMessage", "AcknowledgeGroupMessage", "AppealSocialReport", "BeginAI", "Block", "CreateDirectConversation", "CreateGroupConversation", "CreateInvite", "CreateMoment", "CreateMomentComment", "CreatePublicPost", "CreateSocialReport", "CreateWalletChallenge", "DeleteAccount", "DeleteContact", "DeleteMoment", "FollowTarget", "Login", "MarkContractNotificationRead", "MarkNotificationRead", "ModifyGroupMembers", "Mute", "RequestContact", "RevokeInvite", "RevokeSession", "RotateConversationDevice", "SendConversationMessage", "SendGroupMessage", "SetMomentReaction", "SetSettings", "StoreMedia", "StreamAI", "TransitionAI", "TransitionRequest", "UpdateContractProfile", "ResolveMatrixAudience", "AuthorizeMatrixAudience"}
 	for _, name := range methods {
 		t.Run(name, func(t *testing.T) {
 			method := reflect.ValueOf(s).MethodByName(name)
@@ -80,7 +80,7 @@ func TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay(t *testing.T) 
 	if !bytes.Equal(snapshot, after) {
 		t.Fatal("rejected replay mutated committed state")
 	}
-	if _, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, 6, "recover"); err != nil {
+	if _, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, SchemaVersion, "recover"); err != nil {
 		t.Fatal(err)
 	}
 	restarted, err := New(s.cfg)

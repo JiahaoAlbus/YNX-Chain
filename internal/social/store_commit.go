@@ -40,6 +40,13 @@ func (s *Service) saveOrRollbackWithLocked(before persistentState, write func(st
 		s.state = before
 		return fmt.Errorf("state writes suspended; recover with compatible reader: %w", s.stateWriteError)
 	}
+	if audiencePolicyDigest(before) != audiencePolicyDigest(s.state) {
+		if before.AudiencePolicyRevision == ^uint64(0) {
+			s.state = before
+			return fmt.Errorf("Social audience policy revision exhausted")
+		}
+		s.state.AudiencePolicyRevision = before.AudiencePolicyRevision + 1
+	}
 	err := write(s.cfg.StatePath, &s.state, s.cfg.TokenKey)
 	if err == nil {
 		return nil

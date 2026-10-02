@@ -17,6 +17,7 @@ func TestActualStateCheckCLIUpgradeRecoveryAndReadOnlyGate(t *testing.T) {
 	}
 	legacy := cloneState(s.state)
 	legacy.SchemaVersion = 5
+	legacy.AudiencePolicyRevision = 0
 	if err := saveState(s.cfg.StatePath, &legacy, s.cfg.TokenKey); err != nil {
 		t.Fatal(err)
 	}
@@ -43,18 +44,18 @@ func TestActualStateCheckCLIUpgradeRecoveryAndReadOnlyGate(t *testing.T) {
 	if output, err := run("6", "check", false); err != nil || !bytes.Contains(output, []byte(`"storedSchema":5`)) {
 		t.Fatalf("compatible read-only check failed: %s %v", output, err)
 	}
-	if _, err := run("6", "upgrade", false); err == nil {
+	if _, err := run("7", "upgrade", false); err == nil {
 		t.Fatal("upgrade ran without explicit stopped-writer assertion")
 	}
 	unchanged, _ := os.ReadFile(s.cfg.StatePath)
 	if !bytes.Equal(before, unchanged) {
 		t.Fatal("read-only/refused operation changed state")
 	}
-	if output, err := run("6", "upgrade", true); err != nil || !bytes.Contains(output, []byte(`"storedSchema":6`)) {
+	if output, err := run("7", "upgrade", true); err != nil || !bytes.Contains(output, []byte(`"storedSchema":7`)) {
 		t.Fatalf("actual CLI upgrade failed: %s %v", output, err)
 	}
 	upgraded, _ := os.ReadFile(s.cfg.StatePath)
-	if output, err := run("6", "recover", true); err != nil {
+	if output, err := run("7", "recover", true); err != nil {
 		t.Fatalf("actual CLI recovery failed: %s %v", output, err)
 	}
 	recovered, _ := os.ReadFile(s.cfg.StatePath)

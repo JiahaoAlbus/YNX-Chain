@@ -14,6 +14,13 @@ function snapshot(value) {
     owner:value.owner,roomId:value.roomId,members:Object.freeze([...value.members].sort())});
 }
 const same = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+const sameTypedFields=(actual,expected)=>{
+  if(actual===undefined||expected===undefined)return actual===expected;
+  if(!actual||typeof actual!=='object'||Array.isArray(actual))return false;
+  const keys=Object.keys(expected).sort();
+  return JSON.stringify(Object.keys(actual).sort())===JSON.stringify(keys)&&
+    keys.every(key=>typeof actual[key]===typeof expected[key]&&actual[key]===expected[key]);
+};
 
 // authorize is supplied by the actual approved backend integration, never by
 // a follow list or assertTrusted. No endpoint or consent scope is invented here.
@@ -22,9 +29,9 @@ export class RestrictedMoments {
     if (!transport || typeof authorize !== 'function') deny('Live audience authority required');
     this.transport=transport;this.authorize=authorize;this.pending=new Map();
   }
-  async check(expected,operation) {
+  async check(expected,operation,authorization=null) {
     this.transport.guard(operation);
-    const live=snapshot(await this.authorize(expected));
+    const live=snapshot(await this.authorize(expected,authorization));
     this.transport.guard(operation);
     if (!same(expected,live) || !live.members.includes(operation.binding.userId)) deny('Audience changed; retain draft and review again');
     const room=operation.client.getRoom(live.roomId);
@@ -66,11 +73,12 @@ export class RestrictedMoments {
     const previousStatus=intent.status;
     intent.status='preparing';
     let started=false;
+    const authorization={action:parent?'comment':'publish',transactionId,parentEventId:parent?.eventId};
     try {
-      await this.check(expected,operation);
+      await this.check(expected,operation,authorization);
       if(parent)await this.verifyParent(parent,expected,operation);
       await this.transport.assertTrusted(expected.roomId,operation);
-      await this.check(expected,operation);
+      await this.check(expected,operation,authorization);
       this.transport.guard(operation);
       intent.status='sending';started=true;
       const result=await operation.client.sendMessage(expected.roomId,content,transactionId);
@@ -83,10 +91,10 @@ export class RestrictedMoments {
       const sent=records.find(record=>record.id===intent.eventId);
       if (!sent?.encrypted || sent.verification?.shieldColour!==0 || sent.sender!==operation.binding.userId ||
           sent.content?.msgtype!==content.msgtype || sent.content.body!==content.body ||
-          JSON.stringify(sent.content['com.ynx.social.moment'])!==JSON.stringify(content['com.ynx.social.moment']) ||
-          JSON.stringify(sent.content['m.relates_to'])!==JSON.stringify(content['m.relates_to']))
+          !sameTypedFields(sent.content['com.ynx.social.moment'],content['com.ynx.social.moment']) ||
+          !sameTypedFields(sent.content['m.relates_to'],content['m.relates_to']))
         deny('Publication event ownership is not confirmed; delivery remains unknown');
-      await this.check(expected,operation);
+      await this.check(expected,operation,{...authorization,action:'index',eventId:intent.eventId});
       this.pending.delete(transactionId);
       return {protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,eventId:result.event_id,
         owner:expected.owner,kind:expected.kind,revision:expected.revision};

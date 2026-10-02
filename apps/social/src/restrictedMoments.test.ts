@@ -93,3 +93,41 @@ test('unconfirmed event ownership never clears original pending transaction',asy
     assert.equal(f.consumer.pending.get(transactionId).content.body,'original');
   }
 });
+
+
+test('semantic JSON key order does not change authenticated event ownership',async()=>{
+  const f=fixture();f.transport.messages=async()=>f.sent.map(args=>{
+    const content={...(args[1] as Record<string,unknown>)};
+    const semantic=content['com.ynx.social.moment'] as Record<string,unknown>;
+    content['com.ynx.social.moment']=Object.fromEntries(Object.entries(semantic).reverse());
+    return {id:'$event',sender:f.audience.owner,encrypted:true,verification:{shieldColour:0},content};
+  });
+  await f.consumer.publish({audience:f.audience,text:'original',transactionId});
+  assert.equal(f.consumer.pending.size,0);
+});
+
+test('unknown semantic keys still deny event ownership',async()=>{
+  const f=fixture();f.transport.messages=async()=>f.sent.map(args=>{
+    const content={...(args[1] as Record<string,unknown>)};
+    content['com.ynx.social.moment']={...(content['com.ynx.social.moment'] as object),unexpected:'value'};
+    return {id:'$event',sender:f.audience.owner,encrypted:true,verification:{shieldColour:0},content};
+  });
+  await assert.rejects(f.consumer.publish({audience:f.audience,text:'original',transactionId}),/ownership is not confirmed/);
+  assert.equal(f.consumer.pending.get(transactionId).status,'unknown');
+});
+
+
+test('comment semantic and relation key reordering preserves authenticated ownership',async()=>{
+  const f=fixture();f.operation.binding.userId='@bob:node';
+  const parent={protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:f.audience.roomId,revision:f.audience.revision,owner:f.audience.owner,eventId:'$parent'};
+  f.transport.messages=async()=>[
+    {id:'$parent',sender:f.audience.owner,encrypted:true,verification:{shieldColour:0},content:{'com.ynx.social.moment':{protocol:RESTRICTED_MOMENT_PROTOCOL,kind:'moment',owner:f.audience.owner,revision:f.audience.revision,audience:'contacts'}}},
+    ...f.sent.map(args=>{
+      const content={...(args[1] as Record<string,unknown>)};
+      for(const key of ['com.ynx.social.moment','m.relates_to'])content[key]=Object.fromEntries(Object.entries(content[key] as Record<string,unknown>).reverse());
+      return {id:'$event',sender:'@bob:node',encrypted:true,verification:{shieldColour:0},content};
+    }),
+  ];
+  await f.consumer.publish({audience:f.audience,text:'comment',transactionId,parent});
+  assert.equal(f.consumer.pending.size,0);
+});

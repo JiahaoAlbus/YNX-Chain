@@ -12,7 +12,7 @@ import (
 func main() {
 	path := flag.String("state-file", "", "local Social state file")
 	keyPath := flag.String("integrity-key-file", "", "local raw server integrity key file; never print or upload")
-	reader := flag.Int("target-reader-schema", 6, "target compatible reader schema")
+	reader := flag.Int("target-reader-schema", social.SchemaVersion, "target compatible reader schema")
 	action := flag.String("action", "check", "check (read-only), upgrade, or recover; mutations require stopped exclusive writer")
 	stopped := flag.Bool("writer-stopped", false, "explicit assertion that the exclusive writer is stopped under a Central data lease")
 	flag.Parse()

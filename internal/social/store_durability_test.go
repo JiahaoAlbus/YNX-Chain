@@ -50,7 +50,7 @@ func TestStateReplacementFailureBoundariesAndForwardRecovery(t *testing.T) {
 			if _, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, 5, "check"); err == nil {
 				t.Fatal("legacy reader admitted incompatible state")
 			}
-			if _, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, 6, "recover"); err != nil {
+			if _, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, SchemaVersion, "recover"); err != nil {
 				t.Fatal(err)
 			}
 			restarted, err := New(s.cfg)
@@ -80,6 +80,7 @@ func TestSchemaFiveUpgradePreservesRelationshipsAndOpaqueBindings(t *testing.T) 
 	}
 	legacy := cloneState(s.state)
 	legacy.SchemaVersion = 5
+	legacy.AudiencePolicyRevision = 0
 	if err := saveState(s.cfg.StatePath, &legacy, s.cfg.TokenKey); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +95,7 @@ func TestSchemaFiveUpgradePreservesRelationshipsAndOpaqueBindings(t *testing.T) 
 	if !bytes.Equal(before, unchanged) {
 		t.Fatal("read-only check modified state")
 	}
-	if result, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, 6, "upgrade"); err != nil || result.StoredSchema != 6 {
+	if result, err := CheckSocialState(s.cfg.StatePath, s.cfg.TokenKey, SchemaVersion, "upgrade"); err != nil || result.StoredSchema != SchemaVersion {
 		t.Fatal("upgrade failed")
 	}
 	restarted, err := New(s.cfg)

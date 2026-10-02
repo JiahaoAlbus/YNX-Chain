@@ -1,0 +1,1 @@
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.194s
