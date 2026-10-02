@@ -26,10 +26,11 @@ export function createMediaSessionEvents(product, environment = globalThis) {
 export function createMediaReturnLocation(product, views, environment = globalThis) {
   const key = 'ynx.' + product + '.return-location';
   return {
-    remember(request, view) {
+    remember(request, view, context = {}) {
       if (!request.state || !views.includes(view)) return;
       const url = new URL(environment.location.href);
       url.hash = ''; url.searchParams.delete('result'); url.searchParams.set('mediaView', view);
+      for (const [key, value] of Object.entries(context)) if (['video','mediaChannel','mediaPlaylist'].includes(key) && typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value)) url.searchParams.set(key, value);
       try {environment.localStorage?.setItem(key, JSON.stringify({state: request.state, expiresAt: request.expiresAt, path: url.pathname + url.search}));} catch {}
     },
     consume(session) {

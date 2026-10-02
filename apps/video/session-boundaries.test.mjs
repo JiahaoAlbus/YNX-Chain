@@ -26,8 +26,8 @@ for(const [product,origin,views,factory] of [['video','https://video.ynxweb4.com
  test(product+' callback resumes the original view only for the matching verified session',()=>{
   const storage=new Map();const environment={location:{origin,href:origin+'/?lang=zh-CN'},localStorage:{setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k),removeItem:k=>storage.delete(k)}};
   const returns=factory(product,views,environment),request={state:'request-one',expiresAt:new Date(Date.now()+60000).toISOString()};
-  returns.remember(request,views[0]);assert.equal(returns.consume({state:'wrong'}),'/');
-  assert.equal(returns.consume({state:request.state}),'/?lang=zh-CN&mediaView='+views[0]);assert.equal(storage.size,0);
+  returns.remember(request,views[0],product==='video'?{video:'owned_video',mediaChannel:'owned_channel',mediaPlaylist:'owned_list'}:{});assert.equal(returns.consume({state:'wrong'}),'/');
+  assert.equal(returns.consume({state:request.state}),'/?lang=zh-CN&mediaView='+views[0]+(product==='video'?'&video=owned_video&mediaChannel=owned_channel&mediaPlaylist=owned_list':''));assert.equal(storage.size,0);
   for(const path of ['https://evil.example/?mediaView='+views[0],'//evil.example/?mediaView='+views[0],'/wallet-auth/callback?mediaView='+views[0],'/?result=signed&mediaView='+views[0]]){
    storage.set('ynx.'+product+'.return-location',JSON.stringify({...request,path}));assert.equal(returns.consume({state:request.state}),'/');
   }

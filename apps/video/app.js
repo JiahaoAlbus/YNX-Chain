@@ -12,6 +12,7 @@ const savedWalletStateKey = "ynx.video.walletState";
 
 let currentWallet = null;
 let currentVideo = null;
+let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
 let productState = {status: "guest"};
 let productExpiryTimer;
@@ -206,7 +207,7 @@ function renderProductState(state) {
 }
 
 function focusSignIn() {
-  if ($("#player").open) {$("#video").pause(); $("#player").close();}
+  if ($("#player").open) {returnPlayerVideo=currentVideo?.id; $("#video").pause(); $("#player").close();}
   if ($("#playlist-picker").open) $("#playlist-picker").close();
   $("#video-account").scrollIntoView({behavior: "smooth", block: "center"});
   $("#product-connect").focus();
@@ -334,7 +335,7 @@ async function prepareVideoSignIn() {
    $("#product-wallet-status").textContent = 'Review the Video request in ' + label + '. You may approve or reject it.';
    invalidate = () => {if (intent === videoSignInIntent) cancelVideoSignIn();};
    for (const event of ['accountsChanged', 'chainChanged', 'disconnect']) provider.on?.(event, invalidate);
-   const state = await dispatchPreparedProductRequest(provider, async () => {const request = await videoProductSession.prepare(); videoProductSession.rememberReturn?.(request, currentView); return request;}, url => videoProductSession.finishReturn(url), current,
+   const state = await dispatchPreparedProductRequest(provider, async () => {const request = await videoProductSession.prepare(); videoProductSession.rememberReturn?.(request, currentView, {video:returnPlayerVideo,mediaChannel:currentView==="channel"?currentChannelId:null,mediaPlaylist:currentPlaylist}); return request;}, url => videoProductSession.finishReturn(url), current,
     {signal: abort.signal, revoke: () => videoProductSession.disconnect(), onRevocation: renderProductState});
    if (intent !== videoSignInIntent) return;
    renderProductState(state);
@@ -451,10 +452,12 @@ window.addEventListener?.('focus', () => void resumeNativeSignIn());
 document.addEventListener?.('visibilitychange', () => {if (document.visibilityState === 'visible') void resumeNativeSignIn();});
 
 async function refreshLibraryView() {
+  if (returnPlayerVideo && currentVideo?.id===returnPlayerVideo && !$("#player").open) {$("#player").showModal();returnPlayerVideo=null;}
   const button = document.querySelector(`nav button[data-view="${currentView}"]`);
   if (currentView === "subscriptions") return showSubscriptions(button);
   if (currentView === "playlists") return currentPlaylist ? showPlaylist(currentPlaylist) : showPlaylists(button);
   if (currentView === "history") return showHistory(button);
+  if (currentView === "channel" && currentChannelId) return showChannel(currentChannelId);
   if (currentView === "settings") return showSettings();
 }
 
@@ -716,6 +719,7 @@ async function refreshSubscriptionButton() {
 }
 
 async function showChannel(channelID) {
+  currentChannelId=channelID;
   const epoch = ++libraryEpoch;
   currentView = "channel";
   activate(null);
@@ -966,7 +970,10 @@ if (linkedVideo) {
   api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(async error=>{await catalogReady;notice(error.message,true);});
 }
 const returnedView = new URLSearchParams(location.search).get('mediaView');
-if (['subscriptions','playlists','history'].includes(returnedView)) {currentView=returnedView;activate(document.querySelector('nav button[data-view="'+returnedView+'"]'));}
+if (['subscriptions','playlists','history','settings','channel'].includes(returnedView)) {currentView=returnedView;activate(returnedView==='settings'?$("#privacy"):document.querySelector('nav button[data-view="'+returnedView+'"]'));}
+const returnedParams=new URLSearchParams(location.search);
+if (/^[A-Za-z0-9_-]{1,128}$/.test(returnedParams.get('mediaPlaylist')||''))currentPlaylist=returnedParams.get('mediaPlaylist');
+if (/^[A-Za-z0-9_-]{1,128}$/.test(returnedParams.get('mediaChannel')||''))currentChannelId=returnedParams.get('mediaChannel');
 void restoreVideoAccount();
 videoProductSession.subscribe?.(() => {
   if (nativeReturn?.launched) {void resumeNativeSignIn(); return;}

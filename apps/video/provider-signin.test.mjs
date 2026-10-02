@@ -45,7 +45,7 @@ async function videoUI(provider,finish,overrides={}){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  const calls=[];
  const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),...overrides};
- const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0;'+entrySource+controllerSource+entryBindings+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn,renderAccountRequired};')(...Object.values(dependencies));
+ const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0,currentVideo=null,returnPlayerVideo=null;'+entrySource+controllerSource+entryBindings+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn,renderAccountRequired};')(...Object.values(dependencies));
  return {...controller,$,calls};
 }
 test('Video shipped chooser routes the chosen YNX button to approval and the original library',async()=>{
