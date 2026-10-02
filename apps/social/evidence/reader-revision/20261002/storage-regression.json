@@ -1,0 +1,55 @@
+{
+  "results": [
+    {
+      "case": "unknown-status-save",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "ciphertext-save",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "revision-load",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "wrongkey-save",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "wrong-origin",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    },
+    {
+      "case": "wrong-account",
+      "expectedRejected": true,
+      "rejected": true,
+      "ciphertextRetained": true,
+      "error": "MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained",
+      "status": "PASS"
+    }
+  ],
+  "pass": 6,
+  "fail": 0,
+  "skip": 0
+}

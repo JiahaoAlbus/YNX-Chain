@@ -1,0 +1,20 @@
+{
+  "legacyRead": true,
+  "legacyPreserved": true,
+  "migrated": true,
+  "restored": true,
+  "checks": [
+    {
+      "name": "numeric-revision",
+      "loadRejected": true,
+      "saveRejected": true,
+      "cipherRetained": true
+    },
+    {
+      "name": "protocol-downgrade",
+      "loadRejected": true,
+      "saveRejected": true,
+      "cipherRetained": true
+    }
+  ]
+}

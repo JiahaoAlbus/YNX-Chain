@@ -625,6 +625,15 @@ func (s *Server) matrixAudience(w http.ResponseWriter, r *http.Request) {
 		if json.Unmarshal(originalJSON, &frozen) != nil || objectDigest(current) != objectDigest(frozen) {
 			return &productsessionv2.Error{Status: http.StatusForbidden, Code: "SESSION_BINDING_MISMATCH"}
 		}
+		// Private session revalidation does not validate Central generation, and
+		// the original browser grant may change while that remote read awaits.
+		_, afterReaderGeneration, err := s.browserProductBinding(r.WithContext(checkCtx), session, nil)
+		if err != nil {
+			return err
+		}
+		if afterReaderGeneration != browserGeneration {
+			return ErrUnauthorized
+		}
 		if !expires.After(s.service.cfg.Now()) || !receipt.ExpiresAt.After(s.service.cfg.Now()) {
 			return ErrUnauthorized
 		}

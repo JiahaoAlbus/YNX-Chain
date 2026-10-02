@@ -1,4 +1,5 @@
-const protocol='ynx-social-protected-moment/v1';
+const legacyProtocol='ynx-social-protected-moment/v1';
+const protocol='ynx-social-protected-moment/v2';
 const fail=()=>{throw new Error('MATRIX_DRAFT_RECOVERY_REQUIRED: original protected records were retained')};
 const transaction=/^[A-Za-z0-9_-]{16,128}$/;
 
@@ -20,24 +21,27 @@ export async function openProtectedMomentDrafts({account,deviceId,environment=gl
   try{
     const wrapping=await io('readonly',(store,_tx,result)=>{const request=store.get(account);request.onsuccess=()=>result(request.result)});
     if(wrapping?.version!==1||wrapping.deviceId!==deviceId||wrapping.origin!==environment.location.origin||wrapping.key?.extractable!==false||wrapping.key.algorithm?.name!=='AES-GCM')fail();
-    const slot=[protocol,account,deviceId],subtle=environment.crypto.subtle;
+    // Keep the original slot and key; opening/loading never migrates records.
+    const slot=[legacyProtocol,account,deviceId],subtle=environment.crypto.subtle;
     // Authenticate the original wrapping record too. A replacement key must
     // never let this helper overwrite recoverable drafts under a new key.
     try{
       const secret=new Uint8Array(await subtle.decrypt({name:'AES-GCM',iv:wrapping.iv,additionalData:new TextEncoder().encode(JSON.stringify([wrapping.origin,account,deviceId]))},wrapping.key,wrapping.encrypted));
       const valid=secret.length===32;secret.fill(0);if(!valid)fail();
     }catch{fail()}
-    const aad=(id,status)=>new TextEncoder().encode(JSON.stringify([protocol,wrapping.origin,account,deviceId,id,status]));
+    // v1 authenticates identity/intent/status, not revision. v2 also authenticates
+    // revision. Neither prevents replay of an entire previously valid record.
+    const aad=(id,status,version,revision)=>new TextEncoder().encode(JSON.stringify(version===legacyProtocol?[version,wrapping.origin,account,deviceId,id,status]:[version,wrapping.origin,account,deviceId,id,status,revision]));
     const validate=payload=>{
       if(!payload||!transaction.test(payload.transactionId)||typeof payload.text!=='string'||payload.text.length>16000||!payload.selection||!['contacts','private','group','selected'].includes(payload.selection.kind)||!['draft','delivery-unknown'].includes(payload.status))fail();
     };
     const envelope=record=>{
-      if(!record||JSON.stringify(Object.keys(record).sort())!==JSON.stringify(['encrypted','iv','protocol','revision','status','transactionId'])||record.protocol!==protocol||!Number.isSafeInteger(record.revision)||record.revision<1||!transaction.test(record.transactionId)||!['draft','delivery-unknown'].includes(record.status)||!(record.iv instanceof Uint8Array)||record.iv.byteLength!==12||!(record.encrypted instanceof ArrayBuffer)||record.encrypted.byteLength<16||record.encrypted.byteLength>36*1024*1024+16)fail();
+      if(!record||JSON.stringify(Object.keys(record).sort())!==JSON.stringify(['encrypted','iv','protocol','revision','status','transactionId'])||![legacyProtocol,protocol].includes(record.protocol)||!Number.isSafeInteger(record.revision)||record.revision<1||!transaction.test(record.transactionId)||!['draft','delivery-unknown'].includes(record.status)||!(record.iv instanceof Uint8Array)||record.iv.byteLength!==12||!(record.encrypted instanceof ArrayBuffer)||record.encrypted.byteLength<16||record.encrypted.byteLength>36*1024*1024+16)fail();
     };
     const decode=async(record,guard)=>{
       envelope(record);
       try{
-        const plain=await subtle.decrypt({name:'AES-GCM',iv:record.iv,additionalData:aad(record.transactionId,record.status)},wrapping.key,record.encrypted);guard();
+        const plain=await subtle.decrypt({name:'AES-GCM',iv:record.iv,additionalData:aad(record.transactionId,record.status,record.protocol,record.revision)},wrapping.key,record.encrypted);guard();
         const payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(plain));validate(payload);
         if(payload.transactionId!==record.transactionId||payload.status!==record.status)fail();
         return payload;
@@ -47,7 +51,7 @@ export async function openProtectedMomentDrafts({account,deviceId,environment=gl
     const unchangedRecord=(current,previous)=>{
       if(previous===undefined)return current===undefined;
       envelope(current);
-      return current.revision===previous.revision&&current.transactionId===previous.transactionId&&current.status===previous.status&&sameBytes(current.iv,previous.iv)&&sameBytes(current.encrypted,previous.encrypted);
+      return current.protocol===previous.protocol&&current.revision===previous.revision&&current.transactionId===previous.transactionId&&current.status===previous.status&&sameBytes(current.iv,previous.iv)&&sameBytes(current.encrypted,previous.encrypted);
     };
     return Object.freeze({
       async save(payload,guard=()=>{},{prepared=false}={}){
@@ -67,14 +71,14 @@ export async function openProtectedMomentDrafts({account,deviceId,environment=gl
             if(JSON.stringify(old)!==JSON.stringify(next)||originalAttachment&&JSON.stringify(originalAttachment)!==JSON.stringify(attachment))fail();
           }else if(JSON.stringify(priorPayload)!==JSON.stringify(snapshot))fail();
         }
-        const iv=environment.crypto.getRandomValues(new Uint8Array(12));
-        const encrypted=await subtle.encrypt({name:'AES-GCM',iv,additionalData:aad(snapshot.transactionId,snapshot.status)},wrapping.key,plain);guard();
+        const revision=(previous?.revision??0)+1,iv=environment.crypto.getRandomValues(new Uint8Array(12));
+        const encrypted=await subtle.encrypt({name:'AES-GCM',iv,additionalData:aad(snapshot.transactionId,snapshot.status,protocol,revision)},wrapping.key,plain);guard();
         await io('readwrite',(store,tx)=>{
           const read=store.get(slot);read.onsuccess=()=>{try{
             guard();const old=read.result;
             if(!unchangedRecord(old,previous)){tx.abort();return}
             if(old?.status==='delivery-unknown'&&(old.transactionId!==snapshot.transactionId||snapshot.status!=='delivery-unknown')){tx.abort();return}
-            store.put({protocol,revision:(previous?.revision??0)+1,transactionId:snapshot.transactionId,status:snapshot.status,iv,encrypted},slot);
+            store.put({protocol,revision,transactionId:snapshot.transactionId,status:snapshot.status,iv,encrypted},slot);
           }catch{tx.abort()}};
         },guard);
       },
