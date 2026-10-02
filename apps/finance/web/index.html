@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#002FA7">
   <meta name="description" content="Read-only YNXT activity, private planning, statements, and evidence-linked Pay receipts.">
   <link rel="manifest" href="/manifest.webmanifest?v=3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05">
-  <link rel="icon" href="/ynx-logo.png?v=df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" type="image/png">
-  <link rel="stylesheet" href="/styles.css?v=a4b421d3189206f7f260c5f7a278261ad340728680bd8a7bfc5ff94e3815f21c">
+  <link rel="icon" href="/ynx-favicon.png?v=5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7" type="image/png" sizes="512x512">
+  <link rel="stylesheet" href="/styles.css?v=88dd04c3ea908e6ef50a777ba5856fdfcf80beafc56f78e3b1f3a34679d31c44">
   <title>YNX Finance</title>
 </head>
 <body>
@@ -22,7 +22,7 @@
       <div class="boundary"><strong data-finance-i18n="boundaryShort">Evidence first</strong><p data-finance-i18n="boundarySummary">No custody. Finance is not a bank account. Testnet and Sandbox data are separate; unavailable sources stay unknown.</p></div>
     </aside>
     <main id="main" tabindex="-1">
-      <header class="topbar"><div><span class="eyebrow" data-finance-i18n="chain">YNX Chain public testnet · YNXT</span><h1 id="page-title" data-finance-i18n="appName">YNX Finance</h1></div><div class="session"><label class="language-control"><span data-finance-i18n="language">Language</span><select id="finance-language" aria-label="Finance language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select></label><span id="source-pill" class="pill neutral">Not connected</span><button id="network-retry" class="ghost" type="button" data-finance-i18n="reconnect">Reconnect YNX Chain</button><details class="account-menu"><summary data-finance-i18n="accountMenu">Account</summary><div class="account-menu-panel"><a href="#wallet-connect" data-finance-i18n="walletPermissions">Wallet & permissions</a><a href="#settings" data-finance-i18n="settings">Settings</a><button id="signin" class="primary hidden" type="button" data-finance-i18n="walletSignIn">Connect YNX Wallet</button><button id="logout" class="ghost hidden" type="button" data-finance-i18n="walletSignOut">Sign out</button></div></details></div></header>
+      <header class="topbar"><div><span class="eyebrow" data-finance-i18n="chain">YNX Chain public testnet · YNXT</span><h1 id="page-title" data-finance-i18n="appName">YNX Finance</h1></div><div class="session"><label class="language-control"><span data-finance-i18n="language">Language</span><select id="finance-language" aria-label="Finance language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select></label><span id="source-pill" class="pill neutral">Not connected</span><button id="network-retry" class="ghost" type="button" data-finance-i18n="reconnect">Reconnect YNX Chain</button><details class="account-menu"><summary data-finance-i18n="accountMenu">Account</summary><div class="account-menu-panel"><a href="#wallet-connect" data-finance-i18n="walletPermissions">Wallet & permissions</a><a id="browser-session-manage" href="https://wallet-auth.ynxweb4.com/sso/session" target="_blank" rel="noopener noreferrer" data-finance-i18n="browserSessionManage">Manage YNX sign-in / sign out of all apps</a><a href="#settings" data-finance-i18n="settings">Settings</a><button id="signin" class="primary hidden" type="button" data-finance-i18n="walletSignIn">Connect YNX Wallet</button><button id="logout" class="ghost hidden" type="button" data-finance-i18n="walletSignOut">Sign out</button></div></details></div></header>
       <button id="wallet-entry" class="primary" type="button" data-finance-i18n="connect">Connect a wallet</button>
       <dialog id="wallet-picker" aria-labelledby="wallet-picker-heading">
         <h2 id="wallet-picker-heading" data-finance-i18n="walletHeading">Connect to Finance</h2>
@@ -73,6 +73,7 @@
         </section>
         <p id="private-state" role="status" aria-live="polite">Private Finance is separate from Standard Wallet. Legacy sessions remain isolated with their original authority.</p>
         <p data-finance-i18n="privateApprovalInfo">Private approval permits owned portfolio and Pay reads, planning changes, and explicitly requested AI drafts. It never authorizes an asset transaction.</p>
+        <p id="private-service-consent" aria-live="polite">Approve these permissions for up to 2 hours from the new request. Review the exact deadline in Wallet before approving. Logout, revocation and account changes restrict access; no automatic signatures, transfers or extensions.</p>
         <div class="wallet-choice"><button id="private-begin" type="button" data-finance-i18n="privateAuthorize">Authorize private Finance</button><a id="private-open" hidden rel="noreferrer" data-finance-i18n="privateOpen">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button" data-finance-i18n="privateRetry">Retry private connection</button><button id="private-revoke" type="button" data-finance-i18n="privateRevoke">Revoke private Finance access</button><button id="private-guest" type="button" data-finance-i18n="privateGuest">Continue as guest</button></div>
         </details>
       </section>
@@ -142,13 +143,13 @@
       </div>
     </main>
   </div>
-  <script src="/finance-locale.js?v=5c2bf6b830319ef0ffc1c4013c963c0e02d153c3f551b3073cbb2b81247aab41" defer></script>
-  <script src="/wallet-auth.js?v=17803bda66618d155d931060c06b32d43e02f49f88f89d83bbe43de2aa53e142" defer></script>
+  <script src="/finance-locale.js?v=bfbf26d35f04786229928b72ae485f1537b3f734d2f1de874c4478599f1499ab" defer></script>
+  <script src="/wallet-auth.js?v=7dbb57de7de4f944e62b78e518583b87a390b990aa853d9f161f2b7ec1a5d01c" defer></script>
   <script src="/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc" defer></script>
   <script src="/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0" defer></script>
-  <script src="/evm-read-session.js?v=e5473d622a2e0ceb7e478b4f4d43ae53660f58349f6c87e755622abe9d6fbe24" defer></script>
+  <script src="/evm-read-session.js?v=d5827e89f3c3ef9b92fe8bfa187b67e2c8f71b26866ca417b9f93cc6ec53e0e3" defer></script>
   <script src="/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161" defer></script>
-  <script src="/app.js?v=20a5fa870648824bf7a2fa3dadb2f0baef9e7d6a70439bd499f80d97d8a8267b" defer></script>
+  <script src="/app.js?v=6038c02a3e20d144f8f887d9f8cff9d4c91ae6541342496f9a8e0e0a0925e390" defer></script>
   <script src="/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d" defer></script>
   <script src="/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088" defer></script>
 </body>
