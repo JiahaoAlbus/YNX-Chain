@@ -93,6 +93,38 @@ test('draft storage failure reports loss of persistence without discarding text'
   assert.match(h.node('#save-state').textContent, /storage is unavailable/);
 });
 
+test('confirmed quota-draft save clears only its original submitted owner snapshot', async () => {
+  const h=harness(true);
+  h.run("window.localStorage.setItem=()=>{throw Error('quota');};editorV2={identity:'session-B',account:'account-B',canWrite:true};state.current={id:'b',version:1};state.documentAccount='account-B';");
+  h.node('#editor').value='B private draft';h.run('persistDraft()');
+  h.run("editorV2={identity:'session-A',account:'account-A',canWrite:true};state.current={id:'a',version:1};state.documentAccount='account-A';request=async()=>({id:'a',version:2});");
+  h.node('#editor').value='A submitted';h.run('persistDraft()');await h.run('saveDocument()');
+  assert.equal(h.run("memoryDrafts.has('ynx.docs.v2.draft.account-A.a')"),false);
+  assert.equal(h.run("memoryDrafts.get('ynx.docs.v2.draft.account-B.b').content"),'B private draft');
+  assert.equal(h.run('state.dirty'),false);
+});
+
+test('late confirmation never clears newer quota-retained edits of the same owner', async () => {
+  const h=harness(true);let resolve;h.context.reply=new Promise(done=>{resolve=done});
+  h.run("window.localStorage.setItem=()=>{throw Error('quota');};editorV2={identity:'session-A',account:'account-A',canWrite:true};state.documentAccount='account-A';request=async()=>reply;");
+  h.node('#editor').value='A submitted';h.run('persistDraft()');const saving=h.run('saveDocument()');
+  h.node('#editor').value='A newer unsaved';h.run('persistDraft()');resolve({id:'a',version:2});await saving;
+  assert.equal(h.run("memoryDrafts.get('ynx.docs.v2.draft.account-A.a').content"),'A newer unsaved');
+  assert.equal(h.run('state.dirty'),true);
+});
+
+test('explicit server-version choice clears only its reviewed owner draft', async () => {
+  const h=harness(true);
+  h.run("window.localStorage.setItem=()=>{throw Error('quota');};editorV2={identity:'session-B',account:'account-B',canWrite:true};state.documentAccount='account-B';");
+  h.node('#editor').value='B retained';h.run('persistDraft()');
+  h.run("editorV2={identity:'session-A',account:'account-A',canWrite:true,resolveReviewedConflict:async()=>{}};state.documentAccount='account-A';state.conflict={id:'a',version:2};request=async()=>({text:async()=> 'server version'});");
+  h.node('#editor').value='A discarded';h.run('persistDraft()');h.node('#conflict-dialog').close=()=>{};
+  await h.run('useServerVersion()');
+  assert.equal(h.run("memoryDrafts.has('ynx.docs.v2.draft.account-A.a')"),false);
+  assert.equal(h.run("memoryDrafts.get('ynx.docs.v2.draft.account-B.a').content"),'B retained');
+  assert.equal(h.node('#editor').value,'server version');
+});
+
 test('expired session stops presence heartbeat and disables editing', async () => {
   const h = harness();
   await h.run('sendPresence()');

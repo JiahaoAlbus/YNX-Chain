@@ -74,11 +74,15 @@ test('ordinary main editor approve, create, save, reopen after reload and cancel
   assert.equal(await page.locator('#local-conflict').inputValue(),'');assert.equal(await page.locator('#server-conflict').inputValue(),'');
   await page.evaluate(()=>window.qaAccount='fixture-B');await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
   assert.equal(await page.locator('#editor').inputValue(),'');assert.equal(await page.locator('#doc-list button').count(),0);
+  const leaving=page.waitForEvent('dialog');const reloadAttempt=page.reload().catch(error=>error.message);
+  const unload=await leaving;assert.equal(unload.type(),'beforeunload');assert.equal(unload.message().includes('quota protected account A draft'),false);await unload.dismiss();await reloadAttempt;
+  assert.equal(await page.locator('#editor').inputValue(),'');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('qa-docs-session')).session.account),'fixture-B');
   await page.evaluate(()=>{window.qaChangeAccount();window.qaAccount='fixture-A';});await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
   page.once('dialog',dialog=>dialog.accept());await page.locator('#doc-list button').first().click();await page.waitForFunction(()=>document.querySelector('#editor').value==='quota protected account A draft');
   await page.fill('#editor','quota protected logout draft');await page.click('#wallet');page.once('dialog',dialog=>dialog.accept());await page.click('#auth-end');
   await page.waitForFunction(()=>document.querySelector('#editor-shell').hidden && document.querySelector('#editor').value==='');
   await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
+  const confirmedSave=page.waitForResponse(response=>response.request().method()==='PUT'&&response.request().postDataJSON()?.content===Buffer.from('quota protected logout draft').toString('base64'));
   page.once('dialog',dialog=>dialog.accept());await page.locator('#doc-list button').first().click();await page.waitForFunction(()=>document.querySelector('#editor').value==='quota protected logout draft');
   await page.click('#wallet');
   const controls=await page.evaluate(()=>['standard-connect','standard-restore','standard-disconnect','standard-revoke'].map(id=>{const s=getComputedStyle(document.getElementById(id));return {id,border:s.borderStyle,bg:s.backgroundColor,height:document.getElementById(id).getBoundingClientRect().height};}));
@@ -86,6 +90,9 @@ test('ordinary main editor approve, create, save, reopen after reload and cancel
   await page.selectOption('#standard-wallet-kind','ynx-wallet');await page.focus('#standard-wallet-kind');await page.keyboard.press('Tab');
   assert.equal(await page.locator('#standard-connect').evaluate(n=>n===document.activeElement&&n.matches(':focus-visible')&&getComputedStyle(n).outlineStyle==='solid'),true);
   await page.locator('#auth-dialog button').filter({hasText:'Cancel'}).click();
+  await confirmedSave;await page.waitForFunction(()=>document.querySelector('#save-state').textContent.startsWith('Version '));assert.equal(content,'quota protected logout draft');
+  let unexpectedUnload=0;const guard=dialog=>{unexpectedUnload++;void dialog.dismiss();};page.on('dialog',guard);
+  await page.reload();page.off('dialog',guard);assert.equal(unexpectedUnload,0);
   assert.equal(requests.some(item=>item.proof==='engineering-fixture:fixture-B'&&item.method==='PUT'),false);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);

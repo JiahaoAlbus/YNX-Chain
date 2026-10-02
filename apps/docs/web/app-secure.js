@@ -683,6 +683,8 @@ async function saveDocument() {
   const credential = docsIdentity();
   const content = $('#editor').value;
   const baseVersion = state.baseVersion;
+  const submittedDraftKey = draftKey(id);
+  const submittedDraft = memoryDrafts.get(submittedDraftKey);
   let saved = false;
   state.saving = true;
   setStatus('Saving…');
@@ -701,6 +703,7 @@ async function saveDocument() {
       setStatus('Newer edits are still unsaved');
       persistDraft();
     } else {
+      if (submittedDraft?.content === content && submittedDraft.baseVersion === baseVersion && memoryDrafts.get(submittedDraftKey) === submittedDraft) memoryDrafts.delete(submittedDraftKey);
       try { window.localStorage.removeItem(draftKey(id)); } catch {}
       setStatus(`Saved · version ${document.version}`);
     }
@@ -766,6 +769,7 @@ async function keepLocalCopy() {
 async function useServerVersion() {
   const current = state.conflict, credential = docsIdentity(), attempt = documentAttempt;
   if (!current || !credential) return;
+  const discardedDraftKey = draftKey(current.id), discardedDraft = memoryDrafts.get(discardedDraftKey);
   try {
     const blob = await request(`/objects/${current.id}/content?version=${current.version}`);
     const content = await blob.text();
@@ -778,6 +782,7 @@ async function useServerVersion() {
     state.content = $('#editor').value;
     state.dirty = false;
     state.conflict = null;
+    if (memoryDrafts.get(discardedDraftKey) === discardedDraft) memoryDrafts.delete(discardedDraftKey);
     window.localStorage.removeItem(draftKey(current.id));
     $('#conflict-dialog').close();
     updateWordCount();
@@ -1253,7 +1258,7 @@ window.addEventListener('online', () => {
   saveDocument();
 });
 window.addEventListener('beforeunload', (event) => {
-  if (!state.dirty) return;
+  if (!state.dirty && memoryDrafts.size === 0) return;
   event.preventDefault();
   event.returnValue = '';
 });
