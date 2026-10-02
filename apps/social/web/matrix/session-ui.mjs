@@ -87,7 +87,20 @@ if(root){
   if(!response.ok)throw new Error('Verified peer binding unavailable');const binding=await response.json();guardView(view);if(binding.account!==peer||binding.userId!==`@${peer}:${binding.serverName}`)throw new Error('Peer identity binding mismatch');
   const room=await transport.createConversation(binding.userId);guardView(view);selectRoom(room);label('Encrypted room created. Peer must accept and both devices must complete SAS.');await renderDevices(binding.userId)
  })};
- root.querySelector('[data-rooms]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);requests.replaceChildren();for(const room of view.operation.client.getRooms()){const node=document.createElement('button');node.textContent=room.getMyMembership()==="invite"?"Review conversation invitation":"Open encrypted conversation";node.title=room.roomId;node.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);if(room.getMyMembership()==='invite'){if(!confirm('Accept this encrypted conversation invitation?'))return;guardView(view);await transport.join(room.roomId);guardView(view)}selectRoom(room.roomId);const selected=captureView();await renderMessages();guardView(selected);for(const member of room.getJoinedMembers())if(member.userId!==selected.operation.binding.userId){await renderDevices(member.userId);guardView(selected)}});requests.append(node)}});
+ function renderRoomButtons(){
+  const view=captureView();guardView(view);const items=[];
+  for(const room of view.operation.client.getRooms()){
+   const node=document.createElement('button');node.textContent=room.getMyMembership()==="invite"?"Review conversation invitation":"Open encrypted conversation";node.title=room.roomId;
+   node.onclick=()=>void work(async()=>{
+    guardView(view);await identity(view);guardView(view);
+    if(room.getMyMembership()==='invite'){if(!confirm('Accept this encrypted conversation invitation?'))return;guardView(view);await transport.join(room.roomId);guardView(view)}
+    selectRoom(room.roomId);const selected=captureView();renderRoomButtons();await renderMessages();guardView(selected);
+    for(const member of room.getJoinedMembers())if(member.userId!==selected.operation.binding.userId){await renderDevices(member.userId);guardView(selected)}
+   });items.push(node);
+  }
+  guardView(view);requests.replaceChildren(...items);
+ }
+ root.querySelector('[data-rooms]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);renderRoomButtons()});
  root.querySelector('[data-send-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const input=root.querySelector('[name=matrixText]'),draft=input.value;await transport.sendText(view.roomId,draft);guardView(view);if(input.value===draft)input.value='';await renderMessages()})};
  root.querySelector('[data-attachment]').onchange=event=>void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const file=event.target.files?.[0];if(!file)return;const bytes=await file.arrayBuffer();guardView(view);await transport.sendAttachment(view.roomId,bytes,{name:file.name,mimeType:file.type||'application/octet-stream'});guardView(view);if(event.target.files?.[0]===file)event.target.value='';await renderMessages()});
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error))label('Identity check unavailable; encrypted storage retained')}).finally(()=>{checkingIdentity=false})},15000);
