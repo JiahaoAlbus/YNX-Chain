@@ -205,3 +205,16 @@ test("native cold and warm entrypoints use only the v2 controller and cancel pen
   for (const legacy of ["parseWalletDeepLink", "signAuthorization", "createCallbackURL", "PersistentNonceStore"]) assert.equal(source.includes(legacy), false);
   for (const marker of ["Linking.getInitialURL()", 'Linking.addEventListener("url"', "productSessions.receive(url)", 'next==="background"', "controller[action](review.id)", 'decide("reject")']) assert.equal(source.includes(marker), true, marker);
 });
+
+// Real OS return signer: approval remains explicit and its two-hour end is immutable.
+test('finite Finance OS approval signs the reviewed service deadline and rejection signs no grant',async()=>{
+ const input=request('android',{productId:'finance',scopes:['finance.profile.write'],finiteServiceSeconds:7200});
+ const f=fixture(); const shown=await f.controller.receive(encodeProductSessionWalletURL(registry,input,NOW));
+ assert.equal(shown.request.serviceConsent?.expiresAt,new Date(NOW.getTime()+7200000).toISOString());
+ assert.equal(f.state.reads,0);await f.controller.approve(shown.id);
+ const verified=parseProductSessionReturnURL(registry,input,f.state.opens[0]!,NOW);
+ assert.equal((verified.approval as any).expiresAt,input.expiresAt);
+ assert.deepEqual((verified.approval as any).serviceConsent,input.serviceConsent);
+ const rejected=fixture();const r=await rejected.controller.receive(encodeProductSessionWalletURL(registry,input,NOW));await rejected.controller.reject(r.id);assert.equal(rejected.state.reads,0);assert.equal(parseProductSessionReturnURL(registry,input,rejected.state.opens[0]!,NOW).status,'user-rejected');
+ const cancelled=fixture();const c=await cancelled.controller.receive(encodeProductSessionWalletURL(registry,input,NOW));cancelled.state.authorizeGate=deferred();const approval=cancelled.controller.approve(c.id);await new Promise(r=>setImmediate(r));cancelled.controller.cancel();cancelled.state.authorizeGate.resolve();await assert.rejects(approval);assert.equal(cancelled.state.opens.length,0);
+});

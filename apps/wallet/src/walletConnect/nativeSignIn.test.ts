@@ -27,3 +27,13 @@ test("mobile Product Session returns the complete verified native approval and c
   const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now);assert.equal(verified.status,"ready");assert.equal((verified.approval as {account:string}).account,identity.account);
   assert.throws(()=>signNativeSignIn(r,"2".padStart(64,"0"),()=>{},now));
 });
+
+test('finite Finance Pair signs exactly the visible end and cancellation prevents return',()=>{
+ const device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,7));
+ const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'finance',platform:'web',deviceId:'finite-native-wc-fixture',deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),scopes:['finance.profile.write'],purpose:'Review limited access',nonce:'n'.repeat(43),state:'s'.repeat(43),finiteServiceSeconds:7200},now);
+ const r=review('ynx_requestProductSessionV2',[encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,request,now)],String(request.origin));
+ const shown=reviewNativeSignIn(r,now);assert.equal(shown.kind,'product');if(shown.kind!=='product')throw Error('wrong kind');assert.deepEqual(shown.request.serviceConsent,request.serviceConsent);
+ const signed=signNativeSignIn(r,secret,()=>{},now) as {returnUrl:string};const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,signed.returnUrl,now);assert.deepEqual((verified.approval as any).serviceConsent,request.serviceConsent);assert.equal((verified.approval as any).expiresAt,request.expiresAt);
+ assert.throws(()=>signNativeSignIn(r,secret,()=>{throw Error('cancelled')},now),/cancelled/);
+ assert.throws(()=>signNativeSignIn(r,secret,()=>{},new Date(String(request.expiresAt))),/expired/);
+});

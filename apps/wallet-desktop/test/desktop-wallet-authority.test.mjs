@@ -517,3 +517,14 @@ test('Paper workspace desktop approval shows simulated-only limits and returns o
   const returned=(await authority.approve(pending.request.id)).result;
   assert.deepEqual(parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now).approval.scopes,['quant:paper:workspace']);
 });
+
+test('finite Finance desktop OS and Pair approval preserve exact end, rejection and account fences',async()=>{
+ const {authority,status}=await fixture(),now=authority.clock(),device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,7));
+ const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'finance',platform:'web',deviceId:'finite-desktop-fixture',deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),nonce:'n'.repeat(43),state:'s'.repeat(43),scopes:['finance.profile.write'],purpose:'Review limited access',finiteServiceSeconds:7200},now);
+ const os=await authority.approveCanonicalAuthorization(request,now.toISOString(),status.account);assert.equal(os.approval.expiresAt,request.expiresAt);assert.deepEqual(os.approval.serviceConsent,request.serviceConsent);await assert.rejects(authority.approveCanonicalAuthorization(request,now.toISOString(),'0x'+'22'.repeat(20)));
+ await authority.approveOrigin(request.origin,status.account);const input={origin:request.origin,method:'ynx_requestProductSessionV2',params:[encodeRequestDeepLink(request)]};
+ const pending=await authority.request(input);assert.deepEqual(pending.request.review.request.serviceConsent,request.serviceConsent);
+ const returned=(await authority.approve(pending.request.id)).result;const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now);assert.deepEqual(verified.approval.serviceConsent,request.serviceConsent);
+ const rejected=await authority.request(input);assert.throws(()=>authority.reject(rejected.request.id),error=>error.code===4001);await assert.rejects(authority.approve(rejected.request.id));
+ const cancelled=await authority.request(input);authority.cancelAll();await assert.rejects(authority.approve(cancelled.request.id));
+});

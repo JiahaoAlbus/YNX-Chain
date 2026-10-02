@@ -28,7 +28,7 @@ export function signNativeSignIn(review:WalletConnectRequestReview,secret:string
     const signature=new SigningKey(`0x${secret}`).sign(sha256(toUtf8Bytes(centralBrowserConsentSignBytes(parsed.challenge,identity.account,identity.accountPublicKey))));
     result=parseCentralBrowserSignInApproval({challengeId:parsed.challenge.challengeId,...identity,walletSignature:signature.r.slice(2)+signature.s.slice(2)});
   }else{
-    const approval=signProductSessionApproval(PRODUCT_SESSION_REGISTRY,parsed.request,{accountSecret:secret,scopes:parsed.request.scopes,expiresAt:parsed.request.expiresAt},at);
+    const approval=signProductSessionApproval(PRODUCT_SESSION_REGISTRY,parsed.request,{accountSecret:secret,scopes:parsed.request.scopes,expiresAt:parsed.request.expiresAt,...(parsed.request.serviceConsent?{approvedServiceConsent:parsed.request.serviceConsent}:{})},at);
     const returnUrl=createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,parsed.request,{result:"approved",approval},at);
     const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,parsed.request,returnUrl,at);
     if(verified.status!=="ready"||!verified.approval||typeof verified.approval!=="object"||(verified.approval as {account?:unknown}).account!==identity.account)throw new Error("The signed native response did not preserve the reviewed account.");

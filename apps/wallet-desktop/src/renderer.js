@@ -1,5 +1,6 @@
 import { walletReadiness } from "./wallet-readiness.mjs";
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
+import {finiteServiceReview} from "./finite-service-review.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
@@ -139,7 +140,8 @@ function presentApproval() {
     document.querySelector("#auth-account").textContent = review.ynxAccount ?? review.account ?? t("Create or import an account first");
     document.querySelector("#auth-purpose").textContent = review.purpose ?? review.request.purpose;
     document.querySelector("#auth-scopes").textContent = review.scopes.map(scopeLabel).join(" · ");
-    write(document.querySelector("#auth-expiry"), "Valid until {time}", { time: i18n.formatTime(review.expiresAt) });
+    if(review.request?.serviceConsent)document.querySelector("#auth-expiry").textContent=finiteServiceReview(review.request,i18n.locale);
+    else write(document.querySelector("#auth-expiry"), "Valid until {time}", { time: i18n.formatTime(review.expiresAt) });
     if (newlyShown) write(authResult, "Share this account with the app. Connecting does not send any assets.");
     const choice = authorizationChoices.get(item.key);
     document.querySelector("#auth-create-account").hidden = Boolean(review.account);
@@ -168,7 +170,7 @@ function presentApproval() {
 }
 function scopeLabel(scope) { return ({ "creator:account": t("View your creator account"), "creator:publish": t("Publish your videos"), "creator:revenue": t("View creator revenue"), "video:account": t("View your account"), "video:library": t("Manage your library"), "video:playback": t("Play videos"), "account:read": t("View your account"), "profile:link": t("Link your profile") })[scope] ?? scope; }
 function methodLabel(method) { return ({ eth_requestAccounts: t("Share account"), personal_sign: t("Request message signatures"), eth_signTypedData_v4: t("Request structured signatures"), eth_sendTransaction: t("Request transactions") })[method] ?? method; }
-function readableProviderReview(request) { return formatApprovalReview(request.review, t); }
+function readableProviderReview(request) { const finite=finiteServiceReview(request.review?.request,i18n.locale); return formatApprovalReview(request.review, t)+(finite ? "\n\n"+finite : ""); }
 
 document.querySelector("#reject-auth").addEventListener("click", () => act("reject"));
 document.querySelector("#approve-auth").addEventListener("click", () => act("approve"));

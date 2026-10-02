@@ -41,7 +41,7 @@ export class DesktopWalletAuthority {
     return this.vault.withSecret((secret, identity) => {
       if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
       const at = new Date(issuedAt);
-      const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt }, at);
+      const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt, ...(request.serviceConsent ? {approvedServiceConsent: request.serviceConsent} : {}) }, at);
       return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
     });
   }
