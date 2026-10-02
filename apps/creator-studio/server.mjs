@@ -17,6 +17,15 @@ const types = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
 };
+// Explicit runtime closure: source, tests, evidence and packaging scripts stay private.
+const publicFiles = new Set([
+  'index.html', 'app.js', 'styles.css', 'enhancements.css', 'i18n.js', 'i18n/catalog.json',
+  'product-session.js', 'product-session-sdk.js', 'product-session-registry.json',
+  'product-session-sdk-source.json', 'session-events.js', 'standard-wallet-connect-state.js',
+  'wallet-auth.js', 'wallet-callback.js', 'wallet-callback.html', 'wallet-auth/callback', 'callback.css',
+  'ynx-wallet-transports-2ece0cb329.mjs', 'ynx-wallet-transports-2ece0cb329.manifest.json',
+  'assets/ynx-logo.png', 'assets/ynx-wallet.svg', 'assets/metamask.svg',
+]);
 const apiOrigin = new URL(process.env.YNX_VIDEO_API_ORIGIN || 'http://127.0.0.1:8423');
 if (apiOrigin.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(apiOrigin.hostname) ||
     apiOrigin.username || apiOrigin.password || apiOrigin.pathname !== '/' || apiOrigin.search || apiOrigin.hash) {
@@ -69,6 +78,15 @@ createServer(async (req, res) => {
 
   if (path.includes('..')) {
     res.writeHead(400).end();
+    return;
+  }
+
+  if (!publicFiles.has(path)) {
+    res.writeHead(404).end('Not found');
+    return;
+  }
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    res.writeHead(405, {Allow: 'GET, HEAD'}).end();
     return;
   }
 
