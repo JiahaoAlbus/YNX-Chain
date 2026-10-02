@@ -6,6 +6,7 @@ import { p256 } from "@noble/curves/nist.js";
 import { AuthorizationAuditStore } from "./authorizationAudit";
 import { PRODUCT_SESSION_REGISTRY as registry } from "./registry";
 import { ProductSessionController, PRODUCT_SESSION_REPLAY_KEY } from "./productSessionController";
+import { finiteServiceReview } from "../i18n/finiteServiceCopy";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 
 // Synthetic, deterministic local test identities; no device or user keys are loaded.
@@ -43,6 +44,18 @@ function fixture(platform: "android" | "ios" = "android", storage = memoryStorag
   });
   return { controller, state, storage, audit };
 }
+
+test("direct product authorization displays and signs the exact finite service deadline without extending the approval window", async () => {
+  const f=fixture(),req=request("web",{productId:"finance",scopes:["account:read","session:read","session:revoke"],finiteServiceSeconds:3600});
+  const review=await f.controller.receive(encodeProductSessionWalletURL(registry,req,NOW));
+  assert.ok(review.request.serviceConsent);assert.equal(f.state.reads,0);
+  const display=finiteServiceReview("en",review.request)!;
+  assert.ok(display.includes(review.request.expiresAt));assert.ok(display.includes(review.request.serviceConsent!.expiresAt));
+  await f.controller.approve(review.id);
+  const returned=parseProductSessionReturnURL(registry,req,f.state.opens[0]!,NOW),approval=returned.approval as Record<string,unknown>;
+  assert.equal(returned.status,"ready");assert.deepEqual(approval.serviceConsent,review.request.serviceConsent);
+  assert.equal(approval.expiresAt,review.request.expiresAt);assert.equal(f.state.authorizations,1);assert.equal(f.state.reads,1);
+});
 
 for (const platform of ["android", "ios"] as const) test(`${platform} explicit approval completes the authoritative v2 challenge contract`, async () => {
   const f = fixture(platform), req = request(platform);

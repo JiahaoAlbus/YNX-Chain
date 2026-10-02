@@ -1,6 +1,7 @@
 import {
   createProductSessionReturnURL, digestHex, parseProductSessionRequest,
   parseProductSessionWalletURL, productSessionRequestDigest, signProductSessionApproval, walletIdentity,
+  type FinanceFiniteServiceConsent,
 } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 import { PRODUCT_SESSION_REGISTRY } from "./registry";
@@ -11,6 +12,7 @@ export type MobileProductSessionRequest = Readonly<{
   platform: "android" | "ios" | "web"; applicationId: string; bundleId: string | null; packageId: string | null;
   origin: string; callback: string; deviceId: string; deviceAlgorithm: "p256-sha256"; deviceKey: string;
   nonce: string; state: string; scopes: readonly string[]; purpose: string; issuedAt: string; expiresAt: string;
+  serviceConsent?: FinanceFiniteServiceConsent;
 }>;
 export type ProductSessionReview = Readonly<{
   id: string; request: MobileProductSessionRequest; account: WalletAccount;
@@ -90,6 +92,7 @@ export class ProductSessionController {
         const at = this.now();
         const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, pending.review.request, {
           accountSecret: secret, scopes: pending.review.request.scopes, expiresAt: pending.review.request.expiresAt,
+          ...(pending.review.request.serviceConsent ? { approvedServiceConsent: pending.review.request.serviceConsent } : {}),
         }, at);
         if (approval.account !== pending.review.account.account) throw new Error("Approval account does not match the reviewed account");
         pending.returnURL = createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, pending.review.request, { result: "approved", approval }, at);

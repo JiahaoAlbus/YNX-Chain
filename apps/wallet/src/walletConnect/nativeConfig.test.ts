@@ -5,7 +5,7 @@ import test from "node:test";
 
 const walletRoot = join(import.meta.dirname, "../..");
 const cameraDescription =
-  "YNX Wallet uses the camera only when you choose to scan a WalletConnect QR code.";
+  "YNX Wallet uses the camera only when you choose to scan a receiving, invoice or connection code.";
 
 test("checked-in native projects match the Expo camera configuration", () => {
   const appConfig = JSON.parse(
@@ -17,6 +17,8 @@ test("checked-in native projects match the Expo camera configuration", () => {
 
   assert.ok(cameraPlugin, "expo-camera plugin must be configured");
   assert.equal(cameraPlugin[1]?.cameraPermission, cameraDescription);
+  assert.equal(cameraPlugin[1]?.microphonePermission, false);
+  assert.equal(cameraPlugin[1]?.recordAudioAndroid, false);
   assert.ok(appConfig.android.permissions.includes("CAMERA"));
 
   const androidManifest = readFileSync(
@@ -28,6 +30,8 @@ test("checked-in native projects match the Expo camera configuration", () => {
     1,
     "Android camera permission must appear exactly once",
   );
+  assert.doesNotMatch(androidManifest, /android\.permission\.RECORD_AUDIO/);
+  assert.match(androidManifest, /android\.hardware\.camera" android:required="false"/);
 
   const iosInfoPlist = readFileSync(
     join(walletRoot, "ios/YNXWallet/Info.plist"),
