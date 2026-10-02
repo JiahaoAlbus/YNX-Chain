@@ -132,6 +132,30 @@ func TestNodeEndpointAuthorityHistoryUsesOnlyValidatedCheckpointArgument(t *test
 	if _, err = history.BrowserHistory(context.Background(), after); err != nil {
 		t.Fatal(err)
 	}
+	for _, testCase := range []struct {
+		name, manifests string
+		accepted        bool
+	}{
+		{"adjacent-empty-intermediates", "[]", true},
+		{"null-history", "null", false},
+		{"missing-history", "", false},
+		{"too-many-intermediates", "[{},{},{}]", false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			field := ""
+			if testCase.manifests != "" {
+				field = `,"manifests":` + testCase.manifests
+			}
+			fixture := "#!/bin/sh\nprintf '{\"schemaVersion\":\"ynx-finance-endpoint-authority-history/v1\",\"after\":%s" + field + "}' \"$1\"\n"
+			if err := os.WriteFile(script, []byte(fixture), 0700); err != nil {
+				t.Fatal(err)
+			}
+			_, err := history.BrowserHistory(context.Background(), after)
+			if (err == nil) != testCase.accepted {
+				t.Fatalf("accepted=%v, error=%v", testCase.accepted, err)
+			}
+		})
+	}
 	after.PayloadSHA256 = "invalid"
 	if _, err = history.BrowserHistory(context.Background(), after); err == nil {
 		t.Fatal("invalid checkpoint passed")

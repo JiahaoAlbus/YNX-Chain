@@ -156,7 +156,10 @@ func (g *nodeEndpointAuthority) BrowserHistory(ctx context.Context, after Endpoi
 	}
 	decoder := json.NewDecoder(bytes.NewReader(stdout))
 	decoder.DisallowUnknownFields()
-	if decoder.Decode(&response) != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-history/v1" || response.After != after || len(response.Manifests) < 1 || len(response.Manifests) > 2 {
+	// History contains intermediate documents only. Adjacent checkpoints have
+	// an explicit empty array; the separately verified current manifest closes
+	// that transition. A missing/null array remains an invalid reader response.
+	if decoder.Decode(&response) != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-history/v1" || response.After != after || response.Manifests == nil || len(response.Manifests) > 2 {
 		return nil, errors.New("FINANCE_AUTHORITY_V2_HISTORY_RESPONSE_INVALID")
 	}
 	return append([]byte(nil), stdout...), nil
