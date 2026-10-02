@@ -366,6 +366,10 @@ func (s *Service) ResolveDiscovery(source, value string) (string, error) {
 }
 
 func (s *Service) RequestContact(actor Session, in ContactRequestInput) (ContactRequest, bool, error) {
+	in.Message = strings.TrimSpace(in.Message)
+	if !validContactMessage(in.Message) {
+		return ContactRequest{}, false, ErrInvalid
+	}
 	target, err := nativewallet.NormalizeNativeAddress(in.TargetAccount)
 	if err != nil || target == actor.Account || !identifierPattern.MatchString(in.IdempotencyKey) || !allowedSources[in.Source] {
 		return ContactRequest{}, false, ErrInvalid
@@ -416,7 +420,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	}
 	id := "request_" + objectDigest(struct{ A, B, K string }{actor.Account, target, in.IdempotencyKey})[:24]
 	expires := now.Add(7 * 24 * time.Hour)
-	record := ContactRequest{ID: id, From: actor.Account, To: target, Source: in.Source, Status: "pending", CreatedAt: now, UpdatedAt: now, ExpiresAt: &expires}
+	record := ContactRequest{ID: id, From: actor.Account, To: target, Source: in.Source, Message: in.Message, Status: "pending", CreatedAt: now, UpdatedAt: now, ExpiresAt: &expires}
 	before := cloneState(s.state)
 	s.state.Requests[id] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, id}

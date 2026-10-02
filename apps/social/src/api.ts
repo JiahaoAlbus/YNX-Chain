@@ -2,7 +2,7 @@ import type { ProductSessionChallenge, WalletApproval, WalletAuthorizationReques
 import type { ChatDevice, ChatMessage, DeviceRotationRequest, SendMessageRequest } from "./chatCrypto";
 import type { SessionProof } from "./scopedSessionBridge";
 export type Person = Readonly<{ id:string; handle:string; displayName:string; avatarUrl?:string }>;
-export type ContactRequest = Readonly<{ id:string; person:Person; direction:"incoming"|"outgoing"; status:string; source:string; expiresAt?:string }>;
+export type ContactRequest = Readonly<{ id:string; person:Person; direction:"incoming"|"outgoing"; status:string; source:string; expiresAt?:string; message?:string }>;
 export type ContactMatch = Readonly<{token:string;person:Person}>;
 export type Conversation = Readonly<{ id:string; title:string; handle?:string; unread:number; lastMessage:string; e2ee:"verified"|"rotating"|"recovery-required"; updatedAt:string }>;
 export type ConversationDetail = Conversation & Readonly<{members:readonly Person[]}>;
@@ -45,7 +45,7 @@ export class SocialAPI {
   contacts(){return this.request<{contacts:Person[];requests:ContactRequest[]}>("/social/v1/contacts")}
   contactMatches(hashes:readonly string[]){return this.request<{matches:ContactMatch[]}>("/social/v1/contact-matches",{method:"POST",body:{hashes}})}
   previewContact(source:GroupDiscoveryInput["source"],value:string){return this.request<{person:Person}>("/social/v1/contacts/preview",{method:"POST",body:{source,value}})}
-  requestContact(source:"handle"|"contacts"|"qr"|"invite"|"recommendation",value:string,idempotencyKey:string,expectedAccount?:string){return this.request("/social/v1/contact-requests",{method:"POST",body:{source,value,idempotencyKey,expectedAccount}})}
+  requestContact(source:"handle"|"contacts"|"qr"|"invite"|"recommendation",value:string,idempotencyKey:string,expectedAccount?:string,message=""){return this.request("/social/v1/contact-requests",{method:"POST",body:{source,value,idempotencyKey,expectedAccount,message:message||undefined}})}
   transitionRequest(id:string,action:"accept"|"reject"|"withdraw"){return this.request(`/social/v1/contact-requests/${encodeURIComponent(id)}`,{method:"POST",body:{action}})}
   deleteContact(target:string){return this.request("/social/v1/contacts/delete",{method:"POST",body:{target}})}
   block(target:string){return this.request("/social/v1/privacy/block",{method:"POST",body:{target}})}

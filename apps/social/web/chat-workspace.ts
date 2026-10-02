@@ -17,10 +17,11 @@ export function browserChatDevices(environment:typeof globalThis=globalThis):Dev
 export class SocialWorkspace{
   private session:Session|null=null;private device:StoredChatDevice|null=null;private generation=0;
   private contactPreview:ContactPreview|null=null;private previewSequence=0;private submittingPreview:ContactPreview|null=null;
+  private contactMessage:{preview:ContactPreview;message:string}|null=null;
   private view:View={status:"Private workspace is locked"};
   constructor(private readonly client:PrivateClient,private readonly api:SocialAPI,private readonly devices:DeviceStore,private readonly outbox:DurableOutbox,private readonly identity:()=>Promise<{account:string;csrfToken:string}>,private readonly publish:(view:View)=>void,private readonly random:(bytes:Uint8Array)=>Uint8Array=bytes=>{bytes.set(crypto.getRandomValues(new Uint8Array(bytes.length)));return bytes}){}
   get current(){return this.view}
-  lock(status="Private workspace is locked"){this.generation++;this.previewSequence++;this.contactPreview=null;this.submittingPreview=null;this.session=null;this.device=null;this.api.setToken(null);this.view={status};this.publish(this.view)}
+  lock(status="Private workspace is locked"){this.generation++;this.previewSequence++;this.contactPreview=null;this.contactMessage=null;this.submittingPreview=null;this.session=null;this.device=null;this.api.setToken(null);this.view={status};this.publish(this.view)}
   private render(next:Partial<View>,generation=this.generation){if(generation!==this.generation)throw new Error("Social account changed; old data discarded");this.view={...this.view,...next};this.publish(this.view)}
   private active(){if(!this.session||!this.device)throw new Error("Explicit Social chat approval is required");return {session:this.session,device:this.device,generation:this.generation}}
   async authorize(){this.lock("Waiting for your explicit Social chat permission");return this.client.begin()}
@@ -48,7 +49,7 @@ export class SocialWorkspace{
   async updateProfile(body:{handle:string;displayName:string;bio:string}){const {generation}=this.active();const result=await this.api.updateProfile({...body,idempotencyKey:`profile-${bytesToHex(this.random(new Uint8Array(12)))}`});this.render({profile:result.record,needsProfileSetup:false,status:"Profile saved"},generation);await this.refresh()}
   async previewContact(source:ContactPreview["source"],input:string):Promise<ContactPreview>{
     const {generation}=this.active();if(!this.view.profile)throw new Error("Create your profile before sending a contact request");
-    const sequence=++this.previewSequence;this.contactPreview=null;
+    const sequence=++this.previewSequence;this.contactPreview=null;this.contactMessage=null;
     let value=input.trim();if(source==="handle")value=value.replace(/^@/,"");
     if(source==="invite"&&value.startsWith("https:")){const url=new URL(value);if(url.origin!=="https://social.ynxweb4.com"||url.username||url.password||url.search||url.hash||!/^\/invite\/[A-Za-z0-9_-]+$/.test(url.pathname))throw new Error("Use an exact YNX Social invitation link");value=url.pathname.slice("/invite/".length)}
     if(!value)throw new Error("Enter the person's username, QR content or invitation");
@@ -60,12 +61,15 @@ export class SocialWorkspace{
   }
   isContactPreviewCurrent(preview:ContactPreview){return !!this.session&&!!this.device&&this.contactPreview===preview}
   contactContextGuard(){const {generation}=this.active();return()=>generation===this.generation&&!!this.session&&!!this.device}
-  cancelContactPreview(preview:ContactPreview){if(this.contactPreview===preview){this.contactPreview=null;this.previewSequence++}}
-  async confirmContact(preview:ContactPreview){
+  cancelContactPreview(preview:ContactPreview){if(this.contactPreview===preview){this.contactPreview=null;this.contactMessage=null;this.previewSequence++}}
+  async confirmContact(preview:ContactPreview,message=""){
     const {generation}=this.active();if(!this.isContactPreviewCurrent(preview))throw new Error("Contact preview changed; review again");
     if(this.submittingPreview)throw new Error("A contact request is already being submitted");
+    message=message.trim();if(Array.from(message).length>200)throw new Error("Keep the request message within 200 characters");
+    if(this.contactMessage?.preview===preview&&this.contactMessage.message!==message)throw new Error("Retry the original request message or review again");
+    this.contactMessage={preview,message};
     this.submittingPreview=preview;
-    try{await this.api.requestContact(preview.source,preview.value,preview.idempotencyKey,preview.person.id);if(generation!==this.generation)throw new Error("Social account changed; old request result discarded");this.cancelContactPreview(preview);await this.refresh()}finally{if(this.submittingPreview===preview)this.submittingPreview=null}
+    try{await this.api.requestContact(preview.source,preview.value,preview.idempotencyKey,preview.person.id,message);if(generation!==this.generation)throw new Error("Social account changed; old request result discarded");this.cancelContactPreview(preview);await this.refresh()}finally{if(this.submittingPreview===preview)this.submittingPreview=null}
   }
   async requestContact(handle:string,preview?:ContactPreview){if(!preview||preview.source!=="handle"||preview.value!==handle.trim().replace(/^@/,""))throw new Error("Preview the person and explicitly confirm before sending a request");return this.confirmContact(preview)}
   async transitionContact(id:string,action:"accept"|"reject"|"withdraw"){this.active();await this.api.transitionRequest(id,action);await this.refresh()}

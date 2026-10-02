@@ -154,6 +154,7 @@ type ContactRequestInput struct {
 	IdempotencyKey string `json:"idempotencyKey"`
 	TargetAccount  string `json:"-"`
 	Source         string `json:"source"`
+	Message        string `json:"message,omitempty"`
 }
 
 type ProfileSettingsInput struct {
@@ -187,6 +188,7 @@ type Invite struct {
 }
 
 type ContactRequest struct {
+	Message   string     `json:"message,omitempty"`
 	ID        string     `json:"id"`
 	From      string     `json:"from"`
 	To        string     `json:"to"`

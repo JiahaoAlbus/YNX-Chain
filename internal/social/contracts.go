@@ -26,6 +26,7 @@ type ProfileView struct {
 	Privacy        ProfileSettings `json:"privacy"`
 }
 type ContactRequestView struct {
+	Message   string     `json:"message,omitempty"`
 	ID        string     `json:"id"`
 	Person    PersonView `json:"person"`
 	Direction string     `json:"direction"`
@@ -138,7 +139,7 @@ func (s *Service) ContractContacts(actor Session) (ContactsView, error) {
 		if err != nil {
 			return ContactsView{}, err
 		}
-		out.Requests = append(out.Requests, ContactRequestView{ID: request.ID, Person: person, Direction: direction, Status: request.Status, Source: request.Source, ExpiresAt: request.ExpiresAt})
+		out.Requests = append(out.Requests, ContactRequestView{ID: request.ID, Person: person, Direction: direction, Status: request.Status, Source: request.Source, Message: request.Message, ExpiresAt: request.ExpiresAt})
 	}
 	sort.Slice(out.Contacts, func(i, j int) bool { return out.Contacts[i].Handle < out.Contacts[j].Handle })
 	return out, nil

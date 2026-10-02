@@ -76,3 +76,6 @@ dialog.contact-camera video {
   border-radius: .75rem;
   background: #e8effb;
 }
+dialog.contact-review label { display: block; margin: 0 0 1rem; line-height: 1.5; }
+dialog.contact-review textarea { box-sizing: border-box; display: block; width: 100%; min-height: 96px; margin-top: .5rem; padding: .75rem; color: #102044; background: #fff; border: 1px solid #9cafd1; border-radius: .75rem; font: inherit; resize: vertical; }
+dialog.contact-review textarea:focus-visible { outline: 3px solid var(--contact-blue); outline-offset: 3px; }

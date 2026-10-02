@@ -19,7 +19,7 @@ function fixture(){
 test("preview alone sends nothing; explicit confirmation binds reviewed identity",async()=>{
   const {workspace,sent}=fixture();const preview=await workspace.previewContact("handle"," @bob ");assert.equal(sent.length,0);
   await assert.rejects(workspace.requestContact("bob"),/explicitly confirm/);
-  await workspace.confirmContact(preview);assert.deepEqual(sent[0],["handle","bob",preview.idempotencyKey,"target-stable-id"]);
+  await workspace.confirmContact(preview);assert.deepEqual(sent[0],["handle","bob",preview.idempotencyKey,"target-stable-id",""]);
   await assert.rejects(workspace.confirmContact(preview),/review again/);assert.equal(sent.length,1);
 });
 test("cancel and account lock invalidate previous review",async()=>{
@@ -42,4 +42,10 @@ test("invitation links are parsed in place and foreign routes fail closed",async
   const {workspace,sent}=fixture();const preview=await workspace.previewContact("invite","https://social.ynxweb4.com/invite/synthetic-token");
   assert.equal(preview.value,"synthetic-token");await workspace.confirmContact(preview);assert.equal(sent[0]![0],"invite");
   await assert.rejects(workspace.previewContact("invite","https://example.invalid/invite/token"),/exact YNX/);
+});
+test("request message remains exact across failed retries",async()=>{
+  const {workspace,sent,setFail}=fixture();const preview=await workspace.previewContact("handle","bob");setFail(true);
+  await assert.rejects(workspace.confirmContact(preview," Hello Bob "),/temporary/);
+  await assert.rejects(workspace.confirmContact(preview,"different note"),/original request message/);assert.equal(sent.length,1);
+  setFail(false);await workspace.confirmContact(preview,"Hello Bob");assert.deepEqual(sent[0],sent[1]);assert.equal(sent[0]![4],"Hello Bob");
 });

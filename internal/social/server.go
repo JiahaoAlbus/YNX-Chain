@@ -136,6 +136,7 @@ type discoveryInput struct {
 type contactRequestDiscoveryInput struct {
 	discoveryInput
 	ExpectedAccount string `json:"expectedAccount,omitempty"`
+	Message         string `json:"message,omitempty"`
 }
 type transitionInput struct {
 	Action string `json:"action"`
@@ -535,7 +536,7 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			var record ContactRequest
 			var replay bool
-			record, replay, err = s.service.RequestContact(actor, ContactRequestInput{IdempotencyKey: in.IdempotencyKey, TargetAccount: target, Source: in.Source})
+			record, replay, err = s.service.RequestContact(actor, ContactRequestInput{IdempotencyKey: in.IdempotencyKey, TargetAccount: target, Source: in.Source, Message: in.Message})
 			if err == nil {
 				writeJSON(w, 201, map[string]any{"record": record, "replayed": replay})
 			}
