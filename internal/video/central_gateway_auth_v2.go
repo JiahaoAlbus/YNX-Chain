@@ -200,7 +200,7 @@ func videoProductScopeV2(product, method, path string) string {
 			}
 		}
 		if len(parts) == 4 {
-			if parts[1] == "channels" && parts[3] == "subscription" && (method == http.MethodPost || method == http.MethodDelete) ||
+			if parts[1] == "channels" && parts[3] == "subscription" && (method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete) ||
 				method == http.MethodPost && (parts[1] == "playlists" && parts[3] == "videos" || parts[1] == "videos" && parts[3] == "watch") {
 				return "video:library"
 			}

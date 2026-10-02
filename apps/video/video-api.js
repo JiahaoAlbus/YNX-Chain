@@ -28,13 +28,15 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
         break;
       } catch (error) {assertCurrent(); if (attempt === 1 || init.signal?.aborted) throw error;}
     }
-    const data = await response.json().catch(() => ({error: 'Invalid Video service response.'}));
+    let invalidResponse = false;
+    const data = await response.json().catch(() => {invalidResponse = true; return {error: 'Invalid Video service response.'};});
     assertCurrent();
     if (!response.ok) {
       const error = Object.assign(new Error(data.error || `Video service returned HTTP ${response.status}.`), {status: response.status});
       if (needsAccount && response.status === 401) onUnauthorized(error);
       throw error;
     }
+    if (invalidResponse) throw new Error('Invalid Video service response.');
     return data;
   };
 }

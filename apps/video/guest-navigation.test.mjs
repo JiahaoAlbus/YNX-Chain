@@ -33,7 +33,7 @@ async function controller({search='',product={atRegisteredOrigin:()=>false},requ
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
   videoProductSession:product,restoreVideoWallet:async()=>null,
-  createVideoAPI:()=>async path=>{calls.push(path);return request(path);},
+  createVideoAPI:()=>async (path,options)=>{calls.push(path);return request(path,options);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
   discoverWalletCandidates:async()=>[],
  };
@@ -101,6 +101,35 @@ test('a failed channel request clears loading without letting a late error repla
 
 const connected={status:'connected',session:{account:'0x1111111111111111111111111111111111111111',expiresAt:new Date(Date.now()+60000).toISOString()}};
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
+test('two tabs showing Subscribe both set the desired state instead of undoing each other',async()=>{
+ let subscribed=false;const mutations=[];
+ const request=async(path,options={})=>{
+  if(path==='/v1/subscriptions')return subscribed?[{ID:video.channel_id}]:[];
+  if(path.endsWith('/subscription')){mutations.push(options.method);subscribed=options.method==='PUT';return {ok:true};}
+  return path.startsWith('/v1/videos?q=')?[video]:path.endsWith('/comments')?[]:video;
+ };
+ const product={atRegisteredOrigin:()=>true,restore:async()=>connected};
+ const a=await controller({product,request}),b=await controller({product,request});
+ await a.openVideo(video);await b.openVideo(video);await turn();
+ for(const c of [a,b])assert.equal(c.node('#subscribe').textContent,'Subscribe');
+ await a.node('#subscribe').onclick({currentTarget:a.node('#subscribe')});
+ await b.node('#subscribe').onclick({currentTarget:b.node('#subscribe')});
+ assert.deepEqual(mutations,['PUT','PUT']);assert.equal(subscribed,true);
+ for(const c of [a,b]){assert.equal(c.node('#subscribe').textContent,'Unsubscribe');assert.equal(c.node('#subscribe').disabled,false);}
+});
+test('an older subscription read cannot replace the result of a newer explicit action',async()=>{
+ const old=deferred();const mutations=[];
+ const c=await controller({product:{atRegisteredOrigin:()=>true,restore:async()=>connected},request:async(path,options={})=>{
+  if(path==='/v1/subscriptions')return old.promise;
+  if(path.endsWith('/subscription')){mutations.push(options.method);return {ok:true};}
+  return path.startsWith('/v1/videos?q=')?[video]:[];
+ }});
+ await c.openVideo(video);
+ await c.node('#subscribe').onclick({currentTarget:c.node('#subscribe')});
+ old.resolve([]);await turn();
+ assert.deepEqual(mutations,['PUT']);assert.equal(c.node('#subscribe').textContent,'Unsubscribe');
+ assert.equal(c.node('#subscribe').dataset.subscribed,'true');
+});
 test('sign-out immediately hides private library while revoke is pending, and a late restore cannot reconnect',async()=>{
  const revoke=deferred(),late=deferred();let restores=0;
  const c=await controller({product:{atRegisteredOrigin:()=>true,restore:()=>++restores===1?Promise.resolve(connected):late.promise,disconnect:()=>revoke.promise},request:async path=>path==='/v1/playlists'?[{ID:'private-one',Name:'Secret list'}]:[]});

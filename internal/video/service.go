@@ -139,7 +139,14 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 	if err != nil {
 		return nil, err
 	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.Remove(path)
+		}
+	}()
 	n, copyErr := io.CopyN(f, body, size+1)
+	syncErr := f.Sync()
 	closeErr := f.Close()
 	if copyErr != nil && copyErr != io.EOF {
 		return nil, copyErr
@@ -147,8 +154,10 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 	if closeErr != nil {
 		return nil, closeErr
 	}
+	if syncErr != nil {
+		return nil, syncErr
+	}
 	if n != size {
-		os.Remove(path)
 		return nil, errors.New("declared caption size mismatch")
 	}
 	content, readErr := os.ReadFile(path)
@@ -156,17 +165,23 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 		return nil, readErr
 	}
 	if !bytes.HasPrefix(bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf}), []byte("WEBVTT")) {
-		os.Remove(path)
 		return nil, errors.New("captions must be valid WebVTT text")
 	}
 	track := CaptionTrack{Language: language, Label: label, ObjectKey: key, AIProposed: aiProposed, HumanApproved: !aiProposed}
 	err = s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
+		if v == nil || v.Owner != quotaOwner || !videoAuthorized(*st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			return ErrForbidden
+		}
 		v.Captions = append(v.Captions, track)
 		s.audit(st, actor, "captions.add", "video", videoID, language)
 		return nil
 	})
-	return &track, err
+	if err != nil {
+		return nil, err
+	}
+	committed = true
+	return &track, nil
 }
 
 func (s *Service) History(actor string) ([]WatchEvent, error) {
@@ -556,16 +571,25 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	} else if used+size > s.cfg.AccountQuotaBytes {
 		return ErrQuota
 	}
-	key := videoID + "/thumbnail." + ext
+	// Each successful replacement gets its own object. A failed replacement
+	// must never truncate or delete the thumbnail already referenced by state.
+	key := videoID + "/thumbnail-" + id("asset") + "." + ext
 	path, err := s.cfg.Objects.Resolve(key)
 	if err != nil {
 		return err
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = os.Remove(path)
+		}
+	}()
 	n, copyErr := io.CopyN(f, body, size+1)
+	syncErr := f.Sync()
 	closeErr := f.Close()
 	if copyErr != nil && copyErr != io.EOF {
 		return copyErr
@@ -573,8 +597,10 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	if closeErr != nil {
 		return closeErr
 	}
+	if syncErr != nil {
+		return syncErr
+	}
 	if n != size {
-		os.Remove(path)
 		return errors.New("declared thumbnail size mismatch")
 	}
 	prefix, readErr := os.ReadFile(path)
@@ -583,14 +609,22 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	}
 	detected := http.DetectContentType(prefix)
 	if detected != mime {
-		os.Remove(path)
 		return errors.New("thumbnail content does not match declared type")
 	}
-	return s.store.update(func(st *State) error {
-		st.Videos[videoID].ThumbnailKey = key
+	err = s.store.update(func(st *State) error {
+		v := st.Videos[videoID]
+		if v == nil || v.Owner != quotaOwner || !videoAuthorized(*st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			return ErrForbidden
+		}
+		v.ThumbnailKey = key
 		s.audit(st, actor, "thumbnail.set", "video", videoID, mime)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	committed = true
+	return nil
 }
 
 func (s *Service) ModerateReport(reviewer, reportID, decision, explanation string) error {
@@ -1558,6 +1592,11 @@ func (s *Service) RecordWatch(actor, videoID string, seconds int64, completed bo
 		v := st.Videos[videoID]
 		if !audienceAvailable(*st, v, s.cfg.Now().UTC()) {
 			return ErrNotFound
+		}
+		// Legacy clients have no playback identity to attach a final marker to.
+		// Preserve their successful no-op without creating a zero-duration view.
+		if seconds == 0 {
+			return nil
 		}
 		e := WatchEvent{ID: id("watch"), VideoID: videoID, Account: actor, Seconds: seconds, Completed: completed, CreatedAt: s.cfg.Now().UTC()}
 		st.WatchEvents[e.ID] = e

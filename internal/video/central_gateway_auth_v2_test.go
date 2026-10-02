@@ -121,6 +121,7 @@ func TestVideoV2ViewerRoutesHaveExactScopes(t *testing.T) {
 		{"DELETE", "/v1/playlists/pl_one", "video:library"}, {"DELETE", "/v1/playlists/pl_one/videos/vid_one", "video:library"},
 		{"POST", "/v1/videos/vid_one/watch", "video:library"}, {"POST", "/v1/channels/chn_one/subscription", "video:library"},
 		{"DELETE", "/v1/channels/chn_one/subscription", "video:library"},
+		{"PUT", "/v1/channels/chn_one/subscription", "video:library"},
 		{"POST", "/v1/videos/vid_one/comments", "video:account"}, {"POST", "/v1/videos/vid_one/reports", "video:account"},
 		{"POST", "/v1/reports/report_one/appeals", "video:account"}, {"DELETE", "/v1/privacy/account-data", "video:account"},
 	}

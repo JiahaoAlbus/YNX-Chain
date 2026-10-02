@@ -214,6 +214,7 @@ type WatchEvent struct {
 	Seconds              int64
 	Completed            bool
 	CreatedAt            time.Time
+	PlaybackID           string `json:"playback_id,omitempty"`
 }
 type Report struct {
 	ID, VideoID, Reporter, Reason, Details, State string

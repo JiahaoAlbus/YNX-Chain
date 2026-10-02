@@ -73,7 +73,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-Product-Session-Proof")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
@@ -283,13 +283,18 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "watch" && r.Method == "POST":
 		var in struct {
-			Seconds   int64
-			Completed bool
+			Seconds    int64
+			Completed  bool
+			PlaybackID string `json:"playback_id"`
 		}
 		if decode(r, &in, w) {
 			return
 		}
-		respond(w, map[string]bool{"ok": true}, s.service.RecordWatch(actor, parts[1], in.Seconds, in.Completed))
+		if in.PlaybackID == "" {
+			respond(w, map[string]bool{"ok": true}, s.service.RecordWatch(actor, parts[1], in.Seconds, in.Completed))
+		} else {
+			respond(w, map[string]bool{"ok": true}, s.service.RecordPlaybackProgress(actor, parts[1], in.PlaybackID, in.Seconds, in.Completed))
+		}
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "comments" && r.Method == "POST":
 		var in struct {
 			Body     string `json:"body"`
@@ -329,6 +334,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		respond(w, map[string]bool{"ok": true}, s.service.ReviewAppeal(actor, parts[1], in.Accepted, in.Explanation))
 	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "POST":
 		respond(w, map[string]bool{"ok": true}, s.service.Subscribe(actor, parts[1]))
+	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "PUT":
+		respond(w, map[string]bool{"ok": true}, s.service.EnsureSubscription(actor, parts[1]))
 	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "DELETE":
 		respond(w, map[string]bool{"ok": true}, s.service.Unsubscribe(actor, parts[1]))
 	case len(parts) == 2 && parts[0] == "playlists" && r.Method == "DELETE":

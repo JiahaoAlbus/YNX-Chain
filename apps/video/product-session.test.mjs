@@ -79,13 +79,16 @@ test('callback, restore and disconnect use SDK authority while private scopes re
 test('Video scope allowlist rejects Creator reads, moderation and unknown mutation paths', () => {
   for (const [method, path] of [['GET', '/v1/studio'], ['GET', '/v1/channels/chn_one/team'], ['GET', '/v1/studio/history'],
     ['POST', '/v1/uploads'], ['POST', '/v1/videos/vid_one/publish'], ['POST', '/v1/videos/vid_one/review-publication'],
-    ['POST', '/v1/reports/report_one/moderate'], ['DELETE', '/v1/videos/vid_one'], ['POST', '/v1/wallet/revoke']]) {
+    ['POST', '/v1/reports/report_one/moderate'], ['DELETE', '/v1/videos/vid_one'], ['POST', '/v1/wallet/revoke'],
+    ['PUT', '/v1/playlists'], ['PUT', '/v1/playlists/list_one/videos'], ['PUT', '/v1/videos/vid_one/watch'],
+    ['PUT', '/v1/channels/chn_one/team'], ['PUT', '/v1/channels/chn_one/subscription/extra']]) {
     assert.throws(() => videoScope(path, method), /not available/);
   }
   assert.equal(videoScope('/v1/videos/vid_one/comments'), 'video:playback');
   assert.equal(videoScope('/v1/videos/vid_one/reports', 'POST'), 'video:account');
   assert.equal(videoScope('/v1/privacy/account-data', 'DELETE'), 'video:account');
   assert.equal(videoScope('/v1/channels/chn_one/subscription', 'DELETE'), 'video:library');
+  assert.equal(videoScope('/v1/channels/chn_one/subscription', 'PUT'), 'video:library');
   assert.equal(videoScope('/v1/playlists/list_one', 'DELETE'), 'video:library');
 });
 
@@ -132,7 +135,8 @@ test('watch progress excludes guest playback and seeking; failed persistence ret
   signedIn=true;sample(1);now=2000;sample(2);now=3000;sample(99); // Seeking jump excluded.
   await assert.rejects(watch.flush(), /offline/);
   await watch.flush();
-  assert.deepEqual(writes,[{seconds:1,completed:false},{seconds:1,completed:false}]);
+  assert.match(writes[0].playback_id,/^[0-9a-f-]{36}$/);
+  assert.deepEqual(writes,[{playback_id:writes[0].playback_id,seconds:1,completed:false},{playback_id:writes[0].playback_id,seconds:1,completed:false}]);
   await watch.flush();assert.equal(writes.length,2);
   watch.discard();now=4000;sample(100);now=5000;sample(101);await watch.flush();assert.equal(writes.length,2);
 });

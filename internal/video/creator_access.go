@@ -478,6 +478,11 @@ func rightsActive(st State, video *Video, at time.Time, requireVerified bool) er
 	if video == nil || video.RightsDeclarationID == "" {
 		return errors.New("rights declaration required")
 	}
+	// The later creator declaration cannot widen the original source license.
+	// Immediate/scheduled publication, playback and earnings share this gate.
+	if err := rightsAllowPublication(video.Rights, at); err != nil {
+		return err
+	}
 	declaration := st.Rights[video.RightsDeclarationID]
 	if declaration == nil || declaration.VideoID != video.ID || !strings.EqualFold(declaration.SourceSHA256, video.SHA256) {
 		return errors.New("rights declaration lineage mismatch")

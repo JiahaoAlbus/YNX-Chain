@@ -14,6 +14,7 @@ let currentWallet = null;
 let currentVideo = null;
 let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
+let subscriptionRevision = 0;
 let productState = {status: "guest"};
 let productExpiryTimer;
 let productRevision = 0;
@@ -628,9 +629,11 @@ async function revokeWallet(reason = "user") {
 function startWatchProgress(video) {
   const previousProgress = watchProgress;
   void previousProgress?.flush(false).catch(() => {});
-  const account = productState.session?.account;
-  watchProgress = createWatchProgress({signedIn: () => productConnected() && productState.session?.account === account,
-    send: body => privateAPI(`/v1/videos/${video.id}/watch`, json(body))});
+  const account = productState.session?.account, revision = productRevision;
+  watchProgress = createWatchProgress({signedIn: () => revision === productRevision && productConnected() && productState.session?.account === account,
+    onError: () => {if (revision === productRevision && currentVideo === video) notice("Watch history could not be saved. Playback remains available.", true);},
+    send: (body, {idempotencyKey}) => privateAPI(`/v1/videos/${video.id}/watch`, {...json(body),
+      headers: {"Content-Type": "application/json", "Idempotency-Key": idempotencyKey}})});
 }
 
 async function openVideo(video) {
@@ -704,14 +707,16 @@ async function showSubscriptions(button) {
 
 async function refreshSubscriptionButton() {
   const target = currentVideo;
+  const operation = ++subscriptionRevision;
   const button = $("#subscribe");
+  button.disabled = false;
   button.textContent = "Subscribe";
   button.dataset.subscribed = "false";
   if (!target || !productConnected()) return;
   const account = productState.session.account;
   try {
     const channels = await privateAPI("/v1/subscriptions");
-    if (target !== currentVideo || productState.session?.account !== account || !productConnected()) return;
+    if (operation !== subscriptionRevision || target !== currentVideo || productState.session?.account !== account || !productConnected()) return;
     const subscribed = channels.some(channel => field(channel,"id","ID") === target.channel_id);
     button.textContent = subscribed ? "Unsubscribe" : "Subscribe";
     button.dataset.subscribed = String(subscribed);
@@ -890,14 +895,18 @@ $("#video").addEventListener("ended",()=>void flushWatch(true));
 $("#channel").onclick = () => currentVideo && showChannel(currentVideo.channel_id);
 $("#subscribe").onclick = async event => {
   if(!currentVideo||!requireAccount())return;
-  const button=event.currentTarget, target=currentVideo;button.disabled=true;
+  const button=event.currentTarget, target=currentVideo, revision=productRevision, operation=++subscriptionRevision;
+  const subscribed=button.dataset.subscribed === "true";
+  const current=()=>operation===subscriptionRevision && revision===productRevision && target===currentVideo && productConnected();
+  button.disabled=true;
   try {
-    const channels=await privateAPI("/v1/subscriptions");
-    const subscribed=channels.some(channel=>field(channel,"id","ID")===target.channel_id);
-    await privateAPI('/v1/channels/'+encodeURIComponent(target.channel_id)+'/subscription',{method:subscribed?"DELETE":"POST"});
-    await refreshSubscriptionButton();notice(subscribed?"Subscription removed.":"Channel added to your subscriptions.");
-  }catch(error){notice(error.message,true);}
-  finally{button.disabled=false;}
+    await privateAPI('/v1/channels/'+encodeURIComponent(target.channel_id)+'/subscription',{method:subscribed?"DELETE":"PUT"});
+    if (!current()) return;
+    button.dataset.subscribed=String(!subscribed);
+    button.textContent=subscribed?"Subscribe":"Unsubscribe";
+    notice(subscribed?"Subscription removed.":"Channel added to your subscriptions.");
+  }catch(error){if(current())notice(error.message,true);}
+  finally{if(current())button.disabled=false;}
 };
 $("#playlist").onclick = async()=>{
   if(!currentVideo||!requireAccount())return;

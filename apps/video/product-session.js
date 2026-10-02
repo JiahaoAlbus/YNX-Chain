@@ -16,6 +16,7 @@ export function videoScope(path, method = 'GET') {
     if (path === '/v1/playlists' || new RegExp(`^/v1/(playlists/${id}/videos|channels/${id}/subscription|videos/${id}/watch)$`).test(path)) return 'video:library';
     if (new RegExp(`^/v1/(videos/${id}/(comments|reports)|reports/${id}/appeals)$`).test(path)) return 'video:account';
   }
+  if (method === 'PUT' && new RegExp(`^/v1/channels/${id}/subscription$`).test(path)) return 'video:library';
   if (method === 'DELETE') {
     if (new RegExp(`^/v1/(channels/${id}/subscription|playlists/${id}(/videos/${id})?)$`).test(path)) return 'video:library';
     if (path === '/v1/privacy/account-data') return 'video:account';
