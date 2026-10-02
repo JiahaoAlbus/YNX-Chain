@@ -1,0 +1,23 @@
+{
+  "schema": "ynx-social-web-exact-retry/v1",
+  "checks": [
+    "actual ordinary submit retries exact target/key/note without preview",
+    "actual QR handler preserves exact failed intent",
+    "editing target requires fresh explicit review and does not resend",
+    "account lock hides and disables old intent"
+  ],
+  "consoleErrors": [],
+  "sourceSha256": {
+    "private-session-ui.js": "d79f29b233393cc869cf4353bfa32319d8893ffe80b6c0b039b90caabd43fad5",
+    "contact-retry.mjs": "3f833d7280b7e796afdb691797044e4dd277e4dad0147222ed61435cdf8f70ea",
+    "contact-review.mjs": "8dc17925d074976ffe659dfc6289c9041e257d7b1df6b6de40fa55aae321cf7f",
+    "workspace.css": "d6b575aba39227145936f97c49aaff3c5086c3fd27fed2e9c1e15a249777d0fd"
+  },
+  "bundleSha256": "66b0e1b2203edcb4013fac5a30bae2dd4496316c94da02670e2d499b3c9de072",
+  "actualUIHandler": true,
+  "syntheticWorkspace": true,
+  "syntheticCamera": true,
+  "realBackendVerified": false,
+  "hardwareVerified": false,
+  "publicRuntimeVerified": false
+}
