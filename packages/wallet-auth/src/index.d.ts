@@ -286,7 +286,8 @@ export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export type ProductSessionPlatform="android"|"ios"|"linux"|"macos"|"web"|"windows";
-export type ProductSessionV2=Readonly<{version:"2";sessionBinding:string;chainId:"ynx_6423-1";productId:string;clientId:string;platform:ProductSessionPlatform;applicationId:string;bundleId:string|null;packageId:string|null;origin:string;callback:string;account:string;deviceId:string;deviceAlgorithm:"p256-sha256";deviceKey:string;deviceBinding:string;nonce:string;state:string;scopes:readonly string[];requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
+export type FinanceFiniteServiceConsent=Readonly<{profile:"finance-private-finite-v1";issuedAt:string;expiresAt:string;durationSeconds:number}>;
+export type ProductSessionV2=Readonly<{version:"2";sessionBinding:string;chainId:"ynx_6423-1";productId:string;clientId:string;platform:ProductSessionPlatform;applicationId:string;bundleId:string|null;packageId:string|null;origin:string;callback:string;account:string;deviceId:string;deviceAlgorithm:"p256-sha256";deviceKey:string;deviceBinding:string;nonce:string;state:string;scopes:readonly string[];requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string;serviceConsent?:FinanceFiniteServiceConsent}>;
 export declare const PRODUCT_SESSION_REGISTRY_VERSION:2;
 export declare const PRODUCT_SESSION_PROTOCOL_VERSION:"2";
 export declare const PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION:2;
@@ -298,10 +299,10 @@ export declare function migrateProductSessionRegistryV1(input:unknown):Readonly<
 export declare function productPlatformBinding(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;
 export declare function migrateLegacyCallback(registry:unknown,legacyValue:string,context:{productId:string;platform:ProductSessionPlatform}):Readonly<Record<string,unknown>>;
 export declare function migrateLegacyProductSessionRequest(registry:unknown,legacy:unknown,context:{productId:string;platform:ProductSessionPlatform;deviceId:string;state:string},at?:Date):Readonly<Record<string,unknown>>;
-export declare function createProductSessionRequest(registry:unknown,input:Readonly<{productId:string;platform:ProductSessionPlatform;deviceId:string;deviceKey:string;scopes:readonly string[];purpose:string;nonce:string;state:string}>,at?:Date):Readonly<Record<string,unknown>>;
+export declare function createProductSessionRequest(registry:unknown,input:Readonly<{productId:string;platform:ProductSessionPlatform;deviceId:string;deviceKey:string;scopes:readonly string[];purpose:string;nonce:string;state:string;finiteServiceSeconds?:number}>,at?:Date):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionRequest(registry:unknown,input:unknown,at?:Date):Readonly<Record<string,unknown>>;
 export declare function productSessionRequestDigest(registry:unknown,request:unknown,at?:Date):string;
-export declare function signProductSessionApproval(registry:unknown,request:unknown,input:{accountSecret:string;scopes:readonly string[];expiresAt:string},at?:Date):Readonly<Record<string,unknown>>;
+export declare function signProductSessionApproval(registry:unknown,request:unknown,input:{accountSecret:string;scopes:readonly string[];expiresAt:string;approvedServiceConsent?:FinanceFiniteServiceConsent},at?:Date):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionApproval(registry:unknown,request:unknown,input:unknown,at?:Date):Readonly<Record<string,unknown>>;
 export declare function createProductSessionChallenge(registry:unknown,request:unknown,approval:unknown,input:{challenge:string},at?:Date):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionChallenge(input:unknown):Readonly<Record<string,unknown>>;

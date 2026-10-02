@@ -7,6 +7,8 @@ import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
 import { parseProductSessionRegistry, productPlatformBinding, PRODUCT_SESSION_PLATFORMS } from "./product-session-registry.js";
 
+import { createFinanceFiniteServiceConsent, parseFinanceFiniteServiceConsent } from './product-session-finite-consent.js';
+
 export const PRODUCT_SESSION_PROTOCOL_VERSION = "2";
 export const PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION = 2;
 const REQUEST_MAX_LIFETIME_MS = 5 * 60_000;
@@ -35,7 +37,7 @@ const SESSION_FIELDS = [
 const SNAPSHOT_FIELDS = ["schemaVersion", "sessions", "issuedChallenges", "consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges", "revokedSessions", "revokedDevices", "revokedAccounts"];
 
 export function createProductSessionRequest(registryInput, input, at = new Date()) {
-  exactFields(input, ["productId", "platform", "deviceId", "deviceKey", "scopes", "purpose", "nonce", "state"], "Product Session request input");
+  exactFields(input, ["productId", "platform", "deviceId", "deviceKey", "scopes", "purpose", "nonce", "state", ...(Object.hasOwn(input, "finiteServiceSeconds") ? ["finiteServiceSeconds"] : [])], "Product Session request input");
   const binding = productPlatformBinding(registryInput, input.productId, input.platform);
   const now = validDate(at);
   const request = {
@@ -59,6 +61,7 @@ export function createProductSessionRequest(registryInput, input, at = new Date(
     issuedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + REQUEST_MAX_LIFETIME_MS).toISOString(),
   };
+  if (Object.hasOwn(input, "finiteServiceSeconds")) request.serviceConsent = createFinanceFiniteServiceConsent(request, input.finiteServiceSeconds);
   return parseProductSessionRequest(registryInput, request, now);
 }
 
@@ -82,7 +85,7 @@ export function migrateLegacyProductSessionRequest(registryInput, legacy, contex
 }
 
 export function parseProductSessionRequest(registryInput, input, at = new Date()) {
-  exactFields(input, REQUEST_FIELDS, "Product Session request");
+  exactFields(input, consentFields(input, REQUEST_FIELDS), "Product Session request");
   const now = validDate(at);
   if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS.includes(input.platform)) fail("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
   const binding = productPlatformBinding(registryInput, input.productId, input.platform);
@@ -104,6 +107,7 @@ export function parseProductSessionRequest(registryInput, input, at = new Date()
     state: token(input.state, "state"),
     scopes: Object.freeze(scopes(input.scopes, binding.scopes)),
     purpose: text(input.purpose, "purpose", 1, 180),
+    ...parseConsent(input, input.issuedAt),
     issuedAt: time(input.issuedAt, "issuedAt"),
     expiresAt: time(input.expiresAt, "expiresAt"),
   });
@@ -123,8 +127,9 @@ export function productSessionRequestDigest(registryInput, request, at = new Dat
 }
 
 export function signProductSessionApproval(registryInput, requestInput, input, at = new Date()) {
-  exactFields(input, ["accountSecret", "scopes", "expiresAt"], "Product Session approval input");
   const request = parseProductSessionRequest(registryInput, requestInput, at);
+  exactFields(input, ["accountSecret", "scopes", "expiresAt", ...(request.serviceConsent ? ["approvedServiceConsent"] : [])], "Product Session approval input");
+  if (request.serviceConsent && canonicalJSON(parseFinanceFiniteServiceConsent(request, input.approvedServiceConsent, {requestIssuedAt: request.issuedAt})) !== canonicalJSON(request.serviceConsent)) fail("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet must explicitly approve the exact displayed finite service consent");
   const secret = accountSecret(input.accountSecret);
   const identity = walletIdentity(input.accountSecret);
   const granted = scopes(input.scopes, request.scopes);
@@ -134,6 +139,7 @@ export function signProductSessionApproval(registryInput, requestInput, input, a
   const unsigned = {
     version: PRODUCT_SESSION_PROTOCOL_VERSION,
     result: "approved",
+    ...parseConsent(request, request.issuedAt),
     requestDigest: productSessionRequestDigest(registryInput, request, at),
     chainId: request.chainId,
     productId: request.productId,
@@ -161,7 +167,7 @@ export function signProductSessionApproval(registryInput, requestInput, input, a
 
 export function parseProductSessionApproval(registryInput, requestInput, input, at = new Date()) {
   const request = parseProductSessionRequest(registryInput, requestInput, at);
-  exactFields(input, APPROVAL_FIELDS, "Product Session approval");
+  exactFields(input, [...APPROVAL_FIELDS, ...(request.serviceConsent ? ["serviceConsent"] : [])], "Product Session approval");
   const approval = Object.freeze({
     ...input,
     version: pattern(input.version, "version", /^2$/),
@@ -178,10 +184,12 @@ export function parseProductSessionApproval(registryInput, requestInput, input, 
     account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
     accountPublicKey: pattern(input.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/),
     scopes: Object.freeze(scopes(input.scopes, request.scopes)),
+    ...parseConsent(input, request.issuedAt),
     issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"),
     walletSignature: pattern(input.walletSignature, "walletSignature", /^[0-9a-f]{128}$/),
   });
   validatePlatformIdentifiers(approval);
+  if (canonicalJSON(approval.serviceConsent ?? null) !== canonicalJSON(request.serviceConsent ?? null)) fail("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet service consent differs from the signed request");
   const boundFields = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state"];
   if (approval.requestDigest !== productSessionRequestDigest(registryInput, request, at) || boundFields.some((field) => approval[field] !== request[field]) || approval.scopes.join("\n") !== request.scopes.join("\n")) fail("SESSION_BINDING_MISMATCH", "Wallet approval does not match the exact Product Session request");
   if (approval.issuedAt < request.issuedAt || approval.issuedAt > validDate(at).toISOString() || approval.expiresAt > request.expiresAt || approval.expiresAt <= validDate(at).toISOString()) fail("INVALID_APPROVAL_TIME", "Wallet approval is outside the request lifetime");
@@ -198,9 +206,9 @@ export function createProductSessionChallenge(registryInput, requestInput, appro
   const binding = productPlatformBinding(registryInput, request.productId, request.platform);
   const now = validDate(at);
   const expiresAt = new Date(Math.min(now.getTime() + CHALLENGE_MAX_LIFETIME_MS, Date.parse(approval.expiresAt))).toISOString();
-  const sessionExpiresAt = new Date(Math.min(Date.parse(approval.expiresAt), now.getTime() + binding.sessionDurationSeconds * 1000)).toISOString();
+  const sessionExpiresAt = request.serviceConsent ? request.serviceConsent.expiresAt : new Date(Math.min(Date.parse(approval.expiresAt), now.getTime() + binding.sessionDurationSeconds * 1000)).toISOString();
   return parseChallenge({
-    version: PRODUCT_SESSION_PROTOCOL_VERSION, challenge: token(input.challenge, "challenge"),
+    version: PRODUCT_SESSION_PROTOCOL_VERSION, ...parseConsent(request, request.issuedAt), challenge: token(input.challenge, "challenge"),
     requestDigest: approval.requestDigest, approvalDigest: productSessionApprovalDigest(approval),
     chainId: request.chainId, productId: request.productId, clientId: request.clientId, platform: request.platform,
     applicationId: request.applicationId, bundleId: request.bundleId, packageId: request.packageId,
@@ -276,6 +284,7 @@ export class ProductSessionAuthority {
       deviceBinding: deviceBinding(request, approval.account), nonce: request.nonce, state: request.state,
       scopes: approval.scopes, requestDigest: approval.requestDigest, approvalDigest: challenge.approvalDigest,
       issuedAt: challenge.issuedAt, expiresAt: challenge.sessionExpiresAt,
+      ...parseConsent(request, request.issuedAt),
     });
     const next = clone(this.#state);
     next.issuedChallenges = next.issuedChallenges.filter((item) => item.challenge !== challenge.challenge);
@@ -322,13 +331,16 @@ export function productSessionApprovalDigest(approval) { return digestHex("YNX_P
 export function deviceBinding(requestOrSession, account) { return digestHex("YNX_PRODUCT_SESSION_DEVICE_V2", { chainId: requestOrSession.chainId, productId: requestOrSession.productId, clientId: requestOrSession.clientId, platform: requestOrSession.platform, applicationId: requestOrSession.applicationId, bundleId: requestOrSession.bundleId, packageId: requestOrSession.packageId, origin: requestOrSession.origin, callback: requestOrSession.callback, account, deviceId: requestOrSession.deviceId, deviceAlgorithm: requestOrSession.deviceAlgorithm, deviceKey: requestOrSession.deviceKey }); }
 
 function parseChallenge(input) {
-  exactFields(input, CHALLENGE_FIELDS, "Product Session challenge");
-  const value = Object.freeze({ ...input, version: pattern(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
+  exactFields(input, consentFields(input, CHALLENGE_FIELDS), "Product Session challenge");
+  const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
   validatePlatformIdentifiers(value);
-  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || Date.parse(value.sessionExpiresAt) - Date.parse(value.issuedAt) > REQUEST_MAX_LIFETIME_MS) fail("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
+  const serviceValid = value.serviceConsent
+    ? value.sessionExpiresAt === value.serviceConsent.expiresAt && value.issuedAt >= value.serviceConsent.issuedAt && Date.parse(value.expiresAt) <= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS
+    : Date.parse(value.sessionExpiresAt) - Date.parse(value.issuedAt) <= REQUEST_MAX_LIFETIME_MS;
+  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || !serviceValid) fail("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
   return value;
 }
-function parseSession(input) { exactFields(input, SESSION_FIELDS, "Product Session"); const value = Object.freeze({ ...input, version: pattern(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") }); validatePlatformIdentifiers(value); if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail("INVALID_SESSION", "Product Session security binding or lifetime is invalid"); return value; }
+function parseSession(input) { exactFields(input, consentFields(input, SESSION_FIELDS), "Product Session"); const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") }); validatePlatformIdentifiers(value); if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS)) fail("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window"); if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail("INVALID_SESSION", "Product Session security binding or lifetime is invalid"); return value; }
 function parseSnapshot(input) { exactFields(input, SNAPSHOT_FIELDS, "Product Session authority snapshot"); if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported"); const value = { schemaVersion: input.schemaVersion, sessions: sortedUnique(input.sessions.map(parseSession), (item) => item.sessionBinding, "sessions"), issuedChallenges: sortedUnique(input.issuedChallenges.map(parseChallenge), (item) => item.challenge, "issuedChallenges"), consumedNonces: stringSet(input.consumedNonces, /^[A-Za-z0-9_-]{32,64}$/, "consumedNonces"), consumedStates: stringSet(input.consumedStates, /^[A-Za-z0-9_-]{32,64}$/, "consumedStates"), consumedRequests: stringSet(input.consumedRequests, /^[0-9a-f]{64}$/, "consumedRequests"), consumedChallenges: stringSet(input.consumedChallenges, /^[A-Za-z0-9_-]{32,64}$/, "consumedChallenges"), revokedSessions: stringSet(input.revokedSessions, /^[0-9a-f]{64}$/, "revokedSessions"), revokedDevices: stringSet(input.revokedDevices, /^[0-9a-f]{64}$/, "revokedDevices"), revokedAccounts: sortedUnique(input.revokedAccounts.map((item) => { exactFields(item, ["account", "before"], "revoked account"); return Object.freeze({ account: pattern(item.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: time(item.before, "before") }); }), (item) => item.account, "revokedAccounts") }; if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap"); return freezeSnapshot(value); }
 function emptySnapshot() { return { schemaVersion: PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION, sessions: [], issuedChallenges: [], consumedNonces: [], consumedStates: [], consumedRequests: [], consumedChallenges: [], revokedSessions: [], revokedDevices: [], revokedAccounts: [] }; }
 // Match sortedUnique's default string ordering, including mixed-case base64url
@@ -338,6 +350,8 @@ function compareSnapshotKey(left, right) { return left < right ? -1 : left > rig
 function freezeSnapshot(value) { return Object.freeze({ ...value, sessions: Object.freeze(value.sessions), issuedChallenges: Object.freeze(value.issuedChallenges), consumedNonces: Object.freeze(value.consumedNonces), consumedStates: Object.freeze(value.consumedStates), consumedRequests: Object.freeze(value.consumedRequests), consumedChallenges: Object.freeze(value.consumedChallenges), revokedSessions: Object.freeze(value.revokedSessions), revokedDevices: Object.freeze(value.revokedDevices), revokedAccounts: Object.freeze(value.revokedAccounts) }); }
 function stringSet(value, regex, label) { if (!Array.isArray(value) || value.length > 10000 || value.some((item) => typeof item !== "string" || !regex.test(item))) fail("INVALID_SESSION_STORE", `${label} is invalid`); return sortedUnique(value, (item) => item, label); }
 function sortedUnique(value, key, label) { const keys = value.map(key); if (new Set(keys).size !== keys.length || [...keys].sort().join("\n") !== keys.join("\n")) fail("INVALID_SESSION_STORE", `${label} must be unique and sorted`); return Object.freeze(value); }
+function consentFields(value, fields) { return [...fields, ...(Object.hasOwn(value, "serviceConsent") ? ["serviceConsent"] : [])]; }
+function parseConsent(value, requestIssuedAt) { return Object.hasOwn(value, "serviceConsent") ? {serviceConsent: parseFinanceFiniteServiceConsent(value, value.serviceConsent, {requestIssuedAt})} : {}; }
 function unsignedApproval(value) { const { walletSignature: _signature, ...unsigned } = value; return unsigned; }
 function approvalSignBytes(value) { return `YNX_PRODUCT_SESSION_APPROVAL_V2\n${canonicalJSON(value)}`; }
 function challengeSignBytes(value) { return `YNX_PRODUCT_SESSION_CHALLENGE_V2\n${canonicalJSON(value)}`; }
