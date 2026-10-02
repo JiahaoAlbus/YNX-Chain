@@ -26872,6 +26872,7 @@ ${item.productId}`));
     #flight = null;
     #draining = null;
     #restoring = 0;
+    #cancelledAttempt = 0;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
       if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method) || ["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && method !== "ynx_requestProductSessionV2")) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
@@ -26892,7 +26893,7 @@ ${item.productId}`));
       for (const listener of this.#listeners.get(event) ?? []) listener(value);
     }
     #unconfirmed(reason2, attempt) {
-      this.#emit("cancelUnconfirmed", { reason: reason2, attempt, current: attempt === this.#attempt });
+      this.#emit("cancelUnconfirmed", { reason: reason2, attempt, current: attempt === this.#attempt, userCancelled: attempt === this.#cancelledAttempt });
     }
     async #wait(work, { stage = "request", flight, deadline = this.#deadline } = {}) {
       let timer;
@@ -27156,6 +27157,7 @@ ${item.productId}`));
       }
     }
     async cancel() {
+      this.#cancelledAttempt = this.#attempt;
       const epoch = this.#epoch++;
       this.#flight?.cancel();
       this.#pending = null;

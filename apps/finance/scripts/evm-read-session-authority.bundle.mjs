@@ -3370,7 +3370,7 @@ var PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   NETWORK_UNAVAILABLE: "network-unavailable",
   RETRY_REQUIRED: "retry-required"
 });
-var REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"] });
+var REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"], revocationPending: true });
 function state(status, message, extra = {}) {
   return Object.freeze({ status, message, ...extra, ...extra.actions ? { actions: Object.freeze(extra.actions) } : {}, ...extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {} });
 }
