@@ -312,6 +312,13 @@ function renderPaperStrategies(strategies) {
   }
   $("#paper-strategy-status").textContent = available.length ? "" : t("strategyMissing");
 }
+function researchAmount(attribution, key) {
+  const value = attribution?.[key];
+  // The existing research engine returns integer test micro-units. Missing,
+  // incompatible or imprecisely decoded amounts cannot stand in for zero.
+  return attribution?.currency === "YUSD_TEST_MICRO" && Number.isSafeInteger(value)
+    ? `${value} YUSD_TEST_MICRO` : "—";
+}
 function render() {
   const strategies = Object.values(snapshot.strategies || {}),
     experiments = [
@@ -332,7 +339,7 @@ function render() {
     ? experiments
         .map(
           ({experiment: e, temporary}) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
+            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td>${["userNetPnl", "userRealizedPnl", "userUnrealizedPnl", "tradingFee", "slippage"].map(key => `<td>${researchAmount(e.attribution, key)}</td>`).join("")}</tr>`,
         )
         .join("")
     : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;

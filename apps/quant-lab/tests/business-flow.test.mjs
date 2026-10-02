@@ -89,6 +89,22 @@ test('public stateless research renders measured equity without granting Paper o
   assert.match(app.ids.get('strategy-rows').innerHTML,/No strategies/);
 });
 
+test('research amounts preserve measured zero, currency and unavailable attribution without inventing costs', async () => {
+  const valid={currency:'YUSD_TEST_MICRO',userNetPnl:-10,userRealizedPnl:0,userUnrealizedPnl:-10,tradingFee:2,slippage:1};
+  for(const [attribution,expected] of [
+    [undefined,['—','—','—','—','—']],
+    [valid,['-10 YUSD_TEST_MICRO','0 YUSD_TEST_MICRO','-10 YUSD_TEST_MICRO','2 YUSD_TEST_MICRO','1 YUSD_TEST_MICRO']],
+    [{...valid,currency:'USD'},['—','—','—','—','—']],
+    [{...valid,userNetPnl:Number.MAX_SAFE_INTEGER+1,tradingFee:'<img src=x>',slippage:NaN},['—','0 YUSD_TEST_MICRO','-10 YUSD_TEST_MICRO','—','—']],
+  ]){
+    const experiment={...researchFixture('attribution-boundary'),attribution};
+    const app=harness({snapshot:{experiments:{one:experiment}}});await settle();
+    const cells=[...app.ids.get('experiment-rows').innerHTML.matchAll(/<td>([\s\S]*?)<\/td>/g)].map(match=>match[1]);
+    assert.deepEqual(cells.slice(-5),expected);
+    assert.doesNotMatch(app.ids.get('experiment-rows').innerHTML,/<img/);
+  }
+});
+
 test('early public research stays temporary beside saved history after the initial workspace arrives', async () => {
   const initialSnapshot = deferred(), research = deferred(); let snapshots = 0;
   const publicResult = researchFixture('same-result-id', 'Public unsaved fixture');

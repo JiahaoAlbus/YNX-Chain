@@ -80,6 +80,7 @@ test('early public research retains temporary provenance in the real page throug
     assert.match(await page.locator('#toast').textContent(),/not saved or audited/);
     await page.getByRole('button',{name:'Experiments',exact:true}).click();
     assert.match(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture.*not saved or audited/);
+    assert.deepEqual((await page.locator('#experiment-rows tr').first().locator('td').allTextContents()).slice(-5),['—','—','—','—','—']);
     assert.equal(await page.locator('#paper-strategy option').count(),1);
     await page.locator('#refresh').click();await page.waitForFunction(()=>snapshotRevision>=2);
     await page.evaluate(()=>refresh());

@@ -79,6 +79,17 @@ they are not a hosted artifact or production screenshot. Parent inspected all th
 
 ## Remaining boundaries and integration
 
+Follow-up research amount truth: absent attribution previously rendered five zero
+PnL/fee/slippage values. The original renderer failed the new boundary test with
+exactly those five invented zeros. Rendering now preserves measured integer zero,
+shows the existing engine's exact `YUSD_TEST_MICRO` unit, and uses an em dash for
+missing attribution, incompatible currency, noninteger/unsafe numeric values or
+malformed amounts. This does not change backtest calculation or currency semantics.
+The meaningful boundary covers missing attribution, valid negative/zero/cost values,
+wrong currency, unsafe magnitude and HTML-like malformed data; 15 business-flow
+tests pass. The real-page temporary research fixture also checks all five missing
+amounts remain unavailable rather than zero.
+
 Follow-up risk localization: the existing Paper cash/position/reconciliation/kill
 state, explicit kill confirmation and completion messages now use all 12 supported
 languages. English wording remains compatible. The real local Go/Chromium mobile
