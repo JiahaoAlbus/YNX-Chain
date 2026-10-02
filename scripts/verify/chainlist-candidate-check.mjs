@@ -27,10 +27,14 @@ try {
 
   const sources = loadCandidateSources(root);
   assert.equal(fs.readFileSync(path.join(root, "sdk/js/ynx-testnet.js"), "utf8"), buildSDKNetworkModule(sources.metadata.value));
+  assert.deepEqual(sources.metadata.value.rpc, ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"]);
+  assert.deepEqual(sources.metadata.value.faucets, ["https://faucet-testnet.ynxweb4.com", "https://faucet.ynxweb4.com"]);
   for (const mutation of [
     (value) => { value.chainId = 1; },
     (value) => { value.nativeCurrency.symbol = "FAKE"; },
     (value) => { value.rpc[0] = "http://localhost:8545"; },
+    (value) => { value.rpc.reverse(); },
+    (value) => { value.faucets.reverse(); },
     (value) => { value.explorers[0].standard = "UNKNOWN"; },
     (value) => { value.unknown = true; },
   ]) {

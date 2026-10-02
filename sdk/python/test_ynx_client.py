@@ -10,6 +10,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from ynx_client import (
     YNXClient,
     YNXSDKError,
+    YNX_TESTNET,
     assert_ynx_testnet_snapshot,
     call_evm,
     get_status,
@@ -47,6 +48,11 @@ class FixtureHandler(BaseHTTPRequestHandler):
 
 
 class YNXClientTest(unittest.TestCase):
+    def test_network_metadata_prefers_canonical_testnet_and_preserves_legacy_urls(self):
+        self.assertEqual(YNX_TESTNET["chainId"], "0x1917")
+        self.assertEqual(YNX_TESTNET["rpcUrls"], ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"])
+        self.assertEqual(YNX_TESTNET["restUrls"], ["https://rpc-testnet.ynxweb4.com", "https://rpc.ynxweb4.com"])
+
     @classmethod
     def setUpClass(cls):
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), FixtureHandler)

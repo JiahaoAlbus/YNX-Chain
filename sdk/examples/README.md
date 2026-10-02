@@ -2,13 +2,13 @@
 
 YNX Chain SDK examples use the public testnet by default:
 
-- REST status: `https://rpc.ynxweb4.com/status`
-- EVM JSON-RPC: `https://evm.ynxweb4.com`
+- REST status: `https://rpc-testnet.ynxweb4.com/status`
+- EVM JSON-RPC: `https://rpc-testnet.ynxweb4.com`
 - Explorer: `https://explorer.ynxweb4.com`
 - Chain ID: `6423` / `0x1917`
 - Native coin: `YNXT`
 
-`node sdk/examples/testnet-endpoints.mjs` prints the typed endpoint configuration without making a network request. JavaScript consumers can import `getTestnetEndpoints()` from the SDK and pass `nativeRest` and `evmJsonRpc` separately to `YNXClient`. `testnetEndpointProfiles.candidate` describes the new `rpc-testnet`/`faucet-testnet` aliases for read-only migration checks; it is not an active consumer profile. Until reviewed public activation, defaults stay on the working compatibility hosts. The same resolved defaults feed the JavaScript and Python remote SDK checks. Existing constructors and wallet add/switch payloads remain compatible.
+`node sdk/examples/testnet-endpoints.mjs` prints the typed endpoint configuration without making a network request. JavaScript consumers can import `getTestnetEndpoints()` from the SDK and pass `nativeRest` and `evmJsonRpc` separately to `YNXClient`. The reviewed, bundled endpoint authority currently selects the new `rpc-testnet`/`faucet-testnet` locations for the active profile and checks its expiry on every selection. `testnetEndpointProfiles.candidate` describes those locations; `legacy` remains an explicit compatibility profile, not automatic write failover. An expired or invalid bundled authority blocks selection until a new reviewed release is issued. The same resolved defaults feed the JavaScript and Python remote SDK checks. Existing constructors and wallet add/switch payloads remain compatible.
 
 The generated JSON counterpart is `configs/testnet-endpoints.json`. Run `make testnet-endpoint-config-check` to reject drift against the source migration manifest. gRPC retains its separate TLS authority; WebSocket is explicitly unconfigured, not an invented HTTP URL conversion. See `docs/operations/TESTNET_ENDPOINT_MIGRATION.md` for activation and rollback gates.
 

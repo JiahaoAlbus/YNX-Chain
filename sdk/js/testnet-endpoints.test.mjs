@@ -10,9 +10,12 @@ test("active consumers use renewed canonical RPC/Faucet and retain explicit lega
   assert.equal(active.evmJsonRpc,bundledEndpointAuthority.evmRpc);
   assert.equal(active.nativeRest,bundledEndpointAuthority.rpc);
   assert.equal(active.faucet,bundledEndpointAuthority.faucet);
-  assert.equal(legacy.evmJsonRpc, ynxTestnet.rpcUrls[0]);
-  assert.equal(legacy.nativeRest, ynxTestnet.restUrls[0]);
-  assert.equal(legacy.faucet, ynxTestnet.faucetUrls[0]);
+  assert.equal(active.evmJsonRpc, ynxTestnet.rpcUrls[0]);
+  assert.equal(active.nativeRest, ynxTestnet.restUrls[0]);
+  assert.equal(active.faucet, ynxTestnet.faucetUrls[0]);
+  assert.equal(legacy.evmJsonRpc, ynxTestnet.rpcUrls[1]);
+  assert.equal(legacy.nativeRest, ynxTestnet.restUrls[1]);
+  assert.equal(legacy.faucet, ynxTestnet.faucetUrls[1]);
   assert.equal(active.explorer, ynxTestnet.blockExplorerUrls[0]);
   assert.notEqual(active.restGateway, active.nativeRest);
   assert.equal(active.grpcTlsAuthority, "grpc.ynxweb4.com:443");

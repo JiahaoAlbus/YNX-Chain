@@ -134,23 +134,22 @@ using standard Ethereum tooling.
 ### JSON-RPC endpoint
 
 ```
-https://rpc.ynxweb4.com/evm
+https://rpc-testnet.ynxweb4.com
 ```
 
 ### Web3 integration
 
 ```javascript
 const Web3 = require('web3');
-const web3 = new Web3('https://rpc.ynxweb4.com/evm');
+const web3 = new Web3('https://rpc-testnet.ynxweb4.com');
 
 // Check balance
 const balance = await web3.eth.getBalance(address);
 
-// Monitor ERC-20 transfers
-const contract = new web3.eth.Contract(ERC20_ABI, tokenAddress);
-contract.events.Transfer({ filter: { to: depositAddress } }, (error, event) => {
-  // Credit user balance
-});
+// Read bounded historical logs and reconcile by block/hash before crediting.
+// No WebSocket subscription endpoint is declared by this Testnet profile.
+const logs = await web3.eth.getPastLogs({ address: tokenAddress, fromBlock, toBlock });
+// Validate/decode relevant Transfer logs and wait for your own confirmation policy.
 ```
 
 ### Gas and fees
