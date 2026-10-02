@@ -252,3 +252,20 @@ test('existing complete Node journal reads new finite key at reviewed root2 anch
  await fs.writeFile(value.files.trustRootFile,JSON.stringify(root2));await fs.writeFile(value.files.manifestFile,JSON.stringify(three));assert.equal((await resolveFinancePrivateAuthority({env:value.env})).manifestVersion,'2.0.0.3');assert.deepEqual(await createNodeCheckpointStore({file:value.files.checkpointFile,anchor:root2.anchor,trustedClockMs:nowMs}).read(),{rootVersion:2,sequence:3,payloadSha256:three.integrity.payloadSha256});
  await fs.writeFile(value.files.trustRootFile,JSON.stringify(root));await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/ROOT_ROLLBACK/);
 });
+
+test('original CLI emits bounded strict failure envelopes for clock rollback, expiry and invalid signature',async t=>{
+  const cli=pathToFileURL(path.resolve('apps/finance/scripts/finance-endpoint-authority-v2.mjs')).href;
+  for(const scenario of ['clock','expiry','signature']){
+    const invalid=signed();if(scenario==='signature')invalid.integrity.signature=Buffer.alloc(64).toString('base64url');
+    const value=await fixture(t,{manifest:invalid,trustedTimeMs:scenario==='clock'?nowMs+1000:nowMs});
+    const sample=scenario==='expiry'?nowMs+3600000:nowMs;
+    const worker=`const [serialized,sample]=process.argv.slice(1);Object.assign(process.env,JSON.parse(serialized));globalThis.fetch=async(_url,init)=>new Response(JSON.stringify({ok:true,requestId:init.headers['x-request-id'],result:{serverTime:new Date(Number(sample)).toISOString()},schemaVersion:2}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-request-id':init.headers['x-request-id']}});await import(${JSON.stringify(cli)});`;
+    const result=await new Promise((resolve,reject)=>{const child=spawn(process.execPath,['--input-type=module','-e',worker,JSON.stringify(value.env),String(sample)],{stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);child.on('error',reject);child.on('close',exit=>resolve({stdout,stderr,exit}));});
+    assert.equal(result.exit,3);assert.equal(result.stderr,'');const output=JSON.parse(result.stdout);
+    assert.deepEqual(Object.keys(output).sort(),['schemaVersion','status','code','officialSandboxVerified','providerVerified','productionApproved'].sort());
+    assert.equal(output.schemaVersion,'ynx-finance-endpoint-authority-runtime/v1');assert.equal(output.status,'PRIVATE_SERVICE_DEGRADED');
+    assert.equal(output.code,{clock:'AUTHORITY_V2_CLOCK_ROLLBACK',expiry:'AUTHORITY_V2_EXPIRED_OR_FUTURE',signature:'AUTHORITY_V2_SIGNATURE_INVALID'}[scenario]);
+    assert.equal(output.officialSandboxVerified||output.providerVerified||output.productionApproved,false);
+    console.info(`original_cli_failure cause=${output.code} exit=3 strict_shape=true`);
+  }
+});
