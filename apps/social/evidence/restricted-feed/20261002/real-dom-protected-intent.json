@@ -1,0 +1,13 @@
+{
+  "qualification": "isolated real DOM/WebCrypto/IndexedDB; original protected vault reopened, controlled Matrix consumer/authority, not runtime Matrix acceptance",
+  "results": {
+    "textOnly": true,
+    "parentBound": true,
+    "lockCleared": true,
+    "lateLockCleared": true,
+    "revokeDenied": true,
+    "storedBeforeUnknown": true,
+    "refreshBlocksReplacement": true,
+    "remountBlocksReplacement": true
+  }
+}

@@ -1,0 +1,53 @@
+import {chromium} from 'playwright';
+import {readFileSync} from 'node:fs';
+const browser=await chromium.launch({headless:true});
+try{
+  const page=await browser.newPage();
+  await page.route('**/*',route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><main></main>'});
+    if(path==='/feed.mjs')return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix/restricted-feed-ui.mjs',import.meta.url),'utf8')});
+    if(['/crypto-store.mjs','/protected-drafts.mjs'].includes(path))return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix'+path,import.meta.url),'utf8')});
+    return route.abort();
+  });
+  await page.goto('https://feed-fixture.invalid/');
+  const results=await page.evaluate(async()=>{
+    const {mountRestrictedFeed}=await import('/feed.mjs');
+    const waitFor=async predicate=>{for(let attempt=0;attempt<400;++attempt){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,5))}throw new Error('fixture transition timed out')};
+    const {matrixCryptoStore}=await import('/crypto-store.mjs');
+    const {openProtectedMomentDrafts}=await import('/protected-drafts.mjs');
+    const account='ynx1'+'a'.repeat(38),wrapped=await matrixCryptoStore(account);wrapped.storageKey.fill(0);
+    const vaultArgs={account,deviceId:wrapped.deviceId};let vault=await openProtectedMomentDrafts(vaultArgs);
+    const root=document.querySelector('main'),index={eventId:'$original',transactionId:'original_index_transaction',audience:{kind:'private',roomId:'!original:fixture.invalid'}};
+    const parent={protocol:'ynx-social-moment/v1',roomId:index.audience.roomId,revision:'original',owner:'@original:fixture.invalid',eventId:index.eventId};
+    let generation=1,readCalls=0,publication=null,protectedIntent=null;
+    const storageGuard=binding=>()=>{if(binding!==generation)throw new Error('revoked')};
+    const commentDrafts={load:async binding=>{protectedIntent=await vault.load(storageGuard(binding));return protectedIntent},save:async(value,binding)=>{await vault.save(value,storageGuard(binding));protectedIntent=await vault.load(storageGuard(binding))},clearConfirmed:async(transactionId,binding)=>{await vault.clearConfirmed(transactionId,storageGuard(binding));protectedIntent=await vault.load(storageGuard(binding))}};
+    const args={root,commentDrafts,loadIndexes:async()=>({indexes:[index]}),capture:()=>generation,assertCurrent:value=>{if(value!==generation)throw new Error('revoked')},consumer:{read:async()=>{++readCalls;return {text:'<script>must remain text</script>',parent}}},publishComment:async value=>{if(protectedIntent?.transactionId!==value.transactionId)throw new Error('dispatch before protected save');publication=value}};
+    let view=mountRestrictedFeed(args);await view.reload();
+    const textOnly=root.querySelectorAll('script').length===0&&root.querySelector('article p').textContent.includes('<script>');
+    const input=root.querySelector('textarea');input.value='Original encrypted comment';
+    root.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await waitFor(()=>publication&&input.value==='');
+    const parentBound=publication?.index===index&&publication?.parent===parent&&publication?.text==='Original encrypted comment'&&readCalls===2&&input.value==='';
+    view.lock();const lockCleared=!root.querySelector('article')&&root.querySelector('button').disabled;view.destroy();
+    let release;
+    view=mountRestrictedFeed({...args,consumer:{read:()=>new Promise(resolve=>{release=resolve})}});
+    const pending=view.reload();await waitFor(()=>typeof release==='function');view.lock();release({text:'Must not appear after lock',parent});await pending;
+    const lateLockCleared=!root.textContent.includes('Must not appear')&&!root.querySelector('article');view.destroy();
+    view=mountRestrictedFeed({...args,consumer:{read:async()=>{++generation;return {text:'Must not appear after revoke',parent}}}});await view.reload();
+    const revokeDenied=!root.querySelector('article')&&root.textContent.includes('No plaintext fallback');view.destroy();
+    let sends=0,originalTransaction='';
+    const unknownArgs={...args,publishComment:async value=>{++sends;originalTransaction=value.transactionId;throw new Error('response lost')}};
+    view=mountRestrictedFeed(unknownArgs);await view.reload();root.querySelector('textarea').value='Original uncertain comment';
+    root.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));await waitFor(()=>sends===1&&root.textContent.includes('requires recovery'));
+    const storedBeforeUnknown=sends===1&&protectedIntent?.transactionId===originalTransaction&&protectedIntent?.comment.parent.eventId===index.eventId;
+    await view.reload();root.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));await new Promise(resolve=>setTimeout(resolve,0));
+    const refreshBlocksReplacement=sends===1&&root.querySelector('textarea').disabled&&protectedIntent?.transactionId===originalTransaction;
+    view.destroy();vault.close();vault=await openProtectedMomentDrafts(vaultArgs);protectedIntent=null;view=mountRestrictedFeed(unknownArgs);await view.reload();root.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));await new Promise(resolve=>setTimeout(resolve,0));
+    const remountBlocksReplacement=sends===1&&root.querySelector('textarea').disabled&&protectedIntent?.text==='Original uncertain comment';view.destroy();vault.close();
+    return {textOnly,parentBound,lockCleared,lateLockCleared,revokeDenied,storedBeforeUnknown,refreshBlocksReplacement,remountBlocksReplacement};
+  });
+  console.log(JSON.stringify({qualification:'isolated real DOM/WebCrypto/IndexedDB; original protected vault reopened, controlled Matrix consumer/authority, not runtime Matrix acceptance',results},null,2));
+  if(Object.values(results).some(value=>!value))process.exitCode=1;
+}finally{await browser.close()}
