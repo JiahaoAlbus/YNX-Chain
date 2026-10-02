@@ -44,7 +44,18 @@ if(root){
    }catch(error){if(!stale(error)&&view&&currentView(view))label('Encrypted history temporarily unavailable; storage retained, no plaintext fallback')}
   }}finally{renderRunning=false}
  }
- async function renderDevices(userId){const list=await transport.devices(userId);devices.replaceChildren();for(const device of list){const item=document.createElement('div'),text=document.createElement('p');const verified=await transport.crypto().getDeviceVerificationStatus(userId,device.deviceId);text.textContent=`${device.deviceId} / ${verified?.isVerified()?'verified':'unverified'} / ${device.getFingerprint()??'no fingerprint'}`;item.append(text);const button=document.createElement('button');button.textContent='Compare device using SAS';button.onclick=()=>void work(async()=>{await identity();await transport.requestVerification(userId,device.deviceId)});item.append(button);if(userId===transport.binding.userId){const remove=document.createElement('button');remove.textContent='Revoke this device';remove.onclick=()=>void work(async()=>{await identity();if(confirm('Revoke this Matrix device? Existing downloaded content cannot be recalled.'))await transport.revokeOwnDevice(device.deviceId,true)});item.append(remove)}devices.append(item)}}
+ async function renderDevices(userId){
+  const view=captureView(),ownUser=view.operation.binding.userId;guardView(view);
+  const list=await transport.devices(userId);guardView(view);const items=[];
+  for(const device of list){
+   guardView(view);const verified=await transport.crypto().getDeviceVerificationStatus(userId,device.deviceId);guardView(view);
+   const item=document.createElement('div'),text=document.createElement('p');text.textContent=`${device.deviceId} / ${verified?.isVerified()?'verified':'unverified'} / ${device.getFingerprint()??'no fingerprint'}`;item.append(text);
+   const button=document.createElement('button');button.textContent='Compare device using SAS';button.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await transport.requestVerification(userId,device.deviceId);guardView(view)});item.append(button);
+   if(userId===ownUser){const remove=document.createElement('button');remove.textContent='Revoke this device';remove.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);if(confirm('Revoke this Matrix device? Existing downloaded content cannot be recalled.')){guardView(view);await transport.revokeOwnDevice(device.deviceId,true)}});item.append(remove)}
+   items.push(item);
+  }
+  guardView(view);devices.replaceChildren(...items);
+ }
  reauth=createSsoReauthController({container:root,capture:()=>transport.capture(),guard:operation=>transport.guard(operation),validateIdentity:async operation=>{const verified=await identity();transport.guard(operation);if(verified.account!==operation.binding.account)throw new Error('YNX reauthentication account changed')}});
  root.querySelector('[data-connect]').onclick=()=>void work(async()=>{
   const epoch=pageEpoch,verified=await identity(),selected=verified.account,generation=transport.generation;
