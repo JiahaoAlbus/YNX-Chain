@@ -5,10 +5,10 @@ import {privateFiniteConsentText} from './private-finite-consent-copy.js';
 import {privateSubjectMatchesSelectedWallet} from './private-subject-boundary.js';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
-let adapter=null,initializing=null,generation=0,revision=0,busy=false;
+let adapter=null,initializing=null,generation=0,revision=0,busy=false,revocationFence=false;
 let current=Object.freeze({status:'disconnected',session:null}),lastCode='',requestStage='idle';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
-function revocationRequested(){try{return localStorage.getItem(ATTEMPT_KEY)==='revoking';}catch{return true;}}
+function revocationRequested(){if(revocationFence)return true;try{return localStorage.getItem(ATTEMPT_KEY)==='revoking';}catch{revocationFence=true;return true;}}
 function publish(next,code=''){
   if(next.status==='connected'&&revocationRequested()){next={status:'retry-required',session:null,revocationPending:true};code='REVOCATION_PENDING';}
   current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,request:next.status==='connecting'?next.request:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true,revocationPending:next.revocationPending===true});
@@ -28,7 +28,7 @@ async function operation(action){
   try{await assertFinancePrivateAuthority();markStage('authorityOK');const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected,markStage);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation){
     // A disconnected SDK result follows its durable original-target cleanup.
     // Unconfirmed results retain the opt-in fence and retry only that sign-out.
-    if(result.status==='disconnected'&&(result.revocationConfirmed===true||revocationRequested())){try{localStorage.removeItem(ATTEMPT_KEY);}catch{}}
+    if(result.status==='disconnected'&&(result.revocationConfirmed===true||revocationRequested())){try{localStorage.removeItem(ATTEMPT_KEY);revocationFence=false;}catch{}}
     publish(result);
   }return attempt===generation?result:current;}
   catch(error){if(attempt===generation)reportFailure(error);return current;}
@@ -102,8 +102,9 @@ async function explicitRequest(retry){
 async function disconnect(){
   // This existing browser opt-in key records sign-out before authority/network
   // waits. Reload resumes only the SDK's original revocation, never restore.
-  try{localStorage.setItem(ATTEMPT_KEY,'revoking');}catch{publish({status:'retry-required',session:null},'REVOCATION_PENDING');return current;}
+  revocationFence=true;generation++;busy=false;
   const pending=adapter?.client.disconnect();pending?.catch(()=>{});
+  try{localStorage.setItem(ATTEMPT_KEY,'revoking');}catch{publish({status:'retry-required',session:null,revocationPending:true},'REVOCATION_PENDING');return current;}
   return operation(selected=>pending??selected.client.disconnect());
 }
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
