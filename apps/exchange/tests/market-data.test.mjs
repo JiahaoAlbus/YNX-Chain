@@ -85,6 +85,33 @@ test('heartbeat timeout is bounded; no EventSource falls back to periodic snapsh
   const poll = harness(async () => Response.json(snapshot()), true); await poll.feed.start();
   assert.equal(poll.statuses.at(-1).phase, 'polling'); await poll.timer(5000); assert.equal(poll.calls.length, 2); poll.feed.stop();
 });
+test('a heartbeat ahead of the applied snapshot reconciles by GET rather than labelling old depth live', async () => {
+  let revision = 1;
+  const h = harness(async () => Response.json(snapshot(revision++))); await h.feed.start();
+  const old = h.sources[0];
+  old.emit('heartbeat', {revision: 1});
+  assert.equal(h.calls.length, 1); assert.equal(old.closed, false);
+  old.emit('heartbeat', {revision: 2});
+  assert.equal(h.statuses.at(-1).phase, 'reconnecting');
+  assert.equal(h.statuses.at(-1).code, 'MARKET_REVISION_GAP');
+  assert.equal(old.closed, true); assert.equal(h.feed.snapshot().revision, 1);
+  old.emit('reconciled', snapshot(900)); assert.equal(h.feed.snapshot().revision, 1);
+  await h.timer(1000);
+  assert.equal(h.feed.snapshot().revision, 2); assert.equal(h.statuses.at(-1).phase, 'live');
+  assert.equal(h.calls.every(([, options]) => options.method === 'GET' && options.credentials === 'omit'), true);
+  h.feed.stop();
+});
+test('failed revision-gap recovery keeps the last verified snapshot stale and retries with bounded backoff', async () => {
+  let reads = 0;
+  const h = harness(async () => ++reads === 1 ? Response.json(snapshot()) : Response.json({}, {status: 503}));
+  await h.feed.start(); h.sources[0].emit('heartbeat', {revision: 2});
+  await h.timer(1000);
+  assert.equal(h.feed.snapshot().revision, 1); assert.equal(h.received.length, 1);
+  assert.equal(h.statuses.at(-1).phase, 'reconnecting');
+  assert.equal(h.statuses.at(-1).code, 'MARKET_SOURCE_UNAVAILABLE');
+  assert.ok([...h.timers.values()].some(value => value.ms === 2000));
+  h.feed.stop(); assert.equal(h.timers.size, 0);
+});
 test('micro-unit display does not round large order notional through floating point', () => {
   assert.equal(formatMicro(999_999_999_999_999_999n), '999,999,999,999.999999');
   assert.equal(formatMicro(1), '0.000001'); assert.equal(formatMicro(2_000_000), '2.00');

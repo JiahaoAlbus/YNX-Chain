@@ -83,7 +83,14 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       stream.addEventListener('reconciled', receive);
       stream.addEventListener('heartbeat', event => {
         if (token !== epoch || stopped) return;
-        try { const body = JSON.parse(event.data); if (!integer(body.revision) || body.revision < snapshot.revision) throw invalid(); armWatchdog(token); }
+        try {
+          const body = JSON.parse(event.data);
+          if (!integer(body.revision) || body.revision < snapshot.revision) throw invalid();
+          // A heartbeat carries no depth/trades. A newer revision means the
+          // full reconciliation was missed; never promote cached data to live.
+          if (body.revision > snapshot.revision) { reconnect('MARKET_REVISION_GAP'); return; }
+          armWatchdog(token);
+        }
         catch { reconnect('MARKET_DATA_INVALID'); }
       });
       stream.addEventListener('source-unavailable', () => { if (token === epoch) reconnect('MARKET_SOURCE_UNAVAILABLE'); });
