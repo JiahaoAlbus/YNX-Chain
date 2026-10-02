@@ -43,6 +43,7 @@ export class RestrictedMoments {
         semantic.owner!==expected.owner || semantic.revision!==expected.revision || semantic.audience!==expected.kind)
       deny('Verified parent event is unavailable; comment remains blocked');
   }
+  /** @param {{audience: object, text: string, transactionId: string, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
   async publish({audience,text,transactionId,parent=null}) {
     const expected=snapshot(audience),operation=this.transport.capture();
     if (typeof text!=='string' || !text.trim() || text.length>16000 ||

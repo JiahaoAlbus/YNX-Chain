@@ -5,7 +5,11 @@ an injected live audience authority and the existing MatrixSocialTransport.
 No audience endpoint, consent scope, Matrix user or cryptographic primitive
 is created by this checkpoint. It is not yet wired into the product UI.
 
-Local policy regression: 83 tests pass, zero skipped; typecheck passes.
+Local policy regression: 83 tests pass, zero skipped. The first comment-enabled
+typecheck failed TS2322 because JS inferred parent as null-only. The initial
+checkpoint incorrectly recorded typecheck as passing before awaiting its exit.
+This successor adds explicit parent parameter typing; final validation results
+are reported separately and the original failure is not erased.
 Seven new cases use synthetic transport and authorization callbacks, not real
 homeserver encryption. They test metadata-only publication receipt, stale
 revision, account stop, uncertain delivery, concurrent preparation, forged
