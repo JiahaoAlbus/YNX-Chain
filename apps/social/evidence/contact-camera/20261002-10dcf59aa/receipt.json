@@ -1,0 +1,87 @@
+{
+  "schema": "ynx-social-contact-camera-browser/v1",
+  "checks": [
+    {
+      "width": 320,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true
+    },
+    {
+      "width": 320,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 320,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 320,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true
+    },
+    {
+      "width": 390,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true
+    },
+    {
+      "width": 390,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 390,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 390,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true
+    },
+    {
+      "width": 1280,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true
+    },
+    {
+      "width": 1280,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 1280,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 1280,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true
+    }
+  ],
+  "consoleErrors": [],
+  "sourceSha256": {
+    "/contact-camera.mjs": "479ab6eb01fa036f5e012d9731c1dfac8e5720ca4f1e217725ed2bfb584307dd",
+    "/contact-review.mjs": "69e6d82e6d908f233a7d2331b2fbe3eaeade8f7c20609f188227cd17ff4bbb08",
+    "/workspace.css": "68da5cbae8a5c3edfce56cd5d6b4c3410d71e21459640b062c0489fd606f7478"
+  },
+  "syntheticCamera": true,
+  "hardwareScanVerified": false,
+  "fullProductFlowVerified": false,
+  "publicRuntimeVerified": false
+}
