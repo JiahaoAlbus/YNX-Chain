@@ -45,7 +45,7 @@ func (a CentralProductSessionAuth) accountV2(r *http.Request) (string, error) {
 	}
 	rawProof, err := base64.RawURLEncoding.DecodeString(encoded)
 	var claimed videoSessionV2
-	if err != nil || json.Unmarshal(rawProof, &claimed) != nil || !validVideoV2WebBinding(claimed) {
+	if err != nil || json.Unmarshal(rawProof, &claimed) != nil || !validVideoV2Binding(claimed) {
 		return "", fmt.Errorf("%w: invalid Product Session v2 product binding", ErrUnauthorized)
 	}
 	if origin := r.Header.Get("Origin"); origin != "" && origin != claimed.Origin {
@@ -96,7 +96,9 @@ func (a CentralProductSessionAuth) accountV2(r *http.Request) (string, error) {
 		return "", ErrUnauthorized
 	}
 	session := envelope.Result.Session
-	if !validVideoV2WebBinding(session) || session.ChainID != "ynx_6423-1" || session.Platform != "web" || session.SessionBinding == "" ||
+	if !validVideoV2Binding(session) || session.SessionBinding == "" || session.Platform != claimed.Platform || session.ApplicationID != claimed.ApplicationID ||
+		session.ClientID != claimed.ClientID || session.Origin != claimed.Origin || session.Callback != claimed.Callback ||
+		!sameVideoV2Optional(session.BundleID, claimed.BundleID) || !sameVideoV2Optional(session.PackageID, claimed.PackageID) ||
 		session.SessionBinding != claimed.SessionBinding || session.ProductID != claimed.ProductID || session.Account != claimed.Account ||
 		session.DeviceID != claimed.DeviceID || session.DeviceKey != claimed.DeviceKey || !contains(session.Scopes, scope) {
 		return "", fmt.Errorf("%w: Product Session v2 returned binding mismatch", ErrUnauthorized)
@@ -112,17 +114,45 @@ func (a CentralProductSessionAuth) accountV2(r *http.Request) (string, error) {
 	return account, nil
 }
 
-func validVideoV2WebBinding(s videoSessionV2) bool {
-	if s.Version != "2" || s.BundleID != nil || s.PackageID != nil {
+// Exact product/platform tuples come from the canonical registry. Device proofs
+// still go through the original Gateway; a platform cannot borrow another tuple.
+func validVideoV2Binding(s videoSessionV2) bool {
+	if s.Version != "2" || s.ChainID != "ynx_6423-1" {
 		return false
 	}
+	var application, client, origin, scheme string
 	switch s.ProductID {
 	case "creator-studio":
-		return s.ClientID == "ynx-creator-studio-web-v1" && s.ApplicationID == "com.ynxweb4.creator-studio.web" && s.Origin == "https://creator.ynxweb4.com" && s.Callback == s.Origin+"/wallet-auth/callback"
+		application = "com.ynxweb4.creator-studio"
+		client = "ynx-creator-studio-web-v1"
+		origin = "https://creator.ynxweb4.com"
+		scheme = "ynxcreator"
 	case "video":
-		return s.ClientID == "ynx-video-mobile-v1" && s.ApplicationID == "com.ynxweb4.video.web" && s.Origin == "https://video.ynxweb4.com" && s.Callback == s.Origin+"/wallet-auth/callback"
+		application = "com.ynxweb4.video"
+		client = "ynx-video-mobile-v1"
+		origin = "https://video.ynxweb4.com"
+		scheme = "ynxvideo"
+	default:
+		return false
+	}
+	if s.ClientID != client {
+		return false
+	}
+	switch s.Platform {
+	case "web":
+		return s.ApplicationID == application+".web" && s.BundleID == nil && s.PackageID == nil && s.Origin == origin && s.Callback == origin+"/wallet-auth/callback"
+	case "android":
+		return s.ApplicationID == application && s.BundleID == nil && s.PackageID != nil && *s.PackageID == application && s.Origin == "app://android/"+application && s.Callback == scheme+"://wallet-auth/callback"
+	case "macos":
+		return s.ApplicationID == application && s.PackageID == nil && s.BundleID != nil && *s.BundleID == application && s.Origin == "app://macos/"+application && s.Callback == scheme+"://wallet-auth/callback"
 	}
 	return false
+}
+func sameVideoV2Optional(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }
 
 func videoProductScopeV2(product, method, path string) string {

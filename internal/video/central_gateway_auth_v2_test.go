@@ -179,3 +179,80 @@ func TestVideoV2RejectsCreatorAndUnsupportedRoutesBeforeGateway(t *testing.T) {
 		})
 	}
 }
+
+func TestMediaV2ExactNativeBindingsAndCrossPlatformReturnedAuthority(t *testing.T) {
+	for _, product := range []string{"video", "creator-studio"} {
+		for _, platform := range []string{"android", "macos"} {
+			t.Run(product+"/"+platform, func(t *testing.T) {
+				claimed := creatorV2Fixture()
+				claimed.ProductID = product
+				claimed.Platform = platform
+				application, scheme := "com.ynxweb4.creator-studio", "ynxcreator"
+				route := "/v1/studio"
+				claimed.Scopes = []string{"creator:account"}
+				if product == "video" {
+					application = "com.ynxweb4.video"
+					scheme = "ynxvideo"
+					claimed.ClientID = "ynx-video-mobile-v1"
+					route = "/v1/history"
+					claimed.Scopes = []string{"video:library"}
+				}
+				claimed.ApplicationID = application
+				claimed.Origin = "app://" + platform + "/" + application
+				claimed.Callback = scheme + "://wallet-auth/callback"
+				if platform == "android" {
+					claimed.PackageID = &application
+				} else {
+					claimed.BundleID = &application
+				}
+				if !validVideoV2Binding(claimed) {
+					t.Fatal("canonical tuple rejected")
+				}
+				tampered := claimed
+				wrong := "com.ynxweb4.other"
+				if platform == "android" {
+					tampered.PackageID = &wrong
+				} else {
+					tampered.BundleID = &wrong
+				}
+				if validVideoV2Binding(tampered) {
+					t.Fatal("cross product native package accepted")
+				}
+				for _, swap := range []bool{false, true} {
+					gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						if r.Header.Get("Origin") != claimed.Origin {
+							t.Error("native proof origin changed")
+						}
+						returned := claimed
+						if swap {
+							if platform == "android" {
+								returned.Platform = "macos"
+								returned.PackageID = nil
+								returned.BundleID = &application
+							} else {
+								returned.Platform = "android"
+								returned.BundleID = nil
+								returned.PackageID = &application
+							}
+							returned.Origin = "app://" + returned.Platform + "/" + application
+						}
+						id := r.Header.Get("X-Request-ID")
+						w.Header().Set("X-Request-ID", id)
+						_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "schemaVersion": 2, "requestId": id, "result": map[string]any{"active": true, "session": returned}})
+					}))
+					r := httptest.NewRequest("GET", route, nil)
+					r.Header.Set(productSessionProofV2Header, encodedV2Fixture(claimed))
+					r.Header.Set("Origin", claimed.Origin)
+					account, err := (CentralProductSessionAuth{GatewayURL: gateway.URL, Client: gateway.Client()}).Account(r)
+					gateway.Close()
+					if swap && err == nil {
+						t.Fatal("a different valid platform tuple substituted the claimed authority")
+					}
+					if !swap && (err != nil || account != gatewayTestAccount) {
+						t.Fatalf("canonical native proof failed: %v", err)
+					}
+				}
+			})
+		}
+	}
+}
