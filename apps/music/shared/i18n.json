@@ -62,7 +62,7 @@
       "ai_enabled": "Enable explainable AI organization",
       "ai_explanation": "AI uses only selected owned or favorite tracks, shows provider, model, context and estimate, and never publishes or pays automatically. Disable at any time.",
       "clear_private_data": "Clear private Music data",
-      "clear_confirm": "Delete local session, queue, favorites, downloads and recovery position from this device?",
+      "clear_confirm": "Clear this account’s local Music cache and sign out? Other accounts and retained upgrade files remain.",
       "delete": "Delete",
       "wallet_unavailable": "YNX Wallet unavailable",
       "auth_rejected": "Wallet authorization rejected or expired",
@@ -70,7 +70,8 @@
       "profile": "Profile",
       "explicit_content": "Allow explicit content",
       "private_history": "Keep listening history private",
-      "ai_output_language": "AI output language"
+      "ai_output_language": "AI output language",
+      "sign_out": "Sign out"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -119,7 +120,7 @@
       "ai_enabled": "启用可解释 AI 整理",
       "ai_explanation": "AI 仅使用选定的自有或收藏曲目，显示提供商、模型、上下文和估算，绝不自动发布或支付。可随时关闭。",
       "clear_private_data": "清除私有音乐数据",
-      "clear_confirm": "删除本设备的会话、队列、收藏、下载和恢复位置？",
+      "clear_confirm": "清除此账号的 Music 本地缓存并退出登录？其他账号和升级时保留的原始文件会保留。",
       "delete": "删除",
       "wallet_unavailable": "YNX 钱包不可用",
       "auth_rejected": "钱包授权被拒绝或已过期",
@@ -127,7 +128,8 @@
       "profile": "个人资料",
       "explicit_content": "允许露骨内容",
       "private_history": "保持收听历史私密",
-      "ai_output_language": "AI 输出语言"
+      "ai_output_language": "AI 输出语言",
+      "sign_out": "退出登录"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -176,7 +178,7 @@
       "ai_enabled": "啟用可解釋 AI 整理",
       "ai_explanation": "AI 僅使用選定的自有或收藏曲目，顯示供應商、模型、內容與估算，絕不自動發布或付款。可隨時關閉。",
       "clear_private_data": "清除私人音樂資料",
-      "clear_confirm": "刪除本裝置的工作階段、佇列、收藏、下載與恢復位置？",
+      "clear_confirm": "清除此帳號的 Music 本機快取並登出？其他帳號和升級時保留的原始檔案會保留。",
       "delete": "刪除",
       "wallet_unavailable": "YNX 錢包不可用",
       "auth_rejected": "錢包授權遭拒或已過期",
@@ -184,7 +186,8 @@
       "profile": "個人資料",
       "explicit_content": "允許露骨內容",
       "private_history": "保持收聽記錄私密",
-      "ai_output_language": "AI 輸出語言"
+      "ai_output_language": "AI 輸出語言",
+      "sign_out": "登出"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -233,7 +236,7 @@
       "ai_enabled": "説明可能な AI 整理を有効化",
       "ai_explanation": "AI は選択した所有・お気に入り曲だけを使い、提供元、モデル、文脈、見積りを表示します。自動公開や支払いはせず、いつでも無効化できます。",
       "clear_private_data": "非公開 Music データを消去",
-      "clear_confirm": "この端末のセッション、キュー、お気に入り、ダウンロード、再開位置を削除しますか？",
+      "clear_confirm": "このアカウントの Music ローカルキャッシュを削除してサインアウトしますか？他のアカウントとアップグレード時に保持したファイルは残ります。",
       "delete": "削除",
       "wallet_unavailable": "YNX Wallet を利用できません",
       "auth_rejected": "Wallet 認証が拒否または期限切れです",
@@ -241,7 +244,8 @@
       "profile": "プロフィール",
       "explicit_content": "露骨なコンテンツを許可",
       "private_history": "再生履歴を非公開にする",
-      "ai_output_language": "AI 出力言語"
+      "ai_output_language": "AI 出力言語",
+      "sign_out": "サインアウト"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -290,7 +294,7 @@
       "ai_enabled": "설명 가능한 AI 정리 사용",
       "ai_explanation": "AI는 선택한 소유·즐겨찾기 곡만 사용하고 제공자, 모델, 컨텍스트와 추정치를 표시합니다. 자동 게시나 지급을 하지 않으며 언제든 끌 수 있습니다.",
       "clear_private_data": "비공개 Music 데이터 삭제",
-      "clear_confirm": "이 기기의 세션, 대기열, 즐겨찾기, 다운로드와 재개 위치를 삭제할까요?",
+      "clear_confirm": "이 계정의 Music 로컬 캐시를 지우고 로그아웃할까요? 다른 계정과 업그레이드 시 보존한 파일은 유지됩니다.",
       "delete": "삭제",
       "wallet_unavailable": "YNX Wallet 사용 불가",
       "auth_rejected": "Wallet 인증이 거부되었거나 만료됨",
@@ -298,7 +302,8 @@
       "profile": "프로필",
       "explicit_content": "명시적 콘텐츠 허용",
       "private_history": "감상 기록 비공개 유지",
-      "ai_output_language": "AI 출력 언어"
+      "ai_output_language": "AI 출력 언어",
+      "sign_out": "로그아웃"
     },
     "es": {
       "app_name": "YNX Music",
@@ -347,7 +352,7 @@
       "ai_enabled": "Activar organización explicable con IA",
       "ai_explanation": "La IA usa solo pistas propias o favoritas seleccionadas y muestra proveedor, modelo, contexto y estimación. Nunca publica ni paga automáticamente y se puede desactivar.",
       "clear_private_data": "Borrar datos privados de Music",
-      "clear_confirm": "¿Eliminar sesión, cola, favoritos, descargas y posición de este dispositivo?",
+      "clear_confirm": "¿Borrar la caché local de Music de esta cuenta y cerrar sesión? Las otras cuentas y los archivos conservados de la actualización permanecerán.",
       "delete": "Eliminar",
       "wallet_unavailable": "YNX Wallet no disponible",
       "auth_rejected": "Autorización Wallet rechazada o caducada",
@@ -355,7 +360,8 @@
       "profile": "Perfil",
       "explicit_content": "Permitir contenido explícito",
       "private_history": "Mantener privado el historial",
-      "ai_output_language": "Idioma de salida de IA"
+      "ai_output_language": "Idioma de salida de IA",
+      "sign_out": "Cerrar sesión"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -404,7 +410,7 @@
       "ai_enabled": "Activer l’organisation IA explicable",
       "ai_explanation": "L’IA utilise seulement les titres détenus ou favoris sélectionnés et affiche fournisseur, modèle, contexte et estimation. Elle ne publie ni ne paie automatiquement et peut être désactivée.",
       "clear_private_data": "Effacer les données privées Music",
-      "clear_confirm": "Supprimer session, file, favoris, téléchargements et position de cet appareil ?",
+      "clear_confirm": "Effacer le cache Music local de ce compte et se déconnecter ? Les autres comptes et les fichiers conservés de la mise à niveau resteront.",
       "delete": "Supprimer",
       "wallet_unavailable": "YNX Wallet indisponible",
       "auth_rejected": "Autorisation Wallet refusée ou expirée",
@@ -412,7 +418,8 @@
       "profile": "Profil",
       "explicit_content": "Autoriser le contenu explicite",
       "private_history": "Garder l’historique privé",
-      "ai_output_language": "Langue de sortie IA"
+      "ai_output_language": "Langue de sortie IA",
+      "sign_out": "Se déconnecter"
     },
     "de": {
       "app_name": "YNX Music",
@@ -461,7 +468,7 @@
       "ai_enabled": "Erklärbare KI-Organisation aktivieren",
       "ai_explanation": "KI nutzt nur ausgewählte eigene oder favorisierte Titel und zeigt Anbieter, Modell, Kontext und Schätzung. Sie veröffentlicht oder zahlt nie automatisch und ist abschaltbar.",
       "clear_private_data": "Private Music-Daten löschen",
-      "clear_confirm": "Sitzung, Warteschlange, Favoriten, Downloads und Position auf diesem Gerät löschen?",
+      "clear_confirm": "Lokalen Music-Cache dieses Kontos löschen und abmelden? Andere Konten und aufbewahrte Upgrade-Dateien bleiben erhalten.",
       "delete": "Löschen",
       "wallet_unavailable": "YNX Wallet nicht verfügbar",
       "auth_rejected": "Wallet-Autorisierung abgelehnt oder abgelaufen",
@@ -469,7 +476,8 @@
       "profile": "Profil",
       "explicit_content": "Explizite Inhalte erlauben",
       "private_history": "Hörverlauf privat halten",
-      "ai_output_language": "KI-Ausgabesprache"
+      "ai_output_language": "KI-Ausgabesprache",
+      "sign_out": "Abmelden"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -518,7 +526,7 @@
       "ai_enabled": "Ativar organização explicável por IA",
       "ai_explanation": "A IA usa apenas faixas próprias ou favoritas selecionadas e mostra fornecedor, modelo, contexto e estimativa. Nunca publica nem paga automaticamente e pode ser desativada.",
       "clear_private_data": "Limpar dados privados Music",
-      "clear_confirm": "Eliminar sessão, fila, favoritos, transferências e posição deste dispositivo?",
+      "clear_confirm": "Limpar a cache local do Music desta conta e terminar sessão? As outras contas e os ficheiros preservados da atualização permanecerão.",
       "delete": "Eliminar",
       "wallet_unavailable": "YNX Wallet indisponível",
       "auth_rejected": "Autorização Wallet rejeitada ou expirada",
@@ -526,7 +534,8 @@
       "profile": "Perfil",
       "explicit_content": "Permitir conteúdo explícito",
       "private_history": "Manter histórico privado",
-      "ai_output_language": "Idioma de saída da IA"
+      "ai_output_language": "Idioma de saída da IA",
+      "sign_out": "Terminar sessão"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -575,7 +584,7 @@
       "ai_enabled": "Включить объяснимую организацию ИИ",
       "ai_explanation": "ИИ использует только выбранные собственные или избранные треки и показывает поставщика, модель, контекст и оценку. Он не публикует и не платит автоматически; его можно отключить.",
       "clear_private_data": "Удалить личные данные Music",
-      "clear_confirm": "Удалить с устройства сеанс, очередь, избранное, загрузки и позицию?",
+      "clear_confirm": "Очистить локальный кеш Music этого аккаунта и выйти? Другие аккаунты и сохранённые файлы обновления останутся.",
       "delete": "Удалить",
       "wallet_unavailable": "YNX Wallet недоступен",
       "auth_rejected": "Авторизация Wallet отклонена или истекла",
@@ -583,7 +592,8 @@
       "profile": "Профиль",
       "explicit_content": "Разрешить откровенный контент",
       "private_history": "Сохранять историю приватной",
-      "ai_output_language": "Язык ответа ИИ"
+      "ai_output_language": "Язык ответа ИИ",
+      "sign_out": "Выйти"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -632,7 +642,7 @@
       "ai_enabled": "تفعيل تنظيم الذكاء الاصطناعي القابل للتفسير",
       "ai_explanation": "يستخدم الذكاء الاصطناعي المقاطع المحددة المملوكة أو المفضلة فقط ويعرض المزود والنموذج والسياق والتقدير. لا ينشر أو يدفع تلقائيا ويمكن تعطيله.",
       "clear_private_data": "مسح بيانات Music الخاصة",
-      "clear_confirm": "حذف الجلسة والقائمة والمفضلة والتنزيلات وموضع الاستئناف من هذا الجهاز؟",
+      "clear_confirm": "هل تريد مسح ذاكرة Music المحلية لهذا الحساب وتسجيل الخروج؟ ستبقى الحسابات الأخرى وملفات الترقية المحفوظة.",
       "delete": "حذف",
       "wallet_unavailable": "محفظة YNX غير متاحة",
       "auth_rejected": "تم رفض تفويض المحفظة أو انتهت صلاحيته",
@@ -640,7 +650,8 @@
       "profile": "الملف الشخصي",
       "explicit_content": "السماح بالمحتوى الصريح",
       "private_history": "إبقاء سجل الاستماع خاصًا",
-      "ai_output_language": "لغة مخرجات الذكاء الاصطناعي"
+      "ai_output_language": "لغة مخرجات الذكاء الاصطناعي",
+      "sign_out": "تسجيل الخروج"
     },
     "id": {
       "app_name": "YNX Music",
@@ -689,7 +700,7 @@
       "ai_enabled": "Aktifkan penataan AI yang dapat dijelaskan",
       "ai_explanation": "AI hanya memakai trek milik atau favorit yang dipilih dan menampilkan penyedia, model, konteks, serta estimasi. AI tidak menerbitkan atau membayar otomatis dan dapat dimatikan.",
       "clear_private_data": "Hapus data pribadi Music",
-      "clear_confirm": "Hapus sesi, antrean, favorit, unduhan, dan posisi lanjut dari perangkat ini?",
+      "clear_confirm": "Hapus cache Music lokal akun ini dan keluar? Akun lain dan berkas peningkatan yang disimpan tetap ada.",
       "delete": "Hapus",
       "wallet_unavailable": "YNX Wallet tidak tersedia",
       "auth_rejected": "Otorisasi Wallet ditolak atau kedaluwarsa",
@@ -697,7 +708,8 @@
       "profile": "Profil",
       "explicit_content": "Izinkan konten eksplisit",
       "private_history": "Simpan riwayat secara privat",
-      "ai_output_language": "Bahasa keluaran AI"
+      "ai_output_language": "Bahasa keluaran AI",
+      "sign_out": "Keluar"
     }
   }
 }
