@@ -31,6 +31,7 @@ type ContactRequestView struct {
 	Direction string     `json:"direction"`
 	Status    string     `json:"status"`
 	Source    string     `json:"source"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 type ContactsView struct {
 	Contacts []PersonView         `json:"contacts"`
@@ -137,7 +138,7 @@ func (s *Service) ContractContacts(actor Session) (ContactsView, error) {
 		if err != nil {
 			return ContactsView{}, err
 		}
-		out.Requests = append(out.Requests, ContactRequestView{ID: request.ID, Person: person, Direction: direction, Status: request.Status, Source: request.Source})
+		out.Requests = append(out.Requests, ContactRequestView{ID: request.ID, Person: person, Direction: direction, Status: request.Status, Source: request.Source, ExpiresAt: request.ExpiresAt})
 	}
 	sort.Slice(out.Contacts, func(i, j int) bool { return out.Contacts[i].Handle < out.Contacts[j].Handle })
 	return out, nil

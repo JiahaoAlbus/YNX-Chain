@@ -133,6 +133,10 @@ type discoveryInput struct {
 	Source         string `json:"source"`
 	Value          string `json:"value"`
 }
+type contactRequestDiscoveryInput struct {
+	discoveryInput
+	ExpectedAccount string `json:"expectedAccount,omitempty"`
+}
 type transitionInput struct {
 	Action string `json:"action"`
 	Output string `json:"output,omitempty"`
@@ -490,11 +494,21 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			writeJSON(w, 200, map[string]any{"record": record})
 		}
+	case path == "contacts/preview" && r.Method == http.MethodPost:
+		var in discoveryInput
+		if !decodeRequest(w, r, &in, 16*1024) {
+			return
+		}
+		var person PersonView
+		person, err = s.service.PreviewContact(actor, s.resolver, in.Source, in.Value)
+		if err == nil {
+			writeJSON(w, 200, map[string]any{"person": person})
+		}
 	case path == "contact-requests" && r.Method == http.MethodGet:
 		writeJSON(w, 200, map[string]any{"requests": s.service.Requests(actor)})
 		return
 	case path == "contact-requests" && r.Method == http.MethodPost:
-		var in discoveryInput
+		var in contactRequestDiscoveryInput
 		if !decodeRequest(w, r, &in, 16*1024) {
 			return
 		}
@@ -504,6 +518,9 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		}
 		var target string
 		target, err = s.resolver.ResolveDiscovery(in.Source, in.Value)
+		if err == nil && in.ExpectedAccount != "" && in.ExpectedAccount != target {
+			err = ErrConflict
+		}
 		if err == nil {
 			var record ContactRequest
 			var replay bool
