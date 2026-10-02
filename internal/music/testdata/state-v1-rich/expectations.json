@@ -1,0 +1,21 @@
+{
+  "allocationId": "alloc_7d4cb9f0f16e475b7f279f46",
+  "artworkName": "trk_f4569b7cc0e40ee2c3ecf8c3.art",
+  "audioName": "trk_f4569b7cc0e40ee2c3ecf8c3.wav",
+  "auditEvents": 11,
+  "caseEvidenceRef": "fixture-evidence",
+  "caseId": "case_5a40eb03bd67d8a2c42cf1a9",
+  "caseKind": "report",
+  "caseReason": "Fixture report reason",
+  "creator": "ynx1xvenxvenxvenxvenxvenxvenxvenxven877vg5",
+  "historyEntries": 1,
+  "listener": "ynx1g3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyc3knw6",
+  "payIdempotencyKey": "golden-pay-key",
+  "playlistId": "pl_4d4fe09f64f1db03f8bd78ab",
+  "positionMillis": 1400,
+  "settlementId": "pay_001d2760708b518f8aec7e44",
+  "settlementPayTo": "ynx1xvenxvenxvenxvenxvenxvenxvenxven877vg5",
+  "trackId": "trk_f4569b7cc0e40ee2c3ecf8c3",
+  "trustIdempotencyKey": "golden-trust-key",
+  "usageId": "use_c7496f402454313194004325"
+}

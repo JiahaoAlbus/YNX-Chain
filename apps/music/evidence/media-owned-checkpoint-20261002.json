@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "goalComplete": false,
+  "sourceInheritance": {
+    "music": "df0bd07667d33dbf97635b881033db65129c32c6",
+    "musicCompatibilityBase": "09b658b02d43558ecc1763e24dbcd4930d6d65b9",
+    "originalDirtyDelta": [
+      "apps/music/cmd/ynx-musicd/main.go",
+      "internal/music/backup.go",
+      "internal/music/compatibility.go",
+      "internal/music/compatibility_test.go"
+    ],
+    "originalWorktreesModified": false,
+    "videoWebCheckpoint": "c77c633f1f4d3e9fc2f0d2a64ada09a293632e76"
+  },
+  "verified": {
+    "goServiceTests": true,
+    "goRaceVideoAndMusic": true,
+    "musicEmbeddedWeb": true,
+    "standardWalletBoundaryTests": 4,
+    "android35ResourcesCompiled": true,
+    "androidJava17Compiled": true,
+    "hostStoreFixture": true,
+    "realLocalBrowserCrossTabCases": 2,
+    "localBrowserResponsiveCases": 4
+  },
+  "notVerified": {
+    "installedAndroid": true,
+    "macOSPackage": true,
+    "realPublicOwnMediaWorkflow": true,
+    "canonicalMusicV2": true,
+    "businessBodyProof": true,
+    "formalRelease": true,
+    "MONSTER": true
+  },
+  "openDependencies": [
+    "A canonical Music v2 tuple/scopes/SDK and normal service configuration",
+    "A mature generic business proof binding method/path/bodyDigest/nonce/session to each Media operation",
+    "A unique compatible formal package/deployment, followed by final public/installed retest"
+  ],
+  "scope": "Source and isolated engineering evidence only; no user data, Wallet credentials or public services changed"
+}

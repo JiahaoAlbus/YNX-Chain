@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/1",
+  "productId": "ynx-music",
+  "name": "YNX Music",
+  "aliases": ["YNX Music App", "YNX Testnet Music"],
+  "canonicalRoute": "/music",
+  "title": "YNX Music — Lawful Testnet Streaming and Creator Publishing",
+  "metaDescription": "Explore a rights-aware YNX Music testnet for lawful audio playback, private libraries, creator drafts, evidence-backed publishing and review-only payment and dispute flows.",
+  "h1": "Music with verifiable rights and honest settlement status",
+  "summary": "YNX Music is an independent listener and creator application. It separates private drafts from the public catalog, records rights evidence for every upload, streams authorized media with Range support and keeps payments, Trust cases and AI actions behind explicit review boundaries.",
+  "websitePublished": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
+  "statusLabel": "Local testnet candidate; central integration and public deployment are not verified",
+  "features": [
+    "Wallet-bound listener and creator sessions",
+    "Discover, search, private library, favorites, queue and playback progress",
+    "HTTP Range playback and private offline-cache candidate",
+    "Creator onboarding, owned or licensed source upload and private drafts",
+    "Rights declaration, provenance, evidence reference and territory fields",
+    "Review-only YNX Pay settlement intents and YNX Trust dispute adapters",
+    "Consent-based AI playlist proposals with approve or reject controls",
+    "Schema-v1 to v2 migration with verified state-and-media backup and clean restore",
+    "Twelve interface languages with Arabic right-to-left support"
+  ],
+  "truthBoundaries": [
+    "No commercial catalog is bundled or claimed.",
+    "Only owned, licensed, public-domain or clearly test-only audio may be used.",
+    "A completed local play is not a paid royalty event.",
+    "Settlement intents remain requires-wallet-review until canonical Pay and Billing evidence exists.",
+    "No fake listeners, play counts, royalties, income guarantees or production signatures are claimed."
+  ],
+  "platforms": {
+    "web": "implemented-and-tested-locally",
+    "android": "exact-sha-ci-built-not-physical-device-install-verified",
+    "ios": "exact-sha-ci-simulator-build-install-cold-start-and-restart-verified",
+    "macos": "not-yet-delivered",
+    "windows": "not-yet-delivered"
+  },
+  "screenshots": [
+    {
+      "path": "evidence/screenshots/web/desktop-light-1440x900.png",
+      "surface": "web",
+      "viewport": "1440x900",
+      "theme": "light"
+    },
+    {
+      "path": "evidence/screenshots/web/desktop-dark-1440x900.png",
+      "surface": "web",
+      "viewport": "1440x900",
+      "theme": "dark"
+    },
+    {
+      "path": "evidence/screenshots/web/mobile-light-390x844.png",
+      "surface": "web",
+      "viewport": "390x844",
+      "theme": "light"
+    },
+    {
+      "path": "evidence/screenshots/android/arabic-rtl-1080x2400.png",
+      "surface": "android",
+      "viewport": "1080x2400",
+      "theme": "rtl"
+    }
+  ],
+  "downloads": [],
+  "urls": {
+    "runtime": null,
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "faq": [
+    {
+      "question": "Does YNX Music include commercial songs?",
+      "answer": "No. The current testnet package does not claim a commercial catalog. Testing is limited to repository-generated tones or media with direct ownership, license or public-domain evidence."
+    },
+    {
+      "question": "Does a stream automatically create a royalty?",
+      "answer": "No. Playback usage and revenue evidence are separate. A creator settlement remains review-only until canonical Pay and Billing Ledger evidence is accepted."
+    },
+    {
+      "question": "Can AI publish music or move creator funds?",
+      "answer": "No. AI may organize playlists, draft metadata or explain recommendations, but users must review actions and AI cannot publish, delete, sign, pay or accept rights."
+    },
+    {
+      "question": "Are Android and iOS downloads available?",
+      "answer": "Not yet. Exact-source Android and iOS Simulator CI builds pass, but artifacts are not immutably hosted, Android has no physical-device installation evidence, and neither platform is production-signed."
+    },
+    {
+      "question": "Is YNX Music deployed publicly?",
+      "answer": "No verified public runtime or website publication is claimed for the current source commit."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "isAccessibleForFree": true,
+    "softwareVersion": "0.3.0-testnet",
+    "offers": null,
+    "aggregateRating": null
+  },
+  "websiteIntegration": {
+    "owner": "YNX Website",
+    "requiredActions": [
+      "Render the canonical /music page from this metadata without changing release truth.",
+      "Keep website publication separate from public runtime deployment and hosted downloads.",
+      "Add JSON-LD, sitemap, canonical, Open Graph and search-engine submission only after review.",
+      "Do not publish null support, privacy, security or status URLs as links."
+    ]
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "ynx-p0-product-evidence/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-076",
+  "productId": "ynx-music",
+  "owner": "integration",
+  "generatedAt": "2026-08-20T22:56:36Z",
+  "sourceCommit": "b7d989c892ec22eb5b893f8ee54ce6f09897590d",
+  "sourceBranch": "codex/p0-music-wallet-connectivity-20260821",
+  "contractsConsumed": {
+    "dappConnectSDK": {
+      "status": "ACCEPTED_SOURCE_ONLY",
+      "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "distribution": "byte-identical browser-safe source",
+      "manifest": "apps/music/web/ynx-dapp-connect-sdk/manifest.json"
+    },
+    "standardWalletConnection": {
+      "status": "SOURCE_CONSUMED",
+      "transports": ["EIP-1193", "EIP-6963"],
+      "chainId": "0x1917",
+      "accountShape": "0x EVM account only"
+    },
+    "productSessionV2": {
+      "status": "NOT_CONSUMED",
+      "privateServiceState": "PRIVATE_SERVICE_DEGRADED"
+    }
+  },
+  "userFlows": {
+    "guestPublicCatalog": true,
+    "ynxWalletPreferred": true,
+    "metaMaskExplicitFallback": true,
+    "officialYNXWalletDownload": "https://www.ynxweb4.com/dapp/download#wallet",
+    "walletMissingShowsInstallChoice": true,
+    "walletRejectionCreatesAccount": false,
+    "walletRejectionCreatesProductSession": false,
+    "publicCatalogBlockedByPrivateService": false,
+    "privateLibraryAvailable": false,
+    "privateUploadAvailable": false,
+    "royaltySettlementAvailable": false
+  },
+  "verification": {
+    "unit": {
+      "command": "node --test apps/music/scripts/wallet-connection.test.mjs",
+      "passed": 4,
+      "failed": 0
+    },
+    "go": {
+      "command": "go test ./apps/music/... ./internal/music/...",
+      "passed": true
+    },
+    "coldStart": {
+      "command": "bash apps/music/scripts/smoke.sh",
+      "passed": true,
+      "embeddedWalletModules": true,
+      "privateAuthFailsClosed": true
+    },
+    "browser": {
+      "command": "NODE_PATH=<local-playwright-dependency> node apps/music/scripts/web-playwright.cjs",
+      "passed": true,
+      "browser": "Chromium",
+      "flows": ["desktop-light", "desktop-dark", "mobile-light", "wallet-approved", "wallet-rejected"],
+      "consoleErrors": 0,
+      "computerControl": false
+    },
+    "diffCheck": true
+  },
+  "screenshots": [
+    {"path": "apps/music/evidence/screenshots/web/desktop-dark-1440x900.png", "bytes": 198484, "sha256": "518afcf56410589d309e55d60a14fc494f8c0cca374e643b6fab61f3af7dc3d4"},
+    {"path": "apps/music/evidence/screenshots/web/desktop-light-1440x900.png", "bytes": 238518, "sha256": "f270f0fffc6d93c790045217a7410f8324a4e5228fc230e96f672561a618c9f3"},
+    {"path": "apps/music/evidence/screenshots/web/mobile-light-390x844.png", "bytes": 100575, "sha256": "c4b4d252603bd4702cc6b978e3427b11b264f5a6cb08211410379dbaa8ae332c"},
+    {"path": "apps/music/evidence/screenshots/web/wallet-approved.png", "bytes": 181159, "sha256": "598d14c1625e33e130845b60cba1a0e8071c3d407839f0d1bf556fb5b04bb12f"},
+    {"path": "apps/music/evidence/screenshots/web/wallet-rejected.png", "bytes": 182294, "sha256": "c4fe598ac3c851eda70e5ab799e629295689eb3e8361ac19371c623ea5d0a8bd"}
+  ],
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "standardWalletSourceConsumed": true,
+    "installedWalletVerified": false,
+    "productSessionV2Migrated": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "remainingBlockers": [
+    "Real installed YNX Wallet approval and transaction evidence",
+    "Accepted Product Session v2 runtime migration for private Music services",
+    "Current-source public deployment and official-domain readback",
+    "Final all-products ComputerControl verification"
+  ]
+}
