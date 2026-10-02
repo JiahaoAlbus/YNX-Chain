@@ -271,7 +271,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
     <SecondaryButton label={translate(locale,"audit")} onPress={()=>void openAudit()}/>
     <DangerButton label={translate(locale,"removeAccountFromDevice")} onPress={()=>setRemove(true)}/>
-    <Modal visible={qr} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setQR(false)}><Sheet title="Receive YNXT" close={()=>setQR(false)}><View style={styles.qr}><QRCodeView value={createPaymentURI(selected.account)} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{selected.account}</Text><Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text></Sheet></Modal>
+    {qr?<NativeReceiveModal key={selected.account} account={selected} close={()=>setQR(false)}/>:null}
     <SendModal visible={send} account={selected} scannedRecipient={scanRecipient} close={()=>{setSend(false);setScanRecipient("")}} onSent={()=>void refreshChain()}/>
     {scanning?<WalletScanner locale={locale} accept={acceptScan} close={closeScan}/>:null}
     {invoiceID?<WalletInvoiceReferenceModal account={selected} invoiceID={invoiceID} close={()=>setInvoiceID(null)}/>:null}
@@ -391,6 +391,26 @@ function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];valu
     <Text style={[styles.reviewLabel,{width:"100%",textAlign:isRTL(locale)?"right":"left",writingDirection:isRTL(locale)?"rtl":"ltr"}]}>{walletCopy(locale,label)}</Text>
     <Text selectable style={[styles.reviewValue,{width:"100%",flex:0,textAlign:"left",writingDirection:"ltr"}]}>{value}</Text>
   </View>;
+}
+
+function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>void}){
+  const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
+  const cancelExpiry=useRef<null|(()=>void)>(null);
+  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const uri=createPaymentURI(account.account);
+  const dismiss=()=>{scope.cancel();close()};
+  const copy=async(link:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
+    lease=scope.begin({account:account.account});lease.assert();
+    cancelExpiry.current?.();cancelExpiry.current=await copyPublicValueWithExpiry(Clipboard,link?uri:account.account);lease.assert();
+    setFeedback(c(link?"Receiving link copied for 30 seconds.":"Address copied for 30 seconds.",link?"收款链接已复制，30 秒后自动清除。":"收款地址已复制，30 秒后自动清除。"));
+  }catch{if(!lease||lease.isCurrent())setFeedback(c("Clipboard unavailable. Select and copy the address below.","暂时无法使用剪贴板，请选择并复制下方地址。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Receive YNXT","接收 YNXT")} close={dismiss}>
+    <View style={styles.qr}><QRCodeView value={uri} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{account.account}</Text>
+    <InfoCard title="YNX Testnet · YNXT" body={c("This code and link contain only your public receiving address, network and asset. They do not set an amount or authorize payment. A sender must enter an amount and review the transfer.","二维码和链接仅包含公开收款地址、网络及资产，不包含金额或付款授权。付款方仍须填写金额并核对转账。")}/>
+    <Button label={c("Copy receiving link","复制收款链接")} disabled={busy} onPress={()=>void copy(true)}/><SecondaryButton label={c("Copy receiving address","复制收款地址")} disabled={busy} onPress={()=>void copy(false)}/>
+    {feedback?<Text accessibilityRole="alert" style={styles.sheetText}>{feedback}</Text>:null}<Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text>
+  </Sheet></Modal>;
 }
 
 function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:boolean;account:WalletAccount;scannedRecipient?:string;close:()=>void;onSent:()=>void}){

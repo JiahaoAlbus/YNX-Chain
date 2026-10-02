@@ -4,11 +4,18 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
+import { createReceiveShareUI } from "./receive-share-ui.mjs";
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
   status: document.querySelector("#receive-qr-status"),
   requestCode: account => window.ynxWallet.receiveCode(account),
+});
+const receiveShareUI=createReceiveShareUI({
+  getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount}),
+  requestCode:account=>window.ynxWallet.receiveCode(account),
+  writeClipboard:value=>navigator.clipboard.writeText(value),
+  report:value=>{document.querySelector("#receive-status").textContent=value},
 });
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
@@ -174,6 +181,7 @@ const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   invalidatePaymentInput();
+  receiveShareUI.invalidate();
   if (payload?.ok === false) {
     accountState = null;
     activeAccount = null; transactionHistoryUI.clear();
@@ -181,6 +189,7 @@ function renderAccount(payload) {
     document.querySelector("#receive-address").value = "";
     document.querySelector("#receive-evm-address").value = "";
     document.querySelector("#copy-address").disabled = true;
+    document.querySelector("#copy-receiving-link").disabled = true;
     passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return;
   }
   const status = payload?.ok === true ? payload.value : payload;
@@ -206,6 +215,7 @@ function renderAccount(payload) {
   document.querySelector("#receive-compatibility").open = false;
   document.querySelector("#receive-status").textContent = "";
   document.querySelector("#copy-address").disabled = !status?.ynxAccount;
+  document.querySelector("#copy-receiving-link").disabled = !status?.ynxAccount;
   receiveCodeUI.clear();
   if (document.querySelector("#receive-sheet").open) void receiveCodeUI.refresh(status?.ynxAccount);
   transferReview = null;
@@ -458,6 +468,7 @@ async function refreshAssets() {
   } catch { if (revision === balanceRevision) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
+document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
 document.querySelector("#copy-address").addEventListener("click", async () => {
   const address = accountState?.ynxAccount, selected = activeAccount;
   if (!address || !selected) return;
@@ -608,7 +619,7 @@ document.querySelector("#open-receive").addEventListener("click", () => {
   document.querySelector("#copy-address").focus();
   void receiveCodeUI.refresh(accountState?.ynxAccount);
 });
-document.querySelector("#receive-sheet").addEventListener("close", () => receiveCodeUI.clear());
+document.querySelector("#receive-sheet").addEventListener("close", () => {receiveCodeUI.clear();receiveShareUI.invalidate()});
 document.querySelector("#transfer-review").addEventListener("cancel", event => { event.preventDefault(); void actOnTransfer("reject"); });
 authorization.addEventListener("cancel", event => { event.preventDefault(); void act("reject"); });
 proposalPanel.addEventListener("cancel", event => { event.preventDefault(); void proposalAction("reject"); });
