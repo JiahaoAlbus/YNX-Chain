@@ -7,6 +7,7 @@ import {createChatConfirmation} from './chat-confirmation.mjs';
 import {createChatCopy} from './chat-copy.mjs';
 import {createRestrictedMomentsUI} from './restricted-moments-ui.mjs';
 import {createSocialAudienceHTTPClient} from './audience-client.mjs';
+import {openProtectedMomentDrafts} from './protected-drafts.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -144,6 +145,7 @@ if(root&&!loginCallback){
  root.querySelector('[data-attachment]').onchange=event=>void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const file=event.target.files?.[0];if(!file)return;const bytes=await file.arrayBuffer();guardView(view);await transport.sendAttachment(view.roomId,bytes,{name:file.name,mimeType:file.type||'application/octet-stream'});guardView(view);if(event.target.files?.[0]===file)event.target.value='';await renderMessages()});
  const publishing=createSocialPrivateSession({scopes:SOCIAL_AUDIENCE_SCOPES});
  const audienceHTTP=createSocialAudienceHTTPClient({session:publishing,capture:captureView,guard:guardView,csrfToken:async view=>(await identity(view)).csrfToken});
+ async function draftAccess(view,action){guardView(view);const vault=await openProtectedMomentDrafts({account:view.account,deviceId:view.operation.binding.deviceId});try{guardView(view);return await action(vault,()=>guardView(view))}finally{vault.close()}}
  async function audienceChoices(view){
   if(publishing.current?.status!=='connected')throw new Error('Review and approve publishing permissions first');
   const read=async(path,scope)=>{const proof=await publishing.proof([scope]);guardView(view);const response=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error',headers:{'X-YNX-Product-Session-Proof-V2':proof.proofHeader}});guardView(view);if(!response.ok)throw new Error('Current friends or groups are unavailable; original draft is retained');const result=await response.json();guardView(view);return result};
@@ -152,6 +154,7 @@ if(root&&!loginCallback){
  }
  momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work,
   resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action)=>audienceHTTP.authorize(expected,action),loadSelections:audienceChoices,
+  drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});
  phase('locked');
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error)){sendReady=false;phase('offline')}}).finally(()=>{checkingIdentity=false})},15000);

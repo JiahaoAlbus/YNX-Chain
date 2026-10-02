@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "browser": "headless Chromium",
+  "coldReload": true,
+  "realWebCrypto": true,
+  "realIndexedDB": true,
+  "originalDeviceReused": true,
+  "unknownReplacementDenied": true,
+  "tamperPreserved": true,
+  "syntheticOrigin": true,
+  "productionStateTouched": false
+}

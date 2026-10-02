@@ -8,7 +8,7 @@ import {createSocialAudienceHTTPClient} from '../web/matrix/audience-client.mjs'
 
 // Minimal DOM driver, not installed/browser acceptance. The actual UI handlers,
 // policy consumer and HTTP adapter are used without replacing their methods.
-function fixture(){
+function fixture({drafts=null}:{drafts?:any}={}){
   const nodes:any[]=[];const document:any={createElement:(tag:string)=>{
     const listeners:any={};const node:any={tag,ownerDocument:document,children:[],value:tag==='select'?'contacts':'',disabled:false,textContent:'',attributes:{},append(...children:any[]){this.children.push(...children)},replaceChildren(...children:any[]){this.children=children},setAttribute(key:string,value:string){this.attributes[key]=value},addEventListener(event:string,callback:any){listeners[event]=callback},dispatch(event:string){listeners[event]?.()},get selectedOptions(){return this.children.filter((option:any)=>option.selected)}};nodes.push(node);return node;
   }};
@@ -32,9 +32,9 @@ function fixture(){
     return new Response(JSON.stringify(metadata),{status:200,headers:{'Content-Type':'application/json'}});
   }});
   createRestrictedMomentsUI({container,transport,capture:()=>view,guard:()=>{},identity:async()=>{},work:(action:any)=>{last=Promise.resolve().then(()=>action());return last},resolveAudience:http.resolve,authorize:http.authorize,
-    loadSelections:async()=>({groups:[{id:'group_'+'a'.repeat(24),title:'Original group'}],contacts:[{id:'sp_'+'a'.repeat(32),title:'Accepted friend'}]})});
+    drafts,loadSelections:async()=>({groups:[{id:'group_'+'a'.repeat(24),title:'Original group'}],contacts:[{id:'sp_'+'a'.repeat(32),title:'Accepted friend'}]})});
   const label=(name:string)=>nodes.find(node=>node.attributes['aria-label']===name);
-  return {requests,metadata,input:label('Restricted Moment draft'),file:label('Restricted Moment attachment'),choice:label('Restricted Moment audience'),group:label('Existing group'),people:label('Accepted friends'),review:nodes.find(node=>node.textContent==='Review audience'),form:nodes.find(node=>node.tag==='form'),settle:()=>last,content:()=>content,uploaded:()=>uploaded!,uploads:()=>uploads,tamper:(value:boolean)=>{tamper=value}};
+  return {requests,metadata,client,input:label('Restricted Moment draft'),file:label('Restricted Moment attachment'),choice:label('Restricted Moment audience'),group:label('Existing group'),people:label('Accepted friends'),review:nodes.find(node=>node.textContent==='Review audience'),saveDraft:nodes.find(node=>node.textContent==='Save protected draft'),restoreDraft:nodes.find(node=>node.textContent==='Restore protected draft'),form:nodes.find(node=>node.tag==='form'),settle:()=>last,content:()=>content,uploaded:()=>uploaded!,uploads:()=>uploads,tamper:(value:boolean)=>{tamper=value}};
 }
 test('actual UI to consumer to strict HTTP preserves one intent through review, send and index',async()=>{
   const f=fixture();f.input.value='Original reviewed draft';f.review.onclick();await f.settle();
@@ -71,4 +71,17 @@ test('attachment readback substitution preserves draft and original transaction;
   assert.equal(f.input.value,'Keep original caption');assert.equal(f.requests.some(request=>request.action==='index'),false);assert.equal(f.uploads(),1);
   f.tamper(false);f.form.onsubmit({preventDefault(){}});await f.settle();
   assert.equal(f.uploads(),1);assert.ok(f.requests.slice(1).every(request=>request.transactionId===transaction));assert.equal(f.input.value,'');
+});
+test('actual UI explicitly saves and restores draft without sending or approving a wallet',async()=>{
+  let record:any=null;const drafts={save:async(_view:any,value:any)=>{record=structuredClone(value)},load:async()=>structuredClone(record),clearConfirmed:async()=>{record=null}};
+  const first=fixture({drafts});first.input.value='Protected original text';first.saveDraft.onclick();await first.settle();assert.equal(record.status,'draft');assert.equal(first.requests.length,0);
+  const second=fixture({drafts});second.restoreDraft.onclick();await second.settle();assert.equal(second.input.value,'Protected original text');assert.equal(second.requests.length,0);
+});
+test('UI persists unknown before send and a fresh composer restores only original text transaction',async()=>{
+  let record:any=null;const drafts={save:async(_view:any,value:any)=>{record=structuredClone(value)},load:async()=>structuredClone(record),clearConfirmed:async(_view:any,transaction:string)=>{assert.equal(transaction,record.transactionId);record=null}};
+  const first=fixture({drafts});first.input.value='Original uncertain caption';first.review.onclick();await first.settle();
+  first.client.sendMessage=async()=>{assert.equal(record.status,'delivery-unknown');throw Error('original send response lost')};
+  first.form.onsubmit({preventDefault(){}});await assert.rejects(first.settle(),/response lost/);const transaction=record.transactionId;
+  const second=fixture({drafts});second.restoreDraft.onclick();await second.settle();assert.equal(second.requests[0].action,'read');assert.equal(second.requests[0].transactionId,transaction);assert.equal(second.input.value,'Original uncertain caption');
+  second.form.onsubmit({preventDefault(){}});await second.settle();assert.ok(second.requests.every(request=>request.transactionId===transaction));assert.equal(record,null);assert.equal(second.input.value,'');
 });
