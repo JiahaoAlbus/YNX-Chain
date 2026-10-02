@@ -9,12 +9,14 @@ import { ArrowUpRight, Check, ChevronDown, Copy, Fingerprint, History, KeyRound,
 import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
-  createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
+  evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, type NativeChainState } from "./src/chain/nativeTransfer";
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
+import { WalletPayInvoiceClient } from "./src/chain/walletPayInvoice";
+import { WalletPayFlow } from "./src/state/walletPayFlow";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
@@ -36,6 +38,7 @@ import { financeOrderApprovalCopy } from "./src/i18n/financeOrderApprovalCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { createProductSessionKeyAccess } from "./src/security/productSessionKeyAccess";
+import { prepareNativeTransfer } from "./src/security/prepareNativeTransfer";
 import { CorruptWalletResetController } from "./src/security/corruptWalletReset";
 import { RECOVERY_DISPLAY_MS, WalletOperationLifecycle, type WalletOperationLease } from "./src/security/operationLifecycle";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
@@ -58,6 +61,7 @@ function useWalletOperations(){const value=useContext(WalletOperationsContext);i
 function useOperationScope(visible=true,account?:string){const operations=useWalletOperations(),scope=useMemo(()=>operations.scope(),[operations]);useEffect(()=>operations.subscribe(()=>scope.cancel()),[operations,scope]);useEffect(()=>{if(!visible)scope.cancel();return()=>scope.cancel()},[scope,visible,account]);return scope}
 const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
+const walletPayFlow=new WalletPayFlow(platformSecureStorage,nativeOutbox,new WalletPayInvoiceClient());
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
@@ -386,6 +390,10 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
   let valid=false;try{valid=evmAddressFromYNX(to)!==evmAddressFromYNX(account.account)&&/^\d+$/.test(amount)&&Number.isSafeInteger(Number(amount)+1)&&Number(amount)>0}catch{valid=false}
   const act=async(mode:"new"|"retry"|"done"|"check")=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);const request=Object.freeze({account:account.account,accountPublicKey:account.accountPublicKey,to,amount:Number(amount)});
     try{lease=scope.begin({account:request.account});const activeLease=lease,client=chainClient();let result:NativeTransferOutboxEntry;
+      if(mode==="new"||mode==="done"){
+        const payBinding=await activeLease.step(()=>walletPayFlow.read(request.account));
+        if(payBinding)throw new Error("This account has a retained Pay payment. Complete its invoice review and receipt before starting another transfer.");
+      }
       if(mode==="done"){
         if(!stored)throw new Error("Stored transfer is unavailable");
         result=await nativeOutbox.acknowledge(request.account,stored.hash,activeLease.assert);
@@ -396,14 +404,8 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
         if(!stored)throw new Error("Stored transfer is unavailable");
         result=await nativeOutbox.retry(request.account,stored.hash,client,activeLease.assert,()=>authorizeLocalKeyUse("transaction-retry"));
       }else{
-        result=await nativeOutbox.sendNew(request.account,client,activeLease.assert,async()=>{
-          await activeLease.step(()=>authorizeLocalKeyUse("transaction-sign"));
-          const remote=await activeLease.step(()=>client.account(request.account));
-          if(!Number.isSafeInteger(request.amount+1)||remote.balance<request.amount+1)throw new Error("Insufficient YNXT to cover the reviewed amount and 1 YNXT fee");
-          if(!Number.isSafeInteger(remote.nonce+1))throw new Error("The next account nonce exceeds the supported range");
-          await activeLease.step(()=>client.requireDurabilityCapability());
-          return activeLease.withSecret(()=>repository.accountSecret(request.account,activeLease.assert,{allowLegacyMigration:true}),secret=>{activeLease.assert();const identity=walletIdentity(secret);if(identity.account!==request.account||identity.accountPublicKey!==request.accountPublicKey)throw new Error("Signing account changed after review");return createSignedNativeTransfer({accountSecret:secret,to:request.to,amount:request.amount,nonce:remote.nonce+1})});
-        });
+        result=await nativeOutbox.sendNew(request.account,client,activeLease.assert,
+          ()=>prepareNativeTransfer(request,activeLease,client,repository,()=>authorizeLocalKeyUse("transaction-sign")));
       }
       // The outbox records late network facts even when this screen has closed.
       // A cancelled lease only suppresses UI/callback updates, never that write.
