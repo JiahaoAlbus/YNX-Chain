@@ -1,11 +1,13 @@
-import {MatrixSocialTransport,fetchMatrixBinding,MATRIX_PROTOCOL} from './transport.mjs';
+import {MatrixSocialTransport,MATRIX_PROTOCOL} from './transport.mjs';
+import {fetchMatrixLoginMetadata,createMatrixLoginController,handleMatrixLoginCallback} from './login.mjs';
 import {matrixCryptoStore} from './crypto-store.mjs';
 import {createSocialPrivateSession,SOCIAL_CHAT_SCOPES} from '../private-session.js';
 import {createSsoReauthController} from './sso-reauth.mjs';
 const root=document.getElementById('matrix-social-workspace');
-if(root){
+const loginCallback=handleMatrixLoginCallback();
+if(root&&!loginCallback){
  const status=root.querySelector('[data-status]'),requests=root.querySelector('[data-verification]'),devices=root.querySelector('[data-devices]'),messages=root.querySelector('[data-messages]');
- const label=text=>{status.textContent=text},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,busy=false,reauth,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false;
+ const label=text=>{status.textContent=text},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,busy=false,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false;
  const transport=new MatrixSocialTransport({reauthenticateDevice:input=>reauth.request(input),publish:event=>{if(event.type==='sync')label(["PREPARED","SYNCING"].includes(event.state)?"Private chat connected":"Connection interrupted. Encrypted keys and history are retained.");if(event.type==='devices-changed')label('Device list changed. Verify new devices before sending.');if(event.type==='encrypted-event'&&roomId)void renderMessages()},onVerification:event=>{if(!event.id)return;const view=captureView();guardView(view);let section=[...requests.children].find(node=>node.dataset.id===event.id);if(!section){section=document.createElement('div');section.dataset.id=event.id;requests.append(section)}section.replaceChildren();const text=document.createElement('p');text.textContent=event.sas?.decimal?`Compare on both devices: ${event.sas.decimal.join(' / ')}`:`Verification ${event.userId??''} ${event.deviceId??''}; phase ${event.phase??''}`;section.append(text);const button=(title,action)=>{const node=document.createElement('button');node.type='button';node.textContent=title;node.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await action();guardView(view)});section.append(node)};if(event.needsConfirmation){button('Both displays match',()=>transport.confirmVerification(event.id,true));button('Do not match',()=>transport.confirmVerification(event.id,false))}else{button('Accept request',()=>transport.acceptVerification(event.id));button('Start SAS comparison',()=>transport.startVerification(event.id))}button('Reject',()=>transport.rejectVerification(event.id))}});
  const uiError=(code,message)=>Object.assign(new Error(message),{code});
  const stale=error=>['UI_STALE_VIEW','MATRIX_STALE_SESSION'].includes(error?.code);
@@ -26,8 +28,8 @@ if(root){
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code))lock();throw error}
  }
- function lock(){pageEpoch++;renderQueued=false;reauth?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();label('Federated encrypted chat locked. Legacy v2 data is unchanged.')}
- async function work(action){if(busy)return;busy=true;const epoch=pageEpoch,buttons=[...root.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);try{await action()}catch(error){if(epoch===pageEpoch&&!stale(error))label(error.message||'Federated chat unavailable')}finally{busy=false;buttons.forEach(b=>b.disabled=false)}}
+ function lock(){pageEpoch++;renderQueued=false;reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();label('Federated encrypted chat locked. Legacy v2 data is unchanged.')}
+ async function work(action){if(busy)return;busy=true;const epoch=pageEpoch,buttons=[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'));buttons.forEach(b=>b.disabled=true);try{await action()}catch(error){if(epoch===pageEpoch&&!stale(error))label(error.message||'Federated chat unavailable')}finally{busy=false;buttons.forEach(b=>b.disabled=false)}}
  async function renderMessages(){
   if(!roomId||!account)return;renderQueued=true;if(renderRunning)return;renderRunning=true;
   try{while(renderQueued){renderQueued=false;if(!roomId||!account)break;let view;
@@ -67,14 +69,18 @@ if(root){
   guardView(view);devices.replaceChildren(...items);
  }
  reauth=createSsoReauthController({container:root,capture:()=>transport.capture(),guard:operation=>transport.guard(operation),validateIdentity:async operation=>{const verified=await identity();transport.guard(operation);if(verified.account!==operation.binding.account)throw new Error('YNX reauthentication account changed')}});
+ login=createMatrixLoginController({container:root});
  root.querySelector('[data-connect]').onclick=()=>void work(async()=>{
   const epoch=pageEpoch,verified=await identity(),selected=verified.account,generation=transport.generation;
   const guard=()=>{if(epoch!==pageEpoch||account!==selected)throw uiError('UI_STALE_VIEW','Previous connection was discarded')};
+  const guardPending=()=>{guard();if(generation!==transport.generation)throw uiError('UI_STALE_VIEW','Previous connection was discarded')};
   account=selected;const stored=await matrixCryptoStore(selected);
   try{
    guard();await identity();guard();if(generation!==transport.generation)throw uiError('UI_STALE_VIEW','Previous connection was discarded');
-   const binding=await fetchMatrixBinding({account:selected,deviceId:stored.deviceId,client,csrfToken:verified.csrfToken});
-   guard();await identity();guard();if(generation!==transport.generation)throw uiError('UI_STALE_VIEW','Previous connection was discarded');
+   const metadata=await fetchMatrixLoginMetadata({account:selected,deviceId:stored.deviceId,client,csrfToken:verified.csrfToken,guard:guardPending});
+   guardPending();await identity();guardPending();
+   const binding=await login.request({metadata,deviceId:stored.deviceId,guard:guardPending,validateIdentity:()=>identity()});
+   guardPending();await identity();guardPending();
    await transport.connect(binding,selected,stored.storageKey);guard();const operation=transport.capture();
    transport.guard(operation);await identity();guard();transport.guard(operation);
    label("YNX account verified. Compare peer devices before sending.");await renderDevices(binding.userId);
