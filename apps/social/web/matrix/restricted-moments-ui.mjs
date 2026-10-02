@@ -35,7 +35,7 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
   const enabled=typeof resolveAudience==='function'&&typeof authorize==='function';
   const consumer=enabled?new RestrictedMoments({transport,authorize}):null;
   const attachments=consumer?new RestrictedMomentAttachments({consumer}):null;
-  let reviewed=null,pending=null,visibleBinding=null,selectionRecords=null,selectedFile=null;
+  let reviewed=null,pending=null,visibleBinding=null,selectionRecords=null,selectedFile=null,reviewing=null,editEpoch=0;
   // Drafts remain in this process only. Durable protected recovery is separate.
   const drafts=new Map();
   function remember(){if(visibleBinding)drafts.set(visibleBinding,{text:input.value,file:selectedFile})}
@@ -43,13 +43,14 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     let view;try{view=capture();guard(view)}catch{lock();return}
     if(visibleBinding!==view.operation.binding){remember();visibleBinding=view.operation.binding;const saved=drafts.get(visibleBinding);input.value=saved?.text??'';selectedFile=saved?.file??null;fileInput.value='';reviewed=null;pending=null;selectionRecords=null;group.replaceChildren();people.replaceChildren()}
     group.hidden=choice.value!=='group';people.hidden=choice.value!=='selected';
-    choice.disabled=!enabled;input.disabled=!enabled;review.disabled=!enabled||!!pending;
-    fileInput.disabled=!enabled||!!pending;fileStatus.textContent=selectedFile?`Retained attachment: ${selectedFile.name}`:'No attachment selected.';
-    send.disabled=!enabled||!reviewed||!!pending;
+    const busy=!!pending||!!reviewing;
+    choice.disabled=!enabled||busy;group.disabled=!enabled||busy;people.disabled=!enabled||busy;input.disabled=!enabled||busy;review.disabled=!enabled||busy;
+    fileInput.disabled=!enabled||busy;fileStatus.textContent=selectedFile?`Retained attachment: ${selectedFile.name}`:'No attachment selected.';
+    send.disabled=!enabled||!reviewed||busy;
     if(!enabled)status.textContent='Restricted publishing is not enabled: live audience authorization is not connected. Chat approval does not authorize publishing.';
   }
-  function lock(){remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;review.disabled=true;send.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
-  const invalidate=()=>{reviewed=null;send.disabled=true;remember();status.textContent='Review the audience and current draft before publishing.'};
+  function lock(){editEpoch++;reviewing=null;remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;group.disabled=true;people.disabled=true;review.disabled=true;send.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
+  const invalidate=()=>{editEpoch++;reviewed=null;send.disabled=true;remember();status.textContent='Review the audience and current draft before publishing.'};
   input.addEventListener('input',invalidate);group.addEventListener('change',invalidate);people.addEventListener('change',invalidate);
   fileInput.addEventListener('change',()=>{selectedFile=fileInput.files?.[0]??null;invalidate();refresh()});
   choice.addEventListener('change',()=>{invalidate();refresh();if(['group','selected'].includes(choice.value))void work(async()=>{
@@ -67,25 +68,30 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     return {kind};
   }
   review.onclick=()=>void work(async()=>{
-    if(!enabled)return;
-    const view=capture(),draft=input.value,file=selectedFile,chosen=selection(),transactionId=crypto.randomUUID().replaceAll('-','');guard(view);await identity(view);guard(view);
+    if(!enabled||reviewing||pending)return;
+    const view=capture(),draft=input.value,file=selectedFile,chosen=selection(),transactionId=crypto.randomUUID().replaceAll('-',''),epoch=editEpoch;
+    const reviewIntent={view,draft,file,chosen,transactionId,epoch};reviewing=reviewIntent;reviewed=null;refresh();
+    const unchanged=()=>{guard(view);if(reviewing!==reviewIntent||editEpoch!==epoch||input.value!==draft||selectedFile!==file||JSON.stringify(selection())!==JSON.stringify(chosen))throw new Error('Draft or audience changed; review again')};
+    try{
+    unchanged();await identity(view);unchanged();
     const audience=await resolveAudience(chosen);guard(view);
-    if(input.value!==draft||selectedFile!==file||JSON.stringify(selection())!==JSON.stringify(chosen))throw new Error('Draft changed; review again');
-    const operation=transport.capture();await consumer.check(audience,operation,{action:'read',transactionId});guard(view);
+    unchanged();
+    const operation=transport.capture();await consumer.check(audience,operation,{action:'read',transactionId});unchanged();
     if(audience.kind!==chosen.kind)throw new Error('Reviewed audience differs from your selection');
-    reviewed={view,audience,draft,file,transactionId};
+    reviewed={view,audience,draft,file,transactionId,chosen,epoch};
     status.textContent=`Reviewed ${chosen.kind}: ${audience.members.length} confirmed identities. Previously received keys cannot be recalled.`;
-    refresh();
+    }finally{if(reviewing===reviewIntent)reviewing=null;refresh()}
   });
   form.onsubmit=event=>{event.preventDefault();void work(async()=>{
     if(!enabled||!reviewed||pending)return;
     const intent=reviewed;guard(intent.view);
-    if(input.value!==intent.draft||selectedFile!==intent.file)throw new Error('Review the changed draft again');
+    const unchanged=()=>{guard(intent.view);if(editEpoch!==intent.epoch||input.value!==intent.draft||selectedFile!==intent.file||JSON.stringify(selection())!==JSON.stringify(intent.chosen))throw new Error('Review the changed draft or audience again')};
+    unchanged();
     pending=intent;refresh();
     try{
-      await identity(intent.view);guard(intent.view);
+      await identity(intent.view);unchanged();
       let receipt;
-      if(intent.file){const bytes=await intent.file.arrayBuffer();guard(intent.view);receipt=await attachments.publish({audience:intent.audience,text:intent.draft,bytes,name:intent.file.name,mimeType:intent.file.type||'application/octet-stream',transactionId:intent.transactionId})}
+      if(intent.file){const bytes=await intent.file.arrayBuffer();unchanged();receipt=await attachments.publish({audience:intent.audience,text:intent.draft,bytes,name:intent.file.name,mimeType:intent.file.type||'application/octet-stream',transactionId:intent.transactionId})}
       else receipt=await consumer.publish({audience:intent.audience,text:intent.draft,transactionId:intent.transactionId});guard(intent.view);
       if(reviewed===intent){input.value='';selectedFile=null;fileInput.value='';remember();reviewed=null;status.textContent=`Encrypted Moment sent and authorized index confirmed: ${receipt.eventId}.`}
     }catch(error){

@@ -1,0 +1,192 @@
+{
+  "tests": 5,
+  "pass": 5,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "mode": "choice",
+      "status": "PASS",
+      "editableDuringRead": false,
+      "publishEnabledAfterLateRead": false,
+      "observation": {
+        "requests": [
+          {
+            "resolve": {
+              "kind": "contacts"
+            }
+          },
+          {
+            "authorization": {
+              "action": "read",
+              "transactionId": "4856396683814e508744fd94ff4a5134"
+            },
+            "expected": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "contacts",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "roomId": "!original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          }
+        ],
+        "sent": [],
+        "error": "Draft or audience changed; review again",
+        "status": "Review the audience and current draft before publishing.",
+        "width": 390,
+        "viewport": 390
+      }
+    },
+    {
+      "mode": "draft",
+      "status": "PASS",
+      "editableDuringRead": false,
+      "publishEnabledAfterLateRead": false,
+      "observation": {
+        "requests": [
+          {
+            "resolve": {
+              "kind": "contacts"
+            }
+          },
+          {
+            "authorization": {
+              "action": "read",
+              "transactionId": "e35e7d541f194a06a0f16d99589be8e3"
+            },
+            "expected": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "contacts",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "roomId": "!original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          }
+        ],
+        "sent": [],
+        "error": "Draft or audience changed; review again",
+        "status": "Review the audience and current draft before publishing.",
+        "width": 390,
+        "viewport": 390
+      }
+    },
+    {
+      "mode": "group",
+      "status": "PASS",
+      "editableDuringRead": false,
+      "publishEnabledAfterLateRead": false,
+      "observation": {
+        "requests": [
+          {
+            "resolve": {
+              "kind": "group",
+              "groupId": "group_aaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          {
+            "authorization": {
+              "action": "read",
+              "transactionId": "93389fcecae345e99c6224fa1e6c7b65"
+            },
+            "expected": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "group",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "roomId": "!original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          }
+        ],
+        "sent": [],
+        "error": "Draft or audience changed; review again",
+        "status": "Review the audience and current draft before publishing.",
+        "width": 390,
+        "viewport": 390
+      }
+    },
+    {
+      "mode": "selected",
+      "status": "PASS",
+      "editableDuringRead": false,
+      "publishEnabledAfterLateRead": false,
+      "observation": {
+        "requests": [
+          {
+            "resolve": {
+              "kind": "selected",
+              "selected": [
+                "sp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              ]
+            }
+          },
+          {
+            "authorization": {
+              "action": "read",
+              "transactionId": "59d65e96ccdf4ee3b0621386b3dd8afd"
+            },
+            "expected": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "selected",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "roomId": "!original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          }
+        ],
+        "sent": [],
+        "error": "Draft or audience changed; review again",
+        "status": "Review the audience and current draft before publishing.",
+        "width": 390,
+        "viewport": 390
+      }
+    },
+    {
+      "mode": "lock",
+      "status": "PASS",
+      "editableDuringRead": false,
+      "publishEnabledAfterLateRead": false,
+      "observation": {
+        "requests": [
+          {
+            "resolve": {
+              "kind": "contacts"
+            }
+          },
+          {
+            "authorization": {
+              "action": "read",
+              "transactionId": "32fee640db5a4592a2b0f5b0c2fd6373"
+            },
+            "expected": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "contacts",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "roomId": "!original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          }
+        ],
+        "sent": [],
+        "error": "stale",
+        "status": "Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.",
+        "width": 390,
+        "viewport": 390
+      }
+    }
+  ]
+}
