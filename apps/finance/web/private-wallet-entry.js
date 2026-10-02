@@ -1,4 +1,4 @@
-import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-e1471c491.mjs';
+import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-f0b1ab4e5.mjs';
 import registry from './vendor/product-session-registry-a7dad7ec.json' with {type:'json'};
 import {assertFinancePrivateAuthority,financePrivateAuthorityRevision,invalidateFinancePrivateAuthority} from './endpoint-authority-entry.js';
 import {privateFiniteConsentText} from './private-finite-consent-copy.js';
