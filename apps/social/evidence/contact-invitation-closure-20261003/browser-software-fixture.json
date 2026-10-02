@@ -1,0 +1,82 @@
+{
+  "kind": "SOURCE_SOFTWARE_QA_ONLY",
+  "publicVerified": false,
+  "installedVerified": false,
+  "realMatrixVerified": false,
+  "realEncryptionVerified": false,
+  "realFederationVerified": false,
+  "qrRenderer": "existing qrcode 1.5.4",
+  "qrCameraReadback": "NOT_RUN",
+  "invitationStorage": "actual IndexedDB reload/two-tab software QA",
+  "sourceSHA256": "ed1e7d3a1592f369cfb93a4afebc09ac4aa2a45800a9c9d5bfbec183d8c49c0a",
+  "results": [
+    {
+      "name": "English guest four-tab navigation; no address input or private request",
+      "status": "PASS"
+    },
+    {
+      "name": "accepted contact opens original historical MXID and composer",
+      "status": "PASS"
+    },
+    {
+      "name": "contact Message handoff reaches same normal mature consumer",
+      "status": "PASS"
+    },
+    {
+      "name": "removed after metadata never creates a room",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong identity echo never creates a room",
+      "status": "PASS"
+    },
+    {
+      "name": "missing historical mapping never creates a room",
+      "status": "PASS"
+    },
+    {
+      "name": "lock discards late metadata; no blank tab and stable URL",
+      "status": "PASS"
+    },
+    {
+      "name": "removed contact cannot send in an existing room; original draft retained",
+      "status": "PASS"
+    },
+    {
+      "name": "relationship review cancels on sign-out without mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "personal QR uses actual pinned renderer and original Social ID, not a wallet address",
+      "status": "PASS"
+    },
+    {
+      "name": "durable invitation nonce coalesces concurrent same-account writes and survives reload",
+      "status": "PASS"
+    },
+    {
+      "name": "two tabs retain the original request; wrong-key and stale-context clears cannot erase it",
+      "status": "PASS"
+    },
+    {
+      "name": "invitation carrier isolates accounts and compare-clears only the confirmed original",
+      "status": "PASS"
+    },
+    {
+      "name": "mobile four-tab navigation remains visible on one stable page",
+      "status": "PASS"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ],
+  "expectedNegativeHTTPConsole": [
+    "Failed to load resource: the server responded with a status of 409 (Conflict)"
+  ],
+  "consoleZero": false,
+  "tabs": 1,
+  "urlStable": true,
+  "walletAccountRequests": 0,
+  "signatures": 0,
+  "transactions": 0
+}

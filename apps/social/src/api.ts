@@ -15,6 +15,8 @@ export type AIJob = Readonly<{id:string;status:"awaiting_permission"|"streaming"
 export type Session = Readonly<{ token:string; authMode?:"product-session-v2"; session:Readonly<{id:string;account:string;deviceId:string;scopes:readonly string[];createdAt:string;expiresAt:string}>; profile?:Person }>;
 export type SocialProfile = Person & Readonly<{bio:string;followerCount:number;followingCount:number;postCount:number;privacy:Readonly<{discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:string;avatarUrl?:string;profileQrPayload?:string}>}>;
 export type PrivacySettings = SocialProfile["privacy"] & Readonly<{account?:string;updatedAt?:string}>;
+export type Invitation = Readonly<{id:string;link:string;status:"active"|"expired"|"revoked";expiresAt:string;createdAt:string;revokedAt?:string}>;
+export type InvitationSnapshot = Readonly<{invitations:Invitation[];operation?:Readonly<{confirmed:boolean;id?:string}>}>;
 export type GroupDiscoveryInput = Readonly<{ idempotencyKey: string; source: "handle" | "contacts" | "qr" | "invite" | "recommendation"; value: string }>;
 export type GroupMembershipUpdateInput = Readonly<{ idempotencyKey: string; add: readonly GroupDiscoveryInput[]; remove: readonly string[] }>;
 export type DeviceRotationResponse = Readonly<{record:{id:string};replayed:boolean;session:Session["session"];token:string}>;
@@ -40,10 +42,11 @@ export class SocialAPI {
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
   async profileOrSetup(){try{const record=(await this.profile()).record;if(!record)throw new Error("Invalid Social profile response");return !record.handle&&!record.displayName?null:record}catch(error){if(error instanceof SocialAPIError&&error.status===404)return null;throw error}}
   updateProfile(body:{idempotencyKey:string;handle:string;displayName:string;bio:string;avatarUrl?:string}){return this.request<{record:SocialProfile;replayed:boolean}>("/social/v1/profile",{method:"PUT",body})}
-  settings(){return this.request<{record:PrivacySettings}>("/social/v1/settings")}
-  updateSettings(body:{idempotencyKey:string;discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:"everyone"|"contacts"|"nobody";avatarUrl?:string}){return this.request<{record:PrivacySettings;replayed:boolean}>("/social/v1/settings",{method:"PUT",body})}
-  createInvite(ttlSeconds=86400){return this.request<{record:{id:string;link:string;expiresAt:string};token:string}>("/social/v1/invites",{method:"POST",body:{ttlSeconds}})}
-  revokeInvite(id:string){return this.request<{record:{id:string;link:string;expiresAt:string;revokedAt:string}}>(`/social/v1/invites/${encodeURIComponent(id)}/revoke`,{method:"POST",body:{}})}
+  settings(signal?:AbortSignal){return this.request<{record:PrivacySettings}>("/social/v1/settings",{signal})}
+  updateSettings(body:{idempotencyKey:string;discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:"everyone"|"contacts"|"nobody";avatarUrl?:string},signal?:AbortSignal){return this.request<{record:PrivacySettings;replayed:boolean}>("/social/v1/settings",{method:"PUT",body,signal})}
+  invitations(intent?:string,signal?:AbortSignal){return this.request<InvitationSnapshot>("/social/v1/invites"+(intent?'?intent='+encodeURIComponent(intent):''),{signal})}
+  createInvite(ttlSeconds=86400,idempotencyKey?:string,signal?:AbortSignal){return this.request<{record:{id:string;link:string;expiresAt:string};token:string}>("/social/v1/invites",{method:"POST",body:{ttlSeconds,idempotencyKey},signal})}
+  revokeInvite(id:string,signal?:AbortSignal){return this.request<{record:{id:string;link:string;expiresAt:string;revokedAt:string}}>(`/social/v1/invites/${encodeURIComponent(id)}/revoke`,{method:"POST",body:{},signal})}
   contacts(){return this.request<{contacts:Person[];requests:ContactRequest[]}>("/social/v1/contacts")}
   contactMatches(hashes:readonly string[]){return this.request<{matches:ContactMatch[]}>("/social/v1/contact-matches",{method:"POST",body:{hashes}})}
   previewContact(source:GroupDiscoveryInput["source"],value:string){return this.request<{person:Person}>("/social/v1/contacts/preview",{method:"POST",body:{source,value}})}
@@ -94,7 +97,8 @@ export class SocialAPI {
   aiBegin(body:Record<string,unknown>){return this.request<{record:AIJob;replayed:boolean}>("/social/v1/ai/jobs",{method:"POST",body})}
   aiTransition(id:string,action:string,output=""){return this.request<AIJob>(`/social/v1/ai/jobs/${encodeURIComponent(id)}`,{method:"POST",body:{action,output}})}
   async streamAI(id:string,contextText:string,onToken:(value:string)=>void,signal?:AbortSignal):Promise<AIJob>{if(!this.token)throw new Error("Social session is locked");const response=await fetch(`${this.base}/social/v1/ai/jobs/${encodeURIComponent(id)}/stream`,{method:"POST",headers:{Accept:"text/event-stream","Content-Type":"application/json",Authorization:`Bearer ${this.token}`},body:JSON.stringify({contextText}),signal});if(!response.ok)throw new Error(`Social AI stream failed (${response.status})`);if(!response.body)throw new Error("Streaming is unavailable on this device");const reader=response.body.getReader(),decoder=new TextDecoder(),lines:{event:string;data:string}[]=[];let buffer="",event="",doneJob:AIJob|undefined;while(true){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});const parts=buffer.split("\n");buffer=parts.pop()??"";for(const raw of parts){const line=raw.trimEnd();if(line.startsWith("event:")){event=line.slice(6).trim()}else if(line.startsWith("data:")){const data=line.slice(5).trim();lines.push({event,data});if(event==="token"){const value=JSON.parse(data) as {text?:string};if(value.text)onToken(value.text)}else if(event==="error"){const value=JSON.parse(data) as {error?:string};throw new Error(value.error??"AI provider unavailable")}else if(event==="done"){const value=JSON.parse(data) as {record?:AIJob};doneJob=value.record}}}}if(!doneJob)throw new Error("AI stream ended before review state");return doneJob}
-  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>;proof?:SessionProof}={}):Promise<T>{
+  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>;proof?:SessionProof;signal?:AbortSignal}={}):Promise<T>{
+    if(options.signal?.aborted)throw new Error("Original Social operation cancelled; intent retained");
     const epoch=this.epoch,headers:Record<string,string>={Accept:"application/json",...options.headers};
     if(options.body!==undefined)headers["Content-Type"]="application/json";
     if(options.auth!==false){
@@ -103,15 +107,17 @@ export class SocialAPI {
         const relative=path.split("?")[0]!.replace("/social/v1/","");
         const scope=relative.startsWith("conversations")||relative.startsWith("devices/")?"social.messaging":/^(contacts?|privacy\/|invites?|notifications?)/.test(relative)?"social.contacts":"social.profile";
         if(/^(feed|media|reports?|follows?|ai\/)/.test(relative))throw new Error("This action requires a separately supported permission");
-        const proof=options.proof??await proofOwner([scope]).catch(()=>{if(epoch===this.epoch&&proofOwner===this.productProof)this.setToken(null);throw new SocialAPIError("Wallet permission could not be verified; restore explicitly",401)});
+        const proof=options.proof??await proofOwner([scope]).catch(()=>{if(options.signal?.aborted)throw new Error("Original Social operation cancelled; intent retained");if(epoch===this.epoch&&proofOwner===this.productProof)this.setToken(null);throw new SocialAPIError("Wallet permission could not be verified; restore explicitly",401)});
+        if(options.signal?.aborted)throw new Error("Original Social operation cancelled; intent retained");
         if(epoch!==this.epoch||proofOwner!==this.productProof)throw new SocialAPIError("Social authorization changed; old permission discarded",401);
         if(proof.proof.account!==this.productAccount){this.setToken(null);throw new SocialAPIError("Social account changed; reconnect explicitly",401)}
         headers["X-YNX-Product-Session-Proof-V2"]=proof.proofHeader;
         if(this.csrf)headers["X-YNX-SSO-CSRF"]=this.csrf;
       }else{if(!this.token)throw new Error("Social session is locked");headers.Authorization=`Bearer ${this.token}`}
     }
-    const response=await fetch(`${this.base}${path}`,{method:options.method??"GET",headers,credentials:this.csrf?"same-origin":"omit",redirect:"error",cache:"no-store",body:options.body===undefined?undefined:JSON.stringify(options.body)});
+    const response=await fetch(`${this.base}${path}`,{method:options.method??"GET",headers,credentials:this.csrf?"same-origin":"omit",redirect:"error",cache:"no-store",signal:options.signal,body:options.body===undefined?undefined:JSON.stringify(options.body)});
     const data=await response.json().catch(()=>({error:"Invalid server response"}));
+    if(options.signal?.aborted)throw new Error("Original Social operation cancelled; intent retained");
     if(epoch!==this.epoch)throw new Error("Social authorization changed; response discarded");
     if(!response.ok){if(this.productProof&&(response.status===401||response.status===403))this.setToken(null);throw new SocialAPIError(typeof data?.error==="string"?data.error:`Social request failed (${response.status})`,response.status)}
     return data as T;

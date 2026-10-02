@@ -1,3 +1,4 @@
+import {discoveryEntry} from './discovery-entry.mjs';
 function release(stream){for(const track of stream?.getTracks()??[])track.stop()}
 
 // Owns only a local camera stream. It never navigates, authorizes or submits.
@@ -34,7 +35,10 @@ export class CameraQRSession{
       if(epoch!==this.epoch)return;
       if(!this.options.isCurrent()){this.stop();return}
       const value=codes.find(code=>typeof code.rawValue==='string'&&code.rawValue.length>0&&code.rawValue.length<=2048)?.rawValue;
-      if(value){this.stop();this.options.result(value);return}
+      if(value){
+        try{discoveryEntry(value)}catch(error){this.options.status(error.message);this.queue(epoch,detector);return}
+        this.stop();this.options.result(value);return
+      }
       this.queue(epoch,detector);
     }catch{
       if(epoch!==this.epoch)return;

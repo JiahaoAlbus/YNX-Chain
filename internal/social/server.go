@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -150,7 +151,8 @@ type targetInput struct {
 	Active bool   `json:"active,omitempty"`
 }
 type inviteInput struct {
-	TTLSeconds int `json:"ttlSeconds"`
+	TTLSeconds     int    `json:"ttlSeconds"`
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
 }
 type postInput struct {
 	IdempotencyKey string   `json:"idempotencyKey"`
@@ -310,6 +312,17 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 	case path == "settings" && r.Method == http.MethodGet:
 		writeJSON(w, 200, map[string]any{"record": s.service.currentSettings(actor.Account)})
 		return
+	case path == "invites" && r.Method == http.MethodGet:
+		query, parseErr := url.ParseQuery(r.URL.RawQuery)
+		if parseErr != nil || len(query) > 1 || len(query) == 1 && (len(query["intent"]) != 1 || !identifierPattern.MatchString(query.Get("intent"))) {
+			writeServiceError(w, ErrInvalid)
+			return
+		}
+		var result InvitationSnapshot
+		result, err = s.service.ReadInvitations(actor, query.Get("intent"))
+		if err == nil {
+			writeJSON(w, 200, result)
+		}
 	case path == "invites" && r.Method == http.MethodPost:
 		var in inviteInput
 		if !decodeRequest(w, r, &in, 4096) {
@@ -317,7 +330,11 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		}
 		var record Invite
 		var token string
-		record, token, err = s.service.CreateInvite(actor, time.Duration(in.TTLSeconds)*time.Second)
+		if in.IdempotencyKey != "" {
+			record, token, err = s.service.CreateInviteIntent(actor, time.Duration(in.TTLSeconds)*time.Second, in.IdempotencyKey)
+		} else {
+			record, token, err = s.service.CreateInvite(actor, time.Duration(in.TTLSeconds)*time.Second)
+		}
 		if err == nil {
 			writeJSON(w, 201, map[string]any{"record": record, "token": token})
 		}

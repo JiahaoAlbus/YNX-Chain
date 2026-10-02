@@ -105,3 +105,27 @@ dialog.contact-review textarea:focus-visible { outline: 3px solid var(--contact-
   opacity: .65;
   cursor: not-allowed;
 }
+:root { --social-journey-blue: #002fa7; }
+#profile-share-panel { display: grid; justify-items: start; gap: .75rem; margin: 1.5rem 0; }
+#profile-share-panel img { width: min(240px, 100%); height: auto; aspect-ratio: 1; }
+#profile-share-panel input { width: 100%; }
+#privacy-form fieldset { display: grid; gap: .8rem; border: 1px solid #d7def0; padding: 1rem; }
+#privacy-form label { display: flex; align-items: center; gap: .6rem; }
+#privacy-form input[type="checkbox"] { width: 20px; height: 20px; }
+#invitation-list { display: grid; gap: 1rem; padding: 0; list-style: none; }
+#invitation-list li { display: grid; gap: .6rem; }
+#invitation-list input { width: 100%; }
+#matrix-social-workspace, #social-moments, #people-panel, #profile-form {
+  scroll-margin-top: 5rem;
+}
+.topbar nav a:focus-visible, #contact-list button:focus-visible {
+  outline: 2px solid var(--social-journey-blue);
+  outline-offset: 5px;
+}
+[name="matrixPeer"] { width: 100%; min-height: 44px; }
+#contact-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; }
+@media (max-width: 700px) {
+  body { padding-bottom: 5rem; }
+  .topbar nav { display: flex; position: fixed; inset: auto 0 0; z-index: 50; justify-content: space-around; padding: .9rem .5rem calc(.9rem + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); border-top: 1px solid #d7def0; }
+  .topbar nav a { min-height: 32px; color: var(--social-journey-blue); }
+}

@@ -349,33 +349,7 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 }
 
 func (s *Service) CreateInvite(actor Session, ttl time.Duration) (Invite, string, error) {
-	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
-		var unavailableResult0 Invite
-		var unavailableResult1 string
-		return unavailableResult0, unavailableResult1, writeUnavailable
-	}
-
-	if ttl < time.Minute || ttl > 7*24*time.Hour {
-		return Invite{}, "", ErrInvalid
-	}
-	token := base64.RawURLEncoding.EncodeToString(randomBytes(24))
-	hash := sha256.Sum256([]byte(token))
-	now := s.cfg.Now().UTC()
-	id := "invite_" + hex.EncodeToString(hash[:12])
-	record := Invite{ID: id, Owner: actor.Account, TokenHash: hex.EncodeToString(hash[:]), Link: "https://social.ynxweb4.com/invite/" + token, ExpiresAt: now.Add(ttl), CreatedAt: now}
-	s.mu.Lock()
-	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
-		s.mu.Unlock()
-		var unavailableResult0 Invite
-		var unavailableResult1 string
-		return unavailableResult0, unavailableResult1, writeUnavailable
-	}
-
-	defer s.mu.Unlock()
-	before := cloneState(s.state)
-	s.state.Invites[id] = record
-	s.appendAuditLocked("invite_created", "invite", id, actor.Account, objectDigest(record), now)
-	return record, token, s.saveOrRollbackLocked(before)
+	return s.createInvite(actor, ttl, "")
 }
 
 // ResolveDiscovery keeps every user-facing discovery method inside the Social
@@ -596,6 +570,13 @@ func (s *Service) relationshipAction(actor Session, target, action string) error
 		return writeUnavailable
 	}
 
+	if strings.HasPrefix(target, "sp_") {
+		var resolveErr error
+		target, resolveErr = s.resolveProfileLocator(socialLocatorPrefix + target)
+		if resolveErr != nil {
+			return ErrNotFound
+		}
+	}
 	target, err := nativewallet.NormalizeNativeAddress(target)
 	if err != nil || target == actor.Account {
 		return ErrInvalid
@@ -1320,6 +1301,11 @@ func cloneState(in persistentState) persistentState {
 	data, _ := json.Marshal(in)
 	var out persistentState
 	_ = json.Unmarshal(data, &out)
+	for id, record := range in.Invites {
+		copy := out.Invites[id]
+		copy.TokenHash = record.TokenHash
+		out.Invites[id] = copy
+	}
 	return out
 }
 func pairKey(a, b string) string {

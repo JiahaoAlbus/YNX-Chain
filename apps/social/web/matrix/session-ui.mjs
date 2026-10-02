@@ -10,6 +10,7 @@ import {createSocialAudienceHTTPClient} from './audience-client.mjs';
 import {openProtectedMomentDrafts} from './protected-drafts.mjs';
 import {RestrictedMoments} from './restricted-moments.mjs';
 import {mountRestrictedFeed} from './restricted-feed-ui.mjs';
+import {createContactChat} from './contact-chat.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -52,23 +53,29 @@ if(root&&!loginCallback){
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code)){lock();phase('approval')}throw error}
  }
- function lock(){pageEpoch++;renderQueued=false;sendReady=false;momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
+ function lock(){pageEpoch++;renderQueued=false;sendReady=false;contactChat.cancel();clearContactChoices();momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
  async function work(action){
   if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
   controls();try{await waitIntent(action(intent),intent,0)}catch(error){if(activeWork===intent&&intent.epoch===pageEpoch&&!stale(error)){diagnostic(error);sendReady=false;if(error?.code==='MATRIX_LOGIN_CANCELLED'){phase(transport.client?'connected':'locked','Sign-in cancelled. Open private chat again when you are ready. Your encrypted history is retained.')}else phase(error?.code==='UI_IDENTITY_UNAVAILABLE'?'offline':error?.code==='MATRIX_PERMISSION_REQUIRED'?'approval':error?.code==='MATRIX_UNVERIFIED_DEVICE'||error?.code==='MATRIX_DEVICE_CHANGED'?'verifying':'error',error?.code==='UI_IDENTITY_UNAVAILABLE'?copy.text('offline'):error?.code==='MATRIX_PERMISSION_REQUIRED'?copy.text('approval'):copy.text('failed'))}}
   finally{if(activeWork===intent){activeWork=null;intent.buttons.forEach(button=>button.disabled=false);controls()}}
  }
  async function readiness(view){guardView(view);sendReady=false;if(!view.roomId){phase('connected');return}try{await transport.assertTrusted(view.roomId);guardView(view);sendReady=true;phase('ready')}catch(error){guardView(view);diagnostic(error);phase(error?.code==='MATRIX_OFFLINE'?'offline':'verifying')}}
+ async function currentConversation(view){
+  guardView(view);const room=view.operation.client.getRoom?.(view.roomId);
+  if(!room)throw uiError('MATRIX_ROOM_MISSING','The original conversation has not synchronized');
+  const participants=room.getMembers().filter(member=>['join','invite'].includes(member.membership));
+  if(participants.length===2){const peer=participants.find(member=>member.userId!==view.operation.binding.userId);if(!peer)throw uiError('MATRIX_PEER_BINDING_REQUIRED','The original conversation participant is unavailable');await contactChat.verifyPeer(peer.userId,view,{signal:activeWork?.controller.signal});guardView(view)}
+ }
  async function renderMessages(){
   if(!roomId||!account)return;renderQueued=true;if(renderRunning)return;renderRunning=true;
   try{while(renderQueued){renderQueued=false;if(!roomId||!account)break;let view;
    try{
-    view=captureView();await identity(view);guardView(view);const records=await transport.messages(view.roomId);guardView(view);
+    view=captureView();await identity(view);guardView(view);await currentConversation(view);guardView(view);const records=await transport.messages(view.roomId);guardView(view);
     await identity(view);guardView(view);
-    const items=[];for(const record of records){const item=document.createElement('li');item.textContent=`${record.sender}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
+    const items=[];for(const record of records){const item=document.createElement('li');item.textContent=`${record.sender===view.operation.binding.userId?'You':'Participant'}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
      if(record.content.file){const download=document.createElement('button');download.type='button';download.textContent='Download encrypted attachment';download.onclick=()=>void work(async()=>{
-      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view)}});guardView(view);
-      await identity(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
+      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view);await currentConversation(view);guardView(view)}});guardView(view);
+      await identity(view);guardView(view);await currentConversation(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
       try{link.href=url;link.download=record.content.body||'attachment';link.click()}finally{setTimeout(()=>URL.revokeObjectURL(url),10000)}
      });item.append(download)}items.push(item)
     }guardView(view);messages.replaceChildren(...items);await readiness(view);
@@ -104,6 +111,29 @@ if(root&&!loginCallback){
  }
  reauth=createSsoReauthController({container:root,capture:()=>transport.capture(),guard:operation=>transport.guard(operation),validateIdentity:async operation=>{const verified=await identity();transport.guard(operation);if(verified.account!==operation.binding.account)throw new Error('YNX reauthentication account changed')}});
  login=createMatrixLoginController({container:root});
+ const contactChat=createContactChat({identity,proof:scopes=>client.proof(scopes),guard:guardView,fetcher:(...args)=>fetch(...args),
+  open:async(binding,{assertCurrent})=>{assertCurrent();return transport.createConversation(binding.userId,{verifiedPeer:binding})}});
+ const contactSelect=root.querySelector('[name=matrixPeer]');
+ function clearContactChoices(){const option=document.createElement('option');option.value='';option.textContent=copy.text('chooseContact');contactSelect.replaceChildren(option);contactSelect.value=''}
+ async function loadContactChoices(intent){
+  const view=captureView();const profiles=await contactChat.load(view,{signal:intent.controller.signal});guardView(view);
+  const old=contactSelect.value,options=[];const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=profiles.length?copy.text('chooseContact'):copy.text('noContacts');options.push(placeholder);
+  for(const person of profiles){const option=document.createElement('option');option.value=person.id;option.textContent=person.displayName+(person.handle?' @'+person.handle:'');options.push(option)}
+  guardView(view);contactSelect.replaceChildren(...options);contactSelect.value=profiles.some(person=>person.id===old)?old:'';
+ }
+ async function startContact(personId,intent){
+  const view=captureView();await identity(view);guardView(view);
+  const result=await contactChat.start(personId,view,{signal:intent.controller.signal});guardView(view);
+  selectRoom(result.room);label('Encrypted room opened. Compare both devices before sending.');await renderDevices(result.binding.userId);await renderMessages();
+ }
+ root.querySelector('[data-refresh-contacts]').onclick=()=>void work(loadContactChoices);
+ document.addEventListener('ynx-social-open-contact',event=>{
+  if(!event.detail||event.detail.account!==account||!/^sp_[A-Za-z0-9_-]{32}$/.test(event.detail.personId)){label(copy.text('openContactChat'));return}
+  void work(intent=>startContact(event.detail.personId,intent));
+ });
+ document.addEventListener('ynx-social-private-locked',()=>lock());
+ document.addEventListener('ynx-social-contact-removed',event=>{if(event.detail?.account===account){lock();label('Contact access changed. Original encrypted history and unsent drafts are retained.')}});
+ clearContactChoices();
  root.querySelector('[data-connect]').onclick=()=>void work(async intent=>{
   phase('connecting');
   const epoch=pageEpoch,verified=await identity(),selected=verified.account,generation=transport.generation;
@@ -122,12 +152,7 @@ if(root&&!loginCallback){
   }finally{stored.storageKey.fill(0)}
  });
  root.querySelector('[data-stop]').onclick=()=>lock();
- root.querySelector('[data-peer-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{
-  const view=captureView();await identity(view);guardView(view);const peer=root.querySelector('[name=matrixPeer]').value.trim();if(!/^ynx1[0-9a-z]{38}$/.test(peer))throw new Error('Enter a canonical YNX peer account');
-  const proof=await client.proof(['social.contacts','social.messaging']);guardView(view);const response=await fetch('/social/v3/matrix/peer?account='+encodeURIComponent(peer),{credentials:'same-origin',headers:{'X-YNX-Product-Session-Proof-V2':proof.proofHeader}});guardView(view);
-  if(!response.ok)throw new Error(response.status===401||response.status===403?'Chat approval or an accepted contact is required. Return to Social contacts and retry explicitly.':response.status===409?'The contact needs an existing Matrix identity mapping. No new account was created.':'Peer connection is temporarily unavailable. Retry explicitly; encrypted history is retained.');const binding=await response.json();guardView(view);if(binding.account!==peer||!validMatrixUserId(binding.userId,binding.serverName))throw new Error('Peer identity binding mismatch');
-  const room=await transport.createConversation(binding.userId,{verifiedPeer:binding});guardView(view);selectRoom(room);label('Encrypted room created. Peer must accept and both devices must complete SAS.');await renderDevices(binding.userId)
- })};
+ root.querySelector('[data-peer-form]').onsubmit=event=>{event.preventDefault();const selected=contactSelect.value;void work(intent=>startContact(selected,intent))};
  function renderRoomButtons(){
   const view=captureView();guardView(view);const items=[];
   for(const room of view.operation.client.getRooms()){
@@ -143,8 +168,8 @@ if(root&&!loginCallback){
  }
  root.querySelector('[data-rooms]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);renderRoomButtons()});
  root.querySelector('[data-show-devices]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);await renderDevices(view.operation.binding.userId);guardView(view)});
- root.querySelector('[data-send-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const input=root.querySelector('[name=matrixText]'),draft=input.value;await transport.sendText(view.roomId,draft);guardView(view);if(input.value===draft)input.value='';await renderMessages()})};
- root.querySelector('[data-attachment]').onchange=event=>void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const file=event.target.files?.[0];if(!file)return;const bytes=await file.arrayBuffer();guardView(view);await transport.sendAttachment(view.roomId,bytes,{name:file.name,mimeType:file.type||'application/octet-stream'});guardView(view);if(event.target.files?.[0]===file)event.target.value='';await renderMessages()});
+ root.querySelector('[data-send-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const input=root.querySelector('[name=matrixText]'),draft=input.value;await currentConversation(view);guardView(view);await transport.sendText(view.roomId,draft);guardView(view);if(input.value===draft)input.value='';await renderMessages()})};
+ root.querySelector('[data-attachment]').onchange=event=>void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const file=event.target.files?.[0];if(!file)return;const bytes=await file.arrayBuffer();guardView(view);await currentConversation(view);guardView(view);await transport.sendAttachment(view.roomId,bytes,{name:file.name,mimeType:file.type||'application/octet-stream'});guardView(view);if(event.target.files?.[0]===file)event.target.value='';await renderMessages()});
  const publishing=createSocialPrivateSession({scopes:SOCIAL_AUDIENCE_SCOPES});
  const audienceHTTP=createSocialAudienceHTTPClient({session:publishing,capture:captureView,guard:guardView,csrfToken:async view=>(await identity(view)).csrfToken});
  async function draftAccess(view,action){guardView(view);const vault=await openProtectedMomentDrafts({account:view.account,deviceId:view.operation.binding.deviceId});try{guardView(view);return await action(vault,()=>guardView(view))}finally{vault.close()}}
@@ -173,7 +198,7 @@ if(root&&!loginCallback){
   const contacts=await read('/social/v1/contacts','social.contacts'),groups=await read('/social/v1/conversations','social.messaging');
   return {contacts:(contacts.contacts??[]).filter(person=>/^sp_[A-Za-z0-9_-]{32}$/.test(person.id)).map(person=>({id:person.id,title:person.displayName||person.handle||'Friend'})),groups:(groups.conversations??[]).filter(record=>/^group_[a-f0-9]{24}$/.test(record.id)).map(record=>({id:record.id,title:record.title||'Group'}))};
  }
- momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work,
+ momentComposer=createRestrictedMomentsUI({container:root.querySelector('[data-moments-panel]')??root,transport,capture:captureView,guard:guardView,identity,work,
   resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action,options)=>audienceHTTP.authorize(expected,action,options),loadSelections:audienceChoices,
   drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId,assertCurrent=()=>{})=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,()=>{guard();assertCurrent()}))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});

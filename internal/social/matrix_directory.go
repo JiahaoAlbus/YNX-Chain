@@ -79,3 +79,17 @@ func (d *MatrixDirectory) Resolve(account string) (MatrixIdentity, error) {
 	}
 	return identity, nil
 }
+
+// Private accepted-contact readback for existing rooms; never derive an account
+// from a Matrix localpart or register a replacement identity.
+func (d *MatrixDirectory) resolveUser(userID string) (MatrixIdentity, error) {
+	if d == nil {
+		return MatrixIdentity{}, ErrConflict
+	}
+	for _, identity := range d.identities {
+		if identity.UserID == userID {
+			return identity, nil
+		}
+	}
+	return MatrixIdentity{}, ErrNotFound
+}

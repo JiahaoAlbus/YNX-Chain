@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
@@ -23,8 +24,10 @@ func validMatrixPeerQuery(query url.Values) bool {
 	if len(query) != 1 {
 		return false
 	}
+	user := strings.SplitN(query.Get("userId"), ":", 2)
 	return len(query["account"]) == 1 && matrixAccount.MatchString(query.Get("account")) ||
-		len(query["person"]) == 1 && matrixSocialPerson.MatchString(query.Get("person"))
+		len(query["person"]) == 1 && matrixSocialPerson.MatchString(query.Get("person")) ||
+		len(query["userId"]) == 1 && len(user) == 2 && validMatrixUserID(query.Get("userId"), user[1])
 }
 
 // This endpoint only reads existing identities and accepted relationships.
@@ -70,19 +73,39 @@ func (s *Server) matrixLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	account, protocol := session.Account, matrixLoginProtocol
+	personID := query.Get("person")
 	if peer {
 		account, protocol = query.Get("account"), matrixPeerProtocol
-		if person := query.Get("person"); person != "" {
+		if personID != "" {
 			// Resolve only an already persisted public identity. Do not allocate a
 			// replacement ID, provision a Matrix user or expose lookup existence.
-			account, err = s.service.resolveProfileLocator(socialLocatorPrefix + person)
+			account, err = s.service.resolveProfileLocator(socialLocatorPrefix + personID)
 			if err != nil {
 				writeServiceError(w, ErrUnauthorized)
 				return
 			}
 		}
+		if userID := query.Get("userId"); userID != "" {
+			identity, resolveErr := s.service.cfg.MatrixDirectory.resolveUser(userID)
+			if resolveErr != nil {
+				if errors.Is(resolveErr, ErrNotFound) {
+					writeServiceError(w, ErrUnauthorized)
+				} else {
+					writeError(w, http.StatusServiceUnavailable, "existing Matrix identity directory required")
+				}
+				return
+			}
+			account = identity.Account
+			s.service.mu.Lock()
+			personID = s.service.state.PublicIdentities[account]
+			s.service.mu.Unlock()
+		}
 		if !s.service.matrixPeerAllowed(session.Account, account) {
 			writeServiceError(w, ErrUnauthorized)
+			return
+		}
+		if query.Get("userId") != "" && !matrixSocialPerson.MatchString(personID) {
+			writeError(w, http.StatusConflict, "existing Social identity mapping required; no identity was created")
 			return
 		}
 	}
@@ -95,11 +118,13 @@ func (s *Server) matrixLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Exactly five token-free fields match the existing standard SSO consumer.
+	// Legacy account queries retain five token-free fields. Contact selection
+	// additionally echoes its original public ID for the normal UI's final fence.
 	writeJSON(w, http.StatusOK, struct {
 		Protocol string `json:"protocol"`
 		MatrixIdentity
-	}{protocol, identity})
+		Person string `json:"person,omitempty"`
+	}{protocol, identity, personID})
 }
 
 func decodeMatrixDevice(w http.ResponseWriter, r *http.Request) bool {

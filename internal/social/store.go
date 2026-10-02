@@ -120,6 +120,15 @@ func loadState(path string, key []byte) (persistentState, bool, error) {
 	if err != nil || !hmac.Equal([]byte(want), []byte(got)) {
 		return persistentState{}, true, errors.New("social state integrity check failed")
 	}
+	for id, record := range state.Invites {
+		if record.ID != id {
+			continue
+		}
+		if _, digest, valid := originalInvitationToken(record); valid {
+			record.TokenHash = digest
+			state.Invites[id] = record
+		}
+	}
 	if version < SchemaVersion {
 		state.SchemaVersion = SchemaVersion
 		if err := saveState(path, &state, key); err != nil {
