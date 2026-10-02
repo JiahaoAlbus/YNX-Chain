@@ -5,6 +5,8 @@ let snapshotRevision = 0;
 let statefulPreview = false;
 let publicExperiments = {};
 let latestResearchMode = null;
+let latestResearchResult = null;
+let lastToastKey = null;
 let pendingMandate = null;
 let pendingOrder = null;
 let previewRevision = 0;
@@ -177,6 +179,51 @@ const paperRiskCopy = {
   id: ["Kas simulasi", "Posisi simulasi", "Rekonsiliasi", "Sakelar penghentian", "AKTIF", "Siap", "Aktifkan sakelar penghentian tersimpan untuk simulasi/Testnet?", "Sakelar penghentian aktif", "Rekonsiliasi selesai: tidak ada selisih"],
 };
 for (const [language, [paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled]] of Object.entries(paperRiskCopy)) Object.assign(businessCopy[language], {paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled});
+const runDetailsCopy = {
+  en: ["Run details and formulas", "Data digest", "Strategy digest", "Fee model (bps)", "Slippage model (bps)", "Latency (bars)", "Volume participation (bps)", "Training split (bars)", "Walk-forward windows", "Random seed", "Formulas reported by the research service for this result."],
+  "zh-CN": ["本次运行详情与公式", "数据摘要", "策略摘要", "手续费模型（基点）", "滑点模型（基点）", "延迟（根K线）", "成交量参与率（基点）", "训练分界（根K线）", "滚动验证窗口数", "随机种子", "研究服务为本次结果返回的计算公式。"],
+  "zh-TW": ["本次執行詳情與公式", "資料摘要", "策略摘要", "手續費模型（基點）", "滑價模型（基點）", "延遲（根K線）", "成交量參與率（基點）", "訓練分界（根K線）", "滾動驗證窗口數", "隨機種子", "研究服務為本次結果回傳的計算公式。"],
+  ja: ["実行詳細と計算式", "データのダイジェスト", "戦略のダイジェスト", "手数料モデル（bps）", "スリッページモデル（bps）", "遅延（足数）", "出来高参加率（bps）", "学習区間の境界（足数）", "ウォークフォワード窓数", "乱数シード", "この結果について研究サービスが返した計算式です。"],
+  ko: ["실행 상세 및 공식", "데이터 다이제스트", "전략 다이제스트", "수수료 모델 (bps)", "슬리피지 모델 (bps)", "지연 (봉)", "거래량 참여율 (bps)", "학습 구간 경계 (봉)", "워크포워드 구간 수", "난수 시드", "이 결과에 대해 연구 서비스가 반환한 계산 공식입니다."],
+  es: ["Detalles de ejecución y fórmulas", "Resumen de datos", "Resumen de estrategia", "Modelo de comisiones (bps)", "Modelo de deslizamiento (bps)", "Latencia (velas)", "Participación en volumen (bps)", "Límite de entrenamiento (velas)", "Ventanas walk-forward", "Semilla aleatoria", "Fórmulas que devuelve el servicio de investigación para este resultado."],
+  fr: ["Détails de l'exécution et formules", "Empreinte des données", "Empreinte de la stratégie", "Modèle de frais (bps)", "Modèle de glissement (bps)", "Latence (bougies)", "Participation au volume (bps)", "Limite d'entraînement (bougies)", "Fenêtres walk-forward", "Graine aléatoire", "Formules renvoyées par le service de recherche pour ce résultat."],
+  de: ["Laufdetails und Formeln", "Daten-Prüfsumme", "Strategie-Prüfsumme", "Gebührenmodell (bps)", "Slippage-Modell (bps)", "Latenz (Kerzen)", "Volumenbeteiligung (bps)", "Trainingsgrenze (Kerzen)", "Walk-forward-Fenster", "Zufalls-Seed", "Vom Forschungsdienst für dieses Ergebnis zurückgegebene Formeln."],
+  pt: ["Detalhes da execução e fórmulas", "Resumo dos dados", "Resumo da estratégia", "Modelo de taxas (bps)", "Modelo de slippage (bps)", "Latência (velas)", "Participação no volume (bps)", "Limite de treino (velas)", "Janelas walk-forward", "Semente aleatória", "Fórmulas retornadas pelo serviço de pesquisa para este resultado."],
+  ru: ["Параметры запуска и формулы", "Хеш данных", "Хеш стратегии", "Модель комиссии (б.п.)", "Модель проскальзывания (б.п.)", "Задержка (свечи)", "Доля участия в объёме (б.п.)", "Граница обучения (свечи)", "Окна walk-forward", "Зерно генератора", "Формулы, возвращённые исследовательским сервисом для этого результата."],
+  ar: ["تفاصيل التشغيل والصيغ", "بصمة البيانات", "بصمة الاستراتيجية", "نموذج الرسوم (نقاط أساس)", "نموذج الانزلاق (نقاط أساس)", "زمن التأخير (شموع)", "المشاركة في الحجم (نقاط أساس)", "حد التدريب (شموع)", "نوافذ الاختبار المتقدم", "البذرة العشوائية", "الصيغ التي أعادتها خدمة البحث لهذه النتيجة."],
+  id: ["Detail proses dan rumus", "Digest data", "Digest strategi", "Model biaya (bps)", "Model slippage (bps)", "Latensi (candle)", "Partisipasi volume (bps)", "Batas pelatihan (candle)", "Jendela walk-forward", "Seed acak", "Rumus yang dikembalikan layanan riset untuk hasil ini."],
+};
+for (const [language, [runDetails, runDataHash, runStrategyHash, runFee, runSlippage, runLatency, runParticipation, runTraining, runWindows, runSeed, runFormulaLead]] of Object.entries(runDetailsCopy)) Object.assign(businessCopy[language], {runDetails, runDataHash, runStrategyHash, runFee, runSlippage, runLatency, runParticipation, runTraining, runWindows, runSeed, runFormulaLead});
+const runMetricLabels = {
+  en:["OOS return","Buy/hold","Maximum drawdown","Sharpe × 1,000","Volatility (bps)"],
+  "zh-CN":["样本外收益","买入持有","最大回撤","Sharpe × 1,000","波动率（基点）"],
+  "zh-TW":["樣本外報酬","買入持有","最大回撤","Sharpe × 1,000","波動率（基點）"],
+  ja:["学習外リターン","買い持ち","最大ドローダウン","Sharpe × 1,000","ボラティリティ（bps）"],
+  ko:["표본 외 수익률","매수 후 보유","최대 낙폭","Sharpe × 1,000","변동성 (bps)"],
+  es:["Retorno fuera de muestra","Comprar y mantener","Caída máxima","Sharpe × 1,000","Volatilidad (bps)"],
+  fr:["Rendement hors échantillon","Achat et conservation","Perte maximale","Sharpe × 1,000","Volatilité (bps)"],
+  de:["Rendite außerhalb der Stichprobe","Kaufen und Halten","Maximaler Rückgang","Sharpe × 1,000","Volatilität (bps)"],
+  pt:["Retorno fora da amostra","Comprar e manter","Queda máxima","Sharpe × 1,000","Volatilidade (bps)"],
+  ru:["Доходность вне обучающей выборки","Купить и держать","Максимальная просадка","Sharpe × 1,000","Волатильность (б.п.)"],
+  ar:["العائد خارج العينة","الشراء والاحتفاظ","أقصى تراجع","Sharpe × 1,000","التقلب (نقاط أساس)"],
+  id:["Imbal hasil di luar sampel","Beli dan tahan","Drawdown maksimum","Sharpe × 1,000","Volatilitas (bps)"],
+};
+for (const [language, [runReturn, runBuyHold, runDrawdown, runSharpe, runVolatility]] of Object.entries(runMetricLabels)) Object.assign(businessCopy[language], {runReturn, runBuyHold, runDrawdown, runSharpe, runVolatility});
+const runPresentationCopy = {
+  en:["Latest research result","Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns."],
+  "zh-CN":["最新研究结果","蓝色：测得的策略权益；灰色：买入持有基准。成本按本次模型计算，收益并无承诺。"],
+  "zh-TW":["最新研究結果","藍色：測得的策略權益；灰色：買入持有基準。成本依本次模型計算，報酬並無承諾。"],
+  ja:["最新の研究結果","青：計測した戦略の資産額。灰：買い持ちのベンチマーク。費用は実行時のモデルに基づき、リターンを保証しません。"],
+  ko:["최신 연구 결과","파란색: 측정된 전략 자산. 회색: 매수 후 보유 기준. 비용은 실행 모델에 따르며 수익을 보장하지 않습니다."],
+  es:["Último resultado de investigación","Azul: patrimonio medido de la estrategia. Gris: comprar y mantener. Los costes siguen el modelo de esta ejecución; no se prometen rendimientos."],
+  fr:["Dernier résultat de recherche","Bleu : capital mesuré de la stratégie. Gris : achat et conservation. Les coûts suivent le modèle de cette exécution ; aucun rendement n'est promis."],
+  de:["Neuestes Forschungsergebnis","Blau: gemessenes Strategieguthaben. Grau: Kaufen und Halten. Kosten folgen dem Modell dieses Laufs; Renditen sind nicht zugesichert."],
+  pt:["Último resultado da pesquisa","Azul: patrimônio medido da estratégia. Cinza: comprar e manter. Os custos seguem o modelo desta execução; não há promessa de retorno."],
+  ru:["Последний результат исследования","Синий: измеренный капитал стратегии. Серый: купить и держать. Издержки определены моделью этого запуска; доходность не гарантируется."],
+  ar:["أحدث نتيجة بحث","الأزرق: قيمة الاستراتيجية المقاسة. الرمادي: معيار الشراء والاحتفاظ. تعتمد التكاليف على نموذج هذا التشغيل، ولا توجد عوائد موعودة."],
+  id:["Hasil riset terbaru","Biru: ekuitas strategi terukur. Abu-abu: beli dan tahan. Biaya mengikuti model proses ini; imbal hasil tidak dijanjikan."],
+};
+for (const [language, [latestResearchTitle, runChartLead]] of Object.entries(runPresentationCopy)) Object.assign(businessCopy[language], {latestResearchTitle, runChartLead});
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
 const researchResultStatus = document.createElement("p");
@@ -195,6 +242,8 @@ function applyLocale() {
   const active = $('nav button.active'); if (active) $('#view-title').textContent = active.textContent;
   renderPortfolio();
   renderResearchStatus();
+  renderRunDetails();
+  if (lastToastKey) $("#toast").textContent = t(lastToastKey);
 }
 const api = async (path, opt = {}) => {
   const r = await fetch("/api" + path, {
@@ -210,7 +259,8 @@ const api = async (path, opt = {}) => {
   if (!r.ok) throw Object.assign(new Error(b.error || `HTTP ${r.status}`), {status: r.status});
   return b;
 };
-const toast = (m) => {
+const toast = (m, key = null) => {
+  lastToastKey = key;
   const e = $("#toast");
   e.textContent = m;
   e.classList.add("show");
@@ -373,11 +423,27 @@ $("#strategy-rows").addEventListener("click", async event => {
     await refresh();
   } catch (error) { toast(error.message); button.disabled = false; }
 });
+function renderRunDetails() {
+  const result = latestResearchResult, strategy = result?.strategy;
+  $("#research-source").textContent = typeof strategy?.Source === "string" && strategy.Source.trim() ? strategy.Source : "—";
+  for (const [id, key] of [["data", "DataHash"], ["strategy", "StrategyHash"]]) $("#research-" + id + "-hash").textContent = /^[0-9a-f]{64}$/i.test(strategy?.[key] || "") ? strategy[key] : "—";
+  for (const [id, key] of [["fee", "FeeBPS"], ["slippage", "SlippageBPS"], ["latency", "LatencyBars"], ["participation", "ParticipationBPS"], ["training", "TrainEnd"], ["windows", "WalkForwardWindows"], ["seed", "Seed"]]) $("#research-" + id).textContent = Number.isSafeInteger(result?.assumptions?.[key]) ? String(result.assumptions[key]) : "—";
+  const definitions = $("#research-metric-definitions");
+  definitions.replaceChildren();
+  for (const [key, label] of [["returnBPS", "runReturn"], ["buyHoldBPS", "runBuyHold"], ["maxDrawdownBPS", "runDrawdown"], ["sharpeMilli", "runSharpe"], ["volatilityBPS", "runVolatility"]]) {
+    const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
+    term.textContent = t(label);
+    description.textContent = typeof result?.metricDefinitions?.[key] === "string" && result.metricDefinitions[key].trim() ? result.metricDefinitions[key] : "—";
+    row.append(term, description); definitions.append(row);
+  }
+}
 function renderResult(result, savedWorkspace) {
   const metrics = result.metrics;
   if (!metrics) return;
   latestResearchMode = savedWorkspace;
+  latestResearchResult = result;
   renderResearchStatus();
+  renderRunDetails();
   $("#latest-result").hidden = false;
   for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
@@ -441,7 +507,8 @@ $("#backtest").onsubmit = async (e) => {
     };
     const result = await api(savedWorkspace ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
     renderResult(result, savedWorkspace);
-    toast(t(savedWorkspace ? "researchSaved" : "researchTemporary"));
+    const resultMessage = savedWorkspace ? "researchSaved" : "researchTemporary";
+    toast(t(resultMessage), resultMessage);
     if (savedWorkspace) await refresh();
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
@@ -644,7 +711,7 @@ $("#reconcile").onclick = async () => {
         Position: snapshot.paper.Position,
       }),
     });
-    toast(t("reconciled"));
+    toast(t("reconciled"), "reconciled");
     await refresh();
   } catch (e) {
     toast(e.message);
@@ -657,7 +724,7 @@ $("#kill").onclick = async () => {
       method: "POST",
       body: JSON.stringify({ reason: "operator user confirmation" }),
     });
-    toast(t("killActive"));
+    toast(t("killActive"), "killActive");
     await refresh();
   } catch (e) {
     toast(e.message);

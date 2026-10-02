@@ -69,7 +69,7 @@ test('early public research retains temporary provenance in the real page throug
     });
     await context.route('**/api/v1/public/research/backtests/from-market',async route=>{
       assert.equal(route.request().method(),'POST');researchStarted();await heldResearch;
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:2,ParticipationBPS:2500,TrainEnd:30,WalkForwardWindows:4,Seed:0},metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
@@ -78,6 +78,21 @@ test('early public research retains temporary provenance in the real page throug
     releaseResearch();await page.locator('#research-result-status').getByText('Temporary result on this page only — not saved or audited. Reloading the page discards it.',{exact:true}).waitFor();
     assert.equal(await page.locator('#result-return').textContent(),'120 bps');
     assert.match(await page.locator('#toast').textContent(),/not saved or audited/);
+    await page.locator('#research-run-details > summary').click();
+    assert.equal(await page.locator('#research-data-hash').textContent(),'c'.repeat(64));
+    assert.equal(await page.locator('#research-strategy-hash').textContent(),'d'.repeat(64));
+    await page.locator('#fee').fill('900');await page.locator('#slippage').fill('800');
+    assert.equal(await page.locator('#research-fee').textContent(),'34');
+    assert.equal(await page.locator('#research-slippage').textContent(),'17');
+    assert.equal(await page.locator('#research-seed').textContent(),'0');
+    assert.match(await page.locator('#research-metric-definitions').textContent(),/Explicit isolated UI formula/);
+    await page.setViewportSize({width:390,height:844});await page.selectOption('#locale','ar');
+    assert.equal(await page.locator('#research-run-details > summary').textContent(),'تفاصيل التشغيل والصيغ');
+    assert.equal(await page.locator('#research-fee').textContent(),'34');
+    assert.match(await page.locator('#toast').textContent(),/نتيجة مؤقتة/);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+    await page.screenshot({path:path.join(evidence,'research-run-details-mobile-arabic.png'),fullPage:true});
+    await page.selectOption('#locale','en');await page.setViewportSize({width:1280,height:720});
     await page.getByRole('button',{name:'Experiments',exact:true}).click();
     assert.match(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture.*not saved or audited/);
     assert.deepEqual((await page.locator('#experiment-rows tr').first().locator('td').allTextContents()).slice(-5),['—','—','—','—','—']);

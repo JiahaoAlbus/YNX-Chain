@@ -79,6 +79,36 @@ they are not a hosted artifact or production screenshot. Parent inspected all th
 
 ## Remaining boundaries and integration
 
+Follow-up run reproducibility: each displayed research result now contains an
+accessible details panel populated exclusively from its returned `strategy.Source`,
+64-hex `DataHash`/`StrategyHash`, `assumptions` and the five allowlisted
+`metricDefinitions`. It never substitutes subsequently edited form inputs. Missing
+metadata remains unavailable. Formula/source text uses text nodes; HTML-like input
+is not executed. Details, metric labels, result title and chart explanation support
+12 languages; service formula strings retain the exact reported text. Existing
+research and risk completion messages now follow a language change while visible.
+The endpoint and response schema, calculations and execution permissions are unchanged.
+
+Final business plus actual Chromium suite: 24/24 PASS, zero skipped, 16.344s. The
+reported-result boundary covers source/hash/parameter binding, zero seed, missing
+metadata, input edits, 12 language changes and plain-text formula rendering. The
+browser journey checks returned fee 34/slippage 17 remain visible after inputs are
+changed to 900/800, Arabic labels, no horizontal overflow and the localized temporary
+result message. It uses explicit synthetic UI metadata alongside the real isolated
+Go workspace response; it is not a public market backtest.
+
+Final local screenshot `tmp/quant-lab-evidence/research-run-details-mobile-arabic.png`:
+160442 bytes, SHA-256
+`fdaffeedf5352755cb72cff5d5be203227bae38d0634ee6a7058c7e3b9ea578f`.
+Parent inspected it after the final code/test run. It is retained locally, not hosted.
+
+Multi-instance follow-up is a deployment/input dependency, not a missing engine:
+the inherited service already has `postgresStateStore`, CAS, and
+`YNX_QUANT_DATABASE_URL` / `YNX_QUANT_STATE_NAMESPACE` configuration. The previously
+observed public filesystem backend still requires A to configure and verify the
+existing PostgreSQL path with proper migration and multi-instance evidence. No
+database credentials or Host configuration were read or changed here.
+
 Follow-up research amount truth: absent attribution previously rendered five zero
 PnL/fee/slippage values. The original renderer failed the new boundary test with
 exactly those five invented zeros. Rendering now preserves measured integer zero,

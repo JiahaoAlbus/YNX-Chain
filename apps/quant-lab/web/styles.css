@@ -161,6 +161,12 @@ h1 {
   overflow-wrap: anywhere;
 }
 #account-panel [hidden] { display: none; }
+#research-run-details { margin-block: 16px; }
+#research-run-details summary { cursor: pointer; min-height: 44px; padding-block: 10px; }
+#research-run-details summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+#research-run-details dl > div { margin-block: 12px; }
+#research-run-details dd { margin-inline: 0; overflow-wrap: anywhere; }
+#research-run-details code { white-space: normal; overflow-wrap: anywhere; }
 .shell {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);

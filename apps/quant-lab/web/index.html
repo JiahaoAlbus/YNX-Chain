@@ -119,10 +119,26 @@
                 <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
               </form>
               <div id="latest-result" hidden>
-                <h3>Latest research result</h3>
-                <dl><div><dt>OOS return</dt><dd id="result-return">—</dd></div><div><dt>Buy/hold</dt><dd id="result-baseline">—</dd></div><div><dt>Maximum drawdown</dt><dd id="result-drawdown">—</dd></div><div><dt>Sharpe</dt><dd id="result-sharpe">—</dd></div><div><dt>Volatility</dt><dd id="result-volatility">—</dd></div></dl>
-                <p>Sharpe = mean equity-period return / sample standard deviation × √period count (zero risk-free rate). Volatility is sample standard deviation in basis points. These are sample-period, not annualized metrics. Drawdown is the largest peak-to-trough equity decline.</p>
-                <figure id="equity-figure" hidden><svg id="equity-chart" viewBox="0 0 720 220" role="img" aria-label="Measured strategy and buy-hold equity"></svg><figcaption>Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns.</figcaption></figure>
+                <h3 data-business-i18n="latestResearchTitle">Latest research result</h3>
+                <dl><div><dt data-business-i18n="runReturn">OOS return</dt><dd id="result-return">—</dd></div><div><dt data-business-i18n="runBuyHold">Buy/hold</dt><dd id="result-baseline">—</dd></div><div><dt data-business-i18n="runDrawdown">Maximum drawdown</dt><dd id="result-drawdown">—</dd></div><div><dt>Sharpe</dt><dd id="result-sharpe">—</dd></div><div><dt data-business-i18n="runVolatility">Volatility (bps)</dt><dd id="result-volatility">—</dd></div></dl>
+                <details id="research-run-details">
+                  <summary data-business-i18n="runDetails">Run details and formulas</summary>
+                  <dl>
+                    <div><dt data-business-i18n="source">Source</dt><dd id="research-source">—</dd></div>
+                    <div><dt data-business-i18n="runDataHash">Data digest</dt><dd><code id="research-data-hash">—</code></dd></div>
+                    <div><dt data-business-i18n="runStrategyHash">Strategy digest</dt><dd><code id="research-strategy-hash">—</code></dd></div>
+                    <div><dt data-business-i18n="runFee">Fee model (bps)</dt><dd id="research-fee">—</dd></div>
+                    <div><dt data-business-i18n="runSlippage">Slippage model (bps)</dt><dd id="research-slippage">—</dd></div>
+                    <div><dt data-business-i18n="runLatency">Latency (bars)</dt><dd id="research-latency">—</dd></div>
+                    <div><dt data-business-i18n="runParticipation">Volume participation (bps)</dt><dd id="research-participation">—</dd></div>
+                    <div><dt data-business-i18n="runTraining">Training split (bars)</dt><dd id="research-training">—</dd></div>
+                    <div><dt data-business-i18n="runWindows">Walk-forward windows</dt><dd id="research-windows">—</dd></div>
+                    <div><dt data-business-i18n="runSeed">Random seed</dt><dd id="research-seed">—</dd></div>
+                  </dl>
+                  <p data-business-i18n="runFormulaLead">Formulas reported by the research service for this result.</p>
+                  <dl id="research-metric-definitions"></dl>
+                </details>
+                <figure id="equity-figure" hidden><svg id="equity-chart" viewBox="0 0 720 220" role="img" aria-label="Measured strategy and buy-hold equity"></svg><figcaption data-business-i18n="runChartLead">Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns.</figcaption></figure>
               </div>
             </div>
             <aside class="inspector">

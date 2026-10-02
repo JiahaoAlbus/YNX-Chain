@@ -105,6 +105,34 @@ test('research amounts preserve measured zero, currency and unavailable attribut
   }
 });
 
+test('run details stay bound to the returned experiment through input edits and locale changes', async () => {
+  const result={...researchFixture('reported-run'),strategy:{Name:'Reported run',Source:'verified-index/<img src=x>',DataHash:'a'.repeat(64),StrategyHash:'b'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:2,ParticipationBPS:2500,TrainEnd:30,WalkForwardWindows:4,Seed:0},metricDefinitions:{sharpeMilli:'returned Sharpe definition <script>alert(1)</script>',volatilityBPS:'sample deviation; not annualized'}};
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:result});await settle();
+  app.ids.get('fee').value='10';app.ids.get('slippage').value='5';await app.submit('backtest');
+  assert.equal(app.ids.get('research-fee').textContent,'34');
+  assert.equal(app.ids.get('research-slippage').textContent,'17');
+  assert.equal(app.ids.get('research-seed').textContent,'0');
+  assert.equal(app.ids.get('research-source').textContent,result.strategy.Source);
+  assert.equal(app.ids.get('research-data-hash').textContent,'a'.repeat(64));
+  assert.equal(app.ids.get('research-strategy-hash').textContent,'b'.repeat(64));
+  assert.match(app.ids.get('research-source').innerHTML,/&lt;img/);
+  const rows=app.ids.get('research-metric-definitions').children;
+  assert.equal(rows.length,5);assert.equal(rows[0].children[1].textContent,'—');
+  assert.equal(rows[3].children[1].textContent,result.metricDefinitions.sharpeMilli);
+  assert.match(rows[3].children[1].innerHTML,/&lt;script/);
+  app.ids.get('fee').value='900';app.ids.get('slippage').value='800';
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('research-fee').textContent,'34');
+    assert.equal(app.ids.get('research-slippage').textContent,'17');
+    assert.equal(app.ids.get('research-metric-definitions').children[3].children[1].textContent,result.metricDefinitions.sharpeMilli);
+    if(language!=='en')assert.notEqual(app.ids.get('research-metric-definitions').children[0].children[0].textContent,'OOS return');
+  }
+  assert.equal(app.proofs(),0);assert.equal(app.calls.filter(call=>!call.url.endsWith('/snapshot')).length,1);
+  const absent=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:{...researchFixture('absent-run-details'),strategy:{Name:'Absent run metadata'}}});await settle();await absent.submit('backtest');
+  for(const id of ['source','data-hash','strategy-hash','fee','slippage','latency','participation','training','windows','seed'])assert.equal(absent.ids.get('research-'+id).textContent,'—');
+});
+
 test('early public research stays temporary beside saved history after the initial workspace arrives', async () => {
   const initialSnapshot = deferred(), research = deferred(); let snapshots = 0;
   const publicResult = researchFixture('same-result-id', 'Public unsaved fixture');
@@ -121,7 +149,7 @@ test('early public research stays temporary beside saved history after the initi
   research.resolve(publicResult); await submitted;
   assert.equal(snapshots, 1, 'a public result must not take the saved-workspace completion branch');
   assert.match(app.ids.get('toast').textContent, /not saved or audited/);
-  assert.match(researchStatus(app), /not saved or audited/);
+    assert.match(researchStatus(app), /not saved or audited/);
   const rows = app.ids.get('experiment-rows').innerHTML;
   assert.equal((rows.match(/<tr>/g) || []).length, 2, 'same IDs cannot let public results replace saved results');
   assert.match(rows, /Saved workspace fixture<\/td>/);
