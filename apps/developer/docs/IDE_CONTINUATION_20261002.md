@@ -1,5 +1,74 @@
 # IDE continuation checkpoint — source candidate, product incomplete
 
+## AI cancellation successor to a1407924b
+
+Native Tools now has an ordinary Stop waiting for AI control during generation.
+It retires the operation epoch, aborts the fetch, preserves the unsent draft,
+and requires a new explicit preview/approval for another request. Old result,
+error and finally callbacks cannot replace a newer request's state. Page unmount
+also retires and aborts the operation. The UI explicitly says already-sent
+context cannot be recalled; it does not claim remote execution was undone.
+
+The backend propagates actual HTTP response disconnect to the existing model
+router's AbortSignal, retains the consumed one-use review, and releases the HTTP
+wait/identity timers even if an injected provider ignores cancellation. The
+model router continues owning its actual running slot until its provider ends;
+no pretend capacity release, hidden resubmission or automatic retry is added.
+Normal completed responses do not trigger cancellation. The fixed provider,
+model, context boundary and original admission expiry are unchanged.
+
+Original actual HTTP cancellation probe failed with aborted=false. Successor
+passes cancellation propagation and old-review replay rejection. Full service
+and identity activity suite: 87/87, zero skip. Actual React/Chromium probe passes
+stop → draft retained → new preview/approval → new result, with an old late
+result suppressed. The first probe exposed changing implicit textarea labels
+after the state transition; its failure receipt is retained. Explicit label/ID
+associations now keep both field names stable; the original exact-label
+assertions pass without weakening them. Existing contract and 401-retirement
+browser paths pass; typecheck and frontend production build pass.
+
+Current anonymous public reads: `/runtime/models` returns 401 requiring an
+authenticated workspace; legacy `/ai-build/health` returns 404. Neither result
+proves actual generation, nor is either a global claim about AI service absence.
+The October1 loopback qwen3 nonempty probe remains older supplier evidence,
+not refreshed normal-user acceptance. No anonymous generation was attempted
+after these responses, and no credential, new provider or account was used.
+Durable cancellation evidence:
+`../evidence/integration/ide-ai-cancel-20261002.json`.
+
+## Current full-goal gate audit
+
+| Required outcome | Current authoritative evidence | Remaining proof |
+| --- | --- | --- |
+| Mature full OpenVSCode editor and language/extension host | Reviewed 78eca Linux x64 derived manifest/tree; source input probes | Normal approved runtime editor, extension host and language flow; NOT_RUN |
+| Chinese IME, saving, binary files, close/reopen | Chromium IME helper probes and real temporary-filesystem service tests | Same installed full editor and real user project; NOT_VERIFIED |
+| Real terminal and run | Reviewed driver/proxy source and controlled-driver recovery tests | Actual approved native PTY/shell/process/run/Stop; NOT_RUN |
+| Unified identity and private user projects | Actual local HTTP PKCE, owner/generation and atomic writer tests | Normal Wallet consent and private project in final runtime; NOT_VERIFIED |
+| File/terminal/process/resource isolation and capacity | Source guards and bounds, separate fake-driver/SQL/filesystem evidence | Actual two-owner attempts, OS containment, quota-full and measured concurrency; NOT_VERIFIED |
+| YNX6423 tools and Wallet approve/reject | Actual public status/compiler reads; owned readonly consumers; HTTP guards | Real existing contract plus actual Wallet approval/rejection; no transaction claim |
+| Existing AI, explicit user-controlled context | Reviewed fixed supplier boundary, cancellation/replay tests | Current authenticated actual nonempty generation; NOT_VERIFIED |
+| Logo/Klein-blue/device experience | Actual component layout/screenshots at320/390/1280; contained original logo | Installed native/full-workbench/macOS/Web/Android user flows; NOT_VERIFIED |
+| Logout/account switch/refresh/cold-warm recovery | Actual local service and controlled React negative/recovery probes | Final normal user flows including closed original Wallet; NOT_VERIFIED |
+| Formal entry, compatible build, final packages | Exact owned commits, clean source and frontend build | A integration/official publication/package download/install/readback; NOT_VERIFIED |
+| Actual MONSTER | No confirmed usable channel supplied | NOT_RUN; no replacement agent or reference-workbench substitution |
+
+The same execution boundary remains current after three consecutive goal turns:
+local host is still Darwin arm64, while the inherited reviewed binary is still
+ELF Linux x86_64. The prior exec-format/native-PTY failures remain accurate.
+Current coordinator instructions still stop the rejected network/package-egress/
+LXD work, assign Host and shared interfaces to A, and supply no approved new
+executor or final IDE entry. The existing lxc inventory is not such an admission.
+
+Exact next dependency for A: supply an already-approved isolated Linux x64
+execution/admission entry for the same reviewed runtime/proxy and a dedicated
+normal QA project, then integrate the precise owned delta and provide its final
+version/entry. Shared signing/identity runtime contracts and model service
+provenance stay with A and the existing AI owner. No secret bytes are requested.
+The IDE owner then resumes full runtime implementation/repair and the complete
+journey above, rather than treating this source checkpoint as completion.
+Runtime validation cannot be replaced by more fixtures, the41943 reference,
+substituted binaries, a newly enabled forbidden adapter or another thread.
+
 ## Native contract tools successor to d6a9fd9e4
 
 The complete editor's trusted Tools page now exposes the existing Devnet
@@ -172,4 +241,5 @@ engineering and final installed/public user journey is verified.
 
 Public release/install/real user/real Relay/capacity: NOT_VERIFIED.
 MONSTER: NOT_RUN; no confirmed actual entry and no substitute agent created.
-Full IDE production goal: NOT_COMPLETED, active.
+Full IDE production goal: NOT_COMPLETED. Current gate audit requires A's
+approved execution entry before full runtime work can proceed.

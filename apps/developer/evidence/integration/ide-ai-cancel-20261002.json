@@ -1,0 +1,106 @@
+{
+  "sourceParent": "a1407924b3c5de64e549876198c7f4ae9c99d038",
+  "classification": "SOURCE_CANDIDATE_FULL_GOAL_NOT_COMPLETED",
+  "serviceSuite": {
+    "pass": 87,
+    "fail": 0,
+    "skip": 0
+  },
+  "browser": {
+    "passed": true,
+    "actualReact": true,
+    "actualChromium": true,
+    "backend": "controlled browser routes",
+    "errors": [],
+    "calls": [
+      {
+        "path": "/runtime/native-tools/context",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/proposals",
+        "body": {
+          "csrf": "fresh",
+          "prompt": "Suggest a plan",
+          "context": "draft"
+        }
+      },
+      {
+        "path": "/runtime/native-tools/approve",
+        "body": {
+          "csrf": "approval",
+          "proposalId": "review-3",
+          "approval": "send-reviewed-context-once"
+        }
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/proposals",
+        "body": {
+          "csrf": "fresh",
+          "prompt": "Suggest a plan",
+          "context": "draft"
+        }
+      },
+      {
+        "path": "/runtime/native-tools/approve",
+        "body": {
+          "csrf": "approval",
+          "proposalId": "review-6",
+          "approval": "send-reviewed-context-once"
+        }
+      }
+    ],
+    "realModel": false,
+    "public": false
+  },
+  "publicReads": [
+    {
+      "path": "/ai-build/health",
+      "http": 404,
+      "at": "2026-10-02T15:31:25.430Z",
+      "value": {
+        "error": "Asset not found."
+      }
+    },
+    {
+      "path": "/runtime/models",
+      "http": 401,
+      "at": "2026-10-02T15:31:25.519Z",
+      "value": {
+        "error": "A signed workspace session is required.",
+        "code": "workspace_session_required"
+      }
+    }
+  ],
+  "logs": [
+    {
+      "path": "/tmp/ynx-ide-ai-cancel-original-20261002.log",
+      "sha256": "7afd26e81eb08662b6ad4350a77e5a13a20eaaa06b4098b2850a12ed2e319edb"
+    },
+    {
+      "path": "/tmp/ynx-ide-ai-cancel-service-suite-final-20261002.log",
+      "sha256": "71e51e86936f673daad7a9d68605e3400b53af231775b11d7bcdb5db6d9a25f0"
+    },
+    {
+      "path": "/tmp/ynx-ide-ai-cancel-build-final-20261002.log",
+      "sha256": "bb2c21f3f76e8b18ac7ecacca347d729dd9aa685c978104d5c16757326d3cfa9"
+    }
+  ],
+  "gates": {
+    "realCurrentModel": "NOT_VERIFIED",
+    "fullNativeWorkbench": "NOT_RUN_NO_APPROVED_EXECUTOR",
+    "publicIDE": "NOT_VERIFIED",
+    "realUser": "NOT_VERIFIED",
+    "multiUserCapacity": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "rejectedScope": "STOPPED"
+  }
+}

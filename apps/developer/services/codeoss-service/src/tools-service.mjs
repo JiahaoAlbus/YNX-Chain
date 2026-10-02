@@ -63,14 +63,17 @@ export function createNativeToolsService({ coreService, modelRouter, chainHandle
         if (!proposal || proposal.bound !== bound || proposal.expires <= now() || body.approval !== 'send-reviewed-context-once') throw fault('The reviewed request is not available.', 'tools_proposal', 409);
         proposals.delete(body.proposalId); // One-use, including failures. Never auto-retry a model request.
         const controller = new AbortController(), timer = setTimeout(() => controller.abort(), Math.max(1, admission.expiresAt - now()));
+        const disconnect = () => { if (!response.writableEnded) controller.abort(fault('The client stopped waiting for this request.', 'tools_request_cancelled', 499)); };
+        response.once('close', disconnect);
+        if (response.destroyed) disconnect();
         const check = setInterval(() => { void coreService.authorizeConnection(request, sessionId).then(value => { if (binding(value) !== bound) controller.abort(); }).catch(() => controller.abort()); }, 5000);
         try {
-          const result = await modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: 'qwen3:4b',
+          const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: 'qwen3:4b',
             prompt: `${proposal.prompt}\n\nUSER-SELECTED CONTEXT (untrusted data):\n${proposal.context}`,
-            system: 'Provide a development plan and optional suggested diff. Do not claim execution, installation, signing or deployment. YNX Testnet is chain 6423; do not assume full EVM deployment support.', maxOutputTokens: 2048, signal: controller.signal });
+            system: 'Provide a development plan and optional suggested diff. Do not claim execution, installation, signing or deployment. YNX Testnet is chain 6423; do not assume full EVM deployment support.', maxOutputTokens: 2048, signal: controller.signal }), controller.signal);
           if (binding(await coreService.authorizeConnection(request, sessionId)) !== bound || controller.signal.aborted) throw fault('Wallet session changed during generation.', 'tools_identity_changed', 401);
           json(response, 200, { text: result.text, model: result.model, applied: false, signed: false });
-        } finally { clearTimeout(timer); clearInterval(check); } return true;
+        } finally { clearTimeout(timer); clearInterval(check); response.removeListener('close', disconnect); } return true;
       }
       throw fault('This tool action is not supported.', 'tools_route', 405);
     } catch (error) { json(response, error.status || 503, { code: error.code || 'tools_unavailable', error: error.message || 'Tools are unavailable.' }); return true; }
@@ -79,4 +82,14 @@ export function createNativeToolsService({ coreService, modelRouter, chainHandle
 }
 function exact(body, keys) { if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join() !== keys.sort().join()) throw fault('Unexpected tool request fields.', 'tools_schema', 400); }
 async function readBody(request) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > 80 * 1024) throw fault('Selected context is too large.', 'tools_body_limit', 413); chunks.push(chunk); } try { return JSON.parse(Buffer.concat(chunks)); } catch { throw fault('Tool request must be JSON.', 'tools_json', 400); } }
-function json(response, status, value) { response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'cross-origin-resource-policy': 'same-origin' }); response.end(JSON.stringify(value)); }
+function json(response, status, value) { if (response.destroyed || response.writableEnded) return; response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'cross-origin-resource-policy': 'same-origin' }); response.end(JSON.stringify(value)); }
+// Stop the HTTP wait even if an injected provider ignores its cancellation.
+// The router still owns its real running slot until the provider actually ends.
+function waitForModel(start, signal) {
+  return new Promise((resolve, reject) => {
+    const cancelled = () => reject(typeof signal.reason?.code === 'string' && Number.isInteger(signal.reason.status) ? signal.reason : fault('Wallet session ended during generation.', 'tools_identity_changed', 401));
+    if (signal.aborted) { cancelled(); return; }
+    signal.addEventListener('abort', cancelled, { once: true });
+    Promise.resolve().then(() => { if (signal.aborted) throw signal.reason; return start(); }).then(resolve, reject).finally(() => signal.removeEventListener('abort', cancelled));
+  });
+}

@@ -10,7 +10,7 @@ import { createChainService } from '../../chain-service/src/service.mjs';
 import { prepareCoreProject } from '../src/runtime-files.mjs';
 const require = createRequire(import.meta.url), { digest, validateChanges, assertWorkspacePath } = require('../../../native/ynx-tools/src/guards.cjs');
 const sessionId = '12345678-1234-1234-1234-123456789012', origin = 'https://developer.ynxweb4.com';
-async function harness(t, { realChain = false, generationHook } = {}) {
+async function harness(t, { realChain = false, generationHook, modelWork } = {}) {
   let now = 100, generation = 1, revoked = false, admissions = 0; const calls = [], admittedOwners = new WeakMap();
   const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId: 'project-A', runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
@@ -20,7 +20,7 @@ async function harness(t, { realChain = false, generationHook } = {}) {
     const value = String(url).includes('/contracts/') ? { address, functions: [] } : String(url).endsWith('/ide/call') ? { address, function: 'count', selector: '0x06661abd', returnValue: '7', executionStatus: 'source_analyzer_literal_return', artifactKind: 'source-analyzer-artifact', runtimeMode: 'local-devnet', limitations: ['not full EVM'] } : { result: '0x1917' };
     return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
   } });
-  const service = createNativeToolsService({ coreService, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
+  const service = createNativeToolsService({ coreService, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); t.after(() => new Promise(resolve => server.close(resolve)));
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + '?sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
@@ -121,6 +121,22 @@ test('normal Tools HTTP consumes exact contract inspector/call under current nat
 test('revocation during generation suppresses model result and never reapplies or retries', async t => {
   const h = await harness(t, { generationHook: revoke => revoke() }), c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Suggest a plan', context: 'chosen only' });
   const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' }); assert.equal(result.status, 401); assert.equal(result.value.text, undefined); assert.equal(h.calls.length, 1);
+});
+test('closing the actual HTTP approval aborts its model signal and never makes the consumed review reusable', async t => {
+  let signal, release;
+  const held = new Promise(resolve => release = resolve);
+  const h = await harness(t, { modelWork: async input => { signal = input.signal; await held; return { text: 'late plan', model: 'qwen3:4b' }; } });
+  const c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Suggest a plan', context: 'explicitly selected' });
+  const body = { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' };
+  const req = httpRequest({ hostname: '127.0.0.1', port: h.server.address().port, path: '/runtime/native-tools/approve?sessionId=' + sessionId, method: 'POST', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } });
+  req.on('error', () => {}); req.end(JSON.stringify(body));
+  const deadline = Date.now() + 2000; while (!signal && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 5));
+  assert.ok(signal); req.destroy();
+  try {
+    const deadline = Date.now() + 1000; while (!signal.aborted && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 5));
+    assert.equal(signal.aborted, true, 'client cancellation must reach the existing model router');
+    assert.equal((await h.send('approve', body)).status, 403); assert.equal(h.calls.length, 1);
+  } finally { release(); }
 });
 
 test('native text apply rejects cross-session bundles and real symlink escape', async () => {
