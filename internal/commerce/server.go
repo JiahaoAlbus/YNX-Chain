@@ -385,11 +385,13 @@ func (s *Server) exportBuyerData(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) deleteBuyerData(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer")
-	if !ok || !s.rate(w, r, sess.Account, "privacy.delete") {
+	if !ok {
 		return
 	}
 	var in struct {
-		Confirmation string `json:"confirmation"`
+		Confirmation      string          `json:"confirmation"`
+		RetiredIntents    []RetiredIntent `json:"retiredIntents"`
+		DeletionRequestID string          `json:"deletionRequestId"`
 	}
 	if !decode(w, r, &in) {
 		return
@@ -398,7 +400,18 @@ func (s *Server) deleteBuyerData(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, errors.New("exact confirmation DELETE_MY_SHOP_DATA required"))
 		return
 	}
-	receipt, err := s.store.DeleteBuyerData(sess.Account)
+	if err := validateRetiredIntents(in.RetiredIntents); err != nil {
+		fail(w, http.StatusBadRequest, err)
+		return
+	}
+	if err := validateDeletionRequestID(in.DeletionRequestID); err != nil {
+		fail(w, http.StatusBadRequest, err)
+		return
+	}
+	if !s.rate(w, r, sess.Account, "privacy.delete") {
+		return
+	}
+	receipt, err := s.store.DeleteBuyerDataRequest(sess.Account, in.DeletionRequestID, in.RetiredIntents)
 	if err != nil {
 		fail(w, status(err), err)
 		return

@@ -1,6 +1,7 @@
 package commerce
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -145,7 +146,7 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 		Orders:          orders,
 		AIJobs:          jobs,
 		AuditEvents:     audits,
-		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request records can be deleted. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
+		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request details can be deleted. Minimal one-way digests of retired request keys and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
 	}
 }
 
@@ -158,21 +159,108 @@ func terminalForPrivacyDeletion(status string) bool {
 	}
 }
 
-func (s *Store) DeleteBuyerData(actor string) (BuyerDataDeletionReceipt, error) {
+func validateRetiredIntents(intents []RetiredIntent) error {
+	if len(intents) > 128 {
+		return errors.New("at most 128 retired intents are allowed")
+	}
+	seen := make(map[RetiredIntent]struct{}, len(intents))
+	for _, intent := range intents {
+		if len(intent.Key) < 8 || len(intent.Key) > 128 {
+			return errors.New("retired intent key must contain 8 to 128 bytes")
+		}
+		switch intent.Route {
+		case "order.create", "ai.create":
+		default:
+			const prefix = "order.transition.order_"
+			if !strings.HasPrefix(intent.Route, prefix) {
+				return errors.New("retired intent route is not allowed")
+			}
+			id := strings.TrimPrefix(intent.Route, prefix)
+			decoded, err := hex.DecodeString(id)
+			if err != nil || len(decoded) != 12 || id != strings.ToLower(id) {
+				return errors.New("retired intent order ID is invalid")
+			}
+		}
+		if _, duplicate := seen[intent]; duplicate {
+			return errors.New("duplicate retired intent")
+		}
+		seen[intent] = struct{}{}
+	}
+	return nil
+}
+
+func (s *Store) DeleteBuyerData(actor string, intents ...RetiredIntent) (BuyerDataDeletionReceipt, error) {
+	return s.DeleteBuyerDataRequest(actor, "", intents)
+}
+
+func validateDeletionRequestID(requestID string) error {
+	if requestID != "" && (len(requestID) < 8 || len(requestID) > 128) {
+		return errors.New("deletion request ID must contain 8 to 128 bytes")
+	}
+	return nil
+}
+
+func deletionIntentDigest(intents []RetiredIntent) string {
+	canonical := make([]RetiredIntent, len(intents))
+	copy(canonical, intents)
+	sort.Slice(canonical, func(i, j int) bool {
+		if canonical[i].Route == canonical[j].Route {
+			return canonical[i].Key < canonical[j].Key
+		}
+		return canonical[i].Route < canonical[j].Route
+	})
+	return requestHash(canonical)
+}
+
+func deletionReceiptForRequest(receipt BuyerDataDeletionReceipt, requestID string) BuyerDataDeletionReceipt {
+	receipt.RetainedRecords = append([]string(nil), receipt.RetainedRecords...)
+	receipt.DeletionRequestID = requestID
+	return receipt
+}
+
+func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []RetiredIntent) (BuyerDataDeletionReceipt, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := validateDeletionRequestID(requestID); err != nil {
+		return BuyerDataDeletionReceipt{}, err
+	}
+	if err := validateRetiredIntents(intents); err != nil {
+		return BuyerDataDeletionReceipt{}, err
+	}
+	requestKey := ""
+	requestDigest := ""
+	if requestID != "" {
+		requestKey = requestHash([3]string{"ynx-commerce-buyer-deletion-v1", actor, requestID})
+		requestDigest = deletionIntentDigest(intents)
+		if prior, ok := s.s.BuyerDeletions[requestKey]; ok {
+			if prior.RequestDigest != requestDigest {
+				return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: deletion request ID reused with different intents", ErrConflict)
+			}
+			return deletionReceiptForRequest(prior.Receipt, requestID), nil
+		}
+	}
 
 	for _, order := range s.s.Orders {
 		if order.Buyer == actor && !terminalForPrivacyDeletion(order.Status) {
 			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: order %s is %s and must reach a terminal state before personal data deletion", ErrInvalidState, order.ID, order.Status)
 		}
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return BuyerDataDeletionReceipt{}, err
+	}
+	s.s.PrivacyDeletionBoundary = newID("privacy-boundary")
 
 	now := s.now()
 	receipt := BuyerDataDeletionReceipt{
-		ReceiptID:       newID("privacy-delete"),
-		DeletedAt:       now,
-		RetainedRecords: []string{"pseudonymized finalized orders", "authoritative public-chain payer addresses and transaction hashes", "settlement and refund evidence", "order timeline and integrity audit"},
+		ReceiptID:             newID("privacy-delete"),
+		DeletedAt:             now,
+		RetainedRecords:       []string{"pseudonymized finalized orders", "authoritative public-chain payer addresses and transaction hashes", "settlement and refund evidence", "order timeline and integrity audit", "minimal one-way retired request rejection digests", "opaque deletion retry receipts"},
+		RetiredIntentsVersion: 1,
+		RetiredIntentsCount:   len(intents),
+	}
+	for _, intent := range intents {
+		s.s.RetiredIdempotency[retiredIdempotencyDigest(actor, intent.Route, intent.Key)] = struct{}{}
 	}
 	if _, ok := s.s.BuyerProfiles[actor]; ok {
 		delete(s.s.BuyerProfiles, actor)
@@ -225,6 +313,7 @@ func (s *Store) DeleteBuyerData(actor string) (BuyerDataDeletionReceipt, error) 
 	}
 	for key, record := range s.s.Idempotency {
 		if record.Actor == actor && (strings.HasPrefix(record.Route, "order.") || strings.HasPrefix(record.Route, "ai.")) {
+			s.s.RetiredIdempotency[retiredIdempotencyDigest(record.Actor, record.Route, record.Key)] = struct{}{}
 			delete(s.s.Idempotency, key)
 			receipt.IdempotencyDeleted++
 		}
@@ -245,10 +334,14 @@ func (s *Store) DeleteBuyerData(actor string) (BuyerDataDeletionReceipt, error) 
 		}
 	}
 	s.auditLocked("privacy-service", "system", "buyer_data_deleted", "privacy_receipt", receipt.ReceiptID, "completed", fmt.Sprintf("profile=%t cart=%t orders=%d aiJobs=%d", receipt.ProfileDeleted, receipt.CartDeleted, receipt.OrdersPseudonymized, receipt.AIJobsDeleted))
+	if requestKey != "" {
+		s.s.BuyerDeletions[requestKey] = BuyerDeletionRecord{RequestDigest: requestDigest, Receipt: receipt}
+	}
 	if err := s.persistLocked(); err != nil {
+		s.s = before
 		return BuyerDataDeletionReceipt{}, err
 	}
-	return receipt, nil
+	return deletionReceiptForRequest(receipt, requestID), nil
 }
 
 type StoreUpdate struct{ Name, Description, Policy, TrustURL, SettlementAccount string }

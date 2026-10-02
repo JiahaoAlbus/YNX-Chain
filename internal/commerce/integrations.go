@@ -290,24 +290,32 @@ func (s *Store) RunAIJob(ctx context.Context, actor, id string, g AIGateway) (AI
 		s.mu.Unlock()
 		return AIJob{}, ErrInvalidState
 	}
+	original := j
+	attemptID := newID("ai_run")
 	j.Status = "running"
+	j.RunAttemptID = attemptID
 	j.ProviderStatus = "connecting"
 	j.Failure = ""
 	j.UpdatedAt = s.now()
 	s.s.AIJobs[id] = j
-	_ = s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		s.s.AIJobs[id] = original
+		s.mu.Unlock()
+		return AIJob{}, err
+	}
 	s.mu.Unlock()
 	result, err := g.Generate(ctx, j)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	j = s.s.AIJobs[id]
-	if j.Cancelled {
-		s.auditLocked(actor, "user", "ai_generation_discarded", "ai_job", id, "cancelled", "provider result discarded after cancellation")
-		if perr := s.persistLocked(); perr != nil {
-			return AIJob{}, perr
-		}
+	j, ok = s.s.AIJobs[id]
+	if !ok || j.ID != id || j.Actor != actor {
+		return AIJob{}, ErrNotFound
+	}
+	if j.Cancelled || j.Status != "running" || j.RunAttemptID != attemptID {
 		return j, ErrInvalidState
 	}
+	original = j
+	auditLen := len(s.s.Audits)
 	if err != nil {
 		j.Status = "failed"
 		j.ProviderStatus = "unavailable"
@@ -321,6 +329,8 @@ func (s *Store) RunAIJob(ctx context.Context, actor, id string, g AIGateway) (AI
 	s.s.AIJobs[id] = j
 	s.auditLocked(actor, "user", "ai_generation", "ai_job", id, j.Status, j.ProviderStatus)
 	if perr := s.persistLocked(); perr != nil {
+		s.s.AIJobs[id] = original
+		s.s.Audits = s.s.Audits[:auditLen]
 		return AIJob{}, perr
 	}
 	return j, err

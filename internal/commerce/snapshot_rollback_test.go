@@ -247,8 +247,11 @@ func TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations(t *testing.T)
 	}
 	for _, target := range []int{2, CurrentPersistenceSchemaVersion, CurrentPersistenceSchemaVersion + 1} {
 		path := filepath.Join(t.TempDir(), "invalid.json")
-		if err := s.ExportRollbackSnapshot(path, target); err == nil || !strings.Contains(err.Error(), "rollback target must be Snapshot v3, v4, v5 or v6") {
+		if err := s.ExportRollbackSnapshot(path, target); !errors.Is(err, ErrPersistenceVersion) {
 			t.Fatalf("invalid rollback target %d accepted: %v", target, err)
+		}
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal("invalid rollback target created an output")
 		}
 	}
 

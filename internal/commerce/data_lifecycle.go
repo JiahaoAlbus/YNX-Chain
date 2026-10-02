@@ -205,7 +205,7 @@ func (s *Store) transientRetentionPreviewLocked(cutoff time.Time) TransientReten
 	preview := TransientRetentionPreview{
 		Cutoff:                cutoff,
 		MinimumRetentionHours: int(minimumTransientRetention / time.Hour),
-		ProtectedClasses:      []string{"stores", "products", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "audits", "idempotency_records", "buyer_profiles", "carts"},
+		ProtectedClasses:      []string{"stores", "products", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "audits", "idempotency_records", "retired_idempotency_digests", "deletion_retry_receipts", "buyer_profiles", "carts"},
 	}
 	for _, job := range s.s.AIJobs {
 		if terminalAIJob(job) && !job.UpdatedAt.After(cutoff) {

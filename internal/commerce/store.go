@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 7
+	CurrentPersistenceSchemaVersion = 8
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -142,7 +142,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() (bool, error) {
@@ -166,6 +166,18 @@ func (s *Store) normalize() (bool, error) {
 	}
 	if s.s.Idempotency == nil {
 		s.s.Idempotency = map[string]IdempotencyRecord{}
+	}
+	if s.s.RetiredIdempotency == nil {
+		s.s.RetiredIdempotency = map[string]struct{}{}
+	}
+	for digest := range s.s.RetiredIdempotency {
+		decoded, err := hex.DecodeString(digest)
+		if err != nil || len(decoded) != sha256.Size || digest != strings.ToLower(digest) {
+			return false, errors.New("invalid retired idempotency digest")
+		}
+	}
+	if s.s.BuyerDeletions == nil {
+		s.s.BuyerDeletions = map[string]BuyerDeletionRecord{}
 	}
 	if s.s.AIJobs == nil {
 		s.s.AIJobs = map[string]AIJob{}
@@ -222,12 +234,43 @@ func (s *Store) persistLocked() error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
 	}
+	var backup []byte
 	if current, readErr := os.ReadFile(s.path); readErr == nil {
-		if err := atomicWrite(s.path+".bak", current); err != nil {
-			return fmt.Errorf("write commerce backup: %w", err)
+		backup = current
+		if hasPrivacyProtection(s.s) {
+			var previous Snapshot
+			if decodePersisted(current, s.integrityKey, &previous) != nil || !containsRetiredIntents(previous, s.s) {
+				// A successful privacy deletion must not leave its normal recovery
+				// backup capable of reviving deleted data or retired requests.
+				backup = data
+			}
 		}
 	} else if !errors.Is(readErr, os.ErrNotExist) {
 		return readErr
+	} else if hasPrivacyProtection(s.s) {
+		backup = data
+	}
+	if backup != nil {
+		previousBackup, readErr := os.ReadFile(s.path + ".bak")
+		if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+			return fmt.Errorf("read previous commerce backup: %w", readErr)
+		}
+		if err := atomicWrite(s.path+".bak", backup); err != nil {
+			return fmt.Errorf("write commerce backup: %w", err)
+		}
+		if err := atomicWrite(s.path, data); err != nil {
+			var rollbackErr error
+			if readErr == nil {
+				rollbackErr = atomicWriteExact(s.path+".bak", previousBackup)
+			} else {
+				rollbackErr = os.Remove(s.path + ".bak")
+			}
+			if rollbackErr != nil {
+				return errors.Join(err, fmt.Errorf("restore previous commerce backup: %w", rollbackErr))
+			}
+			return err
+		}
+		return nil
 	}
 	return atomicWrite(s.path, data)
 }
@@ -245,11 +288,24 @@ func encodePersisted(snapshot Snapshot, key []byte) ([]byte, error) {
 	return json.MarshalIndent(persistedEnvelope{Version: persistenceEnvelopeVersion, Snapshot: raw, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
 }
 
+func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
+	data, err := json.Marshal(snapshot)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	var cloned Snapshot
+	err = json.Unmarshal(data, &cloned)
+	return cloned, err
+}
+
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
-		return nil, errors.New("rollback target must be Snapshot v3, v4, v5 or v6")
+		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3, v4, v5, v6 or v7", ErrPersistenceVersion)
 	}
-	if len(s.s.ProviderConfigs) > 0 {
+	if hasPrivacyProtection(s.s) {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot enforce retired idempotency keys", ErrConflict, targetVersion)
+	}
+	if targetVersion < 7 && len(s.s.ProviderConfigs) > 0 {
 		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent provider configurations", ErrConflict, targetVersion)
 	}
 	if targetVersion < 6 && len(s.s.SellerInvitations) > 0 {
@@ -275,7 +331,10 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
-	fields = omitRawFields(fields, "ProviderConfigs")
+	fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
+	if targetVersion < 7 {
+		fields = omitRawFields(fields, "ProviderConfigs")
+	}
 	if targetVersion < 6 {
 		fields = omitRawFields(fields, "SellerInvitations")
 	}
@@ -375,8 +434,12 @@ func exclusiveWrite(path string, data []byte) (err error) {
 }
 
 func atomicWrite(path string, data []byte) error {
+	return atomicWriteExact(path, append(data, '\n'))
+}
+
+func atomicWriteExact(path string, data []byte) error {
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, append(data, '\n'), 0o600); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return err
 	}
 	f, err := os.OpenFile(tmp, os.O_RDWR, 0)
@@ -406,7 +469,56 @@ func RestoreCommerceBackup(path string, key []byte) error {
 	if _, err := probe.normalize(); err != nil {
 		return fmt.Errorf("verify commerce backup: %w", err)
 	}
+	if err := verifyRetiredIntentsRestore(path, key, probe.s); err != nil {
+		return err
+	}
 	return atomicWrite(path, bytes.TrimSpace(backup))
+}
+
+func containsRetiredIntents(candidate, current Snapshot) bool {
+	if current.PrivacyDeletionBoundary != "" && candidate.PrivacyDeletionBoundary != current.PrivacyDeletionBoundary {
+		return false
+	}
+	for digest := range current.RetiredIdempotency {
+		if _, ok := candidate.RetiredIdempotency[digest]; !ok {
+			return false
+		}
+	}
+	for digest, receipt := range current.BuyerDeletions {
+		previous, ok := candidate.BuyerDeletions[digest]
+		if !ok || requestHash(previous) != requestHash(receipt) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasPrivacyProtection(snapshot Snapshot) bool {
+	return snapshot.PrivacyDeletionBoundary != "" || len(snapshot.RetiredIdempotency) > 0 || len(snapshot.BuyerDeletions) > 0
+}
+
+func verifyRetiredIntentsRestore(path string, key []byte, candidate Snapshot) error {
+	data, err := os.ReadFile(path)
+	newTarget := errors.Is(err, os.ErrNotExist)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read current state before recovery: %w", err)
+	}
+	var current Snapshot
+	if err != nil || decodePersisted(data, key, &current) != nil {
+		// A valid normal backup can still prove that a schema recovery point
+		// predates privacy deletion when the active file is damaged.
+		backup, readErr := os.ReadFile(path + ".bak")
+		if newTarget && errors.Is(readErr, os.ErrNotExist) {
+			return nil
+		}
+		if readErr != nil || decodePersisted(backup, key, &current) != nil {
+			return fmt.Errorf("%w: no verifiable current privacy recovery boundary", ErrConflict)
+		}
+	}
+	if !containsRetiredIntents(candidate, current) {
+		return fmt.Errorf("%w: recovery would discard retired request protection", ErrConflict)
+	}
+	return nil
 }
 
 func RollbackCommercePersistence(path string, key []byte, targetVersion int) (PersistenceRollbackReport, error) {
@@ -430,6 +542,9 @@ func RollbackCommercePersistence(path string, key []byte, targetVersion int) (Pe
 		return report, fmt.Errorf("verify commerce state for rollback: %w", err)
 	}
 	snapshot = probe.s
+	if hasPrivacyProtection(snapshot) {
+		return report, fmt.Errorf("%w: Snapshot v%d cannot enforce retired idempotency keys", ErrConflict, targetVersion)
+	}
 	report.FromVersion = snapshot.Version
 	report.RecoveryPath = path + persistenceRollbackSuffix
 	report.BuyerProfilesOmitted = len(snapshot.BuyerProfiles)
@@ -468,6 +583,9 @@ func RestoreCommercePersistenceRollback(path string, key []byte) error {
 	if _, err := probe.normalize(); err != nil {
 		return fmt.Errorf("verify commerce rollback recovery point: %w", err)
 	}
+	if err := verifyRetiredIntentsRestore(path, key, probe.s); err != nil {
+		return err
+	}
 	return atomicWrite(path, bytes.TrimSpace(rollback))
 }
 
@@ -498,9 +616,19 @@ func omitRawFields(fields map[string]json.RawMessage, names ...string) map[strin
 
 func idemMapKey(actor, route, key string) string { return actor + "\x00" + route + "\x00" + key }
 
+// Retain only a one-way, domain-separated digest after personal data deletion.
+// JSON tuple encoding keeps account, route and key boundaries unambiguous;
+// no request hash, object ID, timestamp or plaintext identity is retained here.
+func retiredIdempotencyDigest(actor, route, key string) string {
+	return requestHash([4]string{"ynx-commerce-retired-idempotency-v1", actor, route, key})
+}
+
 func (s *Store) idempotencyLocked(actor, route, key string, input any) (string, bool, error) {
 	if len(key) < 8 || len(key) > 128 {
 		return "", false, errors.New("idempotency key must contain 8 to 128 characters")
+	}
+	if _, retired := s.s.RetiredIdempotency[retiredIdempotencyDigest(actor, route, key)]; retired {
+		return "", false, fmt.Errorf("%w: idempotency key retired after personal data deletion", ErrConflict)
 	}
 	h := requestHash(input)
 	rec, ok := s.s.Idempotency[idemMapKey(actor, route, key)]

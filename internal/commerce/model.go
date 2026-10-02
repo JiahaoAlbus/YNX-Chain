@@ -47,6 +47,21 @@ type BuyerDataDeletionReceipt struct {
 	OrdersPseudonymized      int       `json:"ordersPseudonymized"`
 	AuditEventsPseudonymized int       `json:"auditEventsPseudonymized"`
 	RetainedRecords          []string  `json:"retainedRecords"`
+	RetiredIntentsVersion    int       `json:"retiredIntentsVersion"`
+	RetiredIntentsCount      int       `json:"retiredIntentsCount"`
+	DeletionRequestID        string    `json:"deletionRequestId,omitempty"`
+}
+
+// A client can retire an admitted request whose outcome is still unknown,
+// without sending its body or an identity other than the authenticated buyer.
+type RetiredIntent struct {
+	Route string `json:"route"`
+	Key   string `json:"key"`
+}
+
+type BuyerDeletionRecord struct {
+	RequestDigest string
+	Receipt       BuyerDataDeletionReceipt
 }
 
 type Cart struct {
@@ -175,6 +190,7 @@ type AIJob struct {
 	Result, Failure                                             string
 	Applied, Rejected, Cancelled                                bool
 	CreatedAt, UpdatedAt                                        time.Time
+	RunAttemptID                                                string
 }
 
 type SellerRoleRevocation struct {
@@ -217,21 +233,24 @@ type ProviderView struct {
 }
 
 type Snapshot struct {
-	Version           int
-	Stores            map[string]StoreProfile
-	Products          map[string]Product
-	Orders            map[string]Order
-	Idempotency       map[string]IdempotencyRecord
-	Audits            []AuditEvent
-	AIJobs            map[string]AIJob
-	BuyerProfiles     map[string]BuyerProfile
-	Carts             map[string]Cart
-	SellerRoles       map[string]map[string]string
-	SellerRevocations map[string]SellerRoleRevocation
-	SellerInvitations map[string]SellerInvitation
-	SellerEvents      []SellerIntegrationEvent
-	ProviderConfigs   map[string]ProviderConfig
-	RequestWindow     map[string][]time.Time
+	Version                 int
+	Stores                  map[string]StoreProfile
+	Products                map[string]Product
+	Orders                  map[string]Order
+	Idempotency             map[string]IdempotencyRecord
+	RetiredIdempotency      map[string]struct{}
+	BuyerDeletions          map[string]BuyerDeletionRecord
+	PrivacyDeletionBoundary string
+	Audits                  []AuditEvent
+	AIJobs                  map[string]AIJob
+	BuyerProfiles           map[string]BuyerProfile
+	Carts                   map[string]Cart
+	SellerRoles             map[string]map[string]string
+	SellerRevocations       map[string]SellerRoleRevocation
+	SellerInvitations       map[string]SellerInvitation
+	SellerEvents            []SellerIntegrationEvent
+	ProviderConfigs         map[string]ProviderConfig
+	RequestWindow           map[string][]time.Time
 }
 
 // Detach response collections from the store lock so HTTP serialization and

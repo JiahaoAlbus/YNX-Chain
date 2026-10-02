@@ -18,7 +18,7 @@ func main() {
 	seller := flag.String("seller-assets", "apps/seller-console", "seller web assets")
 	restoreBackup := flag.Bool("restore-backup", false, "restore the last verified state backup before starting")
 	exportRollback := flag.String("export-rollback", "", "write a new bounded rollback snapshot and exit; never overwrites an existing file")
-	rollbackVersion := flag.Int("rollback-version", 5, "rollback snapshot target version: 3, 4 or 5")
+	rollbackVersion := flag.Int("rollback-version", 5, "rollback snapshot target version: 3, 4, 5, 6 or 7; refused when retired intent protection cannot be represented")
 	pruneTransientBefore := flag.String("prune-transient-before", "", "preview or prune terminal AI jobs and rate-limit samples older than this RFC3339 cutoff, then exit")
 	confirmPruneTransient := flag.Bool("confirm-prune-transient", false, "apply the transient retention preview; requires --prune-transient-before and an integrity key")
 	flag.Parse()
