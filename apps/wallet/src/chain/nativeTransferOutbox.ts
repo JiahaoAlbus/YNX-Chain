@@ -1,9 +1,12 @@
-import { evmAddressFromYNX, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
+import { evmAddressFromYNX, ynxAddressFromEVM, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 import { NativeChainClient, type BroadcastResult } from "./nativeTransfer";
 import { verifyNativeDurability } from "./nativeDurability";
 
 export const NATIVE_OUTBOX_PREFIX="ynx.wallet.native-outbox.v1.";
+export const NATIVE_HISTORY_PREFIX="ynx.wallet.native-history.v1.";
+const HISTORY_HEAD_PREFIX="ynx.wallet.native-history-head.v1.";
+const HISTORY_NODE_PREFIX="ynx.wallet.native-history-node.v1.";
 export type NativeTransferOutboxEntry=Readonly<{
   version:1;account:string;origin:string;payload:string;hash:string;transaction:SignedNativeTransfer;
   phase:"prepared"|"unknown"|"observed"|"accepted"|"done"|"pending_durable"|"uncertain"|"memory_only"|"not_found"|"unsupported";
@@ -11,6 +14,8 @@ export type NativeTransferOutboxEntry=Readonly<{
   durabilityEvidence:Readonly<Record<string,unknown>>|null;
 }>;
 export type NativeTransferPrepared=Readonly<{payload:string;hash:string;transaction:SignedNativeTransfer}>;
+export type NativeTransferHistoryRecord=Readonly<{account:string;origin:string;hash:string;to:string;amount:number;fee:number;nonce:number;createdAt:string;verifiedAt:string;blockNumber:string;scope:"local-snapshot";consensusFinality:false}>;
+export type NativeTransferHistory=Readonly<{records:readonly NativeTransferHistoryRecord[];nextCursor:string|null}>;
 type Guard=()=>void;
 const queues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
 export class NativeOutboxBlocked extends Error {readonly code="NATIVE_OUTBOX_BLOCKED";constructor(){super("A stored transfer needs your review before this account can sign another transfer.")}}
@@ -23,10 +28,33 @@ export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBO
 export class NativeTransferOutbox {
   constructor(private readonly storage:SecureStorageAdapter,private readonly now:()=>Date=()=>new Date()){}
   read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(()=>this.load(account))}
+  /** Account-bound history revalidates each saved signed original and checkpoint,
+   * but returns public display fields only. An older version's last Done record
+   * is retained before paging or before the next transfer can overwrite it. */
+  history(account:string,assertCurrent:Guard,cursor:string|null=null,limit=20):Promise<NativeTransferHistory>{return this.serial(async()=>{
+    key(account);assertCurrent();if(!Number.isInteger(limit)||limit<1||limit>50)throw new NativeOutboxStorageError();
+    if(cursor===null){const latest=await this.load(account);assertCurrent();if(latest?.phase==="done")await this.archive(latest,assertCurrent)}
+    const records:NativeTransferHistoryRecord[]=[],seen=new Set<string>();
+    try{
+      let hash=cursor??await this.storage.getItem(HISTORY_HEAD_PREFIX+account);assertCurrent();
+      while(hash!==null&&records.length<limit){
+        historyKey(account,hash);if(seen.has(hash))throw new Error();seen.add(hash);
+        const node=await this.storage.getItem(HISTORY_NODE_PREFIX+account+"."+hash);assertCurrent();if(node===null)throw new Error();
+        const previous=parseHistoryNode(node,account,hash);
+        const raw=await this.storage.getItem(historyKey(account,hash));assertCurrent();if(raw===null)throw new Error();
+        const record=parseHistoryRecord(raw,account,hash),receipt=record.durabilityEvidence!.receipt as Record<string,unknown>;
+        records.push(Object.freeze({account,origin:record.origin,hash,to:ynxAddressFromEVM(record.transaction.to),amount:record.transaction.amount,fee:record.transaction.fee,nonce:record.transaction.nonce,createdAt:record.createdAt,verifiedAt:record.updatedAt,blockNumber:String(receipt.blockNumber),scope:"local-snapshot",consensusFinality:false}));
+        hash=previous;
+      }
+      if(hash!==null&&seen.has(hash))throw new Error();
+      return Object.freeze({records:Object.freeze(records),nextCursor:hash});
+    }catch{assertCurrent();throw new NativeOutboxStorageError()}
+  })}
   async sendNew(account:string,client:NativeChainClient,assertCurrent:Guard,prepare:()=>Promise<NativeTransferPrepared>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
       assertCurrent();const existing=await this.load(account);assertCurrent();
       if(existing&&existing.phase!=="done")throw new NativeOutboxBlocked();
+      if(existing)await this.archive(existing,assertCurrent);
       await client.requireDurabilityCapability();assertCurrent();
       const signed=await prepare();assertCurrent();
       const time=this.now().toISOString();
@@ -61,6 +89,7 @@ export class NativeTransferOutbox {
     return this.serial(async()=>{
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase!=="accepted")throw new NativeOutboxBlocked();
+      await this.archive(record,assertCurrent);assertCurrent();
       const done=parse({...record,phase:"done",updatedAt:this.now().toISOString()},account);
       await this.save(done);return done;
     });
@@ -84,6 +113,34 @@ export class NativeTransferOutbox {
   private async load(account:string):Promise<NativeTransferOutboxEntry|null>{
     try{const raw=await this.storage.getItem(key(account));if(raw===null)return null;if(raw.length>8192)throw new Error();return parse(JSON.parse(raw),account)}catch{throw new NativeOutboxStorageError()}
   }
+  /** Publish immutable original + linked node + verified head BEFORE Done.
+   * Interrupted publication is resumed, never pruned or overwritten. */
+  private async archive(record:NativeTransferOutboxEntry,assertCurrent:Guard):Promise<void>{
+    assertCurrent();const account=record.account,hash=record.hash;
+    try{
+      if(!["accepted","done"].includes(record.phase)||!verifyNativeDurability(record.durabilityEvidence,record.transaction,hash,record.origin))throw new Error();
+      const archiveKey=historyKey(account,hash),headKey=HISTORY_HEAD_PREFIX+account,nodeKey=HISTORY_NODE_PREFIX+account+"."+hash;
+      const head=await this.storage.getItem(headKey);assertCurrent();if(head!==null)historyKey(account,head);
+      const existing=await this.storage.getItem(archiveKey);assertCurrent();
+      const encoded=JSON.stringify({...record,phase:"done"});if(encoded.length>8192)throw new Error();
+      if(existing!==null){const saved=parseHistoryRecord(existing,account,hash);
+        if(saved.payload!==record.payload||saved.origin!==record.origin||saved.createdAt!==record.createdAt||JSON.stringify(saved.durabilityEvidence)!==JSON.stringify(record.durabilityEvidence))throw new Error();
+      }else{await this.storage.setItem(archiveKey,encoded);assertCurrent()}
+      const saved=await this.storage.getItem(archiveKey);assertCurrent();if(saved!== (existing??encoded))throw new Error();parseHistoryRecord(saved,account,hash);
+      const prior=await this.storage.getItem(nodeKey);assertCurrent();
+      if(head===hash){if(prior===null)throw new Error();parseHistoryNode(prior,account,hash);return}
+      if(head!==null){
+        const priorNode=await this.storage.getItem(HISTORY_NODE_PREFIX+account+"."+head);assertCurrent();if(priorNode===null)throw new Error();parseHistoryNode(priorNode,account,head);
+        const priorRecord=await this.storage.getItem(historyKey(account,head));assertCurrent();if(priorRecord===null)throw new Error();parseHistoryRecord(priorRecord,account,head);
+      }
+      const node=JSON.stringify({version:1,account,hash,previous:head});if(prior!==null&&prior!==node)throw new Error();
+      if(prior===null){await this.storage.setItem(nodeKey,node);assertCurrent()}
+      if(await this.storage.getItem(nodeKey)!==node)throw new Error();assertCurrent();
+      // Detect a changed head before publishing; no broad journal replacement.
+      if(await this.storage.getItem(headKey)!==head)throw new Error();assertCurrent();
+      await this.storage.setItem(headKey,hash);assertCurrent();if(await this.storage.getItem(headKey)!==hash)throw new Error();assertCurrent();
+    }catch{assertCurrent();throw new NativeOutboxStorageError()}
+  }
   private async save(record:NativeTransferOutboxEntry):Promise<void>{
     const encoded=JSON.stringify(record),storageKey=key(record.account);
     try{if(encoded.length>8192)throw new Error();await this.storage.setItem(storageKey,encoded);const readback=await this.storage.getItem(storageKey);if(readback!==encoded)throw new Error();parse(JSON.parse(readback),record.account)}catch{throw new NativeOutboxStorageError()}
@@ -92,6 +149,17 @@ export class NativeTransferOutbox {
 }
 
 function key(account:string):string{evmAddressFromYNX(account);return NATIVE_OUTBOX_PREFIX+account}
+function historyKey(account:string,hash:string):string{key(account);if(!/^0x[0-9a-f]{64}$/.test(hash))throw new Error("Invalid saved native hash");return NATIVE_HISTORY_PREFIX+account+"."+hash}
+function parseHistoryNode(raw:string,account:string,hash:string):string|null{
+  if(raw.length>512)throw new Error();const value=JSON.parse(raw);
+  if(!value||Object.keys(value).sort().join(",")!=="account,hash,previous,version"||value.version!==1||value.account!==account||value.hash!==hash)throw new Error();
+  if(value.previous!==null){historyKey(account,value.previous);if(value.previous===hash)throw new Error()}
+  return value.previous;
+}
+function parseHistoryRecord(raw:string,account:string,hash:string):NativeTransferOutboxEntry{
+  if(raw.length>8192)throw new Error();const record=parse(JSON.parse(raw),account);
+  if(record.hash!==hash||record.phase!=="done")throw new Error();return record;
+}
 function parse(value:any,account:string):NativeTransferOutboxEntry{
   const fields=["version","account","origin","payload","hash","transaction","phase","attempts","createdAt","updatedAt","replayed","durabilityEvidence"];
   if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).length!==fields.length||fields.some(field=>!Object.prototype.hasOwnProperty.call(value,field))||value.version!==1||value.account!==account||typeof value.payload!=="string"||value.payload.length>2048||typeof value.origin!=="string"||!["prepared","unknown","observed","accepted","done","pending_durable","uncertain","memory_only","not_found","unsupported"].includes(value.phase)||!Number.isSafeInteger(value.attempts)||value.attempts<0||value.attempts>1000000||!(value.replayed===null||typeof value.replayed==="boolean"))throw new Error("Invalid stored native transfer");

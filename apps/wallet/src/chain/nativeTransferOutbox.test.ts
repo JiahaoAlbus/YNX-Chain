@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createSignedNativeTransfer, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { NativeBroadcastUnknown, NativeChainClient } from "./nativeTransfer";
-import { NATIVE_DURABILITY_MODEL } from "./nativeDurability";
-import { NATIVE_OUTBOX_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
+import { NATIVE_DURABILITY_MODEL,createNativeDurabilityEvidence } from "./nativeDurability";
+import { NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
@@ -25,6 +25,90 @@ function client(fetcher:(url:string,init?:RequestInit)=>Promise<Response>,verify
 function fixtureOutbox(storage:MemoryStorage){return new NativeTransferOutbox(storage)}
 function lifecycle(){const operations=new WalletOperationLifecycle();operations.setAccount(account);const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();return operations}
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>{resolve=r});return {promise,resolve}}
+
+// Exact production signature and durability validator; synthetic local checkpoint,
+// not a real network receipt. No key or signed payload is returned by history.
+function retainedFixture(prepared=signed,phase="accepted"){
+  const r=receipt();Object.assign(r,{transactionHash:prepared.hash,from:prepared.transaction.from,to:prepared.transaction.to});
+  Object.assign(r.ynxNativeTransaction,{amountYNXT:String(prepared.transaction.amount),feeYNXT:String(prepared.transaction.fee),nonce:"0x"+prepared.transaction.nonce.toString(16)});
+  r.ynxDurability.transactionHash=prepared.hash;
+  return {version:1,account,origin:"https://rpc.ynxweb4.com",...prepared,phase,attempts:1,createdAt:"2026-10-03T01:00:00.000Z",updatedAt:"2026-10-03T01:01:00.000Z",replayed:false,
+    durabilityEvidence:createNativeDurabilityEvidence("https://rpc.ynxweb4.com",NATIVE_DURABILITY_MODEL,r,prepared.transaction,prepared.hash)};
+}
+
+test("completed history retains independent originals across pages, restart and the next unknown transfer",async()=>{
+  const storage=new MemoryStorage(),hashes:string[]=[];
+  for(let nonce=7;nonce<10;nonce++){
+    const next=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:nonce+18,nonce});hashes.push(next.hash);
+    storage.values.set(storageKey,JSON.stringify(retainedFixture(next)));
+    await fixtureOutbox(storage).acknowledge(account,next.hash,noGuard);
+  }
+  const outbox=fixtureOutbox(storage),first=await outbox.history(account,noGuard,null,2);
+  assert.deepEqual(first.records.map(value=>value.hash),hashes.slice(1).reverse());assert.equal(first.nextCursor,hashes[0]);
+  const last=await outbox.history(account,noGuard,first.nextCursor,2);assert.deepEqual(last.records.map(value=>value.hash),[hashes[0]]);assert.equal(last.nextCursor,null);
+  const newest=first.records[0];assert.ok(newest);
+  assert.equal(newest.to,to);assert.equal(newest.scope,"local-snapshot");assert.equal(newest.consensusFinality,false);
+  assert.equal(Object.hasOwn(newest,"payload"),false);assert.equal(Object.hasOwn(newest,"transaction"),false);assert.equal(Object.hasOwn(newest,"durabilityEvidence"),false);
+  const next=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:28,nonce:10});
+  await outbox.sendNew(account,client(async()=>{throw new Error("lost ACK")}),noGuard,async()=>next);
+  assert.equal((await outbox.read(account))?.phase,"unknown");
+  assert.deepEqual((await fixtureOutbox(storage).history(account,noGuard)).records.map(value=>value.hash),hashes.reverse());
+});
+
+test("history never promotes an unresolved record and migrates only an older proven Done original",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  storage.values.set(storageKey,JSON.stringify(retainedFixture(signed,"observed")));
+  assert.equal((await outbox.history(account,noGuard)).records.length,0);
+  storage.values.set(storageKey,JSON.stringify(retainedFixture(signed,"done")));
+  const saved=storage.values.get(storageKey);
+  assert.equal((await outbox.history(account,noGuard)).records[0]?.hash,signed.hash);
+  assert.equal(storage.values.get(storageKey),saved,"migration does not rewrite the original journal");
+  const before=new Map(storage.values);await outbox.history(account,noGuard);assert.deepEqual(storage.values,before);
+});
+
+for(const prefix of [NATIVE_HISTORY_PREFIX,"ynx.wallet.native-history-node.v1.","ynx.wallet.native-history-head.v1."])for(const mode of ["write","readback"] as const)test(`history ${prefix} ${mode} interruption retains the accepted journal and resumes without duplicates`,async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);storage.values.set(storageKey,JSON.stringify(retainedFixture()));
+  const set=storage.setItem.bind(storage),get=storage.getItem.bind(storage);let interrupted=false;
+  storage.setItem=async(key,value)=>{if(key.startsWith(prefix)){if(mode==="write")throw new Error("interrupted");await set(key,value);interrupted=true;return}await set(key,value)};
+  storage.getItem=async key=>{if(interrupted&&key.startsWith(prefix))throw new Error("lost readback");return get(key)};
+  await assert.rejects(()=>outbox.acknowledge(account,signed.hash,noGuard),NativeOutboxStorageError);
+  assert.equal(JSON.parse(storage.values.get(storageKey)!).phase,"accepted");
+  storage.setItem=set;storage.getItem=get;
+  await fixtureOutbox(storage).acknowledge(account,signed.hash,noGuard);
+  assert.equal((await fixtureOutbox(storage).history(account,noGuard)).records.length,1);
+  assert.equal((await outbox.read(account))?.phase,"done");
+});
+
+test("older Done cannot be overwritten or trigger signing when its archive cannot be verified",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);storage.values.set(storageKey,JSON.stringify(retainedFixture(signed,"done")));
+  const original=storage.values.get(storageKey);let signatures=0,broadcasts=0;const set=storage.setItem.bind(storage);
+  storage.setItem=async(key,value)=>{if(key.startsWith(NATIVE_HISTORY_PREFIX))throw new Error("storage unavailable");await set(key,value)};
+  await assert.rejects(()=>outbox.sendNew(account,client(async()=>{broadcasts++;throw new Error()}),noGuard,async()=>{signatures++;return signed}),NativeOutboxStorageError);
+  assert.equal(signatures,0);assert.equal(broadcasts,0);assert.equal(storage.values.get(storageKey),original);
+});
+
+test("history binds account, hash, saved signature and exact proof and rejects cyclic pages without deleting records",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);storage.values.set(storageKey,JSON.stringify(retainedFixture()));await outbox.acknowledge(account,signed.hash,noGuard);
+  assert.equal((await outbox.history(to,noGuard)).records.length,0);
+  await assert.rejects(()=>outbox.history(to,noGuard,signed.hash),NativeOutboxStorageError);
+  const savedKey=NATIVE_HISTORY_PREFIX+account+"."+signed.hash,good=storage.values.get(savedKey)!;
+  const bad=JSON.parse(good);bad.durabilityEvidence.receipt.ynxNativeTransaction.amountYNXT="26";storage.values.set(savedKey,JSON.stringify(bad));
+  await assert.rejects(()=>outbox.history(account,noGuard),NativeOutboxStorageError);
+  let signs=0;await assert.rejects(()=>outbox.sendNew(account,client(async()=>response(success())),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);assert.equal(signs,0);
+  storage.values.set(savedKey,good);
+  const nodeKey="ynx.wallet.native-history-node.v1."+account+"."+signed.hash;
+  storage.values.set(nodeKey,JSON.stringify({version:1,account,hash:signed.hash,previous:signed.hash}));const before=new Map(storage.values);
+  await assert.rejects(()=>outbox.history(account,noGuard),NativeOutboxStorageError);assert.deepEqual(storage.values,before);
+  for(const limit of [0,51,1.5])await assert.rejects(()=>outbox.history(account,noGuard,null,limit),NativeOutboxStorageError);
+});
+
+test("locking during archive publication prevents Done and preserves an explicitly recoverable original",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);storage.values.set(storageKey,JSON.stringify(retainedFixture()));
+  let active=true;storage.afterRead=key=>{if(key.startsWith(NATIVE_HISTORY_PREFIX))active=false};
+  await assert.rejects(()=>outbox.acknowledge(account,signed.hash,()=>{if(!active)throw new Error("locked")}),/locked/);
+  assert.equal(JSON.parse(storage.values.get(storageKey)!).phase,"accepted");storage.afterRead=()=>{};
+  await outbox.acknowledge(account,signed.hash,noGuard);assert.equal((await outbox.history(account,noGuard)).records.length,1);
+});
 
 test("real 25 YNXT signed bytes and dispatch marker are read back before POST; legacy acceptance stays observed",async()=>{
   const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);let calls=0;

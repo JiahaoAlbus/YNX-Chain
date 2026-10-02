@@ -14,7 +14,7 @@ import {
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, type NativeChainState } from "./src/chain/nativeTransfer";
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
-import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
+import { NativeTransferOutbox, type NativeTransferOutboxEntry, type NativeTransferHistoryRecord } from "./src/chain/nativeTransferOutbox";
 import { WalletPayInvoiceClient, type WalletPayInvoice } from "./src/chain/walletPayInvoice";
 import { WalletScanner } from "./src/state/WalletScanner";
 import { WalletScanSession } from "./src/state/walletScanSession";
@@ -224,6 +224,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const [faucet,setFaucet]=useState(false);
   const [contracts,setContracts]=useState(false);
   const [payHistory,setPayHistory]=useState(false);
+  const [nativeHistory,setNativeHistory]=useState(false);
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
@@ -264,6 +265,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
+    <SecondaryButton label={locale.startsWith("zh")?"已确认转账记录":"Confirmed transfer history"} onPress={()=>setNativeHistory(true)}/>
     <SecondaryButton label={locale.startsWith("zh")?"Pay 付款收据":"Pay payment receipts"} onPress={()=>setPayHistory(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
@@ -274,6 +276,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {scanning?<WalletScanner locale={locale} accept={acceptScan} close={closeScan}/>:null}
     {invoiceID?<WalletInvoiceReferenceModal account={selected} invoiceID={invoiceID} close={()=>setInvoiceID(null)}/>:null}
     {payHistory?<WalletPayHistoryModal key={selected.account} account={selected} close={()=>setPayHistory(false)}/>:null}
+    {nativeHistory?<NativeTransferHistoryModal key={selected.account} account={selected} close={()=>setNativeHistory(false)}/>:null}
     {faucet?<FaucetModal account={selected} close={()=>{setFaucet(false);void refreshChain()}}/>:null}
     <EvmCompatibilityModal visible={evm} account={selected} close={()=>setEvm(false)}/>
     <NativeContractModal visible={contracts} account={selected} close={()=>setContracts(false)}/>
@@ -448,6 +451,25 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
     {stored.phase==="pending_durable"?<InfoCard title={walletCopy(locale,"Awaiting a mined block")} body={walletCopy(locale,"The node has saved the pending transfer locally. It has not confirmed mined inclusion. Keep this transaction and check again.")}/>:stored.phase==="memory_only"?<InfoCard title={walletCopy(locale,"Local durability unavailable")} body={walletCopy(locale,"This node only reports memory state. The original transfer remains unconfirmed and stored.")}/>:stored.phase==="not_found"?<InfoCard title={walletCopy(locale,"Transaction not observed by this node")} body={walletCopy(locale,"Not found does not prove rejection or allow a replacement transaction. Keep the original and check again.")}/>:stored.phase==="unsupported"?<InfoCard title={walletCopy(locale,"Durability capability unavailable")} body={walletCopy(locale,"This node does not provide the required versioned durability capability. The original transfer stays unconfirmed.")}/>:null}
     {problem}{stored.phase==="accepted"?<Button label="Done" disabled={busy} onPress={()=>void act("done")}/>:<><InfoCard title={walletCopy(locale,"Retry the original transaction")} body={walletCopy(locale,"After system biometric confirmation, Wallet resends only the stored signed request. It does not sign again or change its amount, recipient or nonce.")}/><Button label={walletCopy(locale,busy?"Waiting for the original transaction…":"Check transaction status")} disabled={busy} onPress={()=>void act("check")}/><SecondaryButton label={walletCopy(locale,"Authorize and resend original transaction")} disabled={busy} onPress={()=>void act("retry")}/></>}<SecondaryButton label={walletCopy(locale,"Close and keep transfer")} onPress={dismiss}/>
   </>:review?<><ReviewRow label="From" value={`${account.label}\n${account.account}`}/><ReviewRow label="To" value={to}/><ReviewRow label="Amount" value={`${amount} YNXT`}/><ReviewRow label="Network fee" value="1 YNXT"/><ReviewRow label="Network" value="ynx_6423-1"/><InfoCard title="Final biometric confirmation" body="Wallet will fetch the current authoritative nonce and balance, sign the exact canonical transfer, store and verify its original bytes, and POST it only to the configured YNX RPC origin."/>{problem}<SecondaryButton label="Edit transfer" disabled={busy} onPress={()=>{cancelInput();setReview(false)}}/><Button label={busy?"Signing and broadcasting…":"Sign and broadcast"} disabled={busy||!valid} onPress={()=>void act("new")}/></>:<><Text style={styles.sheetText}>{walletCopy(locale,"Copy a receiving link from a QR code, then paste it here.")}</Text>{problem}<SecondaryButton label={walletCopy(locale,pasting?"Reading clipboard…":"Paste address or receiving link")} disabled={pasting||busy} onPress={()=>void pasteRecipient()}/>{recipientAdded?<InfoCard title="YNX Testnet · YNXT" body={walletCopy(locale,"Recipient added. Enter an amount and review the transfer.")}/>:null}<Field label={walletCopy(locale,"Recipient ynx1 address")} value={to} onChangeText={changeRecipient}/><Field label={walletCopy(locale,"Whole YNXT amount")} value={amount} onChangeText={changeAmount}/><Button label={walletCopy(locale,"Review transfer")} disabled={!valid||pasting||busy} onPress={()=>{cancelInput();setReview(true)}}/></>}</Sheet></Modal>
+}
+
+function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
+  const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const [records,setRecords]=useState<readonly NativeTransferHistoryRecord[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
+  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const dismiss=()=>{scope.cancel();close()};
+  const load=async(more:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{
+    lease=scope.begin({account:account.account});const page=await nativeOutbox.history(account.account,lease.assert,more?cursor:null,10);lease.assert();
+    if(more&&page.records.some(item=>records.some(prior=>prior.hash===item.hash)))throw new Error("Repeated history page");
+    setRecords(previous=>more?[...previous,...page.records]:page.records);setCursor(page.nextCursor);setLoaded(true);
+  }catch{if(!lease||lease.isCurrent())setError(c("Saved transfers could not be verified. Existing records and the original transfer remain protected. Try again; no replacement is permitted.","暂时无法核对转账记录。已有记录和原交易仍受保护。请重试，不可签署替代交易。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  useEffect(()=>{void load(false);return()=>scope.cancel()},[account.account,scope]);
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Confirmed transfer history","已确认转账记录")} close={dismiss}>
+    <ReviewRow label={c("Account","账户")} value={account.account}/><InfoCard title={c("Verified history saved on this device","本设备保存的已核对记录")} body={c("These original transfers were acknowledged after a verified local snapshot checkpoint. This is not consensus finality or complete chain history. Incoming transfers and older records never saved by this device are not implied. Unresolved transfers remain in Review stored transfer.","以下原交易经本地快照持久性核验后由你确认。此记录不代表共识最终确认或完整链上历史，也不包含本设备从未保存的收款及更早交易。未确认交易仍保留在原交易核对入口。")}/>
+    {!loaded&&!error?<Text style={styles.sheetText}>{c("Reading saved transfer records…","正在读取已保存转账记录…")}</Text>:null}{loaded&&records.length===0?<Text style={styles.sheetText}>{c("No confirmed outgoing transfers saved for this account on this device.","本设备尚无此账户已保存的确认转出记录。")}</Text>:null}
+    {records.map(record=><View key={record.hash} style={styles.auditRow}><ReviewRow label={c("Recipient","收款地址")} value={record.to}/><ReviewRow label={c("Amount / fee","金额 / 手续费")} value={`${record.amount} / ${record.fee} YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={record.hash}/><ReviewRow label={c("Nonce / block","序号 / 区块")} value={`${record.nonce} / ${record.blockNumber}`}/><ReviewRow label={c("RPC origin","RPC 来源")} value={record.origin}/><ReviewRow label={c("Checkpoint checked at","检查点核对时间")} value={formatDateTime(locale,record.verifiedAt)}/></View>)}
+    {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}<Button label={c(busy?"Reading history…":"Refresh saved transfers",busy?"正在读取记录…":"刷新已保存转账")} disabled={busy} onPress={()=>void load(false)}/>{cursor?<SecondaryButton label={c("Older transfers","更早的转账")} disabled={busy} onPress={()=>void load(true)}/>:null}
+  </Sheet></Modal>;
 }
 
 function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
