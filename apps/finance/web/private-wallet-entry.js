@@ -8,8 +8,10 @@ const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portf
 let adapter=null,initializing=null,generation=0,revision=0,busy=false;
 let current=Object.freeze({status:'disconnected',session:null}),lastCode='',requestStage='idle';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
+function revocationRequested(){try{return localStorage.getItem(ATTEMPT_KEY)==='revoking';}catch{return true;}}
 function publish(next,code=''){
-  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,request:next.status==='connecting'?next.request:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true});
+  if(next.status==='connected'&&revocationRequested()){next={status:'retry-required',session:null,revocationPending:true};code='REVOCATION_PENDING';}
+  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,request:next.status==='connecting'?next.request:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true,revocationPending:next.revocationPending===true});
   revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage,approvalRejected:current.approvalRejected,revocationConfirmed:current.revocationConfirmed}}));
 }
 function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
@@ -24,10 +26,9 @@ async function initialize(){
 async function operation(action){
   const attempt=++generation;const markStage=stage=>{if(attempt===generation){requestStage=stage;window.dispatchEvent(new CustomEvent('ynx-finance-private-progress',{detail:{stage,revision,code:lastCode,status:current.status}}));}};requestStage='authorityChecking';busy=true;publish({status:'checking',session:null});
   try{await assertFinancePrivateAuthority();markStage('authorityOK');const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected,markStage);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation){
-    // Only the exact SDK/server revocation acknowledgement retires automatic
-    // restore opt-in. A pending/unconfirmed logout still restores its original
-    // revocation intent, never a newly invented connection request.
-    if(result.status==='disconnected'&&result.revocationConfirmed===true){try{localStorage.removeItem(ATTEMPT_KEY);}catch{}}
+    // A disconnected SDK result follows its durable original-target cleanup.
+    // Unconfirmed results retain the opt-in fence and retry only that sign-out.
+    if(result.status==='disconnected'&&(result.revocationConfirmed===true||revocationRequested())){try{localStorage.removeItem(ATTEMPT_KEY);}catch{}}
     publish(result);
   }return attempt===generation?result:current;}
   catch(error){if(attempt===generation)reportFailure(error);return current;}
@@ -35,14 +36,14 @@ async function operation(action){
 }
 async function restore(){
   const callback=location.pathname==='/wallet-auth/callback'&&location.search!=='';
-  let attempted=false;try{attempted=localStorage.getItem(ATTEMPT_KEY)==='yes';}catch{}
+  let attempted=false;try{attempted=['yes','revoking'].includes(localStorage.getItem(ATTEMPT_KEY));}catch{}
   if(!callback&&!attempted){publish({status:'guest',session:null});return current;}
   return operation(async selected=>{
   // Pass the complete callback intact to the shared parser; never extract a token.
   // The fixed shared SDK owns cold pending validation, fresh authority time,
   // original URL restoration and cancellation. Do not reconstruct a second
   // product-local pending state or replace a saved request on cold start.
-  const result=callback?await selected.client.handleReturn(location.href):await selected.client.restore(navigator.onLine);
+  const result=revocationRequested()?await selected.client.disconnect():callback?await selected.client.handleReturn(location.href):await selected.client.restore(navigator.onLine);
   if(callback&&['connected','disconnected'].includes(result.status))history.replaceState(null,'',location.pathname);
   return result;
 });}
@@ -50,6 +51,7 @@ async function begin(){return explicitRequest(false);}
 async function retry(){return explicitRequest(true);}
 async function explicitRequest(retry){
   if(busy)return current;
+  if(revocationRequested())return disconnect();
   const recovering=retry||['connecting','retry-required','expired','network-unavailable','degraded'].includes(current.status);
   const wallet=window.YNXFinanceWallet,standardRevision=wallet?.getStandardRevision?.();
   const assertSelected=()=>{if(standardRevision!==wallet?.getStandardRevision?.())throw Object.assign(new Error('FINANCE_CONTEXT_CHANGED'),{code:'FINANCE_CONTEXT_CHANGED'})};
@@ -97,15 +99,22 @@ async function explicitRequest(retry){
     }
   });
 }
-async function disconnect(){return operation(selected=>selected.client.disconnect());}
+async function disconnect(){
+  // This existing browser opt-in key records sign-out before authority/network
+  // waits. Reload resumes only the SDK's original revocation, never restore.
+  try{localStorage.setItem(ATTEMPT_KEY,'revoking');}catch{publish({status:'retry-required',session:null},'REVOCATION_PENDING');return current;}
+  const pending=adapter?.client.disconnect();pending?.catch(()=>{});
+  return operation(selected=>pending??selected.client.disconnect());
+}
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
 function reportFailure(error){const failure=error?code(error):'PRIVATE_SERVICE_DEGRADED';publish({status:failure==='SESSION_EXPIRED'?'expired':'degraded',session:null},failure);}
 async function proof(scope){
+  if(revocationRequested())throw Object.assign(new Error('REVOCATION_PENDING'),{code:'REVOCATION_PENDING'});
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
   const standardRevision=window.YNXFinanceWallet?.getStandardRevision?.();
   if(!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_ACCOUNT_MISMATCH: Selected Wallet differs from the approved private Finance subject.');
   const attempt=generation,view=current,selected=adapter;let phase='AUTHORITY';
-  try{await assertFinancePrivateAuthority();phase='DEVICE_PROOF';const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
+  try{await assertFinancePrivateAuthority();phase='DEVICE_PROOF';const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(revocationRequested()||authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
   catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED'){
     const failure=code(error);
     // A temporary failure to obtain fresh proof blocks this request, not the
@@ -118,7 +127,7 @@ function render(){
   const consent=document.querySelector('#private-service-consent');if(consent)consent.textContent=privateFiniteConsentText(window.YNXFinanceLocale?.get?.()??'en',current.request??current.session,!!current.request);
   const status=document.querySelector('#private-state'),account=current.session?.account;
   if(status){
-    const key=current.status==='expired'?'privateReauthorize':current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
+    const key=revocationRequested()?'privateLogoutUnconfirmed':current.status==='expired'?'privateReauthorize':current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
     const mismatch=current.status==='connected'&&!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.());
     status.textContent=current.status==='connected'?`${label('privateConnected')} ${account}. ${label('privateConnectedSuffix')}${mismatch?` ${label('privateAccountMismatch')}`:''}`:current.status==='connecting'?label('privateConnecting'):busy?label('privateChecking'):label(key);
     status.title=lastCode||'';

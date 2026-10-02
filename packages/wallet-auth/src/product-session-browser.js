@@ -55,12 +55,17 @@ export async function createBrowserProductSessionClient(config) {
         devices.add(candidate, namespace); states.add(initial, namespace); return candidate;
       });
     }
+    // Negative-only, synchronous sign-out signals contain no session or key material.
+    // Each operation owns distinct keys: a late finish cannot remove a newer signal.
+    const signals = browserRevocationSignals(environment.localStorage ?? globalThis.localStorage, namespace, record.deviceId, randomToken);
     // Read structured-cloned CryptoKeys back before accepting the persistence capability.
     const persisted = await currentRecord();
     await verifyKeyPair(crypto, persisted);
     const device = Object.freeze({ id: record.deviceId, key: record.deviceKey, scopes: approvedScopes, purpose, sign });
     const storage = Object.freeze({
       securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL,
+      requestRevocation: () => signals.request(),
+      revocationRequested: () => signals.pending(),
       async get(key) { assertStorageKey(key); return stateOperation("readonly", ({ state }) => { const value = state.values[key] ?? null; if (value !== null) assertStoredValue(key, value); return value; }); },
       async set(key, value) { assertStorageKey(key); assertStoredValue(key, value); return stateOperation("readwrite", ({ state, states }) => {
         const pending = readIntent(state);
@@ -98,6 +103,7 @@ export async function createBrowserProductSessionClient(config) {
           }
           delete state.values[revocationKey]; states.put(state, namespace);
         });
+        signals.finish();
         revocationAttempted = false;
       },
     });
@@ -150,7 +156,7 @@ export async function createBrowserProductSessionClient(config) {
     function signingRecord(subject, purpose) {
       return stateOperation("readonly", ({ device: current, state }) => {
         const pending = readIntent(state);
-        if (pending || revocationAttempted) {
+        if (pending || revocationAttempted || signals.pending()) {
           const target = pending?.session;
           if (purpose !== "http-proof" || subject.path !== "/v2/product-sessions/revoke" || subject.method !== "POST" || subject.bodyDigest !== httpBodyDigest("{}") || !target || subject.sessionBinding !== target.sessionBinding || subject.account !== target.account) fail("REVOCATION_PENDING", "Pending sign-out permits only the exact target revocation proof");
         } else if (purpose === "http-proof") {
@@ -163,7 +169,7 @@ export async function createBrowserProductSessionClient(config) {
     async function assertAPIActive(expected) {
       if (client.current !== expected) fail("SESSION_INACTIVE", "Product Session changed during API authorization");
       await stateOperation("readonly", ({ state }) => {
-        if (readIntent(state) !== null || revocationAttempted || !revocationSessionMatches(state.values[storageKey] ?? null, expected.session)) fail("SESSION_INACTIVE", "Pending sign-out or a changed stored session blocks API authorization");
+        if (readIntent(state) !== null || revocationAttempted || signals.pending() || !revocationSessionMatches(state.values[storageKey] ?? null, expected.session)) fail("SESSION_INACTIVE", "Pending sign-out or a changed stored session blocks API authorization");
       });
     }
     async function createIntrospectionProof(requiredScopes) {
@@ -223,6 +229,43 @@ function p1363ToDER(signature) {
 function validateScopes(scopes, allowed) {
   if (!Array.isArray(scopes) || scopes.length < 1 || scopes.length > 8 || scopes.some(scope => typeof scope !== "string" || !allowed.includes(scope)) || new Set(scopes).size !== scopes.length || [...scopes].sort().join("\n") !== scopes.join("\n")) fail("SCOPE_WIDENING", "Browser Product Session scopes must be an exact sorted registered subset");
 }
+function browserRevocationSignals(storage, namespace, deviceId, token) {
+  const prefix = 'ynx.product-session.signout.v1:' + encodeBase64url(new TextEncoder().encode(canonicalJSON({namespace, deviceId}))) + ':';
+  let owned = [];
+  function keys() {
+    try {
+      if (!storage || !Number.isInteger(storage.length)) throw Error('unavailable');
+      const found = [];
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (typeof key === 'string' && key.startsWith(prefix)) {
+          if (storage.getItem(key) !== 'pending-v1') throw Error('invalid');
+          found.push(key);
+        }
+      }
+      return found;
+    } catch { fail('INSECURE_STORAGE', 'Synchronous sign-out protection is unavailable'); }
+  }
+  return Object.freeze({
+    pending() { return keys().length !== 0; },
+    request() {
+      const prior = keys(), key = prefix + token();
+      try {
+        storage.setItem(key, 'pending-v1');
+        if (storage.getItem(key) !== 'pending-v1') throw Error('not saved');
+      } catch { fail('INSECURE_STORAGE', 'Sign-out signal could not be saved'); }
+      owned = [...prior, key];
+    },
+    finish() {
+      // Invoked only after original IDB intent cleanup has committed. Unique
+      // signal keys avoid read/remove races with another tab's new sign-out.
+      try { for (const key of owned) storage.removeItem(key); }
+      catch { fail('INSECURE_STORAGE', 'Committed sign-out still has a pending signal'); }
+      owned = [];
+    },
+  });
+}
+
 function openDatabase(indexedDB) {
   return new Promise((resolve, reject) => {
     let settled = false, request;

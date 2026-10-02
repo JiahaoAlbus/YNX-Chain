@@ -13,7 +13,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   NETWORK_UNAVAILABLE: "network-unavailable", RETRY_REQUIRED: "retry-required",
 });
 
-const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"] });
+const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"], revocationPending: true });
 
 export class RecoverableProductSessionClient {
   #finiteServiceSeconds; #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
@@ -24,6 +24,7 @@ export class RecoverableProductSessionClient {
     this.#registry = parseProductSessionRegistry(config.registry);
     this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
     this.#storage = secureStorage(config.storage, config.platform, config.device);
+    this.#revocationRequested = this.#storage.revocationRequested?.() === true;
     this.#gateway = gateway(config.gateway);
     this.#device = device(config.device);
     this.#tokens = tokenFactory(config.tokenFactory);
@@ -43,7 +44,7 @@ export class RecoverableProductSessionClient {
 
   // Suspend outward authority as soon as disconnect starts, including while its
   // clock lookup or a prior recovery is pending. Keep protected state for Retry.
-  get current() { return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE.CONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTING, PRODUCT_SESSION_CLIENT_STATE.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state; }
+  get current() { if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true; return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTING, PRODUCT_SESSION_CLIENT_STATE.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state; }
   get storageKey() { return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`; }
   get connectionBinding() { return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId }); }
 
@@ -352,6 +353,8 @@ export class RecoverableProductSessionClient {
     if (this.#disconnectPromise !== null) return this.#disconnectPromise;
     this.#beginEpoch += 1;
     this.#revocationRequested = true;
+    try { this.#storage.requestRevocation?.(); }
+    catch { return this.#pendingRevocation("Sign-out could not be saved synchronously; authorization remains suspended."); }
     const operation = this.#disconnect();
     this.#disconnectPromise = operation;
     try { return await operation; }
@@ -545,6 +548,7 @@ export class RecoverableProductSessionClient {
     return mutation;
   }
   async #loadRevocationIntent() {
+    if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true;
     const raw = await this.#storage.get(`${this.storageKey}:revoke`);
     if (raw !== null) { this.#revocationRequested = true; this.#revocationIntent = parseRevocationIntent(raw, this.#binding, this.#device); }
     return this.#revocationRequested;
