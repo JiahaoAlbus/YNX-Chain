@@ -1,5 +1,5 @@
 import {MatrixSocialTransport,MATRIX_PROTOCOL} from './transport.mjs';
-import {fetchMatrixLoginMetadata,createMatrixLoginController,handleMatrixLoginCallback} from './login.mjs';
+import {fetchMatrixLoginMetadata,createMatrixLoginController,handleMatrixLoginCallback,validMatrixUserId} from './login.mjs';
 import {matrixCryptoStore} from './crypto-store.mjs';
 import {createSocialPrivateSession,SOCIAL_CHAT_SCOPES} from '../private-session.js';
 import {createSsoReauthController} from './sso-reauth.mjs';
@@ -96,7 +96,7 @@ if(root&&!loginCallback){
    guardPending();await identity();guardPending();
    const binding=await login.request({metadata,deviceId:stored.deviceId,guard:guardPending,validateIdentity:()=>identity()});
    guardPending();await identity();guardPending();
-   await transport.connect(binding,selected,stored.storageKey);guard();const operation=transport.capture();
+   await transport.connect(binding,selected,stored.storageKey,{expectedUserId:metadata.userId});guard();const operation=transport.capture();
    transport.guard(operation);await identity();guard();transport.guard(operation);
    label("YNX account verified. Compare peer devices before sending.");await renderDevices(binding.userId);
   }finally{stored.storageKey.fill(0)}
@@ -105,8 +105,8 @@ if(root&&!loginCallback){
  root.querySelector('[data-peer-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{
   const view=captureView();await identity(view);guardView(view);const peer=root.querySelector('[name=matrixPeer]').value.trim();if(!/^ynx1[0-9a-z]{38}$/.test(peer))throw new Error('Enter a canonical YNX peer account');
   const proof=await client.proof(['social.contacts','social.messaging']);guardView(view);const response=await fetch('/social/v3/matrix/peer?account='+encodeURIComponent(peer),{credentials:'same-origin',headers:{'X-YNX-Product-Session-Proof-V2':proof.proofHeader}});guardView(view);
-  if(!response.ok)throw new Error('Verified peer binding unavailable');const binding=await response.json();guardView(view);if(binding.account!==peer||binding.userId!==`@${peer}:${binding.serverName}`)throw new Error('Peer identity binding mismatch');
-  const room=await transport.createConversation(binding.userId);guardView(view);selectRoom(room);label('Encrypted room created. Peer must accept and both devices must complete SAS.');await renderDevices(binding.userId)
+  if(!response.ok)throw new Error(response.status===401||response.status===403?'Chat approval or an accepted contact is required. Return to Social contacts and retry explicitly.':response.status===409?'The contact needs an existing Matrix identity mapping. No new account was created.':'Peer connection is temporarily unavailable. Retry explicitly; encrypted history is retained.');const binding=await response.json();guardView(view);if(binding.account!==peer||!validMatrixUserId(binding.userId,binding.serverName))throw new Error('Peer identity binding mismatch');
+  const room=await transport.createConversation(binding.userId,{verifiedPeer:binding});guardView(view);selectRoom(room);label('Encrypted room created. Peer must accept and both devices must complete SAS.');await renderDevices(binding.userId)
  })};
  function renderRoomButtons(){
   const view=captureView();guardView(view);const items=[];

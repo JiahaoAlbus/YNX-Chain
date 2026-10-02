@@ -11,9 +11,13 @@ function secureRoot(value,localQA){
  return url;
 }
 function productOrigin(value,localQA){const url=secureRoot(value,localQA);if(url.origin!==SOCIAL_ORIGIN&&!(localQA&&['localhost','127.0.0.1'].includes(url.hostname)))throw fail('MATRIX_CALLBACK_ORIGIN','The registered Social callback is required');return url.origin}
+export function validMatrixUserId(userId,serverName){
+ if(typeof userId!=='string'||userId.length>255||typeof serverName!=='string'||!/^[a-zA-Z0-9.-]+(:[0-9]{1,5})?$/.test(serverName)||!userId.startsWith('@')||!userId.endsWith(':'+serverName))return false;
+ const localpart=userId.slice(1,-serverName.length-1);return !!localpart&&!/[:\s\x00-\x1f\x7f-\uffff]/.test(localpart);
+}
 export function validateMatrixLoginMetadata(input,account,{localQA=false}={}){
  const keys=['account','homeserver','protocol','serverName','userId'];
- if(!input||Object.keys(input).sort().join(',')!==keys.join(',')||input.protocol!==MATRIX_LOGIN_PROTOCOL||input.account!==account||!/^ynx1[0-9a-z]{38}$/.test(account)||typeof input.serverName!=='string'||!/^[a-zA-Z0-9.-]+(:[0-9]{1,5})?$/.test(input.serverName)||input.userId!==`@${account}:${input.serverName}`)throw fail('MATRIX_LOGIN_METADATA_INVALID','Verified Matrix identity metadata is unavailable');
+ if(!input||Object.keys(input).sort().join(',')!==keys.join(',')||input.protocol!==MATRIX_LOGIN_PROTOCOL||input.account!==account||!/^ynx1[0-9a-z]{38}$/.test(account)||!validMatrixUserId(input.userId,input.serverName))throw fail('MATRIX_LOGIN_METADATA_INVALID','Verified Matrix identity metadata is unavailable');
  const homeserver=secureRoot(input.homeserver,localQA).href;
  return Object.freeze({...input,homeserver});
 }
@@ -23,7 +27,12 @@ export async function fetchMatrixLoginMetadata({account,deviceId,client,csrfToke
  if(permission.status!=='connected'||permission.session?.account!==account||!['social.profile','social.contacts','social.messaging'].every(scope=>permission.session?.scopes?.includes(scope)))throw fail('MATRIX_PERMISSION_REQUIRED','Existing explicit Social approval is required');
  const proof=await client.proof(['social.contacts','social.messaging']);guard();
  let response;try{response=await fetcher('/social/v3/matrix/login-metadata',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',signal,headers:{'Content-Type':'application/json','X-YNX-Product-Session-Proof-V2':proof.proofHeader,'X-YNX-SSO-CSRF':csrfToken},body:JSON.stringify({deviceId})})}catch{guard();throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix login metadata temporarily unavailable')}
- guard();if(!response.ok)throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix login metadata is not mounted or is unavailable');
+ guard();if(!response.ok){
+  if(response.status===401||response.status===403)throw fail('MATRIX_PERMISSION_REQUIRED','Social chat approval is unavailable or expired. Return to Social and approve explicitly; your encrypted history is retained.');
+  if(response.status===409)throw fail('MATRIX_IDENTITY_MAPPING_REQUIRED','Your existing Matrix identity must be linked by the service operator. No new account or device was created; your encrypted history is retained.');
+  if(response.status===429)throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Too many connection attempts. Wait briefly and retry explicitly; your encrypted history is retained.');
+  throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix sign-in is temporarily unavailable. Retry explicitly when the service is restored; your encrypted history is retained.');
+ }
  const metadata=await response.json();guard();return validateMatrixLoginMetadata(metadata,account);
 }
 // A must serve this route without request-query logging or external resources,

@@ -28,7 +28,7 @@ async function start(h){const pending=h.controller.request(h.input);await flush(
 async function launch(h){const pending=h.controller.request(h.input);await flush();assert.equal(h.state.opens.length,0);h.container.children[0].children[1].onclick();return {pending}}
 test('metadata is fixed, token-free and bound to the original identity',()=>{
  assert.equal(validateMatrixLoginMetadata(metadata,account).userId,metadata.userId);
- for(const delta of [{account:'ynx1'+'b'.repeat(38)},{userId:'@other:hs.example.test'},{accessToken},{protocol:'other'},{homeserver:'http://hs.example.test/'},{homeserver:'https://hs.example.test/?token=forbidden'},{serverName:'bad/path'}])assert.throws(()=>validateMatrixLoginMetadata({...metadata,...delta},account));
+ for(const delta of [{account:'ynx1'+'b'.repeat(38)},{userId:'@other:wrong.example.test'},{accessToken},{protocol:'other'},{homeserver:'http://hs.example.test/'},{homeserver:'https://hs.example.test/?token=forbidden'},{serverName:'bad/path'}])assert.throws(()=>validateMatrixLoginMetadata({...metadata,...delta},account));
 });
 test('metadata request consumes current private approval and sends no login credential',async()=>{
  let request;const client={restore:async()=>({status:'connected',session:{account,scopes}}),proof:async()=>({proofHeader:'synthetic-private-proof'})};
@@ -76,3 +76,17 @@ test('account change during whoami cannot install late binding',async()=>{const 
 test('one pending login is admitted and duplicate callbacks exchange only once',async()=>{const h=harness(),{pending}=await launch(h);await assert.rejects(h.controller.request(h.input),e=>e.code==='MATRIX_LOGIN_BUSY');await Promise.all([h.message(),h.message()]);await pending;await h.message();assert.equal(h.state.requests.filter(r=>r.init.method==='POST').length,1)});
 test('cancelled popup and old nonce cannot authorize a subsequent login',async()=>{const h=harness(),{pending}=await launch(h),oldPopup=h.state.popup,oldRedirect=new URL(h.state.opens[0]),oldState=new URL(oldRedirect.searchParams.get('redirectUrl')).searchParams.get('state'),rejected=assert.rejects(pending);h.controller.cancel();await rejected;const next=h.controller.request(h.input);await flush();h.container.children[0].children[1].onclick();await h.message({source:oldPopup,data:{type:'ynx-social-matrix-login-token',state:oldState,loginToken}});assert.equal(h.state.requests.filter(r=>r.init.method==='POST').length,0);await h.message();await next;assert.equal(h.state.requests.filter(r=>r.init.method==='POST').length,1)});
 test('metadata HTTP request receives this intent abort signal and aborts without a substitute binding',async()=>{const controller=new AbortController();let received;const client={restore:async()=>({status:'connected',session:{account,scopes}}),proof:async()=>({proofHeader:'synthetic'})};const pending=fetchMatrixLoginMetadata({account,deviceId,client,csrfToken:'synthetic',signal:controller.signal,guard(){if(controller.signal.aborted)throw Object.assign(Error('Stopped'),{code:'UI_STALE_VIEW'})},fetcher:async(url,init)=>{received=init.signal;return new Promise((resolve,reject)=>init.signal.addEventListener('abort',()=>reject(Error('Aborted')),{once:true}))}});await flush();assert.equal(received,controller.signal);const rejected=assert.rejects(pending,e=>e.code==='UI_STALE_VIEW');controller.abort();await rejected});
+test('explicit existing MXID is retained through standard token exchange and whoami',async()=>{
+ const h=harness(),old='@historical-user:hs.example.test';h.input.metadata={...metadata,userId:old};h.state.loginUser=h.state.whoUser=old;
+ assert.equal(validateMatrixLoginMetadata(h.input.metadata,account).userId,old);
+ const {pending}=await launch(h);await h.message();const result=await pending;assert.equal(result.userId,old);assert.equal(result.deviceId,deviceId);
+});
+test('old MXID metadata cannot accept canonical replacement identity or a different server',async()=>{
+ const h=harness();h.input.metadata={...metadata,userId:'@historical-user:hs.example.test'};
+ const {pending}=await launch(h),rejected=assert.rejects(pending,e=>e.code==='MATRIX_ACCOUNT_MISMATCH');await h.message();await rejected;
+ for(const userId of ['@old:other.test','@old user:hs.example.test','@old:extra:hs.example.test','@'+('x'.repeat(255))+':hs.example.test'])assert.throws(()=>validateMatrixLoginMetadata({...metadata,userId},account));
+});
+for(const [status,code,message] of [[401,'MATRIX_PERMISSION_REQUIRED',/approve explicitly/],[403,'MATRIX_PERMISSION_REQUIRED',/approve explicitly/],[409,'MATRIX_IDENTITY_MAPPING_REQUIRED',/No new account or device/],[429,'MATRIX_LOGIN_METADATA_UNAVAILABLE',/Wait briefly/],[503,'MATRIX_LOGIN_METADATA_UNAVAILABLE',/Retry explicitly/]])test('metadata HTTP '+status+' gives a real safe next step without consuming any credential',async()=>{
+ const client={restore:async()=>({status:'connected',session:{account,scopes}}),proof:async()=>({proofHeader:'synthetic'})};
+ await assert.rejects(fetchMatrixLoginMetadata({account,deviceId,client,csrfToken:'synthetic',guard(){},fetcher:async()=>({ok:false,status,json(){throw Error('failure body must not be read')}})}),error=>error.code===code&&message.test(error.message)&&error.message.includes('encrypted history is retained')&&!error.message.includes(loginToken));
+});

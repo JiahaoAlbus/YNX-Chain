@@ -53,6 +53,18 @@ test('delivery exception is sanitized and cannot replay the credential',()=>{
 test('missing snapshot produces only a safe retry message',()=>{
  const f=fixture(origin+path);assert.equal(runMatrixLoginCallbackPage({environment:f.environment}),false);assert.deepEqual(f.order,[]);assert.match(f.status.textContent,/unavailable/);
 });
+test('callback inherits explicit same-origin Social language without locale storage or query flags',()=>{
+ const f=fixture(),title={textContent:''},link={textContent:''};f.environment.document.documentElement={lang:'en'};
+ f.environment.document.getElementById=id=>({'callback-status':f.status,'callback-title':title,'callback-return':link}[id]);
+ f.environment.opener.location={href:origin+'/'};f.environment.opener.document={documentElement:{lang:'zh-CN'}};
+ assert.equal(runMatrixLoginCallbackPage({callbackHref:href,environment:f.environment}),true);
+ assert.equal(f.environment.document.documentElement.lang,'zh-CN');assert.equal(title.textContent,'返回你的对话。');assert.equal(link.textContent,'返回 Social');
+ assert.equal(f.status.textContent,'登录结果已返回 Social，可以关闭此窗口。');assert.equal(f.status.textContent.includes(token),false);
+});
+test('foreign opener language does not override the English default or token origin',()=>{
+ const f=fixture();f.environment.document.documentElement={lang:'en'};f.environment.opener.location={href:'https://other.example.test/'};f.environment.opener.document={documentElement:{lang:'zh-CN'}};
+ runMatrixLoginCallbackPage({callbackHref:href,environment:f.environment});assert.equal(f.environment.document.documentElement.lang,'en');assert.equal(f.status.textContent,'Sign-in returned to Social. You can close this window.');
+});
 test('actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture)',async()=>{
  const html=await readFile(new URL('./login-callback.html',import.meta.url),'utf8');
  const script=html.match(/<script>([\s\S]*?)<\/script>/)[1],f=fixture();

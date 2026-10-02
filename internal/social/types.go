@@ -39,6 +39,7 @@ type Config struct {
 	AI              AIStreamer
 	BrowserSSO      *productsessionv2.BrowserSSO
 	ProductSessions map[string]ProductSessionAuthorizer
+	MatrixDirectory *MatrixDirectory
 }
 
 type AIProvider struct {

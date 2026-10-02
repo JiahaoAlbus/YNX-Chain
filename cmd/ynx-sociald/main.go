@@ -48,6 +48,10 @@ func main() {
 	if len(serviceKey) < 16 || strings.TrimSpace(*stateDir) == "" || rateMax <= 0 || rateMax > 10000 {
 		log.Fatal("Social state directory, internal API key (at least 16 characters), and bounded rate limit are required")
 	}
+	matrixDirectory, err := loadMatrixDirectory(strings.TrimSpace(os.Getenv("YNX_SOCIAL_MATRIX_DIRECTORY")))
+	if err != nil {
+		log.Fatal("YNX_SOCIAL_MATRIX_DIRECTORY must contain validated existing public Matrix identity bindings")
+	}
 	if *checkConfig {
 		fmt.Println("ynx-sociald config check passed; isolated persistent Chat/Square composition and Wallet-bound Social sessions enabled")
 		return
@@ -87,7 +91,7 @@ func main() {
 		}
 		productSessions[platform] = client
 	}
-	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions})
+	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions, MatrixDirectory: matrixDirectory})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,6 +129,20 @@ func decodeKey(name string) ([]byte, error) {
 		return nil, fmt.Errorf("%s must be hex encoding of at least 32 bytes", name)
 	}
 	return decoded, nil
+}
+
+// The deployment owner supplies a public, existing-user mapping, not secrets.
+// Absence keeps legacy service operational but Matrix metadata fails closed.
+func loadMatrixDirectory(path string) (*social.MatrixDirectory, error) {
+	if path == "" {
+		return nil, nil
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	return social.ParseMatrixDirectory(file)
 }
 
 func envOrDefault(key, fallback string) string {

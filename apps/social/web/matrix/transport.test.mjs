@@ -21,3 +21,26 @@ test('device list change discards session and never silently trusts a new device
  crypto.getUserDeviceInfo=async()=>new Map([[binding.userId,new Map([[binding.deviceId,{deviceId:binding.deviceId,keys:new Map()}],['new-device',{deviceId:'new-device',keys:new Map([['ed25519:new-device','new-key']])}]])]]);crypto.getDeviceVerificationStatus=async()=>({isVerified:()=>false});
  await assert.rejects(t.assertTrusted('!room:qa.test'),e=>e.code==='MATRIX_DEVICE_CHANGED');assert.equal(discard,1);await assert.rejects(t.assertTrusted('!room:qa.test'),e=>e.code==='MATRIX_UNVERIFIED_DEVICE');
 });
+test('legacy MXID requires the exact previously verified login metadata, never a derived replacement',()=>{
+ const old={...binding,userId:'@historical:qa.test'};
+ assert.throws(()=>validateBinding(old,account));assert.equal(validateBinding(old,account,{expectedUserId:old.userId}),old);
+ assert.throws(()=>validateBinding(old,account,{expectedUserId:binding.userId}));
+ assert.throws(()=>validateBinding({...old,userId:'@historical:other.test'},account,{expectedUserId:'@historical:other.test'}));
+});
+test('verified historical peer on another server uses the original MXID and encrypted room state',async()=>{
+ const t=new MatrixSocialTransport();t.binding=binding;let roomInput;t.client={createRoom:async input=>(roomInput=input,{room_id:'!fixture:qa.test'})};
+ const userId='@historical-peer:remote.test',verifiedPeer={account:'ynx1'+'b'.repeat(38),userId,serverName:'remote.test'};
+ await assert.rejects(t.createConversation(userId),e=>e.code==='MATRIX_PEER_BINDING_REQUIRED');assert.equal(roomInput,undefined);
+ assert.equal(await t.createConversation(userId,{verifiedPeer}),'!fixture:qa.test');assert.deepEqual(roomInput.invite,[userId]);
+ assert.equal(roomInput.initial_state[0].content.algorithm,'m.megolm.v1.aes-sha2');
+ await assert.rejects(t.createConversation(userId,{verifiedPeer:{...verifiedPeer,userId:'@other:remote.test'}}),e=>e.code==='MATRIX_PEER_BINDING_REQUIRED');
+});
+test('historical MXID connect keeps original per-account/device sync and Rust crypto namespaces',async()=>{
+ let storeOptions,clientOptions,cryptoOptions;const handlers=new Map();
+ const t=new MatrixSocialTransport({storeFactory:options=>(storeOptions=options,{backend:{},on(){},startup:async()=>{}}),clientFactory:options=>(clientOptions=options,{stopClient(){},initRustCrypto:async options=>{cryptoOptions=options},getCrypto:()=>({setTrustCrossSignedDevices(){},userHasCrossSigningKeys:async()=>true,getVersion:()=> 'fixture'}),on:(event,fn)=>handlers.set(event,fn),startClient:async()=>handlers.get('sync')('PREPARED')})});
+ const old={...binding,userId:'@historical:qa.test'},key=new Uint8Array(32);
+ await t.connect(old,account,key,{expectedUserId:old.userId});
+ assert.equal(clientOptions.userId,old.userId);assert.equal(clientOptions.deviceId,binding.deviceId);
+ assert.equal(storeOptions.dbName,`ynx-social-matrix-sync-v1:${account}:${binding.deviceId}`);
+ assert.equal(cryptoOptions.cryptoDatabasePrefix,`ynx-social-matrix-v1:${account}:${binding.deviceId}`);assert.equal(cryptoOptions.storageKey,key);
+});

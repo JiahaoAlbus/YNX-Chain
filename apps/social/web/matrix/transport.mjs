@@ -1,13 +1,14 @@
 import {createClient, ClientEvent, RoomEvent, IndexedDBStore} from 'matrix-js-sdk';
 import {CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/CryptoEvent.js';
 import {encryptAttachment, decryptAttachment} from 'matrix-encrypt-attachment';
+import {validMatrixUserId} from './login.mjs';
 export const MATRIX_PROTOCOL = 'ynx-social-matrix/v1';
 export class MatrixPolicyError extends Error { constructor(code,message){super(message);this.code=code} }
 const fail=(code,message)=>{throw new MatrixPolicyError(code,message)};
-export function validateBinding(binding,account,{localQA=false}={}){
+export function validateBinding(binding,account,{localQA=false,expectedUserId}={}){
   if(binding?.protocol!==MATRIX_PROTOCOL||binding.account!==account||!/^ynx1[0-9a-z]{38}$/.test(account))fail('MATRIX_ACCOUNT_MISMATCH','Verified YNX identity and transport binding differ');
   const url=new URL(binding.homeserver);if(url.username||url.password||url.pathname!=='/'||url.search||url.hash||!(url.protocol==='https:'||(localQA&&url.protocol==='http:'&&['127.0.0.1','localhost'].includes(url.hostname))))fail('MATRIX_UNSAFE_ORIGIN','A fixed secure homeserver is required');
-  if(binding.userId!==`@${account}:${binding.serverName}`||!/^[A-Za-z0-9._-]{3,64}$/.test(binding.deviceId)||typeof binding.accessToken!=='string'||!binding.accessToken||binding.accessToken.length>8192)fail('MATRIX_INVALID_BINDING','Invalid account/device transport binding');
+  if(!validMatrixUserId(binding.userId,binding.serverName)||binding.userId!==(expectedUserId??`@${account}:${binding.serverName}`)||!/^[A-Za-z0-9._-]{3,64}$/.test(binding.deviceId)||typeof binding.accessToken!=='string'||!binding.accessToken||binding.accessToken.length>8192)fail('MATRIX_INVALID_BINDING','Invalid account/device transport binding');
   return binding;
 }
 export async function fetchMatrixBinding({account,deviceId,client,csrfToken,fetcher=fetch}){
@@ -19,8 +20,8 @@ export async function fetchMatrixBinding({account,deviceId,client,csrfToken,fetc
 }
 export class MatrixSocialTransport {
   constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient,storeFactory=options=>new IndexedDBStore(options),reauthenticateDevice=null}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.storeFactory=storeFactory;this.reauthenticateDevice=reauthenticateDevice;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
-  async connect(binding,account,storageKey){
-    this.stop();validateBinding(binding,account,{localQA:this.localQA});if(!(storageKey instanceof Uint8Array)||storageKey.length!==32)fail('MATRIX_STORAGE_REQUIRED','Protected durable crypto storage key is required');
+  async connect(binding,account,storageKey,{expectedUserId}={}){
+    this.stop();validateBinding(binding,account,{localQA:this.localQA,expectedUserId});if(!(storageKey instanceof Uint8Array)||storageKey.length!==32)fail('MATRIX_STORAGE_REQUIRED','Protected durable crypto storage key is required');
     const generation=this.generation;this.binding=binding;
     const store=this.storeFactory({indexedDB:globalThis.indexedDB,dbName:`ynx-social-matrix-sync-v1:${account}:${binding.deviceId}`});
     // SDK's default cache degradation clears its database. Retain it instead,
@@ -78,7 +79,7 @@ export class MatrixSocialTransport {
       this.deviceSets.set(key,signature);
     }
   }
-  async createConversation(peerUserId){const operation=this.capture();if(!/^@ynx1[0-9a-z]{38}:[^\s]+$/.test(peerUserId))fail('MATRIX_PEER_BINDING_REQUIRED','A backend-verified YNX transport alias is required');const result=await operation.client.createRoom({is_direct:true,invite:[peerUserId],preset:'private_chat',initial_state:[{type:'m.room.encryption',state_key:'',content:{algorithm:'m.megolm.v1.aes-sha2',rotation_period_ms:3600000,rotation_period_msgs:100}},{type:'com.ynx.social.protocol',state_key:'',content:{protocol:MATRIX_PROTOCOL,legacyUpgrade:false}}]});this.guard(operation);return result.room_id}
+  async createConversation(peerUserId,{verifiedPeer}={}){const operation=this.capture();const mapped=verifiedPeer&&/^ynx1[0-9a-z]{38}$/.test(verifiedPeer.account)&&verifiedPeer.userId===peerUserId&&validMatrixUserId(peerUserId,verifiedPeer.serverName);if(!mapped&&!/^@ynx1[0-9a-z]{38}:[^\s]+$/.test(peerUserId))fail('MATRIX_PEER_BINDING_REQUIRED','A backend-verified YNX transport alias is required');const result=await operation.client.createRoom({is_direct:true,invite:[peerUserId],preset:'private_chat',initial_state:[{type:'m.room.encryption',state_key:'',content:{algorithm:'m.megolm.v1.aes-sha2',rotation_period_ms:3600000,rotation_period_msgs:100}},{type:'com.ynx.social.protocol',state_key:'',content:{protocol:MATRIX_PROTOCOL,legacyUpgrade:false}}]});this.guard(operation);return result.room_id}
   async join(roomId){const operation=this.capture();await operation.client.joinRoom(roomId);this.guard(operation);await this.wait(()=>{this.guard(operation);return operation.client.getRoom(roomId)?.getMyMembership()==='join'});this.guard(operation)}
   async sendText(roomId,text){const operation=this.capture();if(typeof text!=='string'||!text.trim()||text.length>16000)fail('MATRIX_MESSAGE_INVALID','Message length must be 1..16000');await this.assertTrusted(roomId,operation);this.guard(operation);const result=await operation.client.sendTextMessage(roomId,text);this.guard(operation);return result}
   async sendAttachment(roomId,bytes,{name='attachment',mimeType='application/octet-stream'}={}){
