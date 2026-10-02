@@ -27,6 +27,12 @@ test.before(async()=>{
 });
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
+async function openAccountPanel(page){
+  const panel=page.locator('#account-panel');
+  if(!await panel.evaluate(element=>element.open))await page.locator('#account-panel > summary').click();
+  assert.equal(await panel.evaluate(element=>element.open),true);
+}
+
 async function pageWithProviders({onlyYNX=false,saved=null,deferSwitch=false,chainAfterApproval=null,revokeMode='success',deferRevoke=false,initiallyEmpty=false}={}){
   const page=await browser.newPage();
   await page.addInitScript(({onlyYNX,saved,deferSwitch,chainAfterApproval,revokeMode,deferRevoke,initiallyEmpty})=>{
@@ -79,6 +85,8 @@ async function pageWithProviders({onlyYNX=false,saved=null,deferSwitch=false,cha
     window.ethereum={providers:onlyYNX?[fixture.ynx]:[fixture.ynx,fixture.metamask]};
   },{onlyYNX,saved,deferSwitch,chainAfterApproval,revokeMode,deferRevoke,initiallyEmpty});
   await page.goto(base);
+  assert.equal(await page.locator('#account-panel').evaluate(element=>element.open),false);
+  await openAccountPanel(page);
   return page;
 }
 async function connectMetaMask(page){
@@ -113,6 +121,9 @@ test('explicit MetaMask selection restores only MetaMask and exposes block-bound
     assert.equal(degraded.state.account,`0x${'a'.repeat(40)}`);
     await page.reload();
     await page.waitForFunction(()=>window.YNXQuantWallet.getStandardWalletState().status==='connected');
+    assert.equal(await page.locator('#account-panel').evaluate(element=>element.open),false);
+    await openAccountPanel(page);
+    assert.equal(await page.locator('#wallet-details').isVisible(),true);
     const restored=await calls(page);
     assert.equal(restored.filter(x=>x.method==='eth_requestAccounts').length,0);
     assert.equal(restored.filter(x=>x.kind==='ynx-wallet').length,0);
@@ -130,6 +141,7 @@ test('disconnect persists across reload and stale provider events cannot repopul
     assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');
     assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.standard-wallet.v1.provider')),null);
     await page.reload();await page.waitForTimeout(1700);
+    assert.equal(await page.locator('#account-panel').evaluate(element=>element.open),false);
     assert.deepEqual(await calls(page),[]);
     assert.notEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'connected');
     assert.equal(await page.locator('#backtest').isVisible(),true);

@@ -46,7 +46,9 @@ async function setup(){
   const page=await context.newPage();await page.goto(ORIGIN);await page.waitForFunction(()=>!!window.YNXQuantWallet);
   return {context,page,kernel,calls,authority,offline:value=>{revokeOffline=value;}};
 }
+async function openAccountPanel(page){if(!await page.locator('#account-panel').evaluate(element=>element.open))await page.locator('#account-panel > summary').click();}
 async function approve(f,secret='1'){
+  await openAccountPanel(f.page);
   await f.page.locator('#private-sign-in').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='connecting',null,{timeout:5000});
   const uri=await f.page.locator('#private-open-wallet').getAttribute('href'),request=JSON.parse(Buffer.from(new URL(uri).searchParams.get('request'),'base64url').toString('utf8'));
   const now=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:secret.padStart(64,'0'),scopes:request.scopes,expiresAt:new Date(now.getTime()+180000).toISOString()},now);
@@ -54,6 +56,8 @@ async function approve(f,secret='1'){
   await f.page.goto(callback);
   try{await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='connected',null,{timeout:5000});}
   catch{assert.fail(JSON.stringify({privateState:await f.page.evaluate(()=>window.YNXQuantWallet.getPrivateSessionState()),calls:f.calls.map(({path,status})=>({path,status}))}));}
+  assert.equal(await f.page.locator('#account-panel').evaluate(element=>element.open),true,'approved callback must automatically reveal its private status');
+  assert.equal(await f.page.locator('#private-session-status').isVisible(),true);
   return {request,callback,account:approval.account};
 }
 async function account(page){return page.evaluate(()=>window.YNXQuantWallet.privateAccount(localStorage.getItem('ynx.quant.tenant.v1')));}
@@ -67,9 +71,9 @@ test('official local approval, completion, fresh API proofs, replay, restore and
     const proofs=f.calls.filter(c=>c.path==='/api/v1/wallet/private-account').map(c=>c.proof);assert.equal(proofs.length,2);assert.notEqual(proofs[0],proofs[1]);
     const replay=f.authority('/v2/product-sessions/introspect','POST',canonicalJSON({requiredScopes:['quant:account']}),proofs[0],'req_quant_test_replay_0001');assert.equal(replay.status,409);
     assert.equal(f.page.url(),ORIGIN+'/');await f.page.reload();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='connected');assert.equal((await account(f.page)).account,approved.account);
-    f.offline(true);await f.page.locator('#private-sign-out').click();await f.page.waitForFunction(()=>['network-unavailable','retry-required'].includes(window.YNXQuantWallet.getPrivateSessionState().status));
+    f.offline(true);await openAccountPanel(f.page);await f.page.locator('#private-sign-out').click();await f.page.waitForFunction(()=>['network-unavailable','retry-required'].includes(window.YNXQuantWallet.getPrivateSessionState().status));
     await assert.rejects(account(f.page));await f.page.reload();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='retry-required');
-    f.offline(false);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='disconnected');
+    f.offline(false);await openAccountPanel(f.page);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='disconnected');
     assert.equal(f.calls.some(c=>c.path==='/v2/product-sessions/revoke'&&c.status===200),true);assert.equal(f.context.pages().length,1);
     assert.equal(f.calls.some(c=>c.path==='/v2/product-sessions/challenge'&&c.status===200),true);assert.equal(f.calls.some(c=>c.path==='/v2/product-sessions/complete'&&c.status===200),true);
   }finally{await f.context.close();}
@@ -78,7 +82,7 @@ test('two isolated users and second-tab revocation cannot leak authority or adop
   const a=await setup(),b=await setup();try{
     const aa=await approve(a,'1'),bb=await approve(b,'2');assert.notEqual(aa.account,bb.account);assert.equal((await account(a.page)).account,aa.account);assert.equal((await account(b.page)).account,bb.account);
     const tab=await a.context.newPage();await tab.goto(ORIGIN);await tab.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='connected');assert.equal((await account(tab)).account,aa.account);
-    await a.page.locator('#private-sign-out').click();await a.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='disconnected');await assert.rejects(account(tab));
+    await openAccountPanel(a.page);await a.page.locator('#private-sign-out').click();await a.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='disconnected');await assert.rejects(account(tab));
     await b.page.goto(aa.callback);await b.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='retry-required');assert.equal((await b.page.evaluate(()=>window.YNXQuantWallet.getPrivateSessionState())).account,null);
   }finally{await a.context.close();await b.context.close();}
 });

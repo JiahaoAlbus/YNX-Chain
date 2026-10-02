@@ -73,7 +73,47 @@ test('early public research retains temporary provenance in the real page throug
     assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');
   }finally{releaseSnapshot();releaseResearch();await context.close();}
 });
-test('browser-visible Wallet fallbacks preserve the English Quant page when no YNX or MetaMask provider is available',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#locale').inputValue(),'en');await page.waitForTimeout(1600);await page.getByRole('button',{name:'Connect Installed YNX Wallet'}).click();await page.getByText('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.').waitFor({timeout:5000});await page.getByRole('button',{name:'Use MetaMask'}).click();await page.locator('#wallet-status').getByText('MetaMask is not installed. This does not affect Product Session status.').waitFor({timeout:5000});await page.screenshot({path:path.join(evidence,'wallet-fallback-browser-visible.png'),fullPage:true});assert.equal(await page.url(),base+'/')});
+test('account panel keeps guest research visible and supports keyboard, all locales and read-only opening',{timeout:20000},async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const summary=page.locator('#account-panel > summary');
+    assert.equal(await page.locator('#locale').inputValue(),'en');
+    assert.equal(await page.locator('#account-panel').getAttribute('open'),null);
+    const research=await page.locator('#view-title').boundingBox();assert.ok(research.y+research.height<844);
+    await page.screenshot({path:path.join(evidence,'account-panel-mobile-closed.png'),fullPage:true});
+    const walletBefore=await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState());
+    const afterOpenRequests=[];page.on('request',request=>afterOpenRequests.push({url:request.url(),method:request.method()}));
+    await summary.focus();await page.keyboard.press('Enter');
+    assert.equal(await page.locator('#account-panel').getAttribute('open'),'');
+    for(const id of ['connect-wallet','connect-hosted','connect-metamask','private-sign-in','browser-signin','records-authorize'])assert.equal(await page.locator('#'+id).isVisible(),true,id);
+    for(const id of ['wallet-details','wallet-disconnect','wallet-switch','wallet-revoke','private-open-wallet','browser-signout'])assert.equal(await page.locator('#'+id).isVisible(),false,id);
+    assert.equal(await page.locator('#browser-signin').isDisabled(),true);
+    const locales=await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value));
+    assert.equal(locales.length,12);
+    for(const locale of locales){
+      await page.selectOption('#locale',locale);
+      const layout=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth,title:document.querySelector('#account-panel summary strong').textContent,labels:[...document.querySelectorAll('#account-panel [data-business-i18n]')].map(el=>el.textContent),targets:[...document.querySelectorAll('#account-panel button:not([hidden]), #account-panel a:not([hidden])')].map(el=>el.getBoundingClientRect().height)}));
+      assert.equal(layout.lang,locale);assert.equal(layout.dir,locale==='ar'?'rtl':'ltr');assert.equal(layout.overflow,false,locale);
+      assert.equal(layout.labels.length,6);assert.ok(layout.labels.every(text=>text.length>0));
+      assert.ok(layout.targets.every(height=>height>=44),locale);
+      if(locale!=='en')assert.notEqual(layout.title,'Wallet & account',locale);
+    }
+    await page.selectOption('#locale','ar');
+    await page.screenshot({path:path.join(evidence,'account-panel-mobile-arabic-open.png'),fullPage:true});
+    await summary.focus();assert.equal(await summary.evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
+    await page.keyboard.press('Space');assert.equal(await page.locator('#account-panel').getAttribute('open'),null);
+    await page.selectOption('#locale','en');
+    await page.setViewportSize({width:1440,height:900});await summary.click();
+    assert.equal(await page.locator('.account-panel-groups').evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(' ').length),2);
+    await page.screenshot({path:path.join(evidence,'account-panel-desktop-open.png'),fullPage:true});
+    assert.deepEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState()),walletBefore);
+    assert.deepEqual(afterOpenRequests,[], 'layout and locale actions must not send product or authorization requests');
+    assert.equal(context.pages().length,1);assert.equal(page.url(),base+'/');
+    await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('#account-panel').getAttribute('open'),null);
+  }finally{await context.close();}
+});
+test('browser-visible Wallet fallbacks preserve the English Quant page when no YNX or MetaMask provider is available',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#locale').inputValue(),'en');await page.locator('#account-panel > summary').click();await page.waitForTimeout(1600);await page.getByRole('button',{name:'Connect Installed YNX Wallet'}).click();await page.getByText('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.').waitFor({timeout:5000});await page.getByRole('button',{name:'Use MetaMask'}).click();await page.locator('#wallet-status').getByText('MetaMask is not installed. This does not affect Product Session status.').waitFor({timeout:5000});await page.screenshot({path:path.join(evidence,'wallet-fallback-browser-visible.png'),fullPage:true});assert.equal(await page.url(),base+'/')});
 test('exact-origin Quant explicit Hosted action opens Wallet Web without fabricating account or leaving a blank tab',async()=>{
   const context=await browser.newContext();
   try{
@@ -87,6 +127,7 @@ test('exact-origin Quant explicit Hosted action opens Wallet Web without fabrica
     await context.route('https://wallet.ynxweb4.com/**',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Hosted Wallet source fixture</title>'}));
     const page=await context.newPage();await page.goto('https://quant.ynxweb4.com/',{waitUntil:'domcontentloaded'});
     assert.equal(await page.locator('#locale').inputValue(),'en');
+    await page.locator('#account-panel > summary').click();
     for(const id of ['#connect-wallet','#connect-hosted','#connect-metamask','#install-wallet','#install-metamask'])assert.equal(await page.locator(id).isVisible(),true);
     const pending=context.waitForEvent('page');await page.locator('#connect-hosted').click();const popup=await pending;
     await popup.waitForURL(/^https:\/\/wallet\.ynxweb4\.com\/hosted\/#connect=/u);

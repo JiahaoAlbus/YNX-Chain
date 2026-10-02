@@ -147,6 +147,21 @@ const researchResultCopy = {
   id: ["Hasil sementara hanya di halaman ini, tidak disimpan atau diaudit. Hasil hilang saat halaman dimuat ulang.", "Eksperimen disimpan dan diaudit di ruang simulasi browser ini."],
 };
 for (const [language, [researchTemporary, researchSaved]] of Object.entries(researchResultCopy)) Object.assign(businessCopy[language], {researchTemporary, researchSaved});
+const accountPanelCopy = {
+  en: ["Wallet & account", "Research is available without signing in", "Standard Wallet", "Browser identity", "Private account", "My existing Quant records"],
+  "zh-CN": ["钱包与账户", "无需登录即可进行研究", "标准钱包", "浏览器身份", "私有账户", "我已有的 Quant 记录"],
+  "zh-TW": ["錢包與帳戶", "無需登入即可進行研究", "標準錢包", "瀏覽器身分", "私人帳戶", "我現有的 Quant 紀錄"],
+  ja: ["ウォレットとアカウント", "ログインせずに研究を利用できます", "標準ウォレット", "ブラウザーの本人確認", "プライベートアカウント", "自分の既存の Quant 記録"],
+  ko: ["지갑 및 계정", "로그인하지 않고 연구할 수 있습니다", "표준 지갑", "브라우저 신원", "비공개 계정", "내 기존 Quant 기록"],
+  es: ["Wallet y cuenta", "Puedes investigar sin iniciar sesión", "Wallet estándar", "Identidad del navegador", "Cuenta privada", "Mis registros existentes de Quant"],
+  fr: ["Wallet et compte", "La recherche est disponible sans connexion", "Wallet standard", "Identité du navigateur", "Compte privé", "Mes données Quant existantes"],
+  de: ["Wallet und Konto", "Forschung ist ohne Anmeldung verfügbar", "Standard-Wallet", "Browser-Identität", "Privates Konto", "Meine vorhandenen Quant-Daten"],
+  pt: ["Wallet e conta", "A pesquisa está disponível sem iniciar sessão", "Wallet padrão", "Identidade do navegador", "Conta privada", "Meus registros existentes do Quant"],
+  ru: ["Кошелёк и аккаунт", "Исследования доступны без входа", "Стандартный кошелёк", "Идентификация в браузере", "Личный аккаунт", "Мои существующие записи Quant"],
+  ar: ["المحفظة والحساب", "البحث متاح دون تسجيل الدخول", "المحفظة القياسية", "هوية المتصفح", "الحساب الخاص", "سجلات Quant الحالية الخاصة بي"],
+  id: ["Wallet dan akun", "Riset tersedia tanpa masuk", "Wallet standar", "Identitas browser", "Akun pribadi", "Catatan Quant saya yang sudah ada"],
+};
+for (const [language, [accountPanelTitle, accountPanelHint, standardWalletTitle, browserIdentityTitle, privateAccountTitle, existingRecordsTitle]] of Object.entries(accountPanelCopy)) Object.assign(businessCopy[language], {accountPanelTitle, accountPanelHint, standardWalletTitle, browserIdentityTitle, privateAccountTitle, existingRecordsTitle});
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
 const researchResultStatus = document.createElement("p");
@@ -627,6 +642,9 @@ $("#kill").onclick = async () => {
   }
 };
 applyLocale();
+// A return URL only reveals the existing account controls. The private-session
+// controller still validates the callback and grants no authority from this UI.
+if (window.location?.pathname === "/wallet-auth/callback") $("#account-panel").open = true;
 window.addEventListener("ynx:quant-wallet-state", event => handleWalletState(event.detail));
 handleWalletState(window.YNXQuantWallet?.getStandardWalletState?.());
 refresh().catch((e) => toast("Service unavailable: " + e.message));

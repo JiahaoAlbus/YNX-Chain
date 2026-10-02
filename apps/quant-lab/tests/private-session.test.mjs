@@ -38,18 +38,24 @@ async function records(page){return page.evaluate(async()=>{
   if(!(await indexedDB.databases()).some(db=>db.name==='ynx-product-session-web-v2'))return null;
   return new Promise((resolve,reject)=>{const open=indexedDB.open('ynx-product-session-web-v2');open.onerror=()=>reject(open.error);open.onsuccess=()=>{const db=open.result,tx=db.transaction(['devices','state'],'readonly'),devices=tx.objectStore('devices').getAll(),states=tx.objectStore('state').getAll();tx.oncomplete=()=>{const d=devices.result.find(x=>x.authority==='https://wallet-auth.ynxweb4.com'),s=states.result.find(x=>x.authority==='https://wallet-auth.ynxweb4.com');db.close();resolve({deviceId:d?.deviceId,privateExtractable:d?.privateKey?.extractable,publicKey:d?.deviceKey,values:s?.values||{}});};};});
 });}
-async function begin(page){await page.locator('#private-sign-in').click();await page.waitForFunction(()=>['connecting','retry-required','degraded','network-unavailable'].includes(window.YNXQuantWallet.getPrivateSessionState().status));}
+async function openAccountPanel(page){if(!await page.locator('#account-panel').evaluate(element=>element.open))await page.locator('#account-panel > summary').click();}
+async function begin(page){await openAccountPanel(page);await page.locator('#private-sign-in').click();await page.waitForFunction(()=>['connecting','retry-required','degraded','network-unavailable'].includes(window.YNXQuantWallet.getPrivateSessionState().status));}
 const pending=data=>JSON.parse(Object.entries(data.values).find(([key])=>key.endsWith(':pending'))?.[1]||'null');
 
 test('private controls and dynamic failures follow every locale without signing in a guest',async()=>{
   const f=await setup();try{
     assert.deepEqual(privateSessionLocales,await f.page.evaluate(()=>window.QuantI18n.locales));
     assert.equal(await f.page.locator('#locale').inputValue(),'en');
+    await openAccountPanel(f.page);
     for(const locale of privateSessionLocales){
       const copy=privateSessionCopy(locale);await f.page.setViewportSize({width:390,height:844});await f.page.selectOption('#locale',locale);
       assert.equal(await f.page.locator('#private-sign-in').textContent(),copy.signIn);
-      const layout=await f.page.evaluate(()=>{const h=document.querySelector('header').getBoundingClientRect(),p=document.querySelector('.private-session-controls').getBoundingClientRect(),buttons=[...document.querySelectorAll('.wallet-controls button')].filter(b=>!b.hidden).map(b=>b.getBoundingClientRect());return {contained:buttons.every(b=>b.top>=h.top&&b.bottom<=h.bottom&&b.left>=h.left&&b.right<=h.right),separate:p.top>=h.bottom,noOverflow:document.documentElement.scrollWidth===document.documentElement.clientWidth};});
-      assert.deepEqual(layout,{contained:true,separate:true,noOverflow:true},locale);
+      const layout=await f.page.evaluate(()=>{
+        const h=document.querySelector('header').getBoundingClientRect(),panel=document.querySelector('#account-panel').getBoundingClientRect(),groups=[...document.querySelectorAll('#account-panel .account-panel-groups > section')];
+        const contains=(outer,inner)=>inner.top>=outer.top&&inner.bottom<=outer.bottom&&inner.left>=outer.left&&inner.right<=outer.right;
+        return {groupCount:groups.length,contained:groups.every(group=>{const rect=group.getBoundingClientRect();return contains(panel,rect)&&[...group.querySelectorAll('button,a')].filter(element=>element.getClientRects().length>0).every(element=>contains(rect,element.getBoundingClientRect()))}),separate:panel.top>=h.bottom,noOverflow:document.documentElement.scrollWidth===document.documentElement.clientWidth};
+      });
+      assert.deepEqual(layout,{groupCount:4,contained:true,separate:true,noOverflow:true},locale);
       await f.page.locator('#private-account').click();
       assert.ok((await f.page.locator('#private-session-status').textContent()).startsWith(copy.unavailable));
       assert.equal(await f.page.locator('#private-session-status').getAttribute('data-code'),'PRIVATE_SIGN_IN_REQUIRED');
@@ -85,6 +91,8 @@ test('two actual tabs reuse nonextractable device; complete rejected callback is
     assert.equal(pending(b).nonce,old.nonce);
     const request=pending(b),callback=new URL(ORIGIN+'/wallet-auth/callback');for(const [key,value] of Object.entries({result:'rejected',reason:'user_rejected',nonce:request.nonce,state:request.state}))callback.searchParams.set(key,value);
     await second.goto(callback.href);await second.waitForFunction(()=>window.YNXQuantWallet?.getPrivateSessionState().status==='disconnected');
+    assert.equal(await second.locator('#account-panel').evaluate(element=>element.open),true,'rejected callback must automatically reveal its private status');
+    assert.equal(await second.locator('#private-session-status').isVisible(),true);
     assert.equal(pending(await records(second)),null);
     callback.searchParams.set('nonce',old.nonce);callback.searchParams.set('state',old.state);
     await f.page.goto(callback.href);await f.page.waitForFunction(()=>window.YNXQuantWallet?.getPrivateSessionState().status==='retry-required');
@@ -98,7 +106,7 @@ test('expired pending callback, network loss and retry never create private auth
     const url=new URL(ORIGIN+'/wallet-auth/callback');for(const [k,v] of Object.entries({result:'rejected',reason:'user_rejected',nonce:p.nonce,state:p.state}))url.searchParams.set(k,v);
     await f.page.goto(url.href);await f.page.waitForFunction(()=>window.YNXQuantWallet?.getPrivateSessionState().status==='retry-required');
     assert.equal(pending(await records(f.page)),null);
-    f.offline(true);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='network-unavailable');
+    f.offline(true);await openAccountPanel(f.page);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='network-unavailable');
     f.offline(false);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXQuantWallet.getPrivateSessionState().status==='retry-required');
     assert.equal(f.context.pages().length,1);
   }finally{await f.context.close();}

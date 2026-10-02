@@ -16,6 +16,11 @@ import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/p
 const root=fileURLToPath(new URL('../../../',import.meta.url)),origin='https://quant.ynxweb4.com',gatewayOrigin='https://wallet-auth.ynxweb4.com';
 const dist=process.env.YNX_QUANT_HOSTED_WALLET_DIST;
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(`http://127.0.0.1:${server.address().port}`)));
+async function openAccountPanel(page){
+  const panel=page.locator('#account-panel');
+  if(!await panel.evaluate(element=>element.open))await page.locator('#account-panel > summary').click();
+  assert.equal(await panel.evaluate(element=>element.open),true);
+}
 async function relay(route,base,path,trace){
   const request=route.request(),url=new URL(request.url()),headers={...request.headers()};delete headers.host;delete headers['content-length'];delete headers['accept-encoding'];
   // A canonical remote DApp must not gain local-preview authority just because
@@ -53,7 +58,7 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
    if(url.origin==='https://wallet.ynxweb4.com'&&url.pathname.startsWith('/hosted/')){const name=url.pathname.slice(8)||'index.html';if(!['index.html','app.js','hosted-wallet.css','ynx-logo.png'].includes(name))return route.abort();return route.fulfill({contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html',body:await readFile(resolve(dist,name))})}
    return route.abort();
   });
-  const page=await context.newPage();await page.goto(origin);
+  const page=await context.newPage();await page.goto(origin);await openAccountPanel(page);
   const opened=context.waitForEvent('page');await page.click('#connect-hosted');const wallet=await opened;
   const password='isolated Quant Hosted QA password 2026';
   await wallet.locator('#setup-password').fill(password);await wallet.locator('#setup-confirm').fill(password);await wallet.locator('#setup-form button[type=submit]').click();await wallet.locator('#backup-confirmation').waitFor({state:'visible'});const download=wallet.waitForEvent('download');await wallet.click('#export-backup');await download;await wallet.locator('#backup-ack').check();await wallet.click('#backup-continue');await wallet.locator('#review').waitFor({state:'visible'});await wallet.click('#approve');
@@ -70,7 +75,7 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
   await wallet.close();await page.waitForFunction(()=>window.YNXQuantWallet.getPrivateWalletContext().status==='transport-unavailable');await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2);
   assert.equal(await page.evaluate(async()=>{try{await window.YNXQuantWallet.requestProductSessionV2('untrusted');return false}catch(e){return e.code==='PRIVATE_TRANSPORT_UNAVAILABLE'}}),true);
   assert.equal((await fetch(go.url+'/__qa_restart',{method:'POST',signal:AbortSignal.timeout(5000)})).status,204);
-  await page.reload();await page.waitForFunction(()=>document.querySelector('#records-status').textContent.includes('ynx1'));await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2);assert.equal(host.snapshot().authority.sessions.length,1);
+  await page.reload();await page.waitForFunction(()=>document.querySelector('#records-status').textContent.includes('ynx1'));await openAccountPanel(page);await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2);assert.equal(host.snapshot().authority.sessions.length,1);
   // Independent real Wallet profile creates B. Only its encrypted export is
   // held briefly in memory; EVM selection and approved native subject differ.
   const secondContext=await browser.newContext({acceptDownloads:true});

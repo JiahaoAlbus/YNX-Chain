@@ -85,6 +85,82 @@ h1 {
 .private-session-controls button, .private-session-controls a { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .private-session-controls small { flex-basis: 100%; color: var(--muted); overflow-wrap: anywhere; }
 .private-session-controls [hidden] { display: none; }
+#account-panel {
+  background: #fff;
+  color: #1d1d1f;
+  border-bottom: 1px solid #d8d8dc;
+}
+#account-panel > summary {
+  min-height: 64px;
+  padding: 12px 26px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+#account-panel > summary strong { font-size: 16px; }
+#account-panel > summary span {
+  display: block;
+  margin-block-start: 2px;
+  color: #6e6e73;
+}
+#account-panel .account-panel-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 26px 18px;
+}
+#account-panel .account-panel-groups > section {
+  min-width: 0;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid #d8d8dc;
+  border-radius: 8px;
+  background: #fff;
+}
+#account-panel h2 {
+  flex-basis: 100%;
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+#account-panel .wallet-controls { margin: 0; }
+#account-panel button,
+#account-panel a {
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  border-radius: 7px;
+}
+#account-panel button {
+  background: #002fa7;
+  color: #fff;
+  border-color: #002fa7;
+}
+#account-panel button:disabled { opacity: .55; cursor: not-allowed; }
+#account-panel a { color: #002fa7; font-weight: 600; }
+#account-panel :is(summary, button, a):focus-visible {
+  outline: 3px solid #002fa7;
+  outline-offset: 3px;
+}
+#account-panel small {
+  max-width: none;
+  color: #6e6e73;
+  overflow-wrap: anywhere;
+}
+#account-panel #records-owned {
+  flex-basis: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-inline-start: 20px;
+  overflow-wrap: anywhere;
+}
+#account-panel [hidden] { display: none; }
 .shell {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);
@@ -357,8 +433,11 @@ th {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 14px;
   }
-  .wallet-controls { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; }
+  .wallet-controls { width: 100%; margin: 0; }
   .wallet-controls small { max-width: none; }
+  #account-panel > summary { padding-inline: 14px; }
+  #account-panel .account-panel-groups { grid-template-columns: minmax(0, 1fr); padding-inline: 14px; }
+  #account-panel .wallet-controls { grid-template-columns: minmax(0, 1fr); }
   .mode {
     max-width: 120px;
     text-align: right;
