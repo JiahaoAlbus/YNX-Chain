@@ -66,7 +66,10 @@ func LoadBackendEd25519PrivateKey(path string) (ed25519.PrivateKey, error) {
 		return reject()
 	}
 	trimmed := bytes.TrimSpace(data)
-	if !bytes.HasPrefix(trimmed, []byte("-----BEGIN PRIVATE KEY-----")) {
+	// pem.Decode can skip a malformed first block and decode a later key.
+	// Require exactly one complete matching delimiter pair before decoding,
+	// so the accepted block is the original whole input, not a skipped suffix.
+	if !bytes.HasPrefix(trimmed, []byte("-----BEGIN PRIVATE KEY-----")) || !bytes.HasSuffix(trimmed, []byte("-----END PRIVATE KEY-----")) || bytes.Count(trimmed, []byte("-----BEGIN ")) != 1 || bytes.Count(trimmed, []byte("-----END ")) != 1 {
 		return reject()
 	}
 	block, rest := pem.Decode(trimmed)
