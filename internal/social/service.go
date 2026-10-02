@@ -38,10 +38,11 @@ var allowedAILanguages = map[string]bool{"en": true, "zh-Hans": true, "zh-Hant":
 const rotationRecoveryWindow = 5 * time.Minute
 
 type Service struct {
-	mu    sync.Mutex
-	cfg   Config
-	state persistentState
-	seen  map[string][]time.Time
+	stateWriteError error
+	mu              sync.Mutex
+	cfg             Config
+	state           persistentState
+	seen            map[string][]time.Time
 }
 
 func New(cfg Config) (*Service, error) {
@@ -1076,11 +1077,7 @@ func (s *Service) validateAuditLocked() error {
 	return nil
 }
 func (s *Service) saveOrRollbackLocked(before persistentState) error {
-	if err := saveState(s.cfg.StatePath, &s.state, s.cfg.TokenKey); err != nil {
-		s.state = before
-		return err
-	}
-	return nil
+	return s.saveOrRollbackWithLocked(before, saveState)
 }
 func auditHash(e AuditEvent) string { e.Hash = ""; return objectDigest(e) }
 func objectDigest(v any) string {

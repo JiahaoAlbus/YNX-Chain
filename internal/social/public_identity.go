@@ -19,6 +19,9 @@ func (s *Service) publicIdentity(account string) (string, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.stateWriteError != nil {
+		return "", s.stateWriteError
+	}
 	if id := s.state.PublicIdentities[account]; id != "" {
 		return id, nil
 	}

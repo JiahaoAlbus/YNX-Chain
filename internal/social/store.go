@@ -111,7 +111,7 @@ func loadState(path string, key []byte) (persistentState, bool, error) {
 		return persistentState{}, true, fmt.Errorf("decode social state: %w", err)
 	}
 	version := state.SchemaVersion
-	if version != 1 && version != 2 && version != 3 && version != 4 && version != SchemaVersion {
+	if version != 1 && version != 2 && version != 3 && version != 4 && version != 5 && version != SchemaVersion {
 		return persistentState{}, true, fmt.Errorf("unsupported social state schema %d", state.SchemaVersion)
 	}
 	normalizeState(&state)
@@ -125,11 +125,22 @@ func loadState(path string, key []byte) (persistentState, bool, error) {
 		if err := saveState(path, &state, key); err != nil {
 			return persistentState{}, true, fmt.Errorf("migrate social state: %w", err)
 		}
+	} else if err := syncStateDirectory(path); err != nil {
+		return persistentState{}, true, fmt.Errorf("confirm social state directory durability: %w", err)
 	}
 	return state, true, nil
 }
 
 func saveState(path string, state *persistentState, key []byte) error {
+	return saveStateWithOps(path, state, key, stateWriteOps{rename: os.Rename, syncDirectory: func(directory *os.File) error { return directory.Sync() }})
+}
+
+type stateWriteOps struct {
+	rename        func(string, string) error
+	syncDirectory func(*os.File) error
+}
+
+func saveStateWithOps(path string, state *persistentState, key []byte, ops stateWriteOps) error {
 	integrity, err := stateIntegrity(*state, key)
 	if err != nil {
 		return err
@@ -143,6 +154,11 @@ func saveState(path string, state *persistentState, key []byte) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
+	directory, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
 	tmp, err := os.CreateTemp(dir, ".social-state-*")
 	if err != nil {
 		return err
@@ -164,10 +180,15 @@ func saveState(path string, state *persistentState, key []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err := ops.rename(tmpPath, path); err != nil {
 		return err
 	}
-	return os.Chmod(path, 0o600)
+	// The temp inode already has mode 0600; do not introduce chmod failure
+	// after replacement. A rename is visible before directory durability.
+	if err := ops.syncDirectory(directory); err != nil {
+		return &stateCommitError{err: err}
+	}
+	return nil
 }
 
 func stateIntegrity(state persistentState, key []byte) (string, error) {

@@ -18,7 +18,7 @@ var (
 )
 
 const (
-	SchemaVersion          = 5
+	SchemaVersion          = 6
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
