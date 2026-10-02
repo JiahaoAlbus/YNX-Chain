@@ -1,0 +1,6 @@
+=== RUN   TestIndependentC71BrowserRevokedInsideFinalReader
+--- PASS: TestIndependentC71BrowserRevokedInsideFinalReader (0.15s)
+=== RUN   TestIndependentC71BrowserRevokedInsideReader
+--- PASS: TestIndependentC71BrowserRevokedInsideReader (0.04s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.219s

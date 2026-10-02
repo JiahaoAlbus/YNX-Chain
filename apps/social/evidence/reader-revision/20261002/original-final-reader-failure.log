@@ -1,0 +1,6 @@
+=== RUN   TestIndependentC71BrowserRevokedInsideFinalReader
+    independent_c71_final_reader_review_test.go:78: browser revoked inside final confidential reader still committed: status=200 observations=1 checks=3 readers=2 bindings=1 nonces=1
+--- FAIL: TestIndependentC71BrowserRevokedInsideFinalReader (0.15s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	1.219s
+FAIL

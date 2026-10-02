@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_FAIL_FINAL_READER_REVOKE",
+  "commit": "c71e0a51bb768e60c0d45454b9f7d4e4a013be2d",
+  "tree": "43af012d3b2f9f687424713789184a0231de0775",
+  "archive": "/tmp/ynx-socialc71-independent-aqgqhhei",
+  "baseReportUnchanged": "/tmp/ynx-socialc71-independent-review-20261002.json",
+  "originalInitialReaderFailureUnchanged": "/tmp/ynx-socialc71-independent-browser-reader-20261002.log",
+  "probe": {
+    "path": "/tmp/ynx-socialc71-independent-aqgqhhei/internal/social/independent_c71_final_reader_review_test.go",
+    "sha256": "1382fdd9851dd5153eab6949381dbc062907a3aeffc09617d21b50375c9fd161"
+  },
+  "log": {
+    "path": "/tmp/ynx-socialc71-independent-final-reader-20261002.log",
+    "sha256": "609635f81b0e9e7ef392747eb9f17adaa1b0848b3949ae221f8602df26232539",
+    "text": "=== RUN   TestIndependentC71BrowserRevokedInsideFinalReader\n    independent_c71_final_reader_review_test.go:78: browser revoked inside final confidential reader still committed: status=200 observations=1 checks=3 readers=2 bindings=1 nonces=1\n--- FAIL: TestIndependentC71BrowserRevokedInsideFinalReader (0.15s)\nFAIL\nFAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/social\t1.219s\nFAIL\n"
+  },
+  "test": {
+    "tests": 1,
+    "pass": 0,
+    "fail": 1,
+    "skip": 0,
+    "phase": "second confidential reader after ConfirmAudience and before original durable room commit",
+    "expected": "401, originalHSconfirm1, readers2, noMatrixAudience binding persisted"
+  },
+  "command": "GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/bin/go test -race -v ./internal/social -run TestIndependentC71BrowserRevokedInsideFinalReader -count=1",
+  "qualification": "original actual BrowserSSO Binding/Verify implementation with synthetic upstream transport; synthetic confidential reader + HS observer + isolated original durable store. Source failure, not true productionHS or observed private data leakage. No source/product/Host writes."
+}
