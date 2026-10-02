@@ -67,7 +67,7 @@ if(root&&!loginCallback){
     await identity(view);guardView(view);
     const items=[];for(const record of records){const item=document.createElement('li');item.textContent=`${record.sender}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
      if(record.content.file){const download=document.createElement('button');download.type='button';download.textContent='Download encrypted attachment';download.onclick=()=>void work(async()=>{
-      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content);guardView(view);
+      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{revalidate:async()=>{guardView(view);await identity(view);guardView(view)}});guardView(view);
       await identity(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
       try{link.href=url;link.download=record.content.body||'attachment';link.click()}finally{setTimeout(()=>URL.revokeObjectURL(url),10000)}
      });item.append(download)}items.push(item)
@@ -152,6 +152,10 @@ if(root&&!loginCallback){
   momentFeed?.lock();momentFeed?.destroy();
   const consumer=new RestrictedMoments({transport,authorize:(expected,action)=>audienceHTTP.authorize(expected,action)});
   momentFeed=mountRestrictedFeed({root,consumer,capture:captureView,assertCurrent:guardView,
+   downloadAttachment:async({index,attachment,binding:view,guard})=>{
+    guard();guardView(view);
+    return consumer.downloadAttachment(index,attachment,{assertCurrent:()=>{guard();guardView(view)},validateIdentity:async()=>{guard();await identity(view);guard();guardView(view)}});
+   },
    loadIndexes:async after=>{const view=captureView();await identity(view);guardView(view);const result=await audienceHTTP.indexes(after);guardView(view);return result},
    commentSender:async view=>{await identity(view);guardView(view);return view.operation.binding.userId},
    commentDrafts:{load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),save:(payload,view)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),clearConfirmed:(transactionId,view)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},

@@ -9,7 +9,7 @@ const validDecoded=(index,decoded)=>{
 };
 // Caller supplies the original guarded Matrix consumer and existing comment
 // publication flow. This view never requests a Wallet grant or creates identity.
-export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,capture,assertCurrent}) {
+export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,downloadAttachment,capture,assertCurrent}) {
   if(!root||typeof consumer?.read!=='function'||typeof loadIndexes!=='function'||typeof capture!=='function'||typeof assertCurrent!=='function')throw new Error('MATRIX_FEED_CONFIGURATION_REQUIRED');
   const document=root.ownerDocument;
   const section=document.createElement('section'),title=document.createElement('h2');
@@ -80,7 +80,26 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
       for(const {index,decoded} of rendered){
         const article=document.createElement('article'),body=document.createElement('p');
         article.setAttribute('data-event-id',index.eventId);body.textContent=decoded.text;article.append(body);
-        if(decoded.attachment){const label=document.createElement('p');label.textContent='Encrypted attachment';article.append(label)}
+        if(decoded.attachment){
+          const label=document.createElement('p');label.textContent='Encrypted attachment';article.append(label);
+          if(typeof downloadAttachment==='function'){
+            const originalIndex=snapshot(index),originalAttachment=snapshot(decoded.attachment),download=document.createElement('button');
+            download.type='button';download.textContent='Download encrypted attachment';controls.add(download);article.append(download);
+            download.addEventListener('click',async()=>{
+              if(locked||busy)return;let bytes=null,url=null;setBusy(true);
+              try{
+                gate(generation,binding);
+                bytes=await downloadAttachment({index:originalIndex,attachment:originalAttachment,binding,guard:()=>gate(generation,binding)});
+                gate(generation,binding);if(!(bytes instanceof ArrayBuffer)||!bytes.byteLength||bytes.byteLength>25*1024*1024)throw new Error('MATRIX_ATTACHMENT_INVALID');
+                const browser=document.defaultView;
+                url=browser.URL.createObjectURL(new browser.Blob([bytes],{type:'application/octet-stream'}));gate(generation,binding);
+                const link=document.createElement('a');link.href=url;link.download=originalAttachment.body.replace(/[\x00-\x1f\x7f/\\]/g,'_');link.click();
+                status.textContent='Encrypted attachment verified and downloaded.';
+              }catch{if(!locked&&generation===epoch){clear();status.textContent='Encrypted attachment unavailable. No plaintext fallback.'}}
+              finally{if(url)document.defaultView.URL.revokeObjectURL(url);if(bytes instanceof ArrayBuffer)new Uint8Array(bytes).fill(0);if(!locked&&generation===epoch)setBusy(false)}
+            });
+          }
+        }
         addComment(article,index,decoded);list.append(article);
       }
       status.textContent=pendingIntent?'Protected intent requires recovery. Original draft retained; do not resend.':rendered.length?'Encrypted moments verified.':'No accessible encrypted moments.';

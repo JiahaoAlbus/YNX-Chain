@@ -2,6 +2,7 @@ import {createClient, ClientEvent, RoomEvent, IndexedDBStore} from 'matrix-js-sd
 import {CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/CryptoEvent.js';
 import {encryptAttachment, decryptAttachment} from 'matrix-encrypt-attachment';
 import {validMatrixUserId} from './login.mjs';
+import {validEncryptedAttachment} from './restricted-moments.mjs';
 export const MATRIX_PROTOCOL = 'ynx-social-matrix/v1';
 export class MatrixPolicyError extends Error { constructor(code,message){super(message);this.code=code} }
 const fail=(code,message)=>{throw new MatrixPolicyError(code,message)};
@@ -19,7 +20,7 @@ export async function fetchMatrixBinding({account,deviceId,client,csrfToken,fetc
   return validateBinding(await response.json(),account);
 }
 export class MatrixSocialTransport {
-  constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient,storeFactory=options=>new IndexedDBStore(options),reauthenticateDevice=null}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.storeFactory=storeFactory;this.reauthenticateDevice=reauthenticateDevice;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
+  constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient,storeFactory=options=>new IndexedDBStore(options),reauthenticateDevice=null,fetcher=globalThis.fetch}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.storeFactory=storeFactory;this.reauthenticateDevice=reauthenticateDevice;this.fetcher=fetcher;this.downloads=new Set();this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
   async connect(binding,account,storageKey,{expectedUserId}={}){
     this.stop();validateBinding(binding,account,{localQA:this.localQA,expectedUserId});if(!(storageKey instanceof Uint8Array)||storageKey.length!==32)fail('MATRIX_STORAGE_REQUIRED','Protected durable crypto storage key is required');
     const generation=this.generation;this.binding=binding;
@@ -54,7 +55,7 @@ export class MatrixSocialTransport {
       return {account,userId:binding.userId,deviceId:binding.deviceId,protocol:MATRIX_PROTOCOL,cryptoVersion:crypto.getVersion()};
     }catch(error){client.stopClient();if(this.client===client)this.client=null;throw error}
   }
-  stop(){this.generation++;this.connected=false;this.client?.stopClient();this.client=null;this.requests.clear();this.verifiers.clear();this.sas.clear();this.deviceSets.clear();this.binding=null}
+  stop(){this.generation++;for(const request of this.downloads)request.abort();this.downloads.clear();this.connected=false;this.client?.stopClient();this.client=null;this.requests.clear();this.verifiers.clear();this.sas.clear();this.deviceSets.clear();this.binding=null}
   crypto(){const crypto=this.client?.getCrypto();if(!crypto)fail('MATRIX_LOCKED','Verified Matrix session is not active');return crypto}
   capture(){if(!this.client||!this.binding)fail('MATRIX_LOCKED','Verified Matrix session is not active');return {generation:this.generation,client:this.client,binding:this.binding}}
   guard(operation){if(operation.generation!==this.generation||operation.client!==this.client||operation.binding!==this.binding)fail('MATRIX_STALE_SESSION','Identity changed; old operation was discarded without retry')}
@@ -90,7 +91,41 @@ export class MatrixSocialTransport {
   async messages(roomId){const operation=this.capture(),room=operation.client.getRoom(roomId);if(!room)return [];const events=room.getLiveTimeline().getEvents();const result=[];
     for(const event of events){if(!event.isEncrypted())continue;await operation.client.decryptEventIfNeeded(event);this.guard(operation);if(event.isDecryptionFailure())continue;if(event.getType()!=='m.room.message')continue;const verification=await operation.client.getCrypto().getEncryptionInfoForEvent(event);this.guard(operation);if(!verification||verification.shieldColour!==0){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: sender authentication warning'},encrypted:true,verification});continue}result.push({id:event.getId(),sender:event.getSender(),content:event.getContent(),encrypted:true,verification})}this.guard(operation);return result;
   }
-  async downloadAttachment(content){const operation=this.capture();if(!content?.file?.url||content.url)fail('MATRIX_ATTACHMENT_DOWNGRADE','Encrypted attachment descriptor required');const url=operation.client.mxcUrlToHttp(content.file.url,undefined,undefined,undefined,false,true,true);if(!url)fail('MATRIX_ATTACHMENT_INVALID','Invalid Matrix media URL');const response=await fetch(url,{headers:{Authorization:`Bearer ${operation.binding.accessToken}`}});this.guard(operation);if(!response.ok)fail('MATRIX_MEDIA_UNAVAILABLE','Encrypted media unavailable');const bytes=await response.arrayBuffer();this.guard(operation);if(bytes.byteLength>25*1024*1024)fail('MATRIX_ATTACHMENT_INVALID','Encrypted attachment exceeds its limit');const plain=await decryptAttachment(bytes,content.file);this.guard(operation);return plain}
+  async downloadAttachment(content,{revalidate=async()=>{}}={}){
+    const operation=this.capture();content=structuredClone(content);
+    if(!validEncryptedAttachment(content,false))fail('MATRIX_ATTACHMENT_DOWNGRADE','Standard encrypted attachment descriptor required');
+    const base=new URL(operation.binding.homeserver),uri=operation.client.mxcUrlToHttp(content.file.url,undefined,undefined,undefined,false,false,true);
+    if(!uri)fail('MATRIX_ATTACHMENT_INVALID','Invalid Matrix media URL');
+    const url=new URL(uri),[server,media]=content.file.url.slice(6).split('/');
+    const expectedPath=`/_matrix/client/v1/media/download/${server}/${media}`;
+    if(base.username||base.password||base.pathname!=='/'||base.search||base.hash||!(base.protocol==='https:'||(this.localQA&&base.protocol==='http:'&&['127.0.0.1','localhost'].includes(base.hostname)))||url.origin!==base.origin||url.username||url.password||url.hash||url.pathname!==expectedPath||[...url.searchParams].some(([key,value])=>key!=='allow_redirect'||!['true','false'].includes(value))||typeof operation.binding.accessToken!=='string'||!operation.binding.accessToken)
+      fail('MATRIX_UNSAFE_MEDIA_ORIGIN','Media credentials are restricted to the verified homeserver endpoint');
+    url.searchParams.set('allow_redirect','false');
+    const controller=new AbortController(),limit=25*1024*1024,chunks=[];
+    let reader=null,total=0,plain=null;
+    this.downloads.add(controller);const timeout=setTimeout(()=>controller.abort(),30000);
+    const checkpoint=async()=>{this.guard(operation);if(controller.signal.aborted)fail('MATRIX_MEDIA_UNAVAILABLE','Media download stopped');await revalidate();this.guard(operation);if(controller.signal.aborted)fail('MATRIX_MEDIA_UNAVAILABLE','Media download stopped')};
+    try{
+      await checkpoint();
+      const response=await this.fetcher(url.href,{method:'GET',credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:controller.signal,headers:{Authorization:`Bearer ${operation.binding.accessToken}`}});
+      await checkpoint();
+      if(!response.ok||response.redirected||response.type==='opaque'||response.url&&response.url!==url.href)fail('MATRIX_MEDIA_UNAVAILABLE','Encrypted media unavailable at the verified endpoint');
+      const rawLength=response.headers.get('content-length');
+      if(rawLength!==null&&(!/^\d+$/.test(rawLength)||!Number.isSafeInteger(Number(rawLength))||Number(rawLength)>limit))fail('MATRIX_ATTACHMENT_INVALID','Encrypted attachment exceeds its limit');
+      if(!response.body?.getReader)fail('MATRIX_MEDIA_UNAVAILABLE','Bounded media stream required');
+      reader=response.body.getReader();
+      while(true){
+        const {done,value}=await reader.read();await checkpoint();if(done)break;
+        if(!(value instanceof Uint8Array)||total+value.byteLength>limit)fail('MATRIX_ATTACHMENT_INVALID','Encrypted attachment exceeds its limit');
+        total+=value.byteLength;chunks.push(value.slice());
+      }
+      if(!total||rawLength!==null&&Number(rawLength)!==total||content.info?.size!==undefined&&content.info.size!==total)fail('MATRIX_ATTACHMENT_INVALID','Encrypted attachment length differs from its descriptor');
+      const encrypted=new Uint8Array(total);let offset=0;for(const chunk of chunks){encrypted.set(chunk,offset);offset+=chunk.byteLength}
+      try{plain=await decryptAttachment(encrypted.buffer,content.file);await checkpoint()}finally{encrypted.fill(0)}
+      return plain;
+    }catch(error){if(plain instanceof ArrayBuffer)new Uint8Array(plain).fill(0);throw error}
+    finally{clearTimeout(timeout);this.downloads.delete(controller);controller.abort();if(reader){void reader.cancel().catch(()=>{});reader.releaseLock()}for(const chunk of chunks)chunk.fill(0)}
+  }
   async revokeOwnDevice(deviceId,confirmed){
     const operation=this.capture();if(confirmed!==true)fail('MATRIX_CONFIRMATION_REQUIRED','Explicit device removal confirmation required');
     try{await operation.client.deleteDevice(deviceId)}catch(error){

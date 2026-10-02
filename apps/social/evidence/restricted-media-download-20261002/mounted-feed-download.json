@@ -1,0 +1,37 @@
+{
+  "qualification": "isolated real browser mounted feed/SDK/WebCrypto/stream/download; controlled session and authority, not normal live login or public/installed HS proof",
+  "results": [
+    {
+      "name": "actual mounted feed button downloads SDK-decrypted original bytes and revokes object URL",
+      "status": "PASS"
+    },
+    {
+      "name": "hash-damaged yields no Blob or stale plaintext feed",
+      "status": "PASS"
+    },
+    {
+      "name": "revoke yields no Blob or stale plaintext feed",
+      "status": "PASS"
+    },
+    {
+      "name": "account-change yields no Blob or stale plaintext feed",
+      "status": "PASS"
+    },
+    {
+      "name": "oversize yields no Blob or stale plaintext feed",
+      "status": "PASS"
+    },
+    {
+      "name": "lock while original media fetch pending prevents late Blob creation",
+      "status": "PASS"
+    },
+    {
+      "name": "stable URL and one tab, no blank page",
+      "status": "PASS"
+    },
+    {
+      "name": "console and page errors zero",
+      "status": "PASS"
+    }
+  ]
+}

@@ -44,6 +44,7 @@ const validAttachment=(attachment,requireInfo=true)=>{
     canonicalBytes(file.iv,16)&&canonicalBytes(file.hashes?.sha256,32)&&
     file.key?.kty==='oct'&&file.key.alg==='A256CTR'&&file.key.ext===true&&Array.isArray(file.key.key_ops)&&file.key.key_ops.every(op=>typeof op==='string')&&file.key.key_ops.includes('encrypt')&&file.key.key_ops.includes('decrypt')&&canonicalBytes(file.key.k,32,true)&&infoValid;
 };
+export {validAttachment as validEncryptedAttachment};
 
 // authorize is supplied by the actual approved backend integration, never by
 // a follow list or assertTrusted. No endpoint or consent scope is invented here.
@@ -94,6 +95,28 @@ export class RestrictedMoments {
     if(event.content.msgtype==='m.text'&&(event.content.file!==undefined||event.content.info!==undefined||event.content.url!==undefined))deny('Text Moment cannot substitute an attachment');
     return {eventId:index.eventId,text,attachment:event.content.msgtype==='m.file'?structuredClone(event.content):null,
       parent:kind==='moment'?{protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,revision:expected.revision,owner:expected.owner,eventId:index.eventId}:null};
+  }
+  async downloadAttachment(index,attachment,{assertCurrent=()=>{},validateIdentity=async()=>{}}={}){
+    index=structuredClone(index);attachment=structuredClone(attachment);
+    if(!validAttachment(attachment,false))deny('Standard encrypted attachment descriptor required');
+    const operation=this.transport.capture(),expected=snapshot(index.audience);
+    const checkpoint=async()=>{
+      this.transport.guard(operation);assertCurrent();
+      await validateIdentity();this.transport.guard(operation);assertCurrent();
+      await this.check(expected,operation,{action:'read',transactionId:index.transactionId});
+      this.transport.guard(operation);assertCurrent();
+    };
+    await checkpoint();
+    const current=await this.read(index);this.transport.guard(operation);assertCurrent();
+    if(!sameJSON(current.attachment,attachment))deny('Original indexed attachment changed');
+    let bytes;
+    try{
+      bytes=await this.transport.downloadAttachment(attachment,{revalidate:checkpoint});
+      this.transport.guard(operation);assertCurrent();await checkpoint();
+      const final=await this.read(index);this.transport.guard(operation);assertCurrent();
+      if(!sameJSON(final.attachment,attachment))deny('Original indexed attachment changed');
+      await checkpoint();return bytes;
+    }catch(error){if(bytes instanceof ArrayBuffer)new Uint8Array(bytes).fill(0);throw error}
   }
   /** @param {{audience: object, text: string, transactionId: string, attachment?: any, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
   async publish({audience,text,transactionId,parent=null,attachment=null}) {
