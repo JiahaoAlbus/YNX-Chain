@@ -18,6 +18,14 @@ func stateWriteCommitted(err error) bool {
 	return errors.As(err, &committed)
 }
 
+// Entry checks cover early replay and upstream mutations. Recheck under each
+// writer mutex to close a latch set after this entry check.
+func (s *Service) writeAvailability() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.stateWriteError
+}
+
 func syncStateDirectory(path string) error {
 	directory, err := os.Open(filepath.Dir(path))
 	if err != nil {

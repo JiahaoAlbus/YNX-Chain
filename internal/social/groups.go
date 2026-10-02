@@ -16,6 +16,12 @@ import (
 const groupMessageAlgorithm = "x25519-hkdf-sha256-xchacha20poly1305"
 
 func (s *Service) CreateGroupConversation(actor Session, title, idempotencyKey string, targets []string) (GroupConversation, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 GroupConversation
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	title = strings.TrimSpace(title)
 	if !identifierPattern.MatchString(idempotencyKey) || len(title) < 1 || len(title) > 80 || len(targets) < 2 || len(targets) > 15 {
 		return GroupConversation{}, false, ErrInvalid
@@ -32,6 +38,13 @@ func (s *Service) CreateGroupConversation(actor Session, title, idempotencyKey s
 	}
 	sort.Strings(members)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 GroupConversation
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	for _, member := range members {
 		if member != actor.Account && (!s.contactLocked(actor.Account, member) || s.blockedLocked(actor.Account, member)) {
@@ -69,6 +82,12 @@ func (s *Service) CreateGroupConversation(actor Session, title, idempotencyKey s
 }
 
 func (s *Service) ModifyGroupMembers(actor Session, groupID, idempotencyKey string, add, remove []string) (GroupConversation, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 GroupConversation
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(idempotencyKey) {
 		return GroupConversation{}, false, ErrInvalid
 	}
@@ -78,6 +97,13 @@ func (s *Service) ModifyGroupMembers(actor Session, groupID, idempotencyKey stri
 		return GroupConversation{}, false, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 GroupConversation
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	group, ok := s.state.Groups[groupID]
 	if !ok {
@@ -266,10 +292,21 @@ func (s *Service) GroupMessages(actor Session, id string) ([]chat.Message, error
 }
 
 func (s *Service) SendGroupMessage(actor Session, id string, in chat.SendMessageRequest) (chat.Result[chat.Message], error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Result[chat.Message]
+		return unavailableResult0, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(in.MessageID) || len(in.Envelopes) < 1 || len(in.Envelopes) > 32 || strings.TrimSpace(in.SenderSignature) == "" {
 		return chat.Result[chat.Message]{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 chat.Result[chat.Message]
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	group, ok := s.state.Groups[id]
 	if !ok {
@@ -359,10 +396,21 @@ func (s *Service) SendGroupMessage(actor Session, id string, in chat.SendMessage
 }
 
 func (s *Service) AcknowledgeGroupMessage(actor Session, groupID, messageID, state string) (chat.Message, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Message
+		return unavailableResult0, writeUnavailable
+	}
+
 	if state != "delivered" && state != "read" {
 		return chat.Message{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 chat.Message
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	group, ok := s.state.Groups[groupID]
 	if !ok {

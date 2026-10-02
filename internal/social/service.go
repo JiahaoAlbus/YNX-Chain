@@ -88,12 +88,23 @@ func RegistrationIdempotencyKey(kind, requestDigest string) string {
 }
 
 func (s *Service) CreateWalletChallenge(in WalletChallengeRequest) (ProductSessionChallenge, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 ProductSessionChallenge
+		return unavailableResult0, writeUnavailable
+	}
+
 	now := s.cfg.Now().UTC()
 	approvalExpires, err := verifyWalletApproval(in.Request, in.Approval, now)
 	if err != nil {
 		return ProductSessionChallenge{}, err
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 ProductSessionChallenge
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	if _, used := s.state.UsedNonces[in.Approval.Nonce]; used {
 		return ProductSessionChallenge{}, fmt.Errorf("%w: wallet approval replay", ErrConflict)
@@ -118,6 +129,11 @@ func (s *Service) CreateWalletChallenge(in WalletChallengeRequest) (ProductSessi
 }
 
 func (s *Service) Login(a WalletLogin) (LoginResult, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 LoginResult
+		return unavailableResult0, writeUnavailable
+	}
+
 	now := s.cfg.Now().UTC()
 	if !identifierPattern.MatchString(a.DeviceID) {
 		return LoginResult{}, fmt.Errorf("%w: wallet device identifier", ErrInvalid)
@@ -127,6 +143,12 @@ func (s *Service) Login(a WalletLogin) (LoginResult, error) {
 		return LoginResult{}, fmt.Errorf("%w: product challenge expired", ErrUnauthorized)
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 LoginResult
+		return unavailableResult0, writeUnavailable
+	}
+
 	pending, exists := s.state.WalletChallenges[a.Challenge.Challenge]
 	s.mu.Unlock()
 	if !exists || pending.UsedAt != nil || objectDigest(pending.Challenge) != objectDigest(a.Challenge) {
@@ -160,6 +182,12 @@ func (s *Service) Login(a WalletLogin) (LoginResult, error) {
 	}
 	digest := objectDigest(a)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 LoginResult
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	pending, exists = s.state.WalletChallenges[a.Challenge.Challenge]
 	if !exists || pending.UsedAt != nil {
@@ -217,7 +245,16 @@ func rawSessionToken(value string) string {
 }
 
 func (s *Service) RevokeSession(actor Session) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		return writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	key, session, ok := s.sessionByIDLocked(actor.ID)
 	if !ok || session.Account != actor.Account || session.RevokedAt != nil {
@@ -256,6 +293,12 @@ func (s *Service) Allow(remoteAddress, account, action string) bool {
 }
 
 func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSettings, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 ProfileSettings
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(in.IdempotencyKey) || !contains([]string{"everyone", "contacts", "nobody"}, in.AllowRequestsFrom) || len(in.AvatarURL) > 2048 {
 		return ProfileSettings{}, false, ErrInvalid
 	}
@@ -281,6 +324,13 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 	}
 	digest := objectDigest(in)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 ProfileSettings
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	stateKey := idempotencyStateKey(actor.Account, in.IdempotencyKey)
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
@@ -299,6 +349,12 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 }
 
 func (s *Service) CreateInvite(actor Session, ttl time.Duration) (Invite, string, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 Invite
+		var unavailableResult1 string
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if ttl < time.Minute || ttl > 7*24*time.Hour {
 		return Invite{}, "", ErrInvalid
 	}
@@ -308,6 +364,13 @@ func (s *Service) CreateInvite(actor Session, ttl time.Duration) (Invite, string
 	id := "invite_" + hex.EncodeToString(hash[:12])
 	record := Invite{ID: id, Owner: actor.Account, TokenHash: hex.EncodeToString(hash[:]), Link: "https://social.ynxweb4.com/invite/" + token, ExpiresAt: now.Add(ttl), CreatedAt: now}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 Invite
+		var unavailableResult1 string
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	before := cloneState(s.state)
 	s.state.Invites[id] = record
@@ -367,6 +430,12 @@ func (s *Service) ResolveDiscovery(source, value string) (string, error) {
 }
 
 func (s *Service) RequestContact(actor Session, in ContactRequestInput) (ContactRequest, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 ContactRequest
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	in.Message = strings.TrimSpace(in.Message)
 	if !validContactMessage(in.Message) {
 		return ContactRequest{}, false, ErrInvalid
@@ -382,6 +451,13 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 		Target string
 	}{in, target})
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 ContactRequest
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	if s.blockedLocked(actor.Account, target) {
 		return ContactRequest{}, false, ErrUnauthorized
@@ -431,10 +507,21 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 }
 
 func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRequest, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 ContactRequest
+		return unavailableResult0, writeUnavailable
+	}
+
 	if !contains([]string{"accept", "reject", "withdraw"}, action) {
 		return ContactRequest{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 ContactRequest
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	record, ok := s.state.Requests[id]
 	if !ok {
@@ -480,12 +567,24 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 }
 
 func (s *Service) DeleteContact(actor Session, target string) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	return s.relationshipAction(actor, target, "delete_contact")
 }
 func (s *Service) Block(actor Session, target string) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	return s.relationshipAction(actor, target, "block")
 }
 func (s *Service) Mute(actor Session, target string, active bool) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	if active {
 		return s.relationshipAction(actor, target, "mute")
 	}
@@ -493,11 +592,20 @@ func (s *Service) Mute(actor Session, target string, active bool) error {
 }
 
 func (s *Service) relationshipAction(actor Session, target, action string) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	target, err := nativewallet.NormalizeNativeAddress(target)
 	if err != nil || target == actor.Account {
 		return ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		return writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	now := s.cfg.Now().UTC()
 	before := cloneState(s.state)
@@ -556,6 +664,12 @@ func (s *Service) Requests(actor Session) []ContactRequest {
 }
 
 func (s *Service) BeginAI(actor Session, in AIRequest) (AIJob, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 AIJob
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(in.IdempotencyKey) || !allowedAIKinds[in.Kind] || !allowedAILanguages[in.OutputLanguage] || len(in.SelectionIDs) == 0 || len(in.SelectionIDs) > 100 || len(in.PrivacyPreview) < 10 || len(in.PrivacyPreview) > 2000 || in.EstimatedTokens < 1 || in.EstimatedTokens > 100000 {
 		return AIJob{}, false, ErrInvalid
 	}
@@ -571,6 +685,13 @@ func (s *Service) BeginAI(actor Session, in AIRequest) (AIJob, bool, error) {
 	}
 	digest := objectDigest(in)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 AIJob
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	stateKey := idempotencyStateKey(actor.Account, in.IdempotencyKey)
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
@@ -638,11 +759,22 @@ func (s *Service) validateAISelection(actor Session, ids []string) error {
 }
 
 func (s *Service) StreamAI(ctx context.Context, actor Session, id, contextText string, emit func(string) error) (AIJob, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	contextText = strings.TrimSpace(contextText)
 	if contextText == "" || len(contextText) > 6000 {
 		return AIJob{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	job, ok := s.state.AIJobs[id]
 	s.mu.Unlock()
 	if !ok {
@@ -681,6 +813,12 @@ func (s *Service) StreamAI(ctx context.Context, actor Session, id, contextText s
 	}
 	contextHash := sha256.Sum256([]byte(contextText))
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	job = s.state.AIJobs[id]
 	if job.Status != "streaming" {
@@ -699,7 +837,18 @@ func (s *Service) StreamAI(ctx context.Context, actor Session, id, contextText s
 }
 
 func (s *Service) failAIStream(actor Session, id string, cause error) (AIJob, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	job, ok := s.state.AIJobs[id]
 	if !ok || job.Account != actor.Account {
@@ -719,6 +868,11 @@ func (s *Service) failAIStream(actor Session, id string, cause error) (AIJob, er
 }
 
 func (s *Service) TransitionAI(actor Session, id, action, output string) (AIJob, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	if !contains([]string{"allow", "cancel", "complete", "apply", "reject", "retry", "appeal"}, action) {
 		return AIJob{}, ErrInvalid
 	}
@@ -726,6 +880,12 @@ func (s *Service) TransitionAI(actor Session, id, action, output string) (AIJob,
 		return AIJob{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 AIJob
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	job, ok := s.state.AIJobs[id]
 	if !ok {
@@ -794,7 +954,18 @@ func (s *Service) Notifications(actor Session) ([]Notification, int) {
 	return out, unread
 }
 func (s *Service) MarkNotificationRead(actor Session, id string) (Notification, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 Notification
+		return unavailableResult0, writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 Notification
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	n, ok := s.state.Notifications[id]
 	if !ok {
@@ -897,7 +1068,16 @@ func (s *Service) Export(actor Session) Export {
 }
 
 func (s *Service) DeleteAccount(actor Session) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		return writeUnavailable
+	}
+
 	before := cloneState(s.state)
 	mediaPaths := []string{}
 	delete(s.state.Settings, actor.Account)

@@ -16,6 +16,12 @@ import (
 var allowedMediaMIME = map[string]bool{"image/jpeg": true, "image/png": true, "image/webp": true, "video/mp4": true, "audio/mp4": true, "application/pdf": true}
 
 func (s *Service) StoreMedia(actor Session, idempotencyKey, purpose, conversationID, mimeType, encoded, claimedHash string) (MediaObject, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 MediaObject
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(idempotencyKey) || !contains([]string{"moment", "message"}, purpose) || !allowedMediaMIME[mimeType] || !evidenceHashPattern.MatchString(claimedHash) {
 		return MediaObject{}, false, ErrInvalid
 	}
@@ -44,6 +50,13 @@ func (s *Service) StoreMedia(actor Session, idempotencyKey, purpose, conversatio
 	documentDigest := objectDigest(struct{ P, C, M, H, A string }{purpose, conversationID, mimeType, actualHash, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 MediaObject
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
 		record := s.state.Media[previous.ObjectID]
 		s.mu.Unlock()
@@ -60,6 +73,13 @@ func (s *Service) StoreMedia(actor Session, idempotencyKey, purpose, conversatio
 		return MediaObject{}, false, err
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 MediaObject
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	before := cloneState(s.state)
 	s.state.Media[record.ID] = record

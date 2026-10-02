@@ -143,6 +143,11 @@ func (s *Server) bindProductSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"session": actor, "authMode": "product-session-v2"})
 }
 func (s *Service) bindProductDevice(session productsessionv2.Session, in productDeviceRegistration, sealed, grantDigest string) (Session, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 Session
+		return unavailableResult0, writeUnavailable
+	}
+
 	now := s.cfg.Now().UTC()
 	expires, err := time.Parse(time.RFC3339Nano, session.ExpiresAt)
 	if err != nil || !expires.After(now) || !identifierPattern.MatchString(in.DeviceID) || !contains(session.Scopes, "social.profile") || !contains(session.Scopes, "social.messaging") {
@@ -153,6 +158,12 @@ func (s *Service) bindProductDevice(session productsessionv2.Session, in product
 	}
 	key := bridgeDigest(session.SessionBinding)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 Session
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	if previous, exists := s.state.ProductBindings[key]; exists {
 		if previous.Account != session.Account || previous.Platform != session.Platform || previous.ProductDeviceID != session.DeviceID || previous.ProductDeviceKey != session.DeviceKey || previous.ChatDeviceID != in.DeviceID || previous.BrowserGrantDigest != grantDigest {

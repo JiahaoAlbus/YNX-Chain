@@ -163,6 +163,12 @@ func (s *Service) ContractProfile(actor Session) (ProfileView, error) {
 }
 
 func (s *Service) UpdateContractProfile(actor Session, idempotencyKey, handle, displayName, bio, avatarURL string) (ProfileView, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 ProfileView
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if s.cfg.Square == nil {
 		return ProfileView{}, false, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
@@ -285,6 +291,11 @@ func (s *Service) ContractConversations(actor Session, query string) ([]Conversa
 }
 
 func (s *Service) CreateDirectConversation(actor Session, target, idempotencyKey string) (chat.Result[chat.Conversation], error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Result[chat.Conversation]
+		return unavailableResult0, writeUnavailable
+	}
+
 	if s.cfg.Chat == nil {
 		return chat.Result[chat.Conversation]{}, fmt.Errorf("%w: Chat contract unavailable", ErrConflict)
 	}
@@ -389,6 +400,11 @@ func (s *Service) ConversationMessages(actor Session, id string) ([]chat.Message
 }
 
 func (s *Service) SendConversationMessage(actor Session, id string, in chat.SendMessageRequest) (chat.Result[chat.Message], error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Result[chat.Message]
+		return unavailableResult0, writeUnavailable
+	}
+
 	if strings.HasPrefix(id, "group_") {
 		return s.SendGroupMessage(actor, id, in)
 	}
@@ -491,12 +507,25 @@ func (s *Service) AuthorizeConversationDeviceRotation(authorization, replacedDev
 }
 
 func (s *Service) RotateConversationDevice(auth rotationAuthorization, replacedDeviceID string, in chat.RotateDeviceRequest) (chat.Result[chat.DeviceRotation], LoginResult, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Result[chat.DeviceRotation]
+		var unavailableResult1 LoginResult
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if s.cfg.Chat == nil {
 		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, fmt.Errorf("%w: Chat contract unavailable", ErrConflict)
 	}
 	requestDigest := objectDigest(in)
 	now := s.cfg.Now().UTC()
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 chat.Result[chat.DeviceRotation]
+		var unavailableResult1 LoginResult
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	old, oldOK := s.state.Devices[replacedDeviceID]
 	recoveredSession, retry := s.rotationRecoverySessionLocked(auth, replacedDeviceID, in, now)
 	firstAttempt := !auth.Retry && auth.Actor.DeviceID == replacedDeviceID && oldOK && old.Status == "active"
@@ -511,6 +540,13 @@ func (s *Service) RotateConversationDevice(auth rotationAuthorization, replacedD
 	}
 	if retry {
 		s.mu.Lock()
+		if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+			s.mu.Unlock()
+			var unavailableResult0 chat.Result[chat.DeviceRotation]
+			var unavailableResult1 LoginResult
+			return unavailableResult0, unavailableResult1, writeUnavailable
+		}
+
 		now = s.cfg.Now().UTC()
 		recoveredSession, retry = s.rotationRecoverySessionLocked(auth, replacedDeviceID, in, now)
 		s.mu.Unlock()
@@ -521,6 +557,13 @@ func (s *Service) RotateConversationDevice(auth rotationAuthorization, replacedD
 		return result, LoginResult{Session: recoveredSession, Token: issuedCredential}, nil
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 chat.Result[chat.DeviceRotation]
+		var unavailableResult1 LoginResult
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	now = s.cfg.Now().UTC()
 	old, oldOK = s.state.Devices[replacedDeviceID]
@@ -574,6 +617,11 @@ func (s *Service) RotateConversationDevice(auth rotationAuthorization, replacedD
 }
 
 func (s *Service) AcknowledgeConversationMessage(actor Session, conversationID, messageID, state string) (chat.Message, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 chat.Message
+		return unavailableResult0, writeUnavailable
+	}
+
 	if strings.HasPrefix(conversationID, "group_") {
 		return s.AcknowledgeGroupMessage(actor, conversationID, messageID, state)
 	}
@@ -593,7 +641,16 @@ func (s *Service) AcknowledgeConversationMessage(actor Session, conversationID, 
 }
 
 func (s *Service) persistMessageNotifications(actor Session, recipients []string, kind, objectID string) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		return writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	before := cloneState(s.state)
 	now := s.cfg.Now().UTC()
@@ -705,6 +762,9 @@ func (s *Service) ContractMomentComments(actor Session, momentID string) ([]Mome
 }
 
 func (s *Service) CreatePublicPost(actor Session, idempotencyKey, text string) (FeedPostView, bool, error) {
+	if err := s.writeAvailability(); err != nil {
+		return FeedPostView{}, false, err
+	}
 	if s.cfg.Square == nil {
 		return FeedPostView{}, false, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
@@ -721,10 +781,21 @@ func (s *Service) CreatePublicPost(actor Session, idempotencyKey, text string) (
 }
 
 func (s *Service) FollowTarget(actor Session, target, idempotencyKey string, active bool) (square.Result[square.Follow], error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 square.Result[square.Follow]
+		return unavailableResult0, writeUnavailable
+	}
+
 	if s.cfg.Square == nil {
 		return square.Result[square.Follow]{}, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 square.Result[square.Follow]
+		return unavailableResult0, writeUnavailable
+	}
+
 	blocked := s.blockedLocked(actor.Account, target)
 	s.mu.Unlock()
 	if blocked || target == actor.Account {
@@ -736,6 +807,12 @@ func (s *Service) FollowTarget(actor Session, target, idempotencyKey string, act
 	}
 	if active && !result.Replayed {
 		s.mu.Lock()
+		if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+			s.mu.Unlock()
+			var unavailableResult0 square.Result[square.Follow]
+			return unavailableResult0, writeUnavailable
+		}
+
 		before := cloneState(s.state)
 		now := s.cfg.Now().UTC()
 		s.notifyLocked(target, actor.Account, "follow", target, now)
@@ -778,6 +855,11 @@ func (s *Service) ContractAlerts(actor Session) ([]AlertView, int, error) {
 // ContractAlerts so an alert can never be marked read in the wrong account or
 // backing service.
 func (s *Service) MarkContractNotificationRead(actor Session, prefixedID string) (any, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 any
+		return unavailableResult0, writeUnavailable
+	}
+
 	switch {
 	case strings.HasPrefix(prefixedID, "social:"):
 		return s.MarkNotificationRead(actor, strings.TrimPrefix(prefixedID, "social:"))

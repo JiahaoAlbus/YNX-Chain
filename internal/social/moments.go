@@ -12,6 +12,12 @@ import (
 var evidenceHashPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
 func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility string, mediaIDs []string) (Moment, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 Moment
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	text = strings.TrimSpace(text)
 	if !identifierPattern.MatchString(idempotencyKey) || len(text) > 2000 || (text == "" && len(mediaIDs) == 0) || len(mediaIDs) > 4 || !contains([]string{"public", "contacts", "private"}, visibility) {
 		return Moment{}, false, ErrInvalid
@@ -23,6 +29,13 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 	digest := objectDigest(document)
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 Moment
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
 		record := s.state.Moments[previous.ObjectID]
 		s.mu.Unlock()
@@ -51,6 +64,13 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 	id := "moment_" + objectDigest(struct{ A, D string }{actor.Account, digest})[:24]
 	record := Moment{ID: id, SquarePostID: squarePostID, Author: actor.Account, Text: text, MediaIDs: append([]string(nil), mediaIDs...), Visibility: visibility, Status: "active", CreatedAt: now, UpdatedAt: now}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 Moment
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	before := cloneState(s.state)
 	s.state.Moments[id] = record
@@ -87,7 +107,16 @@ func (s *Service) Moment(actor Session, id string) (Moment, error) {
 }
 
 func (s *Service) DeleteMoment(actor Session, id string) error {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		return writeUnavailable
+	}
+
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		return writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	moment, ok := s.state.Moments[id]
 	if !ok || moment.Status == "deleted" {
@@ -105,6 +134,12 @@ func (s *Service) DeleteMoment(actor Session, id string) error {
 }
 
 func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, text string) (MomentComment, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 MomentComment
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	text = strings.TrimSpace(text)
 	if !identifierPattern.MatchString(idempotencyKey) || text == "" || len(text) > 1000 {
 		return MomentComment{}, false, ErrInvalid
@@ -112,6 +147,13 @@ func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, t
 	digest := objectDigest(struct{ M, T, A string }{momentID, text, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 MomentComment
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	moment, ok := s.state.Moments[momentID]
 	if !ok || !s.canViewMomentLocked(actor.Account, moment) {
@@ -156,6 +198,12 @@ func (s *Service) MomentComments(actor Session, momentID string) ([]MomentCommen
 }
 
 func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kind string, active bool) (MomentReaction, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 MomentReaction
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	if !identifierPattern.MatchString(idempotencyKey) || !contains([]string{"like", "love", "insight", "support"}, kind) {
 		return MomentReaction{}, false, ErrInvalid
 	}
@@ -165,6 +213,13 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 	}{momentID, kind, actor.Account, active})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 MomentReaction
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	moment, ok := s.state.Moments[momentID]
 	if !ok || !s.canViewMomentLocked(actor.Account, moment) {
@@ -190,6 +245,12 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 }
 
 func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, targetID, category, detail string, evidence []string) (SocialReport, bool, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 SocialReport
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	detail = strings.TrimSpace(detail)
 	if !identifierPattern.MatchString(idempotencyKey) || !contains([]string{"moment", "comment", "profile", "message"}, targetType) || !contains([]string{"spam", "harassment", "hate", "violence", "sexual", "misinformation", "other"}, category) || len(detail) > 2000 || len(evidence) > 10 {
 		return SocialReport{}, false, ErrInvalid
@@ -202,6 +263,13 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 	digest := objectDigest(struct{ T, I, C, D, A string }{targetType, targetID, category, detail, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 SocialReport
+		var unavailableResult1 bool
+		return unavailableResult0, unavailableResult1, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	if targetType == "moment" {
 		if moment, ok := s.state.Moments[targetID]; !ok || !s.canViewMomentLocked(actor.Account, moment) {
@@ -237,11 +305,22 @@ func (s *Service) SocialReport(actor Session, id string) (SocialReport, error) {
 }
 
 func (s *Service) AppealSocialReport(actor Session, id, correction string) (SocialReport, error) {
+	if writeUnavailable := s.writeAvailability(); writeUnavailable != nil {
+		var unavailableResult0 SocialReport
+		return unavailableResult0, writeUnavailable
+	}
+
 	correction = strings.TrimSpace(correction)
 	if correction == "" || len(correction) > 2000 {
 		return SocialReport{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
+		s.mu.Unlock()
+		var unavailableResult0 SocialReport
+		return unavailableResult0, writeUnavailable
+	}
+
 	defer s.mu.Unlock()
 	record, ok := s.state.Reports[id]
 	if !ok {
