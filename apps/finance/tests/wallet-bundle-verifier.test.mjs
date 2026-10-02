@@ -23,7 +23,7 @@ test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.notDeepEqual(active,versioned,'the historical v6 manifest must not be mistaken for the current source');
-  assert.equal(createHash('sha256').update(active).digest('hex'),'f6a88ac7d7679ef410d812701ea6b0f42a8f0bd588b7e7fdc20ce4a2d0c534ae');
+  assert.equal(createHash('sha256').update(active).digest('hex'),'e09ed6fd0f5114f7423d90aca317a374b596c5f03d5ddd969fbbb48a9a8fc19d');
 });
 
 async function fixture(){
@@ -43,8 +43,8 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.sourceBundleReproducible,true);
   assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
   assert.equal(result.cleanBuildCount,2);
-  assert.equal(result.bytes,761617);
-  assert.equal(result.sha256,'d3b8cb86dcc4353262448a5e93a3193aff50e5e7afdc7b3d0754db89d8c62ee0');
+  assert.equal(result.bytes,774194);
+  assert.equal(result.sha256,'3263bc9ba3284c1fc8fbf629946f2d3ea6053ecf78c1c6390929f8af84ff9b0b');
 });
 
 test('missing current bundle fails closed',async()=>{
@@ -112,4 +112,8 @@ test('official mobile SignClient source cannot change under the reviewed Finance
 });
 test('locked mobile package resolution metadata cannot silently redirect the Finance snapshot',async()=>{
   let observed=false;await assert.rejects(verifyFinanceWalletBundle({readFile:async p=>{if(String(p).endsWith('/packages/wallet-auth/node_modules/@walletconnect/sign-client/package.json')){observed=true;return Buffer.from('{"main":"replacement.js"}');}return readFile(p)}}),e=>e.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH');assert.equal(observed,true);
+});
+
+test('finite consent and new immutable browser vendor cannot be changed under the reviewed closure',async()=>{
+ for(const path of ['../../../packages/wallet-auth/src/product-session-finite-consent.js','vendor/product-session-browser-e1471c491.mjs']){const value=await fixture();try{const target=resolve(value.web,path);await writeFile(target,Buffer.concat([await readFile(target),Buffer.from('\n/* altered */\n')]));await assert.rejects(verifyFinanceWalletBundle({root:value.web}),error=>error.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH')}finally{await value.cleanup()}}
 });

@@ -26800,7 +26800,7 @@ ${item.productId}`));
 
   // src/walletconnect-dapp-connection.js
   var YNX_PAIR_PROJECT_ID = "41857128a14a593ca4e4a7cb7c838d71";
-  var ORIGINS = /* @__PURE__ */ new Set(["https://finance.ynxweb4.com", "https://exchange.ynxweb4.com", "https://quant.ynxweb4.com", "https://wallet-auth.ynxweb4.com", "https://social.ynxweb4.com", "https://assistant.ynxweb4.com"]);
+  var ORIGINS = /* @__PURE__ */ new Set(["https://finance.ynxweb4.com", "https://exchange.ynxweb4.com", "https://quant.ynxweb4.com", "https://wallet-auth.ynxweb4.com", "https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"]);
   var METHODS = /* @__PURE__ */ new Set(["personal_sign", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
   var fail5 = (code2) => {
     throw Object.assign(new Error(code2), { code: code2 });
@@ -26873,7 +26873,7 @@ ${item.productId}`));
     #draining = null;
     #restoring = 0;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
-      if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method) || ["https://social.ynxweb4.com", "https://assistant.ynxweb4.com"].includes(origin) && method !== "ynx_requestProductSessionV2")) fail5("YNX_PAIR_CONFIGURATION_INVALID");
+      if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method) || ["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && method !== "ynx_requestProductSessionV2")) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       this.#origin = origin;
       this.#methods = [...methods];
@@ -27396,10 +27396,10 @@ ${item.productId}`));
   function registeredProduct(origin) {
     if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
     if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
-    return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false)) ?? null;
+    return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false || product.productId === "video" && product.clientId === "ynx-video-mobile-v1" && product.applicationId === "com.ynxweb4.video" && origin === "https://video.ynxweb4.com" && product.evmCompatible === false || product.productId === "creator-studio" && product.clientId === "ynx-creator-studio-web-v1" && product.applicationId === "com.ynxweb4.creator-studio" && origin === "https://creator.ynxweb4.com" && product.evmCompatible === false)) ?? null;
   }
   function assertHostedMethodAllowed(origin, method) {
-    if (["https://social.ynxweb4.com", "https://assistant.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : "HOSTED_AI_PRIVATE_ONLY");
+    if (["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : origin === "https://assistant.ynxweb4.com" ? "HOSTED_AI_PRIVATE_ONLY" : "HOSTED_NATIVE_PRIVATE_ONLY");
     if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6("HOSTED_IDENTITY_ONLY");
   }
   function randomHostedId(cryptoProvider = globalThis.crypto) {
