@@ -99,3 +99,36 @@ func TestSocialAudienceActionJSInterop(t *testing.T) {
 		}
 	})
 }
+
+func TestSocialAudienceActionBodyJSParity(t *testing.T) {
+	raw, err := os.ReadFile("testdata/social-action-js-body-cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var f struct {
+		Session  Session `json:"session"`
+		Path, At string
+		Cases    []struct {
+			Name, Body, Header string
+			Accept             bool
+		}
+	}
+	if err = json.Unmarshal(raw, &f); err != nil {
+		t.Fatal(err)
+	}
+	now, err := protocolTime(f.At)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.Cases) != 11 {
+		t.Fatal("missing actual JS body cases")
+	}
+	for _, c := range f.Cases {
+		t.Run(c.Name, func(t *testing.T) {
+			_, err := VerifySocialAudienceProof(c.Header, f.Session, "POST", f.Path, []byte(c.Body), now)
+			if (err == nil) != c.Accept {
+				t.Fatalf("expected accepted=%v: %v", c.Accept, err)
+			}
+		})
+	}
+}

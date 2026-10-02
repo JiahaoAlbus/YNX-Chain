@@ -428,6 +428,7 @@ export class RecoverableProductSessionClient {
     let body;
     try { body = JSON.parse(raw); } catch { fail("INVALID_FIELD", "Social action body is invalid JSON"); }
     if (body === null || typeof body !== "object" || Array.isArray(body) || canonicalJSON(body) !== raw) fail("INVALID_FIELD", "Social action body must be a canonical JSON object");
+    assertActionUnicode(body);
     return this.#createAPIProof(["social.contacts", "social.feed", "social.messaging", "social.profile"], Object.freeze({ path, body }));
   }
 
@@ -647,3 +648,18 @@ function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "P
 function isNetworkUnavailable(error) { return error instanceof WalletAuthError && ["NETWORK_UNAVAILABLE", "CLOCK_UNAVAILABLE"].includes(error.code); }
 function gatewayRequestId(kind, token) { return `req_ps_${kind}_${token}`; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
+
+// Unlike JSON strings, an action body is transmitted as exact UTF-8 bytes.
+// Reject unpaired UTF-16 surrogates instead of depending on decoder replacement.
+function assertActionUnicode(value) {
+  if (typeof value === "string") {
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      if (code >= 0xD800 && code <= 0xDBFF) {
+        const next = value.charCodeAt(++i);
+        if (!(next >= 0xDC00 && next <= 0xDFFF)) fail("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+      } else if (code >= 0xDC00 && code <= 0xDFFF) fail("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+    }
+  } else if (Array.isArray(value)) { for (const child of value) assertActionUnicode(child); }
+  else if (value !== null && typeof value === "object") { for (const key of Object.keys(value)) { assertActionUnicode(key); assertActionUnicode(value[key]); } }
+}

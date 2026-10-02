@@ -5,7 +5,7 @@ import {p256} from '@noble/curves/nist.js';
 import {RecoverableProductSessionClient} from '../src/product-session-recovery.js';
 import {ProductSessionAuthority,signProductSessionApproval} from '../src/product-session-v2.js';
 import {createProductSessionReturnURL} from '../src/product-session-router.js';
-import {verifyProductSessionProofV2} from '../src/product-session-proof-v2.js';
+import {createProductSessionProofV2,verifyProductSessionProofV2} from '../src/product-session-proof-v2.js';
 import {httpBodyDigest} from '../src/session-proof.js';
 const registry=JSON.parse(readFileSync(new URL('../product-session-registry.json',import.meta.url))),secret='1'.padStart(64,'0'),device=Buffer.alloc(32,7);
 const at=new Date('2026-10-02T00:00:00.000Z'),scopes=['social.contacts','social.feed','social.messaging','social.profile'];
@@ -47,4 +47,29 @@ test('stored grant change after action signing blocks delivery of both proofs',a
  const f=await fixture({sign:async input=>{const bytes=Buffer.from(input.payload,'base64url');if(bytes.toString().includes('/social/v3/matrix/audience/')){signing();await new Promise(r=>release=r);}return Buffer.from(p256.sign(bytes,device,{format:'der'})).toString('base64url');}});
  const pending=f.client.createSocialAudienceProof({path:'/social/v3/matrix/audience/authorize',body:'{"txn":"qa"}'});await entered;
  f.values.delete(f.client.storageKey);release();await assert.rejects(pending,e=>e.code==='SESSION_INACTIVE');
+});
+
+test('business body canonical bytes agree across Unicode and safe integers',async()=>{
+ const f=await fixture(),path='/social/v3/matrix/audience/resolve';
+ const cases=[
+  ['Chinese-emoji','{"text":"中文😀"}',true],
+  ['literal-line-separator','{"text":"'+String.fromCharCode(0x2028)+'"}',true],
+  ['literal-paragraph-separator','{"text":"'+String.fromCharCode(0x2029)+'"}',true],
+  ['escaped-lone-surrogate','{"text":"'+String.fromCharCode(92)+'ud800"}',false],
+  ['safe-integer','{"revision":9007199254740991}',true],
+  ['float','{"revision":1.5}',false],
+  ['unsafe-integer','{"revision":9007199254740992}',false],
+  ['exponent','{"revision":1e2}',false],
+  ['escaped-literal','{"text":"'+String.fromCharCode(92,92)+'u2028"}',true],
+  ['UTF16-key-order','{"'+String.fromCodePoint(0x10000)+'":1,"'+String.fromCharCode(0xe000)+'":2}',true],
+  ['duplicate-key','{"revision":1,"revision":1}',false],
+ ];
+ const matrix=[];
+ for(let i=0;i<cases.length;i++){
+  const [name,body,accept]=cases[i],input={path,body};
+  if(accept)assert.equal((await f.client.createSocialAudienceProof(input)).body,body,name);else await assert.rejects(f.client.createSocialAudienceProof(input),undefined,name);
+  const proof=createProductSessionProofV2(f.client.current.session,{method:'POST',path,bodyDigest:httpBodyDigest(body),nonce:String(i).padStart(43,'z'),issuedAt:at.toISOString(),expiresAt:new Date(at.getTime()+30000).toISOString()},device.toString('base64url'));
+  matrix.push({name,body,accept,header:Buffer.from(JSON.stringify(Object.fromEntries(Object.keys(proof).sort().map(k=>[k,proof[k]])))).toString('base64url')});
+ }
+ if(process.env.YNX_ACTION_MATRIX_OUT)writeFileSync(process.env.YNX_ACTION_MATRIX_OUT,JSON.stringify({session:f.client.current.session,path,at:at.toISOString(),cases:matrix}));
 });

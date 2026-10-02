@@ -40,7 +40,7 @@ func VerifySocialAudienceProof(header string, session Session, method, path stri
 		}
 	}
 	// Body canonicalization must agree with the sender; hash original bytes only.
-	if _, err := canonicalObject(body); err != nil {
+	if _, err := canonicalActionBody(body); err != nil {
 		return reject("INVALID_ACTION_BODY")
 	}
 	if len(header) == 0 || len(header) > 16384 {
