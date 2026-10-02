@@ -165,6 +165,12 @@ handleWalletIPC("wallet:account-status", () => safeIPC(() => walletAuthority.acc
 handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
 handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
+handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
+  const account = (await walletAuthority.accountStatus()).account;
+  const page = await walletAuthority.transactionSender.submissions.history(account, cursor ?? null);
+  if ((await walletAuthority.accountStatus()).account !== account) throw Object.assign(new Error("The selected account changed. Refresh its transaction history."), { data: { code: "ACCOUNT_CHANGED" } });
+  return page;
+}));
 handleWalletIPC("wallet:transaction-status", (_event, hash) => safeIPC(async () => walletAuthority.transactionSender.submissions.check(hash, (await walletAuthority.accountStatus()).account)));
 handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async () => {
   const lease = keyAccess.current(), status = await walletAuthority.accountStatus();

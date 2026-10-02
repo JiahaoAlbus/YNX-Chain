@@ -19,6 +19,20 @@ export class TransactionSubmissions {
   async list(account) {
     return (await this.#intents()).filter(record => record.account === account).map(record => ({ hash: record.hash, account, status: this.#records.get(record.hash)?.status ?? "uncertain", canRetryExact: Boolean(record.raw ?? this.#records.get(record.hash)?.raw), to: record.to, amount: formatEther(record.value) }));
   }
+  async history(account, cursor = null, limit = 20) {
+    if (!/^0x[0-9a-f]{40}$/.test(account ?? "") || cursor !== null && !HASH.test(cursor) || !Number.isInteger(limit) || limit < 1 || limit > 50) throw failure("INVALID_HISTORY_PAGE", "Select an account and a valid transaction history page.");
+    if (typeof this.intentStore?.resolutions !== "function") throw failure("TRANSACTION_JOURNAL_UNAVAILABLE", "The saved transaction history is unavailable. Preserve the original journal.");
+    // Read the original private journal and revalidate its bound proof. Return
+    // only public display fields; never send raw signed bytes to the renderer.
+    const entries = (await this.intentStore.resolutions()).filter(entry => entry.intent.account === account).reverse();
+    const offset = cursor === null ? 0 : entries.findIndex(entry => entry.intent.hash === cursor);
+    if (offset < 0) throw failure("INVALID_HISTORY_PAGE", "The saved history page no longer matches this account. Refresh its history.");
+    const page = entries.slice(offset, offset + limit).map(entry => {
+      const receipt = validateDurableReceipt(entry.intent, entry.receipt, entry.capabilities);
+      return Object.freeze({ hash: entry.intent.hash, account, to: entry.intent.to, amount: formatEther(entry.intent.value), actualFee: formatEther(receipt.ynxFeeWei), blockNumber: receipt.blockNumber, origin: entry.intent.origin, successful: receipt.status === "0x1", confirmed: true, confirmationScope: "local-snapshot", consensusFinality: false });
+    });
+    return Object.freeze({ records: Object.freeze(page), nextCursor: entries[offset + limit]?.intent.hash ?? null });
+  }
   async assertResolved(account) {
     const record = (await this.#intents()).find(item => item.account === account);
     if (record) throw failure("TRANSACTION_RESOLUTION_REQUIRED", "A previous transaction's outcome is unconfirmed. Check its hash or retry the identical signed transaction before creating another transfer.", { outcomeUnknown: true, transactionHash: record.hash });

@@ -3,6 +3,7 @@ import { formatApprovalReview } from "./approval-review-display.mjs";
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
+import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -173,6 +174,7 @@ function renderAccount(payload) {
   invalidatePaymentInput();
   if (payload?.ok === false) {
     accountState = null;
+    activeAccount = null; transactionHistoryUI.clear();
     receiveCodeUI.clear();
     document.querySelector("#receive-address").value = "";
     document.querySelector("#receive-evm-address").value = "";
@@ -190,6 +192,7 @@ function renderAccount(payload) {
     document.querySelector("#recipient-status").textContent = "";
   }
   if (previousAccount !== activeAccount) document.querySelector("#transaction-resolution-result").textContent = "";
+  if (previousAccount !== activeAccount) void transactionHistoryUI.refresh();
   void refreshTransactions();
   document.querySelector("#assets").hidden = !status?.initialized;
   document.querySelector("#backup-section").hidden = !status?.initialized;
@@ -382,6 +385,27 @@ let transferInFlight = false;
 let balanceRevision = 0;
 const errorText = result => result?.error?.outcomeUnknown ? `${result.error.message}${result.error.transactionHash ? ` Transaction hash: ${result.error.transactionHash}.` : ""}` : result?.error?.message ?? "The wallet is unavailable. Try again shortly.";
 let transactionRevision = 0;
+const transactionHistoryUI = createTransactionHistoryUI({
+  getAccount: () => activeAccount,
+  request: cursor => window.ynxWallet.transactionHistory(cursor),
+  render: view => {
+    const list = document.querySelector("#transaction-history-list"); list.replaceChildren();
+    document.querySelector("#transaction-history-status").textContent = view.error ?? (view.busy ? "Reading saved transactions…" : view.loaded && view.records.length === 0 ? "No verified completed transfers for this account on this device." : "");
+    document.querySelector("#refresh-transaction-history").disabled = view.busy || !activeAccount;
+    document.querySelector("#older-transaction-history").hidden = view.nextCursor === null;
+    document.querySelector("#older-transaction-history").disabled = view.busy;
+    for (const record of view.records) {
+      const row = document.createElement("article"), title = document.createElement("h3"), facts = document.createElement("dl"); row.className = "transaction-history-row";
+      title.textContent = `${record.amount} YNXT · ${record.successful ? "Mined locally" : "Failed"}`;
+      for (const [label, value] of [["Recipient", nativeAccountLabel(record.to)], ["Transaction", record.hash], ["Actual fee", `${record.actualFee} YNXT`], ["Block", record.blockNumber]]) {
+        const term = document.createElement("dt"), detail = document.createElement("dd"); term.textContent = label; detail.textContent = value; facts.append(term, detail);
+      }
+      row.append(title, facts); list.append(row);
+    }
+  },
+});
+document.querySelector("#refresh-transaction-history").addEventListener("click", () => void transactionHistoryUI.refresh());
+document.querySelector("#older-transaction-history").addEventListener("click", () => void transactionHistoryUI.older());
 async function refreshTransactions() {
   if (!window.ynxWallet.pendingTransactions) return;
   const revision = ++transactionRevision, account = activeAccount;
@@ -407,7 +431,7 @@ async function refreshTransactions() {
             document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "mined successfully" : "failed"} in the node's completed local snapshot. Actual fee: ${response.value.actualFee} YNXT. Consensus finality is not established by this proof.` : response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.";
             if (response.ok && response.value.confirmed) void refreshAssets();
           } catch { if (account === activeAccount) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
-          finally { void refreshTransactions(); }
+          finally { void refreshTransactions(); void transactionHistoryUI.refresh(); }
         });
         row.append(button);
       }

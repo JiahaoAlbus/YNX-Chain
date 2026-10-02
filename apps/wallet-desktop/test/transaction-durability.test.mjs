@@ -147,6 +147,13 @@ test("old complete receipt and pending durable proof never clear an unresolved r
   assert.equal(done.confirmed, true); assert.equal(done.confirmationScope, "local-snapshot"); assert.equal(done.consensusFinality, false);
   const saved = JSON.parse(await fs.readFile(f.filePath, "utf8")); assert.equal(saved.records.length, 0); assert.equal(saved.resolutions[0].receipt.ynxDurability.transactionHash, f.state.hash); assert.equal(saved.resolutions[0].intent.raw, f.state.raw[0]);
   assert.equal((await f.restart().store.snapshot()).length, 0);
+  const history = await f.restart().sender.submissions.history(account);
+  assert.equal(history.records.length, 1); assert.equal(history.records[0].hash, f.state.hash);
+  assert.equal(history.records[0].actualFee, "1.0"); assert.equal(history.records[0].amount, "2.0");
+  assert.equal(history.records[0].consensusFinality, false); assert.equal("raw" in history.records[0], false);
+  assert.equal(history.nextCursor, null); assert.equal((await f.restart().sender.submissions.history(to)).records.length, 0);
+  await assert.rejects(f.sender.submissions.history(account, `0x${"ff".repeat(32)}`), code("INVALID_HISTORY_PAGE"));
+  await assert.rejects(f.sender.submissions.history(account, null, 51), code("INVALID_HISTORY_PAGE"));
 });
 
 test("schema1 pending entries migrate conservatively without inventing raw bytes, then resolve only with the new proof", async t => {
