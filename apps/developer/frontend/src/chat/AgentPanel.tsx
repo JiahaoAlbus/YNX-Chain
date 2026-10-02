@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
+import { createRequestEpoch } from "../codeoss/requestEpoch";
 import {
   agentAction,
   clearProjectMemory,
@@ -7,6 +8,7 @@ import {
   exportProjectMemory,
   indexProjectMemory,
   loadModelCatalog,
+  loadAgentProjects,
   loadProjectMemoryFacts,
   loadProjectMemory,
   searchProjectMemory,
@@ -31,17 +33,90 @@ type AgentAction =
   | "prepare-deployment"
   | "approve-deployment";
 
-export function AgentPanel({
-  projectId,
-  revision,
-  activePath,
-  onApplied,
-}: {
+type AgentPanelProps = {
   projectId: string;
   revision: number;
   activePath: string;
   onApplied: (revision: number) => void;
+};
+type WalletAgentProject = { projectId: string; name: string; revision: number; activePath: string; storageMode: "text-snapshot" | "native-volume" };
+type WalletAgentProjects = { account: string; generation: number; identityKey: string; projects: WalletAgentProject[] };
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+const unauthorized = (error: unknown) => typeof error === "object" && error !== null && "status" in error && error.status === 401;
+
+// The parent still supplies its legacy guest-workbench props. Private AI uses
+// only the current backend-resolved Wallet project catalog below.
+export function AgentPanel(_props: AgentPanelProps) {
+  const loads = useRef(createRequestEpoch()).current, privateRequests = useRef(createRequestEpoch()).current;
+  const currentIdentity = useRef<WalletAgentProjects | undefined>(undefined), currentProject = useRef("");
+  const privateActive = useRef(false);
+  const [identity, setIdentity] = useState<WalletAgentProjects>(), [selectedId, setSelectedId] = useState("");
+  const [loading, setLoading] = useState(true), [error, setError] = useState("");
+  const [verified, setVerified] = useState(false);
+
+  function retireIdentity(message: string) {
+    loads.invalidate(); privateRequests.invalidate();
+    privateActive.current = false; setVerified(false);
+    currentIdentity.current = undefined; currentProject.current = "";
+    setIdentity(undefined); setSelectedId(""); setLoading(false); setError(message);
+  }
+  async function refreshProjects() {
+    const captured = loads.invalidate(); privateRequests.invalidate(); privateActive.current = false;
+    setVerified(false); setLoading(true); setError("");
+    try {
+      const value = await loadAgentProjects();
+      if (!loads.current(captured)) return;
+      const previous = currentIdentity.current;
+      const sameActor = previous?.account === value.account && previous?.generation === value.generation && previous?.identityKey === value.identityKey;
+      const selected = sameActor && value.projects.some(project => project.projectId === currentProject.current)
+        ? currentProject.current : (value.projects.find(project => project.storageMode === "text-snapshot") || value.projects[0])?.projectId || "";
+      if (!sameActor || selected !== currentProject.current || previous?.projects.find(project => project.projectId === selected)?.storageMode !== value.projects.find(project => project.projectId === selected)?.storageMode) privateRequests.invalidate();
+      currentIdentity.current = value; currentProject.current = selected;
+      privateActive.current = true; setVerified(true);
+      setIdentity(value); setSelectedId(selected);
+    } catch (cause) {
+      if (!loads.current(captured)) return;
+      if (unauthorized(cause)) retireIdentity(errorMessage(cause));
+      else setError(errorMessage(cause));
+    } finally { if (loads.current(captured)) setLoading(false); }
+  }
+  useEffect(() => {
+    void refreshProjects();
+    const refresh = () => { void refreshProjects(); };
+    window.addEventListener("focus", refresh);
+    return () => { privateActive.current = false; loads.invalidate(); privateRequests.invalidate(); window.removeEventListener("focus", refresh); };
+  }, [loads, privateRequests]);
+  const project = identity?.projects.find(item => item.projectId === selectedId), captured = privateRequests.capture();
+  const current = () => privateActive.current && privateRequests.current(captured);
+  return <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+    <section className="side-section agent-projects" style={{ height: "auto", flex: "0 0 auto", fontSize: 11, overflowWrap: "anywhere" }}>
+      <header><strong>Wallet AI projects</strong><Button variant="ghost" disabled={loading} onClick={() => void refreshProjects()}>{loading ? "Loading projects…" : "Refresh Wallet projects"}</Button></header>
+      <div className="agent-fields">
+      {identity ? <>
+        <p>Wallet account · <strong>{identity.account}</strong></p>
+        {identity.projects.length ? <label>Wallet project<select aria-label="Wallet project" disabled={!verified} value={selectedId} onChange={event => {
+          privateRequests.invalidate(); currentProject.current = event.target.value; setSelectedId(event.target.value);
+        }}>{identity.projects.map(item => <option key={item.projectId} value={item.projectId}>{item.name}{item.storageMode === "native-volume" ? " · Native IDE" : ""}</option>)}</select></label>
+          : <p>This Wallet has no projects yet. Open <strong>YNX Native IDE</strong> in the activity bar and explicitly copy a saved project into this Wallet.</p>}
+        {project?.storageMode === "native-volume" && <p>This project's current files live in the native editor. Open it through <strong>YNX Native IDE</strong>, then choose <strong>YNX Tools</strong> for AI review. Its old text import is not used here.</p>}
+      </> : !loading && <p>Sign in to use your private Wallet projects. <a href="/sso/start">Sign in with YNX Wallet</a></p>}
+      {error && <p role="alert">{error}</p>}
+      </div>
+    </section>
+    {identity && project?.storageMode === "text-snapshot" && <fieldset disabled={!verified} aria-label="Private Wallet AI" style={{ border: 0, padding: 0, margin: 0, minWidth: 0, minHeight: 0, flex: 1 }}><ProjectAgentPanel
+      key={JSON.stringify([identity.account, identity.generation, identity.identityKey, project.projectId])}
+      projectId={project.projectId} revision={project.revision} activePath={project.activePath} identityKey={identity.identityKey} enabled={verified} lifecycleEpoch={captured}
+      isCurrent={current} onUnauthorized={message => { if (current()) retireIdentity(message); }}
+      onApplied={() => { if (current()) void refreshProjects(); }} /></fieldset>}
+  </div>;
+}
+
+function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabled, lifecycleEpoch, onApplied, isCurrent, onUnauthorized }: AgentPanelProps & {
+  identityKey: string; enabled: boolean; lifecycleEpoch: number;
+  isCurrent: () => boolean; onUnauthorized: (message: string) => void;
 }) {
+  const requests = useRef(createRequestEpoch()).current, mounted = useRef(false);
+  const previousLifecycle = useRef(lifecycleEpoch);
   const [catalog, setCatalog] = useState<ModelCatalog>();
   const [run, setRun] = useState<AgentRun>();
   const [intent, setIntent] = useState("");
@@ -57,26 +132,45 @@ export function AgentPanel({
   >([]);
   const [memoryFacts, setMemoryFacts] = useState<ProjectMemoryFact[]>([]);
 
+  const current = (captured: number) => mounted.current && enabled && requests.current(captured) && isCurrent();
+  function handleError(error: unknown, captured: number) {
+    if (!current(captured)) return;
+    if (unauthorized(error)) {
+      requests.invalidate(); if (keyRef.current) keyRef.current.value = "";
+      onUnauthorized(errorMessage(error));
+    } else setError(errorMessage(error));
+  }
+
   const loadCatalog = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     setBusy(true);
     setError("");
     try {
-      setCatalog(await loadModelCatalog());
+      const value = await loadModelCatalog(identityKey); if (current(captured)) setCatalog(value);
     } catch (error) {
-      setCatalog(undefined);
-      setError(error instanceof Error ? error.message : String(error));
+      if (current(captured)) setCatalog(undefined);
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
 
   useEffect(() => {
+    mounted.current = true; const captured = requests.invalidate();
     void loadCatalog();
     setMemoryFacts([]);
-    loadProjectMemory(projectId).then(setMemory).catch(() => {});
+    loadProjectMemory(projectId, identityKey).then(value => { if (current(captured)) setMemory(value); }).catch(error => { if (unauthorized(error)) handleError(error, captured); });
+    return () => { mounted.current = false; requests.invalidate(); if (keyRef.current) keyRef.current.value = ""; };
   }, [projectId]);
+  useEffect(() => {
+    if (!enabled || previousLifecycle.current !== lifecycleEpoch) {
+      requests.invalidate(); setBusy(false); if (keyRef.current) keyRef.current.value = "";
+    }
+    previousLifecycle.current = lifecycleEpoch;
+  }, [enabled, lifecycleEpoch, requests]);
 
   const execute = async (action: AgentAction) => {
+    const captured = requests.capture(); if (!current(captured)) return;
     setBusy(true);
     setError("");
     try {
@@ -92,7 +186,7 @@ export function AgentPanel({
           apiKey,
           approval: "model-request-once",
           approvalId,
-        });
+        }, identityKey);
       } else {
         next = await agentAction(run!.runId, {
           action,
@@ -135,16 +229,16 @@ export function AgentPanel({
           ...(action === "approve-deployment"
             ? { approval: "deployment-review-once" }
             : {}),
-        });
+        }, identityKey);
       }
+      if (!current(captured)) return;
       setRun(next);
       if (action === "apply" || action === "restore-deleted")
         onApplied(next.workspaceRevision);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      if (keyRef.current) keyRef.current.value = "";
-      setBusy(false);
+      if (current(captured)) { if (keyRef.current) keyRef.current.value = ""; setBusy(false); }
     }
   };
 
@@ -152,33 +246,38 @@ export function AgentPanel({
   const providerReady =
     provider !== "ynx-hosted" || catalog?.hosted.available === true;
   const buildMemory = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     setBusy(true);
     setError("");
     try {
-      setMemory(await indexProjectMemory(projectId, revision));
+      const value = await indexProjectMemory(projectId, revision, identityKey); if (!current(captured)) return;
+      setMemory(value);
       setMemoryFacts([]);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
   const searchMemory = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     setBusy(true);
     setError("");
     try {
-      setMemoryResults((await searchProjectMemory(projectId, memoryQuery)).results);
+      const value = await searchProjectMemory(projectId, memoryQuery, identityKey); if (current(captured)) setMemoryResults(value.results);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
   const exportMemory = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     setBusy(true);
     setError("");
     try {
-      const value = await exportProjectMemory(projectId);
+      const value = await exportProjectMemory(projectId, identityKey);
+      if (!current(captured)) return;
       const blob = new Blob([JSON.stringify(value, null, 2)], {
         type: "application/json",
       });
@@ -189,24 +288,26 @@ export function AgentPanel({
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
   const viewMemoryFacts = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     if (memory?.revision == null) return;
     setBusy(true);
     setError("");
     try {
-      setMemoryFacts(await loadProjectMemoryFacts(projectId, memory.revision));
+      const value = await loadProjectMemoryFacts(projectId, memory.revision, identityKey); if (current(captured)) setMemoryFacts(value);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
   const clearMemory = async () => {
+    const captured = requests.capture(); if (!current(captured)) return;
     if (
       !window.confirm(
         "Clear this project memory index? The workspace files are not deleted.",
@@ -216,14 +317,16 @@ export function AgentPanel({
     setBusy(true);
     setError("");
     try {
-      await clearProjectMemory(projectId, memory?.revision ?? null);
-      setMemory(await loadProjectMemory(projectId));
+      await clearProjectMemory(projectId, memory?.revision ?? null, identityKey);
+      if (!current(captured)) return;
+      const value = await loadProjectMemory(projectId, identityKey); if (!current(captured)) return;
+      setMemory(value);
       setMemoryResults([]);
       setMemoryFacts([]);
     } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
+      handleError(error, captured);
     } finally {
-      setBusy(false);
+      if (current(captured)) setBusy(false);
     }
   };
 
@@ -278,6 +381,7 @@ export function AgentPanel({
         )}
         <div>
           <input
+            aria-label="Project memory query"
             value={memoryQuery}
             onChange={(event) => setMemoryQuery(event.target.value)}
             placeholder="Semantic code search"
@@ -304,7 +408,7 @@ export function AgentPanel({
         ))}
       </details>
       <div className="agent-fields">
-        <select value={provider} onChange={(event) => setProvider(event.target.value)}>
+        <select aria-label="AI provider" value={provider} onChange={(event) => setProvider(event.target.value)}>
           <option value="ynx-hosted">
             YNX hosted · {catalog?.hosted.model || "Qwen"}
           </option>
@@ -315,12 +419,14 @@ export function AgentPanel({
           ))}
         </select>
         <input
+          aria-label="AI model"
           value={model}
           onChange={(event) => setModel(event.target.value)}
           placeholder="Model (provider default)"
         />
         {needsKey && (
           <input
+            aria-label="Request-only API key"
             ref={keyRef}
             type="password"
             autoComplete="off"
@@ -331,6 +437,7 @@ export function AgentPanel({
       {!run ? (
         <>
           <textarea
+            aria-label="Software change"
             value={intent}
             onChange={(event) => setIntent(event.target.value)}
             placeholder="Describe the software change and acceptance criteria…"

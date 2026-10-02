@@ -1,6 +1,7 @@
 import { createFairQueue } from "./fair-queue.mjs";
 import { readHostedStream } from "./hosted-stream.mjs";
 import { existingHostedRequest } from "./hosted-request.mjs";
+import { assertExpectedIdentity, consumerIdentityBinding } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 
 const PROTOCOL = "ynx-code-model-router/v1";
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/;
@@ -44,6 +45,7 @@ export function createModelRouter({
   queueTimeoutMs = Number(process.env.YNX_CODE_AI_QUEUE_TIMEOUT_MS || 60_000),
   timeoutMs = Number(process.env.YNX_CODE_AI_TIMEOUT_MS || 180_000),
   ownerForRequest,
+  verifyIdentity,
   activity,
 } = {}) {
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl is required");
@@ -197,15 +199,35 @@ export function createModelRouter({
   async function handler(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
     if (url.pathname !== "/runtime/models") return false;
-    if (ownerForRequest && !ownerForRequest(request)) {
-      json(response, 401, { error: "A signed workspace session is required.", code: "workspace_session_required" });
-      return true;
+    try {
+      // Catalog admission follows the same Wallet actor the UI reviewed. An
+      // unrelated guest workspace cookie cannot admit or retire that actor.
+      const identity = verifyIdentity ? await verifyIdentity(request) : null;
+      let binding;
+      if (verifyIdentity) {
+        assertExpectedIdentity(request, identity);
+        binding = consumerIdentityBinding(identity);
+      } else if (ownerForRequest && !ownerForRequest(request)) {
+        throw fault("A signed workspace session is required.", "workspace_session_required", 401);
+      }
+      if (request.method !== "GET")
+        throw fault("Method not allowed.", "method_not_allowed", 405);
+      const health = await hostedHealth();
+      if (verifyIdentity) {
+        consumerIdentityBinding(identity);
+        const current = await verifyIdentity(request);
+        assertExpectedIdentity(request, current);
+        if (consumerIdentityBinding(current) !== binding)
+          throw fault("Wallet identity changed. Refresh your Wallet projects.", "model_identity_changed", 401);
+        consumerIdentityBinding(identity);
+      }
+      json(response, 200, { ...catalog(), hosted: { ...catalog().hosted, ...health } });
+    } catch (error) {
+      json(response, error.status || 503, {
+        error: error.message || "Wallet identity verification is unavailable.",
+        code: error.code || "model_identity_unavailable",
+      });
     }
-    if (request.method !== "GET") {
-      json(response, 405, { error: "Method not allowed.", code: "method_not_allowed" });
-      return true;
-    }
-    json(response, 200, { ...catalog(), hosted: { ...catalog().hosted, ...(await hostedHealth()) } });
     return true;
   }
 
@@ -368,6 +390,7 @@ function upstreamFault(status, provider) {
 function stripSlash(value) { return value.replace(/\/$/, ""); }
 function fault(message, code, status) { return Object.assign(new Error(message), { code, status }); }
 function json(response, status, value) {
+  if (response.destroyed || response.writableEnded) return;
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   response.end(JSON.stringify(value));
 }

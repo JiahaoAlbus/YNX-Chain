@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { posix } from "node:path";
+import { assertExpectedIdentity } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 
 const PROTOCOL = "ynx-code-memory/v1",
   MAX_BODY = 64 * 1024,
@@ -14,6 +15,7 @@ const PROTOCOL = "ynx-code-memory/v1",
 export function createProjectMemory({
   filename,
   ownerForRequest,
+  verifyIdentity,
   workspaceStore,
   embed = createOllamaEmbedder(),
 }) {
@@ -89,7 +91,14 @@ export function createProjectMemory({
     };
   }
 
-  async function index(owner, projectId, expectedRevision) {
+  function assertSnapshot(owner, projectId) {
+    if (workspaceStore.storageMode?.(owner, projectId) === "native-volume")
+      throw fault("This project uses the native workbench. Its current files are not available to snapshot memory.", "memory_native_project", 409);
+  }
+
+  async function index(owner, projectId, expectedRevision, { assertCurrent = async () => {} } = {}) {
+    await assertCurrent();
+    assertSnapshot(owner, projectId);
     const workspace = workspaceStore.get(owner, projectId);
     if (!workspace)
       throw fault("Workspace not found.", "workspace_not_found", 404);
@@ -109,7 +118,9 @@ export function createProjectMemory({
       changed = chunks.filter(
         (chunk) => !previous.has(`${chunk.path}\0${chunk.index}\0${sha(chunk.content)}`),
       ),
-      embedded = await embedBatches(embed, changed.map((chunk) => chunk.content));
+      embedded = await embedBatches(embed, changed.map((chunk) => chunk.content), assertCurrent);
+    await assertCurrent();
+    assertSnapshot(owner, projectId);
     if (
       embedded.length !== changed.length ||
       embedded.some((vector) => !validVector(vector))
@@ -185,7 +196,9 @@ export function createProjectMemory({
     };
   }
 
-  async function search(owner, projectId, query, limit = 8, allowedPaths) {
+  async function search(owner, projectId, query, limit = 8, allowedPaths, { assertCurrent = async () => {} } = {}) {
+    await assertCurrent();
+    assertSnapshot(owner, projectId);
     query = text(query, 2, 1000, "query");
     limit = Math.max(1, Math.min(Number(limit) || 8, 20));
     const allow = Array.isArray(allowedPaths) ? new Set(allowedPaths) : null,
@@ -200,6 +213,8 @@ export function createProjectMemory({
         indexedRevision: null,
       };
     const [needle] = await embed([query]);
+    await assertCurrent();
+    assertSnapshot(owner, projectId);
     if (!validVector(needle))
       throw fault(
         "Embedding service returned an invalid query vector.",
@@ -330,23 +345,34 @@ export function createProjectMemory({
       `http://${request.headers.host || "127.0.0.1"}`,
     );
     if (!url.pathname.startsWith("/runtime/memory/")) return false;
-    const owner = ownerForRequest(request);
-    if (!owner) {
-      json(response, 401, {
-        error: "A signed workspace session is required.",
-        code: "workspace_session_required",
-      });
-      return true;
-    }
     try {
+      const identity = verifyIdentity ? await verifyIdentity(request) : null,
+        owner = verifyIdentity ? identity?.workspaceOwner : ownerForRequest(request);
+      if (!owner) throw fault("Sign in with YNX Wallet to access project memory.", "workspace_session_required", 401);
+      if (verifyIdentity) assertExpectedIdentity(request, identity);
+      const assertCurrent = async () => {
+        if (request.aborted || (response.destroyed && !response.writableEnded))
+          throw fault("Project memory request was cancelled.", "memory_request_cancelled", 499);
+        if (!verifyIdentity) return;
+        assertIdentity(identity);
+        const current = await verifyIdentity(request);
+        assertIdentity(current);
+        assertExpectedIdentity(request, current);
+        if (["owner", "workspaceOwner", "account", "generation", "identityReference"].some(key => current[key] !== identity[key]))
+          throw fault("Wallet identity changed. Sign in again before using project memory.", "memory_identity_changed", 401);
+        assertIdentity(identity);
+      };
+      await assertCurrent();
       const projectId = validId(url.pathname.split("/")[3]);
+      if (verifyIdentity && !workspaceStore.get(owner, projectId))
+        throw fault("Workspace not found.", "workspace_not_found", 404);
       if (request.method === "GET") {
         const query = url.searchParams.get("q");
         if (query)
           json(
             response,
             200,
-            await search(owner, projectId, query, url.searchParams.get("limit")),
+            await search(owner, projectId, query, url.searchParams.get("limit"), undefined, { assertCurrent }),
           );
         else if (url.searchParams.get("view") === "export")
           json(
@@ -381,13 +407,14 @@ export function createProjectMemory({
       }
       if (request.method === "POST") {
         const body = JSON.parse((await readBody(request)).toString("utf8"));
+        await assertCurrent();
         requireProtocol(body);
         if (body.action && body.action !== "rebuild")
           throw fault("Unsupported memory action.", "unsupported_memory_action", 400);
         json(
           response,
           200,
-          await index(owner, projectId, Number(body.expectedRevision)),
+          await index(owner, projectId, Number(body.expectedRevision), { assertCurrent }),
         );
         return true;
       }
@@ -699,10 +726,19 @@ function validVector(value) {
     value.every((number) => Number.isFinite(number))
   );
 }
-async function embedBatches(embed, inputs) {
+function assertIdentity(identity) {
+  if (!identity?.owner || !identity.workspaceOwner || !identity.account ||
+      !Number.isInteger(identity.generation) || !Number.isFinite(identity.expiresAt) ||
+      identity.expiresAt <= Date.now() || typeof identity.isCurrent !== "function" ||
+      identity.isCurrent() === false)
+    throw fault("Wallet identity expired or changed. Sign in again.", "memory_identity_changed", 401);
+}
+async function embedBatches(embed, inputs, assertCurrent) {
   const vectors = [];
   for (let start = 0; start < inputs.length; start += 512) {
+    await assertCurrent();
     const batch = await embed(inputs.slice(start, start + 512));
+    await assertCurrent();
     if (!Array.isArray(batch)) return [];
     vectors.push(...batch);
   }

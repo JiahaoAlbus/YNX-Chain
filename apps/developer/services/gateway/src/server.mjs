@@ -85,15 +85,20 @@ const extensionRegistry = createExtensionRegistry({
 const modelRouter = createModelRouter({
   activity,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  verifyIdentity: (request) => developerSSO.verifyIdentity(request),
 });
+const nativeAIStore = createNativeAIStore({ filename: join(stateDir, 'native-ai.sqlite'), keyPath: join(stateDir, 'native-ai.key') });
 const projectMemory = createProjectMemory({
   filename: join(stateDir, "memory.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  verifyIdentity: (request) => developerSSO.verifyIdentity(request),
   workspaceStore,
 });
 const agentOrchestrator = createAgentOrchestrator({
   filename: join(stateDir, "agent.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  verifyIdentity: (request) => developerSSO.verifyIdentity(request),
+  aiStore: nativeAIStore,
   workspaceStore,
   modelRouter,
   projectMemory,
@@ -142,7 +147,6 @@ codeossService = createCodeOSSService({
 });
 const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission,
   recordActivity: developerSSO.recordCoreActivity }) : null;
-const nativeAIStore = createNativeAIStore({ filename: join(stateDir, 'native-ai.sqlite'), keyPath: join(stateDir, 'native-ai.key') });
 const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({

@@ -35,6 +35,9 @@ export function createWorkspaceRuntime(options = {}) {
   async function handler(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
     if (url.pathname === "/runtime/codeoss" || url.pathname.startsWith("/runtime/codeoss/")) return false;
+    // These consumers perform their own Wallet admission. An expired guest
+    // cookie must not shadow a valid private session before its handler runs.
+    if (url.pathname === "/runtime/models" || url.pathname.startsWith("/runtime/agent/") || url.pathname.startsWith("/runtime/memory/")) return false;
     const signed = readSignedSession(request, sessionKey);
     if (url.pathname.startsWith("/runtime/") && signed && !guestAdmission.admit(signed)) {
       json(response, 401, { error: "Guest workspace admission expired or was revoked. Saved files are retained.", code: "workspace_session_expired" });
@@ -323,6 +326,7 @@ export function createWorkspaceRuntime(options = {}) {
           taskId: item.taskId,
           onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision),
           signal: item.controller.signal,
+          assertCurrent: item.operation?.assertCurrent,
         })
           .then(item.resolve, item.reject)
           .finally(() => {
@@ -375,7 +379,8 @@ export function createWorkspaceRuntime(options = {}) {
           });
     }
   }
-  function runTaskForOwner(owner, body, onEvent) {
+  function runTaskForOwner(owner, body, onEvent, operation = {}) {
+    operation.signal?.throwIfAborted();
     if (typeof owner !== "string" || !owner)
       throw Object.assign(new Error("A workspace owner is required."), {
         status: 401,
@@ -395,10 +400,19 @@ export function createWorkspaceRuntime(options = {}) {
         owner,
         body,
         onEvent,
-        resolve,
-        reject,
+        resolve: value => { operation.signal?.removeEventListener("abort", cancel); resolve(value); },
+        reject: error => { operation.signal?.removeEventListener("abort", cancel); reject(error); },
+        operation,
         internal: true,
       };
+      const cancel = () => {
+        const index = queue.indexOf(item);
+        if (index >= 0) {
+          queue.splice(index, 1); finishActivity(item.taskId);
+          item.reject(operation.signal.reason); pump();
+        } else item.controller?.abort(operation.signal.reason);
+      };
+      operation.signal?.addEventListener("abort", cancel, { once: true });
       queue.push(item);
       queueActivity(item);
       pump();
@@ -562,10 +576,13 @@ async function compilerInventory() {
   return output;
 }
 
-async function execute(session, task, { root, sandbox, onEvent, owner, environmentResolver, taskId = randomUUID(), onEnvironmentResolved, signal }) {
+async function execute(session, task, { root, sandbox, onEvent, owner, environmentResolver, taskId = randomUUID(), onEnvironmentResolved, signal, assertCurrent }) {
+  const checkCurrent = async () => { signal?.throwIfAborted(); await assertCurrent?.(); signal?.throwIfAborted(); };
+  await checkCurrent();
   const started = performance.now(),
     sessionRoot = join(root, createHmac("sha256", Buffer.from(session)).update(task.projectId).digest("hex").slice(0, 32));
   const resolvedEnvironment = environmentResolver ? await environmentResolver(owner, task.projectId) : { revision: 0, environment: {} };
+  await checkCurrent();
   onEnvironmentResolved?.(resolvedEnvironment.revision);
   let sequence = 0;
   const emit = (value) => onEvent?.({ ...value, taskId, sequence: ++sequence });
@@ -586,6 +603,7 @@ async function execute(session, task, { root, sandbox, onEvent, owner, environme
     let output = "",
       truncated = false;
     for (const phase of spec.phases) {
+      await checkCurrent();
       emit({ type: "phase", phase: phase.label, status: "started" });
       let result = await runSandboxed({
         sandbox,
@@ -602,6 +620,7 @@ async function execute(session, task, { root, sandbox, onEvent, owner, environme
         readOnlyBinds: phase.readOnlyBinds,
         onChunk: phase.materialize ? undefined : (channel, data) => emit({ type: "output", phase: phase.label, channel, data }),
       });
+      if (assertCurrent) await checkCurrent();
       if (phase.materialize) result = await phase.materialize(result);
       const append = `${phase.label}> ${result.output}`;
       if (Buffer.byteLength(output + append) > MAX_OUTPUT_BYTES) {
@@ -1220,6 +1239,7 @@ function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOu
 }
 function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes = MAX_OUTPUT_BYTES, onChunk, signal }) {
   return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
     const detached = process.platform !== "win32",
       child = spawn(command, args, {
         cwd,

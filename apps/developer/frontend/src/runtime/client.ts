@@ -1060,47 +1060,63 @@ export type AgentRun = {
     boundary?: string;
   }>;
 };
-export async function loadModelCatalog(): Promise<ModelCatalog> {
-  return agentFetch("/runtime/models");
+export async function loadModelCatalog(identityKey?: string): Promise<ModelCatalog> {
+  return agentFetch("/runtime/models", {}, identityKey);
 }
-export async function createAgentRun(body: Record<string, unknown>): Promise<AgentRun> {
+export type AgentProjects = {
+  identityKey: string;
+  account: string;
+  generation: number;
+  projects: Array<{
+    projectId: string;
+    name: string;
+    revision: number;
+    activePath: string;
+    storageMode: "text-snapshot" | "native-volume";
+  }>;
+};
+export async function loadAgentProjects(): Promise<AgentProjects> {
+  return agentFetch("/runtime/agent/projects");
+}
+export async function createAgentRun(body: Record<string, unknown>, identityKey?: string): Promise<AgentRun> {
   const value = await agentFetch("/runtime/agent/runs", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", ...body }),
-  });
+  }, identityKey);
   return value.run;
 }
-export async function agentAction(runId: string, body: Record<string, unknown>): Promise<AgentRun> {
+export async function agentAction(runId: string, body: Record<string, unknown>, identityKey?: string): Promise<AgentRun> {
   const value = await agentFetch(`/runtime/agent/runs/${encodeURIComponent(runId)}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", ...body }),
-  });
+  }, identityKey);
   return value.run;
 }
-async function agentFetch(path: string, init: RequestInit = {}): Promise<any> {
-  for (let attempt = 0; attempt < 2; attempt++) {
-    let response: Response;
-    try {
-      response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") throw new Error("AI request was cancelled.");
-      throw new Error("AI service connection was interrupted. Your request was not automatically retried; retry it manually.");
-    }
-    if (response.status === 401 && attempt === 0) {
-      await runtimeHealth();
-      continue;
-    }
-    const value = await response.json().catch(() => ({
-      error: `Agent service returned HTTP ${response.status}`,
-    }));
-    if (!response.ok) throw new Error(value.error || "Agent operation failed.");
-    return value;
+async function agentFetch(path: string, init: RequestInit = {}, identityKey?: string): Promise<any> {
+  if (identityKey) {
+    const headers = new Headers(init.headers);
+    headers.set("x-ynx-agent-identity", identityKey);
+    init = { ...init, headers };
   }
-  throw new Error("Workspace session could not be established.");
+  let response: Response;
+  try {
+    response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new Error("AI request was cancelled.");
+    throw new Error("AI service connection was interrupted. Your request was not automatically retried; retry it manually.");
+  }
+  const value = await response.json().catch(() => ({
+    error: `Agent service returned HTTP ${response.status}`,
+  }));
+  if (!response.ok) throw Object.assign(new Error(value.error || "Agent operation failed."), {
+    status: response.status,
+    code: value.code,
+  });
+  return value;
 }
-export async function indexProjectMemory(projectId: string, expectedRevision: number) {
+export async function indexProjectMemory(projectId: string, expectedRevision: number, identityKey?: string) {
   return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -1109,7 +1125,7 @@ export async function indexProjectMemory(projectId: string, expectedRevision: nu
       action: "rebuild",
       expectedRevision,
     }),
-  });
+  }, identityKey);
 }
 export type ProjectMemoryStatus = {
   protocolVersion: "ynx-code-memory/v1";
@@ -1134,8 +1150,8 @@ export type ProjectMemoryStatus = {
   reusedChunks?: number;
   indexedFacts?: number;
 };
-export async function loadProjectMemory(projectId: string): Promise<ProjectMemoryStatus> {
-  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`);
+export async function loadProjectMemory(projectId: string, identityKey?: string): Promise<ProjectMemoryStatus> {
+  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`, {}, identityKey);
 }
 export type ProjectMemoryFact = {
   revision: number;
@@ -1148,26 +1164,27 @@ export type ProjectMemoryFact = {
   digest: string;
   indexedAt: string;
 };
-export async function loadProjectMemoryFacts(projectId: string, expectedRevision: number): Promise<ProjectMemoryFact[]> {
+export async function loadProjectMemoryFacts(projectId: string, expectedRevision: number, identityKey?: string): Promise<ProjectMemoryFact[]> {
   const query = new URLSearchParams({
     view: "facts",
     cursor: "0",
     limit: "50",
     expectedRevision: String(expectedRevision),
   });
-  const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
+  const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`, {}, identityKey);
   return page.facts;
 }
-export async function clearProjectMemory(projectId: string, expectedRevision: number | null) {
+export async function clearProjectMemory(projectId: string, expectedRevision: number | null, identityKey?: string) {
   return agentFetch(
     `/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({
       expectedRevision: String(expectedRevision),
       approval: "clear-memory-once",
     })}`,
     { method: "DELETE" },
+    identityKey,
   );
 }
-export async function exportProjectMemory(projectId: string) {
+export async function exportProjectMemory(projectId: string, identityKey?: string) {
   const chunks: unknown[] = [],
     facts: unknown[] = [];
   let cursor: number | null = 0,
@@ -1181,7 +1198,7 @@ export async function exportProjectMemory(projectId: string) {
       limit: "100",
     });
     if (expectedRevision !== undefined) query.set("expectedRevision", String(expectedRevision));
-    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
+    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`, {}, identityKey);
     project = page.project;
     expectedRevision = project?.revision;
     exportedAt = page.exportedAt;
@@ -1196,7 +1213,7 @@ export async function exportProjectMemory(projectId: string) {
       limit: "100",
       expectedRevision: String(expectedRevision),
     });
-    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
+    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`, {}, identityKey);
     facts.push(...page.facts);
     cursor = page.nextCursor;
   }
@@ -1208,8 +1225,8 @@ export async function exportProjectMemory(projectId: string) {
     facts,
   };
 }
-export async function searchProjectMemory(projectId: string, query: string) {
-  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({ q: query, limit: "8" })}`);
+export async function searchProjectMemory(projectId: string, query: string, identityKey?: string) {
+  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({ q: query, limit: "8" })}`, {}, identityKey);
 }
 
 export type CollaborationRole = "owner" | "editor" | "reviewer" | "viewer" | "terminal";

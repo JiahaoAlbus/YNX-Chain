@@ -1,11 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { reviewedHostedPrompt } from "../../model-router/src/hosted-request.mjs";
+import { consumerIdentityBinding, assertExpectedIdentity } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 
 const PROTOCOL = "ynx-code-agent/v1",
   MAX_BODY = 640 * 1024;
 export function createAgentOrchestrator({
   filename,
   ownerForRequest,
+  verifyIdentity,
+  aiStore,
   workspaceStore,
   modelRouter,
   projectMemory,
@@ -71,7 +75,7 @@ export function createAgentOrchestrator({
     insertApproval = db.prepare(
       "INSERT INTO agent_approvals(owner_id,approval_id,permission,run_id,created_at) VALUES(?,?,?,?,?)",
     );
-  const append = (owner, runId, type, payload) => {
+  const appendEvent = (owner, runId, type, payload) => {
     const previous = lastEvent.get(owner, runId),
       sequence = Number(previous?.sequence || 0) + 1,
       previousHash = previous?.event_hash || "0".repeat(64),
@@ -101,29 +105,99 @@ export function createAgentOrchestrator({
       request.url,
       `http://${request.headers.host || "127.0.0.1"}`,
     );
-    if (!url.pathname.startsWith("/runtime/agent/runs")) return false;
-    const owner = ownerForRequest(request);
-    if (!owner)
-      return (
-        json(response, 401, {
-          error: "A signed workspace session is required.",
-          code: "workspace_session_required",
-        }),
-        true
-      );
-    // Bind capacity to the signed session owner. Browser body fields cannot
-    // select another tenant's quota, including Coder/Reviewer retry requests.
-    const ownerModelRouter = {
-      generate: (input) => modelRouter.generate({ ...input, ownerId: owner }),
-    };
+    if (url.pathname !== "/runtime/agent/projects" && !/^\/runtime\/agent\/runs(?:\/[^/]+)?$/.test(url.pathname)) return false;
+    let identity, owner, modelOwner, projectIdForModel, expiryTimer, identityTimer;
+    let finished = false, checking = false;
     const clientController = new AbortController(),
-      abortClient = () => clientController.abort(request.maintenanceSignal?.reason);
+      abortClient = () => clientController.abort(request.maintenanceSignal?.reason || fault("The request was cancelled.", "agent_request_cancelled", 499));
+    const identityChanged = () => fault("The Wallet session changed or expired. Sign in again before continuing.", "agent_identity_changed", 401);
+    const sameIdentity = (value) => value && ["owner", "workspaceOwner", "account", "generation", "identityReference"].every(key => value[key] === identity[key]);
+    function assertCurrent() {
+      if (clientController.signal.aborted) throw clientController.signal.reason || identityChanged();
+      try {
+        if (identity && (identity.expiresAt <= Date.now() || identity.isCurrent() === false)) throw identityChanged();
+      } catch (error) {
+        clientController.abort(error); throw error;
+      }
+    }
+    async function checkIdentity() {
+      try {
+        assertCurrent();
+        if (verifyIdentity) {
+          const current = await verifyIdentity(request);
+          if (!sameIdentity(current) || !validIdentity(current) || await current.isCurrent() === false) throw identityChanged();
+        }
+        assertCurrent();
+      } catch (error) {
+        clientController.abort(error); throw error;
+      }
+    }
+    const append = (...args) => { assertCurrent(); return appendEvent(...args); };
+    function assertTextProject(projectId) {
+      if (workspaceStore.storageMode?.(owner, projectId) === "native-volume")
+        throw fault("This project uses native workspace files. Open its native IDE Tools to review current files.", "agent_native_tools_required", 409);
+    }
+    // Every model role, including repair attempts, uses the same identity,
+    // project and durable conversation admission boundary.
+    const ownerModelRouter = {
+      async generate(input) {
+        await checkIdentity();
+        assertTextProject(projectIdForModel);
+        const hosted = (input.provider || "ynx-hosted").toLowerCase() === "ynx-hosted";
+        if (hosted && verifyIdentity && !aiStore)
+          throw fault("Saved AI requests are not configured for this product.", "agent_ai_store_unavailable", 503);
+        let conversation;
+        if (hosted && aiStore) {
+          const context = reviewedHostedPrompt(input.system, input.prompt);
+          conversation = aiStore.create({ owner: modelOwner, projectId: projectIdForModel,
+            prompt: `YNX Code ${input.role} Agent`, context, model: input.model || "qwen3:4b" });
+        }
+        try {
+          const result = await waitForOperation(() => modelRouter.generate({ ...input, ownerId: modelOwner,
+            ...(conversation ? { hostedSession: conversation.id } : {}), signal: clientController.signal }), clientController.signal);
+          await checkIdentity();
+          assertTextProject(projectIdForModel);
+          if (conversation) aiStore.complete(modelOwner, projectIdForModel, conversation.id, { text: result.text, model: result.model });
+          return { ...result, ...(conversation ? { conversationId: conversation.id, saved: true } : {}) };
+        } catch (error) {
+          if (conversation) aiStore.fail(modelOwner, projectIdForModel, conversation.id, { code:
+            typeof error.code === "string" && /^[a-z][a-z0-9_]{0,95}$/.test(error.code) ? error.code : "model_request_failed" });
+          throw error;
+        }
+      },
+    };
     request.once("aborted", abortClient);
     request.maintenanceSignal?.addEventListener("abort", abortClient, { once: true });
-    response.once("close", () => {
-      if (!response.writableEnded) abortClient();
-    });
+    const closeResponse = () => { if (!response.writableEnded) abortClient(); };
+    response.once("close", closeResponse);
     try {
+      if (verifyIdentity) {
+        identity = await verifyIdentity(request);
+        if (!validIdentity(identity) || await identity.isCurrent() === false)
+          throw fault("A signed workspace session is required.", "workspace_session_required", 401);
+        if (url.pathname !== "/runtime/agent/projects") assertExpectedIdentity(request, identity);
+        owner = identity.workspaceOwner; modelOwner = identity.owner;
+        expiryTimer = setTimeout(() => clientController.abort(identityChanged()), Math.max(1, Math.min(identity.expiresAt - Date.now(), 2147483647)));
+        identityTimer = setInterval(() => {
+          if (checking || finished) return;
+          checking = true;
+          void checkIdentity().catch(error => { if (!finished) clientController.abort(error); }).finally(() => { checking = false; });
+        }, 500);
+      } else {
+        owner = await ownerForRequest?.(request); modelOwner = owner;
+        if (!owner) throw fault("A signed workspace session is required.", "workspace_session_required", 401);
+      }
+      if (request.aborted || response.destroyed || request.maintenanceSignal?.aborted) abortClient();
+      await checkIdentity();
+      if (url.pathname === "/runtime/agent/projects") {
+        if (request.method !== "GET") throw fault("Method not allowed.", "method_not_allowed", 405);
+        const projects = workspaceStore.listProjects(owner).map(project => ({ projectId: project.projectId, name: project.name,
+          revision: project.revision, activePath: workspaceStore.get(owner, project.projectId)?.active || "",
+          storageMode: workspaceStore.storageMode?.(owner, project.projectId) || "text-snapshot" }));
+        json(response, 200, { protocolVersion: PROTOCOL, account: identity?.account || null, generation: identity?.generation ?? null,
+          identityKey: identity ? consumerIdentityBinding(identity) : null, projects });
+        return true;
+      }
       const id = url.pathname.split("/")[4] || "";
       if (request.method === "GET") {
         if (id) {
@@ -146,6 +220,8 @@ export function createAgentOrchestrator({
       if (request.method !== "POST")
         throw fault("Method not allowed.", "method_not_allowed", 405);
       const body = JSON.parse((await readBody(request)).toString("utf8"));
+      await checkIdentity();
+      if (!body || typeof body !== "object" || Array.isArray(body)) throw fault("Agent request must be an object.", "invalid_agent_request", 400);
       Object.defineProperty(body, "requestSignal", {
         value: clientController.signal,
         enumerable: false,
@@ -163,6 +239,8 @@ export function createAgentOrchestrator({
           runId = randomUUID();
         if (!workspace)
           throw fault("Workspace not found.", "workspace_not_found", 404);
+        projectIdForModel = projectId;
+        assertTextProject(projectId);
         if (body.approval !== "model-request-once")
           throw fault(
             "One-time model request approval is required.",
@@ -187,6 +265,7 @@ export function createAgentOrchestrator({
           ),
           plan = validatePlan(parseJson(model.text), workspace.files),
           now = new Date().toISOString();
+        await checkIdentity();
         insertRun.run(
           owner,
           runId,
@@ -215,6 +294,8 @@ export function createAgentOrchestrator({
       const current = read(owner, id);
       if (!current)
         throw fault("Agent run not found.", "agent_run_not_found", 404);
+      projectIdForModel = current.projectId;
+      assertTextProject(current.projectId);
       const workspace = workspaceStore.get(owner, current.projectId);
       if (!workspace)
         throw fault("Workspace not found.", "workspace_not_found", 404);
@@ -276,6 +357,7 @@ export function createAgentOrchestrator({
                   current.intent,
                   8,
                   current.approvedPaths,
+                  { assertCurrent: checkIdentity },
                 )
                 .catch(() => null)
             : null,
@@ -567,7 +649,8 @@ export function createAgentOrchestrator({
           activePath,
           files: latest.files,
           approval: "execute-once",
-        });
+        }, undefined, { signal: clientController.signal, assertCurrent: checkIdentity });
+        await checkIdentity();
         persist({
           ...current,
           status: result.ok ? "tested" : "test_failed",
@@ -665,11 +748,12 @@ export function createAgentOrchestrator({
             "git_test_evidence_required",
             409,
           );
-        const status = await gitService.runForOwner(owner, current.projectId),
+        const status = await gitService.runForOwner(owner, current.projectId, null, { signal: clientController.signal, assertCurrent: checkIdentity }),
           message = body.message
             ? text(body.message, 1, 4096, "commit message")
             : `Agent: ${current.intent.slice(0, 72)}`,
           files = gitReviewFiles(status, latest, current.trash);
+        await checkIdentity();
         if (!files.length)
           throw fault(
             "The current workspace has no local Git changes to commit.",
@@ -705,7 +789,8 @@ export function createAgentOrchestrator({
           );
         const latest = workspaceStore.get(owner, current.projectId),
           preview = current.gitOperation,
-          status = await gitService.runForOwner(owner, current.projectId);
+          status = await gitService.runForOwner(owner, current.projectId, null, { signal: clientController.signal, assertCurrent: checkIdentity });
+        await checkIdentity();
         if (
           latest.revision !== preview.workspaceRevision ||
           status.initialized !== preview.initialized ||
@@ -741,7 +826,9 @@ export function createAgentOrchestrator({
               authorName: "YNX Code Agent",
               authorEmail: "agent@ynx.local",
             },
+            { signal: clientController.signal, assertCurrent: checkIdentity },
           );
+          await checkIdentity();
           const gitOperation = {
             ...preview,
             approval: "git-local-commit-once",
@@ -833,6 +920,7 @@ export function createAgentOrchestrator({
       json(response, 200, { protocolVersion: PROTOCOL, run: read(owner, id) });
       return true;
       function persist(value) {
+        assertCurrent();
         const now = new Date().toISOString();
         updateRun.run(
           value.status,
@@ -854,6 +942,7 @@ export function createAgentOrchestrator({
         );
       }
       function authorize(permission, expected, message, code) {
+        assertCurrent();
         const granted = body.approval === expected;
         if (granted) {
           try {
@@ -887,27 +976,51 @@ export function createAgentOrchestrator({
         if (!granted) throw fault(message, code, 403);
       }
     } catch (error) {
-      if (request.maintenanceSignal?.aborted) {
+      if (request.maintenanceSignal?.aborted && owner) {
+        let mayRecord = !verifyIdentity;
+        if (verifyIdentity) {
+          try {
+            const current = await verifyIdentity(request);
+            mayRecord = sameIdentity(current) && validIdentity(current) && await current.isCurrent() !== false;
+          } catch { mayRecord = false; }
+        }
         const runId = url.pathname.split("/")[4];
-        if (runId && getRun.get(owner, runId)) append(owner, runId, "operation.maintenance_interrupted", {
+        if (mayRecord && runId && getRun.get(owner, runId)) appendEvent(owner, runId, "operation.maintenance_interrupted", {
           reason: "service_maintenance", outcome: "inspect-latest-state", retry: "Reload the saved run and explicitly approve the next operation.",
         });
       }
       if (response.destroyed || response.writableEnded) return true;
-      json(response, error.status || 400, {
+      json(response, error.code === "provider_auth_failed" ? 503 : error.code === "provider_key_required" ? 400 : error.status || 400, {
         error: error.message || "Agent operation failed.",
         code: error.code || "agent_operation_failed",
       });
       return true;
     } finally {
+      finished = true; clearTimeout(expiryTimer); clearInterval(identityTimer);
+      request.removeListener("aborted", abortClient);
+      response.removeListener("close", closeResponse);
       request.maintenanceSignal?.removeEventListener("abort", abortClient);
     }
   }
   return { handler, read, close: () => db.close() };
 }
+function validIdentity(value) {
+  return value && ["owner", "workspaceOwner", "account", "identityReference"].every(key => typeof value[key] === "string" && value[key].length > 0) &&
+    (typeof value.generation === "string" || Number.isSafeInteger(value.generation)) &&
+    Number.isFinite(value.expiresAt) && value.expiresAt > Date.now() && typeof value.isCurrent === "function";
+}
+function waitForOperation(start, signal) {
+  return new Promise((resolve, reject) => {
+    const cancelled = () => reject(signal.reason || fault("The request was cancelled.", "agent_request_cancelled", 499));
+    if (signal.aborted) { cancelled(); return; }
+    signal.addEventListener("abort", cancelled, { once: true });
+    Promise.resolve().then(() => { if (signal.aborted) throw signal.reason; return start(); }).then(resolve, reject).finally(() => signal.removeEventListener("abort", cancelled));
+  });
+}
 function modelInput(body, role, prompt, signal) {
   const limits = { Planner: 384, Coder: 1024, Reviewer: 512 };
   return {
+    role,
     provider: body.provider || "ynx-hosted",
     model: body.model,
     apiKey: body.apiKey,
@@ -1102,6 +1215,7 @@ function modelEvidence(result) {
       ? result.usage.outputTokens
       : null;
   return {
+    ...(result?.conversationId ? { conversationId: result.conversationId, saved: result.saved === true } : {}),
     provider: result?.provider || "unknown",
     model: result?.model || "unknown",
     usage: { inputTokens, outputTokens },
@@ -1643,6 +1757,7 @@ async function readBody(request) {
   return Buffer.concat(chunks);
 }
 function json(response, status, value) {
+  if (response.destroyed || response.writableEnded) return;
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",

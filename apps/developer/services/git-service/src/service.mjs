@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { Readable } from "node:stream";
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   detectSandbox,
   resolveExecutable,
@@ -21,7 +22,14 @@ export function createGitService(options) {
   const { workspaceStore, ownerForRequest } = options,
     root = options.root || join(tmpdir(), "ynx-code-git"),
     sandbox = detectSandbox(options),
-    locks = new Map();
+    locks = new Map(),
+    operationScope = new AsyncLocalStorage();
+  async function assertOperation() {
+    const operation = operationScope.getStore();
+    if (operation?.signal?.aborted) throw cancellation(operation.signal);
+    await operation?.assertCurrent?.();
+    if (operation?.signal?.aborted) throw cancellation(operation.signal);
+  }
   async function handler(request, response) {
     const url = new URL(
         request.url,
@@ -60,6 +68,8 @@ export function createGitService(options) {
     return true;
   }
   async function execute({ request, url, owner, projectId }) {
+    // This runs inside the repository queue, when the operation actually starts.
+    await assertOperation();
     const snapshot = workspaceStore.get(owner, projectId);
     if (!snapshot)
       throw fault("Workspace was not found.", "workspace_not_found", 404);
@@ -87,6 +97,7 @@ export function createGitService(options) {
     const body = JSON.parse(
       (await readBody(request, 256 * 1024)).toString("utf8"),
     );
+    await assertOperation();
     if (body.protocolVersion !== PROTOCOL)
       throw fault(
         "Git protocol version is required.",
@@ -152,7 +163,12 @@ export function createGitService(options) {
           },
         );
         if (committed.code !== 0) throw gitFault(committed);
-        return status(context);
+        try { return await status(context); }
+        catch (error) {
+          error.details = { ...error.details, completedOperation: "commit-reviewed", commitOutput: committed.output,
+            workspacePersisted: false, recheckRequired: true };
+          throw error;
+        }
       });
     }
     if (body.action === "init") {
@@ -173,7 +189,8 @@ export function createGitService(options) {
           args: ["init", "--bare", "--initial-branch=main", canonical],
           writableBinds: [{ host: canonical, guest: "/repo" }],
         });
-        const result = await run(launch, 15_000);
+        await assertOperation();
+        const result = await run(launch, 15_000, {}, operationScope.getStore()?.signal);
         if (result.code !== 0) throw gitFault(result);
         return {
           ...(await status({ git, sandbox, workspace, repository: canonical })),
@@ -220,7 +237,8 @@ export function createGitService(options) {
         args: ["init", "--bare", "--initial-branch=main", canonical],
         writableBinds: [{ host: canonical, guest: "/repo" }],
       });
-      const result = await run(launch, 15_000);
+      await assertOperation();
+      const result = await run(launch, 15_000, {}, operationScope.getStore()?.signal);
       if (result.code !== 0) throw gitFault(result);
     } finally {
       await rm(workspace, { recursive: true, force: true });
@@ -294,11 +312,17 @@ export function createGitService(options) {
       const originalBranch = await currentBranch(context),
         result = await command(context, ["checkout", "--quiet", branch]);
       if (result.code !== 0) throw gitFault(result);
+      let savedWorkspace;
       try {
-        const workspace = await persistWorktree(context, body);
-        return { ...(await status(context)), workspace };
+        savedWorkspace = await persistWorktree(context, body);
+        return { ...(await status(context)), workspace: savedWorkspace };
       } catch (error) {
-        await command(context, ["checkout", "--quiet", originalBranch]);
+        if (!savedWorkspace) {
+          try { await command(context, ["checkout", "--quiet", originalBranch]); }
+          catch (recovery) { error.details = { ...error.details, recoveryCode: recovery.code || "git_operation_failed" }; }
+        }
+        error.details = { ...error.details, repositoryMayHaveChanged: true, recheckRequired: true,
+          workspacePersisted: Boolean(savedWorkspace), ...(savedWorkspace ? { workspaceRevision: savedWorkspace.revision } : {}) };
         throw error;
       }
     }
@@ -347,11 +371,17 @@ export function createGitService(options) {
           throw gitFault(committed);
         }
       }
+      let savedWorkspace;
       try {
-        const workspace = await persistWorktree(context, body);
-        return { ...(await status(context)), workspace };
+        savedWorkspace = await persistWorktree(context, body);
+        return { ...(await status(context)), workspace: savedWorkspace };
       } catch (error) {
-        await command(context, ["reset", "--hard", before]);
+        if (!savedWorkspace) {
+          try { await command(context, ["reset", "--hard", before]); }
+          catch (recovery) { error.details = { ...error.details, recoveryCode: recovery.code || "git_operation_failed" }; }
+        }
+        error.details = { ...error.details, repositoryMayHaveChanged: true, recheckRequired: true,
+          workspacePersisted: Boolean(savedWorkspace), ...(savedWorkspace ? { workspaceRevision: savedWorkspace.revision } : {}) };
         throw error;
       }
     }
@@ -360,7 +390,9 @@ export function createGitService(options) {
     throw fault("Unsupported Git mutation.", "unsupported_git_action", 400);
   }
   async function status(context) {
-    const [branchResult, statusResult, logResult, branchesResult, headResult] = await Promise.all([
+    // All child processes must close before the repository lock can be released,
+    // including when one command rejects due to revocation or cancellation.
+    const settled = await Promise.allSettled([
       command(context, ["branch", "--show-current"]),
       command(context, [
         "status",
@@ -381,6 +413,9 @@ export function createGitService(options) {
       ]),
       command(context, ["rev-parse", "--verify", "HEAD"]),
     ]);
+    const failed = settled.find(result => result.status === "rejected");
+    if (failed) throw failed.reason;
+    const [branchResult, statusResult, logResult, branchesResult, headResult] = settled.map(result => result.value);
     if (statusResult.code !== 0) throw gitFault(statusResult);
     return {
       initialized: true,
@@ -411,8 +446,9 @@ export function createGitService(options) {
       diff: result.output,
     };
   }
-  function command(context, args, extraEnv = {}) {
-    return run(gitLaunch({ ...context, args }), 15_000, extraEnv);
+  async function command(context, args, extraEnv = {}) {
+    await assertOperation();
+    return run(gitLaunch({ ...context, args }), 15_000, extraEnv, operationScope.getStore()?.signal);
   }
   async function hasHead(context) {
     return (
@@ -443,8 +479,9 @@ export function createGitService(options) {
     return result.output.split("\0").filter(safePath).slice(0, 256);
   }
   async function persistWorktree(context, body) {
-    const payload = await readTextSnapshot(context.workspace, context.snapshot),
-      saved = workspaceStore.put(context.owner, context.projectId, {
+    const payload = await readTextSnapshot(context.workspace, context.snapshot);
+    await assertOperation();
+    const saved = workspaceStore.put(context.owner, context.projectId, {
         expectedRevision: body.expectedRevision,
         idempotencyKey: body.idempotencyKey,
         payload,
@@ -461,7 +498,7 @@ export function createGitService(options) {
       if (locks.get(key) === current) locks.delete(key);
     }
   }
-  async function runForOwner(owner, projectId, body = null) {
+  async function runForOwner(owner, projectId, body = null, operation = {}) {
     if (typeof owner !== "string" || !owner)
       throw fault("A workspace owner is required.", "workspace_owner_required", 401);
     if (!/^[A-Za-z0-9_-]{1,160}$/.test(projectId))
@@ -478,7 +515,7 @@ export function createGitService(options) {
     request.method = body ? "POST" : "GET";
     const url = new URL(`http://internal/runtime/git/${projectId}`);
     return exclusive(`${owner}:${projectId}`, () =>
-      execute({ request, url, owner, projectId }),
+      operationScope.run(operation, () => execute({ request, url, owner, projectId })),
     );
   }
   return {
@@ -525,8 +562,14 @@ async function temporaryWorkspace(snapshot) {
   await materializeSnapshot(workspace, snapshot);
   return workspace;
 }
-function run(launch, timeout, extraEnv = {}) {
+function cancellation(signal) {
+  return typeof signal?.reason?.code === "string" && Number.isInteger(signal.reason.status)
+    ? Object.assign(new Error(signal.reason.message), { ...signal.reason })
+    : fault("The Git request was cancelled. Reopen its saved repository before retrying.", "git_request_cancelled", 499);
+}
+function run(launch, timeout, extraEnv = {}, signal) {
   return new Promise((resolveRun, reject) => {
+    if (signal?.aborted) { reject(cancellation(signal)); return; }
     const child = spawn(launch.command, launch.args, {
       cwd: launch.cwd,
       env: {
@@ -541,7 +584,21 @@ function run(launch, timeout, extraEnv = {}) {
       detached: process.platform !== "win32",
     });
     let output = "",
-      truncated = false;
+      truncated = false, spawnError, cancelled, killTimer;
+    const kill = (kind) => {
+      try {
+        if (child.pid && process.platform !== "win32") process.kill(-child.pid, kind);
+        else child.kill(kind);
+      } catch {}
+    };
+    const abort = () => {
+      cancelled = cancellation(signal);
+      kill("SIGTERM");
+      // Keep the repository lock until close even if the child ignores TERM.
+      killTimer = setTimeout(() => kill("SIGKILL"), 750);
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
     const append = (chunk) => {
       if (truncated) return;
       output += String(chunk);
@@ -552,16 +609,18 @@ function run(launch, timeout, extraEnv = {}) {
     };
     child.stdout.on("data", append);
     child.stderr.on("data", append);
-    const timer = setTimeout(() => {
-      try {
-        if (child.pid && process.platform !== "win32")
-          process.kill(-child.pid, "SIGKILL");
-        else child.kill("SIGKILL");
-      } catch {}
-    }, timeout);
-    child.on("error", reject);
+    const timer = setTimeout(() => kill("SIGKILL"), timeout);
+    child.on("error", error => { spawnError = error; });
     child.on("close", (code) => {
-      clearTimeout(timer);
+      clearTimeout(timer); clearTimeout(killTimer); signal?.removeEventListener("abort", abort);
+      if (cancelled) {
+        // A completed or partly executed Git command cannot be called undone.
+        // Preserve actual process evidence for the authenticated caller's reread.
+        cancelled.details = { ...cancelled.details, childExitCode: code, commandOutput: output,
+          recheckRequired: true, repositoryMayHaveChanged: true };
+        reject(cancelled); return;
+      }
+      if (spawnError) { reject(spawnError); return; }
       resolveRun({ code: code ?? 124, output, truncated });
     });
   });

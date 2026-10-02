@@ -1,5 +1,63 @@
 # IDE continuation checkpoint — source candidate, product incomplete
 
+## Wallet-bound AI Engineer successor to 8b03b1950 (2026-10-03)
+
+The existing AI Engineer now selects projects from the verified Developer
+Wallet workspace. It never uses the parent guest editor's project, revision,
+active file or save callback. Every private request carries the identity binding
+from its displayed catalog. This binding is a stale-view guard, not a credential;
+the backend still verifies the protected Wallet session and compares owner,
+workspace owner, account, generation and identity reference. A page displaying A
+cannot operate on B's same-named project after the cookie changes before dispatch.
+Missing or changed bindings fail before reading private data or consuming an
+approval. Refresh disables private operations; account/project changes and 401
+retire old callbacks, state and request-only provider keys. The existing plan,
+context, patch review, write, test and local Git approvals remain in place.
+
+Planner, Coder, Reviewer and bounded validation retries now use the stored
+conversation contract from 8b03. Each hosted call reserves a separate encrypted
+owner/project request record, sends its real UUID and the exact supported Gateway
+body, and saves a completed answer only after identity revalidation. Actual full
+system-plus-prompt bytes are bounded at 8000 before dispatch. Selected context
+continues to follow the approved paths; no browser history or inferred attachment
+is added. These request records are encrypted; this does not claim encryption of
+the inherited run/event or project-memory databases. Hosted production calls fail
+closed if the request store is absent. Provider credential errors remain model
+errors and no longer look like Wallet logout.
+
+Model catalog and memory HTTP admission use Wallet identity without guest retry.
+The gateway's earlier guest precheck no longer shadows those private handlers.
+Memory rechecks identity after the request body, around embedding batches and
+before committing. Native-volume projects are directed to Native IDE Tools;
+the preserved text import is never used as current Agent or memory context.
+Writer leases are retained. Test execution propagates cancellation through its
+queue and sandbox process and rechecks admission at dispatch and each phase.
+Git rechecks at dispatch and every command, waits for all cancelled children to
+close before releasing its lock, and verifies before workspace persistence.
+Cancellation cannot undo a command that already committed; the internal error
+preserves process/commit evidence and requires a fresh authenticated repository
+read. No automatic rollback, push or remote Git action was added.
+
+Final isolated service suite **166/166**, gateway suite **16/16**, and four
+targeted inherited runtime/maintenance regressions pass, with zero failure/skip.
+Tests use real HTTP, SQLite, existing sandbox processes and controlled model
+responses. Actual Chromium/React passes nine private-panel lifecycle scenarios;
+it uses controlled HTTP responses, not a live provider. Frontend/protocol build
+passes, retaining the pre-existing large-chunk warning. QA is
+`/tmp/ynx-ide-agent-identity-20261003-VZxjde`; all dependencies were reused and
+the build cache is local. The first new memory test hung because its test setup
+omitted the native writer claim; that test process was stopped, setup corrected,
+and the final suite passed. The browser fixture initially intercepted a Vite
+module path; its route match was corrected before product assertions ran.
+Evidence: `../evidence/integration/ide-agent-identity-20261003.json`.
+
+This resolves the legacy Agent sender gap recorded in the older section below.
+A still owns shared business-proof/registration configuration, compatible full
+workbench execution, integration, formal publication and installed user-flow
+readback. Real provider generation, public integration and the full workbench
+journey remain **NOT_VERIFIED/NOT_RUN**. No rejected network/package-egress/LXD
+route, runtime substitution, package installation or public model call was used.
+
 ## Native AI request integration and private recovery successor to 2b05fb84f
 
 The IDE now implements the owned consumer work that does not require changing
