@@ -3,6 +3,8 @@ package com.ynxweb4.shop;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
@@ -28,11 +30,17 @@ final class WalletAuth {
     private final Context context;
     private final SecureStore secure;
     private final ApiClient api;
+    private final ApprovalFence approvals = new ApprovalFence();
+    private final Handler main = new Handler(Looper.getMainLooper());
+    void close() { approvals.invalidate(); main.removeCallbacksAndMessages(null); }
+    void signOut() throws Exception { approvals.invalidateAndWrite(() -> { secure.remove("commerce_session"); secure.remove("bearer"); secure.remove("wallet_pending"); }); }
 
     WalletAuth(Context context, SecureStore secure, ApiClient api) { this.context=context; this.secure=secure; this.api=api; }
 
     void start(Result result) {
+        final long revision = approvals.begin();
         api.request("GET", "/auth/config?surface=buyer", null, (config,error) -> {
+            if(!approvals.current(revision))return;
             if(error!=null){result.done(null,error);return;}
             try {
                 require(config.optString("version").equals("1") && config.optString("chainId").equals("ynx_6423-1"), "unsafe Wallet protocol");
@@ -56,11 +64,13 @@ final class WalletAuth {
     }
 
     void complete(Uri callback, Result result) {
+        final long revision = approvals.capture();
         new Thread(() -> {
             try {
                 require(callback!=null && "ynxshop".equals(callback.getScheme()) && "wallet-auth".equals(callback.getHost()) && "/callback".equals(callback.getPath()), "callback route mismatch");
                 String encoded=callback.getQueryParameter("response"); require(encoded!=null && !encoded.isEmpty(),"missing Wallet response");
-                JSONObject pending=new JSONObject(secure.get("wallet_pending")); require(pending.length()>0,"missing product request");
+                final String pendingText=secure.get("wallet_pending");
+                JSONObject pending=new JSONObject(pendingText); require(pending.length()>0,"missing product request");
                 JSONObject approval=new JSONObject(new String(Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING),StandardCharsets.UTF_8));
                 for(String field:List.of("nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"))
                     require(Objects.equals(approval.optString(field),pending.optString(field)),"Wallet binding mismatch: "+field);
@@ -75,10 +85,22 @@ final class WalletAuth {
                 JSONObject completion=new JSONObject().put("challenge",challenge).put("deviceSignature",Base64.encodeToString(signer.sign(),Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING));
                 JSONObject session=api.requestSync("POST","/auth/gateway/sessions",completion);
                 String token=session.optString("token"), account=session.optString("account");
-                require(token.length()>=24 && account.equals(approval.getString("account")) && Instant.parse(session.getString("expiresAt")).isAfter(Instant.now()),"invalid central product session");
-                secure.put("commerce_session",new JSONObject().put("account",account).put("token",token).put("expiresAt",session.getString("expiresAt")).toString());secure.put("bearer",token); secure.put(replay,Instant.now().toString()); secure.remove("wallet_pending");
-                result.done(account,null);
-            } catch(Exception failure){result.done(null,failure);}
+                final String sessionText=new JSONObject().put("account",account).put("token",token).put("expiresAt",session.getString("expiresAt")).toString();
+                require(ProductSession.parse(sessionText,Instant.now())!=null && account.equals(approval.getString("account")),"invalid central product session");
+                main.post(() -> {
+                    if(!approvals.current(revision))return;
+                    try {
+                        approvals.commit(revision, () -> {
+                            require(pendingText.equals(secure.get("wallet_pending")),"approval request was replaced");
+                            require(secure.get(replay).isEmpty(),"Wallet callback replay rejected");
+                            require(ProductSession.parse(sessionText,Instant.now())!=null,"product session expired before commit");
+                            secure.put("commerce_session",sessionText);secure.put("bearer",token);
+                            secure.put(replay,Instant.now().toString());secure.remove("wallet_pending");
+                        });
+                        result.done(account,null);
+                    } catch(Exception failure){result.done(null,failure);}
+                });
+            } catch(Exception failure){main.post(() -> {if(approvals.current(revision))result.done(null,failure);});}
         }).start();
     }
 
