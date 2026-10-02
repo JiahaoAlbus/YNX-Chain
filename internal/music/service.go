@@ -3,7 +3,6 @@ package music
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -213,7 +212,7 @@ func (s *Service) UpsertProfile(actor string, req Profile) (Profile, error) {
 	err = s.mutate(actor, "profile_updated", actor, current, func(st *persistentState) error {
 		st.Profiles[actor] = current
 		if _, ok := st.Listeners[actor]; !ok {
-			st.Listeners[actor] = ListenerState{Account: actor, Downloads: map[string]string{}, Positions: map[string]int64{}, UpdatedAt: now}
+			st.Listeners[actor] = emptyListener(actor, now)
 		}
 		return nil
 	})
@@ -234,17 +233,35 @@ func (s *Service) Profile(actor string) (Profile, error) {
 	return p, nil
 }
 func (s *Service) OnboardCreator(actor string, displayName, bio string) (Profile, error) {
-	p, err := s.Profile(actor)
+	actor, err := normalizeActor(actor)
 	if err != nil {
-		p, err = s.UpsertProfile(actor, Profile{DisplayName: displayName, Bio: bio})
-		if err != nil {
-			return Profile{}, err
-		}
+		return Profile{}, err
 	}
-	p.CreatorStatus = "active"
-	p.UpdatedAt = s.cfg.Now().UTC()
-	err = s.mutate(p.Account, "creator_onboarded", p.Account, p, func(st *persistentState) error { st.Profiles[p.Account] = p; return nil })
-	return p, err
+	if !validText(displayName, true) || len(bio) > 500 {
+		return Profile{}, ErrInvalid
+	}
+	var out Profile
+	err = s.mutate(actor, "creator_onboarded", actor, map[string]string{"displayName": displayName, "bio": bio}, func(st *persistentState) error {
+		now := s.cfg.Now().UTC()
+		p, exists := st.Profiles[actor]
+		if exists && p.Account != actor {
+			return ErrConflict
+		}
+		if !exists {
+			p = defaultProfile(actor, now)
+		}
+		p.DisplayName = strings.TrimSpace(displayName)
+		p.Bio = strings.TrimSpace(bio)
+		p.CreatorStatus = "active"
+		p.UpdatedAt = now
+		st.Profiles[actor] = p
+		if _, exists := st.Listeners[actor]; !exists {
+			st.Listeners[actor] = emptyListener(actor, now)
+		}
+		out = p
+		return nil
+	})
+	return out, err
 }
 
 func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
@@ -310,20 +327,15 @@ func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
 
 func writeWAV(path string, r io.Reader, limit int64) (string, int64, error) {
 	data, err := io.ReadAll(io.LimitReader(r, limit+1))
-	if err != nil || int64(len(data)) > limit {
+	if err != nil {
+		return "", 0, fmt.Errorf("%w: audio read failed: %w", ErrInvalid, err)
+	}
+	if int64(len(data)) > limit {
 		return "", 0, fmt.Errorf("%w: audio exceeds upload policy", ErrInvalid)
 	}
-	if len(data) < 44 || string(data[:4]) != "RIFF" || string(data[8:12]) != "WAVE" || binary.LittleEndian.Uint16(data[20:22]) != 1 {
-		return "", 0, fmt.Errorf("%w: only PCM WAV is accepted", ErrInvalid)
-	}
-	rate := binary.LittleEndian.Uint32(data[28:32])
-	dataSize := binary.LittleEndian.Uint32(data[40:44])
-	if rate == 0 || dataSize == 0 || int(dataSize) > len(data)-44 {
-		return "", 0, fmt.Errorf("%w: invalid WAV header", ErrInvalid)
-	}
-	duration := int64(dataSize) * 1000 / int64(rate)
-	if duration < 250 || duration > 2*60*60*1000 {
-		return "", 0, fmt.Errorf("%w: audio duration outside policy", ErrInvalid)
+	duration, err := pcmWAVDuration(data)
+	if err != nil {
+		return "", 0, err
 	}
 	if err = os.WriteFile(path, data, 0o600); err != nil {
 		return "", 0, err
@@ -378,17 +390,16 @@ func (s *Service) SetRelease(actor, id, state, reason string) (Track, error) {
 	return out, err
 }
 func (s *Service) Catalog(actor, query string) ([]Track, error) {
-	actor, _ = normalizeActor(actor)
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return nil, err
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	p := s.state.Profiles[actor]
 	q := strings.ToLower(strings.TrimSpace(query))
 	out := []Track{}
 	for _, t := range s.state.Tracks {
-		if t.ReleaseState != "published" && t.Owner != actor {
-			continue
-		}
-		if t.Explicit && !p.ExplicitAllowed {
+		if _, err := visibleTrack(&s.state, actor, t.ID); err != nil {
 			continue
 		}
 		hay := strings.ToLower(t.Title + " " + t.ArtistName + " " + t.Album)
@@ -401,17 +412,13 @@ func (s *Service) Catalog(actor, query string) ([]Track, error) {
 	return out, nil
 }
 func (s *Service) Track(actor, id string) (Track, error) {
-	actor, _ = normalizeActor(actor)
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Track{}, err
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	t, ok := s.state.Tracks[id]
-	if !ok || (t.ReleaseState != "published" && t.Owner != actor) {
-		return Track{}, ErrNotFound
-	}
-	if t.Explicit && !s.state.Profiles[actor].ExplicitAllowed {
-		return Track{}, ErrUnauthorized
-	}
-	return t, nil
+	return visibleTrack(&s.state, actor, id)
 }
 func (s *Service) Media(actor, id, kind string) (string, string, error) {
 	t, err := s.Track(actor, id)
@@ -445,32 +452,38 @@ func (s *Service) UpdateLibrary(actor string, favorites, queue []string, downloa
 	}
 	var out ListenerState
 	err = s.mutate(actor, "library_updated", actor, map[string]any{"favorites": favorites, "queue": queue, "downloads": downloads}, func(st *persistentState) error {
-		l := st.Listeners[actor]
+		l := normalizeListenerCollections(st.Listeners[actor])
 		l.Account = actor
-		l.Favorites = unique(favorites)
-		l.Queue = unique(queue)
+		favorites, queue = unique(favorites), unique(queue)
+		if err := validateVisibleTrackIDs(st, actor, favorites); err != nil {
+			return err
+		}
+		if err := validateVisibleTrackIDs(st, actor, queue); err != nil {
+			return err
+		}
 		if downloads != nil {
-			l.Downloads = downloads
-		}
-		if l.Downloads == nil {
-			l.Downloads = map[string]string{}
-		}
-		if l.Positions == nil {
-			l.Positions = map[string]int64{}
-		}
-		for _, id := range append(append([]string{}, l.Favorites...), l.Queue...) {
-			if _, ok := st.Tracks[id]; !ok {
-				return ErrNotFound
+			nextDownloads := map[string]string{}
+			for id, status := range downloads {
+				if status != "requested" && status != "available" && status != "removed" {
+					return ErrInvalid
+				}
+				if _, err := visibleTrack(st, actor, id); err != nil {
+					return err
+				}
+				nextDownloads[id] = status
 			}
-		}
-		for id, status := range l.Downloads {
-			if _, ok := st.Tracks[id]; !ok || !(status == "requested" || status == "available" || status == "removed") {
-				return ErrInvalid
+			for id, status := range l.Downloads {
+				if _, err := visibleTrack(st, actor, id); err != nil {
+					nextDownloads[id] = status
+				}
 			}
+			l.Downloads = nextDownloads
 		}
+		l.Favorites = retainUnavailableTrackIDs(st, actor, l.Favorites, favorites)
+		l.Queue = retainUnavailableTrackIDs(st, actor, l.Queue, queue)
 		l.UpdatedAt = s.cfg.Now().UTC()
 		st.Listeners[actor] = l
-		out = l
+		out = visibleListener(st, actor, l)
 		return nil
 	})
 	return out, err
@@ -484,9 +497,9 @@ func (s *Service) Listener(actor string) (ListenerState, error) {
 	defer s.mu.RUnlock()
 	l, ok := s.state.Listeners[actor]
 	if !ok {
-		return ListenerState{Account: actor, Downloads: map[string]string{}, Positions: map[string]int64{}}, nil
+		return emptyListener(actor, time.Time{}), nil
 	}
-	return l, nil
+	return visibleListener(&s.state, actor, l), nil
 }
 func (s *Service) SavePosition(actor, trackID, sessionRef string, position int64, completed bool) (ListenerState, *UsageRecord, error) {
 	actor, err := normalizeActor(actor)
@@ -496,14 +509,17 @@ func (s *Service) SavePosition(actor, trackID, sessionRef string, position int64
 	var out ListenerState
 	var usage *UsageRecord
 	err = s.mutate(actor, "playback_position_saved", trackID, map[string]any{"position": position, "completed": completed}, func(st *persistentState) error {
-		t, ok := st.Tracks[trackID]
-		if !ok || t.ReleaseState != "published" {
+		t, err := visibleTrack(st, actor, trackID)
+		if err != nil {
+			return err
+		}
+		if t.ReleaseState != "published" {
 			return ErrNotFound
 		}
 		if position < 0 || position > t.DurationMillis+2000 {
 			return ErrInvalid
 		}
-		l := st.Listeners[actor]
+		l := normalizeListenerCollections(st.Listeners[actor])
 		l.Account = actor
 		if l.Positions == nil {
 			l.Positions = map[string]int64{}
@@ -515,14 +531,20 @@ func (s *Service) SavePosition(actor, trackID, sessionRef string, position int64
 		}
 		l.UpdatedAt = s.cfg.Now().UTC()
 		st.Listeners[actor] = l
-		out = l
+		out = visibleListener(st, actor, l)
 		if completed && position >= t.DurationMillis*80/100 {
 			key := actor + ":" + sessionRef
 			if sessionRef == "" {
 				return ErrInvalid
 			}
 			if existing := st.Idempotency[key]; existing != "" {
-				u := st.Usage[existing]
+				u, ok := st.Usage[existing]
+				// Preserve inherited idempotency keys and records. Reusing a
+				// playback reference for another track is a conflicting replay,
+				// never a new usage/settlement and never a zero-value success.
+				if !ok || u.Listener != actor || u.TrackID != trackID || u.SessionRef != sessionRef {
+					return ErrConflict
+				}
 				usage = &u
 				return nil
 			}
@@ -545,27 +567,74 @@ func (s *Service) CreatePlaylist(actor, name, desc string, trackIDs []string) (P
 		return Playlist{}, ErrInvalid
 	}
 	p := Playlist{ID: newID("pl"), Owner: actor, Name: strings.TrimSpace(name), Description: strings.TrimSpace(desc), TrackIDs: unique(trackIDs), CreatedAt: s.cfg.Now().UTC(), UpdatedAt: s.cfg.Now().UTC()}
+	var out Playlist
 	err = s.mutate(actor, "playlist_created", p.ID, p, func(st *persistentState) error {
-		for _, id := range p.TrackIDs {
-			if _, ok := st.Tracks[id]; !ok {
-				return ErrNotFound
-			}
+		if err := validateVisibleTrackIDs(st, actor, p.TrackIDs); err != nil {
+			return err
 		}
 		st.Playlists[p.ID] = p
+		out = visiblePlaylist(st, actor, p)
 		return nil
 	})
-	return p, err
+	return out, err
 }
+
+func (s *Service) UpdatePlaylist(actor, id, name, desc string, trackIDs []string) (Playlist, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Playlist{}, err
+	}
+	if !validText(name, true) || len(desc) > 500 {
+		return Playlist{}, ErrInvalid
+	}
+	var out Playlist
+	err = s.mutate(actor, "playlist_updated", id, map[string]any{"name": name, "description": desc, "trackIDs": trackIDs}, func(st *persistentState) error {
+		p, exists := st.Playlists[id]
+		if !exists || p.Owner != actor {
+			return ErrNotFound
+		}
+		requested := unique(trackIDs)
+		if err := validateVisibleTrackIDs(st, actor, requested); err != nil {
+			return err
+		}
+		p.Name, p.Description = strings.TrimSpace(name), strings.TrimSpace(desc)
+		p.TrackIDs = retainUnavailableTrackIDs(st, actor, p.TrackIDs, requested)
+		p.UpdatedAt = s.cfg.Now().UTC()
+		st.Playlists[id] = p
+		out = visiblePlaylist(st, actor, p)
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) Playlist(actor, id string) (Playlist, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Playlist{}, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	p, exists := s.state.Playlists[id]
+	if !exists || p.Owner != actor {
+		return Playlist{}, ErrNotFound
+	}
+	return visiblePlaylist(&s.state, actor, p), nil
+}
+
 func (s *Service) Playlists(actor string) []Playlist {
-	actor, _ = normalizeActor(actor)
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return []Playlist{}
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	out := []Playlist{}
 	for _, p := range s.state.Playlists {
 		if p.Owner == actor {
-			out = append(out, p)
+			out = append(out, visiblePlaylist(&s.state, actor, p))
 		}
 	}
+	sortPlaylists(out)
 	return out
 }
 
@@ -841,17 +910,20 @@ func (s *Service) CreateAIProposal(actor, kind, intent, provider, model string, 
 	if !allowed || !permission || strings.TrimSpace(intent) == "" || provider == "" || model == "" {
 		return AIProposal{}, ErrInvalid
 	}
-	s.mu.RLock()
-	for _, id := range trackIDs {
-		t, ok := s.state.Tracks[id]
-		if !ok || (t.Owner != actor && !contains(s.state.Listeners[actor].Favorites, id)) {
-			s.mu.RUnlock()
-			return AIProposal{}, ErrUnauthorized
-		}
-	}
-	s.mu.RUnlock()
 	p := AIProposal{ID: newID("ai"), Owner: actor, Kind: kind, Intent: strings.TrimSpace(intent), ContextTrackIDs: unique(trackIDs), Provider: provider, Model: model, EstimatedUnits: int64(200 + len(trackIDs)*80), Permission: true, Status: "awaiting_gateway", CreatedAt: s.cfg.Now().UTC(), UpdatedAt: s.cfg.Now().UTC()}
-	err = s.mutate(actor, "ai_proposal_created", p.ID, p, func(st *persistentState) error { st.AIProposals[p.ID] = p; return nil })
+	err = s.mutate(actor, "ai_proposal_created", p.ID, p, func(st *persistentState) error {
+		for _, id := range p.ContextTrackIDs {
+			track, err := visibleTrack(st, actor, id)
+			if err != nil {
+				return err
+			}
+			if track.Owner != actor && !contains(st.Listeners[actor].Favorites, id) {
+				return ErrUnauthorized
+			}
+		}
+		st.AIProposals[p.ID] = p
+		return nil
+	})
 	return p, err
 }
 func (s *Service) AIProposal(actor, id string) (AIProposal, error) {
@@ -1000,10 +1072,26 @@ func min(a, b int64) int64 {
 	return b
 }
 
-func (s *Service) Snapshot(actor string) map[string]any {
-	p, _ := s.Profile(actor)
-	l, _ := s.Listener(actor)
-	catalog, _ := s.Catalog(actor, "")
+func (s *Service) Snapshot(actor string) (map[string]any, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.ensureAccount(actor); err != nil {
+		return nil, err
+	}
+	p, err := s.Profile(actor)
+	if err != nil {
+		return nil, err
+	}
+	l, err := s.Listener(actor)
+	if err != nil {
+		return nil, err
+	}
+	catalog, err := s.Catalog(actor, "")
+	if err != nil {
+		return nil, err
+	}
 	s.mu.RLock()
 	allocations := []RevenueAllocation{}
 	settlements := []SettlementIntent{}
@@ -1030,7 +1118,7 @@ func (s *Service) Snapshot(actor string) map[string]any {
 		}
 	}
 	s.mu.RUnlock()
-	return map[string]any{"profile": p, "listener": l, "catalog": catalog, "creatorTracks": s.CreatorTracks(actor), "playlists": s.Playlists(actor), "usage": s.Usage(actor), "allocations": allocations, "settlements": settlements, "cases": cases, "aiProposals": ai, "truth": map[string]any{"licensedPublicCatalog": false, "productionStreaming": false, "settlementFinality": "Pay intent requires Wallet review and authoritative Pay receipt"}}
+	return map[string]any{"profile": p, "listener": l, "catalog": catalog, "creatorTracks": s.CreatorTracks(actor), "playlists": s.Playlists(actor), "usage": s.Usage(actor), "allocations": allocations, "settlements": settlements, "cases": cases, "aiProposals": ai, "truth": map[string]any{"licensedPublicCatalog": false, "productionStreaming": false, "settlementFinality": "Pay intent requires Wallet review and authoritative Pay receipt"}}, nil
 }
 func (s *Service) VerifyIntegrity() error {
 	s.mu.RLock()

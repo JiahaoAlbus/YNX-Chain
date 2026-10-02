@@ -61,6 +61,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/library", s.api("music.library", s.library))
 	s.mux.HandleFunc("POST /api/playback/{id}/position", s.api("music.playback", s.position))
 	s.mux.HandleFunc("POST /api/playlists", s.api("music.library", s.playlist))
+	s.mux.HandleFunc("GET /api/playlists", s.api("music.library", s.playlists))
+	s.mux.HandleFunc("GET /api/playlists/{id}", s.api("music.library", s.readPlaylist))
+	s.mux.HandleFunc("PUT /api/playlists/{id}", s.api("music.library", s.updatePlaylist))
 	s.mux.HandleFunc("POST /api/cases", s.api("music.profile", s.openCase))
 	s.mux.HandleFunc("POST /api/creator/allocations", s.api("music.creator", s.allocate))
 	s.mux.HandleFunc("POST /api/creator/settlements", s.api("music.creator", s.settlement))
@@ -180,7 +183,8 @@ func (s *Server) api(requiredScope string, next apiHandler) http.HandlerFunc {
 	}
 }
 func (s *Server) me(w http.ResponseWriter, r *http.Request, a string) {
-	writeJSON(w, http.StatusOK, s.service.Snapshot(a))
+	snapshot, err := s.service.Snapshot(a)
+	result(w, snapshot, err)
 }
 func (s *Server) profile(w http.ResponseWriter, r *http.Request, a string) {
 	var req Profile
@@ -318,6 +322,24 @@ func (s *Server) playlist(w http.ResponseWriter, r *http.Request, a string) {
 	}
 	v, e := s.service.CreatePlaylist(a, q.Name, q.Description, q.TrackIDs)
 	resultStatus(w, v, e, http.StatusCreated)
+}
+func (s *Server) playlists(w http.ResponseWriter, r *http.Request, a string) {
+	writeJSON(w, http.StatusOK, s.service.Playlists(a))
+}
+func (s *Server) readPlaylist(w http.ResponseWriter, r *http.Request, a string) {
+	v, err := s.service.Playlist(a, r.PathValue("id"))
+	result(w, v, err)
+}
+func (s *Server) updatePlaylist(w http.ResponseWriter, r *http.Request, a string) {
+	var q struct {
+		Name, Description string
+		TrackIDs          []string
+	}
+	if !decode(w, r, &q, 32<<10) {
+		return
+	}
+	v, err := s.service.UpdatePlaylist(a, r.PathValue("id"), q.Name, q.Description, q.TrackIDs)
+	result(w, v, err)
 }
 func (s *Server) openCase(w http.ResponseWriter, r *http.Request, a string) {
 	var q struct{ Kind, TrackID, Reason, EvidenceRef string }

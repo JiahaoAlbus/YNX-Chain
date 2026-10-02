@@ -542,7 +542,10 @@ func TestCreatorSnapshotIncludesPrivateDraftWithoutCatalogLeak(t *testing.T) {
 	if got, _ := s.Catalog(listener, ""); len(got) != 0 {
 		t.Fatalf("private draft leaked into catalog: %#v", got)
 	}
-	snapshot := s.Snapshot(creator)
+	snapshot, err := s.Snapshot(creator)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got, ok := snapshot["creatorTracks"].([]Track); !ok || len(got) != 1 || got[0].ID != draft.ID {
 		t.Fatalf("creator snapshot omitted private draft: %#v", snapshot["creatorTracks"])
 	}
