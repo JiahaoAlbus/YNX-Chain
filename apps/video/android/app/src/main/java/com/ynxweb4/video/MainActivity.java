@@ -68,7 +68,9 @@ public final class MainActivity extends Activity {
     private LinearLayout content;
     private TextView status;
     private ProgressBar progress;
-    private String gatewaySession;
+    private final VideoRequestBoundary boundary = new VideoRequestBoundary();
+    private VideoView activePlayer;
+    private android.app.AlertDialog activeDialog;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -76,8 +78,7 @@ public final class MainActivity extends Activity {
         loadCatalog();
         selectLanguage(prefs.getString("locale", systemLocale()));
         render();
-        handleIntent(getIntent());
-        loadVideos("");
+        if (!handleIntent(getIntent())) loadVideos("");
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -143,51 +144,56 @@ public final class MainActivity extends Activity {
     }
 
     private void loadVideos(String query) {
+        final long generation = beginNavigation();
         if (!online()) { showState(t("offline"), true); return; }
         showState(t("loading"), false);
         worker.execute(() -> {
             try {
                 String path = "/v1/videos?q=" + Uri.encode(query);
-                JSONObject response = request(path);
+                JSONObject response = request(path, "GET", null, generation);
                 JSONArray videos = response.optJSONArray("items");
                 if (videos == null) videos = response.optJSONArray("data");
                 if (videos == null && response.has("array")) videos = response.optJSONArray("array");
                 final JSONArray result = videos == null ? new JSONArray() : videos;
-                runOnUiThread(() -> renderVideos(result));
-            } catch (Exception error) { runOnUiThread(() -> showFailure(error.getMessage())); }
+                currentUI(generation, () -> renderVideos(result));
+            } catch (Exception error) { currentUI(generation, () -> showFailure(error.getMessage())); }
         });
     }
 
-    private JSONObject request(String path) throws Exception {
-        return request(path,"GET",null);
-    }
-
-    private JSONObject request(String path,String method,JSONObject payload) throws Exception {
-        String base = prefs.getString("gateway", "http://10.0.2.2:8423");
-        HttpURLConnection connection = (HttpURLConnection) new URL(base + path).openConnection();
-        connection.setConnectTimeout(8000); connection.setReadTimeout(12000); connection.setRequestMethod(method); connection.setRequestProperty("Accept", "application/json");
-        if (gatewaySession != null) connection.setRequestProperty("X-YNX-App-Session", gatewaySession);
+    private JSONObject request(String path,String method,JSONObject payload,long generation) throws Exception {
+        boundary.require(generation);
+        // Native SDK completion and business proof remain an explicit dependency.
+        // A callback string alone never grants authority to private operations.
+        if (!VideoRequestBoundary.publicRead(path, method)) throw new IllegalStateException(t("signIn") + " · " + t("unavailable"));
+        HttpURLConnection connection = (HttpURLConnection) VideoRequestBoundary.url(path).openConnection();
+        VideoRequestBoundary.configure(connection);
+        connection.setRequestMethod(method); connection.setRequestProperty("Accept", "application/json");
+        try {
         if (!"GET".equals(method) && !"HEAD".equals(method)) connection.setRequestProperty("Idempotency-Key", UUID.randomUUID().toString());
         if(payload!=null){byte[] body=payload.toString().getBytes(StandardCharsets.UTF_8);connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");connection.setFixedLengthStreamingMode(body.length);try(OutputStream output=connection.getOutputStream()){output.write(body);}}
+        boundary.require(generation);
         int code = connection.getResponseCode();
         InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();
         StringBuilder body = new StringBuilder();
         if (stream != null) try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) { for (String line; (line = reader.readLine()) != null;) body.append(line); }
-        if (code < 200 || code >= 300) throw new IllegalStateException(code == 401 ? t("walletPending") : t("unavailable") + " (HTTP " + code + ")");
+        boundary.require(generation);
+        if (code < 200 || code >= 300) throw new IllegalStateException(code == 401 ? t("signIn") : t("unavailable") + " (HTTP " + code + ")");
         String raw = body.toString().trim();
         if (raw.startsWith("[")) return new JSONObject().put("array", new JSONArray(raw));
         return new JSONObject(raw);
+        } finally { connection.disconnect(); }
     }
 
     private void loadCollection(String path,String labelKey) {
+        final long generation = beginNavigation();
         if(!online()) { showState(t("offline"),true); return; }
         showState(t("loading"),false);
         worker.execute(() -> {
             try {
-                JSONObject response=request(path);
+                JSONObject response=request(path,"GET",null,generation);
                 JSONArray items=response.optJSONArray("array");
                 final JSONArray result=items==null ? new JSONArray() : items;
-                runOnUiThread(() -> {
+                currentUI(generation, () -> {
                     content.removeAllViews(); progress.setVisibility(View.GONE);
                     if(result.length()==0) { content.addView(label(t(labelKey)+" · "+t("empty"),20,Color.DKGRAY)); return; }
                     for(int i=0;i<result.length();i++) {
@@ -197,7 +203,7 @@ public final class MainActivity extends Activity {
                     }
                     status.setText(NumberFormat.getIntegerInstance(activeLocale()).format(result.length())+" · "+t(labelKey));
                 });
-            } catch(Exception error) { runOnUiThread(() -> showFailure(error.getMessage())); }
+            } catch(Exception error) { currentUI(generation, () -> showFailure(error.getMessage())); }
         });
     }
 
@@ -216,29 +222,62 @@ public final class MainActivity extends Activity {
     }
 
     private void playVideo(JSONObject video) {
+        final long generation = beginNavigation();
         String key = ""; JSONArray variants = video.optJSONArray("variants");
         if (variants != null) for (int i=0;i<variants.length();i++) { JSONObject item=variants.optJSONObject(i); if (item != null && ("adaptive-hls".equals(item.optString("name")) || key.isEmpty())) key=item.optString("object_key"); }
         if (key.isEmpty()) { showState(t("unavailable"), true); return; }
-        VideoView player = new VideoView(this); player.setContentDescription(t("play") + ": " + video.optString("title")); player.setMediaController(new android.widget.MediaController(this)); player.setVideoURI(Uri.parse(prefs.getString("gateway", "http://10.0.2.2:8423") + "/media/" + key));
+        VideoView player = new VideoView(this); activePlayer = player;
+        player.setContentDescription(t("play") + ": " + video.optString("title")); player.setMediaController(new android.widget.MediaController(this));
+        try { player.setVideoURI(Uri.parse(VideoRequestBoundary.url("/media/" + key).toString())); }
+        catch(Exception error) { showState(t("unavailable"),true); return; }
+        player.setOnPreparedListener(media -> { if(boundary.matches(generation)) player.start(); else player.stopPlayback(); });
         content.removeAllViews(); content.addView(player, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(260)));
         JSONArray captions=video.optJSONArray("captions"); content.addView(label(t("captions") + ": " + (captions == null ? 0 : captions.length()), 14, Color.DKGRAY));
         LinearLayout actions=row();
-        Button subscribe=button(t("subscriptions"));subscribe.setOnClickListener(v->postAction("/v1/channels/"+video.optString("channel_id")+"/subscription",new JSONObject(),t("subscriptions")));actions.addView(subscribe,new LinearLayout.LayoutParams(0,dp(52),1));
+        Button subscribe=button(t("subscriptions"));subscribe.setOnClickListener(v->postAction("/v1/channels/"+video.optString("channel_id")+"/subscription",new JSONObject(),t("subscriptions"),generation));actions.addView(subscribe,new LinearLayout.LayoutParams(0,dp(52),1));
         Button comments=button(t("comments"));comments.setOnClickListener(v->comment(video));actions.addView(comments,new LinearLayout.LayoutParams(0,dp(52),1));
         Button report=button(t("report"));report.setOnClickListener(v->report(video));actions.addView(report,new LinearLayout.LayoutParams(0,dp(52),1));content.addView(actions);
         if(captions!=null&&captions.length()>0){Button transcript=button(t("captions"));transcript.setOnClickListener(v->loadTranscript(captions.optJSONObject(0)));content.addView(transcript);}
-        player.start();
     }
 
-    private void postAction(String path,JSONObject body,String success){worker.execute(()->{try{request(path,"POST",body);runOnUiThread(()->showState(success,false));}catch(Exception error){runOnUiThread(()->showFailure(error.getMessage()));}});}
-    private void comment(JSONObject video){EditText input=new EditText(this);input.setHint(t("comments"));new android.app.AlertDialog.Builder(this).setTitle(t("comments")).setView(input).setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{try{postAction("/v1/videos/"+video.optString("id")+"/comments",new JSONObject().put("body",input.getText().toString()),t("comments"));}catch(Exception error){showState(error.getMessage(),true);}}).show();}
-    private void report(JSONObject video){EditText input=new EditText(this);input.setHint(t("report"));new android.app.AlertDialog.Builder(this).setTitle(t("report")).setMessage(t("noMetrics")).setView(input).setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{try{postAction("/v1/videos/"+video.optString("id")+"/reports",new JSONObject().put("reason","viewer_report").put("details",input.getText().toString()),t("report"));}catch(Exception error){showState(error.getMessage(),true);}}).show();}
-    private void loadTranscript(JSONObject track){if(track==null||!track.optBoolean("human_approved")){showState(t("unavailable"),true);return;}worker.execute(()->{try{String base=prefs.getString("gateway","http://10.0.2.2:8423");HttpURLConnection connection=(HttpURLConnection)new URL(base+"/media/"+track.optString("object_key")).openConnection();connection.setConnectTimeout(8000);StringBuilder body=new StringBuilder();try(BufferedReader reader=new BufferedReader(new InputStreamReader(connection.getInputStream(),StandardCharsets.UTF_8))){for(String line;(line=reader.readLine())!=null;)if(!line.startsWith("WEBVTT")&&!line.contains("-->"))body.append(line).append('\n');}runOnUiThread(()->{TextView transcript=label(body.toString().trim(),16,Color.DKGRAY);transcript.setContentDescription(t("captions"));content.addView(transcript);});}catch(Exception error){runOnUiThread(()->showFailure(error.getMessage()));}});}
+    private void postAction(String path,JSONObject body,String success,long generation){
+        if(!boundary.matches(generation))return;
+        worker.execute(()->{try{request(path,"POST",body,generation);currentUI(generation,()->{showState(success,false);progress.setVisibility(View.GONE);});}catch(Exception error){currentUI(generation,()->showState(error.getMessage(),true));}});
+    }
+    private void comment(JSONObject video){
+        final long generation=boundary.current();EditText input=new EditText(this);input.setHint(t("comments"));
+        activeDialog=new android.app.AlertDialog.Builder(this).setTitle(t("comments")).setView(input).setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{if(!boundary.matches(generation))return;try{postAction("/v1/videos/"+video.optString("id")+"/comments",new JSONObject().put("body",input.getText().toString()),t("comments"),generation);}catch(Exception error){showState(error.getMessage(),true);}}).show();
+    }
+    private void report(JSONObject video){
+        final long generation=boundary.current();EditText input=new EditText(this);input.setHint(t("report"));
+        activeDialog=new android.app.AlertDialog.Builder(this).setTitle(t("report")).setMessage(t("noMetrics")).setView(input).setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{if(!boundary.matches(generation))return;try{postAction("/v1/videos/"+video.optString("id")+"/reports",new JSONObject().put("reason","viewer_report").put("details",input.getText().toString()),t("report"),generation);}catch(Exception error){showState(error.getMessage(),true);}}).show();
+    }
+    private void loadTranscript(JSONObject track){
+        if(track==null||!track.optBoolean("human_approved")){showState(t("unavailable"),true);return;}
+        final long generation=boundary.current();worker.execute(()->{
+            try{boundary.require(generation);HttpURLConnection connection=(HttpURLConnection)VideoRequestBoundary.url("/media/"+track.optString("object_key")).openConnection();VideoRequestBoundary.configure(connection);
+                StringBuilder body=new StringBuilder();try{if(connection.getResponseCode()!=200)throw new IllegalStateException(t("unavailable"));try(BufferedReader reader=new BufferedReader(new InputStreamReader(connection.getInputStream(),StandardCharsets.UTF_8))){for(String line;(line=reader.readLine())!=null;){if(body.length()>1024*1024)throw new IllegalStateException(t("unavailable"));if(!line.startsWith("WEBVTT")&&!line.contains("-->"))body.append(line).append('\n');}}}finally{connection.disconnect();}
+                currentUI(generation,()->{TextView transcript=label(body.toString().trim(),16,Color.DKGRAY);transcript.setContentDescription(t("captions"));content.addView(transcript);});
+            }catch(Exception error){currentUI(generation,()->showState(error.getMessage(),true));}
+        });
+    }
+
+    private long beginNavigation(){
+        long generation=boundary.advance();
+        if(activePlayer!=null){activePlayer.stopPlayback();activePlayer=null;}
+        if(activeDialog!=null){activeDialog.dismiss();activeDialog=null;}
+        if(content!=null)content.removeAllViews();
+        return generation;
+    }
+    private void currentUI(long generation,Runnable action){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed()&&boundary.matches(generation))action.run();});}
+    @Override protected void onStop(){if(activePlayer!=null)activePlayer.pause();super.onStop();}
+    @Override protected void onDestroy(){beginNavigation();worker.shutdownNow();super.onDestroy();}
 
     private void showFailure(String detail) { content.removeAllViews(); content.addView(label(t("unavailable"), 20, Color.DKGRAY)); TextView reason=label(detail,14,Color.GRAY); content.addView(reason); Button retry=button(t("retry")); retry.setOnClickListener(v -> loadVideos("")); content.addView(retry); showState(t("unavailable"), true); }
     private void showState(String message, boolean failed) { status.setText(message); status.setTextColor(failed ? Color.rgb(155,35,53) : Color.DKGRAY); progress.setVisibility(failed ? View.GONE : View.VISIBLE); }
 
     private void startWallet() {
+        beginNavigation();
         try {
             Instant issued = Instant.now().truncatedTo(ChronoUnit.MILLIS), expires = issued.plus(5, ChronoUnit.MINUTES);
             String nonce = randomBase64(24), deviceKey = productDeviceKey();
@@ -262,10 +301,18 @@ public final class MainActivity extends Activity {
         } catch (Exception error) { showState(t("unavailable") + ": " + error.getMessage(), true); }
     }
 
-    private void handleIntent(Intent intent) {
-        Uri data = intent == null ? null : intent.getData(); if (data == null) return;
-        if ("wallet-auth".equals(data.getHost())) { String session = data.getQueryParameter("gateway_session"); gatewaySession = session == null || session.length() < 24 ? null : session; showState(t("walletPending"), gatewaySession == null); if (gatewaySession != null) loadVideos(""); }
-        if ("watch".equals(data.getHost())) loadVideos(data.getQueryParameter("video"));
+    private boolean handleIntent(Intent intent) {
+        Uri data = intent == null ? null : intent.getData(); if (data == null) return false;
+        if (!"ynxvideo".equals(data.getScheme()) || data.getUserInfo()!=null || data.getPort()!=-1 || data.getFragment()!=null) return false;
+        if ("wallet-auth".equals(data.getHost()) && "/callback".equals(data.getPath())) {
+            beginNavigation();
+            // A URI (including gateway_session) is not a verified session.
+            // The shared native SDK must complete and confirm the exact approval.
+            showState(t("signIn") + " · " + t("unavailable"),true);
+            return true;
+        }
+        if ("watch".equals(data.getHost())) { loadVideos(data.getQueryParameter("video")); return true; }
+        return false;
     }
 
     private String productDeviceKey() throws Exception {
