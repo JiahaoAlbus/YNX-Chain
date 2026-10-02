@@ -54,10 +54,12 @@ export class RestrictedMoments {
     if (!transport || typeof authorize !== 'function') deny('Live audience authority required');
     this.transport=transport;this.authorize=authorize;this.pending=new Map();
   }
-  async check(expected,operation,authorization=null) {
+  async check(expected,operation,authorization=null,options={}) {
     this.transport.guard(operation);
-    const live=snapshot(await this.authorize(expected,authorization));
+    options.assertCurrent?.();if(options.signal?.aborted)deny('Original authority check was cancelled');
+    const live=snapshot(await this.authorize(expected,authorization,options));
     this.transport.guard(operation);
+    options.assertCurrent?.();if(options.signal?.aborted)deny('Original authority check was cancelled');
     if (!same(expected,live) || !live.members.includes(operation.binding.userId)) deny('Audience changed; retain draft and review again');
     const room=operation.client.getRoom(live.roomId);
     const joined=room?.getMembers().filter(member=>['join','invite'].includes(member.membership));
@@ -80,9 +82,9 @@ export class RestrictedMoments {
     const expected=snapshot(index.audience),operation=this.transport.capture();
     const local=()=>{this.transport.guard(operation);assertCurrent();if(signal?.aborted)deny('Original read was cancelled; no plaintext returned')};local();
     const authorization={action:'read',transactionId:index.transactionId};
-    await this.check(expected,operation,authorization);local();
+    await this.check(expected,operation,authorization,{signal,assertCurrent:local});local();
     const records=await this.transport.messages(expected.roomId);local();
-    await this.check(expected,operation,authorization);local();
+    await this.check(expected,operation,authorization,{signal,assertCurrent:local});local();
     const event=records.find(record=>record.id===index.eventId),semantic=event?.content?.['com.ynx.social.moment'];
     const kind=index.parentEventId?'comment':'moment';
     if(!event?.encrypted||event.verification?.shieldColour!==0||event.sender!==index.sender||!expected.members.includes(index.sender)||semantic?.protocol!==RESTRICTED_MOMENT_PROTOCOL||semantic.kind!==kind||semantic.owner!==expected.owner||semantic.revision!==expected.revision||semantic.audience!==expected.kind||semantic.author!==index.sender||kind==='moment'&&index.sender!==expected.owner)deny('Authenticated indexed Moment is unavailable');
@@ -106,7 +108,7 @@ export class RestrictedMoments {
     const local=()=>{bounded.guard();this.transport.guard(operation);assertCurrent()};
     const checkpoint=async()=>{
       local();await bounded.wait(()=>validateIdentity({signal:bounded.signal}));local();
-      await bounded.wait(()=>this.check(expected,operation,{action:'read',transactionId:index.transactionId}));local();
+      await bounded.wait(()=>this.check(expected,operation,{action:'read',transactionId:index.transactionId},{signal:bounded.signal,assertCurrent:local}));local();
     };
     let bytes;
     try{
@@ -144,7 +146,7 @@ export class RestrictedMoments {
     if(attachment){content.msgtype='m.file';content.body=attachment.body;content.file=structuredClone(attachment.file);content.info=structuredClone(attachment.info);content['com.ynx.social.moment'].text=text}
     if(parent)content['m.relates_to']={rel_type:'m.reference',event_id:parent.eventId};
     const authorization={action:'read',transactionId,parentEventId:parent?.eventId};
-    const checkpoint=async()=>{this.transport.guard(operation);assertCurrent();await wait(()=>validateIdentity({signal}));this.transport.guard(operation);assertCurrent();await wait(()=>this.check(expected,operation,authorization));this.transport.guard(operation);assertCurrent()};
+    const checkpoint=async()=>{this.transport.guard(operation);assertCurrent();await wait(()=>validateIdentity({signal}));this.transport.guard(operation);assertCurrent();await wait(()=>this.check(expected,operation,authorization,{signal,assertCurrent}));this.transport.guard(operation);assertCurrent()};
     await checkpoint();
     const retained=this.pending.get(transactionId);
     if(retained&&(retained.binding!==operation.binding||retained.identity!==JSON.stringify({audience:expected,content})||retained.status!=='unknown'))deny('Original warm intent differs or is still active');
@@ -154,7 +156,7 @@ export class RestrictedMoments {
     const event=structuredClone(candidates[0]);
     if(!/^\$[^\s\x00-\x1f]{1,254}$/.test(event.id)||event.remoteConfirmed!==true||!event.encrypted||event.verification?.shieldColour!==0||event.sender!==operation.binding.userId||event.transactionId!==undefined&&event.transactionId!==transactionId||event.content?.msgtype!==content.msgtype||event.content.body!==content.body||!sameTypedFields(event.content['com.ynx.social.moment'],content['com.ynx.social.moment'])||!sameJSON(event.content.file,content.file)||!sameJSON(event.content.info,content.info)||!sameTypedFields(event.content['m.relates_to'],content['m.relates_to'])||event.content.url!==undefined)deny('Original encrypted event ownership is not confirmed');
     if(parent){await wait(()=>this.verifyParent(parent,expected,operation));this.transport.guard(operation);assertCurrent();await checkpoint()}
-    await wait(()=>this.check(expected,operation,{...authorization,action:'index',eventId:event.id}));this.transport.guard(operation);assertCurrent();
+    await wait(()=>this.check(expected,operation,{...authorization,action:'index',eventId:event.id},{signal,assertCurrent}));this.transport.guard(operation);assertCurrent();
     await checkpoint();
     if(retained&&this.pending.get(transactionId)!==retained)deny('Original pending intent changed');
     this.pending.delete(transactionId);

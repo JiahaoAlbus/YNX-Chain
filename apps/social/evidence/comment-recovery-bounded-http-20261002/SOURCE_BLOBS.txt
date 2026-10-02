@@ -1,0 +1,10 @@
+6ab031c29743b3e7357ab8469f8f021d984f943f apps/social/web/matrix/audience-client.mjs
+e447e7589f6e930915e3ffceba2efa83c78f86e7 apps/social/web/matrix/restricted-comment-recovery.mjs
+281b3bf947c327e571d88f2a96c92d8499058970 apps/social/web/matrix/restricted-feed-ui.mjs
+0d5530bb6df8d469c9e11b478c7b345d5e31a232 apps/social/web/matrix/restricted-moments.mjs
+87645ac5b3ca8e7b1654c709c3d694027ad1c3a5 apps/social/web/matrix/session-ui.mjs
+5e90b5e4d0f45b83eeae3b1a7763e27e94ae757d apps/social/scripts/independent-feed-check.mjs
+5bf2b699f6b0a6b07b7a1287b02b79edede2735d apps/social/scripts/restricted-feed-ui-check.mjs
+a94c2939d6a2c965a33f433ed178f70fd90afbe4 apps/social/scripts/comment-recovery-bounds-check.mjs
+18415590cc698053f07ebbccfb45423c0587cdf1 apps/social/scripts/comment-recovery-ui-cancel-check.mjs
+a22ca1a22283da35908db2b14e1d4c3a24081327 apps/social/scripts/independent-comment-recovery-deadline-check.mjs

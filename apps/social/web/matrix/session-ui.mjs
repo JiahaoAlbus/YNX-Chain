@@ -150,15 +150,15 @@ if(root&&!loginCallback){
  async function draftAccess(view,action){guardView(view);const vault=await openProtectedMomentDrafts({account:view.account,deviceId:view.operation.binding.deviceId});try{guardView(view);return await action(vault,()=>guardView(view))}finally{vault.close()}}
  function attachMomentFeed(){
   momentFeed?.lock();momentFeed?.destroy();
-  const consumer=new RestrictedMoments({transport,authorize:(expected,action)=>audienceHTTP.authorize(expected,action)});
+  const consumer=new RestrictedMoments({transport,authorize:(expected,action,options)=>audienceHTTP.authorize(expected,action,options)});
   momentFeed=mountRestrictedFeed({root,consumer,capture:captureView,assertCurrent:guardView,
    downloadAttachment:async({index,attachment,binding:view,guard})=>{
     guard();guardView(view);
     return consumer.downloadAttachment(index,attachment,{assertCurrent:()=>{guard();guardView(view)},validateIdentity:async()=>{guard();await identity(view);guard();guardView(view)}});
    },
-   loadIndexes:async after=>{const view=captureView();await identity(view);guardView(view);const result=await audienceHTTP.indexes(after);guardView(view);return result},
-   commentSender:async view=>{await identity(view);guardView(view);return view.operation.binding.userId},
-   commentDrafts:{load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),save:(payload,view)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),clearConfirmed:(transactionId,view)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
+   loadIndexes:async(after,options={})=>{const view=captureView();options.assertCurrent?.();await identity(view);guardView(view);options.assertCurrent?.();const result=await audienceHTTP.indexes(after,options);guardView(view);options.assertCurrent?.();return result},
+   commentSender:async(view,options={})=>{options.assertCurrent?.();await identity(view);guardView(view);options.assertCurrent?.();return view.operation.binding.userId},
+   commentDrafts:{load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),save:(payload,view)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),clearConfirmed:(transactionId,view,assertCurrent=()=>{})=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,()=>{guard();assertCurrent()}))},
    publishComment:async({index,parent,text,transactionId,binding:view})=>{
     let confirmed=false;
     await work(async()=>{guardView(view);await identity(view);guardView(view);await consumer.publish({audience:index.audience,text,transactionId,parent});guardView(view);confirmed=true});
@@ -174,7 +174,7 @@ if(root&&!loginCallback){
   return {contacts:(contacts.contacts??[]).filter(person=>/^sp_[A-Za-z0-9_-]{32}$/.test(person.id)).map(person=>({id:person.id,title:person.displayName||person.handle||'Friend'})),groups:(groups.conversations??[]).filter(record=>/^group_[a-f0-9]{24}$/.test(record.id)).map(record=>({id:record.id,title:record.title||'Group'}))};
  }
  momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work,
-  resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action)=>audienceHTTP.authorize(expected,action),loadSelections:audienceChoices,
+  resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action,options)=>audienceHTTP.authorize(expected,action,options),loadSelections:audienceChoices,
   drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId,assertCurrent=()=>{})=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,()=>{guard();assertCurrent()}))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});
  phase('locked');

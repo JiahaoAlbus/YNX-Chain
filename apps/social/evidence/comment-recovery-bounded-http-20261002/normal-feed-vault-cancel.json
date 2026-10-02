@@ -1,0 +1,29 @@
+{
+  "qualification": "actual browser feed recovery button, owned HTTP client, SDK MatrixEvent/consumer and real protected vault; controlled SSO/proof/HS crypto, no public acceptance",
+  "results": [
+    {
+      "name": "sender original recovery stop/late result retains actual protected record",
+      "status": "PASS"
+    },
+    {
+      "name": "fetch original recovery stop/late result retains actual protected record",
+      "status": "PASS"
+    },
+    {
+      "name": "read original recovery stop/late result retains actual protected record",
+      "status": "PASS"
+    },
+    {
+      "name": "clear original recovery stop/late result retains actual protected record",
+      "status": "PASS"
+    },
+    {
+      "name": "current indexed original comment still clears only after confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "console/page errors zero",
+      "status": "PASS"
+    }
+  ]
+}

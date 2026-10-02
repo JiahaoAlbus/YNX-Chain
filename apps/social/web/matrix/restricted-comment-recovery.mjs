@@ -1,3 +1,4 @@
+import {createBoundedOperation} from './bounded-operation.mjs';
 const fail=()=>{throw new Error('MATRIX_COMMENT_RECOVERY_REQUIRED: original intent retained')};
 const protocol='ynx-social-matrix-moment/v1';
 const eventId=value=>typeof value==='string'&&/^\$[^\s\x00-\x1f]{1,254}$/.test(value);
@@ -7,7 +8,14 @@ const audience=value=>JSON.stringify({protocol:value?.protocol,kind:value?.kind,
 // Matrix readback recovery. No publish/upload/send API is invoked here; the
 // existing authority may commit the original authenticated event's index.
 // The caller retains the protected record until this confirms its exact event.
-export async function recoverIndexedComment({intent,expectedSender,loadIndexes,consumer,guard,validateIdentity=async()=>{}}) {
+export async function recoverIndexedComment(options){
+  if(typeof options?.guard!=='function')fail();
+  const bounded=createBoundedOperation({signal:options.signal});
+  const guard=()=>{bounded.guard();options.guard()};
+  try{return await bounded.wait(()=>recoverOriginal({...options,guard,wait:bounded.wait,signal:bounded.signal}))}
+  finally{bounded.dispose()}
+}
+async function recoverOriginal({intent,expectedSender,loadIndexes,consumer,guard,validateIdentity=async()=>{},wait=action=>action(),signal=null}) {
   if(typeof guard!=='function'||typeof loadIndexes!=='function'||typeof consumer?.read!=='function')fail();
   guard();
   const original=structuredClone(intent),comment=original?.comment;
@@ -17,7 +25,7 @@ export async function recoverIndexedComment({intent,expectedSender,loadIndexes,c
   const cursors=new Set();
   // Bounded lookup fails closed without consuming or replacing the intent.
   for(let page=0;page<64;++page){
-    const feed=await loadIndexes(after);guard();
+    const feed=await wait(()=>loadIndexes(after,{signal,assertCurrent:guard}));guard();
     if(!feed||!Array.isArray(feed.indexes)||feed.indexes.length>40)fail();
     for(const index of feed.indexes){
       if(index.transactionId!==original.transactionId)continue;
@@ -30,11 +38,11 @@ export async function recoverIndexedComment({intent,expectedSender,loadIndexes,c
   }
   if(!match){
     if(typeof consumer.recover!=='function')fail();
-    const receipt=await consumer.recover(original,{assertCurrent:guard,validateIdentity});guard();
+    const receipt=await wait(()=>consumer.recover(original,{signal,assertCurrent:guard,validateIdentity}));guard();
     if(receipt?.transactionId!==original.transactionId||!eventId(receipt.eventId)||receipt.parentEventId!==comment.parent.eventId||receipt.sender!==expectedSender)fail();
     return Object.freeze({transactionId:original.transactionId,eventId:receipt.eventId,parentEventId:comment.parent.eventId,sender:expectedSender});
   }
-  const decoded=await consumer.read(structuredClone(match));guard();
+  const decoded=await wait(()=>consumer.read(structuredClone(match),{signal,assertCurrent:guard}));guard();
   if(decoded?.eventId!==match.eventId||decoded.text!==original.text||decoded.attachment||decoded.parent!==null||decoded.protocol!==undefined&&decoded.protocol!==protocol||decoded.kind!==undefined&&decoded.kind!=='comment')fail();
   return Object.freeze({transactionId:original.transactionId,eventId:match.eventId,parentEventId:comment.parent.eventId,sender:expectedSender});
 }

@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "c53cd9d6762ee5f86317861d8e9fc77c107d2dd8",
+  "qualification": "actual Chromium feed button + actual HTTP indexes client + real protected vault + MatrixEvent/consumer; controlled nonreturning fetch/SSO proof/SDK decrypt, not public outage",
+  "elapsedMs": 30360,
+  "status": "UNEXPECTED",
+  "before": {
+    "fetches": 2,
+    "clears": 0,
+    "sends": 0,
+    "uploads": 0,
+    "saved": "{\"status\":\"delivery-unknown\",\"transactionId\":\"original_comment_txn_001\",\"text\":\"Original retained comment\",\"selection\":{\"kind\":\"contacts\"},\"file\":null,\"comment\":{\"author\":\"@peer:fixture.invalid\",\"index\":{\"audience\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"kind\":\"contacts\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"roomId\":\"!original:fixture.invalid\",\"owner\":\"@owner:fixture.invalid\",\"members\":[\"@owner:fixture.invalid\",\"@peer:fixture.invalid\"]},\"eventId\":\"$parent\",\"transactionId\":\"original_parent_txn_001\",\"sender\":\"@owner:fixture.invalid\"},\"parent\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"roomId\":\"!original:fixture.invalid\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"owner\":\"@owner:fixture.invalid\",\"eventId\":\"$parent\"}}}",
+    "originalJSON": "{\"status\":\"delivery-unknown\",\"transactionId\":\"original_comment_txn_001\",\"text\":\"Original retained comment\",\"selection\":{\"kind\":\"contacts\"},\"file\":null,\"comment\":{\"author\":\"@peer:fixture.invalid\",\"index\":{\"audience\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"kind\":\"contacts\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"roomId\":\"!original:fixture.invalid\",\"owner\":\"@owner:fixture.invalid\",\"members\":[\"@owner:fixture.invalid\",\"@peer:fixture.invalid\"]},\"eventId\":\"$parent\",\"transactionId\":\"original_parent_txn_001\",\"sender\":\"@owner:fixture.invalid\"},\"parent\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"roomId\":\"!original:fixture.invalid\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"owner\":\"@owner:fixture.invalid\",\"eventId\":\"$parent\"}}}",
+    "buttonDisabled": false,
+    "status": "Original comment not confirmed. Protected intent retained; no resend."
+  },
+  "after": {
+    "clears": 0,
+    "sends": 0,
+    "uploads": 0,
+    "saved": "{\"status\":\"delivery-unknown\",\"transactionId\":\"original_comment_txn_001\",\"text\":\"Original retained comment\",\"selection\":{\"kind\":\"contacts\"},\"file\":null,\"comment\":{\"author\":\"@peer:fixture.invalid\",\"index\":{\"audience\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"kind\":\"contacts\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"roomId\":\"!original:fixture.invalid\",\"owner\":\"@owner:fixture.invalid\",\"members\":[\"@owner:fixture.invalid\",\"@peer:fixture.invalid\"]},\"eventId\":\"$parent\",\"transactionId\":\"original_parent_txn_001\",\"sender\":\"@owner:fixture.invalid\"},\"parent\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"roomId\":\"!original:fixture.invalid\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"owner\":\"@owner:fixture.invalid\",\"eventId\":\"$parent\"}}}",
+    "originalJSON": "{\"status\":\"delivery-unknown\",\"transactionId\":\"original_comment_txn_001\",\"text\":\"Original retained comment\",\"selection\":{\"kind\":\"contacts\"},\"file\":null,\"comment\":{\"author\":\"@peer:fixture.invalid\",\"index\":{\"audience\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"kind\":\"contacts\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"roomId\":\"!original:fixture.invalid\",\"owner\":\"@owner:fixture.invalid\",\"members\":[\"@owner:fixture.invalid\",\"@peer:fixture.invalid\"]},\"eventId\":\"$parent\",\"transactionId\":\"original_parent_txn_001\",\"sender\":\"@owner:fixture.invalid\"},\"parent\":{\"protocol\":\"ynx-social-matrix-moment/v1\",\"roomId\":\"!original:fixture.invalid\",\"revision\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"owner\":\"@owner:fixture.invalid\",\"eventId\":\"$parent\"}}}",
+    "status": "Encrypted moments locked."
+  }
+}

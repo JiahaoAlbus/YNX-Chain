@@ -1,4 +1,5 @@
 import {recoverIndexedComment} from './restricted-comment-recovery.mjs';
+import {createBoundedOperation} from './bounded-operation.mjs';
 const protocol='ynx-social-matrix-moment/v1';
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value};
 const snapshot=value=>freeze(structuredClone(value));
@@ -20,7 +21,7 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
   const recovery=document.createElement('button'),draft=document.createElement('p');
   recovery.type='button';recovery.textContent='Verify original pending comment';recovery.hidden=true;
   section.append(title,refresh,status,draft,recovery,list);root.append(section);
-  let epoch=0,locked=false,busy=false,pendingIntent=null;
+  let epoch=0,locked=false,busy=false,pendingIntent=null,recoveryOperation=null;
   const controls=new Set([refresh,recovery]);
   const gate=(generation,binding)=>{if(locked||generation!==epoch)throw new Error('MATRIX_FEED_STALE');assertCurrent(binding)};
   const setBusy=value=>{busy=value;for(const control of controls)control.disabled=locked||busy};
@@ -111,16 +112,18 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
   recovery.addEventListener('click',async()=>{
     if(locked||busy||!pendingIntent?.comment||typeof commentSender!=='function')return;
     const original=pendingIntent,generation=epoch,binding=capture();setBusy(true);
+    const bounded=createBoundedOperation();recoveryOperation=bounded;consumer.transport?.downloads?.add(bounded.controller);
+    const current=()=>{bounded.guard();gate(generation,binding);if(pendingIntent!==original)throw new Error('MATRIX_COMMENT_STALE')};
     try{
-      gate(generation,binding);
-      const expectedSender=await commentSender(binding);gate(generation,binding);
-      const receipt=await recoverIndexedComment({intent:original,expectedSender,loadIndexes,consumer,guard:()=>gate(generation,binding),validateIdentity:async()=>{const sender=await commentSender(binding);gate(generation,binding);if(sender!==expectedSender)throw new Error('MATRIX_COMMENT_STALE')}});
-      gate(generation,binding);if(pendingIntent!==original)throw new Error('MATRIX_COMMENT_STALE');
-      await commentDrafts.clearConfirmed(receipt.transactionId,binding);gate(generation,binding);
+      current();
+      const expectedSender=await bounded.wait(()=>commentSender(binding,{signal:bounded.signal,assertCurrent:current}));current();
+      const receipt=await bounded.wait(()=>recoverIndexedComment({intent:original,expectedSender,loadIndexes,consumer,signal:bounded.signal,guard:current,validateIdentity:async()=>{const sender=await bounded.wait(()=>commentSender(binding,{signal:bounded.signal,assertCurrent:current}));current();if(sender!==expectedSender)throw new Error('MATRIX_COMMENT_STALE')}}));
+      current();
+      await bounded.wait(()=>commentDrafts.clearConfirmed(receipt.transactionId,binding,current));current();
       pendingIntent=null;draft.textContent='';recovery.hidden=true;status.textContent='Original encrypted comment confirmed. No resend performed.';
     }catch{if(!locked&&generation===epoch)status.textContent='Original comment not confirmed. Protected intent retained; no resend.'}
-    finally{if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh&&control!==recovery)control.disabled=true}}
+    finally{consumer.transport?.downloads?.delete(bounded.controller);bounded.dispose();if(recoveryOperation===bounded)recoveryOperation=null;if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh&&control!==recovery)control.disabled=true}}
   });
   refresh.addEventListener('click',reload);
-  return Object.freeze({reload,lock(){locked=true;++epoch;clear();setBusy(false);status.textContent='Encrypted moments locked.'},destroy(){locked=true;++epoch;section.remove()}});
+  return Object.freeze({reload,lock(){recoveryOperation?.dispose();locked=true;++epoch;clear();setBusy(false);status.textContent='Encrypted moments locked.'},destroy(){recoveryOperation?.dispose();locked=true;++epoch;section.remove()}});
 }

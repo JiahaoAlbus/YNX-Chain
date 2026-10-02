@@ -1,0 +1,65 @@
+{
+  "qualification": "actual locked MatrixEvent metadata and owned transport/consumer recovery; controlled decrypt/trust/authority, no live HS/public/installed claim",
+  "results": [
+    {
+      "name": "cold original text remote echo settles index without send/upload",
+      "status": "PASS"
+    },
+    {
+      "name": "cold prepared encrypted file settles original descriptor without second upload",
+      "status": "PASS"
+    },
+    {
+      "name": "unindexed comment fallback verifies original parent and settles without resend",
+      "status": "PASS"
+    },
+    {
+      "name": "missing remote echo remains unknown and never indexes",
+      "status": "PASS"
+    },
+    {
+      "name": "two same transaction echoes reject ambiguous delivery",
+      "status": "PASS"
+    },
+    {
+      "name": "local pending echo cannot settle original transaction",
+      "status": "PASS"
+    },
+    {
+      "name": "other sender transaction metadata is not exposed or accepted",
+      "status": "PASS"
+    },
+    {
+      "name": "original transaction with different body cannot settle",
+      "status": "PASS"
+    },
+    {
+      "name": "unknown semantic fields cannot settle original content",
+      "status": "PASS"
+    },
+    {
+      "name": "file descriptor substitution cannot settle protected attachment",
+      "status": "PASS"
+    },
+    {
+      "name": "unknown upload without original prepared descriptor remains retained",
+      "status": "PASS"
+    },
+    {
+      "name": "backend index failure keeps original intent unresolved",
+      "status": "PASS"
+    },
+    {
+      "name": "identity changes inside reader await prevent index",
+      "status": "PASS"
+    },
+    {
+      "name": "revocation inside final read checkpoint cannot return confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "warm send receipt recovery uses original event ID without second send",
+      "status": "PASS"
+    }
+  ]
+}

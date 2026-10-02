@@ -1,0 +1,25 @@
+{
+  "qualification": "actual owned HTTP client and recovery helper, controlled current SSO/proof/REST; no live grant or public outage",
+  "results": [
+    {
+      "name": "actual HTTP indexes nonsettling fetch aborted, late index never reaches consumer",
+      "status": "PASS"
+    },
+    {
+      "name": "existing indexed consumer never settles; cancellation rejects without confirmation",
+      "status": "PASS"
+    },
+    {
+      "name": "late shared proof result after cancellation never dispatches authorize REST",
+      "status": "PASS"
+    },
+    {
+      "name": "nonsettling response JSON participates in the same cancellation",
+      "status": "PASS"
+    },
+    {
+      "name": "existing indexed original comment still confirms with current guard",
+      "status": "PASS"
+    }
+  ]
+}

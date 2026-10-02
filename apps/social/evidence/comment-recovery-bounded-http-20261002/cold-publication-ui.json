@@ -1,0 +1,37 @@
+{
+  "qualification": "real browser/IndexedDB/protected original wrapping key reopened and actual composer/transport; controlled MatrixEvent decrypt/trust/authority, not live business acceptance",
+  "results": [
+    {
+      "name": "text original cold protected-vault recovery via actual composer button",
+      "status": "PASS",
+      "sends": 0,
+      "uploads": 0,
+      "indexCommits": 1
+    },
+    {
+      "name": "file original cold protected-vault recovery via actual composer button",
+      "status": "PASS",
+      "sends": 0,
+      "uploads": 0,
+      "indexCommits": 1
+    },
+    {
+      "name": "missing original cold protected-vault recovery via actual composer button",
+      "status": "PASS",
+      "sends": 0,
+      "uploads": 0,
+      "indexCommits": 0
+    },
+    {
+      "name": "late-revoke original cold protected-vault recovery via actual composer button",
+      "status": "PASS",
+      "sends": 0,
+      "uploads": 0,
+      "indexCommits": 1
+    },
+    {
+      "name": "console/page errors zero",
+      "status": "PASS"
+    }
+  ]
+}

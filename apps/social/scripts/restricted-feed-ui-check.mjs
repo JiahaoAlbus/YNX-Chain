@@ -8,7 +8,7 @@ try{
     if(path==='/')return route.fulfill({contentType:'text/html',body:'<!doctype html><main></main>'});
     if(path==='/feed.mjs')return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix/restricted-feed-ui.mjs',import.meta.url),'utf8')});
     if(path==='/restricted-comment-recovery.mjs')return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix/restricted-comment-recovery.mjs',import.meta.url),'utf8')});
-    if(['/crypto-store.mjs','/protected-drafts.mjs'].includes(path))return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix'+path,import.meta.url),'utf8')});
+    if(['/crypto-store.mjs','/protected-drafts.mjs','/bounded-operation.mjs'].includes(path))return route.fulfill({contentType:'text/javascript',body:readFileSync(new URL('../web/matrix'+path,import.meta.url),'utf8')});
     return route.abort();
   });
   await page.goto('https://feed-fixture.invalid/');
