@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {decryptAttachment} from 'matrix-encrypt-attachment';
 // @ts-ignore actual browser UI
 import {createRestrictedMomentsUI} from '../web/matrix/restricted-moments-ui.mjs';
 // @ts-ignore actual HTTP adapter
@@ -11,12 +12,12 @@ function fixture(){
   const nodes:any[]=[];const document:any={createElement:(tag:string)=>{
     const listeners:any={};const node:any={tag,ownerDocument:document,children:[],value:tag==='select'?'contacts':'',disabled:false,textContent:'',attributes:{},append(...children:any[]){this.children.push(...children)},replaceChildren(...children:any[]){this.children=children},setAttribute(key:string,value:string){this.attributes[key]=value},addEventListener(event:string,callback:any){listeners[event]=callback},dispatch(event:string){listeners[event]?.()},get selectedOptions(){return this.children.filter((option:any)=>option.selected)}};nodes.push(node);return node;
   }};
-  const container=document.createElement('div'),userId='@original:fixture.invalid';let content:any,last:Promise<any>=Promise.resolve();
+  const container=document.createElement('div'),userId='@original:fixture.invalid';let content:any,last:Promise<any>=Promise.resolve(),uploaded:Uint8Array|undefined,uploads=0,tamper=false;
   const metadata={kind:'contacts',members:[userId],owner:userId,protocol:'ynx-social-matrix-moment/v1',revision:'a'.repeat(64),roomId:'!original:fixture.invalid'};
   const requests:any[]=[];const binding={account:'synthetic-account',userId,deviceId:'original-device'};
-  const client={getRoom:()=>({getMembers:()=>[{userId,membership:'join'}]}),sendMessage:async(_room:string,input:any,transaction:string)=>{content=input;assert.equal(transaction,requests[1].transactionId);return {event_id:'$original'}}};
+  const client={getRoom:()=>({getMembers:()=>[{userId,membership:'join'}]}),uploadContent:async(data:Uint8Array)=>{uploads++;uploaded=data;return {content_uri:'mxc://fixture.invalid/original-ciphertext'}},sendMessage:async(_room:string,input:any,transaction:string)=>{content=input;assert.equal(transaction,requests[1].transactionId);return {event_id:'$original'}}};
   const operation={binding,client,generation:1},view={account:binding.account,operation};
-  const transport={capture:()=>operation,guard:()=>{},assertTrusted:async()=>{},messages:async()=>[{id:'$original',sender:userId,encrypted:true,verification:{shieldColour:0},content}]};
+  const transport={capture:()=>operation,guard:()=>{},assertTrusted:async()=>{},messages:async()=>{const readback=structuredClone(content);if(tamper&&readback.file)readback.file.hashes.sha256='substituted ciphertext hash';return [{id:'$original',sender:userId,encrypted:true,verification:{shieldColour:0},content:readback}]}};
   const session={current:{status:'connected',session:{account:binding.account,scopes:['social.contacts','social.feed','social.messaging','social.profile']}},restore:async()=>session.current,createSocialAudienceProof:async(input:any)=>({body:input.body,proofHeader:'synthetic-action',introspection:{proofHeader:'synthetic-introspection'}})};
   const http=createSocialAudienceHTTPClient({session,capture:()=>view,guard:()=>{},csrfToken:async()=> 'synthetic-csrf',fetcher:async(url:RequestInfo|URL,options?:RequestInit)=>{
     const body=JSON.parse(String(options?.body));requests.push(body);
@@ -24,7 +25,7 @@ function fixture(){
       assert.equal('account' in body,false);assert.ok(['kind','groupId','selected'].every(key=>Object.keys(body).includes(key)||key!=='kind'));
       assert.ok(Object.keys(body).every(key=>['kind','groupId','selected'].includes(key)));metadata.kind=body.kind;
     }else{
-      assert.ok(['read','publish','index'].includes(body.action));assert.match(body.transactionId,/^[A-Za-z0-9_-]{16,128}$/);
+      assert.ok(['read','media-prepare','publish','index'].includes(body.action));assert.match(body.transactionId,/^[A-Za-z0-9_-]{16,128}$/);
       assert.ok(Object.keys(body).every(key=>['action','transactionId','expected','eventId','parentEventId'].includes(key)));
       if(body.action==='index')assert.equal(body.eventId,'$original');
     }
@@ -33,7 +34,7 @@ function fixture(){
   createRestrictedMomentsUI({container,transport,capture:()=>view,guard:()=>{},identity:async()=>{},work:(action:any)=>{last=Promise.resolve().then(()=>action());return last},resolveAudience:http.resolve,authorize:http.authorize,
     loadSelections:async()=>({groups:[{id:'group_'+'a'.repeat(24),title:'Original group'}],contacts:[{id:'sp_'+'a'.repeat(32),title:'Accepted friend'}]})});
   const label=(name:string)=>nodes.find(node=>node.attributes['aria-label']===name);
-  return {requests,metadata,input:label('Restricted Moment draft'),choice:label('Restricted Moment audience'),group:label('Existing group'),people:label('Accepted friends'),review:nodes.find(node=>node.textContent==='Review audience'),form:nodes.find(node=>node.tag==='form'),settle:()=>last};
+  return {requests,metadata,input:label('Restricted Moment draft'),file:label('Restricted Moment attachment'),choice:label('Restricted Moment audience'),group:label('Existing group'),people:label('Accepted friends'),review:nodes.find(node=>node.textContent==='Review audience'),form:nodes.find(node=>node.tag==='form'),settle:()=>last,content:()=>content,uploaded:()=>uploaded!,uploads:()=>uploads,tamper:(value:boolean)=>{tamper=value}};
 }
 test('actual UI to consumer to strict HTTP preserves one intent through review, send and index',async()=>{
   const f=fixture();f.input.value='Original reviewed draft';f.review.onclick();await f.settle();
@@ -51,4 +52,23 @@ test('group and selected review use actual original records, never caller accoun
     assert.deepEqual(f.requests[0],kind==='group'?{kind,groupId:'group_'+'a'.repeat(24)}:{kind,selected:['sp_'+'a'.repeat(32)]});
     assert.equal(f.requests[1].action,'read');
   }
+});
+test('actual attachment UI uploads ciphertext and publishes one authenticated standard encrypted file with caption',async()=>{
+  const f=fixture(),bytes=new TextEncoder().encode('private original attachment').buffer;
+  f.input.value='Original private caption';f.file.files=[{name:'private.txt',type:'text/plain',arrayBuffer:async()=>bytes}];f.file.dispatch('change');
+  f.review.onclick();await f.settle();f.form.onsubmit({preventDefault(){}});await f.settle();
+  assert.deepEqual(f.requests.slice(1).map(request=>request.action),['read','media-prepare','media-prepare','media-prepare','publish','publish','index']);
+  assert.ok(f.requests.slice(1).every(request=>request.transactionId===f.requests[1].transactionId));
+  const content=f.content();assert.equal(content.msgtype,'m.file');assert.equal(content.body,'private.txt');assert.equal(content['com.ynx.social.moment'].text,'Original private caption');assert.equal('url' in content,false);
+  assert.equal(f.uploads(),1);assert.notDeepEqual(f.uploaded(),new Uint8Array(bytes));
+  assert.deepEqual(new Uint8Array(await decryptAttachment(f.uploaded().slice().buffer as ArrayBuffer,content.file)),new Uint8Array(bytes));assert.equal(f.input.value,'');
+});
+test('attachment readback substitution preserves draft and original transaction; explicit retry reuses upload',async()=>{
+  const f=fixture(),bytes=new TextEncoder().encode('original file').buffer;
+  f.input.value='Keep original caption';f.file.files=[{name:'original.txt',type:'text/plain',arrayBuffer:async()=>bytes}];f.file.dispatch('change');
+  f.review.onclick();await f.settle();const transaction=f.requests[1].transactionId;f.tamper(true);
+  f.form.onsubmit({preventDefault(){}});await assert.rejects(f.settle(),/ownership is not confirmed/);
+  assert.equal(f.input.value,'Keep original caption');assert.equal(f.requests.some(request=>request.action==='index'),false);assert.equal(f.uploads(),1);
+  f.tamper(false);f.form.onsubmit({preventDefault(){}});await f.settle();
+  assert.equal(f.uploads(),1);assert.ok(f.requests.slice(1).every(request=>request.transactionId===transaction));assert.equal(f.input.value,'');
 });

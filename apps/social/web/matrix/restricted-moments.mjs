@@ -14,6 +14,8 @@ function snapshot(value) {
     owner:value.owner,roomId:value.roomId,members:Object.freeze([...value.members].sort())});
 }
 const same = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+const orderedJSON=value=>Array.isArray(value)?value.map(orderedJSON):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,orderedJSON(value[key])])):value;
+const sameJSON=(actual,expected)=>JSON.stringify(orderedJSON(actual))===JSON.stringify(orderedJSON(expected));
 const sameTypedFields=(actual,expected)=>{
   if(actual===undefined||expected===undefined)return actual===expected;
   if(!actual||typeof actual!=='object'||Array.isArray(actual))return false;
@@ -50,8 +52,8 @@ export class RestrictedMoments {
         semantic.owner!==expected.owner || semantic.revision!==expected.revision || semantic.audience!==expected.kind)
       deny('Verified parent event is unavailable; comment remains blocked');
   }
-  /** @param {{audience: object, text: string, transactionId: string, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
-  async publish({audience,text,transactionId,parent=null}) {
+  /** @param {{audience: object, text: string, transactionId: string, attachment?: any, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
+  async publish({audience,text,transactionId,parent=null,attachment=null}) {
     const expected=snapshot(audience),operation=this.transport.capture();
     if (typeof text!=='string' || !text.trim() || text.length>16000 ||
         typeof transactionId!=='string' || !/^[A-Za-z0-9_-]{16,128}$/.test(transactionId)) deny('Bounded draft and stable transaction identity required');
@@ -63,6 +65,18 @@ export class RestrictedMoments {
       protocol:RESTRICTED_MOMENT_PROTOCOL,kind:parent?'comment':'moment',audience:expected.kind,
       revision:expected.revision,owner:expected.owner,author:operation.binding.userId,
     }};
+    if(attachment){
+      const file=attachment.file;
+      if(attachment.msgtype!=='m.file'||attachment.url!==undefined||typeof attachment.body!=='string'||!attachment.body||attachment.body.length>255||
+        !file||file.v!=='v2'||typeof file.url!=='string'||!/^mxc:\/\/[^\s/?#]+\/[^\s/?#]+$/.test(file.url)||
+        typeof file.iv!=='string'||!file.iv||typeof file.hashes?.sha256!=='string'||!file.hashes.sha256||
+        file.key?.kty!=='oct'||file.key.alg!=='A256CTR'||typeof file.key.k!=='string'||!file.key.k||
+        !Number.isSafeInteger(attachment.info?.size)||attachment.info.size<1||attachment.info.size>25*1024*1024||typeof attachment.info.mimetype!=='string')
+        deny('Standard encrypted attachment descriptor required; plaintext media is forbidden');
+      content.msgtype='m.file';content.body=attachment.body;
+      content['file']=structuredClone(file);content['info']=structuredClone(attachment.info);
+      content['com.ynx.social.moment']['text']=text;
+    }
     if(parent)content['m.relates_to']={rel_type:'m.reference',event_id:parent.eventId};
     const retained=this.pending.get(transactionId);
     const identity=JSON.stringify({audience:expected,content});
@@ -92,6 +106,7 @@ export class RestrictedMoments {
       if (!sent?.encrypted || sent.verification?.shieldColour!==0 || sent.sender!==operation.binding.userId ||
           sent.content?.msgtype!==content.msgtype || sent.content.body!==content.body ||
           !sameTypedFields(sent.content['com.ynx.social.moment'],content['com.ynx.social.moment']) ||
+          !sameJSON(sent.content.file,content['file']) || !sameJSON(sent.content.info,content['info']) ||
           !sameTypedFields(sent.content['m.relates_to'],content['m.relates_to']))
         deny('Publication event ownership is not confirmed; delivery remains unknown');
       await this.check(expected,operation,{...authorization,action:'index',eventId:intent.eventId});

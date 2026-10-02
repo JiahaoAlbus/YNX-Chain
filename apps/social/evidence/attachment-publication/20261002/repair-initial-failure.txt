@@ -1,0 +1,132 @@
+
+> @ynx-chain/social@1.0.0 test
+> tsx --test src/**/*.test.ts
+
+✔ AI requires bounded explicit context (0.503875ms)
+✔ AI cannot perform social side effects (0.315959ms)
+✔ stale unauthorized HTTP response cannot invalidate a newer authorization (14.294ms)
+✔ late resolve cannot invalidate replacement account-b generation (0.257792ms)
+✔ late resolve cannot invalidate replacement account-a generation (0.144625ms)
+✔ late resolve after logout cannot resurrect or reinvalidate authorization (0.119542ms)
+✔ late reject cannot invalidate replacement account-b generation (0.1615ms)
+✔ late reject cannot invalidate replacement account-a generation (0.119834ms)
+✔ late reject after logout cannot resurrect or reinvalidate authorization (0.06375ms)
+✔ current proof reject still invalidates current authorization (0.093125ms)
+✔ current proof wrong-account still invalidates current authorization (0.076541ms)
+✔ device rotation adopts the replacement session token without losing profile state (0.136875ms)
+✔ audience request sends exact SDK bytes with separate introspection/action proofs (24.519292ms)
+✔ old chat grant never starts publishing proof or network request (0.59325ms)
+✔ account/view stop during signing prevents business dispatch (0.329458ms)
+✔ SDK body substitution cannot be sent (0.228375ms)
+✔ authorize binds original transaction, parent and confirmed event to business body (0.658333ms)
+✔ device-aware envelope set decrypts on every active device and verifies sender (89.209791ms)
+✔ tampered envelope is rejected (15.566833ms)
+✔ attachment encryption enforces bounds and authentication (2.259375ms)
+✔ device rotation is dual-authorized and exact-retry stable (16.67125ms)
+✔ encrypted multipart retry skips accepted parts and decrypts exact original (222.914375ms)
+✔ mismatched operation grant is rejected before sending ciphertext to Cloud (0.378416ms)
+✔ camera decoding releases stream and only returns QR content (0.939625ms)
+✔ cancel before permission resolves releases late stream without attaching (0.102208ms)
+✔ unsupported scanner never requests camera permission (0.12875ms)
+✔ denied camera permission gives retry guidance and can retry (0.102667ms)
+✔ account invalidation during decode stops camera and discards result (0.110292ms)
+✔ superseding a camera attempt cannot reattach the older stream (0.203125ms)
+✔ cancel releases never-settling wait without clearing a new operation (0.677291ms)
+✔ never-settling transport has a bounded local wait (6.711917ms)
+✔ synchronous transport throw releases only its own operation (0.418291ms)
+✔ late old result cannot resolve or unlock the new wait (0.334166ms)
+✔ preview alone sends nothing; explicit confirmation binds reviewed identity (2.821875ms)
+✔ cancel and account lock invalidate previous review (0.528666ms)
+✔ new preview invalidates old and failed submission retains exact retry identity (0.300375ms)
+✔ late preview after logout is discarded without submitting (0.208459ms)
+✔ invitation links are parsed in place and foreign routes fail closed (0.312125ms)
+✔ request message remains exact across failed retries (0.301041ms)
+✔ Native cancelled never-settling send permits fresh review and preserves original unknown intent (1.048916ms)
+✔ Native cancellation bounds a never-settling preview before fresh review (0.43125ms)
+✔ Native preview sends nothing until explicit confirmation of stable target (1.1835ms)
+✔ Native same-account new generation rejects old review (0.216417ms)
+✔ Native cancellation and logout reject old review without submitting (0.232042ms)
+✔ Native failed retry preserves identity, key and message (0.193625ms)
+✔ Native late preview after account change cannot become a review (0.104583ms)
+✔ Native QR contract accepts opaque canonical locator, rejects legacy and funding values (0.152041ms)
+✔ Native preview rejects stale-server funding IDs and foreign invitation URLs (0.111333ms)
+✔ Web retry retains exact approved person, note and key without a new preview (0.880084ms)
+✔ editing requires a new review and retains original uncertain intent metadata (0.111584ms)
+✔ new account discards old-account pending hints and cannot retry them (0.073208ms)
+✔ archived uncertain hints are also generation-scoped (0.053542ms)
+✔ restart recovers last complete snapshot after a torn write (5.680375ms)
+✔ successive acknowledgements persist and do not reload the legacy queue (0.488ms)
+✔ corruption never silently replaces the queue with an empty or legacy queue (0.958625ms)
+✔ checksums reject an altered latest snapshot and preserve the previous one (1.406583ms)
+✔ all twelve audited locale catalogs contain the same nonblank keys (0.918542ms)
+✔ critical security, privacy, permission, recovery and AI labels are localized (0.126417ms)
+✔ Intl helpers localize date, numbers and plural rules without blank fallback (36.478458ms)
+✔ queued messages survive unrelated acknowledgements and round-trip storage (1.026083ms)
+✔ retries preserve exact ciphertext and separate devices and accounts (0.216209ms)
+✔ legacy data is preserved without being silently assigned to a new device (0.096583ms)
+✔ current recipients and exact signed retry are accepted (93.32825ms)
+✔ removed members and revoked or newly added devices block stale retries (8.861042ms)
+✔ tampering with sender, context or signature cannot be retried (10.232125ms)
+✔ message synchronization follows cursors and deduplicates overlapping pages (12.947791ms)
+✔ a nonadvancing synchronization cursor fails instead of looping (0.319834ms)
+✔ fresh guest restore creates no device, request, probe or Wallet launch (32.63875ms)
+✔ explicit SDK request survives cold restore without replacing bytes or opening Wallet (6.697958ms)
+✔ only an explicit open action launches the retained SDK route (2.662875ms)
+✔ pending identity never authorizes messaging and disconnect suspends proofs (2.388958ms)
+✔ Native People and Alerts receive contacts only from explicit complete Social consent (2.461083ms)
+✔ restricted attachment uses official encrypted bytes and three audience/trust checks (3.990625ms)
+✔ revoked audience after encryption prevents upload (3.099875ms)
+✔ known uploaded receipt is retained across late policy failure, explicit retry never reuploads (3.082916ms)
+✔ unknown upload result cannot be retried with the original transaction (1.200541ms)
+✔ lock after upload retains receipt but never publishes a prepared descriptor (0.802666ms)
+✖ original transaction cannot substitute the file bytes or reviewed audience (2.933334ms)
+✔ restricted moment uses standard encrypted-room carrier and metadata-only receipt (3.205458ms)
+✔ relationship revision change during trust preparation blocks sending and retains draft (0.736958ms)
+✔ account stop during preparation cannot publish old draft (0.332791ms)
+✔ stop in final audience-check microtask prevents SDK dispatch (0.387542ms)
+✔ uncertain delivered write retains exact transaction and refuses audience substitution (0.4355ms)
+✔ concurrent prepare cannot send the same transaction twice (0.355958ms)
+✔ caller supplied parent receipt alone never authorizes a comment (0.333042ms)
+✔ current approved member can comment only on authenticated matching encrypted parent (0.981584ms)
+✔ malformed success receipts preserve exact unknown draft and transaction (0.892083ms)
+✔ unconfirmed event ownership never clears original pending transaction (1.099084ms)
+✔ semantic JSON key order does not change authenticated event ownership (0.464875ms)
+✔ unknown semantic keys still deny event ownership (0.213833ms)
+✔ comment semantic and relation key reordering preserves authenticated ownership (0.159584ms)
+✔ actual UI to consumer to strict HTTP preserves one intent through review, send and index (11.330458ms)
+✔ group and selected review use actual original records, never caller account or manual MXID (2.938833ms)
+✔ actual attachment UI uploads ciphertext and publishes one authenticated standard encrypted file with caption (5.447667ms)
+✔ attachment readback substitution preserves draft and original transaction; explicit retry reuses upload (4.9265ms)
+✔ scoped registration signs exact session and existing chat keys without mutating legacy fields (30.281541ms)
+✔ API uses a fresh exact route proof and never an old bearer for a scoped session (8.640792ms)
+✔ account changes and late responses cannot display the previous private workspace (2.131292ms)
+✔ live authority rejection invalidates Native/Web private access without deleting device records (0.260291ms)
+✔ empty server profile enters explicit setup without inventing a profile or turning auth failure into setup (0.320833ms)
+✔ emits only the canonical signed-envelope request field (1.043833ms)
+✔ verifies exact callback binding, account derivation, and compact low-S signature (21.550667ms)
+✔ signs the server challenge with the exact bound P-256 product key (1.594291ms)
+✔ Social keeps both xmldom dependency tracks on fixed releases (1.572792ms)
+ℹ tests 104
+ℹ suites 0
+ℹ pass 103
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 595.994875
+
+✖ failing tests:
+
+test at src/restrictedAttachments.test.ts:2:5034
+✖ original transaction cannot substitute the file bytes or reviewed audience (2.933334ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/restrictedAttachments.test.ts:49:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /different attachment/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

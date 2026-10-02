@@ -1,0 +1,44 @@
+✖ caller audience mutation during authority await cannot substitute original reviewed target (3.127875ms)
+✖ mutable captured binding cannot bypass original unknown intent on same transaction retry (1.321333ms)
+✔ caller byte buffer mutation during check does not replace encrypted original plaintext (0.733209ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 105.057875
+
+✖ failing tests:
+
+test at apps/social/src/independentRestrictedAttachments.test.ts:2:2008
+✖ caller audience mutation during authority await cannot substitute original reviewed target (3.127875ms)
+  AssertionError [ERR_ASSERTION]: mutable audience returned a descriptor for replacement target
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/private/tmp/ynx-social30ae-independent-npxtn1n_/apps/social/src/independentRestrictedAttachments.test.ts:6:616)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/src/independentRestrictedAttachments.test.ts:2:2813
+✖ mutable captured binding cannot bypass original unknown intent on same transaction retry (1.321333ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/private/tmp/ynx-social30ae-independent-npxtn1n_/apps/social/src/independentRestrictedAttachments.test.ts:7:563)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /unknown|stale|different/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
