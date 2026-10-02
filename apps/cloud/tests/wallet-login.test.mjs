@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
+import {createCloudAPI} from '../web/cloud-api.js';
 import {readFile} from 'node:fs/promises';
 import {createCloudLogin, selectCloudWallet} from '../web/wallet-login.js';
 import {authMessages, authT, applyAuthLocale} from '../web/auth-i18n.js';
@@ -82,44 +83,41 @@ const source=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 function appHarness() {
   const nodes=new Map();
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{dataset:{},classList:{toggle(){}},replaceChildren(){this.cleared=true},textContent:'private',hidden:false});return nodes.get(selector)};
-  let requests=0;
-  const context=vm.createContext({document:{documentElement:{lang:'zh-CN'},querySelector:get},
+  let requests=0,epoch=0,view={status:'guest'},publish;
+  const fake={seed(account){epoch++;view={status:'connected',session:{account}};publish(view)},state:()=>view,isCurrent:g=>g===epoch,authorization:async()=>{if(view.status!=='connected')throw Object.assign(new Error('Approval required'),{code:'SESSION_INACTIVE'});return {generation:epoch,account:view.session.account,headers:{'X-YNX-Product-Session-Proof-V2':'synthetic-proof'}}},invalidate(code){epoch++;view={status:'expired',errorCode:code};publish(view)},close(){epoch++},disconnect:async()=>{epoch++;view={status:'disconnected'};publish(view);return view}};
+  const context=vm.createContext({document:{documentElement:{lang:'zh-CN'},querySelector:get},FormData,crypto,
     YNX_CLOUD_RUNTIME:{apiBase:'/api/v1'},YNX_TESTNET:{},authT,applyLocale(){},createCloudLogin:()=>({}),
-    fetch:async()=>{requests++;return {ok:false,status:401,headers:{get:()=> 'application/json'},json:async()=>({error:'revoked'})}}});
+    createCloudPrivateSession:options=>{publish=options.publish;return fake},createCloudAPI:options=>createCloudAPI({...options,fetch:(...args)=>context.fetch(...args)}),
+    fetch:async()=>{requests++;return {ok:false,status:401,headers:{get:()=> 'application/json'},json:async()=>({code:'SESSION_REVOKED'})}}});
   vm.runInContext(source.replace(/^import[^\n]*\n/gm,'').split('changeLocale(selectedLocale());')[0],context);
   return {context,nodes,get,requests:()=>requests};
 }
 test('private 401 clears private contents but preserves the standard connection',async()=>{
-  const h=appHarness();vm.runInContext("state.token='expired';state.erasureToken='old';state.standardWallet={account:'0x1111111111111111111111111111111111111111'};state.objects=[{id:'private'}]",h.context);
-  await assert.rejects(vm.runInContext("api('/objects')",h.context),/revoked/);
-  assert.equal(vm.runInContext('state.token',h.context),'');assert.equal(vm.runInContext('state.erasureToken',h.context),'');
+  const h=appHarness();vm.runInContext("privateSession.seed('A');state.erasureToken='old';state.standardWallet={account:'0x1111111111111111111111111111111111111111'};state.objects=[{id:'private'}]",h.context);
+  await assert.rejects(vm.runInContext("api('/objects')",h.context),error=>error.status===401);
+  assert.equal(vm.runInContext('privateConnected()',h.context),false);assert.equal(vm.runInContext('state.erasureToken',h.context),'');
   assert.equal(vm.runInContext('state.objects.length',h.context),0);
   assert.equal(vm.runInContext('state.standardWallet.account',h.context),'0x'+'1'.repeat(40));
   assert.equal(h.get('#files').cleared,true);assert.equal(h.get('#preview').textContent,'');
 });
 test('guest private operations fail locally without network requests',async()=>{
-  const h=appHarness();await assert.rejects(vm.runInContext("api('/objects',{method:'POST'})",h.context),/私有云盘服务/);
-  assert.equal(h.requests(),0);
+  const h=appHarness();await assert.rejects(vm.runInContext("api('/objects',{method:'POST'})",h.context),error=>error.code==='SESSION_INACTIVE');assert.equal(h.requests(),0);
 });
-
 test('late private response cannot revive old data or revoke a newer session',async()=>{
   const h=appHarness(),d=deferred();h.context.fetch=()=>d.promise;
-  vm.runInContext("state.token='old'",h.context);
-  const pending=vm.runInContext("api('/objects')",h.context);
-  vm.runInContext("clearPrivateView();state.token='new'",h.context);
-  d.resolve({ok:false,status:401,headers:{get:()=> 'application/json'},json:async()=>({error:'old session revoked'})});
-  await assert.rejects(pending,error=>error.code==='PRIVATE_CONTEXT_CHANGED');
-  assert.equal(vm.runInContext('state.token',h.context),'new');
+  vm.runInContext("privateSession.seed('A')",h.context);
+  const pending=vm.runInContext("api('/objects')",h.context);await new Promise(r=>setImmediate(r));
+  vm.runInContext("privateSession.seed('B')",h.context);
+  d.resolve({ok:false,status:401,headers:{get:()=> 'application/json'},json:async()=>({code:'SESSION_REVOKED'})});
+  await assert.rejects(pending,error=>error.code==='PRIVATE_CONTEXT_CHANGED');assert.equal(vm.runInContext('state.privateSession.session.account',h.context),'B');
 });
 test('provider events clear private context and labels retain selected wallet identity',()=>{
-  const h=appHarness(),listeners=new Map();
-  h.context.connection={account:'0x'+'1'.repeat(40),provider:{on(){},removeListener(){}},
-    on(event,listener){listeners.set(event,listener);return ()=>listeners.delete(event)}};
-  vm.runInContext("acceptConnection(connection,{},'metamask');state.token='private';state.objects=[{}]",h.context);
-  assert.match(h.get('#wallet').textContent,/^MetaMask/);
-  listeners.get('accountsChanged')(['0x'+'2'.repeat(40)]);
-  assert.equal(vm.runInContext('state.token',h.context),'');assert.equal(vm.runInContext('state.objects.length',h.context),0);
-  assert.match(h.get('#wallet').textContent,/0x222222/);
-  listeners.get('chainChanged')('0x1');
-  assert.equal(vm.runInContext('state.standardWallet',h.context),null);assert.equal(listeners.size,0);
+  const h=appHarness(),listeners=new Map();h.context.connection={account:'0x'+'1'.repeat(40),provider:{on(){},removeListener(){}},on(event,listener){listeners.set(event,listener);return ()=>listeners.delete(event)}};
+  vm.runInContext("acceptConnection(connection,{},'metamask');state.objects=[{}]",h.context);assert.match(h.get('#wallet').textContent,/^MetaMask/);
+  listeners.get('accountsChanged')(['0x'+'2'.repeat(40)]);assert.equal(vm.runInContext('state.objects.length',h.context),0);assert.match(h.get('#wallet').textContent,/0x222222/);
+  listeners.get('chainChanged')('0x1');assert.equal(vm.runInContext('state.standardWallet',h.context),null);assert.equal(listeners.size,0);
+});
+test('file selected for old account cannot upload after asynchronous read and account switch',async()=>{
+ const h=appHarness(),d=deferred();h.context.file={arrayBuffer:()=>d.promise,name:'synthetic.txt',type:'text/plain'};
+ vm.runInContext("privateSession.seed('A')",h.context);const pending=vm.runInContext('uploadOne(file)',h.context);vm.runInContext("privateSession.seed('B')",h.context);d.resolve(new ArrayBuffer(0));await assert.rejects(pending,e=>e.code==='PRIVATE_CONTEXT_CHANGED');assert.equal(h.requests(),0);assert.equal(vm.runInContext('state.privateSession.session.account',h.context),'B');
 });
