@@ -2956,7 +2956,11 @@ func (s *Service) CreateSupport(session WalletSession, category, message, key st
 		if prev.Action != "support_create" || prev.Digest != d {
 			return SupportCase{}, ErrConflict
 		}
-		return s.state.Support[prev.ObjectID], nil
+		previous, exists := s.state.Support[prev.ObjectID]
+		if !exists || previous.ID != prev.ObjectID || previous.Account != session.Account {
+			return SupportCase{}, ErrConflict
+		}
+		return previous, nil
 	}
 	id := s.nextIDLocked("case")
 	c := SupportCase{ID: id, Account: session.Account, Category: category, Message: message, Status: "open", CreatedAt: s.cfg.Now().UTC()}
