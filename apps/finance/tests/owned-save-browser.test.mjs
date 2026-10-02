@@ -12,6 +12,20 @@ const locale=await readFile(new URL('../web/finance-locale.js',import.meta.url),
 const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function renderStatement('));
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
+test('all twelve locales keep reminder protocol values independent from translated option labels',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addScriptTag({content:locale});
+    for(const language of ['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(language=>window.YNXFinanceLocale.set(language),language);
+      for(const [value,key] of [['monthly','monthlyLabel'],['weekly','weeklyLabel'],['custom','customLabel']]){
+        await page.locator('#reminder-form select[name=schedule]').selectOption(value);
+        assert.deepEqual(await page.evaluate(()=>{const select=document.querySelector('#reminder-form select[name=schedule]');return {value:new FormData(document.querySelector('#reminder-form')).get('schedule'),label:select.selectedOptions[0].textContent};}),{value,label:await page.evaluate(key=>window.YNXFinanceLocale.text(key),key)});
+      }
+    }
+  }finally{await browser.close();}
+});
 test('normal privacy checkbox submit is single-flight and a late read preserves the next unsaved edit',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

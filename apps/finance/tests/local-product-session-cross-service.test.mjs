@@ -367,6 +367,12 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
         const budgetCreated=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/budgets'&&response.request().method()==='POST');
         await page.locator('#budget-form button').click();assert.equal((await budgetCreated).status(),201);
         assert.deepEqual(await page.evaluate(async()=>{const owned=await api('/api/profile'),budget=owned.budgets.find(item=>item.name==='Isolated SSO-owned budget');return {limit:budget?.limitYnxt,period:budget?.period,categoryOwned:owned.categories.some(item=>item.id===budget?.categoryId)};}),{limit:123,period:'monthly',categoryOwned:true});
+        await page.locator('#reminder-form input[name="title"]').fill('Isolated owned reminder');
+        await page.locator('#reminder-form input[name="amountYnxt"]').fill('17');
+        await page.locator('#reminder-form input[name="nextDueAt"]').fill(new Date(Date.now()+86_400_000).toISOString().slice(0,16));
+        const reminderCreated=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/reminders'&&response.request().method()==='POST');
+        await page.locator('#reminder-form button').click();assert.equal((await reminderCreated).status(),201);
+        assert.equal(await page.evaluate(async()=>{const owned=await api('/api/profile');return owned.reminders.some(item=>item.title==='Isolated owned reminder'&&item.amountYnxt===17&&item.enabled);}),true);
         await page.waitForFunction(()=>document.querySelector('#workspace').dataset.dataState==='ready');
         await page.evaluate(()=>{location.hash='#statements'});
         const statementResponse=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/statements'&&response.request().method()==='GET');
@@ -378,6 +384,10 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
         assert.equal(report.coverageComplete,false,'unavailable upstream must never become a complete financial history');
         await page.waitForFunction(()=>state.statement?.schemaVersion==='finance-statement-v2');
         assert.equal(await page.locator('#statement').evaluate(node=>node.classList.contains('statement-placeholder')),false);
+        const exported=page.waitForEvent('download');await page.locator('#export-json').click();
+        const download=await exported,exportData=JSON.parse(await readFile(await download.path(),'utf8'));
+        assert.equal(exportData.account,walletIdentity('1'.padStart(64,'0')).account);assert.equal(exportData.activityCoverageComplete,false);
+        assert.equal(exportData.profile.budgets.some(item=>item.name==='Isolated SSO-owned budget'&&item.limitYnxt===123),true);
         await page.evaluate(()=>{location.hash='#settings'});
         for(const name of ['includePayInStatements','allowAiActivityContext','alertsEnabled'])await page.locator(`#privacy-form input[name="${name}"]`).uncheck();
         const privacySaved=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/privacy'&&response.request().method()==='PUT');
@@ -390,6 +400,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
         assert.equal(approvalCount,1,'owned-service refresh must restore the approved session, not request another signature');
         assert.equal(await page.evaluate(async()=>{const owned=await api('/api/profile');return owned.categories.some(item=>item.name==='Isolated SSO-owned category')&&owned.budgets.some(item=>item.name==='Isolated SSO-owned budget'&&item.limitYnxt===123);}),true);
         for(const name of ['includePayInStatements','allowAiActivityContext','alertsEnabled'])assert.equal(await page.locator(`#privacy-form input[name="${name}"]`).isChecked(),false,'saved owned privacy must restore from the real service after refresh');
+        assert.equal(await page.evaluate(async()=>{const owned=await api('/api/profile');return owned.reminders.some(item=>item.title==='Isolated owned reminder'&&item.amountYnxt===17);}),true);
       }
       await page.locator('#budget-form input[name="name"]').fill('Preserved local draft');
       failOverview=true;
