@@ -23,6 +23,7 @@ Only `apps/shop`, `apps/merchant-console`, `apps/seller-console`, and existing `
 - Seller operates the selected store's orders, uses current service-returned role permissions for actions and presents live fulfillment/catalog/customer request tasks.
 - Android product-session metadata is stored as one encrypted account/token/expiry record. API requests snapshot and recheck that record; UI callbacks are checked on the UI thread. Release API URLs require HTTPS.
 - Android approval writes now commit on the UI thread behind a local revision fence; logout, replacement approval, duplicate callbacks and Activity teardown cannot admit a late session write. Account syntax is checked before durable storage. Resume/expiry reconciliation clears private presentation and tracked dialogs, restoring only the current account or guest cart, without erasing preserved account records. This is source protection, not installed-device acceptance.
+- Android checkout now persists an account-bound encrypted intent before network or queue admission. Lost-response and restart retries reuse the exact original key; changing purchase/address contents generates a new intent. Confirmed success removes only the matching record. Repeated offline checkout is deduplicated; reusing a queued key with changed contents is rejected while retaining the original queue. Three new JVM regressions cover restart retry, foreign account rejection, and offline intent deduplication/conflict preservation.
 - Android offline requests and cart storage are account-bound. Old unbound queues and old cart records are preserved but not executed or silently attributed to a new account. Queues are bounded, permit only buyer order actions, and stop on the first execution failure. No payment execution is queued. Signout clears only local active session/pending approval and current presentation; account-specific records remain recoverable.
 
 ## Validation and limits
@@ -46,3 +47,7 @@ The source-only canonical tuple was read from `/tmp/ynx-public-products-exact-ca
 5. A owns complete service/static routing/CSP/callback configuration, formal Android/macOS/Web builds and public release. This owner then retests from the final public/install entry, actual Wallet approval, own business read/save/reopen, logout/account changes and recovery.
 
 Current status: `SOURCE_IN_PROGRESS`, complete product release and installed/public/true SSO journeys **NOT_VERIFIED**, MONSTER **NOT_RUN**. The original full goal stays active. This checkpoint is recoverable continuation, not completion or release authorization.
+
+## Next owned continuation
+
+Continue the existing product work from this tree: finish Seller form retry behavior for store creation and order decisions, review native queued-result UI after account changes, and close remaining product-only usability gaps. Consume A's precise v2 contracts/artifacts once delivered, then migrate these existing integrations and retest actual private business. Keep Android/macOS/Web formal package and installed/public entry checks separate. The iOS legacy adapter remains preserved and unverified.

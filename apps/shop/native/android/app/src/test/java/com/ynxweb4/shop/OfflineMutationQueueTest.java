@@ -30,4 +30,13 @@ public final class OfflineMutationQueueTest {
   assertThrows(SecurityException.class,()->queue.enqueue("POST","/orders/example/transition",new JSONObject().put("Action","refund_approved")));
   assertEquals(0,queue.size());
  }
+ @Test public void repeatedOfflineCheckoutKeepsOneExactIntent()throws Exception{
+  Memory memory=new Memory();memory.login(A);OfflineMutationQueue queue=new OfflineMutationQueue(memory);
+  JSONObject body=new JSONObject().put("IdempotencyKey","stable-checkout-key").put("Quantity",2);
+  String id=queue.enqueue("POST","/orders",body),before=memory.get("offline_mutations");
+  assertEquals(id,queue.enqueue("POST","/orders",new JSONObject(body.toString())));assertEquals(1,queue.size());
+  body.put("Quantity",3);
+  assertThrows(SecurityException.class,()->queue.enqueue("POST","/orders",body));
+  assertEquals(before,memory.get("offline_mutations"));
+ }
 }

@@ -123,9 +123,11 @@ public final class MainActivity extends Activity {
         if(!hasSession()){signIn();return;}if(recipient.getText().toString().isBlank()||address.getText().toString().isBlank()||country.getText().toString().isBlank()){status.setText(getString(R.string.address));return;}
         try{
             JSONObject first=cart.getJSONObject(0),product=findProduct(first.getString("ProductID"));
-            JSONObject body=new JSONObject().put("StoreID",product.getString("StoreID")).put("Items",cart).put("Address",new JSONObject().put("Recipient",recipient.getText()).put("Line1",address.getText()).put("City",city.getText()).put("Country",country.getText())).put("IdempotencyKey",UUID.randomUUID().toString());
+            ProductSession session=api.session();if(session==null){signIn();return;}
+            JSONObject body=new JSONObject().put("StoreID",product.getString("StoreID")).put("Items",cart).put("Address",new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString()));
+            String intentStorage="checkout:"+session.account;CheckoutIntent intent=CheckoutIntent.prepare(session.account,body,secure.get(intentStorage));secure.put(intentStorage,intent.serialized);body.put("IdempotencyKey",intent.key);
             if(!isOnline()){queue.enqueue("POST","/orders",body);status.setText(getString(R.string.queued_offline));return;}
-            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}try{cart=new JSONArray();persistCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
+            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}try{if(intent.serialized.equals(secure.get(intentStorage)))secure.remove(intentStorage);cart=new JSONArray();persistCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
         }catch(Exception error){status.setText(error.getMessage());}
     }
 
