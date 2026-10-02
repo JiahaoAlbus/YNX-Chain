@@ -209,6 +209,7 @@
     "Music Web still contains placeholder business actions; new playlist editing endpoints do not establish a finished client flow.",
     "Actual macOS product targets/packages and native Video private sign-in remain incomplete.",
     "Exact formally released normal-entry login, own data readback, logout/switch/recovery and creator publishing require A release then Media retest.",
-    "Abrupt Video page termination may lose less than 15 seconds of unacknowledged playback. Retained thumbnails still count toward the existing quota."
-  ]
+    "Periodic Video checkpoints reduce loss, but abrupt termination can lose all pending progress, including intervals longer than 15 seconds when a write is offline, failed or in flight. Pending batches are in memory. Retained thumbnails still count toward the existing quota."
+  ],
+  "evidenceClarification": "The earlier Video-only receipt mentioned the normal under-15-second tail. This is not a maximum-loss guarantee; the pending-progress limitation above also covers failed and in-flight writes."
 }
