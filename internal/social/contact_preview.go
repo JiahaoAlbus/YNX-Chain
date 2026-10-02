@@ -16,11 +16,15 @@ func (s *Service) PreviewContact(actor Session, resolver DiscoveryResolver, sour
 	if target == actor.Account {
 		return PersonView{}, ErrInvalid
 	}
+	settings := s.currentSettings(target)
+	if source == "handle" && !settings.DiscoverableByHandle || source == "recommendation" && !settings.AllowRecommendations {
+		return PersonView{}, ErrNotFound
+	}
 	s.mu.Lock()
 	blocked := s.blockedLocked(actor.Account, target)
 	s.mu.Unlock()
 	if blocked {
-		return PersonView{}, ErrUnauthorized
+		return PersonView{}, ErrNotFound
 	}
 	return s.person(target)
 }

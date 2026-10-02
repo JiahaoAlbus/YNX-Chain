@@ -325,6 +325,10 @@ func (s *Service) ResolveDiscovery(source, value string) (string, error) {
 		if err != nil {
 			return "", ErrNotFound
 		}
+		settings := s.currentSettings(profile.Account)
+		if source == "handle" && !settings.DiscoverableByHandle || source == "recommendation" && !settings.AllowRecommendations {
+			return "", ErrNotFound
+		}
 		return profile.Account, nil
 	case "qr":
 		const prefix = "ynxsocial://profile/"

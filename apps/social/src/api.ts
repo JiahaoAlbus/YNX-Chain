@@ -40,7 +40,8 @@ export class SocialAPI {
   updateProfile(body:{idempotencyKey:string;handle:string;displayName:string;bio:string;avatarUrl?:string}){return this.request<{record:SocialProfile;replayed:boolean}>("/social/v1/profile",{method:"PUT",body})}
   settings(){return this.request<{record:PrivacySettings}>("/social/v1/settings")}
   updateSettings(body:{idempotencyKey:string;discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:"everyone"|"contacts"|"nobody";avatarUrl?:string}){return this.request<{record:PrivacySettings;replayed:boolean}>("/social/v1/settings",{method:"PUT",body})}
-  createInvite(ttlSeconds=86400){return this.request<{record:{link:string;expiresAt:string};token:string}>("/social/v1/invites",{method:"POST",body:{ttlSeconds}})}
+  createInvite(ttlSeconds=86400){return this.request<{record:{id:string;link:string;expiresAt:string};token:string}>("/social/v1/invites",{method:"POST",body:{ttlSeconds}})}
+  revokeInvite(id:string){return this.request<{record:{id:string;link:string;expiresAt:string;revokedAt:string}}>(`/social/v1/invites/${encodeURIComponent(id)}/revoke`,{method:"POST",body:{}})}
   contacts(){return this.request<{contacts:Person[];requests:ContactRequest[]}>("/social/v1/contacts")}
   contactMatches(hashes:readonly string[]){return this.request<{matches:ContactMatch[]}>("/social/v1/contact-matches",{method:"POST",body:{hashes}})}
   previewContact(source:GroupDiscoveryInput["source"],value:string){return this.request<{person:Person}>("/social/v1/contacts/preview",{method:"POST",body:{source,value}})}

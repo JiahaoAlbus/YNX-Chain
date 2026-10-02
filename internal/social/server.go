@@ -507,6 +507,17 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 	case path == "contact-requests" && r.Method == http.MethodGet:
 		writeJSON(w, 200, map[string]any{"requests": s.service.Requests(actor)})
 		return
+	case strings.HasPrefix(path, "invites/") && strings.HasSuffix(path, "/revoke") && r.Method == http.MethodPost:
+		var in struct{}
+		if !decodeRequest(w, r, &in, 4096) {
+			return
+		}
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "invites/"), "/revoke")
+		var record Invite
+		record, err = s.service.RevokeInvite(actor, id)
+		if err == nil {
+			writeJSON(w, 200, map[string]any{"record": record})
+		}
 	case path == "contact-requests" && r.Method == http.MethodPost:
 		var in contactRequestDiscoveryInput
 		if !decodeRequest(w, r, &in, 16*1024) {
