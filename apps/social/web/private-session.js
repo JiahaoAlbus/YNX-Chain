@@ -20,18 +20,18 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
   const registryError=(code,message)=>Object.assign(new Error(message),{code,retryable:true});
   async function readRegistry() {
     const controller=new AbortController();let timer,reading=true,expired=false;
-    const timeoutError=registryError("SOCIAL_REGISTRY_TIMEOUT","Social Product Session registry read timed out. Retry explicitly; existing sessions are unchanged.");
+    const timeoutError=registryError("SOCIAL_REGISTRY_TIMEOUT","Connection is taking too long. Please try again. Your account data is retained.");
     const check=()=>{if(expired||!reading)throw timeoutError;};
     const deadline=new Promise((resolve,reject)=>{timer=setTimeout(()=>{expired=true;controller.abort();reject(timeoutError);},registryTimeoutMs);});
     const read=(async()=>{
       try {
         const response=await environment.fetch(new URL("./vendor/product-session-registry.json",import.meta.url),{credentials:"omit",cache:"no-store",redirect:"error",signal:controller.signal});check();
-        if(!response.ok)throw registryError("SOCIAL_REGISTRY_UNAVAILABLE","Social Product Session registry is unavailable. Retry explicitly.");
+        if(!response.ok)throw registryError("SOCIAL_REGISTRY_UNAVAILABLE","Connection is temporarily unavailable. Please try again. Your account data is retained.");
         const registry=await response.json();check();return registry;
       } catch(error) {
         if(expired||!reading)throw timeoutError;
         if(error?.code==="SOCIAL_REGISTRY_UNAVAILABLE")throw error;
-        throw registryError(error instanceof SyntaxError?"SOCIAL_REGISTRY_INVALID":"SOCIAL_REGISTRY_NETWORK_UNAVAILABLE","Social Product Session registry could not be read. Retry explicitly; existing sessions are unchanged.");
+        throw registryError(error instanceof SyntaxError?"SOCIAL_REGISTRY_INVALID":"SOCIAL_REGISTRY_NETWORK_UNAVAILABLE","Connection is temporarily unavailable. Please try again. Your account data is retained.");
       }
     })();
     try{return await Promise.race([read,deadline]);}
