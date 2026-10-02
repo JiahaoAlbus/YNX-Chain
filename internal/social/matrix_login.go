@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
@@ -13,6 +14,18 @@ import (
 
 const matrixLoginProtocol = "ynx-social-matrix-login/v1"
 const matrixPeerProtocol = "ynx-social-matrix-peer/v1"
+
+var matrixSocialPerson = regexp.MustCompile(`^sp_[A-Za-z0-9_-]{32}$`)
+
+// A contact selected in the normal UI is bound to its existing opaque Social
+// identity, not its mutable handle or a wallet address entered by the user.
+func validMatrixPeerQuery(query url.Values) bool {
+	if len(query) != 1 {
+		return false
+	}
+	return len(query["account"]) == 1 && matrixAccount.MatchString(query.Get("account")) ||
+		len(query["person"]) == 1 && matrixSocialPerson.MatchString(query.Get("person"))
+}
 
 // This endpoint only reads existing identities and accepted relationships.
 // Standard homeserver SSO/token login stays in the existing browser consumer.
@@ -28,7 +41,7 @@ func (s *Server) matrixLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	query, err := url.ParseQuery(r.URL.RawQuery)
-	if err != nil || !peer && len(query) != 0 || peer && (len(query) != 1 || len(query["account"]) != 1 || !matrixAccount.MatchString(query.Get("account"))) {
+	if err != nil || !peer && len(query) != 0 || peer && !validMatrixPeerQuery(query) {
 		writeError(w, http.StatusBadRequest, "invalid Matrix metadata request")
 		return
 	}
@@ -59,6 +72,15 @@ func (s *Server) matrixLogin(w http.ResponseWriter, r *http.Request) {
 	account, protocol := session.Account, matrixLoginProtocol
 	if peer {
 		account, protocol = query.Get("account"), matrixPeerProtocol
+		if person := query.Get("person"); person != "" {
+			// Resolve only an already persisted public identity. Do not allocate a
+			// replacement ID, provision a Matrix user or expose lookup existence.
+			account, err = s.service.resolveProfileLocator(socialLocatorPrefix + person)
+			if err != nil {
+				writeServiceError(w, ErrUnauthorized)
+				return
+			}
+		}
 		if !s.service.matrixPeerAllowed(session.Account, account) {
 			writeServiceError(w, ErrUnauthorized)
 			return
