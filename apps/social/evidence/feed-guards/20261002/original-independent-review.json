@@ -1,0 +1,498 @@
+{
+  "commit": "525bff8cf8cb07e13a7df05b05ffedac5e52658d",
+  "tree": "9eb8cde61c088331fe2760f9c904b5ab86e61c44",
+  "base": "53c566b2e8a929d97866285de82d4011d3825b1f",
+  "archive": "/tmp/ynx-social525-independent-z3u_8mm7",
+  "pins": [
+    {
+      "path": "apps/social/evidence/RESTRICTED-COMMENT-READONLY-RECOVERY.md",
+      "blob": "39bd583d701773e7c45cb99d2cb73b827da70d76",
+      "sha256": "a8bb8a2c1c68b4a9e36872b5e0c5715f4836a2a7e449eaeca4f5321b460447a6",
+      "size": 1864
+    },
+    {
+      "path": "apps/social/evidence/RESTRICTED-FEED-INTENT.md",
+      "blob": "7b38ea03ef8820ba0b44b99c20365e695a015ed4",
+      "sha256": "0b8f60071fdc2b2f18100d6400d331809685fe763e76ddaeabc8ef82f965a383",
+      "size": 1938
+    },
+    {
+      "path": "apps/social/evidence/restricted-feed/20261002/readonly-recovery.json",
+      "blob": "504cf38a9c7d4e3c83377359666b9042b9ce9bf1",
+      "sha256": "72e3b9777372494807aecb026ef243480312e3644b7a76152e860cd9818d8b7b",
+      "size": 1702
+    },
+    {
+      "path": "apps/social/evidence/restricted-feed/20261002/real-dom-protected-intent.json",
+      "blob": "14a1cecaec50dd0d54bfdc482bca6a754b94b1e6",
+      "sha256": "fc12087be2310ca0fcdfd26f7582dc77ea00ca274adc942c1f7b4a6786ccc6ca",
+      "size": 422
+    },
+    {
+      "path": "apps/social/evidence/restricted-feed/20261002/real-dom-recovery.json",
+      "blob": "d127e46142635f665c2b2adce93d94dd8a5d895f",
+      "sha256": "e5deda8812683ff97d960114576124f28c771385e008027fdf323d6c3128a833",
+      "size": 509
+    },
+    {
+      "path": "apps/social/scripts/restricted-comment-recovery-check.mjs",
+      "blob": "a4c6a59a7e2a5703714b696d9424685092e0df51",
+      "sha256": "edbe5548e221af320b98b460627ae7ca9875c1014fe5ad713b463f86b76bcf3a",
+      "size": 2725
+    },
+    {
+      "path": "apps/social/scripts/restricted-feed-ui-check.mjs",
+      "blob": "dff41a0e7125a505e7b4ce30cd75b6ca934c2806",
+      "sha256": "92ab89bbf76d2f0a7e966d89798ec675bad3d8727cee53e4af27f9091883a9dd",
+      "size": 7398
+    },
+    {
+      "path": "apps/social/web/matrix/restricted-comment-recovery.mjs",
+      "blob": "0fdfcbd0b9631fd0ec9176cee99a9c95888c43c1",
+      "sha256": "eba13d813c5297368857b10ce1cfa0a4ebae991b67ecb05301709eff7eb08a9e",
+      "size": 2362
+    },
+    {
+      "path": "apps/social/web/matrix/restricted-feed-ui.mjs",
+      "blob": "8c39d61ac2f3d81106c98178861fd7d8b55faeb1",
+      "sha256": "dcb0b49409a01e238c7822e69d1591399fe452fe53dade713ef89fa173cbd660",
+      "size": 8081
+    }
+  ],
+  "dependencyLockEqual": true,
+  "parent": "554568c5368c71cfa4f15454dabd3418cb67eabb",
+  "parentTree": "29f42a6773f2492137960cb57706ff054ffb7d46",
+  "unchangedContexts": [
+    {
+      "path": "apps/social/web/matrix/crypto-store.mjs",
+      "blob": "59cb6d7f52fb89605c2628ba7958997f6712d92c"
+    },
+    {
+      "path": "apps/social/web/matrix/protected-drafts.mjs",
+      "blob": "3b0e2276ffe10fd7702caff76ec716d72eb6791b"
+    },
+    {
+      "path": "apps/social/web/matrix/restricted-moments.mjs",
+      "blob": "82482af6c18c460a8aa06dee89253a753f1d413e"
+    },
+    {
+      "path": "apps/social/web/matrix/restricted-attachments.mjs",
+      "blob": "7a8f6886edb804581f2702fd9588f1bfab509465"
+    },
+    {
+      "path": "apps/social/web/matrix/restricted-moments-ui.mjs",
+      "blob": "896c90ef30795e2dbf49906a19ae5f932b4c4cb8"
+    },
+    {
+      "path": "apps/social/package-lock.json",
+      "blob": "f122a50c992ae8e90162ab1985cbab135c924b3f"
+    },
+    {
+      "path": "apps/social/web/matrix/session-ui.mjs",
+      "blob": "5835f4683d891a16b1db652a8bf257b2b2a79568"
+    }
+  ],
+  "runs": [
+    {
+      "command": "node scripts/restricted-comment-recovery-check.mjs",
+      "cwd": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social",
+      "log": "/tmp/ynx-social525-independent-helper-20261002.log",
+      "passCount": 10,
+      "failCount": 0,
+      "skipCount": 0,
+      "exitCode": 0,
+      "observations": [
+        {
+          "name": "confirmed exact original",
+          "status": "PASS",
+          "accepted": true,
+          "reads": 1,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "missing original",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "different parent",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "different sender",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "different policy",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "duplicate transaction",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "different decrypted text",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "revoked during read",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "cyclic pagination",
+          "status": "PASS",
+          "accepted": false,
+          "reads": 0,
+          "originalIntentRetained": true
+        },
+        {
+          "name": "original on second page",
+          "status": "PASS",
+          "accepted": true,
+          "reads": 1,
+          "originalIntentRetained": true
+        }
+      ]
+    },
+    {
+      "command": "node scripts/restricted-feed-ui-check.mjs",
+      "cwd": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social",
+      "log": "/tmp/ynx-social525-independent-dom-20261002.log",
+      "passCount": 10,
+      "failCount": 0,
+      "skipCount": 0,
+      "exitCode": 0,
+      "observations": {
+        "textOnly": true,
+        "parentBound": true,
+        "lockCleared": true,
+        "lateLockCleared": true,
+        "revokeDenied": true,
+        "storedBeforeUnknown": true,
+        "refreshBlocksReplacement": true,
+        "remountBlocksReplacement": true,
+        "missingRecoveryRetainsIntent": true,
+        "confirmedRecoveryClearsOriginal": true
+      }
+    },
+    {
+      "command": "node scripts/independent-recovery-check.mjs",
+      "cwd": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social",
+      "log": "/tmp/ynx-social525-independent-negative-helper-20261002.log",
+      "passCount": 4,
+      "failCount": 6,
+      "skipCount": 0,
+      "exitCode": 1,
+      "observations": [
+        {
+          "name": "canonical baseline",
+          "expectedAccept": true,
+          "accepted": true,
+          "status": "PASS",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$original-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "wrong original parent protocol",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$original-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "wrong audience protocol both sides",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$original-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "malformed confirmed event ID",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "not-a-matrix-event",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "whitespace-only original body",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$original-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "index identity changes during read await",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$substituted-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "explicit decoded wrong protocol and type",
+          "expectedAccept": false,
+          "accepted": true,
+          "status": "FAIL",
+          "receipt": {
+            "transactionId": "original_comment_transaction_001",
+            "eventId": "$original-comment",
+            "parentEventId": "$parent",
+            "sender": "@original:fixture.invalid"
+          },
+          "error": null
+        },
+        {
+          "name": "last read await revoke",
+          "expectedAccept": false,
+          "accepted": false,
+          "status": "PASS",
+          "receipt": null,
+          "error": "revoked"
+        },
+        {
+          "name": "65 page bound",
+          "expectedAccept": false,
+          "accepted": false,
+          "status": "PASS",
+          "receipt": null,
+          "error": "MATRIX_COMMENT_RECOVERY_REQUIRED: original intent retained"
+        },
+        {
+          "name": "duplicate transaction on separate pages",
+          "expectedAccept": false,
+          "accepted": false,
+          "status": "PASS",
+          "receipt": null,
+          "error": "MATRIX_COMMENT_RECOVERY_REQUIRED: original intent retained"
+        }
+      ]
+    },
+    {
+      "command": "node scripts/independent-feed-check.mjs",
+      "cwd": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social",
+      "log": "/tmp/ynx-social525-independent-negative-dom-run2-20261002.log",
+      "passCount": 1,
+      "failCount": 3,
+      "skipCount": 0,
+      "exitCode": 1,
+      "observations": [
+        {
+          "name": "storage await cannot switch saved parent or audience at publication",
+          "status": "FAIL",
+          "savedParent": {
+            "protocol": "ynx-social-matrix-moment/v1",
+            "eventId": "$original",
+            "roomId": "!original:fixture.invalid",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "owner": "@original:fixture.invalid"
+          },
+          "savedIndex": {
+            "eventId": "$original",
+            "transactionId": "original_index_transaction",
+            "audience": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "kind": "private",
+              "roomId": "!original:fixture.invalid",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid",
+              "members": [
+                "@original:fixture.invalid"
+              ]
+            }
+          },
+          "publication": {
+            "index": {
+              "eventId": "$changed-parent",
+              "transactionId": "original_index_transaction",
+              "audience": {
+                "protocol": "ynx-social-matrix-moment/v1",
+                "kind": "private",
+                "roomId": "!changed:fixture.invalid",
+                "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "owner": "@original:fixture.invalid",
+                "members": [
+                  "@original:fixture.invalid"
+                ]
+              }
+            },
+            "parent": {
+              "protocol": "ynx-social-matrix-moment/v1",
+              "eventId": "$changed-parent",
+              "roomId": "!changed:fixture.invalid",
+              "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "owner": "@original:fixture.invalid"
+            },
+            "text": "Bound original comment",
+            "transactionId": "dc306895-81fd-4e66-8b64-0e0825a72ef3"
+          },
+          "sendCount": 1,
+          "persistedAfter": null,
+          "statusText": "Encrypted comment confirmed."
+        },
+        {
+          "name": "full decoded identity and parent protocol must be verified before feed success",
+          "status": "FAIL",
+          "rendered": true,
+          "statusText": "Encrypted moments verified."
+        },
+        {
+          "name": "actual DOM final read revoke prevents rendering",
+          "status": "PASS",
+          "rendered": false
+        },
+        {
+          "name": "in-memory uncertain storage reservation retained through refresh absent settlement",
+          "status": "FAIL",
+          "blockedBefore": true,
+          "enabledAfter": true,
+          "storageAttempts": 2,
+          "transactions": [
+            "a1693435-b8ab-471b-a6b1-e9b2aad1b28c",
+            "dffb2e79-9292-42f1-8c65-fb41a1e4bf5b"
+          ],
+          "qualification": "controlled storage rejection/read-null, no Matrix dispatch; tests explicit uncertain-storage reservation contract, not remote unknown settlement"
+        }
+      ]
+    }
+  ],
+  "verdict": "SOURCE_HOLD",
+  "uniqueTests": {
+    "total": 34,
+    "passed": 25,
+    "failed": 9,
+    "skipped": 0
+  },
+  "findings": [
+    {
+      "id": "recovery-mutable-match",
+      "priority": "P1",
+      "location": "restricted-comment-recovery.mjs:21,28-30",
+      "observed": "Matched index event/transaction/parent/sender changed inside read await; still returns success original txn with substituted event."
+    },
+    {
+      "id": "publication-mutable-parent-audience",
+      "priority": "P1",
+      "location": "restricted-feed-ui.mjs:34-49",
+      "observed": "Real encrypted IDB saves original parent/room; mutable references change during save await; normal form callback receives different parent/room and clears original txn with confirmed UI. Controlled publication, not actual Matrix send."
+    },
+    {
+      "id": "canonical-shape-contract",
+      "priority": "P1",
+      "location": "restricted-comment-recovery.mjs:10-11,29; restricted-feed-ui.mjs:67",
+      "observed": "Wrong parent/audience protocol, malformed eventID, whitespace body and explicitly wrong decoded protocol/type accepted; unrelated decoded event/protocol/parent rendered verified. Original publish contract canonical protocol/body/eventID differs from original test fixtures. New read adapter is unmounted/unimplemented, so not real HS forgery; full canonical decoded semantics or validated adapter contract needed before mounting/clear."
+    },
+    {
+      "id": "uncertain-storage-reservation-refresh",
+      "priority": "P2",
+      "location": "restricted-feed-ui.mjs:42,61",
+      "observed": "Storage reject/read-null refresh replaces in-memory pending with null, enables second txn/body save. No Matrix dispatch; conservative uncertain storage reservation contract failure, not proof remote unknown resend."
+    }
+  ],
+  "limitations": [
+    "Unmounted slice; no actual canonical consumer.read/HTTP/Matrix adapter acceptance.",
+    "Original vault/DOM/crypto/IDB actual; Matrix authority/index/read/publication controlled.",
+    "Attachments only label; actual encrypted attachment read outstanding.",
+    "Unindexed dispatched event remains unknown; actual settlement outstanding.",
+    "No real HS/RP/MXID/key/config/native/installed/public/E2EE acceptance."
+  ],
+  "initialFailure": "Independent DOM first pending case falsePASS: predicate saw temporary busy-disabled before second save. Original initial probe/log preserved, final only fixture timing correction; excluded duplicate run from counts.",
+  "inspectionFailure": "First context pin lookup used nonexistent ui.mjs and session-ui path; git128 read-only inspection only, corrected to actual restricted-moments-ui.mjs/matrix/session-ui.mjs; no test expectation or product changed.",
+  "writes": "Only /tmp archive/probes/logs/receipt and lock-equal existing-deps symlink. No product/Host/sharedbrowser/profile/account/device writes.",
+  "broadSuite": "Not run: original 2 scripts plus bounded 14 independent checks only.",
+  "artifacts": [
+    {
+      "path": "/tmp/ynx-social525-independent-helper-20261002.log",
+      "sha256": "72e3b9777372494807aecb026ef243480312e3644b7a76152e860cd9818d8b7b",
+      "size": 1702
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-dom-20261002.log",
+      "sha256": "e5deda8812683ff97d960114576124f28c771385e008027fdf323d6c3128a833",
+      "size": 509
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-negative-helper-20261002.log",
+      "sha256": "42e313314a9834e9ce3a52c02052857224d903976dc65b6007f228bf8527b96b",
+      "size": 3448
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-negative-dom-run2-20261002.log",
+      "sha256": "139b6a7b4b3ad940079f653bd36bc5e076110deff08ed3d041f40ee5b54be004",
+      "size": 3031
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social/scripts/independent-recovery-check.mjs",
+      "sha256": "2a7e0234a2be30b37105f78d89391059ed55c1f2b72fd94b37d8af29f36cf607",
+      "size": 3213
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-z3u_8mm7/apps/social/scripts/independent-feed-check.mjs",
+      "sha256": "9509eace8bfd94bffcbe42109dd197f20ff62a3858103cefba7204c2d81a5a6c",
+      "size": 5966
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-feed-initial-fixture.mjs",
+      "sha256": "40a09fd536332e335ff020c94f0e6e8b3e4ece50e5dc47187ffe5c0bc8b1bf35",
+      "size": 5992
+    },
+    {
+      "path": "/tmp/ynx-social525-independent-negative-dom-initial-fixture-20261002.log",
+      "sha256": "a8c19fcac725fbc9dcf90c674f72afedf606c0496e6976812a83c6d49eb488f5",
+      "size": 2983
+    }
+  ]
+}

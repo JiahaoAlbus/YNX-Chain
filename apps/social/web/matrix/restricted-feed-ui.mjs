@@ -1,4 +1,12 @@
 import {recoverIndexedComment} from './restricted-comment-recovery.mjs';
+const protocol='ynx-social-matrix-moment/v1';
+const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value};
+const snapshot=value=>freeze(structuredClone(value));
+const validDecoded=(index,decoded)=>{
+  const audience=index?.audience,parent=decoded?.parent,kind=index.parentEventId?'comment':'moment';
+  if(audience?.protocol!==protocol||!['contacts','group','selected','private'].includes(audience.kind)||!/^[a-f0-9]{64}$/.test(audience.revision)||typeof audience.owner!=='string'||!audience.owner.startsWith('@')||typeof audience.roomId!=='string'||!audience.roomId.startsWith('!')||!Array.isArray(audience.members)||!audience.members.length||audience.members.length>256||new Set(audience.members).size!==audience.members.length||!audience.members.includes(audience.owner)||audience.members.some(member=>typeof member!=='string'||!member.startsWith('@'))||audience.kind==='private'&&audience.members.length!==1||!/^\$[^\s\x00-\x1f]{1,254}$/.test(index.eventId)||decoded?.eventId!==index.eventId||typeof decoded.text!=='string'||!decoded.text.trim()||decoded.text.length>16000||decoded.protocol!==undefined&&decoded.protocol!==protocol||decoded.kind!==undefined&&decoded.kind!==kind)return false;
+  return kind==='comment'?parent===null:parent?.protocol===protocol&&parent.eventId===index.eventId&&parent.roomId===audience.roomId&&parent.revision===audience.revision&&parent.owner===audience.owner;
+};
 // Caller supplies the original guarded Matrix consumer and existing comment
 // publication flow. This view never requests a Wallet grant or creates identity.
 export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,capture,assertCurrent}) {
@@ -18,6 +26,7 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
   const setBusy=value=>{busy=value;for(const control of controls)control.disabled=locked||busy};
   const clear=()=>{list.replaceChildren();draft.textContent='';recovery.hidden=true;controls.clear();controls.add(refresh);controls.add(recovery)};
   const addComment=(article,index,decoded)=>{
+    index=snapshot(index);decoded=snapshot(decoded);
     if(!decoded.parent||typeof publishComment!=='function'||typeof commentSender!=='function'||typeof commentDrafts?.load!=='function'||typeof commentDrafts?.save!=='function'||typeof commentDrafts?.clearConfirmed!=='function')return;
     const form=document.createElement('form'),input=document.createElement('textarea'),button=document.createElement('button');
     input.setAttribute('aria-label','Encrypted comment');input.maxLength=16000;
@@ -31,19 +40,19 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
       try{
         gate(generation,binding);
         // Reauthorize the exact indexed parent, never a DOM-supplied event ID.
-        const current=await consumer.read(index);gate(generation,binding);
-        if(!current.parent||JSON.stringify(current.parent)!==JSON.stringify(decoded.parent))throw new Error('MATRIX_COMMENT_PARENT_CHANGED');
+        const current=snapshot(await consumer.read(index));gate(generation,binding);
+        if(!validDecoded(index,current)||!current.parent||JSON.stringify(current.parent)!==JSON.stringify(decoded.parent))throw new Error('MATRIX_COMMENT_PARENT_CHANGED');
         const existing=await commentDrafts.load(binding);gate(generation,binding);
         if(existing){pendingIntent=existing;throw new Error('MATRIX_COMMENT_RECOVERY_REQUIRED')}
         const author=await commentSender(binding);gate(generation,binding);
         if(typeof author!=='string'||!author.startsWith('@'))throw new Error('MATRIX_COMMENT_IDENTITY_REQUIRED');
-        const intent={transactionId:document.defaultView.crypto.randomUUID(),text,selection:{kind:index.audience.kind},status:'delivery-unknown',file:null,comment:{author,index:structuredClone(index),parent:structuredClone(current.parent)}};
+        const intent=snapshot({transactionId:document.defaultView.crypto.randomUUID(),text,selection:{kind:index.audience.kind},status:'delivery-unknown',file:null,comment:{author,index:structuredClone(index),parent:structuredClone(current.parent)}});
         // Reserve before the storage await. Even uncertain storage completion
         // must not permit a replacement intent; no Matrix send precedes save.
         pendingIntent=intent;
         await commentDrafts.save(intent,binding);gate(generation,binding);
         uncertain=true;
-        await publishComment({index,parent:current.parent,text,transactionId:intent.transactionId});gate(generation,binding);
+        await publishComment({index,parent:current.parent,text,transactionId:intent.transactionId,binding});gate(generation,binding);
         // publishComment must resolve only after the original encrypted event
         // readback/index confirmation, never merely after upload or dispatch.
         await commentDrafts.clearConfirmed(intent.transactionId,binding);gate(generation,binding);
@@ -58,13 +67,13 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
     const generation=++epoch,binding=capture();clear();setBusy(true);status.textContent='Checking current permissions...';
     try{
       gate(generation,binding);
-      if(commentDrafts?.load){pendingIntent=await commentDrafts.load(binding);gate(generation,binding)}
+      if(commentDrafts?.load){const stored=await commentDrafts.load(binding);gate(generation,binding);if(stored&&pendingIntent&&JSON.stringify(stored)!==JSON.stringify(pendingIntent))throw new Error('MATRIX_COMMENT_RECOVERY_REQUIRED');pendingIntent=stored?snapshot(stored):pendingIntent}
       const feed=await loadIndexes();gate(generation,binding);
       if(!feed||!Array.isArray(feed.indexes)||feed.indexes.length>40)throw new Error('MATRIX_FEED_INVALID');
       const rendered=[];
-      for(const index of feed.indexes){
-        const decoded=await consumer.read(index);gate(generation,binding);
-        if(typeof decoded?.text!=='string'||decoded.text.length>16000)throw new Error('MATRIX_FEED_INVALID');
+      for(const value of feed.indexes){
+        const index=snapshot(value),decoded=snapshot(await consumer.read(index));gate(generation,binding);
+        if(!validDecoded(index,decoded))throw new Error('MATRIX_FEED_INVALID');
         rendered.push({index,decoded});
       }
       gate(generation,binding);

@@ -1,0 +1,123 @@
+{
+  "qualification": "exact source controlled indexes/decryption; canonical original publish contract; no Matrix/send/upload",
+  "pass": 4,
+  "fail": 6,
+  "skip": 0,
+  "results": [
+    {
+      "name": "canonical baseline",
+      "expectedAccept": true,
+      "accepted": true,
+      "status": "PASS",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$original-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "wrong original parent protocol",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$original-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "wrong audience protocol both sides",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$original-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "malformed confirmed event ID",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "not-a-matrix-event",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "whitespace-only original body",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$original-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "index identity changes during read await",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$substituted-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "explicit decoded wrong protocol and type",
+      "expectedAccept": false,
+      "accepted": true,
+      "status": "FAIL",
+      "receipt": {
+        "transactionId": "original_comment_transaction_001",
+        "eventId": "$original-comment",
+        "parentEventId": "$parent",
+        "sender": "@original:fixture.invalid"
+      },
+      "error": null
+    },
+    {
+      "name": "last read await revoke",
+      "expectedAccept": false,
+      "accepted": false,
+      "status": "PASS",
+      "receipt": null,
+      "error": "revoked"
+    },
+    {
+      "name": "65 page bound",
+      "expectedAccept": false,
+      "accepted": false,
+      "status": "PASS",
+      "receipt": null,
+      "error": "MATRIX_COMMENT_RECOVERY_REQUIRED: original intent retained"
+    },
+    {
+      "name": "duplicate transaction on separate pages",
+      "expectedAccept": false,
+      "accepted": false,
+      "status": "PASS",
+      "receipt": null,
+      "error": "MATRIX_COMMENT_RECOVERY_REQUIRED: original intent retained"
+    }
+  ]
+}

@@ -53,6 +53,7 @@ export class RestrictedMoments {
       deny('Verified parent event is unavailable; comment remains blocked');
   }
   async read(index){
+    index=structuredClone(index);
     const expected=snapshot(index.audience),operation=this.transport.capture();
     const authorization={action:'read',transactionId:index.transactionId};
     await this.check(expected,operation,authorization);

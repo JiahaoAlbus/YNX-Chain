@@ -1,0 +1,84 @@
+{
+  "qualification": "isolated actual Chromium DOM/WebCrypto/IDB; controlled Matrix publication/reader; no real HS or mounted product",
+  "pass": 1,
+  "fail": 3,
+  "skip": 0,
+  "results": [
+    {
+      "name": "storage await cannot switch saved parent or audience at publication",
+      "status": "FAIL",
+      "savedParent": {
+        "protocol": "ynx-social-matrix-moment/v1",
+        "eventId": "$original",
+        "roomId": "!original:fixture.invalid",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "owner": "@original:fixture.invalid"
+      },
+      "savedIndex": {
+        "eventId": "$original",
+        "transactionId": "original_index_transaction",
+        "audience": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "kind": "private",
+          "roomId": "!original:fixture.invalid",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner": "@original:fixture.invalid",
+          "members": [
+            "@original:fixture.invalid"
+          ]
+        }
+      },
+      "publication": {
+        "index": {
+          "eventId": "$changed-parent",
+          "transactionId": "original_index_transaction",
+          "audience": {
+            "protocol": "ynx-social-matrix-moment/v1",
+            "kind": "private",
+            "roomId": "!changed:fixture.invalid",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "owner": "@original:fixture.invalid",
+            "members": [
+              "@original:fixture.invalid"
+            ]
+          }
+        },
+        "parent": {
+          "protocol": "ynx-social-matrix-moment/v1",
+          "eventId": "$changed-parent",
+          "roomId": "!changed:fixture.invalid",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner": "@original:fixture.invalid"
+        },
+        "text": "Bound original comment",
+        "transactionId": "dc306895-81fd-4e66-8b64-0e0825a72ef3"
+      },
+      "sendCount": 1,
+      "persistedAfter": null,
+      "statusText": "Encrypted comment confirmed."
+    },
+    {
+      "name": "full decoded identity and parent protocol must be verified before feed success",
+      "status": "FAIL",
+      "rendered": true,
+      "statusText": "Encrypted moments verified."
+    },
+    {
+      "name": "actual DOM final read revoke prevents rendering",
+      "status": "PASS",
+      "rendered": false
+    },
+    {
+      "name": "in-memory uncertain storage reservation retained through refresh absent settlement",
+      "status": "FAIL",
+      "blockedBefore": true,
+      "enabledAfter": true,
+      "storageAttempts": 2,
+      "transactions": [
+        "a1693435-b8ab-471b-a6b1-e9b2aad1b28c",
+        "dffb2e79-9292-42f1-8c65-fb41a1e4bf5b"
+      ],
+      "qualification": "controlled storage rejection/read-null, no Matrix dispatch; tests explicit uncertain-storage reservation contract, not remote unknown settlement"
+    }
+  ]
+}

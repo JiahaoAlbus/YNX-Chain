@@ -8,6 +8,8 @@ import {createChatCopy} from './chat-copy.mjs';
 import {createRestrictedMomentsUI} from './restricted-moments-ui.mjs';
 import {createSocialAudienceHTTPClient} from './audience-client.mjs';
 import {openProtectedMomentDrafts} from './protected-drafts.mjs';
+import {RestrictedMoments} from './restricted-moments.mjs';
+import {mountRestrictedFeed} from './restricted-feed-ui.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -15,7 +17,7 @@ if(root&&!loginCallback){
  const copy=createChatCopy(document),confirmation=createChatConfirmation({container:root,text:copy.text});
  for(const node of root.querySelectorAll('[data-chat-copy]'))if(node.dataset.chatCopy)node.textContent=copy.text(node.dataset.chatCopy);
  const label=text=>{status.textContent=copy.message(text)},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,activeWork=null,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false,sendReady=false;
- let momentComposer=null;
+ let momentComposer=null,momentFeed=null;
  function controls(){root.querySelector('[data-send-form] button').disabled=!sendReady||!!activeWork;root.querySelector('[data-attachment]').disabled=!sendReady||!!activeWork;momentComposer?.refresh()}
  function phase(value,text){status.dataset.phase=value;root.dataset.chatPhase=value;root.querySelector('[data-connection-label]').textContent=copy.text('state'+value[0].toUpperCase()+value.slice(1));label(text??copy.text(value));controls()}
  function diagnostic(error){const code=typeof error?.code==='string'&&/^[A-Z][A-Z0-9_]{2,63}$/.test(error.code)?error.code:'ACTION_UNAVAILABLE';root.querySelector('[data-diagnostic-code]').textContent=code}
@@ -50,7 +52,7 @@ if(root&&!loginCallback){
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code)){lock();phase('approval')}throw error}
  }
- function lock(){pageEpoch++;renderQueued=false;sendReady=false;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
+ function lock(){pageEpoch++;renderQueued=false;sendReady=false;momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
  async function work(action){
   if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
   controls();try{await waitIntent(action(intent),intent,0)}catch(error){if(activeWork===intent&&intent.epoch===pageEpoch&&!stale(error)){diagnostic(error);sendReady=false;if(error?.code==='MATRIX_LOGIN_CANCELLED'){phase(transport.client?'connected':'locked','Sign-in cancelled. Open private chat again when you are ready. Your encrypted history is retained.')}else phase(error?.code==='UI_IDENTITY_UNAVAILABLE'?'offline':error?.code==='MATRIX_PERMISSION_REQUIRED'?'approval':error?.code==='MATRIX_UNVERIFIED_DEVICE'||error?.code==='MATRIX_DEVICE_CHANGED'?'verifying':'error',error?.code==='UI_IDENTITY_UNAVAILABLE'?copy.text('offline'):error?.code==='MATRIX_PERMISSION_REQUIRED'?copy.text('approval'):copy.text('failed'))}}
@@ -116,7 +118,7 @@ if(root&&!loginCallback){
    guardPending();await identity();guardPending();
    await transport.connect(binding,selected,stored.storageKey,{expectedUserId:metadata.userId});guard();const operation=transport.capture();
    transport.guard(operation);await identity();guard();transport.guard(operation);
-   phase('connected');await renderDevices(binding.userId);const view=captureView();await readiness(view);
+   phase('connected');await renderDevices(binding.userId);const view=captureView();await readiness(view);guardView(view);attachMomentFeed();
   }finally{stored.storageKey.fill(0)}
  });
  root.querySelector('[data-stop]').onclick=()=>lock();
@@ -146,6 +148,21 @@ if(root&&!loginCallback){
  const publishing=createSocialPrivateSession({scopes:SOCIAL_AUDIENCE_SCOPES});
  const audienceHTTP=createSocialAudienceHTTPClient({session:publishing,capture:captureView,guard:guardView,csrfToken:async view=>(await identity(view)).csrfToken});
  async function draftAccess(view,action){guardView(view);const vault=await openProtectedMomentDrafts({account:view.account,deviceId:view.operation.binding.deviceId});try{guardView(view);return await action(vault,()=>guardView(view))}finally{vault.close()}}
+ function attachMomentFeed(){
+  momentFeed?.lock();momentFeed?.destroy();
+  const consumer=new RestrictedMoments({transport,authorize:(expected,action)=>audienceHTTP.authorize(expected,action)});
+  momentFeed=mountRestrictedFeed({root,consumer,capture:captureView,assertCurrent:guardView,
+   loadIndexes:async after=>{const view=captureView();await identity(view);guardView(view);const result=await audienceHTTP.indexes(after);guardView(view);return result},
+   commentSender:async view=>{await identity(view);guardView(view);return view.operation.binding.userId},
+   commentDrafts:{load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),save:(payload,view)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),clearConfirmed:(transactionId,view)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
+   publishComment:async({index,parent,text,transactionId,binding:view})=>{
+    let confirmed=false;
+    await work(async()=>{guardView(view);await identity(view);guardView(view);await consumer.publish({audience:index.audience,text,transactionId,parent});guardView(view);confirmed=true});
+    // work handles user-facing diagnostics, but a swallowed/busy operation must
+    // never be mistaken for confirmation or clear the protected intent.
+    guardView(view);if(!confirmed)throw uiError('MATRIX_COMMENT_RECOVERY_REQUIRED','Original comment intent retained');
+   }});
+ }
  async function audienceChoices(view){
   if(publishing.current?.status!=='connected')throw new Error('Review and approve publishing permissions first');
   const read=async(path,scope)=>{const proof=await publishing.proof([scope]);guardView(view);const response=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error',headers:{'X-YNX-Product-Session-Proof-V2':proof.proofHeader}});guardView(view);if(!response.ok)throw new Error('Current friends or groups are unavailable; original draft is retained');const result=await response.json();guardView(view);return result};

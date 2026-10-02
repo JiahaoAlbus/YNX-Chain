@@ -1,0 +1,14 @@
+{
+  "qualification": "original Social service metadata -> actual HTTP parser -> actual RestrictedMoments read/publish/read; controlled Matrix SDK/authority, not production HS",
+  "pass": 6,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    "actual service metadata accepted",
+    "actual consumer decrypted original indexed event",
+    "locked original capture rejected",
+    "class publication preserved exact original transaction",
+    "class-produced comment read back with original parent",
+    "wrong txn parameter rejected without dispatch"
+  ]
+}

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {recoverIndexedComment} from '../web/matrix/restricted-comment-recovery.mjs';
 const sender='@original:fixture.invalid';
-const audience={protocol:'ynx-social-audience/v1',kind:'private',revision:'a'.repeat(64),owner:sender,roomId:'!original:fixture.invalid',members:[sender]};
-const parent={protocol:'ynx-social-moment/v1',eventId:'$parent',roomId:audience.roomId,revision:audience.revision,owner:sender};
+const audience={protocol:'ynx-social-matrix-moment/v1',kind:'private',revision:'a'.repeat(64),owner:sender,roomId:'!original:fixture.invalid',members:[sender]};
+const parent={protocol:audience.protocol,eventId:'$parent',roomId:audience.roomId,revision:audience.revision,owner:sender};
 const intent={transactionId:'original_comment_transaction_001',status:'delivery-unknown',text:'Original encrypted comment',selection:{kind:'private'},file:null,comment:{author:sender,parent,index:{eventId:parent.eventId,audience}}};
 const index={eventId:'$comment',transactionId:intent.transactionId,parentEventId:parent.eventId,sender,audience};
 const decoded={eventId:index.eventId,text:intent.text,attachment:null,parent:null};
