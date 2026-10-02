@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">جارٍ انتظار نتائج الطلبات المرسلة. تم إيقاف التغييرات الجديدة وإعادة المحاولات مؤقتًا.</string>
+    <string name="privacy_blocked_unknown">نتيجة طلب سابق غير مؤكدة. لم يُرسل طلب الحذف. تبقى سجلات الاسترداد مشفرة والتغييرات متوقفة مؤقتًا.</string>
+    <string name="privacy_deletion_unknown">نتيجة الحذف غير مؤكدة. تبقى التغييرات والطلبات السابقة متوقفة. تعيد المحاولة إرسال طلب الحذف نفسه.</string>
+    <string name="privacy_cleanup_pending">تم تأكيد الحذف على الخادم. حُفظت الأدلة المشفرة، لكن التنظيف المحلي لم يكتمل. تبقى التغييرات متوقفة مؤقتًا.</string>
+    <string name="privacy_confirmed_evidence">تم تأكيد الحذف على الخادم. تُحفظ الطلبات السابقة كأدلة مشفرة ولن تُنفذ مجددًا. تبقى السجلات المالية وسجلات السلسلة العامة قابلة للتحقق.</string>
+    <string name="privacy_too_many_records">هناك طلبات معلقة كثيرة لا يمكن تضمينها بأمان في هذا الحذف. لم يُرسل طلب الحذف وبقيت سجلاتك محفوظة.</string>
+    <string name="privacy_invalid_receipt">لم يؤكد الخادم إيصال الحذف المطلوب. لا تزال النتيجة غير مؤكدة.</string>
+    <string name="privacy_recovery_export">تصدير سجلات الاسترداد</string>
+    <string name="privacy_retry_deletion">إعادة محاولة تأكيد الحذف</string>
+    <string name="privacy_continue_deletion">متابعة الحذف</string>
+    <string name="privacy_finish_cleanup">إكمال التنظيف المحلي</string>
+    <string name="privacy_new_shopping">بدء تسوق جديد</string>
+    <string name="privacy_recovery_notice">يوقف الحذف الطلبات السابقة مؤقتًا. قد يبقى محتواها الأصلي، بما فيه العناوين، كأدلة استرداد مشفرة. ولن تُنفذ مجددًا بعد تأكيد الحذف.</string>
+</resources>

@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">正在等待已提交請求的結果。新修改和待處理重試已暫停。</string>
+    <string name="privacy_blocked_unknown">先前請求的結果尚未確認，刪除尚未送出。復原記錄繼續加密保存，修改保持暫停。</string>
+    <string name="privacy_deletion_unknown">刪除結果尚未確認。修改和舊請求保持暫停；重試只送出原刪除請求。</string>
+    <string name="privacy_cleanup_pending">伺服器刪除已確認，加密證據已保存，本機清理尚待完成。修改保持暫停。</string>
+    <string name="privacy_confirmed_evidence">伺服器刪除已確認。先前請求作為加密證據保留，不會再次執行。公鏈及財務記錄仍可核驗。</string>
+    <string name="privacy_too_many_records">待處理記錄過多，暫時無法安全刪除。刪除請求尚未送出，記錄已保留。</string>
+    <string name="privacy_invalid_receipt">伺服器未確認所需的刪除回執，結果仍未確認。</string>
+    <string name="privacy_recovery_export">匯出復原記錄</string>
+    <string name="privacy_retry_deletion">重試確認刪除</string>
+    <string name="privacy_continue_deletion">繼續刪除</string>
+    <string name="privacy_finish_cleanup">完成本機清理</string>
+    <string name="privacy_new_shopping">開始新的購物</string>
+    <string name="privacy_recovery_notice">刪除會暫停先前請求。其原始內容可能作為加密復原證據保留，包括地址；刪除確認後不會再次執行。</string>
+</resources>

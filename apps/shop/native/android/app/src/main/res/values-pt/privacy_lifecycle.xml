@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">A aguardar os resultados dos pedidos enviados. Novas alterações e tentativas estão suspensas.</string>
+    <string name="privacy_blocked_unknown">O resultado de um pedido anterior não está confirmado. A eliminação não foi enviada. Os registos permanecem cifrados e as alterações suspensas.</string>
+    <string name="privacy_deletion_unknown">O resultado da eliminação não está confirmado. As alterações e os pedidos anteriores continuam suspensos. Tentar novamente envia o mesmo pedido de eliminação.</string>
+    <string name="privacy_cleanup_pending">A eliminação no servidor está confirmada. As provas cifradas foram guardadas; falta concluir a limpeza local. As alterações continuam suspensas.</string>
+    <string name="privacy_confirmed_evidence">A eliminação no servidor está confirmada. Os pedidos anteriores ficam guardados como provas cifradas e não serão executados novamente. Os registos financeiros e da cadeia pública continuam verificáveis.</string>
+    <string name="privacy_too_many_records">Existem demasiados pedidos pendentes para incluir nesta eliminação. A eliminação não foi enviada e os seus registos foram preservados.</string>
+    <string name="privacy_invalid_receipt">O servidor não confirmou o comprovativo de eliminação necessário. O resultado continua por confirmar.</string>
+    <string name="privacy_recovery_export">Exportar registos de recuperação</string>
+    <string name="privacy_retry_deletion">Tentar confirmar a eliminação</string>
+    <string name="privacy_continue_deletion">Continuar eliminação</string>
+    <string name="privacy_finish_cleanup">Concluir limpeza local</string>
+    <string name="privacy_new_shopping">Iniciar novas compras</string>
+    <string name="privacy_recovery_notice">A eliminação suspende os pedidos anteriores. O conteúdo original, incluindo moradas, pode permanecer como prova cifrada de recuperação. Os pedidos não serão executados após a confirmação da eliminação.</string>
+</resources>

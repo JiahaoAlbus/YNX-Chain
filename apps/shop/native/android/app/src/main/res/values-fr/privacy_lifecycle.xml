@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">En attente du résultat des demandes envoyées. Les nouvelles modifications et les nouvelles tentatives sont suspendues.</string>
+    <string name="privacy_blocked_unknown">Le résultat d’une demande précédente est inconnu. La suppression n’a pas été envoyée. Les données de récupération restent chiffrées et les modifications suspendues.</string>
+    <string name="privacy_deletion_unknown">Le résultat de la suppression est inconnu. Les modifications et les anciennes demandes restent suspendues. Une nouvelle tentative renvoie la même demande de suppression.</string>
+    <string name="privacy_cleanup_pending">La suppression sur le serveur est confirmée. Les preuves chiffrées sont enregistrées ; le nettoyage local reste à terminer. Les modifications restent suspendues.</string>
+    <string name="privacy_confirmed_evidence">La suppression sur le serveur est confirmée. Les anciennes demandes sont conservées comme preuves chiffrées et ne seront plus exécutées. Les données financières et de la chaîne publique restent vérifiables.</string>
+    <string name="privacy_too_many_records">Trop de demandes en attente pour les inclure dans cette suppression. La suppression n’a pas été envoyée et vos données sont conservées.</string>
+    <string name="privacy_invalid_receipt">Le serveur n’a pas confirmé le reçu de suppression requis. Le résultat reste inconnu.</string>
+    <string name="privacy_recovery_export">Exporter les données de récupération</string>
+    <string name="privacy_retry_deletion">Réessayer de confirmer la suppression</string>
+    <string name="privacy_continue_deletion">Poursuivre la suppression</string>
+    <string name="privacy_finish_cleanup">Terminer le nettoyage local</string>
+    <string name="privacy_new_shopping">Commencer de nouveaux achats</string>
+    <string name="privacy_recovery_notice">La suppression suspend les anciennes demandes. Leur contenu original, y compris les adresses, peut être conservé comme preuve chiffrée de récupération. Elles ne seront plus exécutées après confirmation de la suppression.</string>
+</resources>

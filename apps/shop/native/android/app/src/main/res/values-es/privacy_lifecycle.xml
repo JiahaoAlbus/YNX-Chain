@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">Esperando el resultado de las solicitudes enviadas. Los cambios nuevos y los reintentos están pausados.</string>
+    <string name="privacy_blocked_unknown">Una solicitud anterior tiene un resultado sin confirmar. No se ha enviado la eliminación. Los registros siguen cifrados y los cambios permanecen pausados.</string>
+    <string name="privacy_deletion_unknown">El resultado de la eliminación no está confirmado. Los cambios y las solicitudes anteriores siguen pausados. El reintento envía la misma solicitud de eliminación.</string>
+    <string name="privacy_cleanup_pending">La eliminación del servidor está confirmada. Las pruebas cifradas están guardadas; falta finalizar la limpieza local. Los cambios siguen pausados.</string>
+    <string name="privacy_confirmed_evidence">La eliminación del servidor está confirmada. Las solicitudes anteriores se conservan como pruebas cifradas y no volverán a ejecutarse. Los registros financieros y de la cadena pública siguen siendo verificables.</string>
+    <string name="privacy_too_many_records">Hay demasiadas solicitudes pendientes para incluirlas en esta eliminación. No se envió la eliminación y sus registros se conservan.</string>
+    <string name="privacy_invalid_receipt">El servidor no confirmó el recibo de eliminación requerido. El resultado sigue sin confirmarse.</string>
+    <string name="privacy_recovery_export">Exportar registros de recuperación</string>
+    <string name="privacy_retry_deletion">Reintentar confirmar eliminación</string>
+    <string name="privacy_continue_deletion">Continuar eliminación</string>
+    <string name="privacy_finish_cleanup">Finalizar limpieza local</string>
+    <string name="privacy_new_shopping">Iniciar nuevas compras</string>
+    <string name="privacy_recovery_notice">La eliminación pausa las solicitudes anteriores. Su contenido original, incluidas las direcciones, puede conservarse como prueba cifrada de recuperación. No se ejecutarán después de confirmar la eliminación.</string>
+</resources>

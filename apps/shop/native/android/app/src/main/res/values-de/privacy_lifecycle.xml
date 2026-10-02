@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">Die Ergebnisse gesendeter Anfragen werden abgewartet. Neue Änderungen und Wiederholungen sind angehalten.</string>
+    <string name="privacy_blocked_unknown">Das Ergebnis einer früheren Anfrage ist unbestätigt. Die Löschung wurde nicht gesendet. Wiederherstellungsdaten bleiben verschlüsselt und Änderungen angehalten.</string>
+    <string name="privacy_deletion_unknown">Das Ergebnis der Löschung ist unbestätigt. Änderungen und frühere Anfragen bleiben angehalten. Ein erneuter Versuch sendet dieselbe Löschanfrage.</string>
+    <string name="privacy_cleanup_pending">Die Löschung auf dem Server ist bestätigt. Verschlüsselte Nachweise sind gespeichert; die lokale Bereinigung steht noch aus. Änderungen bleiben angehalten.</string>
+    <string name="privacy_confirmed_evidence">Die Löschung auf dem Server ist bestätigt. Frühere Anfragen bleiben als verschlüsselte Nachweise erhalten und werden nicht erneut ausgeführt. Finanzdaten und öffentliche Blockchain-Daten bleiben überprüfbar.</string>
+    <string name="privacy_too_many_records">Zu viele ausstehende Anfragen für diese Löschung. Die Löschung wurde nicht gesendet; Ihre Daten bleiben erhalten.</string>
+    <string name="privacy_invalid_receipt">Der Server hat den erforderlichen Löschbeleg nicht bestätigt. Das Ergebnis bleibt unbestätigt.</string>
+    <string name="privacy_recovery_export">Wiederherstellungsdaten exportieren</string>
+    <string name="privacy_retry_deletion">Löschbestätigung erneut versuchen</string>
+    <string name="privacy_continue_deletion">Löschung fortsetzen</string>
+    <string name="privacy_finish_cleanup">Lokale Bereinigung abschließen</string>
+    <string name="privacy_new_shopping">Neuen Einkauf beginnen</string>
+    <string name="privacy_recovery_notice">Die Löschung hält frühere Anfragen an. Ihr ursprünglicher Inhalt, einschließlich Adressen, kann als verschlüsselter Wiederherstellungsnachweis erhalten bleiben. Nach bestätigter Löschung werden sie nicht erneut ausgeführt.</string>
+</resources>

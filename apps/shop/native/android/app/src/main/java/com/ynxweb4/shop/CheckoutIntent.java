@@ -24,6 +24,7 @@ final class CheckoutIntent {
         synchronized(store){
             ProductSession session=ProductSession.parse(store.get("commerce_session"),Instant.now());
             if(session==null)throw new SecurityException("Active Shop account required");
+            PrivacyLifecycle.requireWritable(store,session.account);
             String cartText=store.get("cart:"+session.account);
             JSONArray items=cartText.isEmpty()?new JSONArray():new JSONArray(cartText);
             if(items.length()==0)throw new EmptyCartException();

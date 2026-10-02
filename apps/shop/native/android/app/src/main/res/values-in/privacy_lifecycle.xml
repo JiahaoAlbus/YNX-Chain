@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">Menunggu hasil permintaan yang telah dikirim. Perubahan baru dan percobaan ulang dijeda.</string>
+    <string name="privacy_blocked_unknown">Hasil permintaan sebelumnya belum terkonfirmasi. Penghapusan belum dikirim. Catatan pemulihan tetap terenkripsi dan perubahan tetap dijeda.</string>
+    <string name="privacy_deletion_unknown">Hasil penghapusan belum terkonfirmasi. Perubahan dan permintaan lama tetap dijeda. Percobaan ulang mengirim permintaan penghapusan yang sama.</string>
+    <string name="privacy_cleanup_pending">Penghapusan di server telah dikonfirmasi. Bukti terenkripsi telah disimpan, tetapi pembersihan lokal belum selesai. Perubahan tetap dijeda.</string>
+    <string name="privacy_confirmed_evidence">Penghapusan di server telah dikonfirmasi. Permintaan lama disimpan sebagai bukti terenkripsi dan tidak akan dijalankan lagi. Catatan keuangan dan rantai publik tetap dapat diverifikasi.</string>
+    <string name="privacy_too_many_records">Terlalu banyak permintaan tertunda untuk disertakan dalam penghapusan ini. Penghapusan belum dikirim dan catatan Anda tetap disimpan.</string>
+    <string name="privacy_invalid_receipt">Server belum mengonfirmasi tanda terima penghapusan yang diperlukan. Hasilnya masih belum terkonfirmasi.</string>
+    <string name="privacy_recovery_export">Ekspor catatan pemulihan</string>
+    <string name="privacy_retry_deletion">Coba konfirmasi penghapusan lagi</string>
+    <string name="privacy_continue_deletion">Lanjutkan penghapusan</string>
+    <string name="privacy_finish_cleanup">Selesaikan pembersihan lokal</string>
+    <string name="privacy_new_shopping">Mulai belanja baru</string>
+    <string name="privacy_recovery_notice">Penghapusan menjeda permintaan lama. Isi aslinya, termasuk alamat, dapat disimpan sebagai bukti pemulihan terenkripsi. Permintaan tersebut tidak akan dijalankan lagi setelah penghapusan dikonfirmasi.</string>
+</resources>

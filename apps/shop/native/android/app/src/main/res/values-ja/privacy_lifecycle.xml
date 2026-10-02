@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">送信済みリクエストの結果を待っています。新しい変更と再試行は停止中です。</string>
+    <string name="privacy_blocked_unknown">以前のリクエスト結果が未確認のため、削除は送信されていません。復旧記録は暗号化して保持され、変更は停止したままです。</string>
+    <string name="privacy_deletion_unknown">削除結果は未確認です。変更と以前のリクエストは停止中です。再試行では同じ削除リクエストを送信します。</string>
+    <string name="privacy_cleanup_pending">サーバーでの削除は確認済みです。暗号化された証拠は保存済みですが、端末内の整理が未完了です。変更は停止中です。</string>
+    <string name="privacy_confirmed_evidence">サーバーでの削除は確認済みです。以前のリクエストは暗号化された証拠として保持され、再実行されません。公開チェーンと会計記録は引き続き検証できます。</string>
+    <string name="privacy_too_many_records">保留中のリクエストが多すぎるため、安全に削除できません。削除は送信されておらず、記録は保持されています。</string>
+    <string name="privacy_invalid_receipt">サーバーから必要な削除確認を取得できませんでした。結果は未確認のままです。</string>
+    <string name="privacy_recovery_export">復旧記録を書き出す</string>
+    <string name="privacy_retry_deletion">削除確認を再試行</string>
+    <string name="privacy_continue_deletion">削除を続ける</string>
+    <string name="privacy_finish_cleanup">端末内の整理を完了</string>
+    <string name="privacy_new_shopping">新しい買い物を始める</string>
+    <string name="privacy_recovery_notice">削除中は以前のリクエストを停止します。住所を含む元の内容が暗号化された復旧証拠として残る場合があります。削除確認後に再実行されることはありません。</string>
+</resources>

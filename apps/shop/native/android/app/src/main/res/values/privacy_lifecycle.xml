@@ -1,0 +1,15 @@
+<resources>
+    <string name="privacy_draining">Finishing submitted requests. New changes and pending retries are paused.</string>
+    <string name="privacy_blocked_unknown">A previous request has an unconfirmed result. Deletion has not been sent. Recovery records remain encrypted and changes remain paused.</string>
+    <string name="privacy_deletion_unknown">The deletion result is unconfirmed. Changes and old requests remain paused. Retrying sends the same deletion request.</string>
+    <string name="privacy_cleanup_pending">Server deletion is confirmed. Encrypted evidence is saved; local cleanup still needs to finish. Changes remain paused.</string>
+    <string name="privacy_confirmed_evidence">Server deletion is confirmed. Earlier requests remain as encrypted evidence and will not run again. Public-chain and financial records remain verifiable.</string>
+    <string name="privacy_too_many_records">Too many pending requests to include in this deletion. Deletion was not sent; your records are preserved.</string>
+    <string name="privacy_invalid_receipt">The server did not confirm the required deletion receipt. The result remains unconfirmed.</string>
+    <string name="privacy_recovery_export">Export recovery records</string>
+    <string name="privacy_retry_deletion">Retry deletion confirmation</string>
+    <string name="privacy_continue_deletion">Continue deletion</string>
+    <string name="privacy_finish_cleanup">Finish local cleanup</string>
+    <string name="privacy_new_shopping">Start new shopping</string>
+    <string name="privacy_recovery_notice">Deletion pauses earlier requests. Their original contents may remain as encrypted recovery evidence, including addresses. They will not run again after confirmed deletion.</string>
+</resources>
