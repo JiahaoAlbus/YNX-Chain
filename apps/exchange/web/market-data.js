@@ -42,13 +42,14 @@ export function formatMicro(value, locale = 'en') {
 
 export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl = globalThis.EventSource, onSnapshot, onStatus,
   setTimer = globalThis.setTimeout, clearTimer = globalThis.clearTimeout} = {}) {
-  let epoch = 0, stopped = true, snapshot = null, stream = null, abort = null, retryTimer = null, watchdog = null, attempts = 0;
+  let epoch = 0, stopped = true, snapshot = null, stream = null, abort = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
   const report = (phase, code = null) => onStatus?.({phase, code, source: snapshot?.sourceMetadata ?? null});
   function cancel() {
     abort?.abort(); abort = null;
     stream?.close(); stream = null;
     clearTimer(retryTimer); retryTimer = null;
     clearTimer(watchdog); watchdog = null;
+    clearTimer(observationTimer); observationTimer = null;
   }
   function apply(value) {
     const next = validateSnapshot(value);
@@ -96,6 +97,9 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       stream.addEventListener('source-unavailable', () => { if (token === epoch) reconnect('MARKET_SOURCE_UNAVAILABLE'); });
       stream.onerror = () => { if (token === epoch) reconnect('MARKET_STREAM_DISCONNECTED'); };
       armWatchdog(token);
+      // Unchanged-state heartbeats are not new source observations. Refresh
+      // the actual snapshot before the 120-second advisory-rule age limit.
+      observationTimer = setTimer(() => { if (token === epoch && !stopped) return refresh(); }, 60_000);
     } catch { reconnect('MARKET_STREAM_UNAVAILABLE'); }
   }
   async function refresh() {

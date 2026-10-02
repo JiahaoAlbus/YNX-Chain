@@ -112,6 +112,32 @@ test('failed revision-gap recovery keeps the last verified snapshot stale and re
   assert.ok([...h.timers.values()].some(value => value.ms === 2000));
   h.feed.stop(); assert.equal(h.timers.size, 0);
 });
+test('healthy unchanged streams periodically read real snapshots without heartbeat-forged freshness', async () => {
+  let reads = 0;
+  const h = harness(async () => {
+    const value = snapshot(1);
+    value.sourceMetadata.asOf = ++reads === 1 ? '2026-09-12T00:00:00Z' : '2026-09-12T00:01:00Z';
+    return Response.json(value);
+  });
+  await h.feed.start(); const old = h.sources[0];
+  old.emit('heartbeat', {revision: 1});
+  assert.equal(h.feed.snapshot().sourceMetadata.asOf, '2026-09-12T00:00:00Z');
+  await h.timer(60_000);
+  assert.equal(h.calls.length, 2); assert.equal(old.closed, true);
+  assert.equal(h.feed.snapshot().sourceMetadata.asOf, '2026-09-12T00:01:00Z');
+  assert.equal(h.feed.snapshot().revision, 1);
+  old.emit('snapshot', snapshot(900)); assert.equal(h.feed.snapshot().revision, 1);
+  h.feed.offline(); assert.equal(h.timers.size, 0);
+});
+test('periodic source read failure cannot keep cached rules live or fabricate an observation timestamp', async () => {
+  let reads = 0;
+  const h = harness(async () => ++reads === 1 ? Response.json(snapshot()) : Response.json({}, {status: 503}));
+  await h.feed.start(); await h.timer(60_000);
+  assert.equal(h.feed.snapshot().sourceMetadata.asOf, '2026-09-12T00:00:00Z');
+  assert.equal(h.statuses.at(-1).phase, 'reconnecting'); assert.equal(h.received.length, 1);
+  assert.equal(h.sources[0].closed, true);
+  h.feed.stop(); assert.equal(h.timers.size, 0);
+});
 test('micro-unit display does not round large order notional through floating point', () => {
   assert.equal(formatMicro(999_999_999_999_999_999n), '999,999,999,999.999999');
   assert.equal(formatMicro(1), '0.000001'); assert.equal(formatMicro(2_000_000), '2.00');
