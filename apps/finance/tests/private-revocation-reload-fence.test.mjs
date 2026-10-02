@@ -7,3 +7,21 @@ test('unconfirmed SDK revocation keeps reload fence and explicit retry cannot au
 test('unavailable synchronous marker never claims completed revocation or starts an approval',async()=>{const store=new Map();let calls=0;const client={disconnect:async()=>calls++};const c=context(store,{client,adapter:{client}});c.localStorage.setItem=()=>{throw Error('quota')};await vm.runInContext('disconnect()',c);assert.equal(c.current.status,'retry-required');assert.equal(c.lastCode,'REVOCATION_PENDING');assert.equal(calls,1)});
 
 test('quota failure remains memory-fenced on ordinary Retry and retires an already running late connected result',async()=>{const store=new Map([['original-finance-browser-opt-in','yes']]),gate=Promise.withResolvers();let disconnects=0;const client={disconnect:async()=>{disconnects++;return {status:'retry-required',revocationPending:true}}};const c=context(store,{client,adapter:{client}});const old=vm.runInContext('operation(()=>lateConnected)',Object.assign(c,{lateConnected:gate.promise}));await new Promise(r=>setImmediate(r));c.localStorage.setItem=()=>{throw Error('quota')};await vm.runInContext('disconnect()',c);assert.equal(c.current.status,'retry-required');assert.equal(c.revocationFence,true);assert.equal(disconnects,1);gate.resolve({status:'connected',session:{account:'old'}});await old;assert.equal(c.current.status,'retry-required');assert.equal(c.current.session,null);c.busy=false;vm.runInContext('async '+extract('explicitRequest'),c);await vm.runInContext('explicitRequest(true)',c);assert.equal(disconnects,2);assert.equal(c.current.status,'retry-required');assert.equal(store.get('original-finance-browser-opt-in'),'yes');assert.equal(c.revocationFence,true)});
+
+test('confirmed old-family rejection retires late authority and Retry only completes original revoke before a new explicit consent',async()=>{
+ const store=new Map([['original-finance-browser-opt-in','yes']]),gate=Promise.withResolvers();let disconnects=0,retries=0,begins=0;
+ const client={disconnect:async()=>{disconnects++;return {status:'disconnected',revocationConfirmed:true}},retryDetected:async()=>{retries++;return {status:'connected',session:{account:'old'}}},beginExplicit:async()=>{begins++;return {status:'connecting',request:{}}}};
+ const c=context(store,{client,adapter:{client}});vm.runInContext(extract('code')+'\n'+extract('reportFailure')+'\nasync '+extract('explicitRequest'),c);
+ const old=vm.runInContext('operation(()=>lateConnected)',Object.assign(c,{lateConnected:gate.promise}));await new Promise(r=>setImmediate(r));
+ c.error={status:401,code:'sso_private_context_rejected'};vm.runInContext('reportFailure(error)',c);
+ assert.equal(c.current.status,'retry-required');assert.equal(c.current.session,null);assert.equal(c.revocationFence,true);assert.equal(store.get('original-finance-browser-opt-in'),'revoking');
+ gate.resolve({status:'connected',session:{account:'old'}});await old;assert.equal(c.current.status,'retry-required');
+ await vm.runInContext('explicitRequest(true)',c);assert.equal(c.current.status,'disconnected');assert.equal(retries,0);assert.equal(begins,0);assert.equal(disconnects,2);assert.equal(store.has('original-finance-browser-opt-in'),false);
+ c.window.YNXFinanceWallet={getStandardRevision:()=>1,privateProviderAvailable:()=>false};await vm.runInContext('explicitRequest(false)',c);assert.equal(begins,1);assert.equal(retries,0);
+});
+
+test('temporary old-family validation 503 never retires the consent or requests revocation',()=>{
+ const store=new Map([['original-finance-browser-opt-in','yes']]);let disconnects=0;const client={disconnect:async()=>disconnects++},c=context(store,{client,adapter:{client}});
+ vm.runInContext(extract('code')+'\n'+extract('reportFailure'),c);c.error={status:503,code:'sso_private_context_rejected'};vm.runInContext('reportFailure(error)',c);
+ assert.equal(c.lastCode,'PRIVATE_CONTEXT_UNAVAILABLE');assert.equal(c.revocationFence,false);assert.equal(disconnects,0);assert.equal(store.get('original-finance-browser-opt-in'),'yes');
+});

@@ -14,7 +14,7 @@ function publish(next,code=''){
   current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,request:next.status==='connecting'?next.request:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true,revocationPending:next.revocationPending===true});
   revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage,approvalRejected:current.approvalRejected,revocationConfirmed:current.revocationConfirmed}}));
 }
-function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
+function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';if(error?.code==='sso_private_context_rejected')return error.status===401?'SSO_PRIVATE_CONTEXT_REJECTED':'PRIVATE_CONTEXT_UNAVAILABLE';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
   if(!initializing)initializing=assertFinancePrivateAuthority().then(authority=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
@@ -108,7 +108,18 @@ async function disconnect(){
   return operation(selected=>pending??selected.client.disconnect());
 }
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
-function reportFailure(error){const failure=error?code(error):'PRIVATE_SERVICE_DEGRADED';publish({status:failure==='SESSION_EXPIRED'?'expired':'degraded',session:null},failure);}
+function reportFailure(error){const failure=error?code(error):'PRIVATE_SERVICE_DEGRADED';
+  if(failure==='SSO_PRIVATE_CONTEXT_REJECTED'){
+    // Confirmed rejection belongs to the original private consent, not the new
+    // browser family. Retire it before any await; explicit Retry may only finish
+    // this exact revocation. A later separate click requests new Wallet consent.
+    revocationFence=true;generation++;busy=false;
+    const pending=adapter?.client.disconnect();pending?.catch(()=>{});
+    try{localStorage.setItem(ATTEMPT_KEY,'revoking');}catch{}
+    publish({status:'retry-required',session:null,revocationPending:true},failure);return;
+  }
+  publish({status:failure==='SESSION_EXPIRED'?'expired':'degraded',session:null},failure);
+}
 async function proof(scope){
   if(revocationRequested())throw Object.assign(new Error('REVOCATION_PENDING'),{code:'REVOCATION_PENDING'});
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
@@ -130,7 +141,7 @@ function render(){
   if(status){
     const key=revocationRequested()?'privateLogoutUnconfirmed':current.status==='expired'?'privateReauthorize':current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
     const mismatch=current.status==='connected'&&!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.());
-    status.textContent=current.status==='connected'?`${label('privateConnected')} ${account}. ${label('privateConnectedSuffix')}${mismatch?` ${label('privateAccountMismatch')}`:''}`:current.status==='connecting'?label('privateConnecting'):busy?label('privateChecking'):label(key);
+    status.textContent=current.status==='connected'?`${label('privateConnected')} ${account}. ${label('privateConnectedSuffix')}${mismatch?` ${label('privateAccountMismatch')}`:''}`:current.status==='connecting'?label('privateConnecting'):busy?label('privateChecking'):lastCode==='SSO_PRIVATE_CONTEXT_REJECTED'?`${label('privateReauthorize')} ${label('privateLogoutUnconfirmed')}`:label(key);
     status.title=lastCode||'';
   }
   const open=document.querySelector('#private-open');
