@@ -51,7 +51,17 @@ if(root){
    guardView(view);const verified=await transport.crypto().getDeviceVerificationStatus(userId,device.deviceId);guardView(view);
    const item=document.createElement('div'),text=document.createElement('p');text.textContent=`${device.deviceId} / ${verified?.isVerified()?'verified':'unverified'} / ${device.getFingerprint()??'no fingerprint'}`;item.append(text);
    const button=document.createElement('button');button.textContent='Compare device using SAS';button.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await transport.requestVerification(userId,device.deviceId);guardView(view)});item.append(button);
-   if(userId===ownUser){const remove=document.createElement('button');remove.textContent='Revoke this device';remove.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);if(confirm('Revoke this Matrix device? Existing downloaded content cannot be recalled.')){guardView(view);await transport.revokeOwnDevice(device.deviceId,true)}});item.append(remove)}
+   if(userId===ownUser){const remove=document.createElement('button');remove.textContent='Revoke this device';remove.onclick=()=>void work(async()=>{
+    guardView(view);await identity(view);guardView(view);if(!confirm('Revoke this Matrix device? Existing downloaded content cannot be recalled.'))return;
+    guardView(view);await transport.revokeOwnDevice(device.deviceId,true);
+    if(device.deviceId===view.operation.binding.deviceId){
+     if(view.epoch===pageEpoch&&view.account===account&&view.roomId===roomId&&transport.generation===view.operation.generation+1&&transport.client===null&&transport.binding===null){lock();label('Current Matrix device revoked. Encrypted keys and history are retained.')}
+     return;
+    }
+    guardView(view);
+    try{await identity(view);guardView(view);await renderDevices(userId);guardView(view);label('Matrix device revoked. Device list refreshed.')}
+    catch(error){if(stale(error)||!currentView(view))throw error;label('Matrix device revoked; device list refresh unavailable. Encrypted storage is retained.')}
+   });item.append(remove)}
    items.push(item);
   }
   guardView(view);devices.replaceChildren(...items);
