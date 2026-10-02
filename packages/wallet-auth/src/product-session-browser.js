@@ -226,27 +226,37 @@ function validateScopes(scopes, allowed) {
 function openDatabase(indexedDB) {
   return new Promise((resolve, reject) => {
     let settled = false, request;
-    const rejected = () => { settled = true; reject(new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device storage is unavailable")); };
+    const timer = setTimeout(() => rejected(), 10000);
+    const rejected = () => { if (settled) return; settled = true; clearTimeout(timer); reject(new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device storage is unavailable")); };
     try { request = indexedDB.open(DATABASE, 1); } catch { rejected(); return; }
-    request.onupgradeneeded = () => { const db = request.result; for (const name of [DEVICE_STORE, STATE_STORE]) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name); };
+    request.onupgradeneeded = () => { if (settled) { try { request.transaction?.abort(); } catch { /* A late upgrade may already be inactive. */ } return; } const db = request.result; for (const name of [DEVICE_STORE, STATE_STORE]) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name); };
     request.onerror = rejected; request.onblocked = rejected;
-    request.onsuccess = () => { if (settled) request.result.close(); else { settled = true; resolve(request.result); } };
+    request.onsuccess = () => { if (settled) request.result.close(); else { settled = true; clearTimeout(timer); resolve(request.result); } };
   });
 }
 // No async work is performed inside IndexedDB transactions; resolve only after commit.
 function transact(db, mode, namespace, operation) {
   return new Promise((resolve, reject) => {
-    let transaction, result, caught;
+    let transaction, result, caught, settled = false, timer;
+    const finish = error => { if (settled) return; settled = true; clearTimeout(timer); if (error) reject(error); else resolve(result); };
     try {
       transaction = db.transaction([DEVICE_STORE, STATE_STORE], mode);
+      // A stalled read cannot mutate state. Abort it and fence every late
+      // callback so the caller's serialized work can settle safely. Writes
+      // still resolve only at the original commit/abort boundary.
+      if (mode === "readonly") timer = setTimeout(() => {
+        caught = new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device read timed out");
+        try { transaction.abort(); } catch { /* A read may already be inactive. */ }
+        finish(caught);
+      }, 10000);
       const devices = transaction.objectStore(DEVICE_STORE), states = transaction.objectStore(STATE_STORE);
       const deviceRequest = devices.get(namespace), stateRequest = states.get(namespace);
       let received = 0;
-      const ready = () => { if (++received !== 2) return; try { result = operation({ device: deviceRequest.result, state: stateRequest.result, devices, states }); } catch (error) { caught = error; transaction.abort(); } };
+      const ready = () => { if (settled || ++received !== 2) return; try { result = operation({ device: deviceRequest.result, state: stateRequest.result, devices, states }); } catch (error) { caught = error; transaction.abort(); } };
       deviceRequest.onsuccess = ready; stateRequest.onsuccess = ready;
-      transaction.oncomplete = () => resolve(result);
-      transaction.onabort = transaction.onerror = () => reject(caught ?? new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device transaction failed"));
-    } catch { reject(new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device transaction is unavailable")); }
+      transaction.oncomplete = () => finish();
+      transaction.onabort = transaction.onerror = () => finish(caught ?? new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device transaction failed"));
+    } catch { finish(new WalletAuthError("INSECURE_STORAGE", "Browser IndexedDB device transaction is unavailable")); }
   });
 }
 function fail(code, message) { throw new WalletAuthError(code, message); }
