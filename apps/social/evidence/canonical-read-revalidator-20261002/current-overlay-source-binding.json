@@ -1,0 +1,6 @@
+{
+  "source": "28845fb4a70f3484b6de3168cefefbdcf608c886",
+  "checkedProductionMappings": 6,
+  "result": "PASS",
+  "scope": "readonly overlay only; not immutable full integration"
+}

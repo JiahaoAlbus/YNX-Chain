@@ -52,8 +52,16 @@ func main() {
 	if err != nil {
 		log.Fatal("YNX_SOCIAL_MATRIX_DIRECTORY must contain validated existing public Matrix identity bindings")
 	}
+	productSessions, webProductClient, err := newSocialProductClients()
+	if err != nil {
+		log.Fatal(err)
+	}
+	revalidator, err := loadSocialRevalidator(webProductClient, os.Getenv("YNX_SOCIAL_REVALIDATION_KEY_ID"), os.Getenv("YNX_SOCIAL_REVALIDATION_PRIVATE_KEY_FILE"))
+	if err != nil {
+		log.Fatal(socialRevalidationConfigMessage)
+	}
 	if *checkConfig {
-		fmt.Println("ynx-sociald config check passed; isolated persistent Chat/Square composition and Wallet-bound Social sessions enabled")
+		fmt.Printf("ynx-sociald config check passed; revalidation configured=%t; runtime authority not verified\n", revalidator != nil)
 		return
 	}
 	if err := os.MkdirAll(*stateDir, 0o700); err != nil {
@@ -71,27 +79,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	productSessions := map[string]social.ProductSessionAuthorizer{}
-	for _, platform := range []string{"web", "android", "ios"} {
-		policy := productsessionv2.Policy{ProductID: social.RequestingProduct, ClientID: social.ProductClientID, ApplicationID: social.BundleID, Platform: platform, Origin: "app://" + platform + "/" + social.BundleID, Callback: social.Callback, AllowedScopes: socialAllowedScopes()}
-		identifier := social.BundleID
-		switch platform {
-		case "web":
-			policy.ApplicationID += ".web"
-			policy.Origin = social.Origin
-			policy.Callback = social.Origin + "/wallet-auth/callback"
-		case "android":
-			policy.PackageID = &identifier
-		case "ios":
-			policy.BundleID = &identifier
-		}
-		client, err := productsessionv2.NewClient("https://wallet-auth.ynxweb4.com", policy, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		productSessions[platform] = client
-	}
-	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions, MatrixDirectory: matrixDirectory, MatrixAudienceActionVerifier: socialAudienceActionVerifier{}})
+	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions, MatrixDirectory: matrixDirectory, MatrixAudienceActionVerifier: socialAudienceActionVerifier{}, MatrixAudienceSessionRevalidator: revalidator})
 	if err != nil {
 		log.Fatal(err)
 	}

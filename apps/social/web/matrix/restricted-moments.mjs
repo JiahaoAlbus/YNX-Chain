@@ -1,3 +1,4 @@
+import {decodeBase64,encodeBase64} from 'matrix-encrypt-attachment';
 export const RESTRICTED_MOMENT_PROTOCOL = 'ynx-social-matrix-moment/v1';
 const deny = message => { throw new Error(message); };
 function snapshot(value) {
@@ -22,6 +23,26 @@ const sameTypedFields=(actual,expected)=>{
   const keys=Object.keys(expected).sort();
   return JSON.stringify(Object.keys(actual).sort())===JSON.stringify(keys)&&
     keys.every(key=>typeof actual[key]===typeof expected[key]&&actual[key]===expected[key]);
+};
+const canonicalBytes=(value,length,url=false)=>{
+  if(typeof value!=='string'||!(url?/^[A-Za-z0-9_-]+$/:/^[A-Za-z0-9+/]+$/).test(value))return false;
+  try{
+    const bytes=decodeBase64(url?value.replace(/-/g,'+').replace(/_/g,'/'):value);
+    const encoded=encodeBase64(bytes).replace(/=+$/,'');
+    return bytes.byteLength===length&&(url?encoded.replace(/\+/g,'-').replace(/\//g,'_'):encoded)===value;
+  }catch{return false}
+};
+// Official Matrix descriptor/base64 primitives; no new encryption algorithm.
+// info is optional for Matrix reads; the existing YNX uploader requires it.
+const validAttachment=(attachment,requireInfo=true)=>{
+  const file=attachment?.file;
+  const info=attachment?.info;
+  const infoValid=requireInfo?Number.isSafeInteger(info?.size)&&info.size>=1&&info.size<=25*1024*1024&&typeof info.mimetype==='string':
+    info===undefined||!!info&&typeof info==='object'&&!Array.isArray(info)&&(info.size===undefined||Number.isSafeInteger(info.size)&&info.size>=1&&info.size<=25*1024*1024)&&(info.mimetype===undefined||typeof info.mimetype==='string');
+  return attachment?.msgtype==='m.file'&&attachment.url===undefined&&typeof attachment.body==='string'&&!!attachment.body&&attachment.body.length<=255&&
+    !!file&&file.v==='v2'&&typeof file.url==='string'&&/^mxc:\/\/[^\s/?#]+\/[^\s/?#]+$/.test(file.url)&&
+    canonicalBytes(file.iv,16)&&canonicalBytes(file.hashes?.sha256,32)&&
+    file.key?.kty==='oct'&&file.key.alg==='A256CTR'&&file.key.ext===true&&Array.isArray(file.key.key_ops)&&file.key.key_ops.every(op=>typeof op==='string')&&file.key.key_ops.includes('encrypt')&&file.key.key_ops.includes('decrypt')&&canonicalBytes(file.key.k,32,true)&&infoValid;
 };
 
 // authorize is supplied by the actual approved backend integration, never by
@@ -62,11 +83,15 @@ export class RestrictedMoments {
     const event=records.find(record=>record.id===index.eventId),semantic=event?.content?.['com.ynx.social.moment'];
     const kind=index.parentEventId?'comment':'moment';
     if(!event?.encrypted||event.verification?.shieldColour!==0||event.sender!==index.sender||!expected.members.includes(index.sender)||semantic?.protocol!==RESTRICTED_MOMENT_PROTOCOL||semantic.kind!==kind||semantic.owner!==expected.owner||semantic.revision!==expected.revision||semantic.audience!==expected.kind||semantic.author!==index.sender||kind==='moment'&&index.sender!==expected.owner)deny('Authenticated indexed Moment is unavailable');
-    if(kind==='comment'&&!sameTypedFields(event.content['m.relates_to'],{rel_type:'m.reference',event_id:index.parentEventId}))deny('Authenticated comment parent differs from the index');
+    const canonicalSemantic={protocol:RESTRICTED_MOMENT_PROTOCOL,kind,audience:expected.kind,revision:expected.revision,owner:expected.owner,author:index.sender};
+    if(event.content.msgtype==='m.file')canonicalSemantic.text=semantic.text;
+    if(!sameTypedFields(semantic,canonicalSemantic))deny('Authenticated Moment semantic fields differ from publication');
+    if(!sameTypedFields(event.content['m.relates_to'],kind==='comment'?{rel_type:'m.reference',event_id:index.parentEventId}:undefined))deny('Authenticated event relation differs from the index');
     if(!['m.text','m.file'].includes(event.content.msgtype))deny('Unsupported encrypted Moment carrier');
     const text=event.content.msgtype==='m.file'?semantic.text:event.content.body;
     if(typeof text!=='string'||!text.trim()||text.length>16000)deny('Invalid encrypted Moment text');
-    if(event.content.msgtype==='m.file'&&(!event.content.file||event.content.url||event.content.file.v!=='v2'||!event.content.file.url?.startsWith('mxc://')))deny('Encrypted attachment descriptor required');
+    if(event.content.msgtype==='m.file'&&!validAttachment(event.content,false))deny('Encrypted attachment descriptor required');
+    if(event.content.msgtype==='m.text'&&(event.content.file!==undefined||event.content.info!==undefined||event.content.url!==undefined))deny('Text Moment cannot substitute an attachment');
     return {eventId:index.eventId,text,attachment:event.content.msgtype==='m.file'?structuredClone(event.content):null,
       parent:kind==='moment'?{protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,revision:expected.revision,owner:expected.owner,eventId:index.eventId}:null};
   }
@@ -85,11 +110,7 @@ export class RestrictedMoments {
     }};
     if(attachment){
       const file=attachment.file;
-      if(attachment.msgtype!=='m.file'||attachment.url!==undefined||typeof attachment.body!=='string'||!attachment.body||attachment.body.length>255||
-        !file||file.v!=='v2'||typeof file.url!=='string'||!/^mxc:\/\/[^\s/?#]+\/[^\s/?#]+$/.test(file.url)||
-        typeof file.iv!=='string'||!file.iv||typeof file.hashes?.sha256!=='string'||!file.hashes.sha256||
-        file.key?.kty!=='oct'||file.key.alg!=='A256CTR'||typeof file.key.k!=='string'||!file.key.k||
-        !Number.isSafeInteger(attachment.info?.size)||attachment.info.size<1||attachment.info.size>25*1024*1024||typeof attachment.info.mimetype!=='string')
+      if(!validAttachment(attachment))
         deny('Standard encrypted attachment descriptor required; plaintext media is forbidden');
       content.msgtype='m.file';content.body=attachment.body;
       content['file']=structuredClone(file);content['info']=structuredClone(attachment.info);

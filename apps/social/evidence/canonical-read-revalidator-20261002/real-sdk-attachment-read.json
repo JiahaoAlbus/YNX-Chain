@@ -1,0 +1,48 @@
+{
+  "qualification": "real locked matrix-encrypt-attachment SDK/WebCrypto; controlled encrypted event/authority, no real HS",
+  "pass": 10,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "name": "real SDK descriptor without optional info accepted on read",
+      "status": "PASS"
+    },
+    {
+      "name": "real SDK descriptor with info accepted on read",
+      "status": "PASS"
+    },
+    {
+      "name": "missing key rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "missing iv rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "missing hashes rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid JWK contract rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid JWK contract rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "invalid JWK contract rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "original incomplete descriptor rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "official SDK ciphertext hash verification rejects tamper",
+      "status": "PASS"
+    }
+  ]
+}

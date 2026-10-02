@@ -1,0 +1,8 @@
+9d845ea4d0256593f4b7906265f90e2b81f03935 apps/social/web/matrix/restricted-moments.mjs
+a5cf47336045b0f05032dc98b87b086572174c59 apps/social/scripts/independent-feed-read-check.mjs
+e86b57a54256304a7f92938842310cc002f39d5e apps/social/scripts/sdk-attachment-read-check.mjs
+a717ec772d1740f839a497b5379d1d777119dfe7 cmd/ynx-sociald/main.go
+f3e2cf03a30e1b2c136c220d8d3a5cf3b62a4024 cmd/ynx-sociald/product_clients.go
+db9e0ff3e9f433119b46ebe598f6ad2fa29fb681 cmd/ynx-sociald/revalidation.go
+eb27d084fa3aa52fd9bb5656e427e84936f836b4 cmd/ynx-sociald/revalidation_startup_test.go
+34f3468eed2cf6026dc04b0c2f66e0a02e5aa0b0 cmd/ynx-sociald/revalidation_test.go
