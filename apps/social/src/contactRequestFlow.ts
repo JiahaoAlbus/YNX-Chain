@@ -1,3 +1,4 @@
+import {ContactOperation} from "./contactOperation";
 import type {SocialAPI,Person,GroupDiscoveryInput} from "./api";
 
 export type ContactReview=Readonly<{source:GroupDiscoveryInput["source"];value:string;person:Person;idempotencyKey:string}>;
@@ -13,9 +14,10 @@ export function requireSocialProfileQR(value:string):string{
 
 // Native/Web UI consumer; live permissions remain exclusively the API authority.
 export class ContactRequestFlow{
-  private sequence=0;private review:ContactReview|null=null;private guard:(()=>boolean)|null=null;private sending=false;private message:string|null=null;
+  private sequence=0;private review:ContactReview|null=null;private guard:(()=>boolean)|null=null;private readonly operation=new ContactOperation();private uncertain:Array<{review:ContactReview;message:string;guard:()=>boolean}>=[];private message:string|null=null;
   constructor(private api:SocialAPI,private randomId:()=>Promise<string>){}
-  cancel(){this.sequence++;this.review=null;this.guard=null;this.message=null}
+  cancel(){this.operation.cancel();this.sequence++;this.review=null;this.guard=null;this.message=null}
+  get uncertainRequests(){this.uncertain=this.uncertain.filter(item=>item.guard());return this.uncertain.map(({review,message})=>({review,message}))}
   isCurrent(review:ContactReview){return this.review===review&&!!this.guard?.()}
   async preview(source:ContactReview["source"],input:string):Promise<ContactReview>{
     this.cancel();const sequence=this.sequence,guard=this.api.authorizationGuard();let value=input.trim();
@@ -24,17 +26,17 @@ export class ContactRequestFlow{
     if(source==="qr")value=requireSocialProfileQR(value);
     if(source==="invite"&&value.startsWith("https:")){const link=new URL(value);if(link.origin!=="https://social.ynxweb4.com"||link.username||link.password||link.search||link.hash||!/^\/invite\/[A-Za-z0-9_-]+$/.test(link.pathname))throw new Error("Use an exact YNX Social invitation link");value=link.pathname.slice("/invite/".length)}
     if(!value||value.length>2048)throw new Error("Enter a valid person discovery value");
-    const result=await this.api.previewContact(source,value);
+    const result=await this.operation.run(()=>this.api.previewContact(source,value));
     if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; review the person again");
     if(!/^sp_[A-Za-z0-9_-]{32}$/.test(result.person?.id??"")||typeof result.person.handle!=="string"||typeof result.person.displayName!=="string")throw new Error("A stable Social profile could not be verified");
-    const entropy=await this.randomId();if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; old preview discarded");
+    const entropy=await this.operation.run(()=>this.randomId());if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; old preview discarded");
     if(!/^[A-Za-z0-9_-]{16,64}$/.test(entropy))throw new Error("Request identity could not be created");
     const review=Object.freeze({source,value,person:Object.freeze({...result.person}),idempotencyKey:`native-contact-${entropy}`});this.review=review;this.guard=guard;return review;
   }
   async confirm(review:ContactReview,message=""){
-    if(!this.isCurrent(review))throw new Error("Review this person again before sending");if(this.sending)throw new Error("A contact request is already being sent");
+    if(!this.isCurrent(review))throw new Error("Review this person again before sending");
     message=message.trim();if(Array.from(message).length>200)throw new Error("Keep the request message within 200 characters");
-    if(this.message!==null&&this.message!==message)throw new Error("Retry the original message or review the person again");this.message=message;this.sending=true;
-    try{await this.api.requestContact(review.source,review.value,review.idempotencyKey,review.person.id,message);if(!this.isCurrent(review))throw new Error("Social authorization changed; the old result was discarded");this.cancel()}finally{this.sending=false}
+    if(this.message!==null&&this.message!==message)throw new Error("Retry the original message or review the person again");this.message=message;const intent={review,message,guard:this.guard!};
+    try{await this.operation.run(()=>this.api.requestContact(review.source,review.value,review.idempotencyKey,review.person.id,message));if(!this.isCurrent(review))throw new Error("Social authorization changed; the old result was discarded");this.uncertain=this.uncertain.filter(item=>item.review!==review);this.cancel()}catch(error){if(intent.guard()&&!this.uncertain.some(item=>item.review===review))this.uncertain.push(intent);throw error}
   }
 }

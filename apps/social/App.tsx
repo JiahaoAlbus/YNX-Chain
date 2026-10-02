@@ -617,6 +617,7 @@ function LanguagePicker({ compact = false }: { compact?: boolean }) {
 function Contacts({ api }: { api: SocialAPI }) {
   type Source = "handle" | "contacts" | "qr" | "invite" | "recommendation";
   const flow=useMemo(()=>new ContactRequestFlow(api,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,"0")).join("")),[api]);
+  const requestGeneration=useRef(0);
   const mounted=useRef(true),scanGuard=useRef<()=>boolean>(()=>false);
   const [review,setReview]=useState<ContactReview|null>(null),[requesting,setRequesting]=useState(false),[requestMessage,setRequestMessage]=useState("");
   const [data, setData] = useState<{
@@ -629,6 +630,7 @@ function Contacts({ api }: { api: SocialAPI }) {
     [scan, setScan] = useState(false),
     [source, setSource] = useState<Source>("handle"),
     [value, setValue] = useState("");
+  const cancelRequest=()=>{requestGeneration.current++;flow.cancel();setRequesting(false)};
   const load = async () => {
     const current=api.authorizationGuard();
     setLoading(true);
@@ -644,15 +646,15 @@ function Contacts({ api }: { api: SocialAPI }) {
   useEffect(() => {
     mounted.current=true;
     void load();
-    const subscription=AppState.addEventListener("change",state=>{if(state!=="active"){flow.cancel();scanGuard.current=()=>false;setReview(null);setRequestMessage("");setScan(false);setAdd(false)}});
-    return()=>{mounted.current=false;flow.cancel();scanGuard.current=()=>false;subscription.remove()};
+    const subscription=AppState.addEventListener("change",state=>{if(state!=="active"){cancelRequest();scanGuard.current=()=>false;setReview(null);setRequestMessage("");setScan(false);setAdd(false)}});
+    return()=>{mounted.current=false;cancelRequest();scanGuard.current=()=>false;subscription.remove()};
   }, []);
   const normalized = () =>
     source === "handle" || source === "recommendation"
       ? value.trim().replace(/^@/, "")
       : value.trim();
   const request = async () => {
-    const current=api.authorizationGuard();if(requesting)return;setRequesting(true);
+    const authority=api.authorizationGuard();if(requesting)return;const generation=++requestGeneration.current;const current=()=>authority()&&requestGeneration.current===generation;setRequesting(true);
     try {
       if(!review){const next=await flow.preview(source,value);if(mounted.current&&current()){setReview(next);setError(null)}return}
       await flow.confirm(review,requestMessage);if(!mounted.current||!current())return;
@@ -814,11 +816,11 @@ function Contacts({ api }: { api: SocialAPI }) {
         visible={add}
         transparent
         animationType="slide"
-        onRequestClose={() => {flow.cancel();setReview(null);setRequestMessage("");setAdd(false)}}
+        onRequestClose={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false)}}
       >
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <SheetTitle title={review?"Review this person":"Add someone"} close={() => {flow.cancel();setReview(null);setRequestMessage("");setAdd(false)}} />
+            <SheetTitle title={review?"Review this person":"Add someone"} close={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false)}} />
             {review?<View><Text style={styles.name}>{review.person.displayName}</Text><Text style={styles.handle}>@{review.person.handle}</Text><Text style={styles.securityNote}>They must accept before you become contacts. This profile does not verify encryption keys.</Text><TextInput accessibilityLabel="Optional request message" value={requestMessage} onChangeText={(next:string)=>setRequestMessage(Array.from(next).slice(0,200).join(""))} maxLength={400} multiline placeholder="Optional request message (200 characters)" style={styles.input} editable={!requesting}/></View>:null}
             <View style={styles.aiKinds}>
               {(
@@ -833,7 +835,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                 <Pressable
                   key={item}
                   onPress={() => {
-                    flow.cancel();setReview(null);setRequestMessage("");
+                    cancelRequest();setReview(null);setRequestMessage("");
                     setSource(item);
                     setValue("");
                   }}
@@ -859,7 +861,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                   accessibilityLabel={`Discovery by ${source}`}
                   autoCapitalize="none"
                   value={value}
-                  onChangeText={(next:string)=>{flow.cancel();setReview(null);setRequestMessage("");setValue(next)}}
+                  onChangeText={(next:string)=>{cancelRequest();setReview(null);setRequestMessage("");setValue(next)}}
                   placeholder={placeholder}
                   placeholderTextColor="#98A2B3"
                   style={styles.input}
@@ -867,7 +869,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                 {source === "qr" ? (
                   <Pressable
                     accessibilityLabel="Scan profile QR with camera"
-                    onPress={() => {flow.cancel();setReview(null);scanGuard.current=api.authorizationGuard();setScan(true)}}
+                    onPress={() => {cancelRequest();setReview(null);scanGuard.current=api.authorizationGuard();setScan(true)}}
                     style={styles.secondary}
                   >
                     <Text style={styles.secondaryText}>Scan profile QR</Text>
@@ -906,7 +908,7 @@ function Contacts({ api }: { api: SocialAPI }) {
         close={() => {scanGuard.current=()=>false;setScan(false)}}
         onValue={(payload) => {
           if(!mounted.current||!scanGuard.current())return;
-          flow.cancel();setReview(null);setRequestMessage("");scanGuard.current=()=>false;
+          cancelRequest();setReview(null);setRequestMessage("");scanGuard.current=()=>false;
           setValue(payload);
           setScan(false);
         }}
