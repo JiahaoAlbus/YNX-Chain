@@ -79,3 +79,29 @@ dialog.contact-camera video {
 dialog.contact-review label { display: block; margin: 0 0 1rem; line-height: 1.5; }
 dialog.contact-review textarea { box-sizing: border-box; display: block; width: 100%; min-height: 96px; margin-top: .5rem; padding: .75rem; color: #102044; background: #fff; border: 1px solid #9cafd1; border-radius: .75rem; font: inherit; resize: vertical; }
 dialog.contact-review textarea:focus-visible { outline: 3px solid var(--contact-blue); outline-offset: 3px; }
+
+/* Native select stays accessible and matches the verified workspace controls. */
+#matrix-social-workspace select {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #002fa7;
+  border-radius: 8px;
+  background: #fff;
+  color: #002fa7;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+}
+#matrix-social-workspace select:focus-visible {
+  outline: 3px solid #002fa7;
+  outline-offset: 3px;
+}
+#matrix-social-workspace select:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}

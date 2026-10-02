@@ -71,6 +71,7 @@ export class RestrictedMoments {
       if(parent)await this.verifyParent(parent,expected,operation);
       await this.transport.assertTrusted(expected.roomId,operation);
       await this.check(expected,operation);
+      this.transport.guard(operation);
       intent.status='sending';started=true;
       const result=await operation.client.sendMessage(expected.roomId,content,transactionId);
       if (!result || typeof result!=='object' || Array.isArray(result) ||

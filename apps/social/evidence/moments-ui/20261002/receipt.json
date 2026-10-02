@@ -1,0 +1,53 @@
+{
+  "schema": "ynx-social-moments-select-ui/v1",
+  "syntheticTransport": true,
+  "syntheticText": true,
+  "publicRuntimeVerified": false,
+  "realAuthorityVerified": false,
+  "checks": [
+    {
+      "width": 1280,
+      "height": 46,
+      "fontSize": "16px",
+      "color": "rgb(0, 47, 167)",
+      "background": "rgb(255, 255, 255)",
+      "disabled": true,
+      "overflow": false,
+      "focus": {
+        "focused": true,
+        "outline": "3px"
+      }
+    },
+    {
+      "width": 390,
+      "height": 46,
+      "fontSize": "16px",
+      "color": "rgb(0, 47, 167)",
+      "background": "rgb(255, 255, 255)",
+      "disabled": true,
+      "overflow": false,
+      "focus": {
+        "focused": true,
+        "outline": "3px"
+      }
+    },
+    {
+      "width": 320,
+      "height": 46,
+      "fontSize": "16px",
+      "color": "rgb(0, 47, 167)",
+      "background": "rgb(255, 255, 255)",
+      "disabled": true,
+      "overflow": false,
+      "focus": {
+        "focused": true,
+        "outline": "3px"
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "sourceSha256": {
+    "apps/social/web/workspace.css": "48e350784f8e259af7013ec38a9c68ddea9aed05d155191463c6d9951e55aaa1",
+    "apps/social/web/matrix/restricted-moments-ui.mjs": "69716eb8770d117495bf71e0f0671e1b0c5a96efe7605fd54ff339da6b145bce"
+  }
+}

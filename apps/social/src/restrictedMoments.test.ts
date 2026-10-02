@@ -28,6 +28,17 @@ test('account stop during preparation cannot publish old draft',async()=>{
   await assert.rejects(f.consumer.publish({audience:f.audience,text:'old draft',transactionId}),/stale session/);
   assert.equal(f.sent.length,0);
 });
+
+test('stop in final audience-check microtask prevents SDK dispatch',async()=>{
+  const f=fixture();let checks=0;
+  f.operation.client.getRoom=()=>({getMembers:()=>{
+    if(++checks===2)queueMicrotask(f.stop);
+    return f.audience.members.map(userId=>({userId,membership:'join'}));
+  }});
+  await assert.rejects(f.consumer.publish({audience:f.audience,text:'old draft',transactionId}),/stale session/);
+  assert.equal(f.sent.length,0);
+  assert.equal(f.consumer.pending.get(transactionId).status,'draft');
+});
 test('uncertain delivered write retains exact transaction and refuses audience substitution',async()=>{
   const f=fixture();f.operation.client.sendMessage=async(...args:unknown[])=>{f.sent.push(args);f.setLive({...f.audience,revision:'r2'});return {event_id:'$event'}};
   await assert.rejects(f.consumer.publish({audience:f.audience,text:'original',transactionId}),/Audience changed/);
