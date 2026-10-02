@@ -4,6 +4,7 @@ let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
 let snapshotRevision = 0;
 let statefulPreview = false;
 let publicExperiments = {};
+let latestResearchMode = null;
 let pendingMandate = null;
 let pendingOrder = null;
 let previewRevision = 0;
@@ -131,8 +132,30 @@ const paperSafetyCopy = {
   id: ["Masukkan jumlah simulasi berupa bilangan bulat positif.", "Hasil sinyal sebelumnya belum diketahui. Muat ulang untuk memulihkan input tersimpan dan coba lagi sebelum memulai sinyal baru."],
 };
 for (const [language, [paperInvalidAmount, paperPendingMismatch]] of Object.entries(paperSafetyCopy)) Object.assign(businessCopy[language], {paperInvalidAmount, paperPendingMismatch});
+const researchResultCopy = {
+  en: ["Temporary result on this page only — not saved or audited. Reloading the page discards it.", "Experiment saved and audited in this browser's Paper workspace."],
+  "zh-CN": ["仅本页临时结果，未保存、未审计；重新加载页面后消失。", "实验已保存并审计于此浏览器的模拟盘工作区。"],
+  "zh-TW": ["僅本頁暫存結果，未儲存、未稽核；重新載入頁面後消失。", "實驗已儲存並稽核於此瀏覽器的模擬交易工作區。"],
+  ja: ["このページだけの一時結果です。保存・監査はされず、ページの再読み込みで消えます。", "実験はこのブラウザーのペーパー取引領域に保存され、監査記録に追加されました。"],
+  ko: ["이 페이지의 임시 결과입니다. 저장되거나 감사 기록에 남지 않으며 페이지를 다시 로드하면 사라집니다.", "실험이 이 브라우저의 모의 거래 작업 공간에 저장되고 감사 기록에 추가되었습니다."],
+  es: ["Resultado temporal solo en esta página, sin guardar ni auditar. Se pierde al recargar la página.", "Experimento guardado y auditado en el espacio de simulación de este navegador."],
+  fr: ["Résultat temporaire sur cette page uniquement, non enregistré et non audité. Il disparaît au rechargement de la page.", "Expérience enregistrée et auditée dans l'espace de simulation de ce navigateur."],
+  de: ["Temporäres Ergebnis nur auf dieser Seite, nicht gespeichert oder protokolliert. Beim Neuladen der Seite geht es verloren.", "Experiment im Simulationsbereich dieses Browsers gespeichert und protokolliert."],
+  pt: ["Resultado temporário apenas nesta página, não salvo nem auditado. É perdido ao recarregar a página.", "Experimento salvo e auditado no espaço de simulação deste navegador."],
+  ru: ["Временный результат только на этой странице: не сохранён и не внесён в аудит. При перезагрузке страницы исчезнет.", "Эксперимент сохранён и внесён в аудит в рабочей области симуляции этого браузера."],
+  ar: ["نتيجة مؤقتة في هذه الصفحة فقط، غير محفوظة وغير مسجلة في سجل التدقيق. تختفي عند إعادة تحميل الصفحة.", "تم حفظ التجربة وتسجيلها في سجل التدقيق ضمن مساحة المحاكاة لهذا المتصفح."],
+  id: ["Hasil sementara hanya di halaman ini, tidak disimpan atau diaudit. Hasil hilang saat halaman dimuat ulang.", "Eksperimen disimpan dan diaudit di ruang simulasi browser ini."],
+};
+for (const [language, [researchTemporary, researchSaved]] of Object.entries(researchResultCopy)) Object.assign(businessCopy[language], {researchTemporary, researchSaved});
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
+const researchResultStatus = document.createElement("p");
+researchResultStatus.id = "research-result-status";
+researchResultStatus.role = "status";
+$("#latest-result").append(researchResultStatus);
+function renderResearchStatus() {
+  researchResultStatus.textContent = latestResearchMode === null ? "" : t(latestResearchMode ? "researchSaved" : "researchTemporary");
+}
 function applyLocale() {
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
@@ -141,6 +164,7 @@ function applyLocale() {
   $$('[data-business-i18n]').forEach((element) => { element.textContent = t(element.dataset.businessI18n); });
   const active = $('nav button.active'); if (active) $('#view-title').textContent = active.textContent;
   renderPortfolio();
+  renderResearchStatus();
 }
 const api = async (path, opt = {}) => {
   const r = await fetch("/api" + path, {
@@ -168,7 +192,6 @@ async function refresh() {
   if (revision !== snapshotRevision) return;
   snapshot = next;
   statefulPreview = snapshot.access?.statefulPreview === true;
-  if (!statefulPreview) snapshot.experiments = publicExperiments;
   $("#workspace-boundary").hidden = statefulPreview;
   for (const id of ["reconcile", "kill"]) $("#" + id).disabled = !statefulPreview;
   render();
@@ -261,7 +284,10 @@ function renderPaperStrategies(strategies) {
 }
 function render() {
   const strategies = Object.values(snapshot.strategies || {}),
-    experiments = Object.values(snapshot.experiments || {});
+    experiments = [
+      ...Object.values(snapshot.experiments || {}).map(experiment => ({experiment, temporary: false})),
+      ...Object.values(publicExperiments).map(experiment => ({experiment, temporary: true})),
+    ];
   $("#strategy-rows").innerHTML = strategies.length
     ? strategies
         .map(
@@ -275,8 +301,8 @@ function render() {
   $("#experiment-rows").innerHTML = experiments.length
     ? experiments
         .map(
-          (e) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
+          ({experiment: e, temporary}) =>
+            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
         )
         .join("")
     : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
@@ -310,9 +336,11 @@ $("#strategy-rows").addEventListener("click", async event => {
     await refresh();
   } catch (error) { toast(error.message); button.disabled = false; }
 });
-function renderResult(result) {
+function renderResult(result, savedWorkspace) {
   const metrics = result.metrics;
   if (!metrics) return;
+  latestResearchMode = savedWorkspace;
+  renderResearchStatus();
   $("#latest-result").hidden = false;
   for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
@@ -350,6 +378,7 @@ $("#locale").onchange = (e) => {
 };
 $("#backtest").onsubmit = async (e) => {
   e.preventDefault();
+  const savedWorkspace = statefulPreview;
   try {
     const body = {
       strategy: {
@@ -373,11 +402,11 @@ $("#backtest").onsubmit = async (e) => {
         walkForwardWindows: 3,
       },
     };
-    const result = await api(statefulPreview ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
-    renderResult(result);
-    toast(statefulPreview ? "Out-of-sample experiment completed and audited" : "Stateless research completed. This result is not a saved strategy or funded account.");
-    if (statefulPreview) await refresh();
-    else { publicExperiments[result.id] = result; snapshot.experiments = publicExperiments; render(); }
+    const result = await api(savedWorkspace ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
+    renderResult(result, savedWorkspace);
+    toast(t(savedWorkspace ? "researchSaved" : "researchTemporary"));
+    if (savedWorkspace) await refresh();
+    else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
     toast(e.message);
   }

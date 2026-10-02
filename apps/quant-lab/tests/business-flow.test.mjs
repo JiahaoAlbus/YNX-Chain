@@ -10,6 +10,8 @@ const connected = account => ({status: 'connected', providerKind: 'metamask', ch
 const receipt = (account, balance = '1000000000000000000') => ({...connected(account), asset: 'YNXT', decimals: 18, balanceBaseUnits: balance, blockNumber: '42', source: 'selected-wallet-provider', asOf: '2026-09-12T00:00:00.000Z'});
 const deferred = () => {let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); return {promise, resolve, reject};};
 const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
+const researchFixture = (id, name = id) => ({id, createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name, StrategyHash:'e'.repeat(64)}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
+const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 
 // Execute the shipped app with a small DOM/HTTP boundary. Provider lifecycles are
 // independently exercised in the actual-browser suite; these are local fixtures.
@@ -85,6 +87,85 @@ test('public stateless research renders measured equity without granting Paper o
   await app.submit('paper-order');
   assert.equal(app.calls.length,before);
   assert.match(app.ids.get('strategy-rows').innerHTML,/No strategies/);
+});
+
+test('early public research stays temporary beside saved history after the initial workspace arrives', async () => {
+  const initialSnapshot = deferred(), research = deferred(); let snapshots = 0;
+  const publicResult = researchFixture('same-result-id', 'Public unsaved fixture');
+  const savedResult = researchFixture('same-result-id', 'Saved workspace fixture');
+  const savedStrategy = {ID:'saved-strategy', Name:'Only saved strategy', StrategyHash:'d'.repeat(64)};
+  const workspace = {access:{statefulPreview:true}, strategies:{saved:savedStrategy}, experiments:{saved:savedResult}, paper:{}, audit:[]};
+  const app = harness({apiResponse: url => {
+    if (url.endsWith('/snapshot')) return ++snapshots === 1 ? initialSnapshot.promise : workspace;
+    assert.equal(url, '/api/v1/public/research/backtests/from-market');
+    return research.promise;
+  }});
+  const submitted = app.submit('backtest');
+  initialSnapshot.resolve(workspace); await settle();
+  research.resolve(publicResult); await submitted;
+  assert.equal(snapshots, 1, 'a public result must not take the saved-workspace completion branch');
+  assert.match(app.ids.get('toast').textContent, /not saved or audited/);
+  assert.match(researchStatus(app), /not saved or audited/);
+  const rows = app.ids.get('experiment-rows').innerHTML;
+  assert.equal((rows.match(/<tr>/g) || []).length, 2, 'same IDs cannot let public results replace saved results');
+  assert.match(rows, /Saved workspace fixture<\/td>/);
+  assert.match(rows, /Public unsaved fixture<small>Temporary result/);
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(snapshot.experiments)', app.context)), workspace.experiments);
+  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(snapshot.strategies)', app.context)), workspace.strategies);
+  assert.deepEqual(app.ids.get('paper-strategy').children.map(option => option.value), ['', savedStrategy.StrategyHash]);
+  assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML, /Public unsaved fixture/);
+  await app.ids.get('refresh').onclick();
+  assert.match(app.ids.get('experiment-rows').innerHTML, /Public unsaved fixture/);
+  assert.match(researchStatus(app), /not saved or audited/);
+  app.ids.get('locale').onchange({target:{value:'zh-CN'}});
+  assert.match(researchStatus(app), /未保存、未审计/);
+  assert.match(app.ids.get('experiment-rows').innerHTML, /未保存、未审计/);
+  const reloaded = harness({snapshot:workspace, savedStorage:app.storage}); await settle();
+  assert.doesNotMatch(reloaded.ids.get('experiment-rows').innerHTML, /Public unsaved fixture/);
+  assert.match(reloaded.ids.get('experiment-rows').innerHTML, /Saved workspace fixture/);
+  assert.equal(reloaded.ids.get('latest-result').hidden, true);
+  assert.equal(vm.runInContext('Object.keys(publicExperiments).length', reloaded.context), 0);
+  assert.equal(app.proofs(), 0);
+});
+
+test('research completion keeps its submitted mode for stable public, stable saved and changed access', async () => {
+  for (const [startedSaved, finishedSaved] of [[false,false], [true,true], [true,false]]) {
+    const result = researchFixture('mode-fixture'), research = deferred(); let completed = false, snapshots = 0;
+    const app = harness({apiResponse: url => {
+      if (url.endsWith('/snapshot')) {
+        const saved = ++snapshots === 1 ? startedSaved : finishedSaved;
+        return {access:{statefulPreview:saved}, strategies:{}, experiments:saved && completed ? {saved:result} : {}};
+      }
+      assert.equal(url, startedSaved ? '/api/v1/backtests/from-market' : '/api/v1/public/research/backtests/from-market');
+      return research.promise;
+    }});
+    await settle();
+    const submitted = app.submit('backtest');
+    if (startedSaved !== finishedSaved) await app.ids.get('refresh').onclick();
+    completed = true; research.resolve(result); await submitted;
+    const key = startedSaved ? 'researchSaved' : 'researchTemporary';
+    const copy = vm.runInContext(`businessCopy.en.${key}`, app.context);
+    assert.equal(app.ids.get('toast').textContent, copy);
+    assert.equal(researchStatus(app), copy);
+    assert.equal(vm.runInContext('Object.keys(publicExperiments).length', app.context), startedSaved ? 0 : 1);
+    assert.equal(vm.runInContext('Object.keys(snapshot.experiments).length', app.context), startedSaved && finishedSaved ? 1 : 0);
+    assert.equal(snapshots, !startedSaved ? 1 : finishedSaved ? 2 : 3);
+  }
+});
+
+test('temporary research provenance stays visible in all supported languages after rendering and refresh', async () => {
+  const result = researchFixture('localized-public-result');
+  const app = harness({apiResponse: url => url.endsWith('/snapshot') ? {access:{statefulPreview:false}, experiments:{}, strategies:{}} : result});
+  await settle(); await app.submit('backtest');
+  for (const language of vm.runInContext('supportedLocales', app.context)) {
+    app.ids.get('locale').onchange({target:{value:language}});
+    await app.ids.get('refresh').onclick();
+    const copy = vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchTemporary`, app.context);
+    assert.ok(copy);
+    assert.equal(researchStatus(app), copy);
+    assert.ok(app.ids.get('experiment-rows').innerHTML.includes(copy));
+    assert.equal(vm.runInContext('Object.keys(snapshot.experiments).length', app.context), 0);
+  }
 });
 
 test('late workspace snapshots cannot replace a newer confirmed risk state', async () => {

@@ -31,6 +31,48 @@ test('a delayed actual-service snapshot cannot hide a newer confirmed Paper kill
     assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');
   }finally{release();await context.close();}
 });
+test('early public research retains temporary provenance in the real page through refresh and reload',{timeout:15000},async()=>{
+  // Existing HTML/app with an isolated synthetic research response, not real
+  // market performance. The delayed workspace snapshot comes from the local Go service.
+  const context=await browser.newContext();
+  let releaseSnapshot,releaseResearch,snapshotCaptured,researchStarted;
+  const heldSnapshot=new Promise(resolve=>{releaseSnapshot=resolve;});
+  const heldResearch=new Promise(resolve=>{releaseResearch=resolve;});
+  const capturedSnapshot=new Promise(resolve=>{snapshotCaptured=resolve;});
+  const startedResearch=new Promise(resolve=>{researchStarted=resolve;});
+  try{
+    let firstSnapshot=true;
+    await context.route('**/api/v1/snapshot',async route=>{
+      if(!firstSnapshot)return route.continue();firstSnapshot=false;
+      const response=await route.fetch();snapshotCaptured(await response.json());
+      await heldSnapshot;await route.fulfill({response});
+    });
+    await context.route('**/api/v1/public/research/backtests/from-market',async route=>{
+      assert.equal(route.request().method(),'POST');researchStarted();await heldResearch;
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
+    });
+    const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
+    assert.equal((await capturedSnapshot).access.statefulPreview,true);
+    await page.getByRole('button',{name:'Run out-of-sample backtest',exact:true}).click();await startedResearch;
+    releaseSnapshot();await page.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);
+    releaseResearch();await page.locator('#research-result-status').getByText('Temporary result on this page only — not saved or audited. Reloading the page discards it.',{exact:true}).waitFor();
+    assert.equal(await page.locator('#result-return').textContent(),'120 bps');
+    assert.match(await page.locator('#toast').textContent(),/not saved or audited/);
+    await page.getByRole('button',{name:'Experiments',exact:true}).click();
+    assert.match(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture.*not saved or audited/);
+    assert.equal(await page.locator('#paper-strategy option').count(),1);
+    await page.locator('#refresh').click();await page.waitForFunction(()=>snapshotRevision>=2);
+    await page.evaluate(()=>refresh());
+    assert.match(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture/);
+    assert.match(await page.locator('#research-result-status').textContent(),/not saved or audited/);
+    assert.equal(await page.evaluate(()=>Object.keys(snapshot.experiments).length),0);
+    assert.equal(await page.evaluate(()=>Object.keys(snapshot.strategies).length),0);
+    await page.reload({waitUntil:'networkidle'});
+    assert.doesNotMatch(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture/);
+    assert.equal(await page.locator('#latest-result').isVisible(),false);
+    assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');
+  }finally{releaseSnapshot();releaseResearch();await context.close();}
+});
 test('browser-visible Wallet fallbacks preserve the English Quant page when no YNX or MetaMask provider is available',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#locale').inputValue(),'en');await page.waitForTimeout(1600);await page.getByRole('button',{name:'Connect Installed YNX Wallet'}).click();await page.getByText('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.').waitFor({timeout:5000});await page.getByRole('button',{name:'Use MetaMask'}).click();await page.locator('#wallet-status').getByText('MetaMask is not installed. This does not affect Product Session status.').waitFor({timeout:5000});await page.screenshot({path:path.join(evidence,'wallet-fallback-browser-visible.png'),fullPage:true});assert.equal(await page.url(),base+'/')});
 test('exact-origin Quant explicit Hosted action opens Wallet Web without fabricating account or leaving a blank tab',async()=>{
   const context=await browser.newContext();
