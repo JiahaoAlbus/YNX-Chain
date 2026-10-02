@@ -85,7 +85,7 @@ func (s *Server) authorizeBrowserSSOContext(r *http.Request, session Session) in
 		var status int
 		local, status = s.ssoCookieGrant(copy)
 		if status != http.StatusOK {
-			return http.StatusUnauthorized
+			return status
 		}
 	} else {
 		var status int
@@ -111,7 +111,7 @@ func (s *Server) authorizeBrowserSSOContext(r *http.Request, session Session) in
 		var current, currentFresh financeSSOGrant
 		current, status = s.ssoCookieGrant(r)
 		if status != http.StatusOK {
-			return http.StatusUnauthorized
+			return status
 		}
 		if current.FamilyID != "" {
 			currentFresh = current

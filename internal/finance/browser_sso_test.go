@@ -975,6 +975,64 @@ func TestFinanceFinitePrivatePermissionKeepsOwnExpiryAndInvalidScopeRejected(t *
 		t.Fatal("scope superset accepted")
 	}
 }
+func TestFinanceLinkedPrivateFamilyUnavailableRemainsRecoverable(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.service = &Service{Store: store}
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	ref := finiteSSOReference(t, s, cookie)
+	grant := f.grants[ref.FamilyID]
+	private := Session{Account: grant.Identity.Account, Verifier: "fixture-private-proof", ProductClient: "ynx-finance-v1", SessionBinding: "fixture-private-session", ExpiresAt: now.Add(240 * time.Second)}
+	r := httptest.NewRequest("GET", "/api/overview", nil)
+	r.AddCookie(cookie)
+	if s.authorizeBrowserSSOContext(r, private) != 200 {
+		t.Fatal("initial binding failed")
+	}
+	for _, withCookie := range []bool{false, true} {
+		t.Run(fmt.Sprint("cookie-", withCookie), func(t *testing.T) {
+			q := httptest.NewRequest("GET", "/api/overview", nil)
+			if withCookie {
+				q.AddCookie(cookie)
+			}
+			f.resolveError = &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeUnavailable}
+			if got := s.authorizeBrowserSSOContext(q, private); got != 503 {
+				t.Fatalf("temporary central failure became %d", got)
+			}
+			f.resolveError = nil
+			if got := s.authorizeBrowserSSOContext(q, private); got != 200 {
+				t.Fatalf("original linked permission could not recover: %d", got)
+			}
+		})
+	}
+	f.resolveError = &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeLoginRequired}
+	if s.authorizeBrowserSSOContext(r, private) != 401 {
+		t.Fatal("confirmed invalid identity must still reject")
+	}
+	f.resolveError = nil
+	second := &secondResolveUnavailable{finiteSSOFixture: f}
+	s.cfg.CentralBrowserFamily = second
+	if got := s.authorizeBrowserSSOContext(r, private); got != 503 {
+		t.Fatalf("current cookie resolve failure became %d", got)
+	}
+}
+
+type secondResolveUnavailable struct {
+	*finiteSSOFixture
+	calls int
+}
+
+func (f *secondResolveUnavailable) Resolve(ctx context.Context, id string) (centralbrowserfamily.Grant, error) {
+	f.calls++
+	if f.calls == 2 {
+		return centralbrowserfamily.Grant{}, &centralbrowserfamily.Error{Code: centralbrowserfamily.CodeUnavailable}
+	}
+	return f.finiteSSOFixture.Resolve(ctx, id)
+}
 func TestFinanceFinitePendingLogoutSurvivesReloadAndRetry(t *testing.T) {
 	now := time.Now().UTC()
 	s, f := finiteSSOServer(&now)

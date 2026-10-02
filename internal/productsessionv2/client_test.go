@@ -113,6 +113,56 @@ func TestSDKVectorAndRemoteReplay(t *testing.T) {
 	}
 }
 
+func TestFinanceFiniteSDKVectorAndStrictConsent(t *testing.T) {
+	b, err := os.ReadFile("testdata/finance-finite-v2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var v vector
+	if err = json.Unmarshal(b, &v); err != nil {
+		t.Fatal(err)
+	}
+	for _, kind := range []string{"valid", "unknown-profile", "duration", "end", "nested-extra", "null", "nonfinance-scope", "late-completion"} {
+		t.Run(kind, func(t *testing.T) {
+			c := clientFor(t, v, func(r *http.Request) (*http.Response, error) {
+				response := responseFor(t, v, r, false)
+				body, _ := io.ReadAll(response.Body)
+				payload, _ := canonicalObject(body)
+				fields := payload["result"].(map[string]any)["session"].(map[string]any)
+				consent := fields["serviceConsent"].(map[string]any)
+				switch kind {
+				case "unknown-profile":
+					consent["profile"] = "unknown"
+				case "duration":
+					consent["durationSeconds"] = json.Number("7201")
+				case "end":
+					fields["expiresAt"] = "2026-09-12T12:00:00.000Z"
+				case "nested-extra":
+					consent["extra"] = true
+				case "null":
+					fields["serviceConsent"] = nil
+				case "nonfinance-scope":
+					fields["scopes"] = []any{"finance.pay.read", "unknown:read"}
+				case "late-completion":
+					fields["issuedAt"] = "2026-09-12T09:05:00.000Z"
+				}
+				encoded, _ := canonical(payload)
+				response.Body = io.NopCloser(strings.NewReader(string(encoded)))
+				response.ContentLength = int64(len(encoded))
+				return response, nil
+			})
+			s, err := c.Authorize(context.Background(), request(v), v.RequiredScopes)
+			if kind == "valid" {
+				if err != nil || s.ServiceConsent == nil || s.ExpiresAt != "2026-09-12T11:00:00.000Z" {
+					t.Fatalf("real SDK finite vector failed: %v", err)
+				}
+			} else if err == nil {
+				t.Fatalf("invalid finite consent accepted: %s", kind)
+			}
+		})
+	}
+}
+
 func TestInvalidRequestsNeverContactAuthority(t *testing.T) {
 	v := fixture(t)
 	tests := []struct {

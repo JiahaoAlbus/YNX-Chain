@@ -44,29 +44,39 @@ type Client struct {
 // Session is the authority's active, sender-constrained product identity. It is
 // not a bearer credential, a transaction signature, or an approval of an amount.
 type Session struct {
-	Version         string   `json:"version"`
-	SessionBinding  string   `json:"sessionBinding"`
-	ChainID         string   `json:"chainId"`
-	ProductID       string   `json:"productId"`
-	ClientID        string   `json:"clientId"`
-	Platform        string   `json:"platform"`
-	ApplicationID   string   `json:"applicationId"`
-	BundleID        *string  `json:"bundleId"`
-	PackageID       *string  `json:"packageId"`
-	Origin          string   `json:"origin"`
-	Callback        string   `json:"callback"`
-	Account         string   `json:"account"`
-	DeviceID        string   `json:"deviceId"`
-	DeviceAlgorithm string   `json:"deviceAlgorithm"`
-	DeviceKey       string   `json:"deviceKey"`
-	DeviceBinding   string   `json:"deviceBinding"`
-	Nonce           string   `json:"nonce"`
-	State           string   `json:"state"`
-	Scopes          []string `json:"scopes"`
-	RequestDigest   string   `json:"requestDigest"`
-	ApprovalDigest  string   `json:"approvalDigest"`
-	IssuedAt        string   `json:"issuedAt"`
-	ExpiresAt       string   `json:"expiresAt"`
+	Version         string                `json:"version"`
+	SessionBinding  string                `json:"sessionBinding"`
+	ChainID         string                `json:"chainId"`
+	ProductID       string                `json:"productId"`
+	ClientID        string                `json:"clientId"`
+	Platform        string                `json:"platform"`
+	ApplicationID   string                `json:"applicationId"`
+	BundleID        *string               `json:"bundleId"`
+	PackageID       *string               `json:"packageId"`
+	Origin          string                `json:"origin"`
+	Callback        string                `json:"callback"`
+	Account         string                `json:"account"`
+	DeviceID        string                `json:"deviceId"`
+	DeviceAlgorithm string                `json:"deviceAlgorithm"`
+	DeviceKey       string                `json:"deviceKey"`
+	DeviceBinding   string                `json:"deviceBinding"`
+	Nonce           string                `json:"nonce"`
+	State           string                `json:"state"`
+	Scopes          []string              `json:"scopes"`
+	RequestDigest   string                `json:"requestDigest"`
+	ApprovalDigest  string                `json:"approvalDigest"`
+	IssuedAt        string                `json:"issuedAt"`
+	ExpiresAt       string                `json:"expiresAt"`
+	ServiceConsent  *FiniteServiceConsent `json:"serviceConsent,omitempty"`
+}
+
+// FiniteServiceConsent is an explicit Wallet-signed Finance service window.
+// It does not change the short approval, challenge or per-request proof expiry.
+type FiniteServiceConsent struct {
+	Profile         string `json:"profile"`
+	IssuedAt        string `json:"issuedAt"`
+	ExpiresAt       string `json:"expiresAt"`
+	DurationSeconds int    `json:"durationSeconds"`
 }
 
 // Error contains a stable code and a suitable product HTTP status. It never
@@ -216,7 +226,7 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 		return zero, fail("SESSION_INACTIVE", 401)
 	}
 	fields, ok := result["session"].(map[string]any)
-	if !ok || !exactKeys(fields, sessionFields) || !c.matchesPolicy(fields) || text(fields, "version") != "2" || text(fields, "chainId") != "ynx_6423-1" || text(fields, "platform") != c.policy.Platform {
+	if !ok || !validSessionFields(fields) || !c.matchesPolicy(fields) || text(fields, "version") != "2" || text(fields, "chainId") != "ynx_6423-1" || text(fields, "platform") != c.policy.Platform {
 		return zero, fail("SESSION_BINDING_MISMATCH", 403)
 	}
 	for _, key := range []string{"sessionBinding", "account", "deviceId", "deviceKey"} {
@@ -237,12 +247,52 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 	if !validScopes(session.Scopes) {
 		return zero, fail("INVALID_AUTHORITY_RESPONSE", 503)
 	}
+	if !validFiniteConsent(session) {
+		return zero, fail("SERVICE_CONSENT_BINDING_MISMATCH", 403)
+	}
 	for _, scope := range requiredScopes {
 		if !slices.Contains(session.Scopes, scope) {
 			return zero, fail("SCOPE_WIDENING", 403)
 		}
 	}
 	return session, nil
+}
+
+func validSessionFields(fields map[string]any) bool {
+	consent, present := fields["serviceConsent"]
+	if !present {
+		return exactKeys(fields, sessionFields)
+	}
+	keys := append(append([]string{}, sessionFields...), "serviceConsent")
+	value, ok := consent.(map[string]any)
+	return exactKeys(fields, keys) && ok && exactKeys(value, []string{"profile", "issuedAt", "expiresAt", "durationSeconds"})
+}
+
+func validFiniteConsent(session Session) bool {
+	v := session.ServiceConsent
+	if v == nil {
+		return true
+	}
+	if v.Profile != "finance-private-finite-v1" || session.ProductID != "finance" || session.ClientID != "ynx-finance-v1" || v.DurationSeconds < 300 || v.DurationSeconds > 7200 {
+		return false
+	}
+	web := session.Platform == "web"
+	if web {
+		if session.ApplicationID != "com.ynxweb4.finance.web" || session.Origin != "https://finance.ynxweb4.com" || session.Callback != "https://finance.ynxweb4.com/wallet-auth/callback" {
+			return false
+		}
+	} else if session.ApplicationID != "com.ynxweb4.finance" || session.Origin != "app://"+session.Platform+"/com.ynxweb4.finance" || session.Callback != "ynxfinance://wallet-auth/callback" {
+		return false
+	}
+	for _, scope := range session.Scopes {
+		if !slices.Contains([]string{"finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"}, scope) {
+			return false
+		}
+	}
+	start, e1 := protocolTime(v.IssuedAt)
+	end, e2 := protocolTime(v.ExpiresAt)
+	issued, e3 := protocolTime(session.IssuedAt)
+	return e1 == nil && e2 == nil && e3 == nil && end.Sub(start) == time.Duration(v.DurationSeconds)*time.Second && session.ExpiresAt == v.ExpiresAt && !issued.Before(start) && issued.Before(start.Add(5*time.Minute))
 }
 
 func (c *Client) matchesPolicy(v map[string]any) bool {
