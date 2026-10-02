@@ -506,7 +506,7 @@ function workspaceDataState(status){
   $('#workspace').dataset.dataState=status;
   $('#workspace-data-warning').classList.toggle('hidden',status!=='unavailable');
   for(const control of $$('#workspace form button,#ai-start,#ai-actions button')){
-    if(status==='unavailable'){if(!dataDisabledControls.has(control))dataDisabledControls.set(control,control.disabled);control.disabled=true}
+    if(status==='unavailable'){if(!dataDisabledControls.has(control)){const saving=formSaves.get(control.closest('form'));dataDisabledControls.set(control,saving?.buttons.find(previous=>previous.button===control)?.disabled??control.disabled)}control.disabled=true}
     else if(dataDisabledControls.has(control)){control.disabled=dataDisabledControls.get(control);dataDisabledControls.delete(control)}
   }
 }
@@ -531,15 +531,38 @@ function budgetProgressRow(b,progress){
   return `<div class="row"><div class="row-main"><strong>${esc(b.name)}</strong><small>${esc(financeText(b.period==='weekly'?'weeklyLabel':'monthlyLabel'))} · ${esc(financeText('planningOnly'))} · UTC</small><small>${esc(financeText('periodStart'))}: ${esc(period)} · ${esc(financeText('countFrom'))}: ${esc(effective)}</small><small>${esc(status)}</small><small>${esc(p?.coverage||financeText('noCompletePeriodHistory'))}</small></div><div class="row-value">${esc(financeText('budgetLimit'))}: ${budgetAmount(b.limitYnxt)}<small>${esc(financeText('observedSpending'))}: ${observed}</small><small>${esc(financeText('fullPeriodSpending'))}: ${esc(financeText('unknown'))}</small><small>${esc(financeText('remainingBudget'))}: ${esc(financeText('unknown'))}</small></div></div>`;
 }
 function renderPlanning(profile,progress=[]){$('#categories').innerHTML=profile.categories.length?profile.categories.map(c=>`<span><i class="chip-dot"></i>${esc(c.name)} <small>${esc(c.color)}</small></span>`).join(''):`<span>${esc(financeText('noCategories'))}</span>`;const select=$('#budget-form select[name=categoryId]'),selected=select.value;const options=`<option value="">${esc(financeText('chooseCategory'))}</option>`+profile.categories.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');select.innerHTML=options;if(profile.categories.some(c=>c.id===selected))select.value=selected;$('#budgets').innerHTML=profile.budgets.length?profile.budgets.map(b=>budgetProgressRow(b,Array.isArray(progress)?progress.find(p=>p.budgetId===b.id):null)).join(''):`<div class="empty compact">${esc(financeText('createBudget'))}</div>`;$('#reminders').innerHTML=profile.reminders.length?profile.reminders.map(r=>`<div class="row"><div class="row-main"><strong>${esc(r.title)}</strong><small>${esc(r.schedule)} · ${esc(financeText('nextDue'))} ${esc(date(r.nextDueAt))}</small></div><div class="row-value">${r.amountYnxt==null?esc(financeText('amountNotSet')):`${fmt(r.amountYnxt)} YNXT`}<small>${esc(financeText('reminderOnly'))}</small></div></div>`).join(''):`<div class="empty compact">${esc(financeText('noReminders'))}</div>`}
-function renderPrivacy(p){const f=$('#privacy-form');f.includePayInStatements.checked=!!p.includePayInStatements;f.allowAiActivityContext.checked=!!p.allowAiActivityContext;f.alertsEnabled.checked=!!p.alertsEnabled}
+function renderPrivacy(p){const f=$('#privacy-form');if(formUncommittedDrafts.get(f)?.context===state.context)return;formUncommittedDrafts.delete(f);f.includePayInStatements.checked=!!p.includePayInStatements;f.allowAiActivityContext.checked=!!p.allowAiActivityContext;f.alertsEnabled.checked=!!p.alertsEnabled}
 function renderAIRecords(items){const selected=new Set($$('#ai-records input:checked').map(input=>input.value));$('#ai-records').innerHTML=items.length?items.map(a=>`<label class="check-item"><input type="checkbox" value="${esc(a.id)}" ${selected.has(a.id)?'checked':''}><span><strong>${esc(a.type)}</strong><br><small>${esc(date(a.timestamp))} · ${fmt(a.amountYnxt)} YNXT</small></span></label>`).join(''):`<div class="empty compact">${esc(financeText('aiNoOwnedActivity'))}</div>`}
 function renderSupport(s){$('#support-links').innerHTML=[['supportHelp',s.helpUrl],['supportPrivacy',s.privacyUrl],['supportDispute',s.disputeUrl]].map(([key,url])=>`<a class="panel support-card" href="${esc(url)}" rel="noreferrer"><span>${esc(financeText('verifiedPath'))}</span><strong>${esc(financeText(key))} →</strong></a>`).join('')}
 
-async function submitForm(form,path,body,event){const identityRevision=browserSSOIntentGeneration;body.idempotencyKey=crypto.randomUUID();try{await api(path,{method:'POST',body:JSON.stringify(body)});void attestBrowserIdentityActivity('save',event,identityRevision);form.reset();notify(financeText('profileSaved'));await load()}catch(error){notifyFailure(error,'unavailable')}}
+const formSaves=new WeakMap(),formSaveIntents=new WeakMap(),formUncommittedDrafts=new WeakMap();
+function formDraft(form){return JSON.stringify(Array.from(new FormData(form),([key,value])=>[key,String(value)]));}
+function submitForm(form,path,body,event,{method='POST',reset=true,successKey='profileSaved'}={}){
+  const context=state.context,identityRevision=browserSSOIntentGeneration;
+  const pending=formSaves.get(form);if(pending?.context===context&&pending.identityRevision===identityRevision)return pending.promise;
+  const draft=formDraft(form),previous=formSaveIntents.get(form);
+  const intent=previous?.context===context&&previous.identityRevision===identityRevision&&previous.path===path&&previous.method===method&&previous.draft===draft?previous:{context,identityRevision,path,method,draft,payload:JSON.stringify(body),key:method==='POST'?crypto.randomUUID():null};
+  formSaveIntents.set(form,intent);
+  const buttons=Array.from(form.querySelectorAll('button[type="submit"],button:not([type])'),button=>({button,disabled:pending?.buttons.find(previous=>previous.button===button)?.disabled??button.disabled}));
+  const operation={context,identityRevision,draft,buttons,promise:null};
+  const current=()=>formSaves.get(form)===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision;
+  formSaves.set(form,operation);form.setAttribute('aria-busy','true');for(const {button} of buttons)button.disabled=true;
+  operation.promise=(async()=>{try{
+    await api(path,{method,body:JSON.stringify({...JSON.parse(intent.payload),...(intent.key?{idempotencyKey:intent.key}:{})})});if(!current())return;
+    formSaveIntents.delete(form);void attestBrowserIdentityActivity('save',event,identityRevision);
+    const unchanged=formDraft(form)===operation.draft;
+    if(reset&&unchanged)form.reset();
+    if(!reset){if(unchanged)formUncommittedDrafts.delete(form);else formUncommittedDrafts.set(form,{context});}
+    notify(financeText(successKey));await load();
+  }catch(error){if(current())notifyFailure(error,'unavailable');
+  }finally{if(formSaves.get(form)===operation){formSaves.delete(form);form.removeAttribute('aria-busy');for(const {button,disabled} of buttons)button.disabled=disabled||!state.connected||$('#workspace').dataset.dataState==='unavailable';}}})();
+  return operation.promise;
+}
 $('#category-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/categories',{name:f.get('name'),color:f.get('color')},e)});
 $('#budget-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/budgets',{name:f.get('name'),categoryId:f.get('categoryId'),limitYnxt:Number(f.get('limitYnxt')),period:f.get('period'),startsAt:new Date().toISOString()},e)});
 $('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);const raw=f.get('amountYnxt');submitForm(e.currentTarget,'/api/reminders',{title:f.get('title'),amountYnxt:raw===''?null:Number(raw),schedule:f.get('schedule'),nextDueAt:new Date(f.get('nextDueAt')).toISOString(),sourceRef:''},e)});
-$('#privacy-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/api/privacy',{method:'PUT',body:JSON.stringify({includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked})});notify(financeText('privacySaved'));await load()}catch(error){notifyFailure(error,'unavailable')}});
+$('#privacy-form').addEventListener('input',e=>{if(state.connected)formUncommittedDrafts.set(e.currentTarget,{context:state.context})});
+$('#privacy-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submitForm(f,'/api/privacy',{includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked},e,{method:'PUT',reset:false,successKey:'privacySaved'})});
 function renderStatement(s){
   if(s?.schemaVersion!=='finance-statement-v2'||s.coverageComplete!==false||!Array.isArray(s.activity)||!s.totals||!['incomingYnxt','outgoingYnxt','feesYnxt'].every(key=>s.totals[key]===null))throw new Error(financeText('statementCoverageInvalid'));
   $('#statement').classList.remove('statement-placeholder');
