@@ -168,7 +168,7 @@ function presentApproval() {
   else panel.querySelector(".queue-count").textContent = "";
   if (newlyShown) panel.showModal();
 }
-function scopeLabel(scope) { return ({ "creator:account": t("View your creator account"), "creator:publish": t("Publish your videos"), "creator:revenue": t("View creator revenue"), "video:account": t("View your account"), "video:library": t("Manage your library"), "video:playback": t("Play videos"), "account:read": t("View your account"), "profile:link": t("Link your profile") })[scope] ?? scope; }
+function scopeLabel(scope) { return ({ "social.feed": t("Use Social Moments, comments, media, reports and follows within current audience permissions."), "social.ai": t("Send only an explicitly selected draft to the chosen cloud AI. Local filtering does not require this permission."), "creator:account": t("View your creator account"), "creator:publish": t("Publish your videos"), "creator:revenue": t("View creator revenue"), "video:account": t("View your account"), "video:library": t("Manage your library"), "video:playback": t("Play videos"), "account:read": t("View your account"), "profile:link": t("Link your profile") })[scope] ?? scope; }
 function methodLabel(method) { return ({ eth_requestAccounts: t("Share account"), personal_sign: t("Request message signatures"), eth_signTypedData_v4: t("Request structured signatures"), eth_sendTransaction: t("Request transactions") })[method] ?? method; }
 function readableProviderReview(request) { const finite=finiteServiceReview(request.review?.request,i18n.locale); return formatApprovalReview(request.review, t)+(finite ? "\n\n"+finite : ""); }
 

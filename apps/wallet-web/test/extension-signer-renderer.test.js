@@ -150,3 +150,6 @@ test('actual finite approval DOM displays exact service end and sends only expli
   }
   assert.equal((await renderPrivate(['finance.profile.write'])).nodes.get('service-window').hidden,true);
 });
+
+
+test('actual Social permission review distinguishes feed audience and explicit cloud draft without auto-approval',async()=>{for(const locale of ['en','zh-CN']){const f=await renderPrivate(['social.feed','social.ai'],locale,{origin:'https://social.ynxweb4.com',productName:'YNX Social'});const text=f.nodes.get('scopes').children.map(n=>n.textContent);assert.equal(f.nodes.get('scope-ids').textContent,'social.feed · social.ai');assert.notEqual(text[0],text[1]);assert.match(text[0],locale==='en'?/current audience permissions/:/受众权限/);assert.match(text[1],locale==='en'?/explicitly selected draft.*Local filtering does not require/:/明确选中.*本地过滤不需要/);assert.equal(f.calls.length,1);}});

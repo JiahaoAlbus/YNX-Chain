@@ -1,0 +1,5 @@
+import assert from'node:assert/strict';import{readFileSync}from'node:fs';import{test}from'node:test';
+import{createDesktopI18n,LOCALES}from'../src/desktop-i18n.mjs';
+const source=readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8');
+const line=source.split('\n').find(l=>l.startsWith('function scopeLabel(scope)'));
+test('actual Desktop review labels feed audience and cloud draft separately in all supported languages',()=>{assert.ok(line);for(const[locale]of LOCALES){const i18n=createDesktopI18n({systemLocale:locale});const label=new Function('t',`${line};return scopeLabel`)(i18n.t);const feed=label('social.feed'),ai=label('social.ai');assert.notEqual(feed,'social.feed',locale);assert.notEqual(ai,'social.ai',locale);assert.notEqual(feed,ai);assert.equal(label('unknown.scope'),'unknown.scope');if(locale==='en'){assert.match(feed,/current audience permissions/);assert.match(ai,/explicitly selected draft.*Local filtering does not require/);}}});

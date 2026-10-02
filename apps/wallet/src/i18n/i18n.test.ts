@@ -156,3 +156,6 @@ test('every native locale explains the distinct simulated Paper permission',()=>
   assert.match(scopeExplanation('zh-Hans','quant:paper:workspace'),/模拟.*不使用真钱/);
   assert.notEqual(scopeExplanation('en','quant:account'),scopeExplanation('en','quant:paper:workspace'));
 });
+
+
+test('Social feed and explicit cloud AI have separate visible permission descriptions in every Native locale',()=>{for(const locale of SUPPORTED_LOCALES){const feed=scopeExplanation(locale,'social.feed'),ai=scopeExplanation(locale,'social.ai');assert.ok(feed.length>30&&ai.length>30,locale);assert.notEqual(feed,ai);assert.notEqual(feed,scopeExplanation(locale,'unknown.scope'));}assert.match(scopeExplanation('en','social.ai'),/explicitly selected draft.*Local filtering does not require/);assert.match(scopeExplanation('zh-Hans','social.feed'),/受众权限/);});

@@ -1,5 +1,35 @@
 /** Build-time translated display copy. No runtime translation requests. Security-critical rows in desktop-i18n.mjs take precedence. */
 export const EXTRA_MESSAGES = Object.freeze({
+"Use Social Moments, comments, media, reports and follows within current audience permissions.": {
+  "en": "Use Social Moments, comments, media, reports and follows within current audience permissions.",
+  "zh-CN": "在当前受众权限内使用 Social 动态、评论、媒体、举报与关注。",
+  "zh-TW": "在目前受眾權限內使用 Social 動態、評論、媒體、檢舉與關注。",
+  "ja": "現在の公開範囲の権限内で Social の投稿、コメント、メディア、通報、フォローを利用します。",
+  "ko": "현재 대상 권한 내에서 Social 게시물, 댓글, 미디어, 신고 및 팔로우를 사용합니다.",
+  "es": "Usar publicaciones, comentarios, medios, denuncias y seguimientos de Social dentro de los permisos actuales de audiencia.",
+  "fr": "Utiliser les publications, commentaires, médias, signalements et abonnements Social dans les permissions actuelles de l’audience.",
+  "de": "Social-Beiträge, Kommentare, Medien, Meldungen und Folgen innerhalb der aktuellen Zielgruppenrechte nutzen.",
+  "pt": "Usar publicações, comentários, mídia, denúncias e seguidores do Social dentro das permissões atuais do público.",
+  "ru": "Использовать публикации, комментарии, медиа, жалобы и подписки Social в пределах текущих прав аудитории.",
+  "ar": "استخدام منشورات Social والتعليقات والوسائط والبلاغات والمتابعات ضمن أذونات الجمهور الحالية.",
+  "id": "Gunakan postingan, komentar, media, laporan, dan mengikuti di Social sesuai izin audiens saat ini.",
+  "hi": "वर्तमान दर्शक अनुमतियों के भीतर Social पोस्ट, टिप्पणियाँ, मीडिया, रिपोर्ट और फ़ॉलो का उपयोग करें।"
+},
+"Send only an explicitly selected draft to the chosen cloud AI. Local filtering does not require this permission.": {
+  "en": "Send only an explicitly selected draft to the chosen cloud AI. Local filtering does not require this permission.",
+  "zh-CN": "仅将明确选中的草稿发送给选定的云端 AI。本地过滤不需要此权限。",
+  "zh-TW": "僅將明確選取的草稿傳送給選定的雲端 AI。本機篩選不需要此權限。",
+  "ja": "明示的に選択した下書きのみを指定したクラウド AI に送信します。ローカルフィルターにこの権限は不要です。",
+  "ko": "명시적으로 선택한 초안만 지정한 클라우드 AI로 보냅니다. 로컬 필터링에는 이 권한이 필요하지 않습니다.",
+  "es": "Enviar solo un borrador elegido explícitamente a la IA en la nube seleccionada. El filtro local no necesita este permiso.",
+  "fr": "Envoyer uniquement un brouillon explicitement choisi à l’IA cloud sélectionnée. Le filtrage local ne nécessite pas cette permission.",
+  "de": "Nur einen ausdrücklich ausgewählten Entwurf an die gewählte Cloud-KI senden. Lokale Filter benötigen diese Berechtigung nicht.",
+  "pt": "Enviar somente um rascunho escolhido explicitamente à IA na nuvem selecionada. O filtro local não precisa desta permissão.",
+  "ru": "Отправлять только явно выбранный черновик выбранному облачному ИИ. Для локальной фильтрации это разрешение не требуется.",
+  "ar": "إرسال مسودة مختارة صراحةً فقط إلى الذكاء الاصطناعي السحابي المحدد. لا تتطلب التصفية المحلية هذا الإذن.",
+  "id": "Kirim hanya draf yang dipilih secara eksplisit ke AI cloud yang dipilih. Filter lokal tidak memerlukan izin ini.",
+  "hi": "केवल स्पष्ट रूप से चुना गया मसौदा चयनित क्लाउड AI को भेजें। स्थानीय फ़िल्टर के लिए यह अनुमति आवश्यक नहीं है।"
+},
   "Wallet": {
     "en": "Wallet",
     "zh-CN": "钱包",

@@ -124,7 +124,59 @@ const messages: Readonly<Record<Exclude<WalletLocale, "en">, Copy>> = {
 
 const paperWorkspaceCopy: Readonly<Record<WalletLocale, string>> = {"en": "Simulated Paper workspace only: view your snapshot and history, save backtest strategies and submit simulated orders. No real money, live trading, schedules or Testnet transactions.", "zh-Hans": "仅模拟 Paper 工作区：查看本人快照和历史、保存回测策略及提交模拟订单。不使用真钱，不授权实盘交易、定时任务或测试网交易。", "zh-Hant": "僅模擬 Paper 工作區：查看本人快照與歷史、儲存回測策略及提交模擬訂單。不使用真錢，不授權實盤交易、排程或測試網交易。", "ja": "模擬 Paper ワークスペースのみ：自分のスナップショットと履歴の閲覧、バックテスト戦略の保存、模擬注文。実際の資金、ライブ取引、スケジュール、Testnet 取引は許可しません。", "ko": "모의 Paper 작업 공간만 허용: 내 스냅샷과 기록 조회, 백테스트 전략 저장, 모의 주문 제출. 실제 자금, 실거래, 예약 작업 또는 Testnet 거래는 허용하지 않습니다.", "es": "Solo espacio Paper simulado: ver tus datos e historial, guardar estrategias de pruebas y enviar órdenes simuladas. Sin dinero real, operaciones reales, tareas programadas ni transacciones Testnet.", "fr": "Espace Paper simulé uniquement : consulter vos données et historique, enregistrer des stratégies de backtest et soumettre des ordres simulés. Aucun argent réel, trading réel, tâche planifiée ou transaction Testnet.", "de": "Nur simulierte Paper-Arbeitsumgebung: eigene Daten und Verlauf ansehen, Backtest-Strategien speichern und simulierte Aufträge senden. Kein echtes Geld, Live-Handel, Zeitpläne oder Testnet-Transaktionen.", "pt": "Apenas espaço Paper simulado: consultar seus dados e histórico, salvar estratégias de backtest e enviar ordens simuladas. Sem dinheiro real, negociação real, agendamentos ou transações Testnet.", "ru": "Только симуляция Paper: просмотр своего состояния и истории, сохранение стратегий бэктеста и отправкасимулированных заявок. Без реальных денег, реальной торговли, расписаний и транзакций Testnet.", "ar": "مساحة Paper للمحاكاة فقط: عرض بياناتك وسجلك وحفظ استراتيجيات الاختبار وإرسال أوامر محاكاة. لا أموال حقيقية أو تداول فعلي أو مهام مجدولة أو معاملات Testnet.", "id": "Hanya ruang kerja Paper simulasi: lihat data dan riwayat sendiri, simpan strategi backtest dan kirim order simulasi. Tanpa uang nyata, perdagangan langsung, jadwal atau transaksi Testnet."};
 
+const socialPermissionCopy: Readonly<Record<WalletLocale, readonly [string, string]>> = {
+  "en": [
+    "Use Social Moments, comments, media, reports and follows within current audience permissions.",
+    "Send only an explicitly selected draft to the chosen cloud AI. Local filtering does not require this permission."
+  ],
+  "zh-Hans": [
+    "在当前受众权限内使用 Social 动态、评论、媒体、举报与关注。",
+    "仅将明确选中的草稿发送给选定的云端 AI。本地过滤不需要此权限。"
+  ],
+  "zh-Hant": [
+    "在目前受眾權限內使用 Social 動態、評論、媒體、檢舉與關注。",
+    "僅將明確選取的草稿傳送給選定的雲端 AI。本機篩選不需要此權限。"
+  ],
+  "ja": [
+    "現在の公開範囲の権限内で Social の投稿、コメント、メディア、通報、フォローを利用します。",
+    "明示的に選択した下書きのみを指定したクラウド AI に送信します。ローカルフィルターにこの権限は不要です。"
+  ],
+  "ko": [
+    "현재 대상 권한 내에서 Social 게시물, 댓글, 미디어, 신고 및 팔로우를 사용합니다.",
+    "명시적으로 선택한 초안만 지정한 클라우드 AI로 보냅니다. 로컬 필터링에는 이 권한이 필요하지 않습니다."
+  ],
+  "es": [
+    "Usar publicaciones, comentarios, medios, denuncias y seguimientos de Social dentro de los permisos actuales de audiencia.",
+    "Enviar solo un borrador elegido explícitamente a la IA en la nube seleccionada. El filtro local no necesita este permiso."
+  ],
+  "fr": [
+    "Utiliser les publications, commentaires, médias, signalements et abonnements Social dans les permissions actuelles de l’audience.",
+    "Envoyer uniquement un brouillon explicitement choisi à l’IA cloud sélectionnée. Le filtrage local ne nécessite pas cette permission."
+  ],
+  "de": [
+    "Social-Beiträge, Kommentare, Medien, Meldungen und Folgen innerhalb der aktuellen Zielgruppenrechte nutzen.",
+    "Nur einen ausdrücklich ausgewählten Entwurf an die gewählte Cloud-KI senden. Lokale Filter benötigen diese Berechtigung nicht."
+  ],
+  "pt": [
+    "Usar publicações, comentários, mídia, denúncias e seguidores do Social dentro das permissões atuais do público.",
+    "Enviar somente um rascunho escolhido explicitamente à IA na nuvem selecionada. O filtro local não precisa desta permissão."
+  ],
+  "ru": [
+    "Использовать публикации, комментарии, медиа, жалобы и подписки Social в пределах текущих прав аудитории.",
+    "Отправлять только явно выбранный черновик выбранному облачному ИИ. Для локальной фильтрации это разрешение не требуется."
+  ],
+  "ar": [
+    "استخدام منشورات Social والتعليقات والوسائط والبلاغات والمتابعات ضمن أذونات الجمهور الحالية.",
+    "إرسال مسودة مختارة صراحةً فقط إلى الذكاء الاصطناعي السحابي المحدد. لا تتطلب التصفية المحلية هذا الإذن."
+  ],
+  "id": [
+    "Gunakan postingan, komentar, media, laporan, dan mengikuti di Social sesuai izin audiens saat ini.",
+    "Kirim hanya draf yang dipilih secara eksplisit ke AI cloud yang dipilih. Filter lokal tidak memerlukan izin ini."
+  ]
+};
+
 export function scopeExplanation(locale: WalletLocale, scope: string): string {
+  if (scope === "social.feed" || scope === "social.ai") return socialPermissionCopy[locale][scope === "social.feed" ? 0 : 1];
   if (scope === "quant:paper:workspace") return paperWorkspaceCopy[locale];
   const index = (scopes as readonly string[]).indexOf(scope);
   if (locale === "en") return index < 0 ? fallback : SCOPE_EXPLANATIONS[scope]!;
