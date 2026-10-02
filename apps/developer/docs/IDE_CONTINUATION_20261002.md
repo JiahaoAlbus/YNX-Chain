@@ -1,5 +1,57 @@
 # IDE continuation checkpoint — source candidate, product incomplete
 
+## Existing AI contract consumption and stream successor to 0d29c26d1
+
+Read the original AI owner's exact integration contract:
+`/Users/huangjiahao/.codex/worktrees/ai-derived-wallet-source-20261001/apps/ai/integration/IDE_EXISTING_AI_API_CONTRACT_20261002.md`.
+It is owned source WIP, not public acceptance. The sender/receiver history
+addition must be integrated together by A; no browser-provided history,
+borrowed AI grant, new provider, configuration or credential is introduced.
+
+Actual original router probe accepted metadata + token + EOF without done as
+success. The negative is retained in
+`/tmp/ynx-ide-ai-stream-original-20261002.json`.
+The existing IDE response adapter now requires exactly the Gateway's ordered
+metadata → token(s) → done protocol and matching request ID. It rejects malformed,
+missing-terminal and post-terminal data rather than presenting a partial answer.
+The parser reads incrementally, bounds wire bytes to four MiB and answer text to
+two MiB, preserves the request deadline throughout the body, and cancels the
+reader on failure or cancellation. It waits for EOF after done to reject late
+payloads. A stream completion is not a saved-response receipt and the current
+Gateway completion-then-chunks is not native incremental model streaming.
+
+The actual loopback HTTP probe passes byte-fragmented Chinese UTF-8 and CRLF,
+and a headers/metadata-then-stalled body times out. Controlled oversized,
+truncated, malformed, wrong-ID, post-terminal and client-cancel cases reject.
+Model-router suite13/13; complete codeoss/chain/model-router/identity-activity
+suite100/100, zero skip/fail. Existing fairness and cancellation assertions
+remain; their valid synthetic responses now include actual metadata/done.
+No actual configured model generation or public deployment was performed.
+Durable receipt: `../evidence/integration/ide-ai-stream-20261002.json`.
+
+Request-side integration is still pending, not compatible by assumption:
+existing IDE sends to the fixed loopback /ai-build/ai/stream with old
+maxOutputTokens/responseFormat fields and no resolved owned conversation.
+The original AI Gateway requires an owned session, explicit context selection,
+its exact schema and authorized server access. A must provide the IDE-specific
+business-proof/registration adapter, eligible server configuration and exact
+conversation/context boundary before the sender can switch. No invented
+conversation ID, arbitrary browser history, service-key-as-user-authorization,
+URL-only switch or automatic fallback is used to disguise this gap.
+The reviewed free-text preview still represents only user-selected context;
+it does not prove selected-file ownership or project content ingestion.
+
+Resumed audit turn1 rechecked official Developer /healthz: sourceCommit
+`a5e4905a1d595a02479115fd28ea1fd6276677fd`, sourceTree
+`e5efc7e8eb6c5ead07689de8d899bb48a0d1ea3c`, and version
+`0.2.0-testnet-preview-a5e4905a1d59`. That gateway self-report does not
+include the owned successor source. It also reports terminal cleanupFailures1,
+terminal recoveryRequired1 and remoteRecovery recoveryRequired1. These are
+reported health counters, not independently diagnosed faults or OS acceptance.
+Latest coordinator record still supplies no approved full-workbench executor.
+All full-workbench, actual provider, installed/public and final product gates
+remain open. The fresh resumed audit does not inherit the prior blocked count.
+
 ## AI cancellation successor to a1407924b
 
 Native Tools now has an ordinary Stop waiting for AI control during generation.

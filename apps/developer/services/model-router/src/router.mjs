@@ -1,4 +1,5 @@
 import { createFairQueue } from "./fair-queue.mjs";
+import { readHostedStream } from "./hosted-stream.mjs";
 
 const PROTOCOL = "ynx-code-model-router/v1";
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/;
@@ -140,6 +141,7 @@ export function createModelRouter({
 
   async function hosted(input) {
     let response;
+    const signal = combinedSignal(input.signal, timeoutMs);
     try {
       response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
         method: "POST",
@@ -155,21 +157,18 @@ export function createModelRouter({
           maxOutputTokens: input.maxOutputTokens,
           responseFormat: input.responseFormat,
         }),
-        signal: combinedSignal(input.signal, timeoutMs),
+        signal,
       });
     } catch (error) {
       throw modelConnectionFault(error, input.signal, "YNX hosted model");
     }
     if (!response.ok)
       throw upstreamFault(response.status, "YNX hosted model");
-    const raw = await response.text();
-    let text = "";
-    for (const line of raw.split(/\r?\n/)) {
-      if (!line.startsWith("data:")) continue;
-      try {
-        const value = JSON.parse(line.slice(5).trim());
-        if (typeof value.text === "string") text += value.text;
-      } catch {}
+    let text;
+    try { text = await readHostedStream(response, signal); }
+    catch (error) {
+      if (typeof error?.code === "string" && error.code.startsWith("model_")) throw error;
+      throw modelConnectionFault(error, input.signal, "YNX hosted model");
     }
     return output(text, response.headers.get("x-ynx-ai-model") || hostedModel);
   }

@@ -1,3 +1,4 @@
+import { streamResponse } from './stream-fixture.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createModelRouter } from "../src/router.mjs";
@@ -43,7 +44,7 @@ test("hosted adapter parses bounded SSE and reports live capacity", async () => 
     hostedBaseURL: "http://127.0.0.1:18111/ai-build",
     fetchImpl: async (url) => String(url).endsWith("/health")
       ? jsonResponse({ available: true, provider: "ynx-local-open-model", model: "qwen3:4b", active: 1, queued: 2 })
-      : new Response('data: {"text":"hello "}\n\ndata: {"text":"world"}\n\n', { status: 200, headers: { "content-type": "text/event-stream", "x-ynx-ai-model": "qwen3:4b" } }),
+      : streamResponse('hello world'),
   });
   const health = await router.hostedHealth();
   assert.deepEqual(health, { available: true, provider: "ynx-local-open-model", model: "qwen3:4b", active: 1, queued: 2 });
@@ -59,7 +60,7 @@ test("queue is bounded and invalid providers and credentials fail closed", async
     hostedBaseURL: "http://127.0.0.1:18111/ai-build",
     maxConcurrent: 1,
     maxQueued: 1,
-    fetchImpl: async () => { await gate; return new Response('data: {"text":"ok"}\n\n', { status: 200 }); },
+    fetchImpl: async () => { await gate; return streamResponse("ok"); },
   });
   const first = router.generate({ provider: "ynx-hosted", system: "", prompt: "first prompt" });
   const second = router.generate({ provider: "ynx-hosted", system: "", prompt: "second prompt" });
@@ -82,7 +83,7 @@ test("client cancellation removes queued work and releases running capacity", as
       calls += 1;
       if (calls === 1) {
         await firstGate;
-        return new Response('data: {"text":"first"}\n\n', { status: 200 });
+        return streamResponse("first");
       }
       return new Promise((_resolve, reject) => {
         init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });

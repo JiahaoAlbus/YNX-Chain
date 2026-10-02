@@ -1,3 +1,4 @@
+import { streamResponse } from './stream-fixture.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createModelRouter } from "../src/router.mjs";
@@ -13,7 +14,7 @@ function controlled(options = {}) {
       return new Promise((resolve, reject) => {
         const done = () => resolve(String(url).includes("openai.com")
           ? new Response(JSON.stringify({ output_text: "provider result" }))
-          : new Response('data: {"text":"hosted result"}\n\n'));
+          : streamResponse("hosted result"));
         running.push(done);
         init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
       });
@@ -81,7 +82,7 @@ test("100 distinct owners complete within bounded execution without identity lea
   const router = createModelRouter({ maxConcurrent: 4, maxHostedConcurrent: 2,
     maxQueued: 128, fetchImpl: async () => {
       active += 1; peak = Math.max(peak, active); await tick(); active -= 1;
-      return new Response('data: {"text":"synthetic response"}\n\n');
+      return streamResponse("synthetic response");
     } });
   const results = await Promise.all(Array.from({ length: 100 }, (_, index) =>
     router.generate({ ownerId: `owner-${index}`, prompt: `request ${index}` })));

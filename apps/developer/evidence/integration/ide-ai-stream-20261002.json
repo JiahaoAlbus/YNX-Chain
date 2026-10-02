@@ -1,0 +1,30 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "0d29c26d1a9deb6422c7c977249f8baaec66f5d3",
+  "existingContract": "/Users/huangjiahao/.codex/worktrees/ai-derived-wallet-source-20261001/apps/ai/integration/IDE_EXISTING_AI_API_CONTRACT_20261002.md",
+  "originalFailure": {
+    "sourceCommit": "0d29c26d1a9deb6422c7c977249f8baaec66f5d3",
+    "probe": "metadata/token without done",
+    "originalAcceptedMissingDone": true,
+    "text": "truncated answer",
+    "controlledUpstream": true,
+    "releaseAcceptance": false
+  },
+  "originalReceipt": "/tmp/ynx-ide-ai-stream-original-20261002.json",
+  "routerTests": {
+    "pass": 13,
+    "fail": 0,
+    "skip": 0
+  },
+  "fullSuite": {
+    "pass": 100,
+    "fail": 0,
+    "skip": 0
+  },
+  "realHttpScope": "Loopback controlled Gateway SSE, fragmented UTF-8/CRLF and stalled body. No provider generation.",
+  "requestIntegration": "PENDING_A_BUSINESS_PROOF_CONFIGURATION_AND_OWNED_CONVERSATION_ADAPTER",
+  "historySent": false,
+  "publicIntegrated": false,
+  "fullWorkbenchJourney": "NOT_RUN",
+  "releaseComplete": false
+}
