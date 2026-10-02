@@ -172,7 +172,7 @@
       "webOrigin": "https://social.ynxweb4.com",
       "nativeCallback": "ynx-social://com.ynx.social",
       "legacyCallbacks": ["ynx-social", "ynx-social://com.ynx.social"],
-      "scopes": ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
+      "scopes": ["account:read", "profile:link", "social.ai", "social.contacts", "social.feed", "social.messaging", "social.profile"],
       "evmCompatible": false,
       "sessionDurationSeconds": 240
     },
