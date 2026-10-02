@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto';
-import {chmodSync,closeSync,constants,fstatSync,fsyncSync,lstatSync,mkdirSync,openSync,readFileSync,renameSync,unlinkSync,writeFileSync} from 'node:fs';
+import {chmodSync,closeSync,constants,fstatSync,fsyncSync,lstatSync,mkdirSync,openSync,readFileSync,readSync,renameSync,unlinkSync,writeFileSync} from 'node:fs';
 import {dirname,isAbsolute} from 'node:path';
 import {hostname} from 'node:os';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
@@ -93,11 +93,21 @@ export class CentralBrowserSessionStore {
   }
   #readBound(path,limit=MAX_BYTES){
     const fd=openSync(path,constants.O_RDONLY|noFollow);
-    try{const stat=fstatSync(fd);safe(stat,'file');if(stat.size>limit)fail('SSO_STATE_CAPACITY');
+    try{const stat=fstatSync(fd);if(this.#releasedLockRead(path,fd,stat,limit))fail('SSO_STATE_BUSY');safe(stat,'file');if(stat.size>limit)fail('SSO_STATE_CAPACITY');
       const raw=readFileSync(fd,'utf8'),fresh=lstatSync(path);safe(fresh,'file');
       if(fresh.dev!==stat.dev||fresh.ino!==stat.ino||fresh.size!==stat.size)fail('SSO_STATE_TAMPERED');
       return {raw,identity:{dev:stat.dev,ino:stat.ino,size:stat.size,digest:hash(raw)}};
     }finally{closeSync(fd)}
+  }
+  // Only an already-opened, legitimate local live-owner lock can retire during
+  // a competing read. This never grants a lock or retries a failed transaction.
+  #releasedLockRead(path,fd,stat,limit){
+    if(path!==this.#lock||stat.nlink!==0||!owner(stat)||(stat.mode&0o077)!==0||!stat.isFile()||stat.isSymbolicLink()||stat.size<1||stat.size>Math.min(limit,512))return false;
+    let record,raw;
+    try{const bytes=Buffer.alloc(Math.min(limit,512)+1),length=readSync(fd,bytes,0,bytes.length,0);if(length!==stat.size)return false;raw=bytes.subarray(0,length).toString('utf8');record=JSON.parse(raw);exactFields(record,['host','pid','id'],'Central transaction lock');}catch{return false}
+    if(record.host!==host||!Number.isSafeInteger(record.pid)||record.pid<1||typeof record.id!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(record.id))return false;
+    try{process.kill(record.pid,0)}catch{return false}
+    try{const fresh=lstatSync(path);return owner(fresh)&&(fresh.mode&0o077)===0&&fresh.isFile()&&!fresh.isSymbolicLink()&&fresh.nlink===1&&(fresh.dev!==stat.dev||fresh.ino!==stat.ino)}catch(error){return error.code==='ENOENT'}
   }
   #read(){
     try{
