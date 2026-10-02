@@ -13,7 +13,7 @@ export function createCloudAPI({session,fetch=globalThis.fetch,base='/api/v1',ra
    headers['Idempotency-Key']=writes.get(key);
   }
   let response,body;
-  try{response=await fetch(`${base}${path}`,{...request,method,headers,credentials:'omit',cache:'no-store'});const type=response.headers.get('content-type')||'';body=type.includes('json')?await response.json():await response.blob()}catch(error){throw Object.assign(new Error('Connection interrupted. Retry the same change to check its result.'),{code:method==='GET'?'NETWORK_UNAVAILABLE':'CLOUD_WRITE_UNCONFIRMED',cause:error})}
+  try{response=await fetch(`${base}${path}`,{...request,method,headers,credentials:'omit',cache:'no-store'});const type=response.headers.get('content-type')||'';body=response.ok&&/^\/objects\/[^/?]+\/content(?:\?|$)/.test(path)?await response.blob():type.includes('json')?await response.json():await response.blob()}catch(error){throw Object.assign(new Error('Connection interrupted. Retry the same change to check its result.'),{code:method==='GET'?'NETWORK_UNAVAILABLE':'CLOUD_WRITE_UNCONFIRMED',cause:error})}
   if(!session.isCurrent(auth.generation))throw Object.assign(new Error('The selected Cloud account changed.'),{code:'PRIVATE_CONTEXT_CHANGED'});
   if(!response.ok){const code=body?.code||body?.error?.code||'CLOUD_REQUEST_FAILED';if(response.status===401)session.invalidate(code);failed(code,response.status);throw Object.assign(new Error('Cloud could not complete this action. Check your connection or approve access again.'),{code,status:response.status})}
   if(method!=='GET')writes.delete(key);

@@ -27,10 +27,11 @@ export function createCloudPrivateSession({environment=globalThis,createBrowserC
  async function connect(provider){
   if(!provider?.request)fail('CLOUD_WALLET_UNAVAILABLE','Select an installed YNX Wallet.');
   if(flight||revokeFlight)fail('PRODUCT_APPROVAL_DRAINING','The previous approval is still closing. Retry after it finishes.');
+  if(current.revocationPending)fail('REVOCATION_PENDING','Previous sign-out still needs confirmation.');
   const epoch=++generation,live=()=>epoch===generation,check=()=>{if(!live())fail('PRODUCT_APPROVAL_CANCELLED','Cloud sign-in was cancelled.');};
   const intent={preparing:false};active=intent;const operation=(async()=>{const b=await browser();check();
    // A different explicit selection cannot inherit a previous account grant.
-   if(current.revocationPending)fail('REVOCATION_PENDING','Previous sign-out still needs confirmation.');if(current.status==='connected'){intent.preparing=true;update({status:'connecting',session:null});const revoked=await b.client.disconnect();check();if(!['disconnected','expired'].includes(revoked.status)||revoked.revocationPending)fail('REVOCATION_PENDING','Previous sign-out still needs confirmation.');}
+   if(current.status==='connected'){intent.preparing=true;update({status:'connecting',session:null});const revoked=await b.client.disconnect();check();update(revoked);if(!['disconnected','expired'].includes(revoked.status)||revoked.revocationPending)fail('REVOCATION_PENDING','Previous sign-out still needs confirmation.');}
    intent.preparing=true;const pending=await b.client.beginExplicit();check();update(pending);
    if(!pending.request||typeof pending.route?.url!=='string')fail('PRODUCT_REQUEST_UNAVAILABLE','Cloud approval could not be prepared. Retry when connected.');
    const returned=await provider.request({method:'ynx_requestProductSessionV2',params:[pending.route.url]});check();
@@ -38,7 +39,7 @@ export function createCloudPrivateSession({environment=globalThis,createBrowserC
    const result=await b.client.handleReturn(returned.returnUrl);
    check();return update(result);
   })();flight=operation;
-  try{return await operation}catch(error){if(live())update({status:error.code==='SESSION_EXPIRED'?'expired':'retry-required',session:null,errorCode:error.code});throw error}finally{if(flight===operation)flight=null;if(active===intent)active=null}
+  try{return await operation}catch(error){if(live())update(current.revocationPending?{...current,errorCode:error.code}:{status:error.code==='SESSION_EXPIRED'?'expired':'retry-required',session:null,errorCode:error.code});throw error}finally{if(flight===operation)flight=null;if(active===intent)active=null}
  }
  async function authorization(path,method='GET'){
   const scopes=cloudScopes(path,method),epoch=generation,view=current;if(view.status!=='connected'||!view.session?.account)fail('SESSION_INACTIVE','Approve Cloud file access before continuing.');
