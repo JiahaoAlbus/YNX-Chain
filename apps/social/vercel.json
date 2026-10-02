@@ -1,0 +1,125 @@
+{
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "npm run web:build",
+  "outputDirectory": "web/dist",
+  "rewrites": [
+    {
+      "source": "/matrix/login/callback",
+      "destination": "/matrix/login-callback.html"
+    },
+    {
+      "source": "/sso/:path*",
+      "destination": "https://api.ynxweb4.com/social/sso/:path*"
+    },
+    {
+      "source": "/social/:path*",
+      "destination": "https://api.ynxweb4.com/social/:path*"
+    },
+    {
+      "source": "/wallet-auth/callback",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/matrix/login/callback",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-CVGuKezsyBYzTMc3Mm1S4Rhj0VpbvLBVWBQTZavyE6s='; style-src 'sha256-CyGF3+1x13oE6q9M93vM0ceuV+aolwM3umsvL6PQvvU='; img-src 'self'; connect-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/matrix/login-callback.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-CVGuKezsyBYzTMc3Mm1S4Rhj0VpbvLBVWBQTZavyE6s='; style-src 'sha256-CyGF3+1x13oE6q9M93vM0ceuV+aolwM3umsvL6PQvvU='; img-src 'self'; connect-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/matrix/login-callback-entry.mjs",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-CVGuKezsyBYzTMc3Mm1S4Rhj0VpbvLBVWBQTZavyE6s='; style-src 'sha256-CyGF3+1x13oE6q9M93vM0ceuV+aolwM3umsvL6PQvvU='; img-src 'self'; connect-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
+  ]
+}
