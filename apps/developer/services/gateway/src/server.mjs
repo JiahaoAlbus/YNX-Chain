@@ -139,7 +139,8 @@ codeossService = createCodeOSSService({
   verifyIdentity: developerSSO.verifyIdentity,
   assertProjectQuiescent: (owner, projectId) => terminalService.assertProjectQuiescent(owner, projectId),
 });
-const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission }) : null;
+const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission,
+  recordActivity: developerSSO.recordCoreActivity }) : null;
 const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({

@@ -25,4 +25,15 @@ export async function verifyDerivedRuntime(root, expectedManifestDigest, upstrea
   const manifest = JSON.parse(bytes);
   if (manifest.upstreamArchiveSha256 !== upstream.sha256 || manifest.upstreamCommit !== upstream.commit || manifest.treeSha256 !== await runtimeTreeDigest(root))
     throw fault("Derived YNX runtime contents changed.", "core_upstream_mismatch", 503);
+  if (manifest.workbenchActivity) {
+    const activity = manifest.workbenchActivity;
+    if (Object.keys(activity).sort().join(',') !== 'entry,sourceSha256,version' || activity.version !== 1 ||
+      activity.entry !== 'out/vs/code/browser/workbench/workbench.html' || !/^[a-f0-9]{64}$/.test(activity.sourceSha256 || ''))
+      throw fault("Derived workbench activity provenance is invalid.", "core_upstream_mismatch", 503);
+    const entry = await readFile(join(root, activity.entry), 'utf8');
+    const match = entry.match(/<script data-ynx-workbench-activity="v1">([\s\S]*?)<\/script>/g);
+    const helper = match?.length === 1 ? match[0].replace(/^<script data-ynx-workbench-activity="v1">/, '').replace(/<\/script>$/, '') : null;
+    if (!helper || createHash('sha256').update(helper).digest('hex') !== activity.sourceSha256 || helper.split('__YNX_WORKBENCH_WINDOW_CAPABILITY_V1__').length !== 2)
+      throw fault("Derived trusted activity helper changed.", "core_upstream_mismatch", 503);
+  }
 }

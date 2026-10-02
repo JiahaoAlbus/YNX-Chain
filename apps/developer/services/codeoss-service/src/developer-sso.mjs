@@ -259,7 +259,15 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
       throw fault("Method not allowed.", "method_not_allowed", 405);
     } catch (error) { json(response, error.status || 503, { error: error.message || "Developer sign-in is unavailable.", code: error.code || "developer_sso_unavailable" }); return true; }
   }
-  return { handler, verifyIdentity, grantForRequest, workspaceBinding, close: () => db.close() };
+  async function recordCoreActivity(request, sessionId, eventId, action) {
+    const grant = await grantForRequest(request);
+    if (!grant?.familyID || grant.allowedCoreSession !== sessionId || !grant.identityReference ||
+      !['edit', 'save', 'terminal-input'].includes(action) || !/^[A-Za-z0-9_-]{43}$/.test(eventId || '') || !grant.isCurrent())
+      throw fault("Activity is not bound to this current admitted workbench.", "developer_activity_invalid", 403);
+    await family.Activity(grant.familyID, eventId, now());
+    if (!grant.isCurrent()) throw fault("Workbench identity changed during activity.", "core_identity_changed", 401);
+  }
+  return { handler, verifyIdentity, grantForRequest, workspaceBinding, recordCoreActivity, close: () => db.close() };
 }
 async function bodyBuffer(request) { const chunks = []; let bytes = 0; for await (const chunk of request) { bytes += chunk.length; if (bytes > 8192) throw fault("Identity request too large.", "body_too_large", 413); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
 async function bodyJSON(request) { try { return JSON.parse(await bodyBuffer(request)); } catch (error) { if (error.code) throw error; throw fault("Identity request must be JSON.", "invalid_json", 400); } }

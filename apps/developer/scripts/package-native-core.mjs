@@ -29,7 +29,14 @@ const manifestPath = join(server, "manifest.json"), webManifest = JSON.parse(awa
 webManifest.name = "YNX Developer"; webManifest.short_name = "YNX Developer"; webManifest.theme_color = "#002FA7"; webManifest.background_color = "#FFFFFF";
 await writeFile(manifestPath, JSON.stringify(webManifest, null, 2) + "\n");
 await cp(license, join(root, "LICENSE.txt")); await cp(notices, join(root, "ThirdPartyNotices.txt"));
+const activity = await readFile(fileURLToPath(new URL("../native/ynx-brand/workbench-activity.js", import.meta.url)), "utf8");
+if (activity.includes("</script") || activity.split("__YNX_WORKBENCH_WINDOW_CAPABILITY_V1__").length !== 2) throw new Error("Trusted workbench helper contract changed.");
+const workbenchPath = join(root, "out/vs/code/browser/workbench/workbench.html");
+const workbenchHTML = await readFile(workbenchPath, "utf8");
+if (workbenchHTML.split("<head>").length !== 2) throw new Error("Official fixed workbench entry changed.");
+await writeFile(workbenchPath, workbenchHTML.replace("<head>", `<head>\n<script data-ynx-workbench-activity="v1">${activity}</script>`));
 const manifest = { product: "YNX Developer", upstreamVersion: OPENVSCODE_X64.version, upstreamCommit: OPENVSCODE_X64.commit,
-  upstreamArchiveSha256: OPENVSCODE_X64.sha256, license: "MIT", modifications: ["product names", "server icons/favicon/web manifest"], treeSha256: await runtimeTreeDigest(root) };
+  upstreamArchiveSha256: OPENVSCODE_X64.sha256, license: "MIT", modifications: ["product names", "server icons/favicon/web manifest", "fixed workbench activity bootstrap"],
+  workbenchActivity: { version: 1, sourceSha256: digest(activity), entry: "out/vs/code/browser/workbench/workbench.html" }, treeSha256: await runtimeTreeDigest(root) };
 const bytes = Buffer.from(JSON.stringify(manifest, null, 2) + "\n"); await writeFile(join(root, "YNX-DERIVED-RUNTIME.json"), bytes, { flag: "wx" });
 console.log(JSON.stringify({ path: root, manifestSha256: digest(bytes), treeSha256: manifest.treeSha256 }));

@@ -70,6 +70,7 @@ async function fixture(t) {
   return { call, begin, signIn, authority, store, calls, advance: ms => clock += ms, outage: v => unavailable = v,
     dropRenew: () => dropRenew = true, holdRedeem: value => holdRedeem = value, badRevoke: value => badRevoke = value,
     verifyCore: (cookie) => service.verifyIdentity({ headers: { host: 'core.example.test', cookie } }),
+    coreActivity: (cookie, session, action) => service.recordCoreActivity({ headers: { host: 'core.example.test', cookie } }, session, random(), action),
     async restart() { service.close(); service = await createDeveloperSSO(configuration); } };
 }
 
@@ -129,7 +130,14 @@ test('isolated core cookie remains parent-bound across access expiry and rejects
   const cookie = admitted.headers['set-cookie'][0].split(';')[0]; assert.match(admitted.headers['set-cookie'][0], /Max-Age=7200/);
   const before = await f.verifyCore(cookie); f.advance(301000);
   const after = await f.verifyCore(cookie); assert.equal(after.owner, before.owner); assert.equal(after.identityReference, before.identityReference); assert.ok(after.expiresAt > before.expiresAt);
+  await assert.rejects(f.coreActivity(cookie, 'other-session', 'edit'), { status: 403 });
+  await assert.rejects(f.coreActivity(cookie, '12345678-1234-1234-1234-123456789012', 'focus'), { status: 403 });
+  const absolute = f.store.snapshot().families[0].absoluteExpiresAt;
+  await f.coreActivity(cookie, '12345678-1234-1234-1234-123456789012', 'terminal-input');
+  assert.equal(f.store.snapshot().families[0].absoluteExpiresAt, absolute);
+  assert.ok(f.calls.some(path => path.endsWith('/activity')));
   await f.call('/runtime/identity/logout', { cookie: a.cookie, method: 'POST' }); await assert.rejects(f.verifyCore(cookie), { status: 401 });
+  await assert.rejects(f.coreActivity(cookie, '12345678-1234-1234-1234-123456789012', 'edit'), { status: 403 });
 });
 
 test('passive traffic cannot extend idle and explicit activity never resets original absolute end', async t => {
