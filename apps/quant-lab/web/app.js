@@ -1,6 +1,7 @@
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
+let snapshotRevision = 0;
 let statefulPreview = false;
 let publicExperiments = {};
 let pendingMandate = null;
@@ -162,7 +163,10 @@ const toast = (m) => {
   setTimeout(() => e.classList.remove("show"), 3000);
 };
 async function refresh() {
-  snapshot = await api("/v1/snapshot");
+  const revision = ++snapshotRevision;
+  const next = await api("/v1/snapshot");
+  if (revision !== snapshotRevision) return;
+  snapshot = next;
   statefulPreview = snapshot.access?.statefulPreview === true;
   if (!statefulPreview) snapshot.experiments = publicExperiments;
   $("#workspace-boundary").hidden = statefulPreview;

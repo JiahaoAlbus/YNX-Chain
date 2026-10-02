@@ -87,6 +87,24 @@ test('public stateless research renders measured equity without granting Paper o
   assert.match(app.ids.get('strategy-rows').innerHTML,/No strategies/);
 });
 
+test('late workspace snapshots cannot replace a newer confirmed risk state', async () => {
+  const stale = deferred(); let snapshots = 0;
+  const app = harness({apiResponse: url => {
+    assert.ok(url.endsWith('/snapshot'));
+    if (++snapshots === 2) return stale.promise;
+    return {paper: {KillSwitch: snapshots > 2}, strategies: {}, audit: []};
+  }});
+  await settle();
+  const oldRefresh = app.ids.get('refresh').onclick();
+  await settle();
+  await app.ids.get('refresh').onclick();
+  assert.match(app.ids.get('paper-state').innerHTML, /ACTIVE/);
+  stale.resolve({paper: {KillSwitch: false}, strategies: {}, audit: []});
+  await oldRefresh;
+  assert.match(app.ids.get('paper-state').innerHTML, /ACTIVE/);
+  assert.equal(snapshots, 3);
+});
+
 test('guest Paper has a separate persisted browser tenant and cannot submit an invented strategy hash', async () => {
   const app = harness(); await settle();
   assert.match(app.ids.get('wallet-portfolio-status').textContent, /Connect YNX Wallet or MetaMask/);
