@@ -1,5 +1,55 @@
 # IDE continuation checkpoint — source candidate, product incomplete
 
+## Native contract tools successor to d6a9fd9e4
+
+The complete editor's trusted Tools page now exposes the existing Devnet
+contract inspector and read-only pure/view calls. Product routes are
+`GET /runtime/native-tools/chain/contracts/{address}` and
+`POST /runtime/native-tools/chain/contracts/call`; the latter consumes a fresh
+one-use review after current native-session verification. They forward through
+the existing owner-bound chain service to exactly `GET /contracts/{address}`
+and `POST /ide/call` with only `{address,function}`. No execute/deploy/signature
+route or shared authority is added. Named getters and bounded ABI calldata are
+supported; argument functions require calldata. The response must bind the
+requested address and function/selector, preserve runtime/artifact/execution
+mode and limits, and contain no transaction or storage-write evidence.
+
+HTTP-response deadlines now cover the whole streamed chain body, retaining the
+original eight-second and two-MiB limits. Actual loopback upstream sends headers
+and then stops its body: original source never settles before the QA's nine-
+second cancellation; successor returns typed 503 at the service deadline.
+Original failure `/tmp/ynx-ide-contract-body-deadline-original-20261002.log`
+is preserved. Oversized streaming metadata is rejected before buffering it all.
+
+Engineering validation: full codeoss/chain/identity-activity suite 85/85, zero
+skip; subsequent selector-mismatch and metadata-size case 1/1.
+Actual React+Chromium inspector/call/address-change path passes with controlled
+browser routes, including exclusion of nonpayable functions and preservation of
+source-analyzer limitations. First browser attempt timed out on an overly exact
+accessible-label locator; its incomplete receipt wrongly contained passed=true
+because it only counted console errors. That receipt is preserved as
+`/tmp/ynx-ide-contract-browser-first-incomplete-20261002.json` and is not
+acceptance evidence. The test now marks passed only after all assertions, uses
+the actual combobox accessible name, and writes the final receipt. Existing
+Tools 401 retirement and 320/390/1280px layout checks pass. Frontend typecheck and
+production build pass with retained dependencies and local build cache.
+
+Read-only public `/status` and `/ide/compiler` observations confirm chain6423
+and public Testnet, but the compiler explicitly reports source-analyzer output,
+productionCompilerEnabled=false and local-verifier limitations. They do not
+prove a real contract call, project ownership, signing, deployment or full IDE
+acceptance. No actual existing QA contract address was supplied, and no contract
+was created to manufacture this receipt. Current consumed API is the Devnet
+`{address,function}` contract; BFT's distinct calldata/ide-contract route must
+not be relabeled compatible without A's real runtime/adapter verification.
+
+Reproduce the browser inspector with the native-tools fixture and existing
+Playwright installation described below, running
+`frontend/test/native-contract.browser.mjs`; optional receipt output is
+`YNX_QA_CONTRACT_RECEIPT`. Durable successor evidence:
+`../evidence/integration/ide-contract-tools-20261002.json`.
+The full goal and all remaining release/real-workbench gates below remain open.
+
 This visible product thread inherits `78eca0eda9bca8d16076c48b89c54c07e8ef15d1`
 on `codex/ide-quota-command-diagnostics-20261002` in the existing
 `ide-quota-command-diagnostics/YNX Chain` worktree. The inherited checkout was

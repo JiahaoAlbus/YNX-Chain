@@ -22,7 +22,7 @@ export function createNativeToolsService({ coreService, modelRouter, chainHandle
         const csrf = token(tickets, { bound, expires });
         json(response, 200, { csrf, account: admission.identity.account, projectId: admission.context.projectId, expiresAt: expires, model: 'qwen3:4b', signingAvailable: false }); return true;
       }
-      if (request.method === 'GET' && ['/runtime/native-tools/chain/status', '/runtime/native-tools/chain/compiler', '/runtime/native-tools/wallet/readiness'].includes(url.pathname)) {
+      if (request.method === 'GET' && (['/runtime/native-tools/chain/status', '/runtime/native-tools/chain/compiler', '/runtime/native-tools/wallet/readiness'].includes(url.pathname) || /^\/runtime\/native-tools\/chain\/contracts\/0x[0-9a-f]{40}$/.test(url.pathname))) {
         admittedOwners.set(request, admission.context.owner); const original = request.url;
         request.url = url.pathname.replace('/runtime/native-tools', '/runtime');
         try { await (url.pathname.includes('/wallet/') ? walletHandler : chainHandler)(request, response); }
@@ -38,6 +38,12 @@ export function createNativeToolsService({ coreService, modelRouter, chainHandle
       const ticket = tickets.get(body.csrf);
       if (!ticket || ticket.expires <= now() || ticket.bound !== bound) throw fault('Review expired. Refresh the tools page.', 'tools_review_expired', 403);
       tickets.delete(body.csrf);
+      if (url.pathname === '/runtime/native-tools/chain/contracts/call') {
+        exact(body, ['csrf', 'address', 'function']);
+        const forward = Readable.from([Buffer.from(JSON.stringify({ protocolVersion: 'ynx-code-chain/v1', address: body.address, function: body.function }))]);
+        forward.method = 'POST'; forward.headers = request.headers; forward.url = '/runtime/chain/contracts/call'; admittedOwners.set(forward, admission.context.owner);
+        try { await chainHandler(forward, response); } finally { admittedOwners.delete(forward); } return true;
+      }
       if (url.pathname === '/runtime/native-tools/chain/rpc') {
         exact(body, ['csrf', 'method', 'params']);
         const forward = Readable.from([Buffer.from(JSON.stringify({ protocolVersion: 'ynx-code-chain/v1', method: body.method, params: body.params }))]);

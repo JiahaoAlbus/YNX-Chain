@@ -14,7 +14,12 @@ async function harness(t, { realChain = false, generationHook } = {}) {
   let now = 100, generation = 1, revoked = false, admissions = 0; const calls = [], admittedOwners = new WeakMap();
   const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId: 'project-A', runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
-  const chain = createChainService({ ownerForRequest: req => admittedOwners.get(req), fetcher: async (url, options) => { calls.push({ upstream: String(url), body: options?.body }); return new Response(JSON.stringify({ result: '0x1917' }), { headers: { 'content-type': 'application/json' } }); } });
+  const chain = createChainService({ ownerForRequest: req => admittedOwners.get(req), fetcher: async (url, options) => {
+    calls.push({ upstream: String(url), body: options?.body });
+    const address = '0x' + 'a'.repeat(40);
+    const value = String(url).includes('/contracts/') ? { address, functions: [] } : String(url).endsWith('/ide/call') ? { address, function: 'count', selector: '0x06661abd', returnValue: '7', executionStatus: 'source_analyzer_literal_return', artifactKind: 'source-analyzer-artifact', runtimeMode: 'local-devnet', limitations: ['not full EVM'] } : { result: '0x1917' };
+    return new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
+  } });
   const service = createNativeToolsService({ coreService, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); t.after(() => new Promise(resolve => server.close(resolve)));
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
@@ -100,6 +105,18 @@ test('actual read-only Chain handler accepts chain query and rejects transaction
   let c = await h.send('context'); assert.equal((await h.send('chain/rpc', { csrf: c.value.csrf, method: 'eth_chainId', params: [] })).status, 200); assert.equal(h.calls.length, 1);
   for (const method of ['eth_sendTransaction', 'eth_sendRawTransaction', 'personal_sign']) { c = await h.send('context'); assert.equal((await h.send('chain/rpc', { csrf: c.value.csrf, method, params: [] })).status, 400); }
   assert.equal(h.calls.length, 1);
+});
+test('normal Tools HTTP consumes exact contract inspector/call under current native owner with one-use review', async t => {
+  const h = await harness(t, { realChain: true }), address = '0x' + 'a'.repeat(40);
+  assert.equal((await h.send(`chain/contracts/${address}`)).status, 200);
+  const c = await h.send('context'), body = { csrf: c.value.csrf, address, function: 'count' };
+  const called = await h.send('chain/contracts/call', body);
+  assert.equal(called.status, 200); assert.equal(called.value.result.returnValue, '7'); assert.equal(called.value.submitted, false);
+  assert.deepEqual(JSON.parse(h.calls.at(-1).body), { address, function: 'count' });
+  assert.equal((await h.send('chain/contracts/call', body)).status, 403);
+  const fresh = await h.send('context'); h.changeAccount();
+  assert.equal((await h.send('chain/contracts/call', { ...body, csrf: fresh.value.csrf })).status, 403);
+  assert.equal(h.calls.length, 2);
 });
 test('revocation during generation suppresses model result and never reapplies or retries', async t => {
   const h = await harness(t, { generationHook: revoke => revoke() }), c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Suggest a plan', context: 'chosen only' });

@@ -1,0 +1,319 @@
+{
+  "parent": "d6a9fd9e471dd9309d8660ceba55b0e90dc38039",
+  "classification": "SOURCE_CANDIDATE_NOT_FULL_IDE",
+  "serviceSuite": {
+    "pass": 85,
+    "fail": 0,
+    "skip": 0
+  },
+  "additionalSelectorSizeCase": {
+    "pass": 1,
+    "fail": 0
+  },
+  "browser": {
+    "actualReact": true,
+    "actualChromium": true,
+    "backend": "controlled browser routes",
+    "calls": [
+      {
+        "path": "/runtime/native-tools/context",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "body": null
+      },
+      {
+        "path": "/runtime/native-tools/chain/contracts/call",
+        "body": {
+          "csrf": "review",
+          "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "function": "count"
+        }
+      },
+      {
+        "path": "/runtime/native-tools/chain/contracts/0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "body": null
+      }
+    ],
+    "errors": [],
+    "passed": true,
+    "public": false,
+    "realContractCall": false
+  },
+  "layout": {
+    "rows": [
+      {
+        "entry": "native-panel",
+        "width": 320,
+        "scroll": 320,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 46.796875,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 46.796875,
+            "text": "Continue editing"
+          },
+          {
+            "height": 46.796875,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 320,
+        "scroll": 320,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Inspect contract"
+          },
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      },
+      {
+        "entry": "native-panel",
+        "width": 390,
+        "scroll": 390,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 46.796875,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 46.796875,
+            "text": "Continue editing"
+          },
+          {
+            "height": 46.796875,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 390,
+        "scroll": 390,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Inspect contract"
+          },
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      },
+      {
+        "entry": "native-panel",
+        "width": 1280,
+        "scroll": 1280,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 28,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 28,
+            "text": "Continue editing"
+          },
+          {
+            "height": 28,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 1280,
+        "scroll": 1280,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Inspect contract"
+          },
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      }
+    ],
+    "actualChromium": true,
+    "fixtureOnly": true,
+    "androidHardware": false,
+    "public": false
+  },
+  "publicReadOnlyObservations": [
+    {
+      "path": "status",
+      "http": 200,
+      "observedAt": "2026-10-02T15:20:30.378Z",
+      "value": {
+        "chainId": 6423,
+        "network": "YNX Testnet",
+        "publicNetwork": true,
+        "height": 1784541,
+        "build": {
+          "commit": "65efa82e0615",
+          "release": "ynx-network-surgical-65efa82e0615",
+          "buildTime": "2026-09-25T00:00:00Z"
+        }
+      }
+    },
+    {
+      "path": "ide/compiler",
+      "http": 200,
+      "observedAt": "2026-10-02T15:20:30.625Z",
+      "value": {
+        "id": "solidity-0.8.24",
+        "language": "Solidity",
+        "version": "0.8.24",
+        "package": "hardhat/solc-wasm",
+        "configPath": "hardhat.config.ts",
+        "source": "repo-pinned-hardhat-config",
+        "preferWasm": true,
+        "optimizerEnabled": true,
+        "optimizerRuns": 200,
+        "pinned": true,
+        "configHash": "500f922ce0b89e7618d36ffbcd3238458891baee59b17040527042ce47db0c93",
+        "artifactKind": "source-analyzer-artifact",
+        "compilerMode": "deterministic-devnet-source-analyzer-with-pinned-solidity-config",
+        "verifierMode": "source-hash-and-pinned-config-local-verifier",
+        "productionCompilerEnabled": false,
+        "reproducibilityStatus": "pinned-solidity-config-recorded; bytecode is deterministic devnet analyzer output until production solc execution is wired",
+        "limitations": [
+          "compiler version and settings are pinned from hardhat.config.ts",
+          "devnet artifact bytecode is deterministic analyzer metadata, not production solc bytecode",
+          "production verification requires executing the pinned compiler and comparing deployed bytecode"
+        ]
+      }
+    }
+  ],
+  "logs": [
+    {
+      "path": "/tmp/ynx-ide-contract-service-suite-final-20261002.log",
+      "sha256": "ddfa8db7b0208c2eb2b79cea13abdd28387875c0fb6c58b4737ed8fef7963f52"
+    },
+    {
+      "path": "/tmp/ynx-ide-contract-selector-size-20261002.log",
+      "sha256": "76241c35d06c5528ead1b0fda0b3beaada1bde8e323d033bcfaf3e135af338f8"
+    },
+    {
+      "path": "/tmp/ynx-ide-contract-body-deadline-original-20261002.log",
+      "sha256": "456c795ade5701ce489b20069e6ec91a93514a626f997fdf287e7fd114289947"
+    },
+    {
+      "path": "/tmp/ynx-ide-contract-build-20261002.log",
+      "sha256": "f12ec3e98c24a3772aaa6e9fbc6abb8e4c9a75f6e6a344cd0be2f3939daed609"
+    },
+    {
+      "path": "/tmp/ynx-ide-contract-mobile-layout-20261002.log",
+      "sha256": "3eb489e311385bc4f8ff4db9f5a602392e5c7c03595cfc6f875eab95058b86cc"
+    }
+  ],
+  "gates": {
+    "realContractCall": "NOT_RUN",
+    "walletSigning": "NOT_RUN",
+    "fullWorkbench": "NOT_RUN",
+    "multiUserCapacity": "NOT_VERIFIED",
+    "publicIDE": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "rejectedScope": "STOPPED"
+  }
+}
