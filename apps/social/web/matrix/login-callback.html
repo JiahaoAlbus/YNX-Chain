@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
+  <script>
+  (function () {
+    let callbackHref = window.location.href;
+    try {
+      window.history.replaceState(null, '', '/matrix/login/callback');
+    } catch {
+      callbackHref = null;
+      window.location.replace('/matrix/login/callback');
+      return;
+    }
+    const ready = document.readyState === 'loading'
+      ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, {once: true}))
+      : Promise.resolve();
+    import('/matrix/login-callback-entry.mjs').then(async ({runMatrixLoginCallbackPage}) => {
+      await ready;
+      const href = callbackHref;
+      callbackHref = null;
+      runMatrixLoginCallbackPage({callbackHref: href, environment: window});
+    }).catch(() => {
+      callbackHref = null;
+      ready.then(() => {
+        const status = document.getElementById('callback-status');
+        if (status) status.textContent = 'Sign-in is temporarily unavailable. Return to Social and retry.';
+      });
+    });
+  })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Return to YNX Social</title>
+  <style>
+    :root{color-scheme:light;--blue:#0033ff;--ink:#13204a;--muted:#5d6889;--paper:#fff}
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px;color:var(--ink);font-family:Georgia,"Times New Roman",serif;background:radial-gradient(ellipse at 18% 8%,#dce5ff,transparent 60%),linear-gradient(145deg,#fff,#f0f4ff)}
+    main{width:min(100%,480px);padding:40px 32px;background:var(--paper);border-top:4px solid var(--blue);box-shadow:0 24px 80px #143db514}
+    .brand{display:flex;align-items:center;gap:14px;font-family:"Trebuchet MS",sans-serif;font-size:15px;font-weight:700;letter-spacing:.08em}.brand img{width:64px;height:64px;object-fit:contain}
+    h1{font-size:clamp(28px,6vw,38px);font-weight:400;line-height:1.15;margin:30px 0 18px}p{font-family:"Trebuchet MS",sans-serif;line-height:1.6;color:var(--muted)}a{display:inline-block;margin-top:16px;padding:14px 22px;background:var(--blue);color:#fff;text-decoration:none;font-family:"Trebuchet MS",sans-serif;font-weight:700}a:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+    @media(max-width:400px){main{padding:28px 22px}}
+  </style>
+</head>
+<body>
+  <main aria-labelledby="callback-title">
+    <div class="brand"><img src="/assets/ynx-logo.png" alt="YNX" width="64" height="64"><span>YNX SOCIAL</span></div>
+    <h1 id="callback-title">Return to your conversation.</h1>
+    <p id="callback-status" role="status" aria-live="polite">Returning sign-in to your original Social window. Your encrypted device and history are retained.</p>
+    <a href="/" referrerpolicy="no-referrer">Return to Social</a>
+    <noscript><p>JavaScript is required to return sign-in securely. Return to Social and retry with JavaScript enabled.</p></noscript>
+  </main>
+</body>
+</html>

@@ -17,3 +17,8 @@ await build({absWorkingDir:root,entryPoints:['private-session-ui.js'],outfile:fi
 await mkdir(new URL('pkg/',out),{recursive:true});
 await cp(new URL('../node_modules/@matrix-org/matrix-sdk-crypto-wasm/pkg/matrix_sdk_crypto_wasm_bg.wasm',import.meta.url),new URL('pkg/matrix_sdk_crypto_wasm_bg.wasm',out));
 await build({absWorkingDir:root,entryPoints:['matrix/session-ui.mjs'],outfile:fileURLToPath(new URL('matrix-session-ui.js',out)),bundle:true,platform:'browser',format:'esm',target:'es2022',minify:false,define:{'process.env.NODE_ENV':'"production"'}});
+// A mounts /matrix/login/callback to this HTML with no-store/no-referrer and
+// query-free access logging. Its independent closure never loads the chat SDK.
+await mkdir(new URL('matrix/',out),{recursive:true});
+await cp(new URL('matrix/login-callback.html',import.meta.url),new URL('matrix/login-callback.html',out));
+await build({absWorkingDir:root,entryPoints:['matrix/login-callback-entry.mjs'],outfile:fileURLToPath(new URL('matrix/login-callback-entry.mjs',out)),bundle:true,platform:'browser',format:'esm',target:'es2022',minify:false});

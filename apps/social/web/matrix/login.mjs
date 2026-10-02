@@ -2,6 +2,7 @@
 export const MATRIX_LOGIN_PROTOCOL='ynx-social-matrix-login/v1';
 export const MATRIX_LOGIN_CALLBACK='/matrix/login/callback';
 const SOCIAL_ORIGIN='https://social.ynxweb4.com';
+const consumedCallbacks=new WeakSet();
 const fail=(code,message)=>Object.assign(new Error(message),{code});
 const devicePattern=/^[A-Za-z0-9._-]{3,64}$/;
 function secureRoot(value,localQA){
@@ -27,14 +28,17 @@ export async function fetchMatrixLoginMetadata({account,deviceId,client,csrfToke
 }
 // A must serve this route without request-query logging or external resources,
 // with Cache-Control: no-store and Referrer-Policy: no-referrer before this runs.
-export function handleMatrixLoginCallback({environment=globalThis,callbackOrigin=SOCIAL_ORIGIN,localQA=false}={}){
- const url=new URL(environment.location.href),origin=productOrigin(callbackOrigin,localQA);
- if(url.origin!==origin||url.pathname!==MATRIX_LOGIN_CALLBACK)return false;
+export function handleMatrixLoginCallback({environment=globalThis,callbackOrigin=SOCIAL_ORIGIN,localQA=false,callbackHref=environment.location.href}={}){
+ const url=new URL(callbackHref),current=new URL(environment.location.href),origin=productOrigin(callbackOrigin,localQA);
+ if(url.origin!==origin||url.pathname!==MATRIX_LOGIN_CALLBACK||current.origin!==origin||current.pathname!==MATRIX_LOGIN_CALLBACK)return false;
  const token=url.searchParams.get('loginToken'),state=url.searchParams.get('state');
  const valid=url.searchParams.getAll('loginToken').length===1&&url.searchParams.getAll('state').length===1&&typeof token==='string'&&token.length>0&&token.length<=8192&&/^[a-f0-9]{64}$/.test(state??'');
  environment.history.replaceState(null,'',MATRIX_LOGIN_CALLBACK);
- if(valid&&environment.opener){environment.opener.postMessage({type:'ynx-social-matrix-login-token',state,loginToken:token},origin);environment.close()}
- else if(environment.document?.body)environment.document.body.textContent='Matrix sign-in callback is unavailable or expired. Return to Social and retry.';
+ const status=environment.document?.getElementById?.('callback-status')??environment.document?.body;
+ if(consumedCallbacks.has(environment)){if(status)status.textContent='This sign-in callback has already been used. Return to Social and retry.';return true}
+ consumedCallbacks.add(environment);
+ if(valid&&environment.opener){if(status)status.textContent='Sign-in returned to Social. You can close this window.';environment.opener.postMessage({type:'ynx-social-matrix-login-token',state,loginToken:token},origin);environment.close()}
+ else if(status)status.textContent='Matrix sign-in callback is unavailable or expired. Return to Social and retry.';
  return true;
 }
 export function createMatrixLoginController({container,environment=globalThis,callbackOrigin=SOCIAL_ORIGIN,localQA=false,timeoutMs=120000}={}){
