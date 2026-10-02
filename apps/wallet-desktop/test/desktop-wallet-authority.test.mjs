@@ -18,6 +18,17 @@ const SECRET = "0000000000000000000000000000000000000000000000000000000000000001
 const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
 const ORIGIN = "https://example-dapp.invalid";
 
+test("finite Finance authorization signs the displayed deadline and exact permissions, without extending request expiry",async()=>{
+  const {authority,status}=await fixture(),device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,7));
+  const at=new Date("2026-10-02T00:00:00.000Z");
+  const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"finance",platform:"web",deviceId:"desktop-finite-fixture",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"n".repeat(32),state:"s".repeat(32),scopes:["finance.profile.write"],purpose:"Review fixed service access",finiteServiceSeconds:3600},at);
+  const result=await authority.approveCanonicalAuthorization(request,at.toISOString(),status.account);
+  const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,result.callbackUrl,at);
+  assert.equal(verified.status,"ready");assert.deepEqual(verified.approval.serviceConsent,request.serviceConsent);
+  assert.equal(verified.approval.expiresAt,request.expiresAt);assert.deepEqual(verified.approval.scopes,request.scopes);
+  await assert.rejects(authority.approveCanonicalAuthorization(request,request.expiresAt,status.account));
+});
+
 test("desktop Wallet exposes no account before explicit origin approval", async () => {
   const { authority, status } = await fixture();
   assert.equal(YNX_EVM_CHAIN_ID, "0x1917");

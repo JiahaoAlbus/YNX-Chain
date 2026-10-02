@@ -119,7 +119,9 @@ function presentApproval() {
     document.querySelector("#auth-account").textContent = review.ynxAccount ?? review.account ?? "Create or import an account first";
     document.querySelector("#auth-purpose").textContent = review.purpose ?? review.request.purpose;
     document.querySelector("#auth-scopes").textContent = review.scopes.map(scopeLabel).join(" · ");
-    document.querySelector("#auth-expiry").textContent = `Valid until ${new Date(review.expiresAt).toLocaleTimeString()}`;
+    document.querySelector("#auth-expiry").textContent = review.request.serviceConsent
+      ? `Approve before ${review.expiresAt}. Service access until ${review.request.serviceConsent.expiresAt}. Only the listed permissions until this fixed deadline. Logout, revocation or account changes restrict access. No automatic signatures, transfers or deadline extension.`
+      : `Valid until ${new Date(review.expiresAt).toLocaleTimeString()}`;
     if (newlyShown) authResult.textContent = "Share this account with the app. Connecting does not send any assets.";
     const choice = authorizationChoices.get(item.key);
     document.querySelector("#auth-create-account").hidden = Boolean(review.account);
