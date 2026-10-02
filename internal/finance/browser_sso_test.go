@@ -1047,3 +1047,63 @@ func TestFinanceFiniteActivityCannotExtendAbsoluteAndIsBounded(t *testing.T) {
 		t.Fatal("activity/refresh resurrected absolute expired session")
 	}
 }
+
+func TestFinanceFiniteFirstVisitSilentAndInvalidFamilyExplicitOnly(t *testing.T) {
+	now := time.Now().UTC()
+	s, f := finiteSSOServer(&now)
+	initial := httptest.NewRecorder()
+	s.ssoAccount(initial, httptest.NewRequest("GET", "/api/sso/account", nil))
+	if initial.Code != 401 || !strings.Contains(initial.Body.String(), `"silentRestoreAllowed":true`) {
+		t.Fatal("first product visit cannot silently restore", initial.Body.String())
+	}
+	start := httptest.NewRecorder()
+	s.ssoStart(start, httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?prompt=none", nil))
+	if start.Code != 303 || !strings.Contains(start.Header().Get("Location"), "prompt=none") {
+		t.Fatal("first silent intent does not reach original Central authorize")
+	}
+	p, state := finiteSSOStart(t, s, nil)
+	cookie := finiteSSOComplete(t, s, p, state)
+	f.resolveError = &centralbrowserfamily.Error{Code: "SSO_GENERATION_REVOKED"}
+	invalid := finiteSSOAccount(s, cookie)
+	if invalid.Code != 401 || !strings.Contains(invalid.Body.String(), `"silentRestoreAllowed":false`) {
+		t.Fatal("revoked family allowed passive regrant")
+	}
+	var marker *http.Cookie
+	for _, c := range invalid.Result().Cookies() {
+		if c.Name == financeSSOCookieName+"-signedout" {
+			marker = c
+		}
+	}
+	if marker == nil {
+		t.Fatal("no durable product opt-out after invalid family")
+	}
+	r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?prompt=none", nil)
+	r.AddCookie(marker)
+	denied := httptest.NewRecorder()
+	s.ssoStart(denied, r)
+	if denied.Code != 303 || strings.HasPrefix(denied.Header().Get("Location"), BrowserWalletAuthority) {
+		t.Fatal("reload silently replaces revoked family")
+	}
+	// A direct silent URL with the old cookie must also avoid Prepare/regrant.
+	direct := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?prompt=none", nil)
+	direct.AddCookie(cookie)
+	denied = httptest.NewRecorder()
+	s.ssoStart(denied, direct)
+	if denied.Code != 303 || strings.HasPrefix(denied.Header().Get("Location"), BrowserWalletAuthority) {
+		t.Fatal("direct silent request replaced invalid family")
+	}
+	f.resolveError = nil
+	now = now.Add(31 * time.Minute)
+	idle := finiteSSOAccount(s, cookie)
+	if idle.Code != 401 || !strings.Contains(idle.Body.String(), `"silentRestoreAllowed":false`) {
+		t.Fatal("expired idle family allowed passive regrant")
+	}
+	// Explicit login clears only this product marker and remains usable.
+	explicit := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start", nil)
+	explicit.AddCookie(marker)
+	approved := httptest.NewRecorder()
+	s.ssoStart(approved, explicit)
+	if approved.Code != 303 || !strings.HasPrefix(approved.Header().Get("Location"), BrowserWalletAuthority) {
+		t.Fatal("explicit login blocked by product marker")
+	}
+}

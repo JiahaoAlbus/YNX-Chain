@@ -190,6 +190,14 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 				if status == 401 || status == 403 {
 					previous.FamilyID = ""
 					clearSSOCookie(w, financeSSOCookieName)
+					if silent {
+						if s.sealSSOCookie(w, financeSSOCookieName+"-signedout", true, s.now().Add(30*24*time.Hour)) != nil {
+							writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+							return
+						}
+						http.Redirect(w, r, "/#"+pending.Target, http.StatusSeeOther)
+						return
+					}
 				} else if status != 200 {
 					writeJSON(w, 503, map[string]string{"code": "SSO_RECHECK_UNAVAILABLE"})
 					return
@@ -350,14 +358,26 @@ func (s *Server) ssoAccount(w http.ResponseWriter, r *http.Request) {
 	local, status := s.ssoCookieGrant(r)
 	var result financeSSOGrant
 	if status != 200 {
+		blockedSilent := false
 		if status == 401 || status == 403 {
 			clearSSOCookie(w, financeSSOCookieName)
+			if s.cfg.CentralBrowserFamily != nil {
+				for _, cookie := range r.Cookies() {
+					if cookie.Name == financeSSOCookieName {
+						blockedSilent = true
+					}
+				}
+				if blockedSilent && s.sealSSOCookie(w, financeSSOCookieName+"-signedout", true, s.now().Add(30*24*time.Hour)) != nil {
+					writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+					return
+				}
+			}
 		}
 		if local.RevocationPending {
 			writeJSON(w, 503, map[string]any{"code": "SSO_REVOKE_UNCONFIRMED", "revocationPending": true, "csrfToken": local.CSRF})
 			return
 		}
-		writeJSON(w, status, map[string]string{"code": "SSO_LOGIN_REQUIRED"})
+		writeJSON(w, status, map[string]any{"code": "SSO_LOGIN_REQUIRED", "silentRestoreAllowed": !blockedSilent && s.ssoSilentAllowed(r)})
 		return
 	}
 	if local.FamilyID != "" {

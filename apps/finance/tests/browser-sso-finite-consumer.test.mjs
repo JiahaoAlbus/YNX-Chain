@@ -5,14 +5,14 @@ const activitySource=source.slice(source.indexOf('async function attestBrowserId
 const submitSource=source.slice(source.indexOf('async function submitForm'),source.indexOf("$('#category-form')"));
 const defer=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});return {promise,resolve,reject}};
 const response=(data,status=200)=>({ok:status===200,status,json:async()=>data});
-function fixture(fetch,api=async()=>{}){
+function fixture(fetch,api=async()=>{},navigate=()=>{throw Error('unexpected quiet navigation')}){
  const nodes=new Map(),listeners=new Map(),calls=[];let disconnects=0,loads=0,clear=0;
  const $=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,disabled:false,textContent:'',dataset:{}});return nodes.get(id)};
  const document={addEventListener:(name,fn)=>listeners.set(name,fn)};
  const wallet={getStandardWalletState:()=>({status:'disconnected'}),getPrivateState:()=>({status:'disconnected'}),session:()=>null,browserIdentityMatchesSelected:()=>true,disconnect:async()=>{disconnects++}};
  class Channel{postMessage(){}}
  const run=new Function('$','document','window','BroadcastChannel','fetch','AbortController','setTimeout','clearTimeout','crypto','btoa','state','location','clearLoginIntent','clearPrivateView','loginIntent','loginTarget','notify','api','load','notifyFailure',identitySource+'\n'+activitySource+'\n'+submitSource+`\nreturn {recheckBrowserIdentity,logoutBrowserIdentity,attestBrowserIdentityActivity,submitForm,initializeBrowserIdentity,enable:()=>{browserSSOEnabled=true;browserSSOFinite=true},set:(value)=>{++browserSSORevision;++browserSSOIntentGeneration;browserIdentity=value},revision:()=>browserSSOIntentGeneration,read:()=>({browserIdentity,browserIdentityLogoutPending,browserSSORevision}),click:()=>document};`);
- const controller=run($,document,{YNXFinanceWallet:wallet,YNXFinanceLocale:{text:k=>k}},Channel,async(url,options)=>{calls.push({url,options});return fetch(url,options)},AbortController,setTimeout,clearTimeout,webcrypto,value=>Buffer.from(value,'binary').toString('base64'),{context:0},{hash:'#overview',assign(){throw Error('unexpected quiet navigation')}},()=>{},()=>{clear++},null,()=>'overview',()=>{},api,async()=>{loads++},()=>{});
+ const controller=run($,document,{YNXFinanceWallet:wallet,YNXFinanceLocale:{text:k=>k}},Channel,async(url,options)=>{calls.push({url,options});return fetch(url,options)},AbortController,setTimeout,clearTimeout,webcrypto,value=>Buffer.from(value,'binary').toString('base64'),{context:0},{hash:'#overview',assign:navigate},()=>{},()=>{clear++},null,()=>'overview',()=>{},api,async()=>{loads++},()=>{});
  return {...controller,$,listeners,calls,count:()=>({disconnects,loads,clear})};
 }
 const identity=account=>({account,csrfToken:'fixture-csrf',serverNow:new Date().toISOString(),scopes:['identity:read'],privateWorkspaceAuthorized:false});
@@ -45,7 +45,13 @@ test('actual success-only form path calls activity after the private API; pollin
  assert.doesNotMatch(source.slice(source.indexOf("window.addEventListener('focus'"),source.indexOf("document.addEventListener('finance:localechange',renderAccountSession)")),/attestBrowserIdentityActivity/);
 });
 test('confirmed invalid family requires explicit sign-in; uncertain revocation restores only logout retry',async()=>{
- for(const data of [{code:'SSO_GRANT_INVALID'},{code:'SSO_FAMILY_INVALID'},{code:'SSO_GENERATION_REVOKED'}]){const c=fixture(()=>Promise.resolve(response(data,401)));c.enable();c.set(identity('account-a'));await c.recheckBrowserIdentity();assert.equal(c.read().browserIdentity,null);assert.equal(c.count().disconnects,1);assert.equal(c.calls.length,1);}
+ for(const data of [{code:'SSO_GRANT_INVALID',silentRestoreAllowed:false},{code:'SSO_FAMILY_INVALID',silentRestoreAllowed:false},{code:'SSO_GENERATION_REVOKED',silentRestoreAllowed:false}]){const c=fixture(()=>Promise.resolve(response(data,401)));c.enable();c.set(identity('account-a'));await c.recheckBrowserIdentity();assert.equal(c.read().browserIdentity,null);assert.equal(c.count().disconnects,1);assert.equal(c.calls.length,1);}
  const c=fixture(url=>Promise.resolve(response(url.endsWith('/account')?{code:'SSO_REVOKE_UNCONFIRMED',revocationPending:true,csrfToken:'retry-csrf'}:{revoked:true},url.endsWith('/account')?503:200)));c.enable();await c.recheckBrowserIdentity();assert.equal(c.read().browserIdentity,null);assert.equal(c.read().browserIdentityLogoutPending.csrfToken,'retry-csrf');assert.equal(c.$('#browser-signin-logout').hidden,false);await c.logoutBrowserIdentity();assert.equal(c.calls.at(-1).options.headers['X-YNX-SSO-CSRF'],'retry-csrf');assert.equal(c.read().browserIdentityLogoutPending,null);
  const network=fixture(()=>Promise.resolve(response({code:'SSO_FAMILY_UNAVAILABLE'},503)));network.enable();network.set(identity('account-a'));await network.recheckBrowserIdentity();assert.equal(network.read().browserIdentity.account,'account-a');assert.equal(network.count().disconnects,0);
+});
+
+test('first finite product visit can silently use approved Central identity; expired or signed-out product cannot',async()=>{
+ for(const blocked of [false,true]){const navigations=[];const c=fixture(url=>Promise.resolve(url.endsWith('/account')?response({code:'SSO_LOGIN_REQUIRED',silentRestoreAllowed:!blocked},401):response({enabled:true,silentRestoreAllowed:true})),undefined,url=>navigations.push(url));c.enable();await c.recheckBrowserIdentity();assert.equal(navigations.length,blocked?0:1);if(!blocked)assert.equal(navigations[0],'/sso/start?prompt=none&target=overview');}
+ const navigations=[];const c=fixture(url=>Promise.resolve(url.endsWith('/account')?response({code:'SSO_LOGIN_REQUIRED',silentRestoreAllowed:true},401):response({enabled:true,silentRestoreAllowed:false})),undefined,url=>navigations.push(url));c.enable();await c.recheckBrowserIdentity();assert.deepEqual(navigations,[]);
+ const network=fixture(()=>Promise.resolve(response({code:'SSO_UNAVAILABLE'},503)),undefined,url=>navigations.push(url));network.enable();await network.recheckBrowserIdentity();assert.deepEqual(navigations,[]);
 });
