@@ -10,6 +10,88 @@ const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
+const identity=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
+
+test('actual identity controls fence late logout outcomes and preserve current logout failure/retry',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    for(const mode of ['chooser-takes-epoch','old-finalizer-new-logout','late-success','late-failure','late-recheck-unavailable','current-success','current-failure-retry','current-unauthorized']){
+      const page=await browser.newPage();let owner='A',accountStatus=200;const pending=[],requests=[],arrivals=[];
+      const nextRequest=(count=1)=>pending.length>=count?Promise.resolve():new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error('isolated logout request did not arrive')),5000);
+        arrivals.push(()=>{clearTimeout(timer);resolve()});
+      });
+      await page.route('**/*',async route=>{
+        const url=new URL(route.request().url());
+        if(url.origin!=='https://exchange.ynxweb4.com')return route.abort();
+        if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});
+        if(url.pathname==='/api/v1/sso/config')return route.fulfill({json:{enabled:true,silentRestoreAllowed:false}});
+        if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?{account:owner,csrfToken:'isolated-control-csrf',scopes:['identity:read'],privateWorkspaceAuthorized:false}:{code:'SSO_LOGIN_REQUIRED'}});
+        if(url.pathname==='/api/v1/sso/logout'){
+          requests.push({method:route.request().method(),csrf:route.request().headers()['x-ynx-sso-csrf'],body:route.request().postData()});
+          const result=await new Promise(resolve=>{pending.push(resolve);arrivals.shift()?.()});return route.fulfill(result);
+        }
+        return route.abort();
+      });
+      await page.goto('https://exchange.ynxweb4.com/');
+      // Exact production identity functions and HTML, controlled HTTP outcomes;
+      // this does not simulate a successful Wallet approval or public identity.
+      await page.addScriptTag({content:`const $=selector=>document.querySelector(selector);const state={account:null,standardWallet:null};const calls={guest:0,disconnect:0,logoutSettled:0};const privateAccount={state:()=>({phase:'guest'}),guest:async()=>{calls.guest++},disconnect:async()=>{calls.disconnect++}};const originalListener=Element.prototype.addEventListener;Element.prototype.addEventListener=function(type,listener,...options){if(this.id==='browser-identity-logout'&&type==='click'){const wrapped=event=>Promise.resolve(listener.call(this,event)).finally(()=>calls.logoutSettled++);return originalListener.call(this,type,wrapped,...options)}return originalListener.call(this,type,listener,...options)};${identity};function showWalletFallback(show){$('#wallet-fallback').hidden=!show};${chooser};window.identityQA={restore:restoreBrowserIdentity,openChooser:openWalletChooser,current:()=>browserIdentity,calls};initializeBrowserIdentity();`});
+      await page.waitForFunction(()=>window.identityQA?.current()?.account==='A');
+      const logout=page.locator('#browser-identity-logout');
+      await logout.click();await page.waitForFunction(()=>document.querySelector('#browser-identity-logout').disabled);
+      await nextRequest();
+      if(mode==='chooser-takes-epoch'){
+        await page.evaluate(()=>window.identityQA.openChooser());assert.equal(await page.locator('#wallet-dialog').evaluate(element=>element.open),true);
+        pending.shift()({status:200,json:{revoked:true}});await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===1);
+        assert.equal(await page.evaluate(()=>window.identityQA.current()?.account),'A');assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0);
+        assert.equal(await logout.isEnabled(),true,'chooser epoch change must not leave the old logout busy');
+      }else if(mode==='old-finalizer-new-logout'){
+        owner='B';await page.evaluate(()=>window.identityQA.restore());await logout.click();
+        await page.waitForFunction(()=>window.identityQA.calls.guest===2);
+        // Both explicit requests are in flight; settle only the old A request.
+        await nextRequest(2);
+        pending.shift()({status:200,json:{revoked:true}});await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===1);
+        assert.equal(await logout.isDisabled(),true,'old finalizer must not enable a newer pending logout');
+        assert.equal(await page.evaluate(()=>window.identityQA.current()?.account),'B');assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0);
+        pending.shift()({status:200,json:{revoked:true}});await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===2);
+        assert.equal(await page.evaluate(()=>window.identityQA.current()),null);assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),1);assert.equal(await logout.isDisabled(),false);
+      }else if(mode.startsWith('late-')){
+        if(mode==='late-recheck-unavailable')accountStatus=503;else owner='B';await page.evaluate(()=>window.identityQA.restore());
+        pending.shift()({status:mode==='late-success'?200:503,json:mode==='late-success'?{revoked:true}:{code:'UNAVAILABLE'}});
+        await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===1);
+        assert.equal(await logout.isEnabled(),true,mode);
+        assert.equal(await page.evaluate(()=>window.identityQA.current()?.account),mode==='late-recheck-unavailable'?'A':'B',mode);
+        assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0,mode);
+        assert.match(await page.locator('#browser-identity-status').innerText(),mode==='late-recheck-unavailable'?/^Identity recheck unavailable\./u:/^B ·/u,mode);
+        assert.equal(await logout.isVisible(),true,mode);
+      }else{
+        pending.shift()({status:mode==='current-failure-retry'?503:200,json:mode==='current-failure-retry'?{code:'UNAVAILABLE'}:{revoked:true}});
+        if(mode==='current-failure-retry'){
+          await page.waitForFunction(()=>document.querySelector('#browser-identity-status').textContent.startsWith('Sign-out is not confirmed.'));
+          assert.equal(await page.evaluate(()=>window.identityQA.current()?.account),'A');assert.equal(await logout.isEnabled(),true);
+          assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0);
+          await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===1);
+          await logout.click();await nextRequest();
+          pending.shift()({status:200,json:{revoked:true}});
+        }
+        await page.waitForFunction(expected=>window.identityQA.current()===null&&window.identityQA.calls.disconnect===1&&window.identityQA.calls.logoutSettled===expected,mode==='current-failure-retry'?2:1);
+        assert.match(await page.locator('#browser-identity-status').innerText(),/^Signed out of Exchange\./u);
+        assert.equal(await logout.isVisible(),false);
+        if(mode==='current-unauthorized'){
+          // A fresh authoritative 401 must still clear the current identity.
+          owner='A';await page.evaluate(()=>window.identityQA.restore());accountStatus=401;
+          await page.evaluate(()=>window.identityQA.restore());assert.equal(await page.evaluate(()=>window.identityQA.current()),null);
+          assert.equal(await logout.isVisible(),false);
+        }
+      }
+      assert.ok(requests.every(value=>value.method==='POST'&&value.csrf==='isolated-control-csrf'&&value.body==='{}'));
+      assert.equal(requests.length,['current-failure-retry','old-finalizer-new-logout'].includes(mode)?2:1,'no implicit logout retry');
+      await page.close();
+    }
+  }finally{await browser.close();}
+});
 test('private and browser identity actions use Klein-blue 44px controls without changing disabled or hidden state',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

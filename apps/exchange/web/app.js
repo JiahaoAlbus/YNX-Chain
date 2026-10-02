@@ -9,12 +9,12 @@ function productApiUnavailable(){return new Error('API_UNAVAILABLE: This Exchang
 function showWalletFallback(show){$('#wallet-fallback').hidden=!show}
 function requireProductSession(){toast(productApiUnavailable().message);$('#private-account').scrollIntoView({block:'center'});$('#private-begin').focus();return false}
 const privateAccount=createExchangePrivateAccount({onState:renderPrivateAccount});
-let browserIdentity=null,browserIdentityEpoch=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false;
+let browserIdentity=null,browserIdentityEpoch=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityLogoutOperation=null;
 async function browserIdentityRequest(path,options={}){const response=await fetch(`/api/v1/sso/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(5000)});return {response,data:await response.json()};}
 async function restoreBrowserIdentity(){const epoch=++browserIdentityEpoch;const status=$('#browser-identity-status');if(!status)return;try{const {response,data}=await browserIdentityRequest('account');if(epoch!==browserIdentityEpoch)return;if(response.ok){
   if(data.scopes?.length!==1||data.scopes[0]!=='identity:read'||data.privateWorkspaceAuthorized!==false)throw new Error('IDENTITY_BOUNDARY_INVALID');
-  if(state.account&&state.account!==data.account)await privateAccount.disconnect();if(epoch!==browserIdentityEpoch)return;browserIdentity=data;status.textContent=`${data.account} · Browser identity only; approve private Exchange read access separately.`;$('#browser-identity-logout').hidden=false;
-}else if(response.status===401||response.status===403){const wasSignedIn=!!browserIdentity;if(browserIdentity)await privateAccount.guest();if(epoch!==browserIdentityEpoch)return;browserIdentity=null;status.textContent='Browser sign-in is separate from Wallet connection and private Exchange permission.';$('#browser-identity-logout').hidden=true;if(!wasSignedIn)await restoreBrowserIdentityQuietly();}else status.textContent='Identity recheck unavailable. Retry without creating another Wallet request.';}catch{if(epoch===browserIdentityEpoch)status.textContent='Identity recheck unavailable. Retry without creating another Wallet request.';}}
+  if(state.account&&state.account!==data.account)await privateAccount.disconnect();if(epoch!==browserIdentityEpoch)return;browserIdentity=data;status.textContent=`${data.account} · Browser identity only; approve private Exchange read access separately.`;$('#browser-identity-logout').hidden=false;$('#browser-identity-logout').disabled=false;
+}else if(response.status===401||response.status===403){const wasSignedIn=!!browserIdentity;if(browserIdentity)await privateAccount.guest();if(epoch!==browserIdentityEpoch)return;browserIdentity=null;status.textContent='Browser sign-in is separate from Wallet connection and private Exchange permission.';$('#browser-identity-logout').hidden=true;$('#browser-identity-logout').disabled=false;if(!wasSignedIn)await restoreBrowserIdentityQuietly();}else{status.textContent='Identity recheck unavailable. Retry without creating another Wallet request.';$('#browser-identity-logout').disabled=false;}}catch{if(epoch===browserIdentityEpoch){status.textContent='Identity recheck unavailable. Retry without creating another Wallet request.';$('#browser-identity-logout').disabled=false;}}}
 async function restoreBrowserIdentityQuietly(){
   const epoch=browserIdentityEpoch,privateState=privateAccount.state(),walletState=state.standardWallet;
   if(browserIdentityExplicitIntent||browserIdentitySilentAttempted){browserIdentityRestoreDeferred=false;return;}
@@ -29,7 +29,22 @@ function resumeDeferredBrowserIdentity(){if(!browserIdentityRestoreDeferred||bro
 async function initializeBrowserIdentity(){try{const {response,data}=await browserIdentityRequest('config');if(!response.ok||data.enabled!==true)return;
   const panel=document.createElement('div');panel.id='browser-identity';const signIn=document.createElement('a');signIn.className='button';signIn.id='browser-identity-start';signIn.textContent='Sign in across YNX products';signIn.href='/sso/start?target=assets';signIn.addEventListener('click',()=>{browserIdentityExplicitIntent=true;browserIdentityRestoreDeferred=false;browserIdentityEpoch++;signIn.href=`/sso/start?target=${encodeURIComponent(['market','assets','activity','controls'].includes(location.hash.slice(1))?location.hash.slice(1):'assets')}`;});
   const logout=document.createElement('button');logout.id='browser-identity-logout';logout.type='button';logout.textContent='Sign out of Exchange';logout.hidden=true;const retry=document.createElement('button');retry.type='button';retry.textContent='Recheck browser identity';retry.addEventListener('click',restoreBrowserIdentity);const status=document.createElement('p');status.id='browser-identity-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');panel.append(signIn,logout,retry,status);$('#private-account').append(panel);
-  logout.addEventListener('click',async()=>{const current=browserIdentity;if(!current||logout.disabled)return;browserIdentityEpoch++;logout.disabled=true;await privateAccount.guest();try{const {response,data}=await browserIdentityRequest('logout',{method:'POST',headers:{'content-type':'application/json','X-YNX-SSO-CSRF':current.csrfToken},body:'{}'});if(!response.ok||data.revoked!==true)throw new Error('REVOKE_UNCONFIRMED');browserIdentity=null;logout.hidden=true;status.textContent='Signed out of Exchange. Other YNX products are unchanged.';await privateAccount.disconnect();}catch{status.textContent='Sign-out is not confirmed. Retry; no successful remote revocation is assumed.';}finally{logout.disabled=false;}});
+  logout.addEventListener('click',async()=>{
+    const current=browserIdentity;if(!current||logout.disabled)return;
+    const epoch=++browserIdentityEpoch;let signedOut=false;
+    const owns=()=>epoch===browserIdentityEpoch&&browserIdentity===(signedOut?null:current);
+    const operation={};browserIdentityLogoutOperation=operation;
+    logout.disabled=true;
+    try{
+      await privateAccount.guest();if(!owns())return;
+      const {response,data}=await browserIdentityRequest('logout',{method:'POST',headers:{'content-type':'application/json','X-YNX-SSO-CSRF':current.csrfToken},body:'{}'});
+      if(!owns())return; // The server result still belongs to the original request.
+      if(!response.ok||data.revoked!==true)throw new Error('REVOKE_UNCONFIRMED');
+      signedOut=true;browserIdentity=null;logout.hidden=true;status.textContent='Signed out of Exchange. Other YNX products are unchanged.';
+      await privateAccount.disconnect();if(!owns())return;
+    }catch{if(owns())status.textContent=signedOut?'Exchange browser sign-out is confirmed. Separate private-access cleanup is not confirmed.':'Sign-out is not confirmed. Retry; no successful remote revocation is assumed.';}
+    finally{if(browserIdentityLogoutOperation===operation){browserIdentityLogoutOperation=null;logout.disabled=false;}}
+  });
   window.addEventListener('focus',restoreBrowserIdentity);document.addEventListener('visibilitychange',()=>{if(!document.hidden)void restoreBrowserIdentity();});await restoreBrowserIdentity();
 }catch{/* Opt-in unavailable; keep existing native/private and public routes. */}}
 
