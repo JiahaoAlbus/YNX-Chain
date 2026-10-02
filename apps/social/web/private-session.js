@@ -3,6 +3,7 @@ import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter } 
 export const SOCIAL_AUTHORITY = "https://wallet-auth.ynxweb4.com";
 export const SOCIAL_PRIVATE_SCOPES = Object.freeze(["account:read", "profile:link"]);
 export const SOCIAL_CHAT_SCOPES = Object.freeze(["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"]);
+export const SOCIAL_AUDIENCE_SCOPES = Object.freeze(["account:read", "profile:link", "social.contacts", "social.feed", "social.messaging", "social.profile"]);
 
 // No provider detection can establish OS scheme registration. Until an actual
 // supported launcher supplies this capability, report unknown, not installed.
@@ -11,7 +12,7 @@ async function unverifiedLaunch() {
 }
 
 export function createSocialPrivateSession({ environment = globalThis, detectWalletEnvironment = unverifiedLaunch, factory = createBrowserProductSessionClient, scopes = SOCIAL_PRIVATE_SCOPES, registryTimeoutMs = 10000 } = {}) {
-  if (JSON.stringify(scopes)!==JSON.stringify(SOCIAL_PRIVATE_SCOPES)&&JSON.stringify(scopes)!==JSON.stringify(SOCIAL_CHAT_SCOPES))throw new Error("Unsupported Social permission selection");
+  if (![SOCIAL_PRIVATE_SCOPES,SOCIAL_CHAT_SCOPES,SOCIAL_AUDIENCE_SCOPES].some(selection=>JSON.stringify(selection)===JSON.stringify(scopes)))throw new Error("Unsupported Social permission selection");
   if(!Number.isSafeInteger(registryTimeoutMs)||registryTimeoutMs<1||registryTimeoutMs>10000)throw new Error("Invalid registry read deadline");
   let adapterPromise;
   let operation = Promise.resolve();
@@ -48,7 +49,7 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
           walletInstalled: async () => (await detectWalletEnvironment()).walletInstalled,
           schemeRegistered: async () => (await detectWalletEnvironment()).schemeRegistered,
         });
-        return factory({ registry, productId: "social", scopes: [...scopes], purpose: scopes.includes("social.messaging")?"Authorize your Social profile, contact requests and encrypted chat on this browser device. No payments or recovery keys.":"Link your account to YNX Social. This does not authorize messages or payments.", gateway, environment });
+        return factory({ registry, productId: "social", scopes: [...scopes], purpose: scopes.includes("social.feed")?"Authorize Social profile, contacts, encrypted chat and publishing on this browser device. Feed, media, reports and follows access is included. No payments or recovery keys. This requires a new visible approval; old grants are not upgraded.":scopes.includes("social.messaging")?"Authorize your Social profile, contact requests and encrypted chat on this browser device. No payments or recovery keys.":"Link your account to YNX Social. This does not authorize messages or payments.", gateway, environment });
       })().catch(error => { if(adapterPromise===attempt)adapterPromise=undefined; throw error; });
       adapterPromise=attempt;
     }
@@ -96,5 +97,13 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
     }),
     disconnect: () => {suspended=true;current={status:"retry-required"};return run(({ client }) => client.disconnect());},
     proof: required => run(async ({createIntrospectionProof})=>{if(suspended)throw new Error("Social authorization is suspended");const proof=await createIntrospectionProof(required);if(suspended)throw new Error("Social authorization is suspended");return proof;}),
+    createSocialAudienceProof: input => run(async adapter=>{
+      if(suspended||!scopes.includes("social.feed"))throw new Error("Explicit Social publishing permission is required");
+      const owner=typeof adapter.createSocialAudienceProof==='function'?adapter:adapter.client;
+      if(typeof owner?.createSocialAudienceProof!=='function')throw Object.assign(new Error("The installed Social SDK does not provide business action proofs. Nothing was sent."),{code:"SOCIAL_ACTION_PROOF_UNAVAILABLE"});
+      const result=await owner.createSocialAudienceProof(input);
+      if(suspended)throw new Error("Social authorization is suspended");
+      return result;
+    }),
   });
 }

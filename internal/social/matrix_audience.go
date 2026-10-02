@@ -227,6 +227,9 @@ func (s *Service) resolveMatrixAudience(ctx context.Context, actor string, in Ma
 	if err != nil {
 		return MatrixAudienceMetadata{}, err
 	}
+	if err := revalidateAudienceReceipt(ctx, receipt); err != nil {
+		return MatrixAudienceMetadata{}, err
+	}
 	bound, err := observedAudience(plan, observed)
 	if err != nil {
 		return MatrixAudienceMetadata{}, err
@@ -281,6 +284,9 @@ func (s *Service) matrixAudienceBindingLocked(actor string, in matrixAudienceAut
 	if !matrixAudienceTransaction.MatchString(in.TransactionID) {
 		return matrixAudienceBinding{}, ErrInvalid
 	}
+	if in.Action == "index" && !matrixAudienceEventID.MatchString(in.EventID) {
+		return matrixAudienceBinding{}, ErrInvalid
+	}
 	switch in.Action {
 	case "publish", "comment", "media-prepare", "index", "read":
 	default:
@@ -302,7 +308,7 @@ func (s *Service) matrixAudienceBindingLocked(actor string, in matrixAudienceAut
 		if err != nil || !contains(current.Members, identity.UserID) {
 			return matrixAudienceBinding{}, ErrUnauthorized
 		}
-		if in.Action == "publish" && actor != binding.Actor {
+		if (in.Action == "publish" || (in.Action == "index" && in.ParentEventID == "")) && actor != binding.Actor {
 			return matrixAudienceBinding{}, ErrUnauthorized
 		}
 		if in.Action == "comment" || in.ParentEventID != "" {
@@ -349,6 +355,23 @@ func (s *Service) authorizeMatrixAudience(ctx context.Context, actor string, in 
 	if err != nil || !sameAudience(confirmed, binding.Metadata) {
 		return MatrixAudienceMetadata{}, ErrConflict
 	}
+	if err := revalidateAudienceReceipt(ctx, receipt); err != nil {
+		return MatrixAudienceMetadata{}, err
+	}
+	// ConfirmAudience may await remote work. Recheck the original relation and
+	// actor role before any private event read, not only before persisting it.
+	s.mu.Lock()
+	latestBeforeRead, policyErr := s.matrixAudienceBindingLocked(actor, in)
+	if policyErr == nil && !sameAudience(latestBeforeRead.Metadata, confirmed) {
+		policyErr = ErrConflict
+	}
+	if s.stateWriteError != nil {
+		policyErr = s.stateWriteError
+	}
+	s.mu.Unlock()
+	if policyErr != nil {
+		return MatrixAudienceMetadata{}, policyErr
+	}
 	if in.Action == "index" {
 		if !matrixAudienceEventID.MatchString(in.EventID) {
 			return MatrixAudienceMetadata{}, ErrInvalid
@@ -360,6 +383,9 @@ func (s *Service) authorizeMatrixAudience(ctx context.Context, actor string, in 
 		identity, err := s.cfg.MatrixDirectory.Resolve(actor)
 		if err != nil || event.RoomID != confirmed.RoomID || event.EventID != in.EventID || event.Sender != identity.UserID || event.Type != "m.room.encrypted" || event.TransactionID != in.TransactionID {
 			return MatrixAudienceMetadata{}, ErrConflict
+		}
+		if err := revalidateAudienceReceipt(ctx, receipt); err != nil {
+			return MatrixAudienceMetadata{}, err
 		}
 	}
 	s.mu.Lock()
@@ -555,8 +581,27 @@ func (s *Server) matrixAudience(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	receipt.BrowserBinding = browserGeneration
+	// Recheck the real browser authority after each remote await. Do not replay
+	// the consumed introspection proof as a substitute for session liveness.
+	receipt.revalidate = func(checkCtx context.Context) error {
+		if !expires.After(s.service.cfg.Now()) || !receipt.ExpiresAt.After(s.service.cfg.Now()) {
+			return ErrUnauthorized
+		}
+		_, generation, err := s.browserProductBinding(r.WithContext(checkCtx), session, nil)
+		if err != nil {
+			return err
+		}
+		if generation != browserGeneration {
+			return ErrUnauthorized
+		}
+		return nil
+	}
 	ctx, actionCancel := context.WithDeadline(ctx, receipt.ExpiresAt)
 	defer actionCancel()
+	if s.service.cfg.MatrixAudienceAuthority == nil {
+		writeError(w, http.StatusServiceUnavailable, "Encrypted Matrix audience authority is not configured")
+		return
+	}
 	var metadata MatrixAudienceMetadata
 	if resolve {
 		metadata, err = s.service.resolveMatrixAudience(ctx, session.Account, selection, &receipt)
@@ -585,7 +630,20 @@ type MatrixAudienceActionReceipt struct {
 	SessionBinding string
 	ExpiresAt      time.Time
 	BrowserBinding string
+	// Request-local authority check; never serialized into the durable ledger.
+	revalidate func(context.Context) error
 }
+
+func revalidateAudienceReceipt(ctx context.Context, receipt *MatrixAudienceActionReceipt) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if receipt != nil && receipt.revalidate != nil {
+		return receipt.revalidate(ctx)
+	}
+	return nil
+}
+
 type matrixAudienceNonce struct {
 	Selection      *MatrixAudienceSelection `json:"selection,omitempty"`
 	EventID        string                   `json:"eventId,omitempty"`
@@ -622,6 +680,14 @@ func (s *Service) consumeMatrixAudienceNonceLocked(actor, action, transaction st
 	}
 	if count >= 4096 {
 		return ErrRateLimited
+	}
+	// An unknown external result belongs to the original intent, not its nonce.
+	// Expiry, restart, a fresh session or different body must not dispatch that
+	// same actor/action/transaction a second time before explicit settlement.
+	for _, old := range s.state.MatrixAudienceNonces {
+		if old.Status != "completed" && old.Actor == actor && old.Action == action && old.TransactionID == transaction {
+			return ErrConflict
+		}
 	}
 	if s.state.MatrixAudienceNonces == nil {
 		s.state.MatrixAudienceNonces = map[string]matrixAudienceNonce{}

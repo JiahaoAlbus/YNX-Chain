@@ -1,0 +1,16 @@
+=== RUN   TestIndependentAudienceUnknownIntentFreshNonceAfterRestart
+--- PASS: TestIndependentAudienceUnknownIntentFreshNonceAfterRestart (0.14s)
+=== RUN   TestIndependentAudienceUnknownExpiredLedgerAndCapacity
+--- PASS: TestIndependentAudienceUnknownExpiredLedgerAndCapacity (1.02s)
+=== RUN   TestIndependentAudienceBrowserGrantRevokedDuringObservation
+--- PASS: TestIndependentAudienceBrowserGrantRevokedDuringObservation (0.05s)
+=== RUN   TestIndependentAudienceUnknownIndexFreshNonceAfterRestart
+--- PASS: TestIndependentAudienceUnknownIndexFreshNonceAfterRestart (0.05s)
+=== RUN   TestIndependentAudienceLatePolicyChangeCannotReachPrivateEventRead
+--- PASS: TestIndependentAudienceLatePolicyChangeCannotReachPrivateEventRead (0.06s)
+=== RUN   TestIndependentAudienceWrongActorIndexCannotReachPrivateEventRead
+--- PASS: TestIndependentAudienceWrongActorIndexCannotReachPrivateEventRead (0.05s)
+=== RUN   TestIndependentAudienceMissingHSAdapterIsUnavailable
+--- PASS: TestIndependentAudienceMissingHSAdapterIsUnavailable (0.04s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	3.480s
