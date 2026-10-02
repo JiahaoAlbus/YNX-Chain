@@ -10,25 +10,47 @@ async function unverifiedLaunch() {
   throw Object.assign(new Error("This browser cannot verify the installed YNX Wallet launcher. Standard wallet connection remains available."), { code: "WALLET_LAUNCH_UNVERIFIED" });
 }
 
-export function createSocialPrivateSession({ environment = globalThis, detectWalletEnvironment = unverifiedLaunch, factory = createBrowserProductSessionClient, scopes = SOCIAL_PRIVATE_SCOPES } = {}) {
+export function createSocialPrivateSession({ environment = globalThis, detectWalletEnvironment = unverifiedLaunch, factory = createBrowserProductSessionClient, scopes = SOCIAL_PRIVATE_SCOPES, registryTimeoutMs = 10000 } = {}) {
   if (JSON.stringify(scopes)!==JSON.stringify(SOCIAL_PRIVATE_SCOPES)&&JSON.stringify(scopes)!==JSON.stringify(SOCIAL_CHAT_SCOPES))throw new Error("Unsupported Social permission selection");
+  if(!Number.isSafeInteger(registryTimeoutMs)||registryTimeoutMs<1||registryTimeoutMs>10000)throw new Error("Invalid registry read deadline");
   let adapterPromise;
   let operation = Promise.resolve();
   let suspended=false;
   let current={status:"guest"};
+  const registryError=(code,message)=>Object.assign(new Error(message),{code,retryable:true});
+  async function readRegistry() {
+    const controller=new AbortController();let timer,reading=true,expired=false;
+    const timeoutError=registryError("SOCIAL_REGISTRY_TIMEOUT","Social Product Session registry read timed out. Retry explicitly; existing sessions are unchanged.");
+    const check=()=>{if(expired||!reading)throw timeoutError;};
+    const deadline=new Promise((resolve,reject)=>{timer=setTimeout(()=>{expired=true;controller.abort();reject(timeoutError);},registryTimeoutMs);});
+    const read=(async()=>{
+      try {
+        const response=await environment.fetch(new URL("./vendor/product-session-registry.json",import.meta.url),{credentials:"omit",cache:"no-store",redirect:"error",signal:controller.signal});check();
+        if(!response.ok)throw registryError("SOCIAL_REGISTRY_UNAVAILABLE","Social Product Session registry is unavailable. Retry explicitly.");
+        const registry=await response.json();check();return registry;
+      } catch(error) {
+        if(expired||!reading)throw timeoutError;
+        if(error?.code==="SOCIAL_REGISTRY_UNAVAILABLE")throw error;
+        throw registryError(error instanceof SyntaxError?"SOCIAL_REGISTRY_INVALID":"SOCIAL_REGISTRY_NETWORK_UNAVAILABLE","Social Product Session registry could not be read. Retry explicitly; existing sessions are unchanged.");
+      }
+    })();
+    try{return await Promise.race([read,deadline]);}
+    finally{reading=false;clearTimeout(timer);controller.abort();}
+  }
   async function adapter() {
     if (!adapterPromise) {
-      adapterPromise = (async () => {
-        const response = await environment.fetch(new URL("./vendor/product-session-registry.json", import.meta.url), { credentials: "omit", cache: "no-store", redirect: "error" });
-        if (!response.ok) throw new Error("Social Product Session registry is unavailable.");
-        const registry = await response.json();
+      const attempt = (async () => {
+        // Only the side-effect-free registry read has a deadline. The factory
+        // and its storage mutations stay on the original serial operation.
+        const registry = await readRegistry();
         const gateway = new ProductSessionGatewayFetchAdapter({
           endpoint: SOCIAL_AUTHORITY, fetch: environment.fetch.bind(environment), timeoutMs: 10000,
           walletInstalled: async () => (await detectWalletEnvironment()).walletInstalled,
           schemeRegistered: async () => (await detectWalletEnvironment()).schemeRegistered,
         });
         return factory({ registry, productId: "social", scopes: [...scopes], purpose: scopes.includes("social.messaging")?"Authorize your Social profile, contact requests and encrypted chat on this browser device. No payments or recovery keys.":"Link your account to YNX Social. This does not authorize messages or payments.", gateway, environment });
-      })().catch(error => { adapterPromise = undefined; throw error; });
+      })().catch(error => { if(adapterPromise===attempt)adapterPromise=undefined; throw error; });
+      adapterPromise=attempt;
     }
     return adapterPromise;
   }
