@@ -8,15 +8,19 @@
     "Upload metadata is captured before hashing and delayed work cannot submit after account change",
     "Failed processing returns an authorized persisted video ID; Content recovery reuses the original file",
     "Queued cancelled upload/retry does not mutate persisted state or existing sources",
-    "Creator AI streams use account cancellation, no credentials, redirect rejection and a bounded lifetime"
+    "Creator AI streams use account cancellation, no credentials, redirect rejection and a bounded lifetime",
+    "AI response rendering requires the same account, job and selection version after every asynchronous read",
+    "Upload recovery requires the exact service-returned video ID plus matching owned content hash and channel; proof failures cannot claim a historical upload succeeded"
   ],
   "evidence": {
-    "creatorTests": 41,
+    "creatorTests": 61,
     "videoGoRacePassed": true,
     "chromiumMultipartBoundaryChange": "/tmp/ynx-media-upload-formdata-browser-20261003.json",
     "responsiveGuestUI": "/tmp/ynx-creator-upload-ui-20261003.json",
-    "creatorLog": "/tmp/ynx-media-creator-upload-recovery-20261003.log",
-    "videoLog": "/tmp/ynx-media-upload-recovery-go-race-20261003.log"
+    "creatorLog": "/tmp/ynx-creator-review-regressions-check-20261003.log",
+    "videoLog": "/tmp/ynx-media-upload-recovery-go-race-20261003.log",
+    "independentReview": "/tmp/ynx-creator-request-independent-fixed-20261003.json",
+    "originalFailuresPreserved": "/tmp/ynx-creator-request-independent-old-confirmation-20261003.json"
   },
   "verifiedFormalRelease": false,
   "verifiedPublicAuthenticatedWorkflow": false,

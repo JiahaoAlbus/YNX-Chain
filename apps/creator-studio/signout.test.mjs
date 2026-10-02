@@ -104,8 +104,8 @@ test('multipart upload is sent once when its network result is unknown', async (
 });
 
 test('caller cancellation aborts the request and cannot trigger automatic retry', async () => {
-  let calls=0,observedSignal;
-  const controller=await app({fetch:async(_url,input)=>{calls++;observedSignal=input.signal;return new Promise(()=>{});}});
+  let calls=0,observedSignal;const walletEvents=[];
+  const controller=await app({fetch:async(_url,input)=>{calls++;observedSignal=input.signal;return new Promise(()=>{});},reduceStandardWalletConnectState:(state,event)=>{walletEvents.push(event.type);return state;}});
   controller.renderProductState(connected('owner-a'));
   const cancel=new AbortController(),pending=controller.api('/v1/studio',{signal:cancel.signal});
   const rejected=assert.rejects(pending,/cancelled/);
@@ -113,6 +113,7 @@ test('caller cancellation aborts the request and cannot trigger automatic retry'
   await rejected;
   assert.equal(observedSignal.aborted,true);
   assert.equal(calls,1);
+  assert.equal(walletEvents.includes('PRIVATE_SESSION_DEGRADED'),false,'an explicit cancellation is not a degraded private session');
 });
 
 test('upload hashes a stable form snapshot and cancel while hashing sends no request', async () => {
@@ -150,6 +151,109 @@ test('a saved failed upload recovers its original content record without resendi
   assert.equal(controller.readState().snapshot.videos[0].id,'saved-owned');
   assert.equal(controller.element('nav button[data-panel="content"]').clicked,true);
   assert.match(controller.element('#status').textContent,/uploaded file is saved.*Retry processing/);
+});
+
+function ownedUploadForm(controller) {
+  const form=controller.element('#upload-form');
+  for(const name of ['channel_id','title','description','rights_basis','rights_source','rights_license','rights_territories','rights_expires_at','rights_evidence_sha256'])form[name]={value:''};
+  form.channel_id.value='channel-a';form.title.value='New title and rights';form.owned={checked:true};
+  form.media={files:[new File(['owned media'],'owned.mp4',{type:'video/mp4'})]};
+  return form;
+}
+
+test('upload proof failure never claims a matching historical file is this saved upload', async () => {
+  let uploadCalls=0,studioReads=0;
+  const historical={id:'old-failed',channel_id:'channel-a',title:'Old title and rights',sha256:'0'.repeat(64),status:'failed'};
+  const controller=await app({
+    crypto:{randomUUID,subtle:{digest:async()=>new Uint8Array(32).buffer}},
+    productAuthorization:async path=>{if(path==='/v1/uploads')throw Error('Cannot sign this upload');return {};},
+    fetch:async url=>{if(url.endsWith('/v1/uploads'))uploadCalls++;else studioReads++;return response({team:[],videos:[historical]});},
+  });
+  controller.renderProductState(connected('owner-a'));await controller.refresh();
+  const form=ownedUploadForm(controller);
+  await form.onsubmit({preventDefault(){},target:form});
+  assert.equal(uploadCalls,0);assert.equal(studioReads,1);
+  assert.equal(controller.readState().snapshot.videos[0].id,'old-failed');
+  assert.notEqual(controller.element('nav button[data-panel="content"]').clicked,true);
+  assert.equal(controller.element('#status').textContent,'Cannot sign this upload');
+});
+
+test('upload recovery requires the exact service ID, source hash and authorized channel', async t => {
+  const stored={id:'saved-owned',channel_id:'channel-a',title:'Owned source',sha256:'0'.repeat(64),status:'failed'};
+  for(const [name,details,record] of [
+    ['missing service ID',{},stored],
+    ['invalid service ID',{video_id:'../saved-owned'},stored],
+    ['different record ID',{video_id:'different-record'},stored],
+    ['different source hash',{video_id:'saved-owned'},{...stored,sha256:'1'.repeat(64)}],
+    ['different channel',{video_id:'saved-owned'},{...stored,channel_id:'channel-b'}],
+  ])await t.test(name,async()=>{
+    let uploadCalls=0;
+    const controller=await app({
+      crypto:{randomUUID,subtle:{digest:async()=>new Uint8Array(32).buffer}},
+      fetch:async url=>{if(url.endsWith('/v1/uploads')){uploadCalls++;return response({error:'Processing failed',...details},400);}return response({team:[],videos:[record]});},
+    });
+    controller.renderProductState(connected('owner-a'));
+    const form=ownedUploadForm(controller);await form.onsubmit({preventDefault(){},target:form});
+    assert.equal(uploadCalls,1);
+    assert.notEqual(controller.element('nav button[data-panel="content"]').clicked,true);
+    assert.equal(controller.element('#status').textContent,'Processing failed');
+  });
+});
+
+test('an old AI stream fallback cannot replace a newly selected job', async t => {
+  for(const mode of ['stream-error','stream-ended'])await t.test(mode,async()=>{
+    const oldRead=deferred();let reading=false,readSignal;
+    const controller=await app({fetch:async(url,input)=>{
+      if(url.endsWith('/stream'))return mode==='stream-error'?{ok:false,status:503}:{ok:true,status:200,body:{getReader:()=>({read:async()=>({done:true}),cancel:async()=>{},releaseLock(){}})}};
+      if(url.endsWith('/v1/ai/jobs/job-a')){reading=true;readSignal=input.signal;return oldRead.promise;}
+      throw Error('Unexpected request '+url);
+    }});
+    controller.renderProductState(connected('owner-a'));controller.showAI({id:'job-a',state:'awaiting_permission'});
+    const pending=controller.run('ai-run');await turn();assert.equal(reading,true);
+    controller.showAI({id:'job-b',state:'awaiting_permission'});
+    assert.equal(readSignal.aborted,true);
+    oldRead.resolve(response({id:'job-a',state:'failed'}));await pending;
+    assert.equal(controller.readState().currentAI.id,'job-b');
+    assert.equal(controller.readState().currentAI.state,'awaiting_permission');
+    assert.match(controller.element('#ai-result').textContent,/job-b/);
+    assert.doesNotMatch(controller.element('#ai-result').textContent,/job-a/);
+  });
+});
+
+test('late AI cancel, review and delete replies cannot alter a newer selection', async t => {
+  for(const action of ['ai-cancel','ai-accept','ai-reject','ai-delete']){
+    for(const sameID of [false,true])await t.test(action+(sameID?' after reselecting the old ID':' after selecting another ID'),async()=>{
+      const reply=deferred();let calls=0;
+      const controller=await app({confirm:()=>true,fetch:async()=>{calls++;return reply.promise;}});
+      controller.renderProductState(connected('owner-a'));controller.showAI({id:'job-a',state:'review_required'});
+      const pending=controller.run(action);await turn();assert.equal(calls,1);
+      controller.showAI({id:'job-b',state:'awaiting_permission'});
+      if(sameID)controller.showAI({id:'job-a',state:'awaiting_permission'});
+      controller.element('#status').textContent='New selection remains active';
+      reply.resolve(response(action==='ai-delete'?{ok:true}:{id:'job-a',state:'cancelled'}));await pending;
+      assert.equal(controller.readState().currentAI.id,sameID?'job-a':'job-b');
+      assert.equal(controller.readState().currentAI.state,'awaiting_permission');
+      assert.equal(controller.element('#ai-run').disabled,false);
+      assert.equal(controller.element('#status').textContent,'New selection remains active');
+      assert.equal(calls,1,'old delete must not refresh the new selection');
+    });
+  }
+});
+
+test('newer AI preparation wins when earlier creation completes late', async () => {
+  const first=deferred(),second=deferred();let calls=0;
+  const controller=await app({fetch:async()=>++calls===1?first.promise:second.promise});
+  controller.renderProductState(connected('owner-a'));
+  const form=controller.element('#ai-form');form.video_id={value:'video-a'};form.kind={value:'summary'};form.metadata={checked:true};
+  const earlier=form.onsubmit({preventDefault(){},target:form});await turn();
+  form.video_id.value='video-b';
+  const later=form.onsubmit({preventDefault(){},target:form});await turn();assert.equal(calls,2);
+  second.resolve(response({id:'job-b',state:'awaiting_permission'}));await later;
+  assert.equal(controller.readState().currentAI.id,'job-b');
+  controller.element('#status').textContent='New preparation remains active';
+  first.resolve(response({id:'job-a',state:'awaiting_permission'}));await earlier;
+  assert.equal(controller.readState().currentAI.id,'job-b');
+  assert.equal(controller.element('#status').textContent,'New preparation remains active');
 });
 
 test("sign out immediately clears every private view and form while revocation is pending", async () => {

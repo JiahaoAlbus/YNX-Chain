@@ -24,7 +24,7 @@ let snapshot=null,currentAI=null,walletConnecting=false;
 let creatorSessionRevision=0,creatorAccount=null;
 let creatorExpiryTimer;
 const creatorRequestFlights=new Set();
-let currentUpload=null,activeAIRequest=null;
+let currentUpload=null,activeAIRequest=null,aiSelectionRevision=0,aiCreateRevision=0;
 function announceSession(){if(typeof announceProductSession==='function')announceProductSession();}
 function rememberReturn(request){if(typeof rememberProductReturn==='function')rememberProductReturn(request,document.querySelector('nav button.active')?.dataset.panel||'overview');}
 let selectedChannelId=null,channelReadRevision=0,studioReadRevision=0;
@@ -76,7 +76,7 @@ async function api(path,opt={}){
       const headers={...baseHeaders,...await operation.wait(productAuthorization(path,method))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
       try{response=await operation.wait(fetch(API+path,{...opt,headers,credentials:'omit',redirect:'error',signal:operation.signal}));break}
-      catch(error){assertCreatorSession(revision);if(operation.signal.aborted||opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
+      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
     }
     const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
     assertCreatorSession(revision);
@@ -295,7 +295,7 @@ function clearCreatorSession(){
   const channelChoice=document.getElementById("channel-select");if(channelChoice){channelChoice.replaceChildren();channelChoice.hidden=true;}
   creatorAccount=null;
   snapshot=null;
-  currentAI=null;
+  currentAI=null;aiSelectionRevision++;aiCreateRevision++;
   renderContent();renderTeam();renderRights();renderAudit();
   for(const id of ["views","watch","subs","revenue"])$("#"+id).textContent="—";
   $("#channel-result").textContent="No channel loaded.";
@@ -622,9 +622,9 @@ $('#upload-form').onsubmit=async event=>{
   }catch(error){
     if(!currentCreatorSession(revision))return;
     let recovered=null;
-    if(submitted&&await refresh()){
+    if(submitted&&/^[A-Za-z0-9_-]{1,160}$/.test(error.details?.video_id||'')&&await refresh()){
       if(!currentCreatorSession(revision))return;
-      recovered=(snapshot?.videos||[]).find(video=>video.sha256===submittedHash&&video.channel_id===submittedChannel&&(!error.details?.video_id||video.id===error.details.video_id));
+      recovered=(snapshot?.videos||[]).find(video=>video.sha256===submittedHash&&video.channel_id===submittedChannel&&video.id===error.details.video_id);
     }
     if(!currentCreatorSession(revision))return;
     if(recovered){document.querySelector('nav button[data-panel="content"]').click();status(recovered.status==='failed'?'Your uploaded file is saved. Retry processing from Content; you do not need to upload it again.':'A matching upload is in Content. Check its processing state before uploading again.',recovered.status==='failed');}
@@ -640,36 +640,48 @@ $("#appeal").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/re
 $("#dispute").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/revenue/${event.target.record_id.value}/disputes`,json({reason:event.target.reason.value}));status("Revenue dispute persisted.");await refresh()}catch(error){status(error.message,true)}};
 
 async function providerStatus(){const revision=creatorSessionRevision;try{const p=await api("/v1/ai/status");if(!currentCreatorSession(revision))return;$("#ai-provider").textContent=p.configured?"AI Gateway configured. Provider/model are recorded with each result.":"AI Gateway unavailable. Requests will fail honestly until configured."}catch(error){if(currentCreatorSession(revision))$("#ai-provider").textContent="AI Gateway status unavailable."}}
-function showAI(job){if(creatorAccount===null||!job)return;if(activeAIRequest&&get(currentAI,"id","ID")!==get(job,"id","ID"))activeAIRequest.abort();currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
-$("#ai-form").onsubmit=async event=>{event.preventDefault();try{const job=await api("/v1/ai/jobs",json({video_id:event.target.video_id.value,kind:event.target.kind.value,context_classes:event.target.metadata.checked?["metadata"]:[],output_language:localStorage.getItem("ynx.creator.ai-locale")||localStorage.getItem("ynx.creator.locale")||"en"}));showAI(job);status("Review context preview, output language and estimated units, then explicitly approve or reject.")}catch(error){status(error.message,true)}};
+function currentAISelection(revision,id,selection){return currentCreatorSession(revision)&&get(currentAI,"id","ID")===id&&aiSelectionRevision===selection}
+function showAI(job){if(creatorAccount===null||!job)return;if(get(currentAI,"id","ID")!==get(job,"id","ID")){aiSelectionRevision++;activeAIRequest?.abort();}currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
+$("#ai-form").onsubmit=async event=>{event.preventDefault();const revision=creatorSessionRevision,creation=++aiCreateRevision;try{const job=await api("/v1/ai/jobs",json({video_id:event.target.video_id.value,kind:event.target.kind.value,context_classes:event.target.metadata.checked?["metadata"]:[],output_language:localStorage.getItem("ynx.creator.ai-locale")||localStorage.getItem("ynx.creator.locale")||"en"}));if(!currentCreatorSession(revision)||creation!==aiCreateRevision)return;showAI(job);status("Review context preview, output language and estimated units, then explicitly approve or reject.")}catch(error){if(currentCreatorSession(revision)&&creation===aiCreateRevision)status(error.message,true)}};
 $("#ai-run").onclick=async()=>{
   if(!currentAI||creatorAccount===null||activeAIRequest)return;
-  const id=get(currentAI,"id","ID"),revision=creatorSessionRevision,operation=beginCreatorRequest(300000);activeAIRequest=operation;
+  const id=get(currentAI,"id","ID"),revision=creatorSessionRevision,selection=aiSelectionRevision,operation=beginCreatorRequest(300000);activeAIRequest=operation;
   showAI({...currentAI,State:"running",state:"running"});status("Provider stream running. Cancel remains available.");let streamed="",buffer="",reader;
   try{
     const headers={...await operation.wait(productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST")),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};
     assertCreatorSession(revision);
     operation.signal.throwIfAborted();
     const response=await operation.wait(fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers,credentials:"omit",redirect:"error",signal:operation.signal}));
-    if(!currentCreatorSession(revision)){await response.body?.cancel();return}
+    if(!currentAISelection(revision,id,selection)){await response.body?.cancel();return}
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     reader=response.body.getReader();const decoder=new TextDecoder();
     for(;;){
       const {value,done}=await operation.wait(reader.read());
-      if(!currentCreatorSession(revision)){await reader.cancel();return}
+      if(!currentAISelection(revision,id,selection)){await reader.cancel();return}
       buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buffer.split("\n");buffer=lines.pop()||"";
       for(const line of lines){if(!line)continue;const event=JSON.parse(line);if(event.error)throw new Error(event.error);if(event.delta){streamed+=event.delta;$("#ai-result").textContent=`Streaming provider output — review required\n\n${streamed}`};if(event.job)showAI(event.job)}
       if(done)break;
     }
-    if(!['review_required','cancelled'].includes(get(currentAI,"state","State")))showAI(await api(`/v1/ai/jobs/${id}`));
-    if(!currentCreatorSession(revision))return;
+    if(!['review_required','cancelled'].includes(get(currentAI,"state","State"))){const job=await api(`/v1/ai/jobs/${id}`,{signal:operation.signal});if(currentAISelection(revision,id,selection))showAI(job);}
+    if(!currentAISelection(revision,id,selection))return;
     status(get(currentAI,"state","State")==="review_required"?"AI stream finished; human review is required.":"AI stream ended without applying an action.");
-  }catch(error){if(!currentCreatorSession(revision)||get(currentAI,"id","ID")!==id)return;if(operation.signal.aborted){if(operation.signal.reason?.name==="TimeoutError")status("The AI request timed out. Check its status before retrying.",true);return;}status(error.message,true);try{showAI(await api(`/v1/ai/jobs/${id}`))}catch{}}
+  }catch(error){if(!currentAISelection(revision,id,selection)||get(currentAI,"id","ID")!==id)return;if(operation.signal.aborted){if(operation.signal.reason?.name==="TimeoutError")status("The AI request timed out. Check its status before retrying.",true);return;}status(error.message,true);try{const job=await api(`/v1/ai/jobs/${id}`,{signal:operation.signal});if(currentAISelection(revision,id,selection))showAI(job);}catch{}}
   finally{if(operation.signal.aborted)void reader?.cancel().catch(()=>{});reader?.releaseLock();operation.finish();if(activeAIRequest===operation)activeAIRequest=null;}
 };
-$("#ai-cancel").onclick=async()=>{if(!currentAI)return;activeAIRequest?.abort();try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/cancel`,{method:"POST"}));status("AI request cancelled and audited.")}catch(error){status(error.message,true)}};
-async function reviewAI(apply){if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/review`,json({apply})));status(apply?"Suggestion accepted; publication still requires a separate human action.":"Suggestion rejected and audited.")}catch(error){status(error.message,true)}}$("#ai-accept").onclick=()=>reviewAI(true);$("#ai-reject").onclick=()=>reviewAI(false);
-$("#ai-delete").onclick=async()=>{if(!currentAI||!confirm("Delete this AI context and result? The minimal deletion audit remains."))return;try{await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}`,{method:"DELETE"});currentAI=null;$("#ai-result").textContent="AI context and result deleted.";for(const id of ["#ai-run","#ai-cancel","#ai-accept","#ai-reject","#ai-delete"])$(id).disabled=true;status("AI data deleted within the service retention boundary.");await refresh()}catch(error){status(error.message,true)}};
+$('#ai-cancel').onclick=async()=>{
+  if(!currentAI)return;const id=get(currentAI,'id','ID'),revision=creatorSessionRevision,selection=aiSelectionRevision;activeAIRequest?.abort();
+  try{const job=await api('/v1/ai/jobs/'+id+'/cancel',{method:'POST'});if(!currentAISelection(revision,id,selection))return;showAI(job);status('AI request cancelled and audited.')}catch(error){if(currentAISelection(revision,id,selection))status(error.message,true)}
+};
+async function reviewAI(apply){
+  if(!currentAI)return;const id=get(currentAI,'id','ID'),revision=creatorSessionRevision,selection=aiSelectionRevision;
+  try{const job=await api('/v1/ai/jobs/'+id+'/review',json({apply}));if(!currentAISelection(revision,id,selection))return;showAI(job);status(apply?'Suggestion accepted; publication still requires a separate human action.':'Suggestion rejected and audited.')}catch(error){if(currentAISelection(revision,id,selection))status(error.message,true)}
+}
+$('#ai-accept').onclick=()=>reviewAI(true);$('#ai-reject').onclick=()=>reviewAI(false);
+$('#ai-delete').onclick=async()=>{
+  if(!currentAI||!confirm('Delete this AI context and result? The minimal deletion audit remains.'))return;
+  const id=get(currentAI,'id','ID'),revision=creatorSessionRevision,selection=aiSelectionRevision;
+  try{await api('/v1/ai/jobs/'+id,{method:'DELETE'});if(!currentAISelection(revision,id,selection))return;currentAI=null;aiSelectionRevision++;$('#ai-result').textContent='AI context and result deleted.';for(const id of ['#ai-run','#ai-cancel','#ai-accept','#ai-reject','#ai-delete'])$(id).disabled=true;status('AI data deleted within the service retention boundary.');await refresh()}catch(error){if(currentAISelection(revision,id,selection))status(error.message,true)}
+};
 const returnedPanel=new URLSearchParams(location.search).get('mediaView');
 if(['overview','channel','team','rights','content','upload','assets','earn','moderation','disputes','ai'].includes(returnedPanel))document.querySelector('nav button[data-panel="'+returnedPanel+'"]')?.click();
 await i18nReady.catch(()=>null);
