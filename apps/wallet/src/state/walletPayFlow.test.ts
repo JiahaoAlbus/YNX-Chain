@@ -74,6 +74,37 @@ async function durableFixture(f:ReturnType<typeof setup>,reviewed=invoice,prepar
 }
 const settlement={id:"settlement-001",intentId:invoice.intentId,invoiceId:invoice.id,merchant:invoice.merchant,payoutAddress:invoice.payoutAddress,
   payer:account,amount:25,currency:"YNXT",transactionHash:signed.hash,blockNumber:3,status:"paid",auditHash:"c".repeat(64),createdAt:"2026-10-02T13:01:00Z"};
+test("normal recovery reads retained truth across restart without signing or settling",async()=>{
+  const f=setup();assert.equal(await f.flow.recovery(account,guard),null);
+  await f.flow.payReviewed(invoice,account,f.chain,guard,async()=>signed);
+  const restarted=new WalletPayFlow(f.storage,new NativeTransferOutbox(f.storage),f.pay,at);
+  const before=new Map(f.storage.values);
+  const unknown=await restarted.recovery(account,guard);
+  assert.equal(unknown?.hash,signed.hash);assert.equal(unknown?.state,"transfer_unconfirmed");
+  assert.deepEqual(unknown?.actions,["check"]);assert.deepEqual(f.storage.values,before);
+  assert.equal(await restarted.recovery(walletIdentity("03".repeat(32)).account,guard),null);
+  const original=(await f.outbox.read(account))!;
+  await f.storage.deleteItem(NATIVE_OUTBOX_PREFIX+account);
+  assert.equal((await restarted.recovery(account,guard))?.state,"original_unavailable");
+  assert.deepEqual((await restarted.recovery(account,guard))?.actions,[]);
+  await f.storage.setItem(NATIVE_OUTBOX_PREFIX+account,JSON.stringify(original));
+  assert.equal(f.broadcasts(),1);
+});
+test("normal recovery exposes finish only after bound native and settlement proof",async()=>{
+  const f=setup();await durableFixture(f);
+  assert.equal((await f.flow.recovery(account,guard))?.state,"settlement_pending");
+  assert.deepEqual((await f.flow.recovery(account,guard))?.actions,["settle"]);
+  await f.flow.settleOriginal(account,guard,async()=>settlement);
+  assert.deepEqual((await f.flow.recovery(account,guard))?.actions,["done"]);
+  await assert.rejects(()=>f.flow.acknowledgeSettled(account,"0x"+"d".repeat(64),guard),/PAY_SETTLED_REVIEW_REQUIRED/);
+  const before=new Map(f.storage.values),get=f.storage.getItem.bind(f.storage);let active=true;
+  f.storage.getItem=async key=>{const value=await get(key);if(key.startsWith(NATIVE_OUTBOX_PREFIX))active=false;return value};
+  await assert.rejects(()=>f.flow.recovery(account,()=>{if(!active)throw new Error("account changed")}),/account changed/);
+  assert.deepEqual(f.storage.values,before);f.storage.getItem=get;
+  await f.flow.acknowledgeSettled(account,signed.hash,guard);
+  assert.equal(await f.flow.recovery(account,guard),null);
+  assert.equal((await f.flow.history(account,guard)).receipts.length,1);
+});
 test("bound durable settlement is archived before permitting the next payment and survives restart",async()=>{
   const f=setup();await durableFixture(f);
   await f.flow.settleOriginal(account,guard,async()=>settlement);

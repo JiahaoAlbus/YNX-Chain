@@ -6,6 +6,7 @@ import {NativeChainClient} from "../chain/nativeTransfer";
 import {verifyNativeDurability} from "../chain/nativeDurability";
 import {NativeTransferOutbox,type NativeTransferOutboxEntry,type NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import {WalletPayInvoiceClient,WalletPayError,assertWalletPayReview,parseWalletPayInvoice,parseWalletPaySettlement,type WalletPayInvoice,type WalletPaySettlement} from "../chain/walletPayInvoice";
+import {buildWalletPayReview,type WalletPayReview} from "./walletPayReview";
 
 const PREFIX="ynx.wallet.pay-binding.v1.";
 const RECEIPT_PREFIX="ynx.wallet.pay-receipt.v1.";
@@ -25,6 +26,13 @@ export class WalletPayFlow {
   constructor(private readonly storage:SecureStorageAdapter,private readonly outbox:NativeTransferOutbox,
     private readonly pay:WalletPayInvoiceClient,private readonly now:()=>number=Date.now){}
   read(account:string):Promise<WalletPayBinding|null>{return this.serial(()=>this.load(account))}
+  /** Read the retained payment and its original journal together. This never
+   * queries a QR origin, signs, resends or creates a settlement session. */
+  recovery(account:string,guard:Guard):Promise<WalletPayReview|null>{return this.serial(async()=>{
+    guard();const binding=await this.load(account);guard();if(!binding)return null;
+    const original=await this.outbox.read(account);guard();
+    return buildWalletPayReview(account,binding.invoice,binding,original,this.now());
+  })}
   receipt(account:string,hash:string):Promise<WalletPayReceipt|null>{return this.serial(async()=>{
     const key=this.receiptKey(account,hash);
     try{const raw=await this.storage.getItem(key);return raw===null?null:this.parseReceipt(raw,account,hash)}
