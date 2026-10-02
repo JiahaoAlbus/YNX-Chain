@@ -4,6 +4,13 @@ const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
 const REPLAY_STORE = 'replays';
 let bearer = '';
+let approvedSession = null;
+let sessionRevision = 0;
+const privateListeners = new Set();
+export const onPrivateSessionChange = listener => { privateListeners.add(listener); return () => privateListeners.delete(listener); };
+export const privateSession = () => { token(); return approvedSession; };
+function publishPrivateSession() { for (const listener of privateListeners) listener(approvedSession); }
+function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
 let standard = null;
 let activeProvider = null;
 let removeProviderListeners = null;
@@ -19,7 +26,7 @@ const YNX_CHAIN = Object.freeze({
 export const OFFICIAL_YNX_WALLET_DOWNLOAD_URL = 'https://www.ynxweb4.com/dapp/download';
 export const STANDARD_METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/';
 
-export const token = () => bearer;
+export const token = () => { if (approvedSession && approvedSession.expiresAt <= Date.now()) discardPrivateSession(); return bearer; };
 export const standardConnection = () => standard;
 export const onStandardConnectionChange = listener => {
   if (typeof listener !== 'function') throw new TypeError('Wallet connection listener must be a function.');
@@ -28,6 +35,7 @@ export const onStandardConnectionChange = listener => {
 };
 
 export async function startWalletAuth(_surface, options = {}) {
+  const revision = sessionRevision;
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
   if (discovery.ambiguities.length || discovery.conflictedAnnouncements) throw walletError('WALLET_PROVIDER_AMBIGUOUS', 'Multiple conflicting wallet providers were detected. Disable duplicate extensions and try again.');
   const preferred = options.wallet === 'metamask' ? WALLET_PROVIDER_KIND.METAMASK : WALLET_PROVIDER_KIND.YNX;
@@ -40,12 +48,14 @@ export async function startWalletAuth(_surface, options = {}) {
   const accounts = await selected.provider.request({ method: 'eth_requestAccounts' });
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
   await ensureYNXChain(selected.provider);
+  if (revision !== sessionRevision) throw walletError('COMMERCE_CONTEXT_CHANGED', 'Wallet connection was cancelled.');
   setStandardConnection(selected.provider, selected.kind, accounts[0]);
   try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
   return standard;
 }
 
 export async function restoreStandardConnection(options = {}) {
+  const revision = sessionRevision;
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
   if (discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
   let remembered = '';
@@ -63,6 +73,7 @@ export async function restoreStandardConnection(options = {}) {
 }
 
 export async function completeWalletCallback() {
+  const revision = sessionRevision;
   const query = new URLSearchParams(location.search);
   const encoded = query.get('response');
   if (!encoded) return null;
@@ -73,7 +84,7 @@ export async function completeWalletCallback() {
   for (const field of ['nonce', 'chainId', 'requestingProduct', 'productClientId', 'bundleId', 'productDeviceAlgorithm', 'productDeviceKey', 'callback', 'purpose']) {
     if (response[field] !== pending[field]) throw new Error('Wallet callback binding mismatch: ' + field);
   }
-  if (canonicalJSON(response.grantedScopes) !== canonicalJSON(pending.scopes) || Date.parse(response.expiresAt) > Date.parse(pending.expiresAt) || Date.parse(response.expiresAt) <= Date.now()) {
+  if (!Number.isFinite(Date.parse(response.expiresAt)) || !Number.isFinite(Date.parse(pending.expiresAt)) || canonicalJSON(response.grantedScopes) !== canonicalJSON(pending.scopes) || Date.parse(response.expiresAt) > Date.parse(pending.expiresAt) || Date.parse(response.expiresAt) <= Date.now()) {
     throw new Error('Wallet callback scope or expiry mismatch.');
   }
   const replayKey = response.requestDigest + ':' + response.nonce;
@@ -84,23 +95,28 @@ export async function completeWalletCallback() {
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V1\n' + canonicalJSON(challenge))));
   const completion = { challenge, deviceSignature: base64url(rawSignatureToDER(signature)) };
   const session = await requestJSON('/api/auth/gateway/sessions', { method: 'POST', body: JSON.stringify(completion) });
-  if (typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || Date.parse(session.expiresAt) <= Date.now()) {
+  if (typeof session.account !== 'string' || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(session.account) || typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) {
     throw new Error('Central Gateway returned an invalid product session.');
   }
-  bearer = session.token;
   await markReplay(replayKey);
+  if (revision !== sessionRevision) throw new Error('Commerce account changed during approval.');
+  bearer = session.token;
+  approvedSession = Object.freeze({ account: session.account, expiresAt: Date.parse(session.expiresAt) });
+  publishPrivateSession();
   sessionStorage.removeItem('ynx_wallet_pending');
   history.replaceState({}, '', location.pathname + location.hash);
   return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
 }
 
 export function clearWalletSession() {
-  bearer = '';
+  discardPrivateSession();
+  sessionStorage.removeItem('ynx_wallet_pending');
   clearStandardConnection();
   try { sessionStorage.removeItem('ynx_shop_wallet_kind'); } catch {}
 }
 
 function setStandardConnection(provider, wallet, account) {
+  if (standard?.account?.toLowerCase() !== account.toLowerCase()) discardPrivateSession();
   removeProviderListeners?.();
   activeProvider = provider;
   standard = Object.freeze({ account, chainId: YNX_CHAIN.chainId, wallet, transport: 'eip-1193' });
@@ -108,6 +124,7 @@ function setStandardConnection(provider, wallet, account) {
     const next = Array.isArray(accounts) ? accounts[0] : null;
     if (!/^0x[0-9a-fA-F]{40}$/.test(next || '')) clearStandardConnection();
     else {
+      if (standard?.account?.toLowerCase() !== next.toLowerCase()) { discardPrivateSession(); sessionStorage.removeItem('ynx_wallet_pending'); }
       standard = Object.freeze({ ...standard, account: next });
       emitStandardConnection();
     }
@@ -128,6 +145,8 @@ function setStandardConnection(provider, wallet, account) {
 }
 
 function clearStandardConnection() {
+  discardPrivateSession();
+  try { sessionStorage.removeItem('ynx_wallet_pending'); } catch {}
   removeProviderListeners?.();
   removeProviderListeners = null;
   activeProvider = null;

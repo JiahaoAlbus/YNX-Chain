@@ -177,16 +177,72 @@ type AIJob struct {
 	CreatedAt, UpdatedAt                                        time.Time
 }
 
+type SellerRoleRevocation struct {
+	ID, StoreID, Account, PreviousRole, Reason    string
+	SessionStatus, SessionRevocationID, LastError string
+	SessionCount                                  int
+	RequestedAt, UpdatedAt                        time.Time
+}
+
+type SellerInvitation struct {
+	ID, StoreID, Account, Role, CreatedBy, Status string
+	Reason                                        string
+	CreatedAt, ExpiresAt, UpdatedAt               time.Time
+	AcceptedAt, CancelledAt                       time.Time
+}
+
+type SellerIntegrationEvent struct {
+	ID, EventName, Source, StoreID, Account, Actor  string
+	RevocationID, PreviousRole, SessionStatus       string
+	SessionRevocationID, InvitationID, Role, Status string
+	SchemaVersion, SessionCount                     int
+	ExpiresAt, OccurredAt                           time.Time
+}
+
+type ProviderConfig struct {
+	StoreID, Kind, Mode, Endpoint, AccessRef, Health, LastError string
+	Capabilities                                                []string
+	Revision, TestGeneration                                    int64
+	CreatedAt, UpdatedAt, LastTestAt, LastHealthyAt             time.Time
+	LastRotationAt                                              time.Time
+}
+
+type ProviderView struct {
+	StoreID, Kind, Mode, Endpoint, Health, LastError string
+	Capabilities                                     []string
+	HasAccessReference                               bool
+	Revision, TestGeneration                         int64
+	CreatedAt, UpdatedAt, LastTestAt, LastHealthyAt  time.Time
+	LastRotationAt                                   time.Time
+}
+
 type Snapshot struct {
-	Version       int
-	Stores        map[string]StoreProfile
-	Products      map[string]Product
-	Orders        map[string]Order
-	Idempotency   map[string]IdempotencyRecord
-	Audits        []AuditEvent
-	AIJobs        map[string]AIJob
-	BuyerProfiles map[string]BuyerProfile
-	Carts         map[string]Cart
-	SellerRoles   map[string]map[string]string
-	RequestWindow map[string][]time.Time
+	Version           int
+	Stores            map[string]StoreProfile
+	Products          map[string]Product
+	Orders            map[string]Order
+	Idempotency       map[string]IdempotencyRecord
+	Audits            []AuditEvent
+	AIJobs            map[string]AIJob
+	BuyerProfiles     map[string]BuyerProfile
+	Carts             map[string]Cart
+	SellerRoles       map[string]map[string]string
+	SellerRevocations map[string]SellerRoleRevocation
+	SellerInvitations map[string]SellerInvitation
+	SellerEvents      []SellerIntegrationEvent
+	ProviderConfigs   map[string]ProviderConfig
+	RequestWindow     map[string][]time.Time
+}
+
+// Detach response collections from the store lock so HTTP serialization and
+// caller edits cannot race with inventory/reservation changes.
+func cloneProduct(product Product) Product {
+	product.Media = append([]MediaAsset(nil), product.Media...)
+	product.Variants = append([]Variant(nil), product.Variants...)
+	product.EditHistory = append([]ProductRevision(nil), product.EditHistory...)
+	for i := range product.EditHistory {
+		product.EditHistory[i].Media = append([]MediaAsset(nil), product.EditHistory[i].Media...)
+		product.EditHistory[i].Variants = append([]Variant(nil), product.EditHistory[i].Variants...)
+	}
+	return product
 }

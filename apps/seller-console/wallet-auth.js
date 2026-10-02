@@ -1,9 +1,18 @@
+import { launchWebAuthorization } from '@ynx-chain/wallet-auth';
+
 const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
 const REPLAY_STORE = 'replays';
 let bearer = '';
+let approvedSession = null;
+let sessionRevision = 0;
+const privateListeners = new Set();
+export const onPrivateSessionChange = listener => { privateListeners.add(listener); return () => privateListeners.delete(listener); };
+export const privateSession = () => { token(); return approvedSession; };
+function publishPrivateSession() { for (const listener of privateListeners) listener(approvedSession); }
+function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
 
-export const token = () => bearer;
+export const token = () => { if (approvedSession && approvedSession.expiresAt <= Date.now()) discardPrivateSession(); return bearer; };
 
 export async function startWalletAuth(surface) {
   const config = await requestJSON('/api/auth/config?surface=' + encodeURIComponent(surface));
@@ -31,11 +40,11 @@ export async function startWalletAuth(surface) {
     expiresAt: new Date(now.getTime() + 4 * 60_000).toISOString(),
   };
   sessionStorage.setItem('ynx_wallet_pending', canonicalJSON(request));
-  const encoded = base64url(new TextEncoder().encode(canonicalJSON(request)));
-  location.assign('ynxwallet://authorize?request=' + encoded);
+  return launchWebAuthorization(request, { document, window, timeoutMs: 1500 });
 }
 
 export async function completeWalletCallback() {
+  const revision = sessionRevision;
   const query = new URLSearchParams(location.search);
   const encoded = query.get('response');
   if (!encoded) return null;
@@ -46,7 +55,7 @@ export async function completeWalletCallback() {
   for (const field of ['nonce', 'chainId', 'requestingProduct', 'productClientId', 'bundleId', 'productDeviceAlgorithm', 'productDeviceKey', 'callback', 'purpose']) {
     if (response[field] !== pending[field]) throw new Error('Wallet callback binding mismatch: ' + field);
   }
-  if (canonicalJSON(response.grantedScopes) !== canonicalJSON(pending.scopes) || Date.parse(response.expiresAt) > Date.parse(pending.expiresAt) || Date.parse(response.expiresAt) <= Date.now()) {
+  if (!Number.isFinite(Date.parse(response.expiresAt)) || !Number.isFinite(Date.parse(pending.expiresAt)) || canonicalJSON(response.grantedScopes) !== canonicalJSON(pending.scopes) || Date.parse(response.expiresAt) > Date.parse(pending.expiresAt) || Date.parse(response.expiresAt) <= Date.now()) {
     throw new Error('Wallet callback scope or expiry mismatch.');
   }
   const replayKey = response.requestDigest + ':' + response.nonce;
@@ -57,17 +66,20 @@ export async function completeWalletCallback() {
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V1\n' + canonicalJSON(challenge))));
   const completion = { challenge, deviceSignature: base64url(rawSignatureToDER(signature)) };
   const session = await requestJSON('/api/auth/gateway/sessions', { method: 'POST', body: JSON.stringify(completion) });
-  if (typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || Date.parse(session.expiresAt) <= Date.now()) {
+  if (typeof session.account !== 'string' || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(session.account) || typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) {
     throw new Error('Central Gateway returned an invalid product session.');
   }
-  bearer = session.token;
   await markReplay(replayKey);
+  if (revision !== sessionRevision) throw new Error('Commerce account changed during approval.');
+  bearer = session.token;
+  approvedSession = Object.freeze({ account: session.account, expiresAt: Date.parse(session.expiresAt) });
+  publishPrivateSession();
   sessionStorage.removeItem('ynx_wallet_pending');
   history.replaceState({}, '', location.pathname + location.hash);
   return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
 }
 
-export function clearWalletSession() { bearer = ''; }
+export function clearWalletSession() { discardPrivateSession(); sessionStorage.removeItem('ynx_wallet_pending'); }
 
 function exactConfig(config, surface) {
   const expected = surface === 'seller'

@@ -76,7 +76,7 @@ final class WalletAuth {
                 JSONObject session=api.requestSync("POST","/auth/gateway/sessions",completion);
                 String token=session.optString("token"), account=session.optString("account");
                 require(token.length()>=24 && account.equals(approval.getString("account")) && Instant.parse(session.getString("expiresAt")).isAfter(Instant.now()),"invalid central product session");
-                secure.put("bearer",token); secure.put(replay,Instant.now().toString()); secure.remove("wallet_pending");
+                secure.put("commerce_session",new JSONObject().put("account",account).put("token",token).put("expiresAt",session.getString("expiresAt")).toString());secure.put("bearer",token); secure.put(replay,Instant.now().toString()); secure.remove("wallet_pending");
                 result.done(account,null);
             } catch(Exception failure){result.done(null,failure);}
         }).start();

@@ -11,6 +11,7 @@ for (const file of [
   'i18n.js',
   'privacy-i18n.js',
   'app.js',
+  'request-context.js',
   'manifest.webmanifest',
   'sw.js',
   'icon-192.png',

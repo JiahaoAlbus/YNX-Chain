@@ -1,59 +1,114 @@
 {
+  "schemaVersion": 3,
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
-  "branch": "codex/ecosystem-shop",
-  "commit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
-  "version": "0.2.0-testnet-preview",
-  "surfaces": ["web"],
+  "version": "commerce-integration-source-20261002",
+  "stage": "SOURCE_IN_PROGRESS",
+  "goalStatus": "active",
   "implementedLocal": true,
-  "testedLocal": true,
+  "testedLocal": false,
   "installedLocal": false,
   "integratedCentral": false,
-  "deployedStaging": true,
   "deployedPublic": false,
-  "downloadHosted": true,
+  "publicVerified": false,
+  "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "publicUrls": [
-    "https://web4.ynxweb4.com/seller-staging/"
+  "platformTargets": [
+    "android",
+    "macos",
+    "web"
   ],
-  "healthUrls": [
-    "https://web4.ynxweb4.com/shop-api-staging/health",
-    "https://web4.ynxweb4.com/shop-api-staging/version"
-  ],
-  "artifactUrls": [
-    "https://web4.ynxweb4.com/shop-staging/ynx-shop-release-38e2f68.tar.gz"
-  ],
-  "sha256": {
-    "linuxWebApiBundle": "dd2ac7aed00e5de3de8ad90f15b03a5f4c92a07c37464c9166075e818f9af527",
-    "linuxAmd64Shopd": "cf0063e9a645a58370044d00010594acb6298f637f17fc040ac0606c079f1dc8"
+  "monsterStatus": "NOT_RUN",
+  "inheritedRelease": {
+    "schemaVersion": 2,
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "taskId": "P0-139",
+    "productId": "ynx-seller-console",
+    "name": "YNX Seller Console",
+    "branch": "codex/p0-seller-console-visible-20260821",
+    "sourceCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
+    "version": "0.5.0-testnet-candidate",
+    "goalStatus": "active",
+    "stage": "PUBLIC_DEPLOYED_LIMITED",
+    "surfaces": [
+      "web"
+    ],
+    "implementedLocal": true,
+    "testedLocal": true,
+    "localBrowserVerified": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": true,
+    "publicVerified": true,
+    "computerControlVerified": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "acceptedContractsConsumed": {
+      "standardWalletConnection": true,
+      "dappConnectSDK": true,
+      "publicEndpointManifestVersion": "1.0.0-p0.2",
+      "publicEndpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"
+    },
+    "walletConnectivity": {
+      "eip1193SourceImplemented": true,
+      "eip6963SourceImplemented": true,
+      "ynxProviderPreferred": true,
+      "otherEvmWalletFallback": true,
+      "ynxWalletDownload": "https://ynxweb4.com/dapp/download",
+      "metamaskDownload": "https://metamask.io/download/",
+      "ynxTestnetChainId": "0x1917",
+      "productSessionOptional": true,
+      "productSessionStatus": "DEGRADED",
+      "standardConnectionPreservedWhenPrivateDegraded": true,
+      "visibleProviderApprovalVerified": false,
+      "signingVerified": false,
+      "transactionVerified": false
+    },
+    "endpointTruth": {
+      "evmRpc": {
+        "url": "https://evm.ynxweb4.com",
+        "status": "VERIFIED_BY_ACCEPTED_MANIFEST"
+      },
+      "explorer": {
+        "url": "https://explorer.ynxweb4.com",
+        "status": "VERIFIED_BY_ACCEPTED_MANIFEST"
+      },
+      "appGateway": {
+        "status": "UNAVAILABLE"
+      },
+      "sellerProductApi": {
+        "status": "PENDING"
+      }
+    },
+    "localEvidence": {
+      "tests": "10/10",
+      "build": "passed",
+      "releaseScan": "passed",
+      "desktopBrowser": "English first-run UI, guest preview, private degraded state, zero console warnings/errors",
+      "mobileBrowser": "390x844 responsive viewport, no horizontal overflow, English UI",
+      "providerApproval": "deterministic EIP-6963 approval and rejection verified in Chromium; not a real installed Wallet"
+    },
+    "currentPublicRuntime": {
+      "url": "https://seller.ynxweb4.com/seller/",
+      "activeRuntime": "/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003",
+      "publicBytesExact": true,
+      "defaultEnglishVerified": true,
+      "guestPreviewVisible": true,
+      "missingWalletRecoveryVisible": true,
+      "topLevelTabDelta": 0,
+      "consoleErrors": 0
+    },
+    "remainingBlockers": [
+      "Seller Product API is PENDING in the accepted endpoint manifest.",
+      "App Gateway is UNAVAILABLE; no private Product Session success is claimed.",
+      "No real installed Wallet, account approval, signature, transaction, or ComputerControl evidence exists for this public runtime."
+    ],
+    "generatedAt": "2026-08-21T09:37:50Z"
   },
-  "bytes": {
-    "linuxWebApiBundle": 8644930,
-    "linuxAmd64Shopd": 19177656
-  },
-  "signingClass": "not-applicable-web",
-  "minOS": {
-    "web": "current evergreen browser"
-  },
-  "installEvidence": {
-    "web": {
-      "installed": false,
-      "reason": "Seller Console is a browser surface; staging deployment and remote smoke are the applicable runtime evidence."
-    }
-  },
-  "centralIntegration": {
-    "walletRegistryPatch": "internal/commerce/integration/seller-registry-v2.json",
-    "walletRegisteredDeployed": false,
-    "rolesImplemented": ["owner", "manager", "fulfillment", "support", "viewer"],
-    "auditImplemented": true,
-    "payBoundaryImplemented": true,
-    "trustBoundaryImplemented": true
-  },
-  "knownLimitations": [
-    "The deployed central Gateway does not yet contain the separate Seller v2 product registration, so sign-in and authenticated staging operations fail closed.",
-    "The shared Shop Pay merchant and payout configuration is not provisioned; refund approval cannot become refunded without authoritative committed Pay evidence.",
-    "Tax and carrier providers are intentionally unavailable; seller shipment entries remain manual-unverified."
-  ],
-  "generatedAt": "2026-07-18T14:11:03Z"
+  "limitations": [
+    "Shared canonical v2 authentication, actual services and A release integration are pending.",
+    "Inherited public and installed receipts belong to their original versions, not this source."
+  ]
 }

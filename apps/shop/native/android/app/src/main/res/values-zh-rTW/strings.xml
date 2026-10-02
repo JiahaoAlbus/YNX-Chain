@@ -25,4 +25,5 @@
     <string name="security_error">安全驗證失敗。</string><string name="session_expired">錢包工作階段已過期或撤銷。</string><string name="queued_offline">操作已連同冪等鍵排隊；伺服器確認前不會宣稱訂單或付款成功。</string><string name="restore_pending">重試待處理操作</string><string name="save_profile">儲存資料與地址</string><string name="profile_saved">資料已儲存。</string><string name="no_orders">尚無訂單。</string>
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">依顯示的精確權限授權 YNX 商城存取 ynx_6423-1；四分鐘後到期。</string><string name="accessibility_status">商城狀態</string><string name="accessibility_language">語言選擇器</string><string name="accessibility_ai_language">AI 輸出語言選擇器</string><plurals name="orders_count"><item quantity="other">%d 筆訂單</item></plurals>
+<string name="sign_out">登出</string>
 </resources>

@@ -59,4 +59,5 @@
     <string name="accessibility_language">محدد اللغة</string>
     <string name="accessibility_ai_language">محدد لغة مخرجات الذكاء الاصطناعي</string>
     <plurals name="orders_count"><item quantity="zero">لا طلبات</item><item quantity="one">طلب واحد</item><item quantity="two">طلبان</item><item quantity="few">%d طلبات</item><item quantity="many">%d طلبًا</item><item quantity="other">%d طلب</item></plurals>
+<string name="sign_out">تسجيل الخروج</string>
 </resources>

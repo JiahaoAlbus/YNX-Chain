@@ -60,4 +60,5 @@
     <string name="accessibility_language">Language selector</string>
     <string name="accessibility_ai_language">AI output language selector</string>
     <plurals name="orders_count"><item quantity="one">%d order</item><item quantity="other">%d orders</item></plurals>
+<string name="sign_out">Sign out</string>
 </resources>

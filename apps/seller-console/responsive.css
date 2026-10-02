@@ -6,6 +6,6 @@ body > aside, main, header, nav, .notice, .workspace { min-width: 0; }
   body > aside nav button { flex: 0 0 auto; }
   main { padding-left: 18px; padding-right: 18px; }
   header { gap: 12px; align-items: flex-start; }
-  #wallet { max-width: 48%; }
+  .walletActions, .walletActions button { width: 100%; max-width: 100%; }
   .notice { flex-direction: column; gap: 8px; }
 }

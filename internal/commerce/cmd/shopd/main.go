@@ -17,6 +17,10 @@ func main() {
 	buyer := flag.String("buyer-assets", "apps/shop", "buyer web assets")
 	seller := flag.String("seller-assets", "apps/seller-console", "seller web assets")
 	restoreBackup := flag.Bool("restore-backup", false, "restore the last verified state backup before starting")
+	exportRollback := flag.String("export-rollback", "", "write a new bounded rollback snapshot and exit; never overwrites an existing file")
+	rollbackVersion := flag.Int("rollback-version", 5, "rollback snapshot target version: 3, 4 or 5")
+	pruneTransientBefore := flag.String("prune-transient-before", "", "preview or prune terminal AI jobs and rate-limit samples older than this RFC3339 cutoff, then exit")
+	confirmPruneTransient := flag.Bool("confirm-prune-transient", false, "apply the transient retention preview; requires --prune-transient-before and an integrity key")
 	flag.Parse()
 	var integrityKey []byte
 	if value := os.Getenv("YNX_SHOP_STATE_HMAC_KEY"); value != "" {
@@ -44,6 +48,43 @@ func main() {
 	}
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *exportRollback != "" && *pruneTransientBefore != "" {
+		log.Fatal("--export-rollback and --prune-transient-before are mutually exclusive")
+	}
+	if *confirmPruneTransient && *pruneTransientBefore == "" {
+		log.Fatal("--confirm-prune-transient requires --prune-transient-before")
+	}
+	if *exportRollback != "" {
+		if err := store.ExportRollbackSnapshot(*exportRollback, *rollbackVersion); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("exported Snapshot v%d rollback file to %s", *rollbackVersion, *exportRollback)
+		return
+	}
+	if *pruneTransientBefore != "" {
+		if len(integrityKey) == 0 {
+			log.Fatal("transient retention pruning requires YNX_SHOP_STATE_HMAC_KEY")
+		}
+		cutoff, parseErr := time.Parse(time.RFC3339, *pruneTransientBefore)
+		if parseErr != nil {
+			log.Fatal("--prune-transient-before must be RFC3339")
+		}
+		preview, previewErr := store.PreviewTransientDataPrune(cutoff.UTC())
+		if previewErr != nil {
+			log.Fatal(previewErr)
+		}
+		log.Printf("transient retention preview cutoff=%s ai_jobs=%d request_samples=%d protected_classes=%v", preview.Cutoff.Format(time.RFC3339), preview.AIJobs, preview.RequestSamples, preview.ProtectedClasses)
+		if !*confirmPruneTransient {
+			log.Print("preview only; rerun with --confirm-prune-transient to apply")
+			return
+		}
+		result, pruneErr := store.PruneTransientData(cutoff.UTC())
+		if pruneErr != nil {
+			log.Fatal(pruneErr)
+		}
+		log.Printf("pruned transient data cutoff=%s ai_jobs=%d request_samples=%d completed_at=%s", result.Cutoff.Format(time.RFC3339), result.AIJobs, result.RequestSamples, result.CompletedAt.Format(time.RFC3339))
+		return
 	}
 	if err := store.Recover(); err != nil {
 		log.Fatal(err)

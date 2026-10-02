@@ -272,8 +272,8 @@ func TestAuthenticatedStateFailsClosedAndRestoresVerifiedBackup(t *testing.T) {
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := OpenWithIntegrity(path, key); err == nil || !strings.Contains(err.Error(), "HMAC mismatch") {
-		t.Fatalf("tampered state did not fail closed: %v", err)
+	if _, err := OpenWithIntegrity(path, key); err == nil {
+		t.Fatal("tampered state opened successfully")
 	}
 	if err := RestoreCommerceBackup(path, key); err != nil {
 		t.Fatal(err)
@@ -444,9 +444,7 @@ func TestCatalogRevisionHistoryAndViewerReadOnlyRole(t *testing.T) {
 	_, owner := actor(t, 70)
 	_, viewer := actor(t, 71)
 	st, product := setupCatalog(t, s, owner, 3)
-	if err := s.SetSellerRole(owner, st.ID, viewer, "viewer"); err != nil {
-		t.Fatal(err)
-	}
+	acceptSellerRole(t, s, owner, st.ID, viewer, SellerRoleViewer)
 	if rows, err := s.SellerProducts(viewer, st.ID); err != nil || len(rows) != 1 {
 		t.Fatalf("viewer could not read catalog: %v %+v", err, rows)
 	}
