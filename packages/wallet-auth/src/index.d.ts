@@ -589,3 +589,5 @@ export declare function payPaymentIntentDigest(intent:PayPaymentIntent):string;
 /** Signing primitive only. Caller must verify pinned invoice and explicit consent through its guarded key-access lease. No broadcast or settlement is claimed. */
 export declare function createSignedPayPaymentResult(input:Readonly<{accountSecret:string;intent:PayPaymentIntent;transferPayload:string;issuedAt:string}>,now?:Date):PayPaymentResult;
 export declare function verifyPayPaymentResult(value:unknown,intent:PayPaymentIntent,account:string,now?:Date):PayPaymentResult;
+
+export declare function createPayInvoiceSignerPolicy(config:unknown):Readonly<{resolve(input:Readonly<{signatureKeyId:string;signingPublicKey:string;signatureAlgorithm:string;merchantId:string}>):Readonly<{keyId:string;publicKey:string;algorithm:"ed25519"}>}>;

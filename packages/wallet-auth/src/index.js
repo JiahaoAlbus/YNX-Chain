@@ -54,3 +54,5 @@ export { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, ProductSessionGatewayFetchAdap
 export * from "./product-session-gateway-http.js";
 export * from "./product-session-browser.js";
 export { createWalletSessionControlProof, parseWalletSessionControlProof, verifyWalletSessionControlProof, encodeWalletSessionControlProofHeader, decodeWalletSessionControlProofHeader, walletSessionControlReplayKey, walletSessionControlReplayExpiry, WALLET_SESSION_CONTROL_PROOF_HEADER, WALLET_SESSION_CONTROL_AUDIENCE, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS, WALLET_SESSION_CONTROL_REPLAY_PREFIX } from "./wallet-session-control.js";
+
+export * from "./pay-invoice-trust.js";
