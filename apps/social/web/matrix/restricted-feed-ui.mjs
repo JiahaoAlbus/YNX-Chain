@@ -114,7 +114,7 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
     try{
       gate(generation,binding);
       const expectedSender=await commentSender(binding);gate(generation,binding);
-      const receipt=await recoverIndexedComment({intent:original,expectedSender,loadIndexes,consumer,guard:()=>gate(generation,binding)});
+      const receipt=await recoverIndexedComment({intent:original,expectedSender,loadIndexes,consumer,guard:()=>gate(generation,binding),validateIdentity:async()=>{const sender=await commentSender(binding);gate(generation,binding);if(sender!==expectedSender)throw new Error('MATRIX_COMMENT_STALE')}});
       gate(generation,binding);if(pendingIntent!==original)throw new Error('MATRIX_COMMENT_STALE');
       await commentDrafts.clearConfirmed(receipt.transactionId,binding);gate(generation,binding);
       pendingIntent=null;draft.textContent='';recovery.hidden=true;status.textContent='Original encrypted comment confirmed. No resend performed.';

@@ -1,4 +1,5 @@
 import {decodeBase64,encodeBase64} from 'matrix-encrypt-attachment';
+import {createBoundedOperation,wipeBytes} from './bounded-operation.mjs';
 export const RESTRICTED_MOMENT_PROTOCOL = 'ynx-social-matrix-moment/v1';
 const deny = message => { throw new Error(message); };
 function snapshot(value) {
@@ -74,13 +75,14 @@ export class RestrictedMoments {
         semantic.owner!==expected.owner || semantic.revision!==expected.revision || semantic.audience!==expected.kind)
       deny('Verified parent event is unavailable; comment remains blocked');
   }
-  async read(index){
+  async read(index,{signal=null,assertCurrent=()=>{}}={}){
     index=structuredClone(index);
     const expected=snapshot(index.audience),operation=this.transport.capture();
+    const local=()=>{this.transport.guard(operation);assertCurrent();if(signal?.aborted)deny('Original read was cancelled; no plaintext returned')};local();
     const authorization={action:'read',transactionId:index.transactionId};
-    await this.check(expected,operation,authorization);
-    const records=await this.transport.messages(expected.roomId);this.transport.guard(operation);
-    await this.check(expected,operation,authorization);
+    await this.check(expected,operation,authorization);local();
+    const records=await this.transport.messages(expected.roomId);local();
+    await this.check(expected,operation,authorization);local();
     const event=records.find(record=>record.id===index.eventId),semantic=event?.content?.['com.ynx.social.moment'];
     const kind=index.parentEventId?'comment':'moment';
     if(!event?.encrypted||event.verification?.shieldColour!==0||event.sender!==index.sender||!expected.members.includes(index.sender)||semantic?.protocol!==RESTRICTED_MOMENT_PROTOCOL||semantic.kind!==kind||semantic.owner!==expected.owner||semantic.revision!==expected.revision||semantic.audience!==expected.kind||semantic.author!==index.sender||kind==='moment'&&index.sender!==expected.owner)deny('Authenticated indexed Moment is unavailable');
@@ -100,23 +102,63 @@ export class RestrictedMoments {
     index=structuredClone(index);attachment=structuredClone(attachment);
     if(!validAttachment(attachment,false))deny('Standard encrypted attachment descriptor required');
     const operation=this.transport.capture(),expected=snapshot(index.audience);
+    const bounded=createBoundedOperation();this.transport.downloads?.add(bounded.controller);
+    const local=()=>{bounded.guard();this.transport.guard(operation);assertCurrent()};
     const checkpoint=async()=>{
-      this.transport.guard(operation);assertCurrent();
-      await validateIdentity();this.transport.guard(operation);assertCurrent();
-      await this.check(expected,operation,{action:'read',transactionId:index.transactionId});
-      this.transport.guard(operation);assertCurrent();
+      local();await bounded.wait(()=>validateIdentity({signal:bounded.signal}));local();
+      await bounded.wait(()=>this.check(expected,operation,{action:'read',transactionId:index.transactionId}));local();
     };
-    await checkpoint();
-    const current=await this.read(index);this.transport.guard(operation);assertCurrent();
-    if(!sameJSON(current.attachment,attachment))deny('Original indexed attachment changed');
     let bytes;
     try{
-      bytes=await this.transport.downloadAttachment(attachment,{revalidate:checkpoint});
-      this.transport.guard(operation);assertCurrent();await checkpoint();
-      const final=await this.read(index);this.transport.guard(operation);assertCurrent();
+      await checkpoint();
+      const current=await bounded.wait(()=>this.read(index,{signal:bounded.signal,assertCurrent:local}));local();
+      if(!sameJSON(current.attachment,attachment))deny('Original indexed attachment changed');
+      bytes=await bounded.wait(()=>this.transport.downloadAttachment(attachment,{revalidate:checkpoint,assertCurrent:local,signal:bounded.signal}),wipeBytes);
+      local();await checkpoint();
+      const final=await bounded.wait(()=>this.read(index,{signal:bounded.signal,assertCurrent:local}));local();
       if(!sameJSON(final.attachment,attachment))deny('Original indexed attachment changed');
       await checkpoint();return bytes;
-    }catch(error){if(bytes instanceof ArrayBuffer)new Uint8Array(bytes).fill(0);throw error}
+    }catch(error){wipeBytes(bytes);throw error}
+    finally{this.transport.downloads?.delete(bounded.controller);bounded.dispose()}
+  }
+  // Recover original delivery by authenticated remote readback and the existing
+  // index authority only. Never call sendMessage or uploadContent here.
+  async recover(intent,options={}){
+    const bounded=createBoundedOperation({signal:options.signal});this.transport.downloads?.add(bounded.controller);
+    const assertCurrent=()=>{bounded.guard();options.assertCurrent?.()};
+    try{return await bounded.wait(()=>this.recoverOriginal(intent,{...options,assertCurrent,wait:bounded.wait,signal:bounded.signal}))}
+    finally{this.transport.downloads?.delete(bounded.controller);bounded.dispose()}
+  }
+  async recoverOriginal(intent,{assertCurrent=()=>{},validateIdentity=async()=>{},wait=action=>action(),signal=null}={}){
+    intent=structuredClone(intent);
+    const expected=snapshot(intent.comment?.index?.audience??intent.audience),operation=this.transport.capture();
+    const parent=intent.comment?.parent??null,attachment=intent.preparedAttachment??null;
+    const transactionId=intent.transactionId,text=intent.text;
+    if(intent.status!=='delivery-unknown'||typeof text!=='string'||!text.trim()||text.length>16000||typeof transactionId!=='string'||!/^[A-Za-z0-9_-]{16,128}$/.test(transactionId))deny('Original unknown intent required');
+    if(parent){
+      if(intent.comment.author!==operation.binding.userId||parent.protocol!==RESTRICTED_MOMENT_PROTOCOL||parent.eventId!==intent.comment.index.eventId||parent.roomId!==expected.roomId||parent.revision!==expected.revision||parent.owner!==expected.owner)deny('Original comment identity or parent differs');
+    }else if(expected.owner!==operation.binding.userId)deny('Original publishing identity differs');
+    if(intent.file&&!attachment)deny('Original upload receipt remains unknown; no resend performed');
+    if(attachment&&!validAttachment(attachment))deny('Original prepared encrypted attachment required');
+    const content={msgtype:'m.text',body:text,'com.ynx.social.moment':{protocol:RESTRICTED_MOMENT_PROTOCOL,kind:parent?'comment':'moment',audience:expected.kind,revision:expected.revision,owner:expected.owner,author:operation.binding.userId}};
+    if(attachment){content.msgtype='m.file';content.body=attachment.body;content.file=structuredClone(attachment.file);content.info=structuredClone(attachment.info);content['com.ynx.social.moment'].text=text}
+    if(parent)content['m.relates_to']={rel_type:'m.reference',event_id:parent.eventId};
+    const authorization={action:'read',transactionId,parentEventId:parent?.eventId};
+    const checkpoint=async()=>{this.transport.guard(operation);assertCurrent();await wait(()=>validateIdentity({signal}));this.transport.guard(operation);assertCurrent();await wait(()=>this.check(expected,operation,authorization));this.transport.guard(operation);assertCurrent()};
+    await checkpoint();
+    const retained=this.pending.get(transactionId);
+    if(retained&&(retained.binding!==operation.binding||retained.identity!==JSON.stringify({audience:expected,content})||retained.status!=='unknown'))deny('Original warm intent differs or is still active');
+    const records=await wait(()=>this.transport.messages(expected.roomId));this.transport.guard(operation);assertCurrent();await checkpoint();
+    const candidates=records.filter(record=>record.transactionId===transactionId||retained?.eventId&&record.id===retained.eventId);
+    if(candidates.length!==1)deny('Original remote delivery is not uniquely confirmed; no resend performed');
+    const event=structuredClone(candidates[0]);
+    if(!/^\$[^\s\x00-\x1f]{1,254}$/.test(event.id)||event.remoteConfirmed!==true||!event.encrypted||event.verification?.shieldColour!==0||event.sender!==operation.binding.userId||event.transactionId!==undefined&&event.transactionId!==transactionId||event.content?.msgtype!==content.msgtype||event.content.body!==content.body||!sameTypedFields(event.content['com.ynx.social.moment'],content['com.ynx.social.moment'])||!sameJSON(event.content.file,content.file)||!sameJSON(event.content.info,content.info)||!sameTypedFields(event.content['m.relates_to'],content['m.relates_to'])||event.content.url!==undefined)deny('Original encrypted event ownership is not confirmed');
+    if(parent){await wait(()=>this.verifyParent(parent,expected,operation));this.transport.guard(operation);assertCurrent();await checkpoint()}
+    await wait(()=>this.check(expected,operation,{...authorization,action:'index',eventId:event.id}));this.transport.guard(operation);assertCurrent();
+    await checkpoint();
+    if(retained&&this.pending.get(transactionId)!==retained)deny('Original pending intent changed');
+    this.pending.delete(transactionId);
+    return Object.freeze({protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,eventId:event.id,transactionId,owner:expected.owner,kind:expected.kind,revision:expected.revision,parentEventId:parent?.eventId,sender:operation.binding.userId});
   }
   /** @param {{audience: object, text: string, transactionId: string, attachment?: any, parent?: {protocol: string, roomId: string, revision: string, owner: string, eventId: string} | null}} input */
   async publish({audience,text,transactionId,parent=null,attachment=null}) {

@@ -1,0 +1,28 @@
+{
+  "qualification": "actual unchanged 30s owned deadline and immediate cancellation; controlled nonsettling callback/stream, no public outage or grant-TTL claim",
+  "results": [
+    {
+      "name": "unchanged real 30s timer rejects pending authority and cleans tracked operation",
+      "status": "PASS",
+      "elapsedMs": 30005,
+      "fetches": 0,
+      "tracked": 0
+    },
+    {
+      "name": "stop rejects nonsettling original identity before fetch, late result discarded",
+      "status": "PASS"
+    },
+    {
+      "name": "abort rejects nonsettling stream reader and releases local handle",
+      "status": "PASS"
+    },
+    {
+      "name": "bounded primitive rejects nonsettling codec and wipes late plaintext",
+      "status": "PASS"
+    },
+    {
+      "name": "stop rejects pending original recovery authority without sending or clearing intent",
+      "status": "PASS"
+    }
+  ]
+}

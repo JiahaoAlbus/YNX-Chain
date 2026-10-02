@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "17395e3b57607cc9df077740fc9b26c2dfa32183",
+  "qualification": "actual unmodified30s media deadline; controlled permanently-pending authority callback; source contract only, no real production outage",
+  "elapsedMilliseconds": 30252,
+  "state": "pending",
+  "activeDownloads": 1,
+  "aborted": [
+    true
+  ],
+  "fetchCalls": 0,
+  "status": "SOURCE_DEADLINE_HOLD"
+}

@@ -67,7 +67,7 @@ if(root&&!loginCallback){
     await identity(view);guardView(view);
     const items=[];for(const record of records){const item=document.createElement('li');item.textContent=`${record.sender}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
      if(record.content.file){const download=document.createElement('button');download.type='button';download.textContent='Download encrypted attachment';download.onclick=()=>void work(async()=>{
-      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{revalidate:async()=>{guardView(view);await identity(view);guardView(view)}});guardView(view);
+      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view)}});guardView(view);
       await identity(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
       try{link.href=url;link.download=record.content.body||'attachment';link.click()}finally{setTimeout(()=>URL.revokeObjectURL(url),10000)}
      });item.append(download)}items.push(item)
@@ -175,7 +175,7 @@ if(root&&!loginCallback){
  }
  momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work,
   resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action)=>audienceHTTP.authorize(expected,action),loadSelections:audienceChoices,
-  drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId)=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,guard))},
+  drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId,assertCurrent=()=>{})=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,()=>{guard();assertCurrent()}))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});
  phase('locked');
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error)){sendReady=false;phase('offline')}}).finally(()=>{checkingIdentity=false})},15000);

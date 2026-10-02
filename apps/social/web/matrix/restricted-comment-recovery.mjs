@@ -4,9 +4,10 @@ const eventId=value=>typeof value==='string'&&/^\$[^\s\x00-\x1f]{1,254}$/.test(v
 const validAudience=value=>value?.protocol===protocol&&['contacts','group','selected','private'].includes(value.kind)&&/^[a-f0-9]{64}$/.test(value.revision)&&typeof value.owner==='string'&&value.owner.startsWith('@')&&typeof value.roomId==='string'&&value.roomId.startsWith('!')&&Array.isArray(value.members)&&value.members.length>0&&value.members.length<=256&&value.members.every(member=>typeof member==='string'&&member.startsWith('@'))&&new Set(value.members).size===value.members.length&&value.members.includes(value.owner)&&(value.kind!=='private'||value.members.length===1);
 const audience=value=>JSON.stringify({protocol:value?.protocol,kind:value?.kind,revision:value?.revision,owner:value?.owner,roomId:value?.roomId,members:Array.isArray(value?.members)?[...value.members].sort():null});
 
-// Read-only recovery. No publish/upload/send API is accepted or invoked here.
+// Matrix readback recovery. No publish/upload/send API is invoked here; the
+// existing authority may commit the original authenticated event's index.
 // The caller retains the protected record until this confirms its exact event.
-export async function recoverIndexedComment({intent,expectedSender,loadIndexes,consumer,guard}) {
+export async function recoverIndexedComment({intent,expectedSender,loadIndexes,consumer,guard,validateIdentity=async()=>{}}) {
   if(typeof guard!=='function'||typeof loadIndexes!=='function'||typeof consumer?.read!=='function')fail();
   guard();
   const original=structuredClone(intent),comment=original?.comment;
@@ -27,7 +28,12 @@ export async function recoverIndexedComment({intent,expectedSender,loadIndexes,c
     if(!/^[a-f0-9]{64}$/.test(feed.after)||cursors.has(feed.after)||page===63)fail();
     cursors.add(feed.after);after=feed.after;
   }
-  if(!match)fail();
+  if(!match){
+    if(typeof consumer.recover!=='function')fail();
+    const receipt=await consumer.recover(original,{assertCurrent:guard,validateIdentity});guard();
+    if(receipt?.transactionId!==original.transactionId||!eventId(receipt.eventId)||receipt.parentEventId!==comment.parent.eventId||receipt.sender!==expectedSender)fail();
+    return Object.freeze({transactionId:original.transactionId,eventId:receipt.eventId,parentEventId:comment.parent.eventId,sender:expectedSender});
+  }
   const decoded=await consumer.read(structuredClone(match));guard();
   if(decoded?.eventId!==match.eventId||decoded.text!==original.text||decoded.attachment||decoded.parent!==null||decoded.protocol!==undefined&&decoded.protocol!==protocol||decoded.kind!==undefined&&decoded.kind!=='comment')fail();
   return Object.freeze({transactionId:original.transactionId,eventId:match.eventId,parentEventId:comment.parent.eventId,sender:expectedSender});

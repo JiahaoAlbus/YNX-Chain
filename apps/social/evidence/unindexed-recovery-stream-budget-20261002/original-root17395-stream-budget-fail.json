@@ -1,0 +1,27 @@
+{
+  "sourceCommit": "17395e3b57607cc9df077740fc9b26c2dfa32183",
+  "qualification": "actual exact indexed consumer/transport/locked real SDK crypto and streaming; controlled authority counter and rate budget, not live HS/public user acceptance",
+  "status": "SOURCE_THROUGHPUT_HOLD",
+  "observations": [
+    {
+      "rateLimit": "unlimited",
+      "sourceBytes": 524288,
+      "chunks": 512,
+      "authorizations": 523,
+      "identityChecks": 519,
+      "downloaded": true,
+      "bytesMatch": true,
+      "error": null
+    },
+    {
+      "rateLimit": 300,
+      "sourceBytes": 524288,
+      "chunks": 297,
+      "authorizations": 301,
+      "identityChecks": 299,
+      "downloaded": false,
+      "bytesMatch": false,
+      "error": "isolated original-rate-budget exhausted"
+    }
+  ]
+}

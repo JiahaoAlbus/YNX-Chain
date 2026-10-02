@@ -1,0 +1,26 @@
+{
+  "qualification": "actual consumer/transport and locked SDK cipher; controlled existing budget and authority, not a public rate-limit claim",
+  "results": [
+    {
+      "name": "512 real 1KiB chunks decrypt within unchanged controlled 300/min budget",
+      "status": "PASS",
+      "authorizations": 11,
+      "identities": 7,
+      "chunks": 512
+    },
+    {
+      "name": "local view guard discards stream immediately without remote roundtrip",
+      "status": "PASS",
+      "authorizations": 5,
+      "identities": 3,
+      "chunks": 3
+    },
+    {
+      "name": "long stream periodic authority check observes revoke before completion",
+      "status": "PASS",
+      "authorizations": 5,
+      "identities": 4,
+      "chunks": 2
+    }
+  ]
+}

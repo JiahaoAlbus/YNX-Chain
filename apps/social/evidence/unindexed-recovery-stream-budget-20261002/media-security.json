@@ -1,0 +1,89 @@
+{
+  "qualification": "isolated real locked SDK/WebCrypto/Response stream and actual owned transport/indexed consumer; controlled Matrix SDK session/authority, not live HS or installed acceptance",
+  "results": [
+    {
+      "name": "real SDK roundtrip without optional info",
+      "status": "PASS"
+    },
+    {
+      "name": "real SDK roundtrip with descriptor size",
+      "status": "PASS"
+    },
+    {
+      "name": "actual indexed consumer downloads original encrypted event",
+      "status": "PASS"
+    },
+    {
+      "name": "mature SDK rejects ciphertext hash corruption",
+      "status": "PASS"
+    },
+    {
+      "name": "foreign origin blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "same origin wrong media blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "same origin arbitrary route blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "unauthenticated media route blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "credentialed URL blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "URL token query blocked before credentialed fetch",
+      "status": "PASS"
+    },
+    {
+      "name": "redirect response cannot produce plaintext",
+      "status": "PASS"
+    },
+    {
+      "name": "oversized declared length rejected before stream read",
+      "status": "PASS"
+    },
+    {
+      "name": "bounded stream rejects overflow and cancels",
+      "status": "PASS"
+    },
+    {
+      "name": "declared body length mismatch rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "descriptor body length mismatch rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "account generation changed during fetch drops result",
+      "status": "PASS"
+    },
+    {
+      "name": "permission revocation during stream drops result before decrypt",
+      "status": "PASS"
+    },
+    {
+      "name": "stop aborts live fetch signal and discards original result",
+      "status": "PASS"
+    },
+    {
+      "name": "indexed attachment substitution rejected before download",
+      "status": "PASS"
+    },
+    {
+      "name": "indexed audience revoke during media fetch blocks plaintext",
+      "status": "PASS"
+    },
+    {
+      "name": "view epoch changes after read await blocks media dispatch",
+      "status": "PASS"
+    }
+  ]
+}

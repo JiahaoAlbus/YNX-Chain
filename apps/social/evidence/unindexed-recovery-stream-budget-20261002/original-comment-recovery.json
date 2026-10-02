@@ -1,0 +1,78 @@
+{
+  "qualification": "controlled indexes/decryption; read-only recovery, not real Matrix acceptance",
+  "pass": 10,
+  "fail": 0,
+  "skip": 0,
+  "results": [
+    {
+      "name": "confirmed exact original",
+      "status": "PASS",
+      "accepted": true,
+      "reads": 1,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "missing original",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "different parent",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "different sender",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "different policy",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "duplicate transaction",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "different decrypted text",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "revoked during read",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "cyclic pagination",
+      "status": "PASS",
+      "accepted": false,
+      "reads": 0,
+      "originalIntentRetained": true
+    },
+    {
+      "name": "original on second page",
+      "status": "PASS",
+      "accepted": true,
+      "reads": 1,
+      "originalIntentRetained": true
+    }
+  ]
+}

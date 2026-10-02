@@ -1,0 +1,174 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-10-02T13:30:47.560322+00:00",
+  "sourceCommit": "28845fb4a70f3484b6de3168cefefbdcf608c886",
+  "files": [
+    {
+      "path": "go.mod",
+      "size": 4813,
+      "sha256": "0eefa099af534ed3367dcf206bc077569bb68ae9d72d919279aa83cc55a279d3",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "go.sum",
+      "size": 38346,
+      "sha256": "892629f34b4c48a2f3c0f19256f5d72cb1fd707ca1eda5108f76206363b02e91",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/BACKEND-KEY-CONFIGURATION.md",
+      "size": 2608,
+      "sha256": "d8ead5fffae8990acfbbb4172866aaae72e09c0bbc245fcfbe781c914ab7d2db",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/README.md",
+      "size": 3526,
+      "sha256": "2f33f7ef3246392c5ed9ad8d33d1d6d9e7178d96c79d783237ce93f634fcdcfe",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/action_body.go",
+      "size": 2887,
+      "sha256": "21dcb8c2be36dc661a329e2cb1659bdb48bc0005bf744735d2f924e4f58c88e8",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/action_proof.go",
+      "size": 4621,
+      "sha256": "3f293e7202f21360d2969291616359cc802c641fffe0a38e70c1ab9c89be759d",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/action_proof_test.go",
+      "size": 4593,
+      "sha256": "d493cd30796a6e61bba7ea1a430430000504367083ef9c1776e00ee12cc55854",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/backend_key.go",
+      "size": 3985,
+      "sha256": "09b1ff2b1c4c271669172dd256851c0e6d91c20eb31195eec6dbb3270f83f3ad",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/backend_key_pem_test.go",
+      "size": 2391,
+      "sha256": "466f33d1abf82f759f480c2c56397a8c1d66f0998c6cdcdbc112c1b84d06da1d",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/backend_key_test.go",
+      "size": 3966,
+      "sha256": "fa440a9f5acd56fe25be9799323b62eeb8fd0a7634df005471c1177347d24fe3",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/browser_sso.go",
+      "size": 15128,
+      "sha256": "575d3a335c3f1370d4e0d7376f353b8e98ac57eff32c8e02b249ca4d223f1b06",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/browser_sso_test.go",
+      "size": 13306,
+      "sha256": "1260bdc5fd7ee98830128c36cbf99966443c15adec385c428ce88b77e700ac65",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/client.go",
+      "size": 16133,
+      "sha256": "866203b52887098d3d559f6ff2e40c19c8952d1467f853c97f7dcdbd2e20fd07",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/client_test.go",
+      "size": 9843,
+      "sha256": "7a700c6eac58385cb050bcf38fe1b8c395d48b3e0335facc53312b5e0db5d7c9",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/revalidation.go",
+      "size": 6157,
+      "sha256": "494ef94d322c54bcb5837aebf1a4eb8743dff180afc64f76ddce893e84fa08b6",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/revalidation_test.go",
+      "size": 6865,
+      "sha256": "62917dc576c5e01909f23f4567b36f2fe1333b932f291f85b9a5b9e356428f30",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/finance-finite-v2.json",
+      "size": 5709,
+      "sha256": "364681baa5088965deba2ca5feb17ef49d849be9324e6677329717d6e33b00de",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/finance-v2.json",
+      "size": 5338,
+      "sha256": "dc2f7305448dadabd50ae123b5cba92cceb846763be478eb9c36dc141dfe10c9",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/generate-finite.mjs",
+      "size": 3041,
+      "sha256": "4d0e76f7f4c4b89f678ff9c0294026c8a47419460e727a997c9c63cbb4f82109",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/generate.mjs",
+      "size": 2920,
+      "sha256": "8b7a73bf74e595624a27065dcd1676ab5400eb4cd31ba8a42ca47423f2a4aba1",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/revalidation-node.mjs",
+      "size": 3047,
+      "sha256": "f8733618c7c5c296d60cb0888d2727707985b27f854d4f17a5192a1f2c288840",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/social-action-js-body-cases.json",
+      "size": 14856,
+      "sha256": "c05a2e1c62b2ba0b6cf1704b674cb2bc65ab2dc6630c9f0c74015120c843afb0",
+      "sameExactGit": true,
+      "metadataMatches": true
+    },
+    {
+      "path": "internal/productsessionv2/testdata/social-action-js-proof.json",
+      "size": 2391,
+      "sha256": "10921896e76cb0909a9731a681f222ed17bb28795f41ed3a4b87e8ef41c46061",
+      "sameExactGit": true,
+      "metadataMatches": true
+    }
+  ],
+  "ownerLocksSame": {
+    "go.mod": true,
+    "go.sum": true
+  },
+  "productSourceWritten": false,
+  "publicActivated": false
+}

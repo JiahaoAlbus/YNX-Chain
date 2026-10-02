@@ -1,6 +1,7 @@
 import {RestrictedMoments} from './restricted-moments.mjs';
 import {RestrictedMomentAttachments} from './restricted-attachments.mjs';
 import {encodeDraftFile,decodeDraftFile} from './protected-drafts.mjs';
+import {createBoundedOperation} from './bounded-operation.mjs';
 
 // resolveAudience/authorize must come from an approved integration, not from
 // a room picker, follows, user-entered MXID or the chat permission alone.
@@ -32,8 +33,8 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
   const send=document.createElement('button');send.type='submit';send.textContent='Publish reviewed encrypted Moment';
   const fileLabel=document.createElement('label'),fileInput=document.createElement('input'),fileStatus=document.createElement('p');
   fileLabel.textContent='Encrypted attachment (optional, up to 25 MB)';fileInput.type='file';fileInput.setAttribute('aria-label','Restricted Moment attachment');fileLabel.append(fileInput);
-  const saveDraft=document.createElement('button'),restoreDraft=document.createElement('button');saveDraft.type=restoreDraft.type='button';saveDraft.textContent='Save protected draft';restoreDraft.textContent='Restore protected draft';
-  form.append(permission,audienceLabel,selectors,label,fileLabel,fileStatus,saveDraft,restoreDraft,review,send);section.append(heading,explanation,status,form);container.append(section);
+  const saveDraft=document.createElement('button'),restoreDraft=document.createElement('button'),recoverDelivery=document.createElement('button');saveDraft.type=restoreDraft.type=recoverDelivery.type='button';saveDraft.textContent='Save protected draft';restoreDraft.textContent='Restore protected draft';recoverDelivery.textContent='Verify original publication without resending';
+  form.append(permission,audienceLabel,selectors,label,fileLabel,fileStatus,saveDraft,restoreDraft,recoverDelivery,review,send);section.append(heading,explanation,status,form);container.append(section);
   const enabled=typeof resolveAudience==='function'&&typeof authorize==='function';
   const consumer=enabled?new RestrictedMoments({transport,authorize}):null;
   const attachments=consumer?new RestrictedMomentAttachments({consumer}):null;
@@ -50,9 +51,10 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     fileInput.disabled=!enabled||busy;fileStatus.textContent=selectedFile?`Retained attachment: ${selectedFile.name}`:'No attachment selected.';
     send.disabled=!enabled||!reviewed||busy;
     saveDraft.disabled=restoreDraft.disabled=!drafts||busy;
+    recoverDelivery.disabled=!enabled||!drafts||busy;
     if(!enabled)status.textContent='Restricted publishing is not enabled: live audience authorization is not connected. Chat approval does not authorize publishing.';
   }
-  function lock(){editEpoch++;reviewing=null;saving=null;remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;group.disabled=true;people.disabled=true;review.disabled=true;send.disabled=true;saveDraft.disabled=true;restoreDraft.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
+  function lock(){editEpoch++;reviewing=null;saving=null;remember();visibleBinding=null;input.value='';selectedFile=null;fileInput.value='';fileStatus.textContent='';fileInput.disabled=true;reviewed=null;pending=null;input.disabled=true;choice.disabled=true;group.disabled=true;people.disabled=true;review.disabled=true;send.disabled=true;saveDraft.disabled=true;restoreDraft.disabled=true;recoverDelivery.disabled=true;status.textContent='Locked. Draft recovery is local to this open workspace; no plaintext was stored on the server.'}
   const invalidate=()=>{editEpoch++;reviewed=null;send.disabled=true;remember();status.textContent='Review the audience and current draft before publishing.'};
   input.addEventListener('input',invalidate);group.addEventListener('change',invalidate);people.addEventListener('change',invalidate);
   fileInput.addEventListener('change',()=>{selectedFile=fileInput.files?.[0]??null;invalidate();refresh()});
@@ -97,6 +99,21 @@ export function createRestrictedMomentsUI({container,transport,capture,guard,ide
     }else status.textContent='Protected draft restored. Review its current audience before publishing.';
     remember();refresh();
     }finally{if(reviewing===restoreIntent)reviewing=null;refresh()}
+  });
+  recoverDelivery.onclick=()=>void work(async()=>{
+    if(!enabled||!drafts||pending||reviewing||saving)return;
+    const view=capture(),recoveryIntent={view},epoch=editEpoch;reviewing=recoveryIntent;refresh();
+    const bounded=createBoundedOperation();transport.downloads?.add(bounded.controller);
+    const current=()=>{bounded.guard();guard(view);if(reviewing!==recoveryIntent||epoch!==editEpoch)throw new Error('Original recovery view changed')};
+    try{
+      await bounded.wait(()=>identity(view));current();const original=await bounded.wait(()=>drafts.load(view));current();
+      if(!original||original.status!=='delivery-unknown'||original.comment)throw new Error('Original unknown publication is unavailable; protected records retained');
+      const receipt=await bounded.wait(()=>consumer.recover(original,{signal:bounded.signal,assertCurrent:current,validateIdentity:async()=>{current();await bounded.wait(()=>identity(view));current()}}));current();
+      await bounded.wait(()=>drafts.clearConfirmed(view,original.transactionId,current));current();attachments.settleConfirmed(original.transactionId);
+      if(reviewed?.transactionId===original.transactionId){reviewed=null;input.value='';selectedFile=null;fileInput.value='';remember()}
+      status.textContent=`Original encrypted publication confirmed: ${receipt.eventId}. No resend or upload performed.`;
+    }catch(error){if(visibleBinding===view.operation.binding)status.textContent='Original publication not confirmed. Protected intent retained; no resend or upload performed.';throw error}
+    finally{transport.downloads?.delete(bounded.controller);bounded.dispose();if(reviewing===recoveryIntent)reviewing=null;refresh()}
   });
   review.onclick=()=>void work(async()=>{
     if(!enabled||reviewing||pending||saving)return;
