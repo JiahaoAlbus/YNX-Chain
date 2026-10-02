@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearWalletSession, onStandardConnectionChange, restoreStandardConnection, standardConnection, startWalletAuth } from '../wallet-auth.js';
+import { cancelWalletConnection, clearWalletSession, onStandardConnectionChange, restoreStandardConnection, standardConnection, startWalletAuth } from '../wallet-auth.js';
 
 const ACCOUNT = '0x1111111111111111111111111111111111111111';
 
@@ -102,4 +102,17 @@ test('account and chain events update or invalidate the standard connection', as
   assert.equal(standardConnection(), null);
   assert.equal(observed.at(-1), null);
   unsubscribe();
+});
+
+test('logout while silent account restoration is pending cannot reconnect',async()=>{
+  let resolveAccounts,started;const ready=new Promise(resolve=>started=resolve);
+  const provider={isMetaMask:true,async request({method}){if(method==='eth_accounts'){started();return new Promise(resolve=>resolveAccounts=resolve)}if(method==='eth_chainId')return '0x1917';throw Error(method)}};
+  const pending=restoreStandardConnection({scope:{ethereum:provider},waitMs:0});await ready;clearWalletSession();resolveAccounts([ACCOUNT]);assert.equal(await pending,null);assert.equal(standardConnection(),null);
+});
+
+test('closing a pending chooser prevents chain prompts and late connection',async()=>{
+  let resolveAccounts,started;const ready=new Promise(resolve=>started=resolve),calls=[];
+  const provider={isMetaMask:true,async request({method}){calls.push(method);if(method==='eth_requestAccounts'){started();return new Promise(resolve=>resolveAccounts=resolve)}throw Error('Cancelled request must not switch chain')}};
+  const pending=startWalletAuth('buyer',{wallet:'metamask',scope:{ethereum:provider},waitMs:0});await ready;cancelWalletConnection();resolveAccounts([ACCOUNT]);
+  await assert.rejects(pending,error=>error.code==='COMMERCE_CONTEXT_CHANGED');assert.equal(standardConnection(),null);assert.deepEqual(calls,['eth_requestAccounts']);
 });

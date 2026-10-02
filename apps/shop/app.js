@@ -1,10 +1,18 @@
-import{createRequestContext,contextChanged}from'./request-context.js';
-import{clearWalletSession,onPrivateSessionChange,token,startWalletAuth,restoreStandardConnection,standardConnection,onStandardConnectionChange,completeWalletCallback,OFFICIAL_YNX_WALLET_DOWNLOAD_URL,STANDARD_METAMASK_DOWNLOAD_URL}from'./wallet-auth.js';
+import{createRequestContext,contextChanged,ContextChangedError}from'./request-context.js';
+import{streamJob}from'./ai-stream.js';
+import{cancelWalletConnection,expirePrivateSession,clearWalletSession,onPrivateSessionChange,token,startWalletAuth,restoreStandardConnection,standardConnection,onStandardConnectionChange,completeWalletCallback,OFFICIAL_YNX_WALLET_DOWNLOAD_URL,STANDARD_METAMASK_DOWNLOAD_URL}from'./wallet-auth.js';
 import{installI18n,outputLanguage,tr}from'./i18n.js';
 const $=s=>document.querySelector(s);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const apiRoot=location.pathname.startsWith('/shop-staging/')?'/shop-api-staging/api':'/api';
 const requests=createRequestContext(()=>token());
-const api=(path,options={})=>requests.fetchJSON(apiRoot+path,{...options,headers:{'Content-Type':'application/json',...(token()?{Authorization:`Bearer ${token()}`}:{})}});
+const aiRequests=createRequestContext(()=>token());
+async function productRequest(context,path,options={}){
+  const bearer=token();
+  try{return await context.fetchJSON(apiRoot+path,{...options,headers:{'Content-Type':'application/json',...(bearer?{Authorization:`Bearer ${bearer}`}:{})}})}
+  catch(error){if(error.status===401&&bearer&&bearer===token()){expirePrivateSession();$('#status').textContent='Your Shop session expired. Approve a new private session to continue.';throw new ContextChangedError()}throw error}
+}
+const api=(path,options={})=>productRequest(requests,path,options);
+const aiAPI=(path,options={})=>productRequest(aiRequests,path,options);
 let products=[],cart=[],category='',profile=null,aiJob=null,aiConfig=null;
 const downloadJSON=(filename,data)=>{const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url)};
 const productFor=item=>products.find(p=>p.ID===item.ProductID);const variantFor=item=>productFor(item)?.Variants.find(v=>v.ID===item.VariantID);const requireSignIn=()=>{if(token())return true;if(standardConnection()){$('#status').textContent='Your standard wallet is connected. Private Shop profile, cart, and order services are temporarily unavailable while Product Session migration is completed.';return false}openWalletChooser();return false};
@@ -48,15 +56,58 @@ $('#connectYNXWallet').onclick=()=>connectWallet('ynx');
 $('#connectMetaMask').onclick=()=>connectWallet('metamask');
 $('#downloadYNXWallet').href=OFFICIAL_YNX_WALLET_DOWNLOAD_URL;
 $('#downloadMetaMask').href=STANDARD_METAMASK_DOWNLOAD_URL;
-$('#closeWalletDialog').onclick=()=>$('#walletDialog').close();
+$('#closeWalletDialog').onclick=()=>{cancelWalletConnection();$('#walletDialog').close()};
+$('#walletDialog').oncancel=()=>cancelWalletConnection();
 onStandardConnectionChange(connection=>{
   requests.invalidate();
   renderStandardWallet(connection);
   if(!connection&&$('#walletDialog').open)walletState.textContent='The wallet disconnected or left YNX Testnet. Choose a wallet to reconnect.';
 });
-onPrivateSessionChange(()=>{requests.invalidate();cart=[];profile=null;checkoutIntent=null;aiJob=null;aiConfig=null;renderCart();$('#orders').innerHTML='';$('#ordersSection').hidden=true;$('#cart').hidden=true;$('#checkout').reset();$('#profileForm').reset();document.querySelectorAll('dialog[open]').forEach(d=>d.close());});
-$('#disconnectWallet').onclick=()=>{clearWalletSession();$('#status').textContent='Signed out. Connect Wallet to continue with your account.';};
+function clearPrivateWorkspace(){requests.invalidate();resetAI();cart=[];profile=null;checkoutIntent=null;renderCart();$('#orders').innerHTML='';$('#ordersSection').hidden=true;$('#cart').hidden=true;$('#checkout').reset();$('#profileForm').reset();$('#actionForm').reset();$('#actionFields').replaceChildren();$('#deleteConfirmation').value='';for(const id of['ordersState','orderState','profileState','privacyState','actionState'])$('#'+id).textContent='';document.querySelectorAll('dialog[open]').forEach(d=>d.close());renderStandardWallet(standardConnection());}
+onPrivateSessionChange(clearPrivateWorkspace);
+$('#disconnectWallet').onclick=()=>{clearPrivateWorkspace();clearWalletSession();$('#status').textContent='Signed out. Connect Wallet to continue with your account.';};
 $('#profileButton').onclick=async()=>{if(!requireSignIn())return;$('#profileDialog').showModal();$('#privacyState').textContent='';$('#deleteConfirmation').value='';try{await loadProfile();const p=profile||{},a=p.Addresses?.[0]||{};for(const [k,v]of Object.entries({displayName:p.DisplayName||'',recipient:a.Recipient||'',line1:a.Line1||'',city:a.City||'',region:a.Region||'',postalCode:a.PostalCode||'',country:a.Country||''}))$('#profileForm').elements[k].value=v}catch(err){if(contextChanged(err))return;$('#profileState').textContent=err.message}};$('#closeProfile').onclick=()=>$('#profileDialog').close();$('#profileForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),has=f.get('recipient')||f.get('line1')||f.get('country');try{profile=await api('/profile',{method:'PUT',body:JSON.stringify({DisplayName:f.get('displayName'),Addresses:has?[{Recipient:f.get('recipient'),Line1:f.get('line1'),City:f.get('city'),Region:f.get('region'),PostalCode:f.get('postalCode'),Country:f.get('country')}]:[]})});$('#profileState').textContent='Profile and address saved.'}catch(err){if(contextChanged(err))return;$('#profileState').textContent=err.message}};$('#exportData').onclick=async()=>{if(!requireSignIn())return;try{const data=await api('/privacy/export');downloadJSON(`ynx-shop-data-${new Date().toISOString().slice(0,10)}.json`,data);$('#privacyState').textContent=tr('exported',{orders:data.orders?.length||0,ai:data.aiJobs?.length||0,notice:data.retentionNotice});}catch(err){if(contextChanged(err))return;$('#privacyState').textContent=tr('exportFailed',{error:err.message})}};$('#deleteData').onclick=async()=>{if(!requireSignIn())return;const confirmation=$('#deleteConfirmation').value;if(confirmation!=='DELETE_MY_SHOP_DATA'){$('#privacyState').textContent=tr('exactRequired');return}try{const receipt=await api('/privacy/delete',{method:'POST',body:JSON.stringify({confirmation})});profile=null;cart=[];renderCart();$('#profileForm').reset();$('#deleteConfirmation').value='';$('#privacyState').textContent=tr('deleted',{receipt:receipt.receiptId,orders:receipt.ordersPseudonymized})}catch(err){if(contextChanged(err))return;$('#privacyState').textContent=tr('deleteFailed',{error:err.message})}};
-function openAI(config){if(!requireSignIn())return;aiConfig=config;$('#aiDialog h2').textContent=config.title;$('#aiState').textContent=`Context preview accepted only after review. Estimate: ${config.estimate} AI units.`;$('#aiReview').hidden=true;$('#aiDialog').showModal()}async function streamAI(id){const r=await fetch(`${apiRoot}/ai/jobs/${id}/stream`,{headers:{Authorization:`Bearer ${token()}`}});if(!r.ok)return;const reader=r.body.getReader(),decoder=new TextDecoder();let buffered='';for(;;){const{done,value}=await reader.read();if(done)break;buffered+=decoder.decode(value,{stream:true});const events=buffered.split('\n\n');buffered=events.pop();for(const event of events){const line=event.split('\n').find(x=>x.startsWith('data: '));if(!line)continue;try{const state=JSON.parse(line.slice(6));$('#aiState').textContent=`Provider ${state.ProviderStatus} · ${state.Status}`;}catch{}}}}
-$('#compare').onclick=()=>openAI({title:'AI product comparison',workflow:'search_comparison',contextClasses:['public_catalog'],summary:`Public catalog search: ${$('#query').value||'discover'}`,estimate:12,onApply:r=>{$('#status').textContent=`Comparison draft for review: ${r}`}});$('#aiCancel').onclick=async()=>{if(aiJob&&['permission_granted','running'].includes(aiJob.Status))try{await api(`/ai/jobs/${aiJob.ID}/cancel`,{method:'POST',body:'{}'})}catch{}$('#aiDialog').close()};$('#aiGrant').onclick=async()=>{try{aiJob=await api('/ai/jobs',{method:'POST',body:JSON.stringify({Workflow:aiConfig.workflow,ContextClasses:aiConfig.contextClasses,ContextSummary:aiConfig.summary,EstimateUnits:aiConfig.estimate,PermissionGranted:true,IdempotencyKey:crypto.randomUUID()})});$('#aiState').textContent='Permission recorded. Connecting to configured provider…';const streaming=streamAI(aiJob.ID);aiJob=await api(`/ai/jobs/${aiJob.ID}/run`,{method:'POST',body:'{}'});await streaming;$('#aiState').textContent=aiJob.Result;$('#aiReview').hidden=false}catch(err){if(contextChanged(err))return;$('#aiState').textContent=`AI unavailable or failed honestly: ${err.message}`}};for(const d of['Apply','Reject'])$(`#ai${d}`).onclick=async()=>{try{aiJob=await api(`/ai/jobs/${aiJob.ID}/decision`,{method:'POST',body:JSON.stringify({Decision:d.toLowerCase()})});$('#aiState').textContent=`Result ${aiJob.Status}. No purchase was made.`;if(d==='Apply')aiConfig.onApply(aiJob.Result)}catch(err){if(contextChanged(err))return;$('#aiState').textContent=err.message}};$('#aiDelete').onclick=async()=>{try{await api(`/ai/jobs/${aiJob.ID}`,{method:'DELETE'});aiJob=null;$('#aiState').textContent='AI context and result deleted.';$('#aiReview').hidden=true}catch(err){if(contextChanged(err))return;$('#aiState').textContent=err.message}};
+let aiGeneration=0;
+function resetAI(){aiGeneration++;aiRequests.invalidate();aiJob=null;aiConfig=null;$('#aiState').textContent='';$('#aiContextPreview').textContent='';$('#aiEstimate').textContent='';$('#aiReview').hidden=true;for(const id of['aiGrant','aiApply','aiReject','aiDelete'])$('#'+id).disabled=false;}
+function closeAI(){
+  const job=aiJob;resetAI();const generation=aiGeneration,assertCurrent=requests.capture();if($('#aiDialog').open)$('#aiDialog').close();
+  if(job&&['permission_granted','running'].includes(job.Status))void api(`/ai/jobs/${encodeURIComponent(job.ID)}/cancel`,{method:'POST',body:'{}'}).then(()=>{assertCurrent();if(generation===aiGeneration)$('#status').textContent='AI cancellation confirmed.'}).catch(error=>{if(!contextChanged(error)&&generation===aiGeneration)$('#status').textContent='AI dialog closed. Server cancellation could not be confirmed: '+error.message});
+}
+function openAI(config){
+  if(!requireSignIn())return;if(aiConfig)closeAI();else resetAI();aiConfig=config;
+  $('#aiDialog h2').textContent=config.title;$('#aiContextPreview').textContent=config.summary;$('#aiEstimate').textContent=String(config.estimate);
+  $('#aiState').textContent=`Context preview accepted only after review. Estimate: ${config.estimate} AI units.`;$('#aiReview').hidden=true;$('#aiDialog').showModal();
+}
+async function streamAI(id){
+  const bearer=token();
+  try{return await streamJob(aiRequests,`${apiRoot}/ai/jobs/${encodeURIComponent(id)}/stream`,{headers:{Authorization:`Bearer ${bearer}`}},state=>{$('#aiState').textContent=`Provider ${state.ProviderStatus} · ${state.Status}`;});}
+  catch(error){if(error.status===401&&bearer&&bearer===token()){expirePrivateSession();$('#status').textContent='Your Shop session expired. Approve a new private session to continue.';throw new ContextChangedError()}throw error}
+}
+$('#compare').onclick=()=>openAI({title:'AI product comparison',workflow:'search_comparison',contextClasses:['public_catalog'],summary:`Public catalog search: ${$('#query').value||'discover'}`,estimate:12,onApply:r=>{$('#status').textContent=`Comparison draft for review: ${r}`}});
+$('#aiDialog').oncancel=event=>{event.preventDefault();closeAI();};
+$('#aiDialog').onclose=()=>{if(!$('#aiDialog').open&&aiConfig)closeAI();};
+$('#aiCancel').onclick=closeAI;
+$('#aiGrant').onclick=async()=>{
+  if(!aiConfig||$('#aiGrant').disabled)return;const config=aiConfig,assertCurrent=aiRequests.capture();$('#aiGrant').disabled=true;
+  try{
+    const created=await aiAPI('/ai/jobs',{method:'POST',body:JSON.stringify({Workflow:config.workflow,ContextClasses:config.contextClasses,ContextSummary:config.summary,EstimateUnits:config.estimate,PermissionGranted:true,IdempotencyKey:crypto.randomUUID()})});assertCurrent();aiJob=created;
+    $('#aiState').textContent='Permission recorded. Connecting to configured provider…';const id=encodeURIComponent(aiJob.ID);
+    const [job]=await Promise.all([aiAPI(`/ai/jobs/${id}/run`,{method:'POST',body:'{}'}),streamAI(aiJob.ID)]);assertCurrent();aiJob=job;
+    $('#aiState').textContent=aiJob.Result||`AI job status: ${aiJob.Status}`;$('#aiReview').hidden=aiJob.Status!=='review_required';
+  }catch(error){if(contextChanged(error))return;try{assertCurrent()}catch{return}aiRequests.invalidate();$('#aiState').textContent=`AI unavailable or failed honestly: ${error.message}`;$('#aiGrant').disabled=false;}
+};
+for(const decision of['Apply','Reject'])$('#ai'+decision).onclick=async()=>{
+  if(!aiJob||!aiConfig||$('#ai'+decision).disabled)return;const job=aiJob,config=aiConfig,assertCurrent=aiRequests.capture();$('#aiApply').disabled=true;$('#aiReject').disabled=true;$('#aiDelete').disabled=true;
+  try{const result=await aiAPI(`/ai/jobs/${encodeURIComponent(job.ID)}/decision`,{method:'POST',body:JSON.stringify({Decision:decision.toLowerCase()})});assertCurrent();aiJob=result;$('#aiState').textContent=`Result ${result.Status}. No purchase was made.`;if(decision==='Apply'){closeAI();config.onApply(result.Result)}}
+  catch(error){if(contextChanged(error))return;try{assertCurrent()}catch{return}$('#aiState').textContent=error.message;$('#aiApply').disabled=false;$('#aiReject').disabled=false;}
+  finally{try{assertCurrent();$('#aiDelete').disabled=false}catch{}}
+};
+$('#aiDelete').onclick=async()=>{
+  if(!aiJob||$('#aiDelete').disabled)return;const job=aiJob,assertCurrent=aiRequests.capture();$('#aiDelete').disabled=true;
+  try{await aiAPI(`/ai/jobs/${encodeURIComponent(job.ID)}`,{method:'DELETE'});assertCurrent();aiJob=null;$('#aiState').textContent='AI context and result deleted.';$('#aiReview').hidden=true;$('#aiGrant').disabled=false;}
+  catch(error){if(contextChanged(error))return;try{assertCurrent()}catch{return}$('#aiState').textContent=error.message;}
+  finally{try{assertCurrent();$('#aiDelete').disabled=false}catch{}}
+};
+// Moving to another buyer view invalidates the current AI dialog immediately.
+for(const id of['profileButton','ordersButton','cartButton','search','filters'])$('#'+id).addEventListener(id==='search'?'submit':id==='filters'?'input':'click',()=>{if(aiConfig)closeAI()},{capture:true});
 async function bootstrap(){installI18n();if('serviceWorker'in navigator){const scope=new URL('./',location.href).pathname;navigator.serviceWorker.register(new URL('sw.js',location.href),{scope}).catch(()=>{})}try{const restored=await restoreStandardConnection();if(restored){renderStandardWallet(restored);$('#status').textContent='Wallet connection restored on YNX Testnet.'}}catch{}try{const session=await completeWalletCallback();if(session)$('#wallet').textContent=`Wallet · ${session.account.slice(0,10)}…`}catch(e){if(contextChanged(e))return;$('#status').textContent=`Wallet callback rejected: ${e.message}`}await load()}bootstrap();

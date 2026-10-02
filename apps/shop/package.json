@@ -1,1 +1,18 @@
-{"name":"@ynx/shop","private":true,"type":"module","scripts":{"test":"node --test test/*.test.mjs","build":"node scripts/build.mjs","smoke":"node scripts/smoke.mjs","native:verify":"node native/scripts/verify.mjs"},"engines":{"node":">=20"}}
+{
+  "name": "@ynx/shop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "native:verify": "node native/scripts/verify.mjs",
+    "test:browser": "npm run build && playwright test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

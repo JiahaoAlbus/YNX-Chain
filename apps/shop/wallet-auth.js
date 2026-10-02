@@ -1,4 +1,5 @@
 import { discoverWalletProviders, WALLET_PROVIDER_KIND } from './wallet-provider-discovery.js';
+import { createRequestContext } from './request-context.js';
 
 const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
@@ -6,11 +7,16 @@ const REPLAY_STORE = 'replays';
 let bearer = '';
 let approvedSession = null;
 let sessionRevision = 0;
+let connectionRevision = 0;
+let completionInFlight = false;
+const approvalRequests = createRequestContext(() => sessionRevision + ':' + sessionStorage.getItem('ynx_wallet_pending'));
 const privateListeners = new Set();
 export const onPrivateSessionChange = listener => { privateListeners.add(listener); return () => privateListeners.delete(listener); };
 export const privateSession = () => { token(); return approvedSession; };
 function publishPrivateSession() { for (const listener of privateListeners) listener(approvedSession); }
-function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
+function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; connectionRevision++; approvalRequests.invalidate(); bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
+export function expirePrivateSession() { discardPrivateSession(); try { sessionStorage.removeItem('ynx_wallet_pending'); } catch {} }
+export function cancelWalletConnection() { connectionRevision++; }
 let standard = null;
 let activeProvider = null;
 let removeProviderListeners = null;
@@ -36,7 +42,10 @@ export const onStandardConnectionChange = listener => {
 
 export async function startWalletAuth(_surface, options = {}) {
   const revision = sessionRevision;
+  const attempt = ++connectionRevision;
+  const assertCurrent = () => { if (revision !== sessionRevision || attempt !== connectionRevision) throw walletError('COMMERCE_CONTEXT_CHANGED', 'Wallet connection was cancelled.'); };
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
+  assertCurrent();
   if (discovery.ambiguities.length || discovery.conflictedAnnouncements) throw walletError('WALLET_PROVIDER_AMBIGUOUS', 'Multiple conflicting wallet providers were detected. Disable duplicate extensions and try again.');
   const preferred = options.wallet === 'metamask' ? WALLET_PROVIDER_KIND.METAMASK : WALLET_PROVIDER_KIND.YNX;
   const selected = preferred === WALLET_PROVIDER_KIND.YNX ? discovery.ynx : discovery.metamask;
@@ -46,9 +55,10 @@ export async function startWalletAuth(_surface, options = {}) {
     throw error;
   }
   const accounts = await selected.provider.request({ method: 'eth_requestAccounts' });
+  assertCurrent();
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
-  await ensureYNXChain(selected.provider);
-  if (revision !== sessionRevision) throw walletError('COMMERCE_CONTEXT_CHANGED', 'Wallet connection was cancelled.');
+  await ensureYNXChain(selected.provider, assertCurrent);
+  assertCurrent();
   setStandardConnection(selected.provider, selected.kind, accounts[0]);
   try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
   return standard;
@@ -56,6 +66,7 @@ export async function startWalletAuth(_surface, options = {}) {
 
 export async function restoreStandardConnection(options = {}) {
   const revision = sessionRevision;
+  const attempt = connectionRevision;
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
   if (discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
   let remembered = '';
@@ -67,16 +78,17 @@ export async function restoreStandardConnection(options = {}) {
     selected.provider.request({ method: 'eth_accounts' }),
     selected.provider.request({ method: 'eth_chainId' }),
   ]).catch(() => [[], null]);
+  if (revision !== sessionRevision || attempt !== connectionRevision) return null;
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '') || String(chainId).toLowerCase() !== YNX_CHAIN.chainId) return null;
   setStandardConnection(selected.provider, selected.kind, accounts[0]);
   return standard;
 }
 
 export async function completeWalletCallback() {
-  const revision = sessionRevision;
   const query = new URLSearchParams(location.search);
   const encoded = query.get('response');
   if (!encoded) return null;
+  if (completionInFlight) throw new Error('This Wallet approval is already being completed.');
   const pendingText = sessionStorage.getItem('ynx_wallet_pending');
   if (!pendingText) throw new Error('Wallet callback has no matching request on this device.');
   const pending = JSON.parse(pendingText);
@@ -88,24 +100,31 @@ export async function completeWalletCallback() {
     throw new Error('Wallet callback scope or expiry mismatch.');
   }
   const replayKey = response.requestDigest + ':' + response.nonce;
+  const assertCurrent = approvalRequests.capture();
+  completionInFlight = true;
+  try {
   if (await replaySeen(replayKey)) throw new Error('Wallet callback replay rejected.');
+  assertCurrent();
   const challengeEnvelope = await requestJSON('/api/auth/gateway/challenges', { method: 'POST', body: JSON.stringify(response) });
   const challenge = challengeEnvelope.challenge || challengeEnvelope;
   const pair = await deviceKey(response.productClientId.includes('seller') ? 'seller' : 'buyer');
+  assertCurrent();
   const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V1\n' + canonicalJSON(challenge))));
+  assertCurrent();
   const completion = { challenge, deviceSignature: base64url(rawSignatureToDER(signature)) };
   const session = await requestJSON('/api/auth/gateway/sessions', { method: 'POST', body: JSON.stringify(completion) });
   if (typeof session.account !== 'string' || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(session.account) || typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) {
     throw new Error('Central Gateway returned an invalid product session.');
   }
   await markReplay(replayKey);
-  if (revision !== sessionRevision) throw new Error('Commerce account changed during approval.');
+  assertCurrent();
   bearer = session.token;
   approvedSession = Object.freeze({ account: session.account, expiresAt: Date.parse(session.expiresAt) });
   publishPrivateSession();
   sessionStorage.removeItem('ynx_wallet_pending');
   history.replaceState({}, '', location.pathname + location.hash);
   return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
+  } finally { completionInFlight = false; }
 }
 
 export function clearWalletSession() {
@@ -121,6 +140,7 @@ function setStandardConnection(provider, wallet, account) {
   activeProvider = provider;
   standard = Object.freeze({ account, chainId: YNX_CHAIN.chainId, wallet, transport: 'eip-1193' });
   const accountsChanged = accounts => {
+    if (activeProvider !== provider) return;
     const next = Array.isArray(accounts) ? accounts[0] : null;
     if (!/^0x[0-9a-fA-F]{40}$/.test(next || '')) clearStandardConnection();
     else {
@@ -130,9 +150,10 @@ function setStandardConnection(provider, wallet, account) {
     }
   };
   const chainChanged = chainId => {
+    if (activeProvider !== provider) return;
     if (String(chainId).toLowerCase() !== YNX_CHAIN.chainId) clearStandardConnection();
   };
-  const disconnected = () => clearStandardConnection();
+  const disconnected = () => { if (activeProvider === provider) clearStandardConnection(); };
   provider.on?.('accountsChanged', accountsChanged);
   provider.on?.('chainChanged', chainChanged);
   provider.on?.('disconnect', disconnected);
@@ -158,17 +179,21 @@ function emitStandardConnection() {
   for (const listener of standardListeners) listener(standard);
 }
 
-async function ensureYNXChain(provider) {
+async function ensureYNXChain(provider, assertCurrent) {
   let chainId = await provider.request({ method: 'eth_chainId' });
+  assertCurrent();
   if (String(chainId).toLowerCase() === YNX_CHAIN.chainId) return;
   try {
     await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: YNX_CHAIN.chainId }] });
   } catch (error) {
+    assertCurrent();
     if (error?.code !== 4902 && error?.data?.originalError?.code !== 4902) throw walletError('CHAIN_SWITCH_REJECTED', 'Switching to YNX Testnet was rejected or failed.', error);
     await provider.request({ method: 'wallet_addEthereumChain', params: [YNX_CHAIN] });
+    assertCurrent();
     await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: YNX_CHAIN.chainId }] });
   }
   chainId = await provider.request({ method: 'eth_chainId' });
+  assertCurrent();
   if (String(chainId).toLowerCase() !== YNX_CHAIN.chainId) throw walletError('WRONG_CHAIN', 'The wallet is not connected to YNX Testnet.');
 }
 
@@ -197,10 +222,7 @@ function localizedPurpose(surface) {
 
 async function requestJSON(path, options = {}) {
   if (location.pathname.startsWith('/shop-staging/') && path.startsWith('/api')) path = '/shop-api-staging' + path;
-  const response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
-  const value = await response.json().catch(() => ({ error: 'Invalid server response' }));
-  if (!response.ok) throw new Error(value.error || ('Request failed ' + response.status));
-  return value;
+  return approvalRequests.fetchJSON(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
 }
 
 async function deviceKey(surface) {
