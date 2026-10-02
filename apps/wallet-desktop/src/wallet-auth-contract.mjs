@@ -4,9 +4,9 @@ import { parseProductSessionRegistry, YNX_EVM_CHAIN_ID as SHARED_EVM_CHAIN_ID, Y
 // Exact Product Session v2 source bundled with this Desktop candidate.
 export const WALLET_AUTH_PROTOCOL_SOURCE = Object.freeze({
   package: "@ynx-chain/wallet-auth",
-  sourceCommit: "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  sourceCommit: "25cede8d186bc7a44d01c41ee3e63e592d7a9539",
   sourcePath: "packages/wallet-auth/src/product-session-v2.js",
-  sourceSha256: "7435a65bedac4fc6abd7d36a07cb8ab4c4ab957841475a36819a43b442b67130",
+  sourceSha256: "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41",
   protocol: "product-session-v2"
 });
 

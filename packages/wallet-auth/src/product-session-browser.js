@@ -15,8 +15,8 @@ const DEVICE_STORE = "devices", STATE_STORE = "state";
 
 // The browser protects key export, not access by scripts executing in this origin.
 export async function createBrowserProductSessionClient(config) {
-  const { registry, productId, scopes, purpose, gateway, environment = globalThis, clock = () => new Date() } = config ?? {};
-  if (!config || Object.keys(config).some(key => !["registry", "productId", "scopes", "purpose", "gateway", "environment", "clock"].includes(key))) fail("INVALID_DEVICE", "Browser Product Session configuration is invalid");
+  const { registry, productId, scopes, purpose, gateway, finiteServiceSeconds, environment = globalThis, clock = () => new Date() } = config ?? {};
+  if (!config || Object.keys(config).some(key => !["registry", "productId", "scopes", "purpose", "gateway", "environment", "clock", "finiteServiceSeconds"].includes(key))) fail("INVALID_DEVICE", "Browser Product Session configuration is invalid");
   const binding = productPlatformBinding(registry, productId, "web");
   const authority = productSessionGatewayAuthority(gateway);
   if (environment?.isSecureContext !== true || environment.location?.origin !== binding.origin) fail("ORIGIN_NOT_ALLOWED", "Browser Product Sessions require the registered product HTTPS origin");
@@ -101,7 +101,7 @@ export async function createBrowserProductSessionClient(config) {
         revocationAttempted = false;
       },
     });
-    const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock });
+    const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock, ...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds}:{}) });
     const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, origin: binding.origin, productId, scopes: approvedScopes });
     return Object.freeze({ client, device, storage, capabilities, createIntrospectionProof, close });
 

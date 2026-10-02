@@ -16,11 +16,11 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"] });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
+  #finiteServiceSeconds; #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
   #revocationRequested = false; #revocationIntent = null;
   #beginEpoch = 0; #beginMutation = Promise.resolve();
   constructor(config) {
-    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
+    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[])], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
     this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
     this.#storage = secureStorage(config.storage, config.platform, config.device);
@@ -28,6 +28,10 @@ export class RecoverableProductSessionClient {
     this.#device = device(config.device);
     this.#tokens = tokenFactory(config.tokenFactory);
     this.#clock = clock(config.clock);
+    if(Object.hasOwn(config,"finiteServiceSeconds")){
+      if(!Number.isInteger(config.finiteServiceSeconds)||config.finiteServiceSeconds<300||config.finiteServiceSeconds>7200)fail("INVALID_SERVICE_CONSENT_TIME","Explicit finite service duration is outside the approved bounds");
+      this.#finiteServiceSeconds=config.finiteServiceSeconds;
+    }
     this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "No authoritative Product Session is active");
     this.#autoReconnectAttempted = false;
     this.#networkAvailable = true;
@@ -160,6 +164,10 @@ export class RecoverableProductSessionClient {
     catch (error) { if (epoch !== this.#beginEpoch) return this.current; throw error; }
   }
   async #beginRequest(environment, automatic, explicit, epoch) {
+    if(this.#finiteServiceSeconds!==undefined&&automatic){
+      if(this.#state.status!==PRODUCT_SESSION_CLIENT_STATE.EXPIRED)this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,"Finite service access requires explicit Wallet approval",{actions:["retry","guest"]});
+      return this.current;
+    }
     const revoking = await this.#loadRevocationIntent();
     if (epoch !== this.#beginEpoch) return this.current;
     if (revoking) return this.#pendingRevocation();
@@ -184,6 +192,7 @@ export class RecoverableProductSessionClient {
       productId: this.#binding.productId, platform: this.#binding.platform,
       deviceId: this.#device.id, deviceKey: this.#device.key, scopes: this.#device.scopes,
       purpose: this.#device.purpose, nonce: this.#tokens(), state: this.#tokens(),
+      ...(this.#finiteServiceSeconds===undefined?{}:{finiteServiceSeconds:this.#finiteServiceSeconds}),
     }, now);
     // Serialize the write phase, not time lookup: a newer attempt can supersede
     // a stalled clock, but must wait for an already-started storage mutation.

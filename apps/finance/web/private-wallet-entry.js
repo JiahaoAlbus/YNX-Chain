@@ -1,6 +1,7 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-a7dad7ec.mjs';
 import registry from './vendor/product-session-registry-a7dad7ec.json' with {type:'json'};
 import {assertFinancePrivateAuthority,financePrivateAuthorityRevision,invalidateFinancePrivateAuthority} from './endpoint-authority-entry.js';
+import {privateFiniteConsentText} from './private-finite-consent-copy.js';
 import {privateSubjectMatchesSelectedWallet} from './private-subject-boundary.js';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
@@ -8,13 +9,14 @@ let adapter=null,initializing=null,generation=0,revision=0,busy=false;
 let current=Object.freeze({status:'disconnected',session:null}),lastCode='',requestStage='idle';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function publish(next,code=''){
-  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true});
+  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,request:next.status==='connecting'?next.request:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true});
   revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage,approvalRejected:current.approvalRejected,revocationConfirmed:current.revocationConfirmed}}));
 }
 function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
   if(!initializing)initializing=assertFinancePrivateAuthority().then(authority=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
+    finiteServiceSeconds:7200,
     purpose:'Read owned Finance activity and Pay evidence; manage private planning and explicitly requested AI drafts. No asset execution.',
     gateway:new ProductSessionGatewayFetchAdapter({endpoint:authority.walletGateway,fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10000})})).then(value=>adapter=value).finally(()=>{initializing=null;});
   return initializing;
@@ -73,6 +75,7 @@ async function explicitRequest(retry){
     // YNX provider transport exists. Never infer installation or switch to
     // Hosted/MetaMask. The exact route is created and stored by the shared SDK.
     if(pending.status!=='connecting'||pending.route?.status!=='ready'||!wallet?.privateProviderAvailable?.())return pending;
+    publish(pending);
     markStage('requestPrepared');
     markStage('transportDispatch');const response=await wallet.requestProductSessionV2(pending.route.url);assertSelected();markStage('returnReceived');
     const settled=await selected.client.handleReturn(response.returnUrl);
@@ -112,6 +115,7 @@ async function proof(scope){
   }throw error;}
 }
 function render(){
+  const consent=document.querySelector('#private-service-consent');if(consent)consent.textContent=privateFiniteConsentText(window.YNXFinanceLocale?.get?.()??'en',current.request??current.session,!!current.request);
   const status=document.querySelector('#private-state'),account=current.session?.account;
   if(status){
     const key=current.status==='expired'?'privateReauthorize':current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
