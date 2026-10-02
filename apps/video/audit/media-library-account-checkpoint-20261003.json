@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-02T16:53:21.489Z",
+  "owner": "Media",
+  "previousFreeze": "16ea3eb89b59079ffb246bca7f96a0812792e4d5",
+  "sourceCommit": "69a798cf655aa4bab9556c5453faaf07f817b965",
+  "sourceTree": "bc63cfebbc5a4172633757c6aa4d984b4b3fab61",
+  "complete": false,
+  "sourceCommits": {
+    "video": "890c2fe3a33a22ab0ab074ab3d37a4c00435a46f",
+    "videoEvidence": "5c68f1d7a74bd987ffef01acd9fa7302527188b9",
+    "music": "69a798cf655aa4bab9556c5453faaf07f817b965"
+  },
+  "videoEvidence": "apps/video/audit/viewer-library-assets-20261003.json",
+  "musicChanges": [
+    "A successfully introspected new account initializes its own original profile/listener transaction; repeated visits preserve old records and persistence failures propagate.",
+    "Empty snapshot collections encode as arrays and objects usable by the native clients.",
+    "PCM RIFF parsing respects chunk lengths, metadata, padding and extensible PCM while preserving uploaded bytes; inherited media are not rewritten or reparsed at startup.",
+    "Track lookup, library writes, playlist writes/read projections and playback accounting apply the same existing visibility preference.",
+    "Unavailable stored references and audio remain intact. Editing the visible projection preserves hidden originals for later access restoration.",
+    "Existing playlist store gains authenticated GET list/item and PUT editing routes.",
+    "Original actor:sessionRef usage keys remain; cross-track or missing-receipt replay is a conflict with no state or accounting change."
+  ],
+  "validation": {
+    "videoNodeTests": {
+      "pass": 107,
+      "fail": 0,
+      "skip": 0
+    },
+    "videoLocales": 12,
+    "videoGoRace": "PASS ./internal/video/... -count=1",
+    "musicGoRace": "PASS ./internal/music ./apps/music/... -count=1",
+    "independentMusic": "PASS account half-record preservation and mismatches, 16 PCM fixtures, duration boundaries, 8064 truncations and 50000 bounded deterministic malformed inputs"
+  },
+  "evidence": [
+    {
+      "path": "/tmp/ynx-music-readonly-probe-20261003.log",
+      "sha256": "b7ceb99b86091357570840e28da34f972184d16e53b5a06263f3190b11ba341d"
+    },
+    {
+      "path": "/tmp/ynx-music-library-review-20261003.log",
+      "sha256": "eaf28119b3bb8798c2dcd634e11b8372bd7d87b40c6b35cb1beb1fc3eb200979"
+    },
+    {
+      "path": "/tmp/ynx-music-first-use-and-wav-after-20261003.log",
+      "sha256": "944c44549daccda8425f1a7227eeb731df26527af82cba950bde1fd4b2c873d8"
+    },
+    {
+      "path": "/tmp/ynx-music-library-and-playback-after-20261003.log",
+      "sha256": "b1454ccb7cea3dd182afd99bbfb5290bac934c924d1f61a124e63db512bfb0cf"
+    },
+    {
+      "path": "/tmp/ynx-music-owned-final-race-20261003.log",
+      "sha256": "e65241c6b0e56f40af6ff22cb641da93a074b3989a6094f8beb952b05dc10bc6"
+    },
+    {
+      "path": "/tmp/ynx-music-first-use-wav-review-20261003.log",
+      "sha256": "bad9a6542aa9fee361a4ed71258ce0bf7009a7a78b785b906849bfc7cc6e3e77"
+    },
+    {
+      "path": "/tmp/ynx-music-independent-review-20261003/probe.log",
+      "sha256": "0e43f0cad6f31959792d4518ce1247d1a3f250ee11382d512efddd128a470665"
+    },
+    {
+      "path": "/tmp/ynx-music-independent-review-20261003/review_test.go",
+      "sha256": "60b0805f298d356b634b30ce58379ac5c24c7c2941c22418bc8d728bb8dbf9b6"
+    },
+    {
+      "path": "/tmp/ynx-music-independent-review-20261003/source-sha256.txt",
+      "sha256": "91c5f0b6d9909cf1b48315dfa1f8bd23044e51c0bf5f1d0579159afc3b8dca0b"
+    }
+  ],
+  "filesSincePreviousFreeze": [
+    {
+      "path": "apps/video/app.js",
+      "sha256": "59dcf84071ea7ae2eb0abb5cfec075c7975cf8d77c42c3ead6ee93f8950ae68a"
+    },
+    {
+      "path": "apps/video/audit/viewer-library-assets-20261003.json",
+      "sha256": "1df6537da85c0cd748720cb9999d8912516a97168f10c0b7d2ae518896f78e10"
+    },
+    {
+      "path": "apps/video/guest-navigation.test.mjs",
+      "sha256": "13f2f70548c995b7cac724eb0971a6fa6c4bdbaa3764233dfcad45db58c16870"
+    },
+    {
+      "path": "apps/video/i18n-check.mjs",
+      "sha256": "791b32f311b4598a8b1d2b37bbb38dce37f67d5bee81b681b80cb3c7c5b2af14"
+    },
+    {
+      "path": "apps/video/package.json",
+      "sha256": "040083e85d8293e19db4527a5760f35c6ac0f6f59b63a3c164104c4419182ed1"
+    },
+    {
+      "path": "apps/video/product-session.js",
+      "sha256": "c23c1f3e3b100ae35699a2912d8ee02768523ff794e50e5518a140abcd98fa01"
+    },
+    {
+      "path": "apps/video/product-session.test.mjs",
+      "sha256": "c9d8d433f2319027881880b4aa0ddd3ede77b7d8f920d1371e9abc9865eb54fd"
+    },
+    {
+      "path": "apps/video/video-api.js",
+      "sha256": "da9b4271facd3fe46b908255e0f81c892764810eb52c3a3bbcb683f5d0c5db9a"
+    },
+    {
+      "path": "apps/video/watch-progress.js",
+      "sha256": "15a37bbc99d9d721c3065d3c643976a7b1ae56154821ae04441e8b906b2c0fb1"
+    },
+    {
+      "path": "apps/video/watch-progress.test.mjs",
+      "sha256": "3b05705845d7e9b8995e511edcabb54d557f0f115fc38a9d72b55a98c100b212"
+    },
+    {
+      "path": "internal/music/account.go",
+      "sha256": "fbccedab81f452420ee82e10ae351e0021f0efa77badb5c81dd738c902634715"
+    },
+    {
+      "path": "internal/music/first_use_test.go",
+      "sha256": "2adafd5fcf301ffab4e35f86969d3860c6fa9a10bcd5a5193a9cdac339b6eb68"
+    },
+    {
+      "path": "internal/music/playback_binding_test.go",
+      "sha256": "3c0ab1c5a8120591320c825b8779d292b8ca5d8f6c9e81babf958c3c19ac72cb"
+    },
+    {
+      "path": "internal/music/server.go",
+      "sha256": "37f8df6e6f40874943a95c76d12132a068864cb176c2aa912ebe164f108d9354"
+    },
+    {
+      "path": "internal/music/service.go",
+      "sha256": "76919c700381ad23f4be8406507d832ef73edf3d395045cd2207aab8072f6c8b"
+    },
+    {
+      "path": "internal/music/service_test.go",
+      "sha256": "7aca664061bb939c261aac4e7944f90a071ee25cb6630a3e0f6e0a8d9b0d1a45"
+    },
+    {
+      "path": "internal/music/visibility.go",
+      "sha256": "6556f8506e6d09788f6fa9527bb112b03ef0f6443d430c0518e5120278e4078a"
+    },
+    {
+      "path": "internal/music/visibility_test.go",
+      "sha256": "ca97afe1726590a38d71705bff802cac973ea55315d14f55d8b5dbc3443c9436"
+    },
+    {
+      "path": "internal/music/wav.go",
+      "sha256": "318eba8d1e35ed106ee64352a362c127aa59e41e064b90a3958b7b461277785e"
+    },
+    {
+      "path": "internal/music/wav_test.go",
+      "sha256": "f1d90aac8a8c5ed6e170a0398bc92c90a0ee0d9d28dc189f44af05d0103d3b1b"
+    },
+    {
+      "path": "internal/video/assets_rights_recovery_test.go",
+      "sha256": "a8613982f473ee89747e5f3d48eaf534861567379218e2982650d94fde50a844"
+    },
+    {
+      "path": "internal/video/central_gateway_auth_v2.go",
+      "sha256": "068c9224a5143204773b3b1bb95ae19a41a1d3449796cbc25596695dae9ad7d4"
+    },
+    {
+      "path": "internal/video/central_gateway_auth_v2_test.go",
+      "sha256": "fc9402b965cb3b99ac6da772fc504eb463bc0bea61857d0253dad5e8a2c7d1b5"
+    },
+    {
+      "path": "internal/video/creator_access.go",
+      "sha256": "f0d440e7187fdc2f205a39d9578e4ca0497c4b3376f03bb8a59b9d43f7efebd1"
+    },
+    {
+      "path": "internal/video/server.go",
+      "sha256": "cefd88926c685805347f856ba5227703a3d96bb0f3d829d8c70e243fc26c414b"
+    },
+    {
+      "path": "internal/video/service.go",
+      "sha256": "d71a3730b6bf569212a9e5569739a1c6cc487ece83b0c5418a9ae59336fdd795"
+    },
+    {
+      "path": "internal/video/types.go",
+      "sha256": "8fb35da20e5358785b3d2f18b77fce57515da46c7f58ca90a46e2115726bf376"
+    },
+    {
+      "path": "internal/video/viewer_progress.go",
+      "sha256": "65a0827399624a7e77b9ae64be6c2fab87f12950a25a476baf08bd2fccce0f32"
+    },
+    {
+      "path": "internal/video/viewer_progress_test.go",
+      "sha256": "9dc0da0b6d91b6624fa320a51ca04d31ab6fc0473e868f95d4c5055af089f289"
+    }
+  ],
+  "retainedData": {
+    "originalMusicTreesUntouched": true,
+    "originalKeysUntouched": true,
+    "noStateSchemaReplacement": true,
+    "noHostMutation": true,
+    "noInstalledProfileUse": true
+  },
+  "acceptance": {
+    "sourceRegressionVerified": true,
+    "sharedBusinessProofConsumed": false,
+    "formalBuild": false,
+    "publicRuntimeVerified": false,
+    "installedBusinessVerified": false,
+    "userFullFlowAccepted": false
+  },
+  "remaining": [
+    "A owns unfinished shared browser/native HTTP action proof, live revalidation/nonce transaction contract and multipart or binary upload digest strategy. Media has not copied uncommitted shared code.",
+    "Music canonical Product Session v2 registration and native SDK integration remain open; inherited V1 compatibility is not V2 acceptance.",
+    "Music Web still contains placeholder business actions; new playlist editing endpoints do not establish a finished client flow.",
+    "Actual macOS product targets/packages and native Video private sign-in remain incomplete.",
+    "Exact formally released normal-entry login, own data readback, logout/switch/recovery and creator publishing require A release then Media retest.",
+    "Abrupt Video page termination may lose less than 15 seconds of unacknowledged playback. Retained thumbnails still count toward the existing quota."
+  ]
+}
