@@ -416,7 +416,22 @@ export class RecoverableProductSessionClient {
     return this.#state;
   }
 
-  async createIntrospectionProof(requiredScopes) {
+  async createIntrospectionProof(requiredScopes) { return this.#createAPIProof(requiredScopes); }
+
+  // Two separate proofs: fresh identity introspection and the exact business body.
+  // The server must atomically consume the action nonce with its own transaction.
+  async createSocialAudienceProof(input) {
+    exactFields(input, ["path", "body"], "Social audience action");
+    const path = input.path, raw = input.body;
+    if (this.#binding.productId !== "social" || !["/social/v3/matrix/audience/resolve", "/social/v3/matrix/audience/authorize"].includes(path)) fail("HTTP_BINDING_MISMATCH", "Social audience proof requires an exact registered action path");
+    if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 16_384) fail("INVALID_FIELD", "Social action body must be bounded canonical JSON");
+    let body;
+    try { body = JSON.parse(raw); } catch { fail("INVALID_FIELD", "Social action body is invalid JSON"); }
+    if (body === null || typeof body !== "object" || Array.isArray(body) || canonicalJSON(body) !== raw) fail("INVALID_FIELD", "Social action body must be a canonical JSON object");
+    return this.#createAPIProof(["social.contacts", "social.feed", "social.messaging", "social.profile"], Object.freeze({ path, body }));
+  }
+
+  async #createAPIProof(requiredScopes, action = null) {
     const expected = this.current, epoch = this.#beginEpoch, networkEpoch = this.#networkEpoch;
     const active = () => {
       if (this.#revocationRequested || this.#disconnectPromise !== null) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
@@ -468,7 +483,9 @@ export class RecoverableProductSessionClient {
     if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body, now, { active, readback });
     const result = Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: gatewayRequestId("i", this.#tokens()), body: canonicalJSON(body) });
+    const actionProof = action === null ? null : await this.#proof(session, action.path, action.body, now, { active, readback });
     await readback(); active();
+    if (actionProof !== null) return Object.freeze({ introspection: result, proof: actionProof, proofHeader: encodeProductSessionGatewayProofHeaderV2(actionProof), body: canonicalJSON(action.body) });
     // This proof remains unused. The consumer sends the exact returned body
     // and header once; calling Gateway introspect here would consume it early.
     return result;

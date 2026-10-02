@@ -336,7 +336,9 @@ export declare function parseProductSessionWalletURL(registry:unknown,url:string
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletAttempt(registry:unknown,request:unknown,at?:Date):Readonly<Record<string,unknown>>;
 export type ProductSessionIntrospectionProof=Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string;requestId:string;body:string}>;
-export interface RecoverableProductSessionClient { beginExplicit():Promise<Readonly<Record<string,unknown>>>; createIntrospectionProof(requiredScopes:readonly string[]):Promise<ProductSessionIntrospectionProof>; }
+export type SocialAudienceProof=Readonly<{introspection:ProductSessionIntrospectionProof;proof:Readonly<Record<string,unknown>>;proofHeader:string;body:string}>;
+export type SocialAudienceProofInput=Readonly<{path:"/social/v3/matrix/audience/resolve"|"/social/v3/matrix/audience/authorize";body:string}>;
+export interface RecoverableProductSessionClient { createSocialAudienceProof(input:SocialAudienceProofInput):Promise<SocialAudienceProof>; beginExplicit():Promise<Readonly<Record<string,unknown>>>; createIntrospectionProof(requiredScopes:readonly string[]):Promise<ProductSessionIntrospectionProof>; }
 export declare class ProductSessionServerAuthorizer {
   constructor(config:Readonly<{registry:unknown;productId:string;platform:ProductSessionPlatform;endpoint:string;fetch:(url:string,init:Readonly<Record<string,unknown>>)=>Promise<unknown>;timeoutMs:number;clock?:()=>Date}>);
   authorize(input:Readonly<{proofHeader:string;origin:string|null;method:"GET"|"POST"|"PUT"|"PATCH"|"DELETE";path:string;requiredScopes:readonly string[]}>):Promise<ProductSessionV2>;
@@ -432,7 +434,7 @@ export declare const BROWSER_PRODUCT_SESSION_SECURITY_LEVEL:"webcrypto-nonextrac
 export type BrowserProductSessionStorage=Readonly<{securityLevel:"webcrypto-nonextractable";get(key:string):Promise<string|null>;set(key:string,value:string):Promise<void>;remove(key:string):Promise<void>}>;
 export type BrowserProductSessionDevice=Readonly<{id:string;key:string;scopes:readonly string[];purpose:string;sign:ProductSessionPlatformSigner}>;
 export type BrowserProductSessionCapabilities=Readonly<{securityLevel:"webcrypto-nonextractable";privateKeyExtractable:false;persistedCryptoKey:true;osProtected:false;hardwareBacked:false;origin:string;productId:string;scopes:readonly string[]}>;
-export type BrowserProductSessionAdapter=Readonly<{client:RecoverableProductSessionClient;device:BrowserProductSessionDevice;storage:BrowserProductSessionStorage;capabilities:BrowserProductSessionCapabilities;createIntrospectionProof(requiredScopes:readonly string[]):Promise<Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string;requestId:string;body:string}>>;close():void}>;
+export type BrowserProductSessionAdapter=Readonly<{client:RecoverableProductSessionClient;device:BrowserProductSessionDevice;storage:BrowserProductSessionStorage;capabilities:BrowserProductSessionCapabilities;createSocialAudienceProof(input:SocialAudienceProofInput):Promise<SocialAudienceProof>;createIntrospectionProof(requiredScopes:readonly string[]):Promise<Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string;requestId:string;body:string}>>;close():void}>;
 export declare function createBrowserProductSessionClient(config:Readonly<{registry:unknown;productId:string;scopes:readonly string[];purpose:string;gateway:ProductSessionGatewayFetchAdapter;finiteServiceSeconds?:number;environment?:Readonly<{isSecureContext:boolean;location:Readonly<{origin:string}>;crypto:unknown;indexedDB:unknown}>;clock?:()=>Date}>):Promise<BrowserProductSessionAdapter>;
 
 export type WalletSessionControlIntentPath="/v2/product-sessions/wallet/sessions/revoke-all"|"/v2/product-sessions/wallet/devices/revoke";

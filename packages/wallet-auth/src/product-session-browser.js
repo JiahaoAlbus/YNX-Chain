@@ -109,7 +109,7 @@ export async function createBrowserProductSessionClient(config) {
     });
     const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock, ...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds}:{}) });
     const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, origin: binding.origin, productId, scopes: approvedScopes });
-    return Object.freeze({ client, device, storage, capabilities, createIntrospectionProof, close });
+    return Object.freeze({ client, device, storage, capabilities, createIntrospectionProof, createSocialAudienceProof: input => client.createSocialAudienceProof(input), close });
 
     function assertStorageKey(key) { if (!allowedKeys.has(key)) fail("CROSS_PRODUCT_SESSION", "Browser storage key is outside this product binding"); }
     function assertStoredValue(key, value) {
