@@ -29,7 +29,13 @@ export function createNativeToolsService({ coreService, modelRouter, chainHandle
         finally { request.url = original; admittedOwners.delete(request); } return true;
       }
       if (request.method !== 'POST' || request.headers.origin !== origin || request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' || !/^application\/json(?:;|$)/i.test(request.headers['content-type'] || '')) throw fault('Open and approve this request on the trusted YNX Tools page.', 'tools_origin', 403);
-      const body = await readBody(request), ticket = tickets.get(body.csrf);
+      const body = await readBody(request);
+      // Receiving a body can outlive logout or an account change. Recheck at
+      // dispatch, before consuming a review or sending selected context.
+      const current = await coreService.authorizeConnection(request, sessionId);
+      if (binding(current) !== bound || current.expiresAt <= now() || admission.expiresAt <= now())
+        throw fault('Wallet session changed during review. Reopen the tools page.', 'tools_identity_changed', 401);
+      const ticket = tickets.get(body.csrf);
       if (!ticket || ticket.expires <= now() || ticket.bound !== bound) throw fault('Review expired. Refresh the tools page.', 'tools_review_expired', 403);
       tickets.delete(body.csrf);
       if (url.pathname === '/runtime/native-tools/chain/rpc') {

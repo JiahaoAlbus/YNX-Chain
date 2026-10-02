@@ -11,8 +11,8 @@ import { prepareCoreProject } from '../src/runtime-files.mjs';
 const require = createRequire(import.meta.url), { digest, validateChanges, assertWorkspacePath } = require('../../../native/ynx-tools/src/guards.cjs');
 const sessionId = '12345678-1234-1234-1234-123456789012', origin = 'https://developer.ynxweb4.com';
 async function harness(t, { realChain = false, generationHook } = {}) {
-  let now = 100, generation = 1, revoked = false; const calls = [], admittedOwners = new WeakMap();
-  const coreService = { async authorizeConnection(request, id) { if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId: 'project-A', runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
+  let now = 100, generation = 1, revoked = false, admissions = 0; const calls = [], admittedOwners = new WeakMap();
+  const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId: 'project-A', runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
   const chain = createChainService({ ownerForRequest: req => admittedOwners.get(req), fetcher: async (url, options) => { calls.push({ upstream: String(url), body: options?.body }); return new Response(JSON.stringify({ result: '0x1917' }), { headers: { 'content-type': 'application/json' } }); } });
   const service = createNativeToolsService({ coreService, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
@@ -20,7 +20,35 @@ async function harness(t, { realChain = false, generationHook } = {}) {
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + '?sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
   });
-  return { send, calls, setTime: value => now = value, changeAccount: () => generation++, revoke: () => revoked = true };
+  return { send, calls, server, admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, revoke: () => revoked = true };
+}
+
+for (const transition of ['changeAccount', 'revoke', 'expire']) {
+  test(`AI approval rechecks ${transition} after a delayed HTTP body before model dispatch`, async t => {
+    const h = await harness(t), c = await h.send('context');
+    const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Suggest a plan', context: 'private selected text' });
+    const body = JSON.stringify({ csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+    const before = h.admissions();
+    let req;
+    const pending = new Promise((resolve, reject) => {
+      req = httpRequest({ hostname: '127.0.0.1', port: h.server.address().port,
+        path: '/runtime/native-tools/approve?sessionId=' + sessionId, method: 'POST',
+        headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', origin,
+          'content-type': 'application/json', 'sec-fetch-site': 'same-origin', 'content-length': Buffer.byteLength(body) } }, res => {
+        let data = ''; res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve({ status: res.statusCode, value: JSON.parse(data) }));
+      }); req.on('error', reject); req.write(body.slice(0, 1));
+    });
+    const deadline = Date.now() + 2000;
+    while (h.admissions() === before && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 5));
+    assert.equal(h.admissions(), before + 1, 'server admitted headers and is awaiting the body');
+    if (transition === 'expire') h.setTime(100001); else h[transition]();
+    req.end(body.slice(1));
+    const result = await pending;
+    assert.ok(result.status >= 400, JSON.stringify(result));
+    assert.equal(h.calls.length, 0, 'private context must not reach the model under a retired admission');
+    assert.equal(result.value.text, undefined);
+  });
 }
 test('actual HTTP requires explicit preview and one-use approval; model uses verified owner, selected text only', async t => {
   const h = await harness(t), identity = await h.send('context');

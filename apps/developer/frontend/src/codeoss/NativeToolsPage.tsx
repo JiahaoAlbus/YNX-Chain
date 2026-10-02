@@ -8,7 +8,17 @@ export function NativeToolsPage() {
   const [identity, setIdentity] = useState<Identity>(), [prompt, setPrompt] = useState(''), [context, setContext] = useState(''), [proposal, setProposal] = useState<Proposal>(), [result, setResult] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false), [status, setStatus] = useState<unknown>(), [compiler, setCompiler] = useState<unknown>(), [wallet, setWallet] = useState<unknown>(), [connection, setConnection] = useState(''), [method, setMethod] = useState('eth_blockNumber'), [params, setParams] = useState('[]'), [rpcResult, setRpcResult] = useState<unknown>();
   async function request(path: string, options?: RequestInit) {
     const response = await fetch(`/runtime/native-tools/${path}?sessionId=${encodeURIComponent(sessionId)}`, { ...options, credentials: 'same-origin', cache: 'no-store', headers: { 'content-type': 'application/json' } });
-    const value = await response.json(); if (!response.ok) throw new Error(value.error || 'The tool is unavailable.'); return value;
+    const value = await response.json();
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Retire data and one-use reviews from the disconnected workspace.
+        // Keep only the user's unsent draft for explicit review after sign-in.
+        setIdentity(undefined); setProposal(undefined); setResult(''); setWallet(undefined);
+        setConnection(''); setStatus(undefined); setCompiler(undefined); setRpcResult(undefined);
+      }
+      throw new Error(value.error || 'The tool is unavailable.');
+    }
+    return value;
   }
   useEffect(() => { let active = true; request('context').then(value => { if (active) setIdentity(value); }).catch(cause => { if (active) setError(cause.message); }); return () => { active = false; }; }, [sessionId]);
   async function run(task: () => Promise<void>) { setBusy(true); setError(''); try { await task(); } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); } finally { setBusy(false); } }

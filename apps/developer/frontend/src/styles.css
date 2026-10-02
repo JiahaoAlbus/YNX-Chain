@@ -137,7 +137,19 @@ input {
 .native-ide-panel p { margin: 0; }
 .native-review { display: flex; align-items: flex-start; gap: 10px; }
 .native-launch-link { color: var(--blue); text-decoration: underline; font-weight: 600; }
-.native-ide-panel small { color: var(--muted); }
+.native-ide-panel small { color: var(--muted); overflow-wrap: anywhere; }
+.native-ide-panel strong { overflow-wrap: anywhere; }
+.native-ide-panel select { display: block; width: 100%; max-width: 100%; margin-top: 8px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+.native-session { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.native-session [role="alert"] { flex-basis: 100%; }
+@media (max-width: 600px), (pointer: coarse) {
+  .native-ide-panel button, .native-ide-panel select, .native-launch-link, .native-review { min-height: 44px; }
+  .native-ide-panel button { height: auto; padding: 10px 12px; white-space: normal; }
+  .native-ide-panel select { font-size: 16px; }
+  .native-launch-link { display: flex; align-items: center; }
+  .native-review { padding: 10px 0; align-items: center; }
+  .native-session { align-items: stretch; flex-direction: column; }
+}
 .edition {
   border: 1px solid #9db4e7;
   border-radius: 3px;
