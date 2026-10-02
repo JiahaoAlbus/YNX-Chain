@@ -6,6 +6,7 @@ import {privateSessionCopy} from './private-session-copy.js';
 const SCOPES=Object.freeze(['quant:records:read']);
 const STARTED='ynx.quant.records-session.v1.started';
 let adapter=null,initializing=null,pending=null,pendingCancel=null,retiring=null,epoch=0,closed=false,selectionBinding=null;
+let recordsReadRevision=0;
 let state={status:'guest',account:null},lastRecords=null;
 function fail(code){throw Object.assign(new Error(code),{code});}
 function render(){
@@ -66,23 +67,27 @@ export function beginRecordsSession(){
 export async function revokeRecordsSession(){epoch++;lastRecords=null;render();const selected=await client();const revision=epoch;const result=await (pendingCancel?pendingCancel():retireClient(selected));if(epoch===revision){if(result)publish(result);else{state={status:'degraded',account:null};render();}}return result;}
 export async function readPrivateRecords(){
   if(pending||state.status!=='connected')fail('PRIVATE_SIGN_IN_REQUIRED');
-  const revision=epoch,context=window.YNXQuantWallet.getPrivateWalletContext(),selected=await client();
-  const authorization=await selected.createIntrospectionProof(SCOPES);
-  const before=selected.client.current.session;
-  if(epoch!==revision||!before)fail('PRIVATE_OPERATION_SUPERSEDED');
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+  const revision=epoch,readRevision=++recordsReadRevision,context=window.YNXQuantWallet.getPrivateWalletContext();
+  const current=()=>!closed&&epoch===revision&&recordsReadRevision===readRevision;
+  let timer;
   try{
+    const selected=await client();if(!current())fail('PRIVATE_OPERATION_SUPERSEDED');
+    const authorization=await selected.createIntrospectionProof(SCOPES);
+    const before=selected.client.current.session;
+    if(!current()||!before)fail('PRIVATE_OPERATION_SUPERSEDED');
+    const controller=new AbortController();timer=setTimeout(()=>controller.abort(),10000);
     const response=await fetch('/api/v1/wallet/private-records',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal,headers:{'content-type':'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader},body:'{}'});
+    if(!current())fail('PRIVATE_OPERATION_SUPERSEDED');
     if(!response.ok)fail(response.status===401||response.status===403?'PRIVATE_AUTHORIZATION_REJECTED':'PRIVATE_RECORDS_UNAVAILABLE');
     if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||''))fail('PRIVATE_RECORDS_BINDING_MISMATCH');
     const raw=await response.text();if(raw.length>262144)fail('PRIVATE_RECORDS_BINDING_MISMATCH');const result=JSON.parse(raw);
     const after=selected.client.current.session;
     const next=window.YNXQuantWallet.getPrivateWalletContext();
-    if(epoch!==revision||context.revision!==next.revision||context.provider!==next.provider||context.account!==next.account||context.chainId!==next.chainId||context.providerKind!==next.providerKind)fail('PRIVATE_OPERATION_SUPERSEDED');
+    if(!current()||context.revision!==next.revision||context.provider!==next.provider||context.account!==next.account||context.chainId!==next.chainId||context.providerKind!==next.providerKind)fail('PRIVATE_OPERATION_SUPERSEDED');
     if(!after||before.account!==after.account||before.sessionBinding!==after.sessionBinding||result.account!==after.account||result.sessionBinding!==after.sessionBinding||result.nativeExecutionEnabled!==false||result.paperWorkspaceLinked!==false||!Array.isArray(result.records?.mandates)||!Array.isArray(result.records?.executions))fail('PRIVATE_RECORDS_BINDING_MISMATCH');
     if(next.status==='connected')selectionBinding=next;
     lastRecords=result.records;render();return result;
-  }catch(error){if(epoch===revision){lastRecords=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();}throw error;}finally{clearTimeout(timer);}
+  }catch(error){if(current()){lastRecords=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();}throw error;}finally{clearTimeout(timer);}
 }
 export function mountRecordsSession(){
   const run=fn=>fn().catch(()=>render());

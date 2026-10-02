@@ -19,7 +19,8 @@ test.before(async()=>{browser=await chromium.launch({headless:true,executablePat
 test.after(()=>browser.close());
 async function setup(mode='approve'){
   const context=await browser.newContext(),kernel=new ProductSessionGatewayHttpHandler(registry,()=>randomBytes(32).toString('base64url'));
-  let approvals=0,proofs=0,unavailable=false,releaseRead=null,releaseApproval=null,completions=0;
+  let approvals=0,proofs=0,unavailable=false,releaseRead=null,releaseApproval=null,completions=0,queueReads=false;
+  const queuedReads=[],readEvents=[];
   const page=await context.newPage();
   await page.exposeFunction('qaReadPending',()=>typeof releaseRead==='function');
   await page.exposeFunction('qaNativeReturn',async route=>{
@@ -53,16 +54,53 @@ async function setup(mode='approve'){
       proofs++;
       const result=kernel.handle({requestId:'req_records_'+randomBytes(16).toString('hex'),method:'POST',path:'/v2/product-sessions/introspect',contentType:'application/json',body:canonicalJSON({requiredScopes:['quant:records:read']}),proofHeader:r.headers()['x-ynx-product-session-proof-v2'],networkAvailable:true},new Date());
       assert.equal(result.status,200);const session=JSON.parse(result.body).result.session;
+      const response=queueReads?await new Promise(resolve=>{readEvents.push({phase:'queued',index:queuedReads.length});queuedReads.push(resolve);}):{};
+      if(queueReads)readEvents.push({phase:'released',status:response.status||200,id:response.id});
       if(releaseRead)await new Promise(resolve=>{releaseRead=resolve;});
-      if(unavailable)return route.fulfill({status:503,contentType:'application/json',body:'{"error":"fixture-unavailable"}'});
-      return route.fulfill({contentType:'application/json',body:JSON.stringify({account:session.account,sessionBinding:session.sessionBinding,nativeExecutionEnabled:false,paperWorkspaceLinked:false,records:{mandates:[{digest:'qa-owned-mandate',market:'QA-owned-market',maxDailyLoss:100,expiresAt:session.expiresAt}],executions:[{id:'qa-owned-execution',venueOrderId:'qa-venue-order',market:'QA-owned-market',status:'accepted',createdAt:'2026-10-01T00:00:00.000Z'}]}})});
+      if(unavailable||response.status>=400)return route.fulfill({status:response.status||503,contentType:'application/json',body:'{"error":"fixture-unavailable"}'});
+      return route.fulfill({contentType:'application/json',body:JSON.stringify({account:session.account,sessionBinding:session.sessionBinding,nativeExecutionEnabled:false,paperWorkspaceLinked:false,records:{mandates:[{digest:'qa-owned-mandate',market:'QA-owned-market',maxDailyLoss:100,expiresAt:session.expiresAt}],executions:[{id:response.id||'qa-owned-execution',venueOrderId:'qa-venue-order',market:'QA-owned-market',status:'accepted',createdAt:'2026-10-01T00:00:00.000Z'}]}})});
     }
     if(url.pathname==='/bundle.js')return route.fulfill({contentType:'text/javascript',body:Buffer.from(bundled.outputFiles[0].contents)});
     return route.fulfill({contentType:'text/html',body:'<select id="locale"></select><button id="records-authorize"></button><button id="records-read"></button><button id="records-revoke"></button><small id="records-status"></small><ul id="records-owned"></ul><script src="/bundle.js"></script>'});
   });
   await page.goto(ORIGIN);await page.waitForFunction(()=>!!window.recordsQA);
-  return {context,page,approvals:()=>approvals,proofs:()=>proofs,completions:()=>completions,releaseApproval:()=>{const done=releaseApproval;releaseApproval=null;done?.();},unavailable:value=>{unavailable=value;},hold:()=>{releaseRead=true;},release:()=>{const done=releaseRead;releaseRead=null;if(typeof done==='function')done();}};
+  const waitQueued=async count=>{const deadline=Date.now()+4000;while(queuedReads.length<count){assert.ok(Date.now()<deadline,'records request did not reach isolated HTTP boundary');await new Promise(resolve=>setTimeout(resolve,10));}};
+  return {context,page,approvals:()=>approvals,proofs:()=>proofs,completions:()=>completions,readEvents:()=>readEvents,queueReads:()=>{queueReads=true;},waitQueued,releaseQueued:(index,result)=>{assert.equal(typeof queuedReads[index],'function');queuedReads[index](result);},releaseApproval:()=>{const done=releaseApproval;releaseApproval=null;done?.();},unavailable:value=>{unavailable=value;},hold:()=>{releaseRead=true;},release:()=>{const done=releaseRead;releaseRead=null;if(typeof done==='function')done();for(const resolve of queuedReads)resolve({status:503});}};
 }
+test('a newer verified records read survives older success, unavailable and authorization responses',async()=>{
+  for(const oldStatus of [200,503,401]){
+    const f=await setup();try{
+      await f.page.evaluate(()=>window.recordsQA.beginRecordsSession());f.queueReads();
+      await f.page.evaluate(()=>{window.oldReadQA=window.recordsQA.readPrivateRecords().then(()=>null,error=>error.code);});
+      await f.waitQueued(1);
+      await f.page.evaluate(()=>{window.newReadQA=window.recordsQA.readPrivateRecords();});
+      await f.waitQueued(2);
+      f.releaseQueued(1,{id:'newer-owned-record'});await f.page.evaluate(()=>window.newReadQA).catch(error=>{throw new Error(JSON.stringify(f.readEvents()),{cause:error});});
+      assert.match(await f.page.locator('#records-owned').textContent(),/newer-owned-record/);
+      f.releaseQueued(0,{status:oldStatus,id:'older-owned-record'});
+      assert.equal(await f.page.evaluate(()=>window.oldReadQA),'PRIVATE_OPERATION_SUPERSEDED');
+      assert.match(await f.page.locator('#records-owned').textContent(),/newer-owned-record/);
+      assert.doesNotMatch(await f.page.locator('#records-owned').textContent(),/older-owned-record/);
+      assert.match(await f.page.locator('#records-status').textContent(),/ynx1/);
+      assert.equal(f.approvals(),1);assert.equal(f.proofs(),2);
+    }finally{f.release();await f.context.close();}
+  }
+});
+test('the current read still clears private records when its authorization is rejected',async()=>{
+  const f=await setup();try{
+    await f.page.evaluate(()=>window.recordsQA.beginRecordsSession());
+    await f.page.evaluate(()=>window.recordsQA.readPrivateRecords());
+    assert.equal(await f.page.locator('#records-owned li').count(),2);
+    f.queueReads();
+    await f.page.evaluate(()=>{window.currentReadQA=window.recordsQA.readPrivateRecords().then(()=>null,error=>error.code);});
+    await f.waitQueued(1);f.releaseQueued(0,{status:401});
+    assert.equal(await f.page.evaluate(()=>window.currentReadQA),'PRIVATE_AUTHORIZATION_REJECTED');
+    assert.equal(await f.page.locator('#records-owned li').count(),0);
+    assert.doesNotMatch(await f.page.locator('#records-status').textContent(),/ynx1/);
+    assert.equal(await f.page.evaluate(()=>window.recordsQA.readPrivateRecords().catch(error=>error.code)),'PRIVATE_SIGN_IN_REQUIRED');
+    assert.equal(f.approvals(),1);assert.equal(f.proofs(),2);
+  }finally{f.release();await f.context.close();}
+});
 test('explicit records uses its own SDK scope, one pending intent, fresh reads and restore without re-sign',async()=>{
   const f=await setup();try{
     assert.equal(f.approvals(),0);
