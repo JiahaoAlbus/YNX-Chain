@@ -153,6 +153,11 @@ func (s *Service) ContractProfile(actor Session) (ProfileView, error) {
 		return ProfileView{}, socialSquareError(err)
 	}
 	settings := s.currentSettings(actor.Account)
+	id, err := s.publicIdentity(actor.Account)
+	if err != nil {
+		return ProfileView{}, err
+	}
+	settings.ProfileQRPayload = socialLocatorPrefix + id
 	return ProfileView{PersonView: PersonView{ID: actor.Account, Handle: profile.Handle, DisplayName: profile.DisplayName, AvatarURL: settings.AvatarURL}, Bio: profile.Bio, FollowerCount: profile.FollowerCount, FollowingCount: profile.FollowingCount, PostCount: profile.PostCount, Privacy: settings}, nil
 }
 

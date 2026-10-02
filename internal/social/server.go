@@ -529,7 +529,7 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		}
 		var target string
 		target, err = s.resolver.ResolveDiscovery(in.Source, in.Value)
-		if err == nil && in.ExpectedAccount != "" && in.ExpectedAccount != target {
+		if err == nil && in.ExpectedAccount != "" && !s.service.expectedIdentityMatches(target, in.ExpectedAccount) {
 			err = ErrConflict
 		}
 		if err == nil {

@@ -26,5 +26,13 @@ func (s *Service) PreviewContact(actor Session, resolver DiscoveryResolver, sour
 	if blocked {
 		return PersonView{}, ErrNotFound
 	}
-	return s.person(target)
+	person, err := s.person(target)
+	if err != nil {
+		return PersonView{}, err
+	}
+	person.ID, err = s.publicIdentity(target)
+	if err != nil {
+		return PersonView{}, err
+	}
+	return person, nil
 }

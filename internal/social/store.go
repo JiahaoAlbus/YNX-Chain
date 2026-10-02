@@ -22,6 +22,9 @@ func newState() persistentState {
 }
 
 func normalizeState(s *persistentState) {
+	if s.PublicIdentities == nil {
+		s.PublicIdentities = map[string]string{}
+	}
 	if s.Sessions == nil {
 		s.Sessions = map[string]Session{}
 	}

@@ -367,6 +367,7 @@ type persistentState struct {
 	UsedNonces       map[string]time.Time              `json:"usedNonces"`
 	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
 	Settings         map[string]ProfileSettings        `json:"settings"`
+	PublicIdentities map[string]string                 `json:"publicIdentities,omitempty"`
 	Invites          map[string]Invite                 `json:"invites"`
 	Requests         map[string]ContactRequest         `json:"requests"`
 	Contacts         map[string]Contact                `json:"contacts"`

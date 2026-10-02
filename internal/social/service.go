@@ -270,6 +270,14 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 			profileHandle = profile.Handle
 		}
 	}
+	qrPayload := ""
+	if profileHandle != "" {
+		id, err := s.publicIdentity(actor.Account)
+		if err != nil {
+			return ProfileSettings{}, false, err
+		}
+		qrPayload = socialLocatorPrefix + id
+	}
 	digest := objectDigest(in)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -281,10 +289,6 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 		return s.state.Settings[actor.Account], true, nil
 	}
 	now := s.cfg.Now().UTC()
-	qrPayload := ""
-	if profileHandle != "" {
-		qrPayload = "ynxsocial://profile/" + profileHandle
-	}
 	record := ProfileSettings{Account: actor.Account, DiscoverableByHandle: in.DiscoverableByHandle, ContactsMatching: in.ContactsMatching, AllowRecommendations: in.AllowRecommendations, AllowRequestsFrom: in.AllowRequestsFrom, AvatarURL: in.AvatarURL, ProfileQRPayload: qrPayload, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.Settings[actor.Account] = record
@@ -331,11 +335,14 @@ func (s *Service) ResolveDiscovery(source, value string) (string, error) {
 		}
 		return profile.Account, nil
 	case "qr":
-		const prefix = "ynxsocial://profile/"
-		if !strings.HasPrefix(value, prefix) || s.cfg.Square == nil {
-			return "", ErrInvalid
+		account, err := s.resolveProfileLocator(value)
+		if err != nil {
+			return "", err
 		}
-		profile, err := s.cfg.Square.ProfileByHandle(strings.TrimPrefix(value, prefix))
+		if s.cfg.Square == nil {
+			return "", ErrConflict
+		}
+		profile, err := s.cfg.Square.Profile(account)
 		if err != nil {
 			return "", ErrNotFound
 		}

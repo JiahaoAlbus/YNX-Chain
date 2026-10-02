@@ -43,10 +43,12 @@ try{
     await page.click('#scan');await page.waitForFunction(()=>window.state.frames.some(Boolean));
     assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Cancel');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    const cameraStyle=await page.evaluate(()=>{const dialog=document.querySelector('dialog'),buttons=[...dialog.querySelectorAll('button')];return {width:dialog.getBoundingClientRect().width,heights:buttons.map(button=>button.getBoundingClientRect().height),primary:getComputedStyle(buttons[0]).backgroundColor,cancel:getComputedStyle(buttons[1]).backgroundColor,focus:getComputedStyle(document.activeElement).outlineWidth}});
+    assert.ok(cameraStyle.width<=Math.min(512,width-32)+1);assert.ok(cameraStyle.heights.every(height=>height>=44));assert.equal(cameraStyle.primary,'rgb(0, 47, 167)');assert.equal(cameraStyle.cancel,'rgb(255, 255, 255)');assert.equal(cameraStyle.focus,'3px');
     await page.screenshot({path:join(output,'camera-'+width+'.png')});
     await page.keyboard.press('Escape');await page.waitForFunction(()=>window.state.result===null);
     assert.equal(await page.evaluate(()=>window.state.stops),1);
-    checks.push({width,cancelFocus:true,noHorizontalOverflow:true,escapeCancelled:true,streamReleased:true});
+    checks.push({width,cancelFocus:true,noHorizontalOverflow:true,escapeCancelled:true,streamReleased:true,cameraComputedStyle:cameraStyle});
 
     await page.evaluate(()=>{window.state.mode='denied'});await page.click('#scan');
     await page.getByRole('status').filter({hasText:'denied'}).waitFor();
@@ -62,10 +64,13 @@ try{
     assert.equal(await page.evaluate(()=>window.state.result),null);assert.equal(await page.locator('dialog').count(),0);
     checks.push({width,latePermissionReleased:true,noLateDialog:true});
 
-    await page.click('#review');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Cancel');await page.keyboard.press('Escape');await page.waitForFunction(()=>window.state.result===false);
+    await page.click('#review');assert.equal(await page.evaluate(()=>document.activeElement.textContent),'Cancel');
+    const reviewStyle=await page.evaluate(()=>{const dialog=document.querySelector('dialog'),buttons=[...dialog.querySelectorAll('button')];return {width:dialog.getBoundingClientRect().width,heights:buttons.map(button=>button.getBoundingClientRect().height),cancel:getComputedStyle(buttons[0]).backgroundColor,primary:getComputedStyle(buttons[1]).backgroundColor,focus:getComputedStyle(document.activeElement).outlineWidth}});
+    assert.ok(reviewStyle.width<=Math.min(512,width-32)+1);assert.ok(reviewStyle.heights.every(height=>height>=44));assert.equal(reviewStyle.primary,'rgb(0, 47, 167)');assert.equal(reviewStyle.cancel,'rgb(255, 255, 255)');assert.equal(reviewStyle.focus,'3px');
+    await page.keyboard.press('Escape');await page.waitForFunction(()=>window.state.result===false);
     await page.click('#review');await page.evaluate(()=>{window.state.current=false});await page.getByRole('button',{name:'Send request',exact:true}).click();await page.waitForFunction(()=>window.state.result===false);
     await page.evaluate(()=>{window.state.current=true});await page.click('#review');await page.getByRole('button',{name:'Send request',exact:true}).click();await page.waitForFunction(()=>window.state.result===true);
-    checks.push({width,reviewEscapeCancelled:true,staleReviewRejected:true,explicitCurrentReviewAccepted:true});
+    checks.push({width,reviewEscapeCancelled:true,staleReviewRejected:true,explicitCurrentReviewAccepted:true,reviewComputedStyle:reviewStyle});
     await page.close();
   }
   assert.deepEqual(errors,[]);

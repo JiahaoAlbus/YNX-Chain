@@ -1,0 +1,147 @@
+{
+  "schema": "ynx-social-contact-camera-browser/v1",
+  "checks": [
+    {
+      "width": 320,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true,
+      "cameraComputedStyle": {
+        "width": 288,
+        "heights": [
+          44,
+          44
+        ],
+        "primary": "rgb(0, 47, 167)",
+        "cancel": "rgb(255, 255, 255)",
+        "focus": "3px"
+      }
+    },
+    {
+      "width": 320,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 320,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 320,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true,
+      "reviewComputedStyle": {
+        "width": 288,
+        "heights": [
+          44,
+          44
+        ],
+        "cancel": "rgb(255, 255, 255)",
+        "primary": "rgb(0, 47, 167)",
+        "focus": "3px"
+      }
+    },
+    {
+      "width": 390,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true,
+      "cameraComputedStyle": {
+        "width": 358,
+        "heights": [
+          44,
+          44
+        ],
+        "primary": "rgb(0, 47, 167)",
+        "cancel": "rgb(255, 255, 255)",
+        "focus": "3px"
+      }
+    },
+    {
+      "width": 390,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 390,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 390,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true,
+      "reviewComputedStyle": {
+        "width": 358,
+        "heights": [
+          44,
+          44
+        ],
+        "cancel": "rgb(255, 255, 255)",
+        "primary": "rgb(0, 47, 167)",
+        "focus": "3px"
+      }
+    },
+    {
+      "width": 1280,
+      "cancelFocus": true,
+      "noHorizontalOverflow": true,
+      "escapeCancelled": true,
+      "streamReleased": true,
+      "cameraComputedStyle": {
+        "width": 512,
+        "heights": [
+          44,
+          44
+        ],
+        "primary": "rgb(0, 47, 167)",
+        "cancel": "rgb(255, 255, 255)",
+        "focus": "3px"
+      }
+    },
+    {
+      "width": 1280,
+      "permissionDeniedGuidance": true,
+      "explicitRetry": true,
+      "syntheticDecodeReturned": true
+    },
+    {
+      "width": 1280,
+      "latePermissionReleased": true,
+      "noLateDialog": true
+    },
+    {
+      "width": 1280,
+      "reviewEscapeCancelled": true,
+      "staleReviewRejected": true,
+      "explicitCurrentReviewAccepted": true,
+      "reviewComputedStyle": {
+        "width": 512,
+        "heights": [
+          44,
+          44
+        ],
+        "cancel": "rgb(255, 255, 255)",
+        "primary": "rgb(0, 47, 167)",
+        "focus": "3px"
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "sourceSha256": {
+    "/contact-camera.mjs": "479ab6eb01fa036f5e012d9731c1dfac8e5720ca4f1e217725ed2bfb584307dd",
+    "/contact-review.mjs": "69e6d82e6d908f233a7d2331b2fbe3eaeade8f7c20609f188227cd17ff4bbb08",
+    "/workspace.css": "b205ae365d629a94b805460cbe00b126ab8d25f4b9011135e2941f37fbb8df0b"
+  },
+  "syntheticCamera": true,
+  "hardwareScanVerified": false,
+  "fullProductFlowVerified": false,
+  "publicRuntimeVerified": false
+}
