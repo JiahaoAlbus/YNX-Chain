@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {SocialAPI} from "./api";
-import {ContactRequestFlow,requireSocialProfileQR,socialProfileQR} from "./contactRequestFlow";
+import {ContactRequestFlow,requireSocialProfileQR,socialProfileQR,socialDiscoveryEntry} from "./contactRequestFlow";
 
 const id="sp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",qr=`https://social.ynxweb4.com/people/${id}`;
+test('Native initial and live discovery URLs carry business intent only',()=>{
+ assert.deepEqual(socialDiscoveryEntry(qr),{source:'qr',value:qr});const invitation='https://social.ynxweb4.com/invite/'+'B'.repeat(32);assert.deepEqual(socialDiscoveryEntry(invitation),{source:'invite',value:invitation});
+ for(const value of [qr+'?',qr+'#',qr+'?approved=true',qr+'/',qr.replace('/people/','/%70eople/'),qr.replace('.com/','.com:443/'),'ynxsocial://invite/'+'B'.repeat(32),'wc:pair','ethereum:payment','https://evil.invalid/invite/'+'B'.repeat(32),null])assert.equal(socialDiscoveryEntry(value),null);
+});
 function fixture(){const api=new SocialAPI("http://127.0.0.1:6431"),sent:unknown[][]=[];let fail=false,count=0;api.previewContact=async()=>({person:{id,handle:"bob",displayName:"Bob"}});api.requestContact=async(...args)=>{sent.push(args);if(fail)throw new Error("offline");return {}};const flow=new ContactRequestFlow(api,async()=>`synthetic_key_${String(++count).padStart(16,"0")}`);return {api,flow,sent,setFail:(value:boolean)=>{fail=value}}}
 test("Native preview sends nothing until explicit confirmation of stable target",async()=>{const f=fixture(),review=await f.flow.preview("handle"," @bob ");assert.equal(f.sent.length,0);await f.flow.confirm(review,"Hello Bob");assert.deepEqual(f.sent[0],["handle","bob",review.idempotencyKey,id,"Hello Bob"]);await assert.rejects(f.flow.confirm(review),/again/)});
 test("Native same-account new generation rejects old review",async()=>{const f=fixture();f.api.useProductSession(async()=>({} as never),"same-account");const review=await f.flow.preview("handle","bob");f.api.useProductSession(async()=>({} as never),"same-account");await assert.rejects(f.flow.confirm(review),/again/);assert.equal(f.sent.length,0)});

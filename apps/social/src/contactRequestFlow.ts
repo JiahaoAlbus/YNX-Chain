@@ -2,6 +2,13 @@ import {ContactOperation} from "./contactOperation";
 import type {SocialAPI,Person,GroupDiscoveryInput} from "./api";
 
 export type ContactReview=Readonly<{source:GroupDiscoveryInput["source"];value:string;person:Person;idempotencyKey:string}>;
+export type SocialDiscoveryEntry=Readonly<{source:'qr'|'invite';value:string}>;
+// URL input is an untrusted business intent, never a session callback or grant.
+export function socialDiscoveryEntry(value:unknown):SocialDiscoveryEntry|null{
+ if(typeof value!=='string'||value.length>256)return null;
+ const match=/^https:\/\/social\.ynxweb4\.com\/(people\/sp_[A-Za-z0-9_-]{32}|invite\/[A-Za-z0-9_-]{32})$/.exec(value);
+ return match?Object.freeze({source:match[1]!.startsWith('people/')?'qr':'invite',value}):null;
+}
 
 export function socialProfileQR(value:unknown):string|null{
   if(typeof value!=="string"||value.length>512)return null;

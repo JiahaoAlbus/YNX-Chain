@@ -1,0 +1,27 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+✔ camera decoding releases stream and only returns QR content (0.847042ms)
+✔ unrelated QR is rejected without dispatch and valid invitation can be scanned next (0.192916ms)
+✔ cancel before permission resolves releases late stream without attaching (0.091125ms)
+✔ unsupported scanner never requests camera permission (0.086334ms)
+✔ denied camera permission gives retry guidance and can retry (0.108375ms)
+✔ account invalidation during decode stops camera and discards result (0.091958ms)
+✔ superseding a camera attempt cannot reattach the older stream (0.089417ms)
+✔ Native initial and live discovery URLs carry business intent only (0.81925ms)
+✔ Native preview sends nothing until explicit confirmation of stable target (0.582583ms)
+✔ Native same-account new generation rejects old review (0.181292ms)
+✔ Native cancellation and logout reject old review without submitting (0.203417ms)
+✔ Native failed retry preserves identity, key and message (0.174833ms)
+✔ Native late preview after account change cannot become a review (0.113708ms)
+✔ Native QR contract accepts opaque canonical locator, rejects legacy and funding values (0.154125ms)
+✔ Native preview rejects stale-server funding IDs and foreign invitation URLs (0.121958ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 127.202458
