@@ -1,0 +1,22 @@
+=== RUN   TestSocialActionAdapterOriginalSharedSignedProof
+--- PASS: TestSocialActionAdapterOriginalSharedSignedProof (0.00s)
+=== RUN   TestSocialActionReceiptPreservesSharedFields
+--- PASS: TestSocialActionReceiptPreservesSharedFields (0.00s)
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation/missing-proof
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation/duplicate-proof
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation/duplicate-scope
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation/widened-scope
+=== RUN   TestSocialActionAdapterRejectsBeforeBusinessMutation/invalid-original-proof
+--- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation (0.00s)
+    --- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation/missing-proof (0.00s)
+    --- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation/duplicate-proof (0.00s)
+    --- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation/duplicate-scope (0.00s)
+    --- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation/widened-scope (0.00s)
+    --- PASS: TestSocialActionAdapterRejectsBeforeBusinessMutation/invalid-original-proof (0.00s)
+=== RUN   TestLoadMatrixDirectoryUsesExplicitPublicExistingBindingsOnly
+--- PASS: TestLoadMatrixDirectoryUsesExplicitPublicExistingBindingsOnly (0.00s)
+=== RUN   TestSocialAllowedScopesMatchApprovedRegistration
+--- PASS: TestSocialAllowedScopesMatchApprovedRegistration (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-sociald	1.466s

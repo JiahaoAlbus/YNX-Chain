@@ -91,7 +91,7 @@ func main() {
 		}
 		productSessions[platform] = client
 	}
-	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions, MatrixDirectory: matrixDirectory})
+	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions, MatrixDirectory: matrixDirectory, MatrixAudienceActionVerifier: socialAudienceActionVerifier{}})
 	if err != nil {
 		log.Fatal(err)
 	}

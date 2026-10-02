@@ -1,0 +1,10 @@
+# github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-sociald [github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-sociald.test]
+cmd/ynx-sociald/audience_action.go:36:45: undefined: productsessionv2.ActionProofHeader
+cmd/ynx-sociald/audience_action.go:40:36: undefined: productsessionv2.VerifySocialAudienceProof
+cmd/ynx-sociald/audience_action.go:47:52: undefined: productsessionv2.ActionAuthorization
+cmd/ynx-sociald/audience_action_test.go:15:31: undefined: productsessionv2.ActionAuthorization
+cmd/ynx-sociald/audience_action_test.go:30:35: undefined: productsessionv2.ActionProofHeader
+cmd/ynx-sociald/audience_action_test.go:31:35: undefined: productsessionv2.ActionProofHeader
+cmd/ynx-sociald/audience_action_test.go:37:35: undefined: productsessionv2.ActionProofHeader
+FAIL	github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-sociald [build failed]
+FAIL
