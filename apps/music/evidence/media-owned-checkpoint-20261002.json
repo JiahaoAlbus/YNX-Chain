@@ -26,7 +26,11 @@
     "hostApiFixture": true,
     "videoFullSuiteTests": 95,
     "videoLocaleAudit": 12,
-    "musicClearScopeLocales": 12
+    "musicClearScopeLocales": 12,
+    "creatorFullSuiteTests": 36,
+    "creatorRealHTTPStaticClosure": true,
+    "androidPrivateRedirectRejected": true,
+    "appleSwiftSyntaxParsed": true
   },
   "notVerified": {
     "installedAndroid": true,
@@ -35,7 +39,9 @@
     "canonicalMusicV2": true,
     "businessBodyProof": true,
     "formalRelease": true,
-    "MONSTER": true
+    "MONSTER": true,
+    "appleAccountScopedCache": true,
+    "appleTypecheckAndInstalledRuntime": true
   },
   "openDependencies": [
     "A canonical Music v2 tuple/scopes/SDK and normal service configuration",
@@ -47,11 +53,18 @@
     "Original account generation is retained by playlist, rights, AI-review, upload and clear-cache confirmations",
     "File picker result is accepted only by the account that launched it",
     "Each upload uses its own temporary file and removes it on completion",
-    "Upload chunks and final response reject an account switch"
+    "Upload chunks and final response reject an account switch",
+    "Creator only serves the explicit runtime asset closure",
+    "Apple session removal preserves the device signing key and unrelated Keychain items",
+    "Apple legacy callback requires the exact scheme, host and path",
+    "Android private HTTP rejects redirects before any follow-up request"
   ],
   "evidenceLogs": [
     "/tmp/ynx-media-video-check-context-final-20261002.log",
     "/tmp/ynx-media-music-native-store-api-upload-20261002.log",
-    "/tmp/ynx-media-music-native-compile-20261002/javac-dialog-guards.log"
+    "/tmp/ynx-media-music-native-compile-20261002/javac-dialog-guards.log",
+    "/tmp/ynx-media-creator-static-closure-20261002.log",
+    "/tmp/ynx-media-music-apple-source-parse-20261002.log",
+    "/tmp/ynx-media-music-native-redirect-pass-20261003.log"
   ]
 }
