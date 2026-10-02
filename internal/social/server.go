@@ -521,7 +521,7 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 		}
 	case path == "contact-requests" && r.Method == http.MethodPost:
 		var in contactRequestDiscoveryInput
-		if !decodeRequest(w, r, &in, 16*1024) {
+		if !decodeContactIntent(w, r, &in) {
 			return
 		}
 		if s.resolver == nil {

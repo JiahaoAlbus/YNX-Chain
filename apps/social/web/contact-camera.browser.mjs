@@ -20,7 +20,7 @@ HTMLMediaElement.prototype.play=async function(){};HTMLMediaElement.prototype.pa
 const stream=()=>({getTracks:()=>[{stop(){state.stops++}}]});
 const environment={isSecureContext:true,navigator:{mediaDevices:{async getUserMedia(){state.opens++;if(state.mode==='denied')throw new DOMException('Denied','NotAllowedError');if(state.mode==='pending')return new Promise(resolve=>{state.pending=()=>resolve(stream())});return stream()}}},BarcodeDetector:class{async detect(){return state.mode==='decoded'?[{rawValue:'synthetic-social-qr'}]:[]}},requestAnimationFrame(callback){state.frames.push(callback);return state.frames.length},cancelAnimationFrame(id){state.frames[id-1]=null},addEventListener:window.addEventListener.bind(window),removeEventListener:window.removeEventListener.bind(window)};
 document.querySelector('#scan').onclick=async()=>{state.result=undefined;state.result=await scanContactQR(document,environment,()=>state.current)};
-document.querySelector('#review').onclick=async()=>{state.result=undefined;state.result=await reviewContact(document,{person:{displayName:'Synthetic Person',handle:'synthetic_person'}},()=>state.current)};
+document.querySelector('#review').onclick=async()=>{state.result=undefined;state.result=await reviewContact(document,{person:{displayName:'Synthetic Person',handle:'synthetic_person'}},()=>state.current,message=>{state.reviewMessage=message})};
 window.frame=async()=>{const callback=state.frames.find(Boolean);if(callback){state.frames[state.frames.indexOf(callback)]=null;await callback()}};
 window.ready=true;
 </script></body></html>`;
@@ -69,7 +69,9 @@ try{
     assert.ok(reviewStyle.width<=Math.min(512,width-32)+1);assert.ok(reviewStyle.heights.every(height=>height>=44));assert.equal(reviewStyle.primary,'rgb(0, 47, 167)');assert.equal(reviewStyle.cancel,'rgb(255, 255, 255)');assert.equal(reviewStyle.focus,'3px');
     await page.keyboard.press('Escape');await page.waitForFunction(()=>window.state.result===false);
     await page.click('#review');await page.evaluate(()=>{window.state.current=false});await page.getByRole('button',{name:'Send request',exact:true}).click();await page.waitForFunction(()=>window.state.result===false);
-    await page.evaluate(()=>{window.state.current=true});await page.click('#review');await page.getByRole('button',{name:'Send request',exact:true}).click();await page.waitForFunction(()=>window.state.result===true);
+    await page.evaluate(()=>{window.state.current=true});await page.click('#review');await page.locator('textarea').focus();await page.keyboard.insertText('\u{1F642}'.repeat(200));
+    assert.equal(await page.locator('textarea').evaluate(field=>Array.from(field.value).length),200);assert.equal((await page.locator('textarea').inputValue()).length,400);
+    await page.getByRole('button',{name:'Send request',exact:true}).click();await page.waitForFunction(()=>window.state.result===true);assert.equal(await page.evaluate(()=>Array.from(window.state.reviewMessage).length),200);
     checks.push({width,reviewEscapeCancelled:true,staleReviewRejected:true,explicitCurrentReviewAccepted:true,reviewComputedStyle:reviewStyle});
     await page.close();
   }

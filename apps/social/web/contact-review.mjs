@@ -5,7 +5,7 @@ export function reviewContact(document,preview,isCurrent,onMessage=()=>{}){
     const heading=document.createElement('h3');heading.textContent='Send a contact request?';
     const name=document.createElement('p');name.textContent=`${preview.person.displayName} @${preview.person.handle}`;
     const note=document.createElement('p');note.textContent='This person must accept before you become contacts. This preview does not verify their encryption keys.';
-    const label=document.createElement('label');label.textContent='Optional request message (200 characters)';const message=document.createElement('textarea');message.maxLength=200;message.rows=3;message.name='contact-message';label.append(message);
+    const label=document.createElement('label');label.textContent='Optional request message (200 characters)';const message=document.createElement('textarea');message.maxLength=400;message.rows=3;message.name='contact-message';message.addEventListener('input',()=>{message.value=Array.from(message.value).slice(0,200).join('')});label.append(message);
     const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.autofocus=true;
     const send=document.createElement('button');send.type='button';send.textContent='Send request';
     let settled=false;
