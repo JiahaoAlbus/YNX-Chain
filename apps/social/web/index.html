@@ -77,17 +77,14 @@
     <script type="module" src="./app.js"></script>
     <script type="module" src="./private-session-ui.js"></script>
 <section id="matrix-social-workspace" class="section" aria-label="Private chat">
-  <h2>Your private conversations</h2>
-  <p>Compare devices before sharing messages. Your existing encrypted history stays unchanged.</p><details><summary>Connection details</summary><p>New conversations use standard Matrix encrypted transport. Production account binding is not yet connected in this candidate.</p></details>
-  <p data-status role="status">Private chat locked</p>
-  <button type="button" data-connect>Open private chat</button>
-  <button type="button" data-stop>Lock private chat</button>
-  <button type="button" data-rooms>Rooms and invitations</button>
-  <form data-peer-form><label>Peer YNX account <input name="matrixPeer" required autocomplete="off"></label><button>Create encrypted conversation</button></form>
-  <div data-devices></div><div data-verification></div>
-  <ul data-messages></ul>
-  <form data-send-form><label>Encrypted message <textarea name="matrixText" required maxlength="16000"></textarea></label><button>Send to verified devices</button></form>
-  <label>Encrypted attachment <input type="file" data-attachment></label>
+  <header class="chat-heading"><div><span class="chat-wordmark"><img src="./assets/ynx-logo.png" alt="YNX" width="42" height="42">YNX Social</span><h2 data-chat-copy="title">Your private conversations</h2><p data-chat-copy="intro">Choose a conversation, compare devices, then share messages and files.</p></div><span class="chat-connection-label" data-connection-label>Locked</span></header>
+  <p data-status role="status" aria-live="polite">Private chat is locked. Your messages and devices are retained.</p>
+  <div class="chat-actions"><button type="button" data-connect data-chat-copy="open">Open private chat</button><button type="button" data-stop data-chat-copy="lock">Lock chat</button><a href="#social-workspace" data-chat-copy="permissions">Review sign-in and chat permissions</a></div>
+  <div class="chat-workspace-grid"><aside class="chat-sidebar"><h3 data-chat-copy="rooms">Conversations and invitations</h3><button type="button" data-rooms data-chat-copy="rooms">Conversations and invitations</button><div data-verification class="chat-verification" aria-live="polite"></div><h3 data-chat-copy="people">Start a conversation</h3><form data-peer-form><label><span data-chat-copy="peer">Contact's YNX account</span><input name="matrixPeer" required autocomplete="off" spellcheck="false" autocapitalize="none"></label><button type="submit" data-chat-copy="create">Start encrypted conversation</button></form></aside>
+    <div class="chat-conversation"><ul data-messages aria-live="polite" aria-label="Encrypted messages"></ul><form data-send-form><label><span data-chat-copy="message">Your message</span><textarea name="matrixText" required maxlength="16000"></textarea></label><div class="chat-composer-actions"><label class="chat-file-label"><span data-chat-copy="attachment">Add an encrypted file</span><input type="file" data-attachment disabled></label><button type="submit" data-chat-copy="send" disabled>Send message</button></div></form></div>
+  </div>
+  <section class="chat-device-section"><div class="chat-device-heading"><h3 data-chat-copy="checks">Device checks</h3><button type="button" data-show-devices data-chat-copy="devices">My devices</button></div><div data-devices aria-live="polite"></div></section>
+  <details class="chat-connection-details"><summary data-chat-copy="details">Connection details</summary><p>Account and device permissions are checked with the sign-in service. Conversations use the existing Matrix encrypted transport and Rust crypto storage. Availability is checked when you connect.</p><p>Diagnostic code: <code data-diagnostic-code>NONE</code></p></details>
 </section>
 <script type="module" src="/matrix-session-ui.js"></script>
 </body>
