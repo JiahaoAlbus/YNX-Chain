@@ -224,4 +224,4 @@ export function assertYNXTestnetSnapshot(snapshot, {maximumHeightLag = 30} = {})
   return snapshot;
 }
 
-export {canonicalAuthorityV2,verifySignedEndpointAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory,recoverEndpointAuthorityRootAnchor,selectSignedAuthorityEndpoint,financeProductSessionAuthority,assertAuthorityV2TrustRoot} from './endpoint-authority-v2.js';
+export {canonicalAuthorityV2,verifySignedEndpointAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory,recoverEndpointAuthorityRootAnchor,consumeVerifiedAuthorityRootAnchorCommit,selectSignedAuthorityEndpoint,financeProductSessionAuthority,assertAuthorityV2TrustRoot} from './endpoint-authority-v2.js';

@@ -33,9 +33,10 @@ function manifestCheckpointForRootTest(m){return {rootVersion:1,sequence:m.seque
 function root2Current(){const d=structuredClone(anchorDocuments.current);d.integrity={};const m=prepareAuthorityV2Draft(d,'browser-new-finite');m.integrity.signature=sign(null,Buffer.from(authorityV2SigningMessage(m,m.integrity.keyId)),rotatedBrowserKey.privateKey).toString('base64url');return m;}
 const testRootPins={1:sha(canonicalAuthorityV2(root)),2:sha(canonicalAuthorityV2(root2))};
 const testRootPinPlugin={name:'reviewed-test-root-pins',setup(b){b.onLoad({filter:/endpoint-authority-trust-roots\.js$/},()=>({contents:'export const FINANCE_AUTHORITY_TRUST_ROOTS=Object.freeze('+JSON.stringify(testRootPins)+');',loader:'js'}))}};
-const built=await build({plugins:[testRootPinPlugin],absWorkingDir:fileURLToPath(new URL('../web/',import.meta.url)),entryPoints:['endpoint-authority-entry.js'],bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'FinanceAuthorityTest',write:false});
+const sdkAlias={'@ynx-chain/sdk':fileURLToPath(new URL('../../../sdk/js/index.js',import.meta.url))};
+const built=await build({alias:sdkAlias,plugins:[testRootPinPlugin],absWorkingDir:fileURLToPath(new URL('../web/',import.meta.url)),entryPoints:['endpoint-authority-entry.js'],bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'FinanceAuthorityTest',write:false});
 const authorityBundle=Buffer.from(built.outputFiles[0].contents);
-const storeBuilt=await build({absWorkingDir:fileURLToPath(new URL('../web/',import.meta.url)),entryPoints:['endpoint-authority-store.js'],bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'FinanceStoreTest',write:false});
+const storeBuilt=await build({alias:sdkAlias,absWorkingDir:fileURLToPath(new URL('../web/',import.meta.url)),entryPoints:['endpoint-authority-store.js'],bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'FinanceStoreTest',write:false});
 const storeBundle=Buffer.from(storeBuilt.outputFiles[0].contents);
 async function setup(configResponse=null){
   const browser=await chromium.launch({headless:true}),context=await browser.newContext(),requests=[];
@@ -323,5 +324,26 @@ test('two real browser tabs cannot overwrite reviewed root2 checkpoint through c
   second=await fixture.context.newPage();await second.goto(origin);await second.waitForFunction(()=>!!FinanceAuthorityTest);
   const target={rootVersion:2,sequence:current.sequence,payloadSha256:current.integrity.payloadSha256};await configure(fixture.page,current,root2,nowMs,target);await configure(second,current,root2,nowMs,target);
   const results=await Promise.all([invoke(fixture.page),invoke(second)]);assert.ok(results.some(r=>r.ok),JSON.stringify(results));assert.ok(results.every(r=>r.ok||/CHECKPOINT_CONFLICT|SUPERSEDED/.test(r.error)),JSON.stringify(results));assert.deepEqual(await durableCheckpoint(fixture.page),target);
+ }finally{await fixture.browser.close()}
+});
+
+test('durable same-sequence signed root anchor upgrades through verified capability then current accept',async()=>{
+ const fixture=await setup(),{old,documents}=anchorDocuments,current=root2Current();
+ try{
+  await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);
+  await configure(fixture.page,documents[1],root,old+1100);assert.equal((await invoke(fixture.page)).ok,true);
+  const previous=manifestCheckpoint(documents[1]);assert.deepEqual(await durableCheckpoint(fixture.page),previous);
+  await fixture.page.addScriptTag({content:storeBundle.toString()});
+  const rejected=await fixture.page.evaluate(async({previous,anchor})=>{
+    const store=FinanceStoreTest.createBrowserAuthorityCheckpointStore({anchor,clock:()=>globalThis.__financeClock});
+    const errors=[];for(const next of [anchor,{...anchor,payloadSha256:'f'.repeat(64)},{...previous,rootVersion:0}]){try{await store.compareAndSwap(previous,next,{});errors.push('ACCEPTED')}catch(error){errors.push(error.message)}}
+    store.close();return errors;
+  },{previous,anchor:root2.anchor});assert.deepEqual(rejected,Array(3).fill('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK'));
+  assert.deepEqual(await durableCheckpoint(fixture.page),previous);
+  await fixture.context.route('**/api/endpoint-authority/v2/root-anchor?*',route=>{const q=new URL(route.request().url()).searchParams,after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-root-anchor/v1',after,manifest:documents[1]})})});
+  await serveHistory(fixture,documents);
+  const target={rootVersion:2,sequence:current.sequence,payloadSha256:current.integrity.payloadSha256};
+  await configure(fixture.page,current,root2,nowMs,target);const accepted=await invoke(fixture.page);assert.equal(accepted.ok,true,JSON.stringify(accepted));assert.deepEqual(await durableCheckpoint(fixture.page),target);
+  await fixture.page.reload();await configure(fixture.page,current,root2,nowMs+100,target);assert.equal((await invoke(fixture.page)).ok,true);
  }finally{await fixture.browser.close()}
 });

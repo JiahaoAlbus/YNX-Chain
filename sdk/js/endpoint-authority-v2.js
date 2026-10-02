@@ -11,6 +11,14 @@ export const AUTHORITY_V2_URLS = Object.freeze({
   explorer:'https://explorer.ynxweb4.com',indexer:'https://indexer.ynxweb4.com',monitor:'https://monitor.ynxweb4.com',
 });
 const brands = new WeakMap();
+const rootAnchorCommits = new WeakMap();
+// This capability is created only by the independently pinned, fully verified
+// recovery below. It cannot be reconstructed from a downloaded root or journal.
+export function consumeVerifiedAuthorityRootAnchorCommit(proof,storage,previous,next){
+  const binding=proof&&rootAnchorCommits.get(proof);
+  if(!binding||binding.storage!==storage||!same(binding.previous,previous)||!same(binding.next,next))return false;
+  rootAnchorCommits.delete(proof);return true;
+}
 const MAX_BYTES = 131072, DAY = 86400000, ZERO = '0'.repeat(64);
 const hash = x => typeof x==='string' && /^[a-f0-9]{64}$/.test(x);
 const commit = x => typeof x==='string' && /^[a-f0-9]{40}$/.test(x);
@@ -210,7 +218,9 @@ export async function recoverEndpointAuthorityRootAnchor({trustRoot,consumer,sto
   // self-checkpoint does not grant authority or bypass final contiguous accept.
   await verifySignedEndpointAuthority(latest,{trustRoot:r,consumer:ctx,checkpoint:nextCheckpoint(latest,r),nowMs:at});
   const beforeCommit=now(clock());check(beforeCommit>=at,'AUTHORITY_V2_CLOCK_ROLLBACK');assertAuthorityV2Manifest(latest,{nowMs:beforeCommit});
-  check(await storage.compareAndSwap(previous,r.anchor),'AUTHORITY_V2_CHECKPOINT_CONFLICT');
+  const proof=Object.freeze({});rootAnchorCommits.set(proof,{storage,previous,next:r.anchor});
+  try{check(await storage.compareAndSwap(previous,r.anchor,proof),'AUTHORITY_V2_CHECKPOINT_CONFLICT');}
+  finally{rootAnchorCommits.delete(proof);}
   const afterCommit=now(clock());check(afterCommit>=beforeCommit,'AUTHORITY_V2_CLOCK_ROLLBACK');assertAuthorityV2Manifest(latest,{nowMs:afterCommit});
   return freeze(clone(r.anchor));
 }

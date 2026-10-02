@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,canonicalAuthorityV2,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory,recoverEndpointAuthorityRootAnchor} from './endpoint-authority-v2.js';
+import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,canonicalAuthorityV2,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory,recoverEndpointAuthorityRootAnchor,consumeVerifiedAuthorityRootAnchorCommit} from './endpoint-authority-v2.js';
 import {validateEndpointAuthority,selectAuthorityEndpoint} from './endpoint-authority.js';
 import {bundledEndpointAuthority,endpointAuthorityPin} from './endpoint-authority-bundle.js';
 import {prepareAuthorityV2Draft,issueAuthorityV2,authorityV2Doctor,validateAuthorityV2ReceiptFiles} from '../../scripts/ops/endpoint-authority-v2.mjs';
@@ -321,3 +321,20 @@ test('expired historical anchor can establish reviewed floor; failed CAS and clo
 });
 
 test('root anchor requires an independently supplied exact reviewed root digest',async()=>{const f=rootTransitionFixture();delete f.options.expectedTrustRootSHA256;await assert.rejects(recoverEndpointAuthorityRootAnchor(f.options),/PIN_REQUIRED/);f.options.expectedTrustRootSHA256='f'.repeat(64);await assert.rejects(recoverEndpointAuthorityRootAnchor(f.options),/PIN_MISMATCH/);assert.deepEqual(await f.store.read(),next(f.one));});
+
+test('verified root commit capability binds exact storage and checkpoints and is single-use',async()=>{
+ const f=rootTransitionFixture();let captured,calls=0;
+ const cas=f.store.compareAndSwap;
+ f.store.compareAndSwap=async(previous,next,proof)=>{
+  calls++;captured=proof;
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit({},f.store,previous,next),false);
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit(proof,{},previous,next),false);
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit(proof,f.store,{...previous,payloadSha256:'f'.repeat(64)},next),false);
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit(proof,f.store,previous,{...next,payloadSha256:'f'.repeat(64)}),false);
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit(proof,f.store,previous,next),true);
+  assert.equal(consumeVerifiedAuthorityRootAnchorCommit(proof,f.store,previous,next),false);
+  return cas(previous,next);
+ };
+ await recoverEndpointAuthorityRootAnchor(f.options);assert.equal(calls,1);
+ assert.equal(consumeVerifiedAuthorityRootAnchorCommit(captured,f.store,next(f.one),f.rotated.anchor),false);
+});

@@ -5,7 +5,7 @@ import path from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage,canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
+import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage,canonicalAuthorityV2,recoverEndpointAuthorityRootAnchor,createEndpointAuthorityClient} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
 import {resolveFinanceBrowserRootAnchor,resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from './adapter.mjs';
 import {createNodeCheckpointStore} from './checkpoint-node.mjs';
@@ -268,4 +268,33 @@ test('original CLI emits bounded strict failure envelopes for clock rollback, ex
     assert.equal(output.officialSandboxVerified||output.providerVerified||output.productionApproved,false);
     console.info(`original_cli_failure cause=${output.code} exit=3 strict_shape=true`);
   }
+});
+
+test('same-sequence root anchor needs pinned signed recovery capability and survives restart',async t=>{
+  const f=await fixture(t),one=signed(),old={rootVersion:1,sequence:1,payloadSha256:one.integrity.payloadSha256};
+  const original=createNodeCheckpointStore({file:f.files.checkpointFile,anchor:root.anchor,trustedClockMs:nowMs});
+  assert.equal(await original.compareAndSwap(root.anchor,old),true);
+  const rotated=copy(root);rotated.rootVersion=2;rotated.anchor={...old,rootVersion:2};
+  const store=createNodeCheckpointStore({file:f.files.checkpointFile,anchor:rotated.anchor,trustedClockMs:nowMs});
+  for(const bad of [rotated.anchor,{...rotated.anchor,payloadSha256:'f'.repeat(64)},{...old,rootVersion:0}])await assert.rejects(store.compareAndSwap(old,bad,{}),/CHECKPOINT_ROLLBACK|CHECKPOINT_INVALID/);
+  assert.deepEqual(await store.read(),old);
+  const current=signed({sequence:2,previousPayloadSha256:old.payloadSha256}),ctx={consumerId:consumer.consumerId,origin:consumer.origin,clientVersion:'1.0.0'};
+  const options={trustRoot:rotated,consumer:ctx,storage:store,clock:()=>nowMs,anchorManifest:one,current,expectedCheckpoint:old,expectedTrustRootSHA256:sha(canonicalAuthorityV2(rotated))};
+  await assert.rejects(recoverEndpointAuthorityRootAnchor({...options,expectedTrustRootSHA256:'f'.repeat(64)}),/PIN_MISMATCH/);
+  assert.deepEqual(await store.read(),old);
+  assert.deepEqual(await recoverEndpointAuthorityRootAnchor(options),rotated.anchor);
+  const restarted=createNodeCheckpointStore({file:f.files.checkpointFile,anchor:rotated.anchor,trustedClockMs:nowMs});
+  assert.deepEqual(await restarted.read(),rotated.anchor);
+  await assert.rejects(recoverEndpointAuthorityRootAnchor({...options,storage:restarted,expectedCheckpoint:rotated.anchor}),/ROOT_TRANSITION/);
+  await assert.rejects(restarted.compareAndSwap(rotated.anchor,{...rotated.anchor,rootVersion:1}),/CHECKPOINT_ROLLBACK/);
+  await createEndpointAuthorityClient({trustRoot:rotated,consumer:ctx,storage:restarted,clock:()=>nowMs}).accept(current,{source:'remote'});
+  assert.deepEqual(await restarted.read(),{rootVersion:2,sequence:2,payloadSha256:current.integrity.payloadSha256});
+  assert.equal((await restarted.inspect()).trustedClockHighWaterMs,nowMs);
+  const transition=transitionPath(f.files.checkpointFile,old),originalBytes=await fs.readFile(transition);
+  for(const mutation of [row=>row.next.rootVersion=1,row=>row.next.rootVersion=0,row=>row.next.payloadSha256='f'.repeat(64),row=>row.trustedClockHighWaterMs=nowMs-1]){
+    const row=JSON.parse(originalBytes);mutation(row);await fs.writeFile(transition,canonicalAuthorityV2(row)+'\n');
+    await assert.rejects(restarted.read(),/CHECKPOINT_ROLLBACK|CHECKPOINT_INVALID/);
+    await fs.writeFile(transition,originalBytes);
+  }
+  assert.deepEqual(await restarted.read(),{rootVersion:2,sequence:2,payloadSha256:current.integrity.payloadSha256});
 });

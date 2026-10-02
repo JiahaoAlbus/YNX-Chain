@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {createHash,randomUUID} from 'node:crypto';
 import path from 'node:path';
-import {canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
+import {canonicalAuthorityV2,consumeVerifiedAuthorityRootAnchorCommit} from '../../../sdk/js/endpoint-authority-v2.js';
 
 const SCHEMA='ynx-finance-endpoint-authority-checkpoint/v1';
 const GENESIS_SCHEMA='ynx-finance-endpoint-authority-checkpoint-genesis/v1';
@@ -11,6 +11,7 @@ const clone=value=>JSON.parse(canonicalAuthorityV2(value));
 const same=(a,b)=>canonicalAuthorityV2(a)===canonicalAuthorityV2(b);
 const digest=value=>createHash('sha256').update(canonicalAuthorityV2(value)).digest('hex');
 const encoded=value=>Buffer.from(canonicalAuthorityV2(value)+'\n');
+const rootOnlyUpgrade=(previous,next)=>next.rootVersion>previous.rootVersion&&next.sequence===previous.sequence&&next.payloadSha256===previous.payloadSha256;
 
 function assertCheckpoint(value){
   if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join(',')!=='payloadSha256,rootVersion,sequence'||!Number.isSafeInteger(value.rootVersion)||value.rootVersion<1||!Number.isSafeInteger(value.sequence)||value.sequence<0||typeof value.payloadSha256!=='string'||!/^[a-f0-9]{64}$/.test(value.payloadSha256))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
@@ -112,7 +113,7 @@ function parseTransition(bytes,current){
   let value;try{value=JSON.parse(bytes.toString('utf8'));}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');}
   if(!value||Object.keys(value).sort().join(',')!=='next,previous,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==TRANSITION_SCHEMA||!same(value.previous,current.checkpoint))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
   const next=assertCheckpoint(value.next);
-  if(next.rootVersion<current.checkpoint.rootVersion||next.sequence<=current.checkpoint.sequence||value.trustedClockHighWaterMs<current.trustedClockHighWaterMs)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
+  if(next.rootVersion<current.checkpoint.rootVersion||(next.sequence<=current.checkpoint.sequence&&!rootOnlyUpgrade(current.checkpoint,next))||value.trustedClockHighWaterMs<current.trustedClockHighWaterMs)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
   return envelope(value.next,value.trustedClockHighWaterMs);
 }
 
@@ -138,12 +139,12 @@ export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
     }
     throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_CHAIN_TOO_LONG');
   }
-  return Object.freeze({
+  const store=Object.freeze({
     async read(){return (await inspect()).checkpoint;},
-    async compareAndSwap(previous,next){
+    async compareAndSwap(previous,next,rootAnchorProof){
       const current=await inspect();if(!same(current.checkpoint,previous))return false;
       const checkedNext=assertCheckpoint(next);if(same(current.checkpoint,checkedNext))return true;
-      if(checkedNext.rootVersion<current.checkpoint.rootVersion||checkedNext.sequence<=current.checkpoint.sequence)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
+      if(checkedNext.rootVersion<current.checkpoint.rootVersion||(checkedNext.sequence<=current.checkpoint.sequence&&!(rootOnlyUpgrade(current.checkpoint,checkedNext)&&same(checkedNext,initial.checkpoint)&&consumeVerifiedAuthorityRootAnchorCommit(rootAnchorProof,store,previous,checkedNext))))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
       const value={schemaVersion:TRANSITION_SCHEMA,previous:current.checkpoint,next:checkedNext,trustedClockHighWaterMs:Math.max(current.trustedClockHighWaterMs,at())},target=transitionPath(current.checkpoint);
       const published=await publishBytes(target,encoded(value)),stored=parseTransition(published.stored,current);
       await ensureMarker(target+'.committed',markerContent);
@@ -152,6 +153,7 @@ export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
     },
     async inspect(){return inspect();},
   });
+  return store;
 }
 
 export async function readTrustedTimeFile(file){
