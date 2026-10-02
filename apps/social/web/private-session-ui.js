@@ -3,6 +3,7 @@ import {SocialWorkspace,browserChatDevices} from './chat-workspace.ts';
 import {SocialAPI} from '../src/api.ts';
 import {DurableOutbox} from '../src/durableOutbox.ts';
 import {reviewContact} from './contact-review.mjs';
+import {scanContactQR} from './contact-camera.mjs';
 
 const privateSession=createSocialPrivateSession();
 const chatSession=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});
@@ -44,6 +45,7 @@ byId('chat-logout').addEventListener('click',()=>void work(async()=>{workspace.l
 byId('workspace-refresh').addEventListener('click',()=>void work(()=>workspace.refresh()));
 byId('protect-chat-device').addEventListener('click',()=>{const confirmed=confirm('Protect this browser\'s existing Social chat device? The exact old keys are encrypted and read back before its old cleartext carrier is removed. Messages and pending ciphertext are preserved. No key import or administrator credential is required.');if(confirmed)void work(async()=>{await workspace.protectExistingDevice(true);byId('protect-chat-device').hidden=true})});
 byId('contact-request-form').addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget,data=new FormData(form),source=String(data.get('source')||'handle'),value=String(data.get('handle'));void work(async()=>{const preview=await workspace.previewContact(source,value);const approved=await reviewContact(document,preview,()=>workspace.isContactPreviewCurrent(preview));if(!approved){workspace.cancelContactPreview(preview);return}await workspace.confirmContact(preview);form.reset()})});
+byId('contact-scan-qr').addEventListener('click',()=>void work(async()=>{const isCurrent=workspace.contactContextGuard(),value=await scanContactQR(document,globalThis,isCurrent);if(!value||!isCurrent())return;const preview=await workspace.previewContact('qr',value);const approved=await reviewContact(document,preview,()=>workspace.isContactPreviewCurrent(preview));if(approved)await workspace.confirmContact(preview);else workspace.cancelContactPreview(preview)}));
 byId('profile-form').addEventListener('submit',event=>{event.preventDefault();const data=new FormData(event.currentTarget);void work(()=>workspace.updateProfile({handle:String(data.get('handle')),displayName:String(data.get('displayName')),bio:String(data.get('bio'))}))});
 byId('conversation-form').addEventListener('submit',event=>{event.preventDefault();const data=new FormData(event.currentTarget);void work(()=>workspace.createConversation(String(data.get('handle'))))});
 byId('message-form').addEventListener('submit',event=>{event.preventDefault();const form=event.currentTarget,text=String(new FormData(form).get('message'));void work(async()=>{await workspace.send(text);form.reset()})});

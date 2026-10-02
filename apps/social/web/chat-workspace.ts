@@ -59,6 +59,7 @@ export class SocialWorkspace{
     this.contactPreview=preview;return preview;
   }
   isContactPreviewCurrent(preview:ContactPreview){return !!this.session&&!!this.device&&this.contactPreview===preview}
+  contactContextGuard(){const {generation}=this.active();return()=>generation===this.generation&&!!this.session&&!!this.device}
   cancelContactPreview(preview:ContactPreview){if(this.contactPreview===preview){this.contactPreview=null;this.previewSequence++}}
   async confirmContact(preview:ContactPreview){
     const {generation}=this.active();if(!this.isContactPreviewCurrent(preview))throw new Error("Contact preview changed; review again");
