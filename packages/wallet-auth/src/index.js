@@ -9,6 +9,7 @@ export * from "./integration.js";
 export * from "./registry.js";
 export * from "./lifecycle.js";
 export * from "./native-transfer.js";
+export * from "./pay-payment.js";
 export * from "./application-action.js";
 export * from "./application-action-request.js";
 export * from "./application-action-launcher.js";

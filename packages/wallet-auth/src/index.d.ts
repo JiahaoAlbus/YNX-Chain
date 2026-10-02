@@ -579,3 +579,13 @@ export declare function createFinanceEvmOrderUnusedRevocation(challenge:unknown,
 export declare function verifyAndConsumeFinanceEvmOrderUnusedRevocation(input:unknown,serverChallenge:unknown,authority:Readonly<{subjectId:string;account:string;brokerAccountId:string;sessionBinding:string;revoked:boolean}>,revoke:(input:Readonly<{approvalId:string;challengeId:string;requestId:string;subjectId:string;orderHash:string;nonce:string;asOf:string}>)=>Promise<boolean>,at:Date,verifyContractSignature?:FinanceEvmContractVerifier):Promise<Readonly<{revoked:true;approvalId:string;challengeId:string}>>;
 export { createApplicationActionLauncher } from "./application-action-launcher.js";
 export type { ApplicationActionLauncher, ApplicationActionLaunchTarget } from "./application-action-launcher.js";
+
+export type PayPaymentIntent = Readonly<{version:"1";intentType:"pay.ynxt.transfer";requestId:string;chainId:"ynx_6423-1";productClientId:"ynx-pay-v1";bundleId:"com.ynxweb4.pay";sessionBinding:string;invoiceId:string;centralInvoiceId:string;merchantId:string;merchantName:string;payoutAddress:string;amount:number;asset:"YNXT";fee:1;total:number;quoteIssuedAt:string;quoteExpiresAt:string;invoiceSignature:string;callback:"ynxpay://payment-result"}>;
+export type PayPaymentResult = Readonly<{version:"1";intentDigest:string;requestId:string;invoiceId:string;chainId:"ynx_6423-1";account:string;accountPublicKey:string;transactionHash:string;issuedAt:string;walletSignature:string}>;
+export declare const PAY_PAYMENT_INTENT_DOMAIN:"YNX_PAY_SIGNED_INTENT_V1";
+export declare const PAY_PAYMENT_RESULT_DOMAIN:"YNX_PAY_WALLET_RESULT_V1";
+export declare function parsePayPaymentIntent(value:unknown,now?:Date):PayPaymentIntent;
+export declare function payPaymentIntentDigest(intent:PayPaymentIntent):string;
+/** Signing primitive only. Caller must verify pinned invoice and explicit consent through its guarded key-access lease. No broadcast or settlement is claimed. */
+export declare function createSignedPayPaymentResult(input:Readonly<{accountSecret:string;intent:PayPaymentIntent;transferPayload:string;issuedAt:string}>,now?:Date):PayPaymentResult;
+export declare function verifyPayPaymentResult(value:unknown,intent:PayPaymentIntent,account:string,now?:Date):PayPaymentResult;
