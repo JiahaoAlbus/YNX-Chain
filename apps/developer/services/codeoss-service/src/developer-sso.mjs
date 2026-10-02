@@ -4,6 +4,7 @@ import { lstat, open } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname } from "node:path";
 import { CENTRAL_IDENTITY, createCentralIdentityVerifier, fault } from "./central-identity.mjs";
+import { createCentralFamily } from "./central-family.mjs";
 
 const PARENT = "https://developer.ynxweb4.com", COOKIE = "__Host-ynx_developer_identity", TRANSACTION = "__Host-ynx_developer_pkce";
 const random = () => randomBytes(32).toString("base64url"), hash = value => createHash("sha256").update(value).digest("hex");
@@ -12,7 +13,7 @@ const canonical = value => JSON.stringify(Object.fromEntries(Object.entries(valu
 // Product-owned consumer: PKCE verifier and central grants never enter workspace
 // processes, public URLs, JavaScript storage, logs or extension-host environments.
 export async function createDeveloperSSO({ filename, keyPath, workspaceStore, guestOwnerForRequest,
-  fetchImpl = globalThis.fetch, coreSessionInfo, onSignOut, now = Date.now } = {}) {
+  fetchImpl = globalThis.fetch, coreSessionInfo, onSignOut, familyKeyPath, familyKeyId, now = Date.now } = {}) {
   let key;
   try {
     const file = await open(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW);
@@ -55,18 +56,64 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
       db.exec("COMMIT"); return value;
     } catch (error) { db.exec("ROLLBACK"); throw error; }
   }
+  function decode(kind, id, row) {
+    const raw = Buffer.from(row.sealed, "base64"), decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
+    decipher.setAAD(Buffer.from(`${kind}:${hash(id)}`)); decipher.setAuthTag(raw.subarray(12, 28));
+    return JSON.parse(Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString());
+  }
+  const familyRecords = {
+    get(kind, id) {
+      if (!/^[A-Za-z0-9_-]{43}$/.test(id || "")) return null;
+      const row = db.prepare("SELECT * FROM developer_identity_records WHERE kind=? AND id_hash=?").get(kind, hash(id));
+      return row && row.expires_at > now() ? decode(kind, id, row) : null;
+    },
+    put(kind, id, revision, value, expires) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        db.prepare("DELETE FROM developer_identity_records WHERE kind IN ('finite-intent','finite-family') AND expires_at<=?").run(now());
+        if (!familyRecords.get(kind, id) && db.prepare("SELECT COUNT(*) AS count FROM developer_identity_records WHERE kind IN ('finite-intent','finite-family')").get().count >= 8192) throw fault("Identity capacity is temporarily unavailable.", "core_identity_unavailable", 503);
+        const old = familyRecords.get(kind, id);
+        if ((old?.revision ?? null) !== revision) throw fault("Identity was changed by another operation.", "core_identity_conflict", 409);
+        db.prepare("INSERT INTO developer_identity_records(kind,id_hash,sealed,expires_at) VALUES(?,?,?,?) ON CONFLICT(kind,id_hash) DO UPDATE SET sealed=excluded.sealed,expires_at=excluded.expires_at").run(kind, hash(id), seal(value, kind, id), expires);
+        db.exec("COMMIT");
+      } catch (error) { db.exec("ROLLBACK"); throw error; }
+    },
+    install(intentID, revision, intent, id, family, expires) {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        const current = familyRecords.get("finite-intent", intentID);
+        if (!current || canonical(current.input) !== canonical(intent.input)) throw fault("Identity intent was changed.", "core_identity_conflict", 409);
+        if (current.familyID) { db.exec("COMMIT"); return current.familyID; }
+        // Cancellation in another backend process is read in this same SQLite
+        // transaction. Keep the remote result as a fenced revoke target.
+        if (current.canceled || current.expiresAt <= now()) family = { ...family, fenced: true, revocationPending: true };
+        intent = { ...current, familyID: id, revision: current.revision + 1 };
+        store("finite-family", id, family, expires);
+        db.prepare("UPDATE developer_identity_records SET sealed=?,expires_at=? WHERE kind='finite-intent' AND id_hash=?").run(seal(intent, "finite-intent", intentID), expires, hash(intentID));
+        db.exec("COMMIT"); return id;
+      } catch (error) { db.exec("ROLLBACK"); throw error; }
+    },
+  };
+  if (Boolean(familyKeyPath) !== Boolean(familyKeyId)) throw fault("Confidential Developer identity configuration is incomplete.", "core_identity_unavailable", 503);
+  const family = familyKeyPath ? await createCentralFamily({ records: familyRecords, keyPath: familyKeyPath, keyId: familyKeyId, fetchImpl, now }) : null;
   function cookie(request, name) { return String(request.headers.cookie || "").split(";").map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1); }
   function host(request) { return String(request.headers.host || ""); }
   const grantForReference = async id => {
-    const grant = retrieve("session", id);
+    let grant = retrieve("session", id);
     if (!grant) return null;
     const reference = grant.identityReference || id;
     const parent = retrieve("session", reference);
     if (!parent || parent.subject !== grant.subject || parent.account !== grant.account || parent.generation !== grant.generation) return null;
+    if (parent.familyID) {
+      if (!family) throw fault("Finite Developer identity is not configured.", "core_identity_unavailable", 503);
+      const fresh = await family.Resolve(parent.familyID);
+      if (fresh.identity.subject !== parent.subject || fresh.identity.account !== parent.account || fresh.identity.generation !== parent.generation || !retrieve("session", reference) || !retrieve("session", id)) return null;
+      grant = { ...grant, grantToken: fresh.grantToken, expiresAt: fresh.expiresAt, familyAbsoluteExpiresAt: fresh.absoluteExpiresAt, familyCurrent: fresh.isCurrent };
+    }
     return { ...grant, identityReference: reference, isCurrent: () => {
       const current = retrieve("session", id);
       const original = retrieve("session", reference);
-      return Boolean(current && original && original.subject === grant.subject && original.account === grant.account && original.generation === grant.generation &&
+      return Boolean((!grant.familyCurrent || grant.familyCurrent()) && current && original && original.subject === grant.subject && original.account === grant.account && original.generation === grant.generation &&
         current.subject === grant.subject && current.account === grant.account && current.generation === grant.generation &&
         current.allowedHost === grant.allowedHost && current.allowedCoreSession === grant.allowedCoreSession);
     } };
@@ -97,12 +144,19 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
 
   async function handler(request, response) {
     const url = new URL(request.url, PARENT), path = url.pathname;
-    if (!["/sso/start", "/sso/callback", "/sso/core-open", "/sso/core-admit", "/runtime/identity", "/runtime/identity/import", "/runtime/identity/logout"].includes(path)) return false;
+    if (!["/sso/start", "/sso/callback", "/sso/core-open", "/sso/core-admit", "/runtime/identity", "/runtime/identity/activity", "/runtime/identity/import", "/runtime/identity/logout"].includes(path)) return false;
     try {
       if (path === "/sso/start" && request.method === "GET") {
         parentOnly(request);
         const state = random(), verifier = random(), transaction = random();
-        store("pkce", transaction, { state, verifier }, now() + 120000);
+        const priorTransaction = cookie(request, TRANSACTION), priorIntent = retrieve("pkce", priorTransaction);
+        if (priorIntent) {
+          db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='pkce' AND id_hash=?").run(hash(priorTransaction));
+          if (priorIntent.intentID) await family.Logout({ intentID: priorIntent.intentID });
+        }
+        const previous = retrieve("session", cookie(request, COOKIE));
+        const intentID = family ? await family.Prepare({ state, previousFamilyID: previous?.familyID || "" }) : null;
+        store("pkce", transaction, { state, verifier, ...(intentID ? { intentID } : {}) }, now() + 120000);
         const destination = new URL("https://wallet-auth.ynxweb4.com/v2/browser-sessions/authorize");
         for (const [name, value] of Object.entries({ clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
           redirectUri: CENTRAL_IDENTITY.callback, state, codeChallenge: createHash("sha256").update(verifier).digest("base64url"), codeChallengeMethod: "S256" })) destination.searchParams.set(name, value);
@@ -111,25 +165,34 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
       if (path === "/sso/callback" && request.method === "GET") {
         parentOnly(request);
         if ([...url.searchParams].length !== new Set(url.searchParams.keys()).size || [...url.searchParams.keys()].some(name => !["state", "code", "error"].includes(name))) throw fault("Wallet callback fields are invalid.", "developer_sso_callback_invalid", 400);
-        const pkce = retrieve("pkce", cookie(request, TRANSACTION), true);
+        const transaction = cookie(request, TRANSACTION), pkce = retrieve("pkce", transaction);
         if (!pkce || pkce.state !== url.searchParams.get("state")) throw fault("Wallet callback state expired or did not match this browser.", "developer_sso_state_invalid", 401);
-        if (url.searchParams.has("error")) { redirect(response, "/", [setCookie(TRANSACTION, "", 0)]); return true; }
-        const result = await backend("token", { clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
+        if (url.searchParams.has("error")) { if (pkce.intentID) await family.Logout({ intentID: pkce.intentID }); retrieve("pkce", transaction, true); redirect(response, "/", [setCookie(TRANSACTION, "", 0)]); return true; }
+        const result = pkce.intentID ? await family.Redeem({ code: url.searchParams.get("code"), state: pkce.state, codeVerifier: pkce.verifier, intentID: pkce.intentID }) : await backend("token", { clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
           redirectUri: CENTRAL_IDENTITY.callback, code: url.searchParams.get("code"), state: pkce.state, codeVerifier: pkce.verifier });
-        const expires = Math.min(Date.parse(result.expiresAt), Date.parse(result.identity?.expiresAt));
+        const expires = Math.min(Date.parse(result.absoluteExpiresAt || result.expiresAt), Date.parse(result.identity?.expiresAt));
         if (typeof result.grantToken !== "string" || result.grantToken.length < 32 || result.audience !== CENTRAL_IDENTITY.audience ||
           JSON.stringify(result.scopes) !== '["identity:read"]' || !Number.isFinite(expires) || expires <= now() ||
           typeof result.identity?.subject !== "string" || typeof result.identity.account !== "string" || !Number.isSafeInteger(result.identity.generation))
           throw fault("Wallet grant did not match the Developer identity contract.", "developer_sso_grant_invalid", 401);
         const owner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${result.identity.subject}`).digest("hex");
         // New Wallet-owned space, never implicit adoption of the current guest.
-        db.prepare("INSERT OR IGNORE INTO developer_identity_bindings VALUES(?,?)").run(owner, owner);
-        const id = random(); store("session", id, { grantToken: result.grantToken, ...result.identity, allowedHost: new URL(PARENT).host }, expires);
+        const id = random();
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          const pending = db.prepare("SELECT * FROM developer_identity_records WHERE kind='pkce' AND id_hash=?").get(hash(transaction));
+          if (!pending || pending.consumed || pending.expires_at <= now() || (result.isCurrent && !result.isCurrent())) throw fault("Sign-in was canceled by this browser.", "developer_sso_state_invalid", 401);
+          db.prepare("INSERT OR IGNORE INTO developer_identity_bindings VALUES(?,?)").run(owner, owner);
+          store("session", id, { grantToken: result.grantToken, ...result.identity, ...(result.familyID ? { familyID: result.familyID, csrf: random(), absoluteExpiresAt: result.absoluteExpiresAt } : {}), allowedHost: new URL(PARENT).host }, expires);
+          db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='pkce' AND id_hash=?").run(hash(transaction));
+          db.exec("COMMIT");
+        } catch (error) { db.exec("ROLLBACK"); if (result.familyID) await family.Logout({ familyID: result.familyID, intentID: pkce.intentID }); throw error; }
         redirect(response, "/", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000)), setCookie(TRANSACTION, "", 0)]); return true;
       }
       if (path === "/runtime/identity" && request.method === "GET") {
         parentOnly(request); const id = await verifyIdentity(request);
-        json(response, 200, { connected: true, account: id.account, generation: id.generation, expiresAt: id.expiresAt, permissions: ["identity:read"] }); return true;
+        const grant = await grantForRequest(request);
+        json(response, 200, { connected: true, account: id.account, generation: id.generation, expiresAt: id.expiresAt, permissions: ["identity:read"], ...(grant?.csrf ? { csrf: grant.csrf } : {}) }); return true;
       }
       if (path === "/runtime/identity/import" && request.method === "POST") {
         sameOrigin(request); const id = await verifyIdentity(request), input = await bodyJSON(request), guest = guestOwnerForRequest(request);
@@ -142,19 +205,33 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         const saved = workspaceStore.put(id.workspaceOwner, input.projectId, { expectedRevision: 0, idempotencyKey: `identity-copy-${input.approvalId}`, payload });
         json(response, 201, { copied: true, projectId: input.projectId, revision: saved.revision, originalPreserved: true }); return true;
       }
+      if (path === "/runtime/identity/activity" && request.method === "POST") {
+        sameOrigin(request); const grant = await grantForRequest(request), input = await bodyJSON(request);
+        if (!grant?.familyID || input.csrf !== grant.csrf || Object.keys(input).sort().join(',') !== 'action,csrf,eventId' ||
+          !['edit', 'save', 'open-project', 'review-tool'].includes(input.action) || !/^[A-Za-z0-9_-]{43}$/.test(input.eventId || ''))
+          throw fault("Activity requires a reviewed action in this signed-in browser.", "developer_activity_invalid", 403);
+        await family.Activity(grant.familyID, input.eventId, now()); json(response, 200, { accepted: true }); return true;
+      }
       if (path === "/runtime/identity/logout" && request.method === "POST") {
-        sameOrigin(request); const grant = await grantForRequest(request);
+        sameOrigin(request);
         const id = cookie(request, COOKIE);
+        const saved = (kind, opaqueID) => { if (!/^[A-Za-z0-9_-]{43}$/.test(opaqueID || "")) return null; const row = db.prepare("SELECT * FROM developer_identity_records WHERE kind=? AND id_hash=?").get(kind, hash(opaqueID)); return row && row.expires_at > now() ? decode(kind, opaqueID, row) : null; };
+        const grant = saved("session", id);
+        const pendingID = cookie(request, TRANSACTION), pending = saved("pkce", pendingID);
         if (id) db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='session' AND id_hash=?").run(hash(id));
+        if (pendingID) db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='pkce' AND id_hash=?").run(hash(pendingID));
         // Local exit must not depend on expired or unavailable central authority.
-        response.setHeader("set-cookie", setCookie(COOKIE, "", 0));
+        // Start the durable family/intent fence before any awaited drain/network.
+        const revoke = (grant?.familyID || pending?.intentID) ? family.Logout({ familyID: grant?.familyID, intentID: pending?.intentID }).then(() => true, () => false) : null;
         let centralRevoked = false, workspacesStopped = true;
         if (grant) {
           const owner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${grant.subject}`).digest("hex");
-          try { await onSignOut?.(owner); } catch { workspacesStopped = false; }
-          try { await backend("logout-grant", { clientId: CENTRAL_IDENTITY.clientId, grantToken: grant.grantToken }); centralRevoked = true; } catch {}
+          try { await onSignOut?.(owner, id); } catch { workspacesStopped = false; }
+          try { if (revoke) centralRevoked = await revoke; else { await backend("logout-grant", { clientId: CENTRAL_IDENTITY.clientId, grantToken: grant.grantToken }); centralRevoked = true; } } catch {}
         }
-        json(response, 200, { signedOut: true, centralRevoked, workspacesStopped }); return true;
+        else if (revoke) centralRevoked = await revoke;
+        if (workspacesStopped && (!revoke || centralRevoked)) response.setHeader("set-cookie", [setCookie(COOKIE, "", 0), setCookie(TRANSACTION, "", 0)]);
+        json(response, !workspacesStopped || (revoke && !centralRevoked) ? 503 : 200, { signedOut: true, centralRevoked, workspacesStopped, revocationPending: Boolean(revoke && !centralRevoked) }); return true;
       }
       if (path === "/sso/core-open" && request.method === "GET") {
         parentOnly(request); const sessionId = url.searchParams.get("sessionId");
@@ -172,7 +249,7 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         if (request.headers.origin !== PARENT || request.headers["content-type"] !== "application/x-www-form-urlencoded") throw fault("Native IDE admission origin did not match.", "core_proxy_origin_invalid", 403);
         const raw = await bodyBuffer(request), params = new URLSearchParams(raw), ticket = retrieve("core-ticket", params.get("ticket"), true);
         if ([...params].length !== 1 || !ticket || ticket.allowedHost !== host(request)) throw fault("Native IDE admission ticket expired or belongs to another origin.", "core_ticket_invalid", 401);
-        const id = random(), expires = Math.min(ticket.identityExpiresAt, Date.parse(ticket.expiresAt));
+        const id = random(), expires = Math.min(ticket.identityExpiresAt, Date.parse(ticket.absoluteExpiresAt || ticket.expiresAt));
         if (!Number.isFinite(expires) || expires <= now()) throw fault("Native IDE identity expired.", "core_identity_invalid", 401);
         store("session", id, ticket, expires);
         // Every subsequent HTTP/WS request revalidates central identity + exact

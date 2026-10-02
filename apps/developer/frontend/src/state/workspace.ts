@@ -1,3 +1,4 @@
+import { identityActivity } from '../codeoss/identityActivity';
 export type ProjectState = { id:string; name:string; revision:number; remoteRevision:number; files:Record<string,string>; folders:string[]; open:string[]; active:string };
 type DesktopWorkspace = {
   initialProject: unknown;
@@ -66,6 +67,7 @@ export async function saveProject(project: ProjectState): Promise<void> {
   // Native acknowledgement is required before the UI reports a durable save.
   if (native) await native.saveProject(snapshot);
   try { localStorage.setItem(KEY, JSON.stringify(snapshot)); } catch (error) { if (!native) throw error; }
+  void identityActivity.savedTrustedEdit().catch(() => {});
 }
 export function validPath(path:string){return path.length>0&&path.length<=240&&!path.startsWith("/")&&!path.includes("..")&&/^[A-Za-z0-9_./ +@-]+$/.test(path)&&!path.split("/").some(part=>!part||part===".");}
 export function foldersFromFiles(paths:string[]){const folders=new Set<string>();for(const path of paths){const parts=path.split("/").slice(0,-1);for(let index=1;index<=parts.length;index++)folders.add(parts.slice(0,index).join("/"));}return [...folders].sort();}

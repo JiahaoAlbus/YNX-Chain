@@ -17,7 +17,7 @@ export function createCentralIdentityVerifier({ grantForRequest, workspaceBindin
     if (!sealed || typeof sealed.grantToken !== "string" || sealed.grantToken.length < 32 || sealed.grantToken.length > 8192)
       throw fault("Connect the current Wallet identity before launching this project.", "core_identity_required", 401);
     const sealedOwner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${sealed.subject}`).digest("hex");
-    const revoked = (message, code) => Object.assign(fault(message, code, 401), { verifiedOwner: sealedOwner });
+    const revoked = (message, code) => Object.assign(fault(message, code, 401), { verifiedOwner: sealedOwner, verifiedIdentityReference: sealed.identityReference || null });
     const assertCurrent = () => { if (typeof sealed.isCurrent === "function" && !sealed.isCurrent()) throw revoked("Wallet identity changed or was signed out.", "core_identity_changed"); };
     assertCurrent();
     // Exact canonical sorted keys. No browser Origin, Sec-Fetch-Site or Cookie.

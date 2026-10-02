@@ -63,7 +63,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   async function identity(request) {
     let id;
     try { id = await verifyIdentity(request); }
-    catch (error) { if (error.status === 401 && /^[a-f0-9]{64}$/.test(error.verifiedOwner || "")) await drainOwner(error.verifiedOwner); throw error; }
+    catch (error) { if (error.status === 401 && /^[a-f0-9]{64}$/.test(error.verifiedOwner || "")) await drainOwner(error.verifiedOwner, error.verifiedIdentityReference); throw error; }
     if (!id || !/^[a-f0-9]{64}$/.test(id.owner || "") || !/^[a-f0-9]{64}$/.test(id.workspaceOwner || "") ||
       !Number.isSafeInteger(id.generation) || id.generation < 0 || typeof id.account !== "string" ||
       !Number.isFinite(id.expiresAt) || id.expiresAt <= now())
@@ -276,9 +276,13 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     const results = await Promise.allSettled(rows.map(stop));
     if (results.some(result => result.status === "rejected")) throw fault("Native IDE drain retained protected recovery.", "core_drain_incomplete", 503);
   }
-  async function drainOwner(owner) {
-    const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND status IN (${LIVE})`).all(owner);
-    return Promise.allSettled(rows.map(stop));
+  async function drainOwner(owner, identityReference) {
+    const rows = identityReference
+      ? db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND identity_reference=? AND status IN (${LIVE})`).all(owner, identityReference)
+      : db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND status IN (${LIVE})`).all(owner);
+    const results = await Promise.allSettled(rows.map(stop));
+    if (results.some(result => result.status === "rejected")) throw fault("Native IDE owner drain retained protected recovery.", "core_drain_incomplete", 503);
+    return results;
   }
   // Workspace store owns this shared connection and closes it after draining.
   return { handler, guardWorkspaceWrite, authorizeConnection, expireSessions, drain, drainOwner, close: () => {

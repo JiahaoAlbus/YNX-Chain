@@ -128,9 +128,11 @@ let codeossService;
 const developerSSO = await createDeveloperSSO({
   filename: join(stateDir, "developer-identity.sqlite"), keyPath: join(stateDir, "developer-identity.key"), workspaceStore,
   guestOwnerForRequest: request => runtime.ownerForRequest(request),
+  familyKeyPath: process.env.YNX_DEVELOPER_CENTRAL_BACKEND_KEY_FILE,
+  familyKeyId: process.env.YNX_DEVELOPER_CENTRAL_BACKEND_KEY_ID,
   coreSessionInfo: async (request, sessionId) => { const admitted = await codeossService.authorizeConnection(request, sessionId);
     return { origin: await coreAdmission.originForSession(sessionId), expiresAt: admitted.expiresAt }; },
-  onSignOut: owner => codeossService.drainOwner(owner),
+  onSignOut: (owner, identityReference) => codeossService.drainOwner(owner, identityReference),
 });
 codeossService = createCodeOSSService({
   ...coreAdmission, filename: join(stateDir, "codeoss.sqlite"), root: join(stateDir, "native-ide"), workspaceStore,

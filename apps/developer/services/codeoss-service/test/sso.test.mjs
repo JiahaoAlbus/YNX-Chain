@@ -14,10 +14,10 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
   const guest = "a".repeat(64), source = { name: "Original", files: { "main.js": "console.log(42)" }, folders: [], open: ["main.js"], active: "main.js" };
   store.put(guest, "project", { expectedRevision: 0, idempotencyKey: "guest-original", payload: source });
   const grant = "private-grant-never-in-browser".repeat(3), identity = { subject: "nativeynx:alice", account: "ynx1alice", generation: 1, expiresAt: new Date(Date.now() + 3600000).toISOString() };
-  let tokenInput, revoked = false, authorityFailure = 0, stoppedOwners = [];
+  let tokenInput, revoked = false, authorityFailure = 0, stoppedOwners = [], stopFailure = false;
   const service = await createDeveloperSSO({ filename: join(root, "identity.sqlite"), keyPath: join(root, "identity.key"), workspaceStore: store,
     guestOwnerForRequest: () => guest, coreSessionInfo: async () => ({ origin: "https://core.native.ynxweb4.com", expiresAt: Date.now() + 3600000 }),
-    onSignOut: async owner => { stoppedOwners.push(owner); },
+    onSignOut: async owner => { stoppedOwners.push(owner); if (stopFailure) throw Object.assign(new Error("Protected recovery"), { code: "core_drain_incomplete" }); },
     fetchImpl: async (url, options) => {
       assert.equal(options.headers.origin, undefined); assert.equal(options.headers.cookie, undefined); assert.equal(options.headers["sec-fetch-site"], undefined);
       const input = JSON.parse(options.body); assert.deepEqual(Object.keys(input), Object.keys(input).sort());
@@ -57,6 +57,12 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
   assert.equal(nativeIdentity.identityReference, verified.identityReference);
   assert.equal((await service.verifyIdentity.resolveReference(verified.identityReference)).owner, verified.owner);
   await assert.rejects(service.verifyIdentity({ headers: { host: "other.native.ynxweb4.com", cookie: nativeCookie } }), { code: "core_identity_required" });
+  stopFailure = true;
+  const unconfirmedExit = await call("/runtime/identity/logout", { cookie: sessionCookie, method: "POST", origin: "https://developer.ynxweb4.com" });
+  assert.equal(unconfirmedExit.status, 503); assert.equal(JSON.parse(unconfirmedExit.text).workspacesStopped, false);
+  assert.equal(unconfirmedExit.headers["set-cookie"], undefined);
+  await assert.rejects(service.verifyIdentity({ headers: { host: "developer.ynxweb4.com", cookie: sessionCookie } }), { code: "core_identity_required" });
+  stopFailure = false;
   assert.equal((await call("/runtime/identity/logout", { cookie: sessionCookie, method: "POST", origin: "https://developer.ynxweb4.com" })).status, 200);
   await assert.rejects(service.verifyIdentity({ headers: { host: "core.native.ynxweb4.com", cookie: nativeCookie } }), { code: "core_identity_required" });
   await assert.rejects(service.verifyIdentity.resolveReference(verified.identityReference), { code: "core_identity_required" });

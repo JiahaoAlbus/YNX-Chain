@@ -81,6 +81,34 @@ test("live child or wrong runtime proof retains writer and allows actual Stop re
   assert.equal((await f.call(`/${sessionId}`, "DELETE")).status, 200); assert.equal(attempt, 2);
 });
 
+test("owner drain rejects unconfirmed stop and preserves the writer until explicit retry", async t => {
+  let confirmed = false;
+  const f = await fixture(t, { stop: async value => ({ stopped: confirmed, runtimeId: value.runtimeId, identityDigest: value.identityDigest }) });
+  const launched = await f.launch(); assert.equal(launched.status, 201);
+  await assert.rejects(f.service().drainOwner(ownerA), { code: "core_drain_incomplete", status: 503 });
+  assert.equal((await f.call()).value.sessions[0].status, "recovery-required");
+  assert.throws(() => f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "still-protected", payload: snapshot }), { code: "core_writer_active" });
+  confirmed = true; await f.service().drainOwner(ownerA);
+  assert.equal((await f.call()).value.sessions[0].status, "stopped");
+});
+
+test("browser-scoped logout preserves an independent same-account runtime", async t => {
+  const verifyIdentity = async request => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1,
+    identityReference: request.headers["x-test-reference"] || "browser-a", expiresAt: Date.now() + 300000 });
+  verifyIdentity.resolveReference = async reference => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1, identityReference: reference, expiresAt: Date.now() + 300000 });
+  const f = await fixture(t, { verifyIdentity, limits: { activePerOwner: 2 } });
+  assert.equal((await f.launch()).status, 201);
+  f.store.put(ownerA, "project-b", { expectedRevision: 0, idempotencyKey: "browser-b-seed", payload: snapshot });
+  const b = await f.call("", "POST", { projectId: "project-b", expectedRevision: 1, approval: "launch-native-ide-once" }, { "x-test-reference": "browser-b" });
+  assert.equal(b.status, 201);
+  await f.service().drainOwner(ownerA, "browser-a");
+  const rows = (await f.call()).value.sessions;
+  assert.equal(rows.find(row => row.projectId === project).status, "stopped");
+  assert.equal(rows.find(row => row.projectId === "project-b").status, "running");
+  assert.equal((await f.service().authorizeConnection({ headers: { "x-test-reference": "browser-b" } }, b.value.session.sessionId)).identity.identityReference, "browser-b");
+  await f.service().drainOwner(ownerA, "browser-b");
+});
+
 test("owner/generation isolation, hard owner capacity, duplicate project and durable restart", async t => {
   const f = await fixture(t, { limits: { activePerOwner: 1 } }), launched = await f.launch();
   const sessionId = launched.value.session.sessionId;
