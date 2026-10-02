@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-02T16:24:46.427Z",
+  "sourceCheckpoint": "97fbb1c27",
+  "previousFreeze": "f52cd39198e267ea3b84baf12834c0e5d40b89cf",
+  "goalComplete": false,
+  "sourceCommits": [
+    "3a774e0c5",
+    "2dcd552c7",
+    "ea808e45d",
+    "6198773be",
+    "97fbb1c27"
+  ],
+  "changes": {
+    "creator": "Bounded cancellable upload/AI operations, stable form snapshot, no multipart transparent replay, exact owned persisted recovery, AI selection fencing",
+    "videoBackend": "Persisted authorized failure receipts and cancelled queue checks preserving original files",
+    "musicAndroid": "Separate signout preserves account files, invalidates pending callbacks and playback, retains encrypted session on transient read failure, requires completed session write",
+    "musicApple": "Verified account directories, preserved unattributed legacy originals, captured session/operation contexts, scoped clear, persistent credential error handling and playback stop",
+    "videoNative": "Official public endpoint, redirect rejection, late-request/navigation isolation, preserved P256 device key; unverified callback parameters confer no private authority"
+  },
+  "validation": {
+    "creatorTests": 61,
+    "videoGoRace": true,
+    "creatorLocalResponsiveWidths": [
+      360,
+      1280
+    ],
+    "musicAndroidResourceAndJavaCompile": true,
+    "videoAndroidResourceAndJavaCompile": true,
+    "musicAppleActualCoreTests": true,
+    "musicAppleModelAndPlayerHostTypecheck": true,
+    "videoAppleActualModelTests": true,
+    "videoAppleInjectedCredentialTests": true,
+    "appleSwiftSourceParse": true,
+    "appleProjectLint": true,
+    "musicLocaleAudit": {
+      "locales": 12,
+      "keys": 56
+    }
+  },
+  "logs": [
+    "/tmp/ynx-creator-review-regressions-check-20261003.log",
+    "/tmp/ynx-creator-request-independent-fixed-20261003.json",
+    "/tmp/ynx-media-upload-recovery-go-race-20261003.log",
+    "/tmp/ynx-media-upload-formdata-browser-20261003.json",
+    "/tmp/ynx-creator-upload-ui-20261003.json",
+    "/tmp/ynx-music-apple-account-check-20261003.log",
+    "/tmp/ynx-media-music-signout-compile-20261003.log",
+    "/tmp/ynx-media-video-native-boundary-final2-20261003.log"
+  ],
+  "limitations": {
+    "fullAppleUITypecheck": "Host CLT lacks SwiftUIMacros and iOS SDK; view syntax parsed, actual model/player/core compiled separately",
+    "nativePrivateLoginComplete": false,
+    "canonicalMusicV2Registered": false,
+    "genericBusinessProofIntegrated": false,
+    "musicWebPrivateWorkspaceComplete": false,
+    "macOSFormalPackageComplete": false,
+    "formalPublicNewSourceDeployed": false,
+    "installedAcceptance": false,
+    "realOwnedPublicUploadPublicationJourney": false,
+    "monster": "NOT_RUN"
+  },
+  "nextWork": [
+    {
+      "owner": "A via central coordinator",
+      "task": "Supply the mature native session lifecycle and exact method/path/bodyDigest/nonce/session proof interfaces, canonical Music v2 registry and normal service configuration"
+    },
+    {
+      "owner": "Media",
+      "task": "Integrate the supplied shared interfaces into original Video Java/Swift and Music native/Web engines, then complete restored authenticated private workflows and account lifecycle"
+    },
+    {
+      "owner": "A and Media",
+      "task": "Build and deploy exact compatible formal versions with A as sole publisher, then retest normal formal entry, approval/rejection, owned business persistence, tab/close/reopen/switch/logout and final Android/macOS/Web packages"
+    }
+  ],
+  "preservation": {
+    "originalMusicWorktreesWrittenByThisWork": false,
+    "realKeychainOrUserFilesTouchedByTests": false,
+    "stagedUploadCleanup": "Only the current request staging object before first persistence; saved originals retained",
+    "sharedAuthOrHostChangesByMedia": false
+  }
+}
