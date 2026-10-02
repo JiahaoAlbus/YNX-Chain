@@ -1,6 +1,7 @@
+import {recoverIndexedComment} from './restricted-comment-recovery.mjs';
 // Caller supplies the original guarded Matrix consumer and existing comment
 // publication flow. This view never requests a Wallet grant or creates identity.
-export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,capture,assertCurrent}) {
+export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,capture,assertCurrent}) {
   if(!root||typeof consumer?.read!=='function'||typeof loadIndexes!=='function'||typeof capture!=='function'||typeof assertCurrent!=='function')throw new Error('MATRIX_FEED_CONFIGURATION_REQUIRED');
   const document=root.ownerDocument;
   const section=document.createElement('section'),title=document.createElement('h2');
@@ -8,14 +9,16 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
   const refresh=document.createElement('button');refresh.type='button';refresh.textContent='Refresh encrypted moments';
   const status=document.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const list=document.createElement('div');
-  section.append(title,refresh,status,list);root.append(section);
+  const recovery=document.createElement('button'),draft=document.createElement('p');
+  recovery.type='button';recovery.textContent='Verify original pending comment';recovery.hidden=true;
+  section.append(title,refresh,status,draft,recovery,list);root.append(section);
   let epoch=0,locked=false,busy=false,pendingIntent=null;
-  const controls=new Set([refresh]);
+  const controls=new Set([refresh,recovery]);
   const gate=(generation,binding)=>{if(locked||generation!==epoch)throw new Error('MATRIX_FEED_STALE');assertCurrent(binding)};
   const setBusy=value=>{busy=value;for(const control of controls)control.disabled=locked||busy};
-  const clear=()=>{list.replaceChildren();controls.clear();controls.add(refresh)};
+  const clear=()=>{list.replaceChildren();draft.textContent='';recovery.hidden=true;controls.clear();controls.add(refresh);controls.add(recovery)};
   const addComment=(article,index,decoded)=>{
-    if(!decoded.parent||typeof publishComment!=='function'||typeof commentDrafts?.load!=='function'||typeof commentDrafts?.save!=='function'||typeof commentDrafts?.clearConfirmed!=='function')return;
+    if(!decoded.parent||typeof publishComment!=='function'||typeof commentSender!=='function'||typeof commentDrafts?.load!=='function'||typeof commentDrafts?.save!=='function'||typeof commentDrafts?.clearConfirmed!=='function')return;
     const form=document.createElement('form'),input=document.createElement('textarea'),button=document.createElement('button');
     input.setAttribute('aria-label','Encrypted comment');input.maxLength=16000;
     button.type='submit';button.textContent='Publish encrypted comment';
@@ -32,7 +35,9 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
         if(!current.parent||JSON.stringify(current.parent)!==JSON.stringify(decoded.parent))throw new Error('MATRIX_COMMENT_PARENT_CHANGED');
         const existing=await commentDrafts.load(binding);gate(generation,binding);
         if(existing){pendingIntent=existing;throw new Error('MATRIX_COMMENT_RECOVERY_REQUIRED')}
-        const intent={transactionId:document.defaultView.crypto.randomUUID(),text,selection:{kind:index.audience.kind},status:'delivery-unknown',file:null,comment:{index:structuredClone(index),parent:structuredClone(current.parent)}};
+        const author=await commentSender(binding);gate(generation,binding);
+        if(typeof author!=='string'||!author.startsWith('@'))throw new Error('MATRIX_COMMENT_IDENTITY_REQUIRED');
+        const intent={transactionId:document.defaultView.crypto.randomUUID(),text,selection:{kind:index.audience.kind},status:'delivery-unknown',file:null,comment:{author,index:structuredClone(index),parent:structuredClone(current.parent)}};
         // Reserve before the storage await. Even uncertain storage completion
         // must not permit a replacement intent; no Matrix send precedes save.
         pendingIntent=intent;
@@ -70,10 +75,24 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
         addComment(article,index,decoded);list.append(article);
       }
       status.textContent=pendingIntent?'Protected intent requires recovery. Original draft retained; do not resend.':rendered.length?'Encrypted moments verified.':'No accessible encrypted moments.';
+      if(pendingIntent?.comment){draft.textContent=pendingIntent.text;recovery.hidden=typeof commentSender!=='function'}
     }catch{
       if(!locked&&generation===epoch){clear();status.textContent='Encrypted moments unavailable. No plaintext fallback.'}
-    }finally{if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh)control.disabled=true}}
+    }finally{if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh&&control!==recovery)control.disabled=true}}
   };
+  recovery.addEventListener('click',async()=>{
+    if(locked||busy||!pendingIntent?.comment||typeof commentSender!=='function')return;
+    const original=pendingIntent,generation=epoch,binding=capture();setBusy(true);
+    try{
+      gate(generation,binding);
+      const expectedSender=await commentSender(binding);gate(generation,binding);
+      const receipt=await recoverIndexedComment({intent:original,expectedSender,loadIndexes,consumer,guard:()=>gate(generation,binding)});
+      gate(generation,binding);if(pendingIntent!==original)throw new Error('MATRIX_COMMENT_STALE');
+      await commentDrafts.clearConfirmed(receipt.transactionId,binding);gate(generation,binding);
+      pendingIntent=null;draft.textContent='';recovery.hidden=true;status.textContent='Original encrypted comment confirmed. No resend performed.';
+    }catch{if(!locked&&generation===epoch)status.textContent='Original comment not confirmed. Protected intent retained; no resend.'}
+    finally{if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh&&control!==recovery)control.disabled=true}}
+  });
   refresh.addEventListener('click',reload);
   return Object.freeze({reload,lock(){locked=true;++epoch;clear();setBusy(false);status.textContent='Encrypted moments locked.'},destroy(){locked=true;++epoch;section.remove()}});
 }
