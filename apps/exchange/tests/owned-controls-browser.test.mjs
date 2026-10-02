@@ -10,6 +10,20 @@ const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
+test('private and browser identity actions use Klein-blue 44px controls without changing disabled or hidden state',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.evaluate(()=>{const panel=document.createElement('div');panel.id='browser-identity';panel.innerHTML='<a href="/sso/start">Sign in across YNX products</a><button hidden>Sign out of Exchange</button><button>Recheck browser identity</button>';document.querySelector('#private-account').append(panel)});
+    const button=page.locator('#private-begin');assert.equal(await button.isDisabled(),false);assert.equal(await button.evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(0, 47, 167)');
+    assert.ok((await button.boundingBox()).height>=44);assert.ok((await page.locator('#browser-identity a').boundingBox()).height>=44);
+    assert.equal(await page.locator('#browser-identity button[hidden]').isVisible(),false);assert.equal(await page.locator('#private-open').isVisible(),false);
+    await button.focus();assert.ok(await button.evaluate(element=>parseFloat(getComputedStyle(element).outlineWidth)>=3));
+    await button.evaluate(element=>element.disabled=true);assert.equal(await button.isDisabled(),true);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+  }finally{await browser.close();}
+});
 test('verified support reads, local support drafts and security state remain bound to the current native account',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
