@@ -73,7 +73,7 @@ func main() {
 	}
 	productSessions := map[string]social.ProductSessionAuthorizer{}
 	for _, platform := range []string{"web", "android", "ios"} {
-		policy := productsessionv2.Policy{ProductID: social.RequestingProduct, ClientID: social.ProductClientID, ApplicationID: social.BundleID, Platform: platform, Origin: "app://" + platform + "/" + social.BundleID, Callback: social.Callback, AllowedScopes: []string{"account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"}}
+		policy := productsessionv2.Policy{ProductID: social.RequestingProduct, ClientID: social.ProductClientID, ApplicationID: social.BundleID, Platform: platform, Origin: "app://" + platform + "/" + social.BundleID, Callback: social.Callback, AllowedScopes: socialAllowedScopes()}
 		identifier := social.BundleID
 		switch platform {
 		case "web":
