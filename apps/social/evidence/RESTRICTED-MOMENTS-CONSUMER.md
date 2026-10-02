@@ -3,7 +3,11 @@
 Production consumer: web/matrix/restricted-moments.mjs. This consumer requires
 an injected live audience authority and the existing MatrixSocialTransport.
 No audience endpoint, consent scope, Matrix user or cryptographic primitive
-is created by this checkpoint. It is not yet wired into the product UI.
+is created by this checkpoint. The existing Matrix session UI now mounts an
+audience-review/composer panel, but with no approved audience adapter its
+controls remain disabled. Chat permission does not enable restricted publishing.
+The composer preserves draft and exact retry identity in this workspace only;
+no protected durable recovery or browser interaction acceptance is established.
 
 Local policy regression: 83 tests pass, zero skipped. The first comment-enabled
 typecheck failed TS2322 because JS inferred parent as null-only. The initial

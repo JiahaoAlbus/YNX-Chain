@@ -5,6 +5,7 @@ import {createSocialPrivateSession,SOCIAL_CHAT_SCOPES} from '../private-session.
 import {createSsoReauthController} from './sso-reauth.mjs';
 import {createChatConfirmation} from './chat-confirmation.mjs';
 import {createChatCopy} from './chat-copy.mjs';
+import {createRestrictedMomentsUI} from './restricted-moments-ui.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -12,7 +13,8 @@ if(root&&!loginCallback){
  const copy=createChatCopy(document),confirmation=createChatConfirmation({container:root,text:copy.text});
  for(const node of root.querySelectorAll('[data-chat-copy]'))if(node.dataset.chatCopy)node.textContent=copy.text(node.dataset.chatCopy);
  const label=text=>{status.textContent=copy.message(text)},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,activeWork=null,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false,sendReady=false;
- function controls(){root.querySelector('[data-send-form] button').disabled=!sendReady||!!activeWork;root.querySelector('[data-attachment]').disabled=!sendReady||!!activeWork}
+ let momentComposer=null;
+ function controls(){root.querySelector('[data-send-form] button').disabled=!sendReady||!!activeWork;root.querySelector('[data-attachment]').disabled=!sendReady||!!activeWork;momentComposer?.refresh()}
  function phase(value,text){status.dataset.phase=value;root.dataset.chatPhase=value;root.querySelector('[data-connection-label]').textContent=copy.text('state'+value[0].toUpperCase()+value.slice(1));label(text??copy.text(value));controls()}
  function diagnostic(error){const code=typeof error?.code==='string'&&/^[A-Z][A-Z0-9_]{2,63}$/.test(error.code)?error.code:'ACTION_UNAVAILABLE';root.querySelector('[data-diagnostic-code]').textContent=code}
  const transport=new MatrixSocialTransport({reauthenticateDevice:input=>reauth.request(input),publish:event=>{if(event.type==='sync'){sendReady=false;phase(["PREPARED","SYNCING"].includes(event.state)?'connected':'offline');if(roomId&&["PREPARED","SYNCING"].includes(event.state))void renderMessages()}if(event.type==='devices-changed'){sendReady=false;phase('verifying');}if(event.type==='encrypted-event'&&roomId)void renderMessages()},onVerification:event=>{if(!event.id)return;const view=captureView();guardView(view);let section=[...requests.children].find(node=>node.dataset.id===event.id);if(!section){section=document.createElement('div');section.dataset.id=event.id;requests.append(section)}section.replaceChildren();const text=document.createElement('p');text.textContent=event.sas?.decimal?`Compare on both devices: ${event.sas.decimal.join(' / ')}`:`Compare this device with the other person: ${event.userId??''} ${event.deviceId??''}`;section.append(text);const button=(title,action)=>{const node=document.createElement('button');node.type='button';node.textContent=title;node.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await action();guardView(view)});section.append(node)};if(event.needsConfirmation){button('Both displays match',()=>transport.confirmVerification(event.id,true));button('Do not match',()=>transport.confirmVerification(event.id,false))}else{button('Accept request',()=>transport.acceptVerification(event.id));button('Start SAS comparison',()=>transport.startVerification(event.id))}button('Reject',()=>transport.rejectVerification(event.id))}});
@@ -139,6 +141,9 @@ if(root&&!loginCallback){
  root.querySelector('[data-show-devices]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);await renderDevices(view.operation.binding.userId);guardView(view)});
  root.querySelector('[data-send-form]').onsubmit=event=>{event.preventDefault();void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const input=root.querySelector('[name=matrixText]'),draft=input.value;await transport.sendText(view.roomId,draft);guardView(view);if(input.value===draft)input.value='';await renderMessages()})};
  root.querySelector('[data-attachment]').onchange=event=>void work(async()=>{const view=captureView();await identity(view);guardView(view);if(!view.roomId)throw new Error('Select an encrypted room first');const file=event.target.files?.[0];if(!file)return;const bytes=await file.arrayBuffer();guardView(view);await transport.sendAttachment(view.roomId,bytes,{name:file.name,mimeType:file.type||'application/octet-stream'});guardView(view);if(event.target.files?.[0]===file)event.target.value='';await renderMessages()});
+ // No live audience adapter has been approved yet. Keep real UI fail-closed;
+ // contacts/messaging approval is deliberately not used as a publishing grant.
+ momentComposer=createRestrictedMomentsUI({container:root,transport,capture:captureView,guard:guardView,identity,work});
  phase('locked');
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error)){sendReady=false;phase('offline')}}).finally(()=>{checkingIdentity=false})},15000);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&account)label('Session retained locally; permissions are rechecked on next operation')});
