@@ -720,7 +720,10 @@ func (s *Service) ContractFeed(actor Session) ([]FeedPostView, error) {
 	if s.cfg.Square == nil {
 		return nil, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
-	moments := s.VisibleMoments(actor)
+	moments, err := s.CurrentVisibleMoments(actor)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]FeedPostView, 0, len(moments))
 	for _, moment := range moments {
 		person, err := s.person(moment.Author)
@@ -744,6 +747,19 @@ func (s *Service) ContractFeed(actor Session) ([]FeedPostView, error) {
 		}
 		out = append(out, FeedPostView{ID: moment.ID, Author: person, Text: moment.Text, Visibility: moment.Visibility, Reactions: reactions, Comments: comments, Media: media, ViewerReaction: viewerReaction, Status: moment.Status, CreatedAt: moment.CreatedAt})
 	}
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return nil, err
+	}
+	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return nil, err
+	}
+	for _, original := range moments {
+		current, ok := s.state.Moments[original.ID]
+		if !ok || !s.canViewMomentLocked(actor.Account, current) || objectDigest(current) != objectDigest(original) {
+			return nil, ErrUnauthorized
+		}
+	}
 	return out, nil
 }
 
@@ -759,6 +775,17 @@ func (s *Service) ContractMomentComments(actor Session, momentID string) ([]Mome
 			return nil, err
 		}
 		out = append(out, MomentCommentView{ID: comment.ID, Author: person, Text: comment.Text, CreatedAt: comment.CreatedAt})
+	}
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return nil, err
+	}
+	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return nil, err
+	}
+	moment, ok := s.state.Moments[momentID]
+	if !ok || !s.canViewMomentLocked(actor.Account, moment) {
+		return nil, ErrUnauthorized
 	}
 	return out, nil
 }

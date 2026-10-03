@@ -28,7 +28,11 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 	}{text, visibility, append([]string(nil), mediaIDs...)}
 	digest := objectDigest(document)
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
-	s.mu.Lock()
+	id := "moment_" + objectDigest(struct{ A, D string }{actor.Account, digest})[:24]
+	preparedDigest := objectDigest(struct{ Body, Device string }{digest, actor.DeviceID})
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return Moment{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 Moment
@@ -36,13 +40,23 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 		return unavailableResult0, unavailableResult1, writeUnavailable
 	}
 
-	if previous, ok := s.state.Idempotency[stateKey]; ok {
-		record := s.state.Moments[previous.ObjectID]
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
 		s.mu.Unlock()
-		if previous.Action != "moment_create" || previous.Digest != digest {
+		return Moment{}, false, err
+	}
+	if previous, ok := s.state.Idempotency[stateKey]; ok {
+		if previous.Action == "moment_create" && previous.Digest == digest {
+			record, exists := s.state.Moments[previous.ObjectID]
+			s.mu.Unlock()
+			if !exists || record.Author != actor.Account {
+				return Moment{}, false, ErrConflict
+			}
+			return record, true, nil
+		}
+		if previous.Action != "moment_create_prepared" || previous.Digest != preparedDigest || previous.ObjectID != id {
+			s.mu.Unlock()
 			return Moment{}, false, ErrConflict
 		}
-		return record, true, nil
 	}
 	for _, mediaID := range mediaIDs {
 		media, ok := s.state.Media[mediaID]
@@ -51,19 +65,26 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 			return Moment{}, false, ErrUnauthorized
 		}
 	}
-	s.mu.Unlock()
-	squarePostID := ""
-	if visibility == "public" && s.cfg.Square != nil && text != "" {
-		result, err := s.cfg.Square.CreatePost(square.Device{ID: actor.DeviceID, Account: actor.Account}, square.CreatePostRequest{IdempotencyKey: idempotencyKey, Content: text, Tags: []string{"ynx-social-moment"}})
-		if err != nil {
-			return Moment{}, false, socialSquareError(err)
+	for key, previous := range s.state.Idempotency {
+		if key != stateKey && previous.Action == "moment_create_prepared" && previous.ObjectID == id {
+			s.mu.Unlock()
+			return Moment{}, false, ErrConflict
 		}
-		squarePostID = result.Record.ID
 	}
+	if _, exists := s.state.Idempotency[stateKey]; !exists {
+		before := cloneState(s.state)
+		s.state.Idempotency[stateKey] = idempotencyRecord{Action: "moment_create_prepared", Digest: preparedDigest, ObjectID: id}
+		if err := s.saveOrRollbackProductActorLocked(before, actor, "social.feed"); err != nil {
+			s.mu.Unlock()
+			return Moment{}, false, err
+		}
+	}
+	s.mu.Unlock()
 	now := s.cfg.Now().UTC()
-	id := "moment_" + objectDigest(struct{ A, D string }{actor.Account, digest})[:24]
-	record := Moment{ID: id, SquarePostID: squarePostID, Author: actor.Account, Text: text, MediaIDs: append([]string(nil), mediaIDs...), Visibility: visibility, Status: "active", CreatedAt: now, UpdatedAt: now}
-	s.mu.Lock()
+	record := Moment{ID: id, Author: actor.Account, Text: text, MediaIDs: append([]string(nil), mediaIDs...), Visibility: visibility, Status: "active", CreatedAt: now, UpdatedAt: now}
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return Moment{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 Moment
@@ -72,17 +93,58 @@ func (s *Service) CreateMoment(actor Session, idempotencyKey, text, visibility s
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return Moment{}, false, err
+	}
+	for _, mediaID := range mediaIDs {
+		media, ok := s.state.Media[mediaID]
+		if !ok || media.Owner != actor.Account {
+			return Moment{}, false, ErrUnauthorized
+		}
+	}
+	previous, exists := s.state.Idempotency[stateKey]
+	if exists && previous.Action == "moment_create" && previous.Digest == digest {
+		existing, ok := s.state.Moments[previous.ObjectID]
+		if !ok || existing.Author != actor.Account {
+			return Moment{}, false, ErrConflict
+		}
+		return existing, true, nil
+	}
+	if !exists || previous.Action != "moment_create_prepared" || previous.Digest != preparedDigest || previous.ObjectID != id {
+		return Moment{}, false, ErrConflict
+	}
+	// Square is the original in-process store, not a remote await. Preserve the
+	// prepared intent on any uncertain effect/persistence/cancellation outcome.
+	if visibility == "public" && s.cfg.Square != nil && text != "" {
+		result, err := s.cfg.Square.CreatePost(square.Device{ID: actor.DeviceID, Account: actor.Account}, square.CreatePostRequest{IdempotencyKey: idempotencyKey, Content: text, Tags: []string{"ynx-social-moment"}})
+		if err != nil {
+			return Moment{}, false, socialSquareError(err)
+		}
+		record.SquarePostID = result.Record.ID
+	}
 	before := cloneState(s.state)
 	s.state.Moments[id] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "moment_create", Digest: digest, ObjectID: id}
 	s.appendAuditLocked("moment_created", "moment", id, actor.Account, digest, now)
 	s.notifyMentionsLocked(actor.Account, text, id, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) VisibleMoments(actor Session) []Moment {
-	s.mu.Lock()
+	items, _ := s.CurrentVisibleMoments(actor)
+	return items
+}
+
+// Typed product reader; callers must surface authority failures, not call an
+// unavailable private feed a successful empty list.
+func (s *Service) CurrentVisibleMoments(actor Session) ([]Moment, error) {
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return nil, err
+	}
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return nil, err
+	}
 	out := []Moment{}
 	for _, moment := range s.state.Moments {
 		if s.canViewMomentLocked(actor.Account, moment) {
@@ -90,12 +152,17 @@ func (s *Service) VisibleMoments(actor Session) []Moment {
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
-	return out
+	return out, nil
 }
 
 func (s *Service) Moment(actor Session, id string) (Moment, error) {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return Moment{}, err
+	}
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return Moment{}, err
+	}
 	moment, ok := s.state.Moments[id]
 	if !ok || moment.Status == "deleted" {
 		return Moment{}, ErrNotFound
@@ -111,13 +178,18 @@ func (s *Service) DeleteMoment(actor Session, id string) error {
 		return writeUnavailable
 	}
 
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		return writeUnavailable
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return err
+	}
 	moment, ok := s.state.Moments[id]
 	if !ok || moment.Status == "deleted" {
 		return ErrNotFound
@@ -130,7 +202,7 @@ func (s *Service) DeleteMoment(actor Session, id string) error {
 	moment.Status, moment.DeletedAt, moment.UpdatedAt = "deleted", &now, now
 	s.state.Moments[id] = moment
 	s.appendAuditLocked("moment_deleted", "moment", id, actor.Account, objectDigest(moment), now)
-	return s.saveOrRollbackLocked(before)
+	return s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, text string) (MomentComment, bool, error) {
@@ -146,7 +218,9 @@ func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, t
 	}
 	digest := objectDigest(struct{ M, T, A string }{momentID, text, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return MomentComment{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 MomentComment
@@ -155,6 +229,9 @@ func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, t
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return MomentComment{}, false, err
+	}
 	moment, ok := s.state.Moments[momentID]
 	if !ok || !s.canViewMomentLocked(actor.Account, moment) {
 		return MomentComment{}, false, ErrUnauthorized
@@ -179,15 +256,24 @@ func (s *Service) CreateMomentComment(actor Session, momentID, idempotencyKey, t
 	}
 	s.notifyMentionsLocked(actor.Account, text, record.ID, now)
 	s.appendAuditLocked("moment_commented", "comment", record.ID, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) MomentComments(actor Session, momentID string) ([]MomentComment, error) {
-	if _, err := s.Moment(actor, momentID); err != nil {
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
 		return nil, err
 	}
-	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return nil, err
+	}
+	moment, ok := s.state.Moments[momentID]
+	if !ok || moment.Status == "deleted" {
+		return nil, ErrNotFound
+	}
+	if !s.canViewMomentLocked(actor.Account, moment) {
+		return nil, ErrUnauthorized
+	}
 	out := []MomentComment{}
 	for _, comment := range s.state.MomentComments[momentID] {
 		if comment.DeletedAt == nil {
@@ -212,7 +298,9 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 		Active  bool
 	}{momentID, kind, actor.Account, active})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return MomentReaction{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 MomentReaction
@@ -221,6 +309,9 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return MomentReaction{}, false, err
+	}
 	moment, ok := s.state.Moments[momentID]
 	if !ok || !s.canViewMomentLocked(actor.Account, moment) {
 		return MomentReaction{}, false, ErrUnauthorized
@@ -241,7 +332,7 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 		s.notifyLocked(moment.Author, actor.Account, "reaction_"+kind, momentID, now)
 	}
 	s.appendAuditLocked("moment_reaction_set", "reaction", key, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, targetID, category, detail string, evidence []string) (SocialReport, bool, error) {
@@ -262,7 +353,9 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 	}
 	digest := objectDigest(struct{ T, I, C, D, A string }{targetType, targetID, category, detail, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return SocialReport{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 SocialReport
@@ -271,6 +364,9 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return SocialReport{}, false, err
+	}
 	if targetType == "moment" {
 		if moment, ok := s.state.Moments[targetID]; !ok || !s.canViewMomentLocked(actor.Account, moment) {
 			return SocialReport{}, false, ErrUnauthorized
@@ -288,12 +384,17 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 	s.state.Reports[record.ID] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "social_report", Digest: digest, ObjectID: record.ID}
 	s.appendAuditLocked("social_report_submitted", "report", record.ID, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) SocialReport(actor Session, id string) (SocialReport, error) {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return SocialReport{}, err
+	}
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return SocialReport{}, err
+	}
 	record, ok := s.state.Reports[id]
 	if !ok {
 		return SocialReport{}, ErrNotFound
@@ -314,7 +415,9 @@ func (s *Service) AppealSocialReport(actor Session, id, correction string) (Soci
 	if correction == "" || len(correction) > 2000 {
 		return SocialReport{}, ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return SocialReport{}, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 SocialReport
@@ -322,6 +425,9 @@ func (s *Service) AppealSocialReport(actor Session, id, correction string) (Soci
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.feed"); err != nil {
+		return SocialReport{}, err
+	}
 	record, ok := s.state.Reports[id]
 	if !ok {
 		return SocialReport{}, ErrNotFound
@@ -334,7 +440,7 @@ func (s *Service) AppealSocialReport(actor Session, id, correction string) (Soci
 	record.Appeal, record.Status, record.UpdatedAt = correction, "appealed", now
 	s.state.Reports[id] = record
 	s.appendAuditLocked("social_report_appealed", "report", id, actor.Account, objectDigest(record), now)
-	return record, s.saveOrRollbackLocked(before)
+	return record, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) canViewMomentLocked(account string, moment Moment) bool {

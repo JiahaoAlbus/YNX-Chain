@@ -42,6 +42,7 @@ type Config struct {
 	ProductSessions                  map[string]ProductSessionAuthorizer
 	ProductSessionAuthority          ProductSessionAuthorizer
 	ProductSessionRevalidator        MatrixAudienceSessionRevalidator
+	ProductBrowserSessionRevalidator ProductBrowserSessionRevalidator
 	MatrixDirectory                  *MatrixDirectory
 	MatrixAudienceAuthority          MatrixAudienceAuthority
 	MatrixAudienceActionVerifier     MatrixAudienceActionVerifier
@@ -130,6 +131,7 @@ type PendingWalletChallenge struct {
 }
 
 type Session struct {
+	validateProductBindingLocked func() error
 	// Request-local only: never serialized, persisted or supplied by a caller.
 	requestContext    context.Context
 	revalidateProduct func(string) error

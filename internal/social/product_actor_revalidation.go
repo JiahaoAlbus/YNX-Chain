@@ -16,7 +16,11 @@ func (s *Server) productActorRevalidation(r *http.Request, original productsessi
 	if reader == nil {
 		reader, _ = s.service.cfg.ProductSessionAuthority.(MatrixAudienceSessionRevalidator)
 	}
-	if reader == nil {
+	combined := s.service.cfg.ProductBrowserSessionRevalidator
+	if combined == nil {
+		combined, _ = s.service.cfg.ProductSessionAuthority.(ProductBrowserSessionRevalidator)
+	}
+	if reader == nil && combined == nil {
 		return nil
 	}
 	frozen, freezeErr := json.Marshal(original)
@@ -24,7 +28,7 @@ func (s *Server) productActorRevalidation(r *http.Request, original productsessi
 		// Separate private-session and browser-family reads are not an atomic
 		// current authorization. The original joint producer must supply that
 		// contract before this web business path can claim current authority.
-		if original.Platform == "web" {
+		if original.Platform == "web" && combined == nil {
 			return &productsessionv2.Error{Status: http.StatusServiceUnavailable, Code: "SOCIAL_JOINT_CURRENT_AUTHORITY_REQUIRED"}
 		}
 		if freezeErr != nil {
@@ -41,16 +45,20 @@ func (s *Server) productActorRevalidation(r *http.Request, original productsessi
 		if err != nil || !expires.After(s.service.cfg.Now()) {
 			return ErrUnauthorized
 		}
-		if _, _, err := s.browserProductBinding(r, expected, &binding); err != nil {
-			return err
-		}
 		// Each invocation receives a deep copy of the complete original Session.
 		// Never replay Authorize or let a reader mutate the frozen authority.
 		var input productsessionv2.Session
 		if json.Unmarshal(frozen, &input) != nil {
 			return ErrUnauthorized
 		}
-		current, err := reader.Revalidate(r.Context(), input, []string{scope})
+		var current productsessionv2.Session
+		if expected.Platform == "web" {
+			current, err = s.revalidateProductBrowser(r, input, binding, scope, combined)
+		} else if reader != nil {
+			current, err = reader.Revalidate(r.Context(), input, []string{scope})
+		} else {
+			return &productsessionv2.Error{Status: 503, Code: "AUTHORITY_UNAVAILABLE"}
+		}
 		if contextErr := r.Context().Err(); contextErr != nil {
 			return contextErr
 		}
@@ -59,9 +67,6 @@ func (s *Server) productActorRevalidation(r *http.Request, original productsessi
 		}
 		if objectDigest(current) != objectDigest(expected) || !expires.After(s.service.cfg.Now()) {
 			return ErrUnauthorized
-		}
-		if _, _, err := s.browserProductBinding(r, expected, &binding); err != nil {
-			return err
 		}
 		return nil
 	}
@@ -86,6 +91,12 @@ func (s *Service) lockAfterProductRevalidation(actor Session, scope string) erro
 	if err := s.requireCurrentProductActorLocked(actor, scope); err != nil {
 		s.mu.Unlock()
 		return err
+	}
+	if actor.validateProductBindingLocked != nil {
+		if err := actor.validateProductBindingLocked(); err != nil {
+			s.mu.Unlock()
+			return err
+		}
 	}
 	return nil
 }

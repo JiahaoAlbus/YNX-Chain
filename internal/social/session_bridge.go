@@ -319,6 +319,7 @@ func (s *Server) authorizeProductActor(r *http.Request, scope string) (Session, 
 	}
 	actor.requestContext = r.Context()
 	actor.revalidateProduct = s.productActorRevalidation(r, session, binding)
+	actor.validateProductBindingLocked = s.productActorBindingFence(session, binding)
 	return actor, nil
 }
 func bindingMatchesSession(binding productSessionBinding, session productsessionv2.Session) bool {
