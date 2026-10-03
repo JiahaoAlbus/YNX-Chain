@@ -677,12 +677,15 @@ function renderResult(result, savedWorkspace) {
   for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
   const points = result.equityCurve || [];
-  const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every(point => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.equity >= 0 && point.benchmarkEquity >= 0);
+  const times = Array.isArray(points) ? points.map(point => typeof point?.time === "string" ? Date.parse(point.time) : NaN) : [];
+  const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every((point,index) => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.equity >= 0 && point.benchmarkEquity >= 0 && Number.isFinite(times[index]) && (index === 0 || times[index] > times[index - 1]));
   $("#equity-figure").hidden = !valid;
   if (!valid) { $("#equity-chart").innerHTML = ""; return; }
   const values = points.flatMap(point => [point.equity, point.benchmarkEquity]);
   const low = Math.min(...values), span = Math.max(1, Math.max(...values) - low);
-  const line = key => points.map((point,index) => `${(12 + index * 696 / (points.length - 1)).toFixed(2)},${(208 - (point[key] - low) * 196 / span).toFixed(2)}`).join(" ");
+  // Preserve actual observation gaps; never invent a uniform sampling cadence.
+  const duration = times.at(-1) - times[0];
+  const line = key => points.map((point,index) => `${(12 + (times[index] - times[0]) * 696 / duration).toFixed(2)},${(208 - (point[key] - low) * 196 / span).toFixed(2)}`).join(" ");
   $("#equity-chart").innerHTML = `<polyline class="benchmark-line" points="${line("benchmarkEquity")}"/><polyline class="equity-line" points="${line("equity")}"/>`;
 }
 function safe(v) {

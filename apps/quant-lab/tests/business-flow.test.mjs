@@ -10,7 +10,7 @@ const connected = account => ({status: 'connected', providerKind: 'metamask', ch
 const receipt = (account, balance = '1000000000000000000') => ({...connected(account), asset: 'YNXT', decimals: 18, balanceBaseUnits: balance, blockNumber: '42', source: 'selected-wallet-provider', asOf: '2026-09-12T00:00:00.000Z'});
 const deferred = () => {let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); return {promise, resolve, reject};};
 const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
-const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
+const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
@@ -300,6 +300,18 @@ test('invalid research acknowledgements cannot replace a verified result or repo
 test('malformed research curves are omitted without fabricating equity or losing valid metrics', async () => {
   for(const curve of [{length:2},[null,{}],[{equity:1,benchmarkEquity:1},{equity:Number.MAX_SAFE_INTEGER+1,benchmarkEquity:2}],[{equity:1,benchmarkEquity:1},{equity:-1,benchmarkEquity:2}],[]]){
     const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:{...researchFixture('valid-metrics'),equityCurve:curve}});await settle();await app.submit('backtest');assert.equal(app.ids.get('equity-figure').hidden,true);assert.equal(app.ids.get('equity-chart').innerHTML,'');assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-submit').disabled,false);
+  }
+});
+test('research chart preserves real elapsed-time gaps and rejects missing or non-increasing observation times',async()=>{
+  const result=researchFixture('timed-run');result.equityCurve=[
+    {time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},
+    {time:'2026-10-03T00:01:00Z',equity:1010,benchmarkEquity:1004},
+    {time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}];
+  let response=result;const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:response});await settle();await app.submit('backtest');
+  assert.match(app.ids.get('equity-chart').innerHTML,/points="12\.00,[\d.]+ 23\.60,[\d.]+ 708\.00,[\d.]+"/);
+  for(const times of [[undefined,'2026-10-03T00:01:00Z'],['invalid','2026-10-03T00:01:00Z'],['2026-10-03T00:01:00Z','2026-10-03T00:01:00Z'],['2026-10-03T00:02:00Z','2026-10-03T00:01:00Z']]){
+    response={...result,equityCurve:times.map((time,index)=>({...result.equityCurve[index],time}))};await app.submit('backtest');
+    assert.equal(app.ids.get('equity-figure').hidden,true);assert.equal(app.ids.get('equity-chart').innerHTML,'');assert.equal(app.ids.get('result-return').textContent,'120 bps');
   }
 });
 

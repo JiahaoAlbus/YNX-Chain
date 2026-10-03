@@ -26,7 +26,9 @@ async function freePort() {
 function syntheticBacktest(owner, seed) {
   const bars = Array.from({ length: 48 }, (_, i) => {
     const price = 1_000_000 + i * 1_000;
-    return { time: new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString(), open: price, high: price + 1_000, low: price - 1_000, close: price, volume: 20_000_000 };
+    // Preserve an explicit one-hour source gap in the real engine's returned
+    // curve rather than giving display tests only uniform hand-built records.
+    return { time: new Date(Date.UTC(2026, 0, 1, 0, i + (i >= 30 ? 59 : 0))).toISOString(), open: price, high: price + 1_000, low: price - 1_000, close: price, volume: 20_000_000 };
   });
   return {
     strategy: { ID: `fixture-strategy-${owner}`, Name: `Synthetic local tenant ${owner}`, Family: 'transparent', Source: `fixture://synthetic-tenant-${owner}`, SourceCommit: 'local-test-only', License: 'test-fixture', Seed: seed, Params: { fast: 3, slow: 8 }, Limitations: 'Synthetic local fixture, not real market or trading evidence.' },
@@ -124,6 +126,8 @@ test('actual local Quant HTTP: two tenants, two processes, durable Paper replay 
   const fence=vm.createContext();vm.runInContext(functions,fence);
   for(const [owner,seed,result] of [['a',11,experimentA],['b',22,experimentB]]){
     const request=syntheticBacktest(owner,seed);
+    assert.deepEqual(result.equityCurve.map(point=>Date.parse(point.time)),request.bars.slice(request.assumptions.TrainEnd).map(bar=>Date.parse(bar.time)));
+    assert.ok(result.metrics.DataGaps>=1,'real Go result must disclose the controlled source gap');
     const submitted={strategy:{family:request.strategy.Family,seed:request.strategy.Seed,params:request.strategy.Params},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toLowerCase()+key.slice(1),value]))};
     fence.result=result;fence.submitted=submitted;assert.equal(vm.runInContext('researchRequestMatches(result,submitted)',fence),true);
     fence.result={...result,assumptions:{...result.assumptions,FeeBPS:result.assumptions.FeeBPS+1}};

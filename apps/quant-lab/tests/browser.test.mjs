@@ -261,7 +261,7 @@ test('early public research retains temporary provenance in the real page throug
     await context.route('**/api/v1/public/research/backtests/from-market',async route=>{
       assert.equal(route.request().method(),'POST');researchStarted();await heldResearch;
       const request=route.request().postDataJSON();
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:1},equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1010,benchmarkEquity:1004},{time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
@@ -270,6 +270,8 @@ test('early public research retains temporary provenance in the real page throug
     releaseSnapshot();await page.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);
     releaseResearch();await page.locator('#research-result-status').getByText('Temporary result on this page only — not saved or audited. Reloading the page discards it.',{exact:true}).waitFor();
     assert.equal(await page.locator('#result-return').textContent(),'120 bps');
+    assert.equal(await page.locator('#equity-figure').isVisible(),true);
+    assert.match(await page.locator('#equity-chart .equity-line').getAttribute('points'),/^12\.00,[\d.]+ 23\.60,[\d.]+ 708\.00,[\d.]+$/);
     assert.match(await page.locator('#toast').textContent(),/not saved or audited/);
     await page.locator('#research-run-details > summary').click();
     assert.equal(await page.locator('#research-data-hash').textContent(),'c'.repeat(64));
