@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
-import {catalogs,locales,errorCodes,activityKeys,normalizeLocale,translate} from '../web/locale.js';
+import {catalogs,locales,errorCodes,activityKeys,riskKeys,normalizeLocale,translate} from '../web/locale.js';
 import {formatMicro} from '../web/market-data.js';
 
 const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
@@ -44,6 +44,13 @@ test('real order preview preserves exact financial values while form and dialog 
       assert.equal(values[8],catalogs[locale]['Not connected; guest preview remains available']);
       assert.equal(await page.locator('#order-preview-title').innerText(),catalogs[locale]['Review a limit order']);
       assert.equal(await page.locator('#order-preview-dialog .wide').innerText(),catalogs[locale]['Return to edit']);
+      for(const key of riskKeys){
+        assert.equal(await page.locator(`#order-preview-dialog [data-exchange-locale="${key}"]`).innerText(),catalogs[locale][key]);
+        if(locale!=='en')assert.notEqual(catalogs[locale][key],catalogs.en[key],`${locale}/${key}`);
+      }
+      assert.match(catalogs[locale]['preview-fee-risk'],/0\.000001 YUSD_TEST/u);
+      assert.match(catalogs[locale]['preview-test-assets'],/YNXT/u);assert.match(catalogs[locale]['preview-test-assets'],/YUSD_TEST/u);
+      assert.equal(await page.evaluate(()=>document.querySelector('#order-preview-dialog').scrollWidth<=document.querySelector('#order-preview-dialog').clientWidth),true,locale);
       await page.locator('#order-preview-dialog .wide').click();
     }
     assert.equal(await page.evaluate(()=>window.formQA.reads()),12,'each explicit review has only its existing single public refresh');
@@ -90,6 +97,7 @@ test('every supported locale has all connected/degraded/recovery messages withou
     for(const code of errorCodes)assert.ok(catalogs[locale][code],`${locale}/${code}`);
   }
   for(const value of [null,undefined,'fr-unknown','../../account','<script>'])assert.equal(normalizeLocale(value),'en');
+  for(const key of riskKeys)assert.ok(html.includes(`data-exchange-locale="${key}">${catalogs.en[key]}</p>`),`default English risk disclosure differs from catalog: ${key}`);
 });
 
 test('actual preview errors retain exact codes in every locale, clear on correction, and cannot resurrect an obsolete toast',async()=>{
