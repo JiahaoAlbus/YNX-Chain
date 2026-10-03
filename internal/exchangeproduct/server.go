@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -1248,7 +1249,12 @@ func (s *Server) authQuant(w http.ResponseWriter, r *http.Request, scope string)
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-	d := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || !unambiguousBusinessJSON(raw) {
+		writeError(w, http.StatusBadRequest, "invalid_json", "invalid JSON request")
+		return false
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if err := d.Decode(v); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_json", "invalid JSON request")
