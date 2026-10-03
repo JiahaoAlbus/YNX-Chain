@@ -603,7 +603,7 @@ async function refresh() {
   if (revision !== snapshotRevision) return;
   snapshot = next;
   statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
-  for (const id of scheduleUnconfirmed) if (Object.values(snapshot.strategies || {}).some(strategy => strategy.ID === id && observedSchedule(strategy))) scheduleUnconfirmed.delete(id);
+  for (const id of scheduleUnconfirmed) if (Object.values(snapshot.strategies || {}).some(strategy => strategy?.ID === id && observedSchedule(strategy))) scheduleUnconfirmed.delete(id);
   $("#workspace-boundary").hidden = statefulPreview;
   renderRiskControls();
   render();
@@ -674,6 +674,12 @@ function reusableResearchStrategy(strategy) {
   return typeof strategy?.ID === "string" && !!strategy.ID && strategy.Family === "transparent" && typeof strategy.Name === "string" && !!strategy.Name.trim() && strategy.Name.length <= 80 && /^[a-f0-9]{64}$/.test(strategy.StrategyHash || "") && Number.isSafeInteger(strategy.Seed) && Number.isSafeInteger(strategy.Params?.fast) && strategy.Params.fast >= 2 && Number.isSafeInteger(strategy.Params?.slow) && strategy.Params.slow > strategy.Params.fast && Object.keys(strategy.Params).sort().join(",") === "fast,slow";
 }
 function researchSelectionKey(strategy) { return encodeURIComponent(strategy.ID) + ":" + strategy.StrategyHash; }
+function readableSavedStrategy(strategy) {
+  return !!strategy && !Array.isArray(strategy) && typeof strategy.ID==='string' && !!strategy.ID && typeof strategy.Name==='string' && !!strategy.Name.trim() && typeof strategy.StrategyHash==='string' && /^[a-f0-9]{64}$/.test(strategy.StrategyHash);
+}
+function paperStrategyHashAvailable(strategy) {
+  return !!strategy && !Array.isArray(strategy) && typeof strategy.StrategyHash==='string' && /^[a-f0-9]{64}$/.test(strategy.StrategyHash);
+}
 function renderResearchChoices(strategies) {
   const selection = $("#research-saved-strategy"), previous = selection.value;
   const candidates = strategies.filter(reusableResearchStrategy);
@@ -689,7 +695,7 @@ function renderResearchChoices(strategies) {
 }
 function renderPaperStrategies(strategies) {
   const selection = $("#paper-strategy"), previous = selection.value;
-  const available = strategies.filter(strategy => /^[0-9a-f]{64}$/.test(strategy.StrategyHash || ""));
+  const available = strategies.filter(paperStrategyHashAvailable);
   selection.replaceChildren();
   const placeholder = document.createElement("option");
   placeholder.value = "";
@@ -728,6 +734,7 @@ function render() {
     ? strategies
         .map(
           (s) => {
+            if (!readableSavedStrategy(s)) return `<tr><td colspan="6" class="danger">${safe(t('scheduleUnknown'))}</td></tr>`;
             const runtime = observedSchedule(s), enabled = runtime?.enabled === true, pending = scheduleWrites.has(s.ID), unknown = !runtime || scheduleUnconfirmed.has(s.ID);
             const usable = typeof s.ID === "string" && s.ID.length > 0 && typeof s.StrategyHash === "string" && /^[a-f0-9]{64}$/.test(s.StrategyHash) && (enabled || s.Stage === "Backtest");
             return `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td><td><strong>${safe(pending ? t("schedulePending") : unknown ? t("scheduleUnknown") : scheduleStatusText(runtime))}</strong><small>${safe(t("scheduleObservation"))}</small><small>${runtime ? safe(scheduleTime(runtime.nextRunAt)) + " / " + safe(scheduleTime(runtime.lastRunAt)) : "— / —"}</small><small>${safe(runtime?.lastExperiment || "—")}</small><button type="button" class="schedule-toggle" data-strategy-id="${encodeURIComponent(typeof s.ID === "string" ? s.ID : "")}" data-strategy-hash="${/^[a-f0-9]{64}$/.test(s.StrategyHash || "") ? s.StrategyHash : ""}" data-enabled="${!enabled}" aria-busy="${pending}" ${statefulPreview && usable && !unknown && !pending ? "" : "disabled"}>${safe(enabled ? t("scheduleStop") : t("scheduleStart"))}</button></td></tr>`;
@@ -758,8 +765,9 @@ function render() {
   const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean';
   $('#paper-state').innerHTML += `<p>${safe(t('paperDailyLossLead'))}</p><dl><dt>${safe(t('paperDailyLoss'))}</dt><dd>${validDaily ? safe(`${daily.Day} UTC · ${daily.Loss} / ${daily.Limit} YUSD_TEST_MICRO · ${daily.Breached ? t('riskActive') : t('riskArmed')}`) : '—'}</dd></dl>`;
   renderAuditRecords(snapshot.audit);
-  if (!$("#mandate-strategy").value && strategies.length) {
-    $("#mandate-strategy").value = strategies[0].StrategyHash || "";
+  const firstReadableStrategy = strategies.find(readableSavedStrategy);
+  if (!$("#mandate-strategy").value && firstReadableStrategy) {
+    $("#mandate-strategy").value = firstReadableStrategy.StrategyHash;
   }
   const executions = Object.values(snapshot.testnetOrders || {});
   $("#testnet-execution-rows").innerHTML = executions.length ? executions.map(order => `<tr><td><code>${safe(order.venueOrderId || "Pending")}</code></td><td>${safe(order.market)}</td><td>${safe(order.side)}</td><td>${safe(order.amount)}</td><td>${safe(order.venueStatus || "Outcome pending")}</td><td><code>${safe(order.authorizationDigest || "—")}</code></td></tr>`).join("") : '<tr><td colspan="6">No Wallet-authorized Testnet execution yet.</td></tr>';
@@ -770,20 +778,20 @@ $("#strategy-rows").addEventListener("click", async event => {
   const id = decodeURIComponent(button.dataset.strategyId);
   if (scheduleWrites.has(id) || scheduleUnconfirmed.has(id)) return;
   const enabled = button.dataset.enabled === "true";
-  const strategy = Object.values(snapshot.strategies || {}).find(value => value.ID === id), runtime = observedSchedule(strategy);
+  const strategy = Object.values(snapshot.strategies || {}).find(value => value?.ID === id), runtime = observedSchedule(strategy);
   if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
   let sent = false;
   try {
     const assumptions = enabled ? {feeBPS:researchIntegerInput("fee"), slippageBPS:researchIntegerInput("slippage"), latencyBars:1, participationBPS:1000, seed:researchIntegerInput("seed"), trainEnd:24, walkForwardWindows:3} : {};
     if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
     if (!confirm(`${t(enabled ? "scheduleConfirmStart" : "scheduleConfirmStop")}\n${id}\n${strategy.StrategyHash}${enabled ? `\n${t("runFee")}: ${assumptions.feeBPS}\n${t("runSlippage")}: ${assumptions.slippageBPS}\n${t("runSeed")}: ${assumptions.seed}` : ""}`)) return;
-    const current = Object.values(snapshot.strategies || {}).find(value => value.ID === id);
+    const current = Object.values(snapshot.strategies || {}).find(value => value?.ID === id);
     if (!statefulPreview || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || researchIntegerInput("fee") !== assumptions.feeBPS || researchIntegerInput("slippage") !== assumptions.slippageBPS || researchIntegerInput("seed") !== assumptions.seed)) throw Error(t("scheduleInvalid"));
     scheduleWrites.add(id); snapshotRevision++; render(); sent = true;
     const receipt = await api(`/v1/strategies/${encodeURIComponent(id)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions})});
     const confirmed = observedSchedule(receipt);
     if (receipt?.ID !== id || receipt.StrategyHash !== strategy.StrategyHash || receipt.Stage !== strategy.Stage || !confirmed || confirmed.enabled !== enabled || confirmed.running || confirmed.lastRunStatus !== (enabled ? "scheduled" : "stopped_by_user") || enabled && (confirmed.intervalSeconds !== 60 || Object.entries(assumptions).some(([key,value]) => confirmed.assumptions?.[key[0].toUpperCase()+key.slice(1)] !== value))) throw Error(t("scheduleUnknown"));
-    const savedKey = Object.keys(snapshot.strategies).find(key => snapshot.strategies[key].ID === id && snapshot.strategies[key].StrategyHash === strategy.StrategyHash);
+    const savedKey = Object.keys(snapshot.strategies).find(key => snapshot.strategies[key]?.ID === id && snapshot.strategies[key]?.StrategyHash === strategy.StrategyHash);
     if (!savedKey) throw Error(t("scheduleUnknown"));
     snapshotRevision++;
     snapshot.strategies = {...snapshot.strategies, [savedKey]:receipt};
@@ -1036,7 +1044,7 @@ $("#paper-order").onsubmit = async (e) => {
   try {
     if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
     const strategyHash = $("#paper-strategy").value;
-    if (!Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
+    if (!Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
     const Side = $("#side").value, Amount = +$("#paper-amount").value;
     if (!["buy", "sell"].includes(Side) || !Number.isSafeInteger(Amount) || Amount <= 0) throw new Error(t("paperInvalidAmount"));
     const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount;
@@ -1045,7 +1053,7 @@ $("#paper-order").onsubmit = async (e) => {
     $("#paper-submit").disabled = true;
     if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${t("paperExecutionBoundary")}`)) return;
     if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
-    if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
+    if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
     }

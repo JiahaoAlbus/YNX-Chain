@@ -253,6 +253,33 @@ test('real research form coalesces a delayed request without displaying unconfir
     complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
   }finally{await context.close()}
 });
+test('actual Chrome preserves workspace through malformed strategy readback without writes',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const page=await context.newPage(),errors=[],writes=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    page.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes.push(request.url());});
+    await page.goto(base,{waitUntil:'networkidle'});
+    await page.evaluate(()=>{
+      snapshot.strategies={bad:null,hash:{StrategyHash:42},array:[],valid:{ID:'controlled-strategy-read',Name:'Controlled strategy read fixture',Family:'transparent',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}}};
+      render();
+    });
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);
+      assert.equal(await page.locator('#strategy-rows tr').count(),4);
+      assert.equal(await page.locator('#strategy-rows .danger').count(),3);
+      assert.ok((await page.locator('#strategy-rows').textContent()).includes(await page.evaluate(()=>t('scheduleUnknown'))));
+      assert.match(await page.locator('#strategy-rows').textContent(),/Controlled strategy read fixture/);
+      assert.equal(await page.locator('#paper-strategy option').count(),2);
+      assert.equal(await page.locator('#mandate-strategy').inputValue(),'d'.repeat(64));
+    }
+    await page.evaluate(()=>{snapshot.strategies={};render();});
+    assert.equal(await page.locator('#paper-strategy option').count(),1);
+    assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.equal(context.pages().length,1);
+    await page.screenshot({path:path.join(evidence,'strategy-readback-recovery.png'),fullPage:true});
+  }finally{await context.close()}
+});
 test('actual Chrome recovers unavailable audit containers and preserves valid readback beside bad rows',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

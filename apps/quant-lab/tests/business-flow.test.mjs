@@ -304,6 +304,23 @@ test('saved research reuse rejects stale hashes, duplicate identities and missin
     const app=harness({snapshot:{strategies}});await settle();app.ids.get('strategy').value='Preserve draft';app.ids.get('research-saved-strategy').value=encodeURIComponent(strategy.ID)+':'+(Object.keys(strategies).length===1?'e'.repeat(64):strategy.StrategyHash);app.ids.get('research-reuse').onclick();assert.equal(app.ids.get('strategy').value,'Preserve draft');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
   }
 });
+test('malformed saved strategy rows cannot erase valid workspace or become Paper choices',async()=>{
+  const valid=savedResearchStrategy();
+  const app=harness();await settle();
+  app.context.strategyRead={bad:null,hash:savedResearchStrategy({StrategyHash:42}),array:[],valid};
+  vm.runInContext('snapshot.strategies=strategyRead;render()',app.context);
+  assert.match(app.ids.get('strategy-rows').innerHTML,/Saved research/);
+  assert.match(app.ids.get('strategy-rows').innerHTML,/class="danger"/);
+  assert.equal(app.ids.get('paper-strategy').children.length,2);
+  assert.equal(app.ids.get('paper-strategy').children[1].value,valid.StrategyHash);
+  assert.equal(app.ids.get('mandate-strategy').value,valid.StrategyHash);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.ok(app.ids.get('strategy-rows').innerHTML.includes(vm.runInContext('safe(t("scheduleUnknown"))',app.context)));
+    assert.match(app.ids.get('strategy-rows').innerHTML,/Saved research/);
+  }
+});
 test('saved research schedules render source failures and disable unknown or ineligible runtimes',async()=>{
   for(const Runtime of [undefined,{enabled:false},{enabled:true,running:false,intervalSeconds:60,nextRunAt:'not-a-date',lastRunStatus:'scheduled'},{enabled:false,running:true,intervalSeconds:60}]){
     const strategy=savedResearchStrategy({Runtime}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/>Stopped</);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
