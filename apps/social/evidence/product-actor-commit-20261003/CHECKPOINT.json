@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "source": "1004452d28c55bbb751cfe8ae92abbb5547bb821",
+  "tree": "86560a3fa6b042deef91a577945783113ac55cb3",
+  "parent": "071f479c0ed82d7c94226eb08a73ba3d3bb4d752",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "ownedPaths": [
+    "internal/social/product_actor_commit.go",
+    "internal/social/product_actor_commit_test.go",
+    "internal/social/service.go",
+    "internal/social/invite_intent.go",
+    "internal/social/invite_lifecycle.go"
+  ],
+  "sharedValidationSource": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedValidationTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "stage": "/tmp/social-backend-16195.enQ7Rc",
+  "sharedLiveChanged": false,
+  "moduleLiveChanged": false,
+  "coverage": {
+    "transactionBoundary": "Original Social mutex, current bound actor and device checks before effects and idempotent receipts; no external revalidator under the lock",
+    "paths": ["privacy settings", "contact request", "accept/reject/withdraw transition", "delete/block/mute relationship", "create/retry/read/revoke invitation"],
+    "staleCases": ["revoked", "expired", "device-disabled", "key-replaced", "scope-removed", "actor-replaced", "binding-missing", "binding-expired", "binding-ambiguous"],
+    "staleChecks": "108 operations reject with unchanged owned state",
+    "normalRecovery": "Current actor creates and retries original contact request, withdraws, updates/retries settings, creates/retries/reads original invitation, and blocks",
+    "mountedHTTPInterleaving": "PUT /social/v1/settings: single Authorize, revoke during original body read, then 401 and no settings/idempotency effect"
+  },
+  "gates": {
+    "ownedSocialRegression": "PASS",
+    "isolatedSocialAndDaemonRace": "PASS",
+    "isolatedDaemonBuild": "PASS",
+    "sharedLiveAdoption": "PENDING_ROOT",
+    "publicSourceBoundBusiness": "NOT_VERIFIED",
+    "nativeCanonicalEnrollment": "NOT_VERIFIED",
+    "ABCThreeJourneys": "NOT_VERIFIED",
+    "MONSTER": "NOT_RUN",
+    "completed": false,
+    "deployed": false,
+    "sensitiveWalletRequests": false
+  },
+  "limitations": [
+    "Authority decisions in regression and mounted HTTP test are clearly synthetic QA, not installed/public Wallet acceptance.",
+    "These local guards apply to server-generated bound Product Session actors; existing legacy domain authorization and fixtures were not upgraded or used as substitute identity.",
+    "Cross-store Chat/Square effects, raw business action nonce transactions, all private reads and all remaining mutators are not declared complete by this batch.",
+    "Real Web/Native approval, Matrix identity/HS mapping, installation/public source binding and real MONSTER user validation remain separate gates."
+  ]
+}
