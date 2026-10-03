@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-03 Asia/Shanghai",
+  "globalDeveloperDirectory": "/Library/Developer/CommandLineTools",
+  "spotlightXcode": [],
+  "searched": [
+    {
+      "root": "/Applications",
+      "read": true
+    },
+    {
+      "root": "/Users/huangjiahao/Applications",
+      "read": true
+    },
+    {
+      "root": "/Users/huangjiahao/Downloads",
+      "read": true
+    },
+    {
+      "root": "/Users/huangjiahao/Desktop",
+      "read": true
+    },
+    {
+      "root": "/Volumes",
+      "read": true
+    }
+  ],
+  "candidates": [],
+  "changesMade": false
+}

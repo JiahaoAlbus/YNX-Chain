@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-03 Asia/Shanghai",
+  "baselineCommit": "65d7e473f6198c524f56c21c88fdfb51b4545036",
+  "sourceCommit": "08f157122af275691ff83ff70802a74f3a41843e",
+  "sourceTree": "d4036bc5d154218bd6d192422ed31048039aa3c1",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "archive": {
+    "path": "commerce-owned-source-08f157122.tar",
+    "trackedOwnedMembers": 400,
+    "excluded": "existing evidence directories only; original source, tests, native implementations, package/vendor files and owned docs retained",
+    "bytes": 14243840,
+    "sha256": "e3212751aafb657031733da635361c3272526cf850fe1eddae75ad5009136876"
+  },
+  "checks": {
+    "sellerNode": {
+      "pass": 46,
+      "fail": 0
+    },
+    "merchantNode": {
+      "pass": 58,
+      "fail": 0
+    },
+    "builds": [
+      "Seller Web PASS",
+      "Merchant Web PASS"
+    ],
+    "controlledBrowser": {
+      "pass": 4,
+      "meaning": "Actual source journal controllers with real browser localStorage and Web Locks; cold reopen and concurrent unknown readback for each role. No formal private Browser authority."
+    },
+    "goRace": {
+      "acceptedTopLevel": 17,
+      "accepted": [
+        "TestBusinessTransitionsKeepOriginalFulfillmentAndReviewFlow",
+        "TestSellerMutationLookupOriginalStoreColdReadAndActorIsolation",
+        "TestSellerMutationLookupInventoryIsPureAndRechecksMembership",
+        "TestMerchantCanonicalOriginalCarrierAndLostResponseRecovery",
+        "TestMerchantCanonicalUnavailableNeverFallsBack",
+        "TestSellerMutationLookupTransitionReadsLaterStateWithoutAnotherTransition",
+        "TestMerchantCanonicalNonceAndBusinessEffectAtomic",
+        "TestMerchantCanonicalQueuedActorAndFullSessionExpiry",
+        "TestMerchantCanonicalViewRefreshNeverHoldsStoreLock",
+        "TestMerchantCanonicalProviderUnknownRetainsReservationAndNeverResends",
+        "TestMerchantCanonicalLogoutDuringProviderKeepsOriginalUnknown",
+        "TestMerchantCanonicalUnknownCannotRebindOrChangeRequest",
+        "TestMerchantCanonicalInvoiceKeepsOriginalSigningAndIdempotency",
+        "TestMerchantMutationLookupOriginalActorColdStoreAndNoReplacement",
+        "TestMerchantMutationLookupRevocationAndActorIsolation",
+        "TestMerchantMutationLookupInvoiceDoesNotCallPayAgain",
+        "TestMerchantMutationLookupRecurringDraftAndCurrentRole"
+      ],
+      "attempts": "go-recovery-final.jsonl: one QA invoice fixture failed, all other selected checks passed. Exact merchant fixture corrected; only invoice test rerun in go-invoice-readback-final.jsonl. New recurring/role check separately accepted in go-recurring-readback-final.jsonl. Initial failed case is not counted as pass."
+    }
+  },
+  "dependencyBasis": {
+    "complete641": "6413198530fcc89abfcc44cf010ee96228475b8b",
+    "stage": "isolated existing cached complete 641 dependencies; no installs or product package/vendor changes"
+  },
+  "runtimeGates": {
+    "fullXcodeFound": false,
+    "globalDeveloperDirectoryChanged": false,
+    "fullSwiftUIAppCompiled": false,
+    "iOSExactApprovedContract": false,
+    "integratedWalletInvoiceHandlerAndReturn": false,
+    "merchantSellerFormalBrowserQualification": false,
+    "installedRuntime": false,
+    "publicBusinessFlow": false,
+    "userAcceptance": false,
+    "wholeGoalComplete": false
+  },
+  "records": [
+    {
+      "path": "seller-recovery-final.log",
+      "bytes": 4136,
+      "sha256": "94ace2b67387428a6c2a9810aad7fdd2139b69a929259d614fe849cb9246e12e"
+    },
+    {
+      "path": "seller-build-final.log",
+      "bytes": 36,
+      "sha256": "f36a8fdbf4515f0be4136671b824852179c287944a2828ad30a96c6fc006332a"
+    },
+    {
+      "path": "merchant-recovery-final.log",
+      "bytes": 5911,
+      "sha256": "e21cd1747da2643a900b11d8f68b3f1d408f547866d37afd3080414fa4959b7d"
+    },
+    {
+      "path": "merchant-build-final.log",
+      "bytes": 59,
+      "sha256": "455639f8d6e90adcbea9cb29b3cd58a2baa31385e22479946ff167e6a01ccbd4"
+    },
+    {
+      "path": "browser-recovery-final.log",
+      "bytes": 254,
+      "sha256": "d46e166bf24e0ffc191a09e558c327d61ca6332378e5be10d9e52e7cd8d50151"
+    },
+    {
+      "path": "browser-recovery-check.cjs",
+      "bytes": 3443,
+      "sha256": "42c6620276f9872cfe0af2431488a72f08ccbe1aab661d37f2c613ac08c7cda9"
+    },
+    {
+      "path": "go-recovery-final.jsonl",
+      "bytes": 25179,
+      "sha256": "d94d6e426bb8af3ea401f023a1f43f0e3899018c25cdfb42f438b25a166d7eb4"
+    },
+    {
+      "path": "go-invoice-readback-final.jsonl",
+      "bytes": 1544,
+      "sha256": "ad4075ea24f9cf1dcfa2a9ffe9d34e6e06f3a39a23e2485adf5de04f42ce0641"
+    },
+    {
+      "path": "go-recurring-readback-final.jsonl",
+      "bytes": 1557,
+      "sha256": "aee73d9a4d7240cca1d7fae8c0d337a45ba903fad91378934ef321200e1af72d"
+    },
+    {
+      "path": "xcode-inventory.json",
+      "bytes": 554,
+      "sha256": "b9802feae1b5cb094a260e984ed77e14c7d42a9d40c58ec6c1a1380e5eddca16"
+    }
+  ]
+}

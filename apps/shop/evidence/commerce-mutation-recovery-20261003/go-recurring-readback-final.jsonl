@@ -1,0 +1,8 @@
+{"Time":"2026-10-03T22:04:54.322926+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"}
+{"Time":"2026-10-03T22:04:54.898641+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Test":"TestMerchantMutationLookupRecurringDraftAndCurrentRole"}
+{"Time":"2026-10-03T22:04:54.898745+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Test":"TestMerchantMutationLookupRecurringDraftAndCurrentRole","Output":"=== RUN   TestMerchantMutationLookupRecurringDraftAndCurrentRole\n"}
+{"Time":"2026-10-03T22:04:55.079545+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Test":"TestMerchantMutationLookupRecurringDraftAndCurrentRole","Output":"--- PASS: TestMerchantMutationLookupRecurringDraftAndCurrentRole (0.18s)\n"}
+{"Time":"2026-10-03T22:04:55.079582+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Test":"TestMerchantMutationLookupRecurringDraftAndCurrentRole","Elapsed":0.18}
+{"Time":"2026-10-03T22:04:55.079618+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Output":"PASS\n"}
+{"Time":"2026-10-03T22:04:56.093602+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/payproduct\t1.770s\n"}
+{"Time":"2026-10-03T22:04:56.093711+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct","Elapsed":1.771}
