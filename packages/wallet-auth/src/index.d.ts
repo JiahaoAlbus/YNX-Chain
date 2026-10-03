@@ -607,3 +607,12 @@ export declare function createSignedPayPaymentResult(input:Readonly<{accountSecr
 export declare function verifyPayPaymentResult(value:unknown,intent:PayPaymentIntent,account:string,now?:Date):PayPaymentResult;
 
 export declare function createPayInvoiceSignerPolicy(config:unknown):Readonly<{resolve(input:Readonly<{signatureKeyId:string;signingPublicKey:string;signatureAlgorithm:string;merchantId:string}>):Readonly<{keyId:string;publicKey:string;algorithm:"ed25519"}>}>;
+
+/** Local durable evidence of an exact SDK authority decision; not a server signature or renewed grant. */
+export type ProductSessionRevocationCompletion=Readonly<{version:1;intentId:string;scope:string;targetDigest:string|null;sessionBinding:string|null;outcome:"server-revoked"|"authority-expired"|"local-only"}>;
+export interface RecoverableProductSessionClient {
+ getRevocationCompletions():Promise<readonly ProductSessionRevocationCompletion[]>;
+ getRevocationCompletion(intentId:string):Promise<ProductSessionRevocationCompletion|null>;
+ /** Call only after committing the corresponding consumer journal. */
+ acknowledgeRevocationCompletion(receipt:ProductSessionRevocationCompletion):Promise<void>;
+}

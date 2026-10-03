@@ -4,7 +4,7 @@ import { createProductSessionProofV2, createProductSessionProofV2With } from "./
 import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSessionReturnURL, prepareWalletAttempt, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
-import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
+import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches, createRevocationCompletion, parseRevocationCompletion, readRevocationCompletions } from "./product-session-revocation-intent.js";
 import { deriveCompletionTarget, parseCompletionRecord } from "./product-session-completion-record.js";
 import { encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
 
@@ -409,10 +409,11 @@ export class RecoverableProductSessionClient {
       }
     }
     if (session === null && await this.#storage.get(`${this.storageKey}:return`) !== null) return this.#pendingRevocation("A prior completion has not yielded its exact target; sign-out confirmation is still pending.");
-    try { await this.#finishRevocationIntent(); }
+    let revocationCompletion;
+    try { revocationCompletion = await this.#finishRevocationIntent(session === null ? "local-only" : sessionExpired ? "authority-expired" : "server-revoked"); }
     catch { return this.#pendingRevocation("The authority result was received but secure cleanup is pending; Retry the same sign-out target."); }
     this.#revocationRequested = false; this.#revocationIntent = null;
-    this.#state = state(sessionExpired ? PRODUCT_SESSION_CLIENT_STATE.EXPIRED : PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, session === null ? "No authoritative Product Session was present; local connection request was removed" : sessionExpired ? "Auth confirmed that the exact Product Session expired; no revocation receipt was claimed" : "Auth confirmed revocation of the exact Product Session", { revocationConfirmed: session !== null && !sessionExpired, ...(session ? { sessionBinding: session.sessionBinding } : {}) });
+    this.#state = state(sessionExpired ? PRODUCT_SESSION_CLIENT_STATE.EXPIRED : PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, session === null ? "No authoritative Product Session was present; local connection request was removed" : sessionExpired ? "Auth confirmed that the exact Product Session expired; no revocation receipt was claimed" : "Auth confirmed revocation of the exact Product Session", { ...(revocationCompletion ? { revocationCompletion } : {}), revocationConfirmed: session !== null && !sessionExpired, ...(session ? { sessionBinding: session.sessionBinding } : {}) });
     return this.#state;
   }
 
@@ -628,8 +629,32 @@ export class RecoverableProductSessionClient {
       this.#revocationIntent = intent;
     }
   }
-  async #finishRevocationIntent() {
+  async getRevocationCompletions() {
+    if (typeof this.#storage.getRevocationCompletions !== "function") fail("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion history");
+    return Object.freeze(readRevocationCompletions(await this.#storage.getRevocationCompletions(`${this.storageKey}:revoke-completions`), this.#binding, this.#device));
+  }
+  async getRevocationCompletion(intentId) {
+    if (typeof intentId !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(intentId)) fail("INVALID_FIELD", "Original revocation intent ID is required");
+    if (typeof this.#storage.getRevocationCompletion !== "function") fail("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion readback");
+    const raw = await this.#storage.getRevocationCompletion(`${this.storageKey}:revoke-completions`, intentId);
+    if (raw === null) return null;
+    const receipt = parseRevocationCompletion(raw, this.#binding, this.#device);
+    if (receipt.intentId !== intentId) fail("REVOCATION_CHANGED", "Completion readback returned another intent");
+    return receipt;
+  }
+  async acknowledgeRevocationCompletion(receipt) {
+    const raw = canonicalJSON(receipt); parseRevocationCompletion(raw, this.#binding, this.#device);
+    if (typeof this.#storage.acknowledgeRevocationCompletion !== "function") fail("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This runtime cannot acknowledge an exact completion");
+    await this.#storage.acknowledgeRevocationCompletion(`${this.storageKey}:revoke-completions`, raw);
+  }
+  async #finishRevocationIntent(outcome) {
     const intent = this.#revocationIntent, key = `${this.storageKey}:revoke`, raw = canonicalJSON(intent);
+    if (typeof this.#storage.finishRevocationIntentWithCompletion === "function") {
+      const receiptRaw = canonicalJSON(createRevocationCompletion(raw, this.#binding, this.#device, outcome));
+      const saved = await this.#storage.finishRevocationIntentWithCompletion(key, raw, receiptRaw);
+      if (saved !== receiptRaw || canonicalJSON(await this.getRevocationCompletion(intent.intentId)) !== receiptRaw) fail("REVOCATION_CHANGED", "Atomic cleanup did not preserve the exact completion");
+      return parseRevocationCompletion(receiptRaw, this.#binding, this.#device);
+    }
     if (typeof this.#storage.finishRevocationIntent === "function") return this.#storage.finishRevocationIntent(key, raw);
     if (await this.#storage.get(key) !== raw) fail("REVOCATION_CHANGED", "Pending sign-out target changed during confirmation");
     if (revocationSessionMatches(await this.#storage.get(this.storageKey), intent.session)) await this.#storage.remove(this.storageKey);

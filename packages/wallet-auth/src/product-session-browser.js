@@ -6,7 +6,7 @@ import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { createProductSessionProofV2With } from "./product-session-proof-v2.js";
 import { encodeProductSessionGatewayProofHeaderV2, productSessionGatewayAuthority } from "./product-session-gateway-client.js";
 import { httpBodyDigest } from "./session-proof.js";
-import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
+import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches, createRevocationCompletion, parseRevocationCompletion, readRevocationCompletions, appendRevocationCompletion } from "./product-session-revocation-intent.js";
 import { parseCompletionRecord } from "./product-session-completion-record.js";
 
 export const BROWSER_PRODUCT_SESSION_SECURITY_LEVEL = "webcrypto-nonextractable";
@@ -30,7 +30,8 @@ export async function createBrowserProductSessionClient(config) {
   const namespace = canonicalJSON({ authority, chainId: binding.chainId, productId, clientId: binding.clientId, applicationId: binding.applicationId, origin: binding.origin, callback: binding.callback, scopes: approvedScopes });
   const storageKey = `ynx.product-session.v2:${productId}:web:${binding.applicationId}`;
   const revocationKey = `${storageKey}:revoke`;
-  const allowedKeys = new Set([storageKey, `${storageKey}:pending`, `${storageKey}:return`, `${storageKey}:completion`, revocationKey]);
+  const completionKey = `${storageKey}:revoke-completions`;
+  const allowedKeys = new Set([completionKey, storageKey, `${storageKey}:pending`, `${storageKey}:return`, `${storageKey}:completion`, revocationKey]);
   const randomToken = () => encodeBase64url(crypto.getRandomValues(new Uint8Array(32)));
   const db = await openDatabase(environment.indexedDB);
   let closed = false, revocationAttempted = false;
@@ -90,6 +91,39 @@ export async function createBrowserProductSessionClient(config) {
           const value = canonicalJSON(intent); state.values[revocationKey] = value; states.put(state, namespace); return value;
         });
       },
+      async getRevocationCompletions(key) {
+        if (key !== completionKey) fail("CROSS_PRODUCT_SESSION", "Invalid revocation history key");
+        return stateOperation("readonly", ({ state }) => { const raw = state.values[key] ?? null; readRevocationCompletions(raw, binding, device); return raw; });
+      },
+      async getRevocationCompletion(key, intentId) {
+        if (key !== completionKey) fail("CROSS_PRODUCT_SESSION", "Invalid revocation history key");
+        return stateOperation("readonly", ({ state }) => { const receipt = readRevocationCompletions(state.values[key] ?? null, binding, device).find(r => r.intentId === intentId); return receipt ? canonicalJSON(receipt) : null; });
+      },
+      async acknowledgeRevocationCompletion(key, raw) {
+        if (key !== completionKey) fail("CROSS_PRODUCT_SESSION", "Invalid revocation history key");
+        const receipt = parseRevocationCompletion(raw, binding, device);
+        return stateOperation("readwrite", ({ state, states }) => {
+          const records = readRevocationCompletions(state.values[key] ?? null, binding, device);
+          const existing = records.find(r => r.intentId === receipt.intentId);
+          if (existing && canonicalJSON(existing) !== raw) fail("REVOCATION_CHANGED", "Cannot acknowledge a different completion");
+          state.values[key] = canonicalJSON(records.filter(r => r.intentId !== receipt.intentId)); states.put(state, namespace);
+        });
+      },
+      async finishRevocationIntentWithCompletion(key, raw, receiptRaw) {
+        if (key !== revocationKey) fail("CROSS_PRODUCT_SESSION", "Invalid sign-out intent key");
+        const receipt = parseRevocationCompletion(receiptRaw, binding, device);
+        if (canonicalJSON(createRevocationCompletion(raw, binding, device, receipt.outcome)) !== receiptRaw) fail("REVOCATION_CHANGED", "Completion does not match the original target");
+        const intent = parseRevocationIntent(raw, binding, device);
+        await stateOperation("readwrite", ({ state, states }) => {
+          if (state.values[key] !== raw) fail("REVOCATION_CHANGED", "Sign-out target changed before atomic completion");
+          const history = appendRevocationCompletion(state.values[completionKey] ?? null, receiptRaw, binding, device);
+          const current = state.values[storageKey] ?? null;
+          if (revocationSessionMatches(current, intent.session)) delete state.values[storageKey];
+          if (current === null || revocationSessionMatches(current, intent.session)) for (const suffix of ["pending", "return", "completion"]) delete state.values[`${storageKey}:${suffix}`];
+          state.values[completionKey] = history; delete state.values[key]; states.put(state, namespace);
+        });
+        signals.finish(); revocationAttempted = false; return receiptRaw;
+      },
       async finishRevocationIntent(key, raw) {
         if (key !== revocationKey) fail("CROSS_PRODUCT_SESSION", "Sign-out intent key is invalid");
         const intent = parseRevocationIntent(raw, binding, device);
@@ -108,13 +142,14 @@ export async function createBrowserProductSessionClient(config) {
       },
     });
     const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock, ...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds}:{}) });
-    const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, origin: binding.origin, productId, scopes: approvedScopes });
+    const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, durableRevocationCompletion: true, origin: binding.origin, productId, scopes: approvedScopes });
     return Object.freeze({ client, device, storage, capabilities, createIntrospectionProof, createSocialAudienceProof: input => client.createSocialAudienceProof(input), createBusinessProof: input => client.createBusinessProof(input),
     createBusinessProofCommitment: input => client.createBusinessProofCommitment(input), close });
 
     function assertStorageKey(key) { if (!allowedKeys.has(key)) fail("CROSS_PRODUCT_SESSION", "Browser storage key is outside this product binding"); }
     function assertStoredValue(key, value) {
-      if (typeof value !== "string" || value.length > 16_384) fail("INSECURE_STORAGE", "Browser Product Session storage value is invalid");
+      if (typeof value !== "string" || value.length > (key === completionKey ? 131072 : 16_384)) fail("INSECURE_STORAGE", "Browser Product Session storage value is invalid");
+      if (key === completionKey) { readRevocationCompletions(value, binding, device); return; }
       if (key === `${storageKey}:return`) return;
       if (key === revocationKey) { parseRevocationIntent(value, binding, device); return; }
       let input; try { input = JSON.parse(value); } catch { fail("INVALID_SESSION_STORE", "Browser Product Session storage is invalid JSON"); }
@@ -206,7 +241,7 @@ function assertRecord(device, state, namespace, allowedKeys, authority) {
   for (const [key, type, usage] of [[device.privateKey, "private", "sign"], [device.publicKey, "public", "verify"]]) {
     if (!key || key.type !== type || key.algorithm?.name !== "ECDSA" || key.algorithm.namedCurve !== "P-256" || key.usages?.length !== 1 || key.usages[0] !== usage || (type === "private" && key.extractable !== false)) fail("INSECURE_STORAGE", "Persisted browser key must be a non-extractable P-256 signing key");
   }
-  if (!state.values || typeof state.values !== "object" || Array.isArray(state.values) || Object.keys(state.values).some(key => !allowedKeys.has(key) || typeof state.values[key] !== "string" || state.values[key].length > 16_384)) fail("INVALID_SESSION_STORE", "Persisted browser session state crosses its storage binding");
+  if (!state.values || typeof state.values !== "object" || Array.isArray(state.values) || Object.keys(state.values).some(key => !allowedKeys.has(key) || typeof state.values[key] !== "string" || state.values[key].length > (key.endsWith(":revoke-completions") ? 131072 : 16_384))) fail("INVALID_SESSION_STORE", "Persisted browser session state crosses its storage binding");
 }
 async function publicDeviceKey(crypto, key) {
   let raw; try { raw = new Uint8Array(await crypto.subtle.exportKey("raw", key)); } catch { fail("INSECURE_STORAGE", "Browser device public key cannot be verified"); }

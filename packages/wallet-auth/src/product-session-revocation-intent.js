@@ -27,3 +27,38 @@ function scope(binding, device) {
   return digestHex("YNX_PRODUCT_SESSION_LOCAL_REVOCATION_SCOPE_V1", { ...Object.fromEntries(BINDING_FIELDS.map((field) => [field, binding[field]])), deviceId: device.id, deviceKey: device.key, scopes: device.scopes });
 }
 function fail(code, message) { throw new WalletAuthError(code, message); }
+
+// This local durable record is not a new server signature or a user grant.
+// Only the client authority result selects outcome; storage commits it together
+// with cleanup of the exact intent, before returning any completion to the app.
+export function createRevocationCompletion(rawIntent, binding, device, outcome) {
+  const intent = parseRevocationIntent(rawIntent, binding, device);
+  const raw = canonicalJSON({ version: 1, intentId: intent.intentId, scope: intent.scope,
+    targetDigest: intent.session === null ? null : digestHex("YNX_PRODUCT_SESSION_REVOKED_TARGET_V1", intent.session),
+    sessionBinding: intent.session?.sessionBinding ?? null, outcome });
+  return parseRevocationCompletion(raw, binding, device);
+}
+export function parseRevocationCompletion(raw, binding, device) {
+  if (typeof raw !== "string" || raw.length > 2048) fail("INVALID_SESSION_STORE", "Revocation completion is invalid");
+  let v; try { v = JSON.parse(raw); } catch { fail("INVALID_SESSION_STORE", "Revocation completion is not JSON"); }
+  exactFields(v, ["version", "intentId", "scope", "targetDigest", "sessionBinding", "outcome"], "Revocation completion");
+  if (v.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(v.intentId) || v.scope !== scope(binding, device) || !["server-revoked", "authority-expired", "local-only"].includes(v.outcome)) fail("CROSS_PRODUCT_SESSION", "Revocation completion crosses its original intent or scope");
+  if (v.outcome === "local-only" ? v.targetDigest !== null || v.sessionBinding !== null : typeof v.targetDigest !== "string" || !/^[0-9a-f]{64}$/.test(v.targetDigest) || typeof v.sessionBinding !== "string" || !/^[0-9a-f]{64}$/.test(v.sessionBinding)) fail("INVALID_SESSION_STORE", "Revocation completion target is invalid");
+  if (canonicalJSON(v) !== raw) fail("INVALID_SESSION_STORE", "Revocation completion is not canonical");
+  return Object.freeze(v);
+}
+export function readRevocationCompletions(raw, binding, device) {
+  if (raw === null) return [];
+  if (typeof raw !== "string" || raw.length > 131072) fail("INVALID_SESSION_STORE", "Revocation completion history is invalid");
+  let values; try { values = JSON.parse(raw); } catch { fail("INVALID_SESSION_STORE", "Revocation history is not JSON"); }
+  if (!Array.isArray(values) || values.length > 64 || canonicalJSON(values) !== raw) fail("INVALID_SESSION_STORE", "Revocation completion history is not bounded canonical JSON");
+  const seen = new Set();
+  return values.map(value => { const parsed = parseRevocationCompletion(canonicalJSON(value), binding, device); if (seen.has(parsed.intentId)) fail("INVALID_SESSION_STORE", "Duplicate revocation completion"); seen.add(parsed.intentId); return parsed; });
+}
+export function appendRevocationCompletion(raw, receiptRaw, binding, device) {
+  const records = readRevocationCompletions(raw, binding, device), receipt = parseRevocationCompletion(receiptRaw, binding, device);
+  const existing = records.find(r => r.intentId === receipt.intentId);
+  if (existing) { if (canonicalJSON(existing) !== receiptRaw) fail("REVOCATION_CHANGED", "Revocation completion changed"); return canonicalJSON(records); }
+  if (records.length === 64) fail("REVOCATION_COMPLETION_FULL", "Commit and acknowledge existing consumer receipts before further cleanup");
+  return canonicalJSON([...records, receipt]);
+}

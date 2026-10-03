@@ -1,4 +1,4 @@
-import type {ProductSessionGatewayFetchAdapter,ProductBusinessProofInput,ProductBusinessCommitmentInput,SocialAudienceProofInput,ProductSessionIntrospectionProof,ProductSessionPlatform} from "./index.js";
+import type {ProductSessionGatewayFetchAdapter,ProductBusinessProofInput,ProductBusinessCommitmentInput,SocialAudienceProofInput,ProductSessionIntrospectionProof,ProductSessionPlatform,ProductSessionRevocationCompletion} from "./index.js";
 export type NativeProductPlatform=Exclude<ProductSessionPlatform,"web">;
 export type NativeProductContext=Readonly<{platform:NativeProductPlatform;applicationId:string;deviceId:string;deviceKey:string;securityLevel:"hardware-backed"|"os-protected";generation:number;account:string|null}>;
 export type NativeProductStorage=Readonly<{
@@ -9,6 +9,10 @@ export type NativeProductStorage=Readonly<{
  revocationRequested(namespace:string,expected:NativeProductContext):boolean;
  saveRevocationIntent(namespace:string,key:string,raw:string,expected:NativeProductContext):Promise<string>;
  finishRevocationIntent(namespace:string,key:string,raw:string,expected:NativeProductContext):Promise<void>;
+ /** Optional trio: original-target cleanup + receipt must commit atomically and durably. */
+ finishRevocationIntentWithCompletion?(namespace:string,key:string,raw:string,receiptRaw:string,expected:NativeProductContext):Promise<string>;
+ getRevocationCompletions?(namespace:string,key:string,expected:NativeProductContext):Promise<string|null>;
+ acknowledgeRevocationCompletion?(namespace:string,key:string,receiptRaw:string,expected:NativeProductContext):Promise<void>;
 }>;
 /** Native owner must atomically enforce expected context at storage/sign/open use. No software fallback. */
 export type NativeProductRuntime=Readonly<{
@@ -20,8 +24,11 @@ export type NativeProductRuntime=Readonly<{
 }>;
 export type NativeProductState=Readonly<Record<string,unknown>>;
 export type NativeProductSessionAdapter=Readonly<{
+ getRevocationCompletions():Promise<readonly ProductSessionRevocationCompletion[]>;
+ getRevocationCompletion(intentId:string):Promise<ProductSessionRevocationCompletion|null>;
+ acknowledgeRevocationCompletion(receipt:ProductSessionRevocationCompletion):Promise<void>;
  current:NativeProductState;binding:Readonly<Record<string,unknown>>;
- capabilities:Readonly<{kind:"product-private";identityGrant:false;securityLevel:"hardware-backed"|"os-protected";protectedRuntimeRequired:true;privateKeyExported:false;authority:string}>;
+ capabilities:Readonly<{kind:"product-private";identityGrant:false;securityLevel:"hardware-backed"|"os-protected";protectedRuntimeRequired:true;privateKeyExported:false;durableRevocationCompletion:boolean;authority:string}>;
  connect():Promise<Readonly<{opened:boolean;state:NativeProductState;approved:false}>>;
  resumeWallet():Promise<Readonly<{opened:boolean;state:NativeProductState;approved:false}>>;
  beginExplicit():Promise<NativeProductState>;beginDetected(automatic?:boolean):Promise<NativeProductState>;retryDetected():Promise<NativeProductState>;
