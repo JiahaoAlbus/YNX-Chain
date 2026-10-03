@@ -1,0 +1,26 @@
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/scripts/apple-engine-check.swift:85:82: error: cannot find operator '=!' in scope
+83 |                         }
+84 |                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
+85 |                         value["channelID"]=model.channelID;value["uploadPending"]=!model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message
+   |                                                                                  `- error: cannot find operator '=!' in scope
+86 |                         value["businessVerified"]=engine.identity != nil
+87 |                         value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility] as [String:Any]}
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: xcrun swiftc -module-cache-path /tmp/ynx-creator-apple-engine-r1-20261004/modules /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorModel.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/scripts/apple-engine-check.swift -o /tmp/ynx-creator-apple-engine-r1-20261004/apple-engine-check
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/scripts/compile-apple-engine-check.mjs:4:1 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 76323,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0
