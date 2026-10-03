@@ -13,21 +13,23 @@ export class WalletConnectSecurityStore{
   async updateReplay<T>(update:(store:WalletConnectRequestReplayStore,sessions:readonly WalletConnectSessionApproval[])=>T,assertCurrent:()=>void=()=>{}):Promise<T>{return this.#serialize(async()=>{const state=await this.#read();assertCurrent();const replay=new WalletConnectRequestReplayStore(state.replay),result=update(replay,state.sessions);assertCurrent();await this.#write({version:1,sessions:state.sessions,replay:replay.snapshot()});assertCurrent();return result})}
   async load():Promise<{sessions:readonly WalletConnectSessionApproval[];replayStore:WalletConnectRequestReplayStore}>{await this.#pending;const state=await this.#read();return{sessions:state.sessions,replayStore:new WalletConnectRequestReplayStore(state.replay)}}
   async session(topic:string):Promise<WalletConnectSessionApproval|null>{await this.#pending;return(await this.#read()).sessions.find(item=>item.topic===topic)??null}
-  async saveSession(approval:WalletConnectSessionApproval):Promise<void>{return this.#serialize(()=>this.#saveSession(approval))}
-  async #saveSession(approval:WalletConnectSessionApproval):Promise<void>{const state=await this.#read(),sessions=[...state.sessions.filter(item=>item.topic!==approval.topic),approval];if(sessions.length>50)throw new Error("WalletConnect session limit reached");await this.#write({version:1,sessions,replay:state.replay})}
+  async saveSession(approval:WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{return this.#serialize(()=>this.#saveSession(approval,assertCurrent))}
+  async #saveSession(approval:WalletConnectSessionApproval,assertCurrent:()=>void):Promise<void>{const state=await this.#read();assertCurrent();const sessions=[...state.sessions.filter(item=>item.topic!==approval.topic),approval];if(sessions.length>50)throw new Error("WalletConnect session limit reached");await this.#write({version:1,sessions,replay:state.replay});assertCurrent();}
   async removeSession(topic:string):Promise<void>{return this.#serialize(()=>this.#removeSession(topic))}
   async #removeSession(topic:string):Promise<void>{const state=await this.#read();await this.#write({version:1,sessions:state.sessions.filter(item=>item.topic!==topic),replay:state.replay})}
   async reconcileSession(topic:string,namespaces:SessionTypes.Namespaces,account:string):Promise<"current"|"missing"|"changed">{const approval=await this.session(topic);if(!approval)return"missing";const next=normalizedNamespaces(namespaces);const expected=normalizedNamespaces(approval.namespaces as unknown as SessionTypes.Namespaces);return approval.account===account&&JSON.stringify(next)===JSON.stringify(expected)?"current":"changed"}
-  async reconcileActiveSessions(activeSessions:readonly ActiveSession[],account:string):Promise<WalletConnectSessionReconciliation>{return this.#serialize(()=>this.#reconcileActiveSessions(activeSessions,account))}
-  async #reconcileActiveSessions(activeSessions:readonly ActiveSession[],account:string):Promise<WalletConnectSessionReconciliation>{
+  async reconcileActiveSessions(activeSessions:readonly ActiveSession[],account:string,assertCurrent:()=>void=()=>{}):Promise<WalletConnectSessionReconciliation>{return this.#serialize(()=>this.#reconcileActiveSessions(activeSessions,account,assertCurrent))}
+  async #reconcileActiveSessions(activeSessions:readonly ActiveSession[],account:string,assertCurrent:()=>void):Promise<WalletConnectSessionReconciliation>{
     if(activeSessions.length>50)throw new Error("WalletConnect active session limit exceeded");
     const state=await this.#read(),activeByTopic=new Map(activeSessions.map(session=>[session.topic,session]));
+    assertCurrent();
     if(activeByTopic.size!==activeSessions.length)throw new Error("WalletConnect active sessions contain duplicate topics");
     const retained=state.sessions.filter(approval=>{const active=activeByTopic.get(approval.topic);return Boolean(active&&approval.account===account&&sameNamespaces(active.namespaces,approval.namespaces as unknown as SessionTypes.Namespaces))});
     const retainedTopics=new Set(retained.map(approval=>approval.topic));
     const disconnectTopics=activeSessions.filter(session=>!retainedTopics.has(session.topic)).map(session=>session.topic);
     const prunedTopics=state.sessions.filter(approval=>!retainedTopics.has(approval.topic)).map(approval=>approval.topic);
     if(retained.length!==state.sessions.length)await this.#write({version:1,sessions:retained,replay:state.replay});
+    assertCurrent();
     return Object.freeze({disconnectTopics:Object.freeze(disconnectTopics),prunedTopics:Object.freeze(prunedTopics)});
   }
   async saveReplay(store:WalletConnectRequestReplayStore):Promise<void>{return this.#serialize(async()=>{const state=await this.#read(),incoming=new Map(store.snapshot().map(record=>[record.key,record]));for(const existing of state.replay){const next=incoming.get(existing.key);if(next&&(next.requestDigest!==existing.requestDigest||next.expiresAt!==existing.expiresAt||existing.status==="consumed"&&next.status!=="consumed"))throw new Error("WalletConnect replay state cannot move backwards");incoming.set(existing.key,next??existing)}const merged=new WalletConnectRequestReplayStore([...incoming.values()]);await this.#write({version:1,sessions:state.sessions,replay:merged.snapshot()})})}

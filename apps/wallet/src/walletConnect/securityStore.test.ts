@@ -39,3 +39,11 @@ test("full reconciliation is bounded to fifty active sessions",async()=>{
   const store=new WalletConnectSecurityStore(new MemoryStorage() as any);
   await assert.rejects(store.reconcileActiveSessions(Array.from({length:51},(_,index)=>({topic:String(index).padStart(64,"0"),namespaces:namespaces as any})),account),/limit exceeded/);
 });
+for(const reconcile of [false,true])test(`retired view cannot ${reconcile?"reconcile away another account's sessions":"save a proposal"} after its serialized read`,async()=>{
+ const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);const original=storage.value;
+ const read=storage.getItem.bind(storage);let release!:()=>void;const pending=new Promise<void>(resolve=>{release=resolve});let blocked=false;
+ storage.getItem=async()=>{const value=await read();if(!blocked){blocked=true;await pending;}return value;};let current=true;
+ const guard=()=>{if(!current)throw Error("view retired");};
+ const job=reconcile?store.reconcileActiveSessions([],account,guard):store.saveSession({...approval,topic:"e".repeat(64)},guard);
+ await new Promise(resolve=>setImmediate(resolve));current=false;release();await assert.rejects(job,/view retired/);assert.equal(storage.value,original);assert.equal((await store.load()).sessions.length,1);
+});

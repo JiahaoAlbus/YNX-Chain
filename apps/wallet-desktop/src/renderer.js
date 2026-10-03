@@ -607,18 +607,22 @@ window.ynxWallet.onProviderRequest(request => {
   approvalQueue.enqueue("provider", request);
 });
 window.ynxWallet.onProviderRequestExpired(event => {
+  const shown = approvalQueue.current?.type === "provider" && approvalQueue.current.review.id === event.id;
   approvalQueue.remove("provider", event.id);
-  walletConnectDetail.textContent = "The app request expired. Request it again from the app.";
+  if(shown)walletConnectDetail.textContent = "The app request expired. Request it again from the app.";
 });
 async function providerAction(action) {
   if (approvalQueue.current?.type !== "provider") return;
   const item = approvalQueue.begin(approvalQueue.current.key);
   if (!item) { if (action === "reject") await window.ynxWallet.lock(); return; }
+  const account = activeAccount, view = accountViewRevision, security = accountSecurityIntent, revision = keyState.revision;
+  const current = () => approvalQueue.current === item && approvalQueue.busy && account === activeAccount && view === accountViewRevision && security === accountSecurityIntent && revision === keyState.revision && !keyState.locked && item.expiresAt > Date.now();
   try {
     const result = await window.ynxWallet.providerAction(item.review.id, action);
+    if(!current())return;
     walletConnectDetail.textContent = result.ok ? (result.value?.responseDelivered === false ? "Wallet locked before the response could be delivered. Check the app and any submitted transaction before trying again." : result.value?.status === "success" ? "Your response was delivered to the app." : result.value?.message ?? "Request declined.") : errorText(result);
-  } catch { walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
-  finally { approvalQueue.finish(item.key); void refreshTransactions(); }
+  } catch { if(current())walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
+  finally { if(approvalQueue.current === item && approvalQueue.busy)approvalQueue.finish(item.key); void refreshTransactions(); }
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));

@@ -5,6 +5,11 @@ import { createPersistAndPublishWalletConnectSession,persistAndPublishWalletConn
 import { WalletConnectRuntime } from "./runtime";
 
 const approval={topic:"a".repeat(64)} as WalletConnectSessionApproval;
+test("late approval persistence never publishes after its view retires and cleans only its original topic",async()=>{
+ let release!:()=>void;const waiting=new Promise<void>(resolve=>{release=resolve});const order:string[]=[];let current=true;
+ const job=persistAndPublishWalletConnectSession({refreshSessions(){order.push("publish")},async disconnect(topic){order.push(`disconnect:${topic}`)}},{async saveSession(){order.push("save");await waiting;},async removeSession(topic){order.push(`remove:${topic}`)}},approval,()=>{if(!current)throw Error("view retired");});
+ await new Promise(resolve=>setImmediate(resolve));current=false;release();await assert.rejects(job,/view retired/);assert.deepEqual(order,["save",`remove:${approval.topic}`,`disconnect:${approval.topic}`]);
+});
 
 test("approved session is published only after its local approval is saved",async()=>{
   const order:string[]=[];
