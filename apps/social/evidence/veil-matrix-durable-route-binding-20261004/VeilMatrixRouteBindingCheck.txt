@@ -1,0 +1,1 @@
+PASS durable generation/route binding assertions=18; synthetic authority+memory only, no real issuer/routes/OS proof

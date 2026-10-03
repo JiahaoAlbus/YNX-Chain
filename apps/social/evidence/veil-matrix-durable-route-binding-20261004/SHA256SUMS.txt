@@ -1,0 +1,6 @@
+60f01d7dec7e79423e0cf2f4348d212bd5a5a50214d500b87e3c0380cb20517e  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilMatrixContextBinding.java
+a64e8692874ab0aec4bb98153e68743d2125d45030b3857b743b0d31d6a0fb44  apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt
+3095914737d94af448535d3bcad022786bd4b13e5872d6ab40143baa2fac95ae  apps/social/scripts/veil-libsignal-qa/VeilMatrixJournalCheck.java
+5feb02ecbf1048e0c96ffe2a12640af6ef06b50651767030b1893861085db344  apps/social/scripts/veil-libsignal-qa/VeilMatrixRouteBindingCheck.java
+15ed5ed76dc475dc71e5209b3e5a379d449e5d66175062c11fdb7e7ee9ec54fc  apps/social/evidence/veil-matrix-durable-route-binding-20261004/dormant-route-java-models.jar
+0e9a56a6fd3e8d6f431ebe4df0dafc16e156987c7bb62d029937950178b6fef2  apps/social/evidence/veil-matrix-durable-route-binding-20261004/dormant-route-native-module.jar

@@ -1,0 +1,5 @@
+stage=/tmp/social-veil-route-binding-20261004.3UJSsK
+compile_exit=0
+VeilMatrixJournalCheck_exit=0
+VeilMatrixRouteBindingCheck_exit=0
+kotlin_compile_exit=0

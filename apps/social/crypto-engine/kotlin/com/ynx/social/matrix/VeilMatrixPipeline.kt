@@ -21,6 +21,8 @@ internal class VeilMatrixPipeline(
 ) {
   internal data class Reviewed(
     val client: Client, val room: Room, val scope: VeilMatrixJournal.Scope,
+    // Independently authenticated durable routing generation, never process
+    // epoch/JS data. Scope.recheck must invalidate this exact original binding.
     val nativeGeneration: Long
   ) {
     fun same(other: Reviewed) = client === other.client && nativeGeneration == other.nativeGeneration && scope.same(other.scope)
@@ -46,6 +48,7 @@ internal class VeilMatrixPipeline(
   private fun current(tx: VeilRecordTransaction, hint: String, peer: VeilSignalAddress): Current {
     val grant = authority.resolve(tx, hint, own, local.sdk(), peer.sdk())
     val reviewed = routes.review(tx, grant.context, hint)
+    check(reviewed.nativeGeneration != 0L) { "VEIL_APPLICATION_CONTEXT_UNAVAILABLE" }
     reviewed.scope.recheck.run()
     check(reviewed.room.id() == reviewed.scope.room && reviewed.room.ownUserId() == reviewed.scope.self) {
       "VEIL_AUTHENTICATED_CONTEXT_MISMATCH"
@@ -53,10 +56,10 @@ internal class VeilMatrixPipeline(
     grant.recheck.run(); tx.checkLive()
     return Current(reviewed, grant)
   }
-  private fun bind(tx: VeilRecordTransaction, operation: UUID, context: VeilApplicationContext, preparing: Boolean) {
+  private fun bind(tx: VeilRecordTransaction, operation: UUID, context: VeilApplicationContext, reviewed: Reviewed, preparing: Boolean) {
     val bytes = VeilAuthenticatedEnvelope.contextBytes(context, true)
     val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-    try { VeilMatrixContextBinding.require(tx, operation, digest, preparing) }
+    try { VeilMatrixContextBinding.require(tx, operation, digest, reviewed.nativeGeneration, reviewed.scope, preparing) }
     finally { bytes.fill(0); digest.fill(0) }
   }
   fun prepare(operation: UUID, hint: String, peer: VeilSignalAddress, plaintext: ByteArray): VeilMatrixJournal.Entry {
@@ -66,16 +69,18 @@ internal class VeilMatrixPipeline(
     try {
       return store.transaction { tx ->
         val checked = current(tx, hint, peer)
+        // Bind before any first encryption; all writes commit together. Existing
+        // operation/generation mismatch fails before SDK encryption or network.
+        bind(tx, operation, checked.grant.context, checked.reviewed, true)
         val pending = VeilSignalOutbox.encryptInTransaction(tx, authority, own, local.sdk(), operation, hint, peer.sdk(), snapshot)
         checked.grant.recheck.run()
-        bind(tx, operation, checked.grant.context, true)
         VeilMatrixJournal.prepareInTransaction(tx, checked.reviewed.scope, operation, pending)
       }
     } finally { snapshot.fill(0) }
   }
   private fun outgoing(tx: VeilRecordTransaction, operation: UUID, hint: String, peer: VeilSignalAddress): Current {
     val checked = current(tx, hint, peer)
-    bind(tx, operation, checked.grant.context, false)
+    bind(tx, operation, checked.grant.context, checked.reviewed, false)
     return checked
   }
   private fun gate(operation: UUID, hint: String, peer: VeilSignalAddress, captured: Reviewed) {
