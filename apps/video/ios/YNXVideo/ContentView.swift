@@ -16,6 +16,10 @@ struct ContentView: View {
                 HStack { if !model.accountMessage.isEmpty { Text(model.accountMessage).font(.caption).lineLimit(1) };Spacer();if model.accountConnected || model.signOutPending || model.awaitingWallet { Button(model.text("signOut")){Task{await model.signOut()}}.disabled(model.accountBusy) };Button(model.text("retry")){Task{await model.restoreAccount()}}.disabled(model.accountBusy) }.padding(.horizontal)
                 HStack { TextField(model.text("search"),text:$query).textFieldStyle(.roundedBorder).accessibilityLabel(model.text("search")); Button(model.text("search")){Task{await model.load(query:query)}} }.padding()
                 ScrollView(.horizontal) { HStack { Button(model.text("discover")){Task{await model.load()}}; Button(model.text("subscriptions")){Task{await model.loadLibrary("/v1/subscriptions",label:model.text("subscriptions"))}}; Button(model.text("playlists")){Task{await model.loadLibrary("/v1/playlists",label:model.text("playlists"))}}; Button(model.text("history")){Task{await model.loadLibrary("/v1/history",label:model.text("history"))}} }.buttonStyle(.bordered).font(.caption).accessibilityElement(children:.contain) }
+                if model.showingPlaylists && model.accountConnected {
+                    HStack { TextField(model.text("playlists"),text:$model.playlistName).textFieldStyle(.roundedBorder).disabled(model.playlistPending || model.playlistBusy);Button(model.text(model.playlistPending ? "retry" : "createPlaylist")){Task{await model.createPlaylist()}}.disabled(model.playlistBusy);if model.playlistPending { Button(model.text("discardDraft")){model.discardPlaylistDraft()}.disabled(model.playlistBusy) } }.padding(.horizontal)
+                }
+                if !model.operationMessage.isEmpty { Text(model.operationMessage).font(.caption) }
                 stateView.frame(maxWidth:.infinity,maxHeight:.infinity)
                 settings
             }
@@ -33,7 +37,8 @@ struct ContentView: View {
         case .offline: retry(model.text("offline"))
         case .unavailable: retry(model.text("walletPending"))
         case .failure(let reason): retry(model.text("unavailable")+"\n"+reason)
-        case .library(let label,let rows): List(rows,id:\.self){Text($0)}.navigationTitle(label)
+        case .library(let label,let rows):
+            if model.showingPlaylists { List(model.playlists) { item in Button(item.Name){Task{await model.openPlaylist(item)}} }.navigationTitle(label) } else { List(rows,id:\.self){Text($0)}.navigationTitle(label) }
         case .loaded:
             List(model.videos) { video in
                 Button { model.select(video) } label: {

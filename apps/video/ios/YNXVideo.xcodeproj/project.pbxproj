@@ -6,7 +6,7 @@
  objects = {
   A1 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600;}; buildConfigurationList = A2; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = A3; productRefGroup = A4; projectDirPath = ""; projectRoot = ""; targets = (A5,M5,);};
   A2 = {isa = XCConfigurationList; buildConfigurations = (B1,B2,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-  A3 = {isa = PBXGroup; children = (C1,C2,C3,C4,C6,C7,C8,C9,C10,C11,C12,C13,C14,M3,); sourceTree = "<group>";};
+  A3 = {isa = PBXGroup; children = (C1,C2,C3,C4,C6,C7,C8,C9,C10,C11,C12,C13,C14,C15,C16,M3,); sourceTree = "<group>";};
   A4 = {isa = PBXGroup; children = (C5,M4,); name = Products; sourceTree = "<group>";};
   A5 = {isa = PBXNativeTarget; buildConfigurationList = A6; buildPhases = (D1,D2,D3,); buildRules = (); dependencies = (); name = YNXVideo; productName = YNXVideo; productReference = C5; productType = "com.apple.product-type.application";};
   A6 = {isa = XCConfigurationList; buildConfigurations = (B3,B4,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
@@ -24,7 +24,7 @@
   C8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoModel.swift; sourceTree = "<group>";};
   C9 = {isa = PBXFileReference; lastKnownFileType = image.png; path = YNXVideo/ynx-brand-original.png; sourceTree = "<group>";};
   E7 = {isa = PBXBuildFile; fileRef = C9;};
-  D1 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E1,E2,E4,E5,E6,E10,E11,E12,E13,); runOnlyForDeploymentPostprocessing = 0;};
+  D1 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E1,E2,E4,E5,E6,E10,E11,E12,E13,E15,E16,); runOnlyForDeploymentPostprocessing = 0;};
   D2 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
   D3 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (E3,E7,E14,); runOnlyForDeploymentPostprocessing = 0;};
   E1 = {isa = PBXBuildFile; fileRef = C1;}; E2 = {isa = PBXBuildFile; fileRef = C2;}; E3 = {isa = PBXBuildFile; fileRef = C4;}; E4 = {isa = PBXBuildFile; fileRef = C6;}; E5 = {isa = PBXBuildFile; fileRef = C7;}; E6 = {isa = PBXBuildFile; fileRef = C8;};
@@ -42,6 +42,9 @@
   C13 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoNativeTransport.swift; sourceTree = "<group>";};
   C14 = {isa = PBXFileReference; lastKnownFileType = folder; path = YNXVideo/native-session; sourceTree = "<group>";};
   E12 = {isa = PBXBuildFile; fileRef = C12;}; E13 = {isa = PBXBuildFile; fileRef = C13;}; E14 = {isa = PBXBuildFile; fileRef = C14;};
+  C15 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoPrivateMedia.swift; sourceTree = "<group>";};
+  C16 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoViewerState.swift; sourceTree = "<group>";};
+  E15 = {isa = PBXBuildFile; fileRef = C15;}; E16 = {isa = PBXBuildFile; fileRef = C16;};
  };
  rootObject = A1;
 }

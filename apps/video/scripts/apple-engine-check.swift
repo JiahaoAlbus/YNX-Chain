@@ -10,6 +10,7 @@ import Foundation
         do {
             let args=CommandLine.arguments;guard args.count==5,let gateway=URL(string:args[2]),let backend=URL(string:args[3]),[gateway,backend].allSatisfy({$0.scheme=="http" && $0.host=="127.0.0.1" && $0.path.isEmpty}),["ios","macos"].contains(args[4]) else { throw VideoNativeEngine.Failure.invalidSource }
             let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey()
+            var viewerRecords: [String:Data]=[:]
             var persisted: Data?,opened="",mismatch=false,hold=false,held: CheckedContinuation<Void,Never>?
             let key=ProductDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=VideoNativeTransport()
@@ -31,10 +32,17 @@ import Foundation
                 return try VideoNativeEngine(state:state,key:key,assets:assets,send:sender,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
             }
             var engine=try create()
+            func viewer(_ engine: VideoNativeEngine) throws -> VideoViewerState {
+                guard let identity=engine.identity else { throw VideoNativeEngine.Failure.retired }
+                let epoch=engine.epoch,account=identity.account
+                return try VideoViewerState(account:account,read:{viewerRecords[account]},write:{viewerRecords[account]=$0},require:{try engine.require(identity,epoch)})
+            }
             func createModel(_ engine: VideoNativeEngine) -> VideoModel { VideoModel(loadData:{path,query in
                 var parts=URLComponents(url:try VideoHTTP.url(path),resolvingAgainstBaseURL:false)!;parts.queryItems=query
                 let (bytes,_)=try await sender(URLRequest(url:parts.url!),2_097_152);return bytes
-            },makeEngine:{engine}) }
+            },makeEngine:{engine},makeViewer:{engine,identity in
+                try viewer(engine)
+            }) }
             var model=createModel(engine)
             func reply(_ id: String,_ value: [String:Any]) { do { let bytes=try JSONSerialization.data(withJSONObject:["id":id,"value":value],options:[.sortedKeys]);FileHandle.standardOutput.write(bytes+Data([10])) } catch { FileHandle.standardOutput.write(Data("{\"error\":\"fixture output invalid\"}\n".utf8)) } }
             reply("ready",["ready":true,"platform":platform,"actualOSStorage":false])
@@ -62,9 +70,22 @@ import Foundation
                         case "uiLibrary":
                             await model.loadLibrary("/v1/playlists",label:"Playlists")
                             if case .library(_,let rows)=model.state { value=["rows":rows] } else { value=["rows":[],"connected":model.accountConnected] }
+                        case "queueWatch":
+                            let store=try viewer(engine),video=command["videoID"] as! String,playback=try store.playback(video)
+                            _ = try store.position(video,playback,position:47,seconds:7,completed:false)
+                            value=["playbackID":playback.playbackID,"pending":try store.pendingWatch().count]
+                        case "uiFlush":await model.flushWatch();value=["pending":try viewer(engine).pendingWatch().count]
+                        case "uiPlaylist":
+                            model.playlistName=command["nameValue"] as! String;await model.createPlaylist();value=["pending":model.playlistPending,"count":model.playlists.count,"message":model.operationMessage]
+                        case "nativeRange":
+                            let boundary=VideoRequestBoundary(),media=try VideoPrivateMedia(engine:engine,path:command["path"] as! String,boundary:boundary,navigation:boundary.generation,expectedBytes:20)
+                            let first=try await media.range(offset:0,count:4),second=try await media.range(offset:4,count:4)
+                            boundary.advance()
+                            var retired=false;do { _ = try await media.range(offset:8,count:4) } catch { retired=true };media.close()
+                            value=["first":first.data.count,"second":second.data.count,"total":second.total,"retired":retired]
                         case "uiMutate":value=["accepted":await model.mutate(command["path"] as! String,body:command["body"] as! [String:Any])]
                         case "uiSignOut":await model.signOut();value=["connected":model.accountConnected,"pending":model.signOutPending]
-                        case "cold":engine.close();engine=try create();model=createModel(engine);value=try await engine.dispatch("restore")
+                        case "cold":engine.close();engine=try create();model=createModel(engine);await model.restoreAccount();value=["status":engine.lastStatus,"connected":model.accountConnected]
                         case "mismatch":mismatch=command["enabled"] as! Bool;value=["enabled":mismatch]
                         case "holdNext":hold=true;value=["holding":true]
                         case "release":held?.resume();held=nil;value=["released":true]

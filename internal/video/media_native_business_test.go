@@ -171,11 +171,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual native consumer/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
-				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
-				ActualAppleSwiftWebKitEngine bool `json:"actualAppleSwiftWebKitEngine"`
-				ActualOriginalAppleModelFlow bool `json:"actualOriginalAppleModelFlow"`
-				ActualWalletConsent          bool `json:"actualWalletConsent"`
-				QAProtectedPorts             bool `json:"qaProtectedPorts"`
+				PlaybackID                   string `json:"playbackID"`
+				ActualBusinessServerReadback bool   `json:"actualBusinessServerReadback"`
+				ActualAppleSwiftWebKitEngine bool   `json:"actualAppleSwiftWebKitEngine"`
+				ActualOriginalAppleModelFlow bool   `json:"actualOriginalAppleModelFlow"`
+				ActualWalletConsent          bool   `json:"actualWalletConsent"`
+				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
@@ -191,7 +192,14 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 					t.Fatal("missing original Video playlist readback")
 				}
 				history, e := owned.History(actor.Account)
-				if e != nil || len(history) != 1 || history[0].PlaybackID != "00000000-0000-4000-8000-000000000001" || history[0].Seconds != 7 {
+				expectedPlayback := "00000000-0000-4000-8000-000000000001"
+				if apple {
+					expectedPlayback = receipt.PlaybackID
+					if expectedPlayback == "" {
+						t.Fatal("missing original persisted Apple playback ID")
+					}
+				}
+				if e != nil || len(history) != 1 || history[0].PlaybackID != expectedPlayback || history[0].Seconds != 7 {
 					t.Fatal("missing original Native playback history")
 				}
 			} else {

@@ -15,11 +15,14 @@ final class VideoNativeCustody {
     init(read: @escaping Read, add: @escaping Add, update: @escaping Update) {
         readItem=read; addItem=add; updateItem=update
     }
-    convenience init(platform: String) throws {
+    convenience init(platform: String,viewerAccount: String? = nil) throws {
         guard ["ios","macos"].contains(platform) else { throw Failure.invalidData }
+        if let viewerAccount { guard VideoNativeState.matches(viewerAccount,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$") else { throw Failure.invalidData } }
+        let service=viewerAccount==nil ? "com.ynxweb4.video.product-session.v2" : "com.ynxweb4.video.viewer.v2"
+        let item=viewerAccount.map{platform+":"+VideoNativeState.hash(Data($0.utf8))} ?? platform
         let query: [String:Any] = [kSecClass as String:kSecClassGenericPassword,
-            kSecAttrService as String:"com.ynxweb4.video.product-session.v2",
-            kSecAttrAccount as String:platform]
+            kSecAttrService as String:service,
+            kSecAttrAccount as String:item]
         self.init(read: {
             var request=query; request[kSecReturnData as String]=true; request[kSecMatchLimit as String]=kSecMatchLimitOne
             var result: CFTypeRef?; let status=SecItemCopyMatching(request as CFDictionary,&result)

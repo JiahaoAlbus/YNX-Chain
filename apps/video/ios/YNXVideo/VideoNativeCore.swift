@@ -41,14 +41,14 @@ final class VideoHTTP: NSObject, URLSessionTaskDelegate {
         return data
     }
     @MainActor func accountData(_ path: String, method: String = "GET", body: Data? = nil,
-                               engine: VideoNativeEngine? = nil,requestKey: String = UUID().uuidString) async throws -> Data {
+                               engine: VideoNativeEngine? = nil,requestKey: String = UUID().uuidString,guardRequest: @MainActor () throws -> Void = {}) async throws -> Data {
         let url=try Self.url(path),bytes=body ?? Data(),method=method.uppercased()
         guard let engine,let original=engine.identity,bytes.count<=1_048_576,
               method != "GET" || bytes.isEmpty,
               VideoNativeState.matches(requestKey,"^[A-Za-z0-9_-]{16,128}$") else { throw Failure.nativeSessionUnavailable }
-        let epoch=engine.epoch;try engine.require(original,epoch)
+        let epoch=engine.epoch;try guardRequest();try engine.require(original,epoch)
         let proof=try await engine.dispatch("prepareRequest",["method":method,"path":path,"bodyDigest":VideoNativeState.hash(bytes),"bodyBytes":bytes.count])
-        try engine.require(original,epoch)
+        try guardRequest();try engine.require(original,epoch)
         guard proof["account"] as? String==original.account,proof["sessionBinding"] as? String==original.binding,
               proof["bodyDigest"] as? String==VideoNativeState.hash(bytes),proof["bodyBytes"] as? Int==bytes.count,
               let identity=proof["identityHeader"] as? String,let action=proof["actionHeader"] as? String else { throw Failure.nativeSessionUnavailable }
@@ -60,9 +60,9 @@ final class VideoHTTP: NSObject, URLSessionTaskDelegate {
             request.httpBody=bytes;request.setValue("application/json",forHTTPHeaderField:"Content-Type")
             request.setValue(requestKey,forHTTPHeaderField:"Idempotency-Key")
         }
-        try engine.require(original,epoch)
+        try guardRequest();try engine.require(original,epoch)
         let (data,response)=try await engine.sendBusiness(request,2_097_152,original,epoch)
-        try engine.require(original,epoch)
+        try guardRequest();try engine.require(original,epoch)
         if response.statusCode==401 { try engine.rejected(original) }
         guard (200..<300).contains(response.statusCode) else { throw Failure.unexpectedResponse }
         return data

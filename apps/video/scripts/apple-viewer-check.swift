@@ -1,0 +1,44 @@
+import Foundation
+
+@main enum AppleViewerChecks {
+    struct Failure: Error { let reason: String }
+    static func check(_ value: Bool,_ reason: String) throws { if !value { throw Failure(reason:reason) } }
+    static func rejects(_ action: () throws -> Void) throws { do { try action() } catch { return };throw Failure(reason:"invalid operation accepted") }
+    @MainActor static func main() throws {
+        let account="ynx1"+String(repeating:"q",count:38),other="ynx1"+String(repeating:"p",count:38)
+        var bytes: Data?,current=true,failWrite=false
+        func make(_ owner: String=account) throws -> VideoViewerState {
+            try VideoViewerState(account:owner,read:{bytes},write:{if failWrite { throw Failure(reason:"injected write") };bytes=$0},require:{if !current { throw Failure(reason:"retired") }})
+        }
+        let original=try make(),playback=try original.playback("original-video")
+        let pending=try original.position("original-video",playback,position:47,seconds:7,completed:false)!
+        let draft=try original.reservePlaylist("  Original playlist  ")
+        let cold=try make()
+        try check(try cold.playback("original-video")==VideoViewerState.Playback(playbackID:playback.playbackID,position:47),"cold resume lost original ID or position")
+        try check(try cold.pendingWatch()==[pending],"cold changed pending exact body/key")
+        try check(try cold.reservePlaylist("Original playlist")==draft,"retry changed playlist request key")
+        try rejects { _ = try cold.reservePlaylist("Replacement") }
+        try rejects { _ = try make(other) }
+        try rejects { try cold.finishWatch(.init(key:pending.key,videoID:pending.videoID,playbackID:pending.playbackID,seconds:8,completed:false)) }
+        try check(try cold.pendingWatch()==[pending],"wrong ACK deleted original watch")
+        try cold.finishWatch(pending);try cold.finishPlaylist(draft)
+        try check(try make().pendingWatch().isEmpty,"ACK did not persist")
+        let completion=try cold.position("original-video",playback,position:50,seconds:0,completed:true)!
+        try check(completion.completed && completion.playbackID==playback.playbackID,"completion replaced playback")
+        try check(try make().playback("original-video").playbackID != playback.playbackID,"completed playback reused")
+        current=false;try rejects { _ = try cold.pendingWatch() };current=true
+        let retained=bytes!;var shape=try JSONSerialization.jsonObject(with:retained) as! [String:Any];shape["unexpected"]=true;bytes=try JSONSerialization.data(withJSONObject:shape)
+        try rejects { _ = try make() };try check(bytes != retained,"corrupt state was silently overwritten");bytes=retained
+        let poisoned=try make();failWrite=true;try rejects { _ = try poisoned.reservePlaylist("Retry") };failWrite=false
+        try rejects { _ = try poisoned.pendingWatch() };try check(bytes==retained,"failed write replaced original state")
+        var clock=VideoPlaybackClock()
+        try check(clock.sample(position:47,playing:true,now:0)==0,"resume counted as watch")
+        try check(clock.sample(position:52,playing:true,now:5)==5,"playing seconds missing")
+        try check(clock.sample(position:100,playing:false,now:6)==0,"seek counted as watch")
+        try check(clock.sample(position:100,playing:true,now:9)==0,"paused time counted")
+        try check(clock.sample(position:102,playing:true,now:11)==2,"resumed seconds missing")
+        try check(clock.sample(position:200,playing:true,now:100)==0,"background gap counted")
+        try check(clock.sample(position:150,playing:true,now:101)==0,"backward seek counted")
+        print("Apple viewer original resume/pending/playlist/cold/account/ACK/poison/clock PASS; injected storage only")
+    }
+}
