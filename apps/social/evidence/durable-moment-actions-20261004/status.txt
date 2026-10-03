@@ -1,0 +1,10 @@
+typecheck_exit=2
+typecheck_repair_exit=0
+test_compile_exit=2
+typecheck_final_exit=0
+test_compile_repair_exit=0
+test_exit=0
+web_build_exit=1
+web_build_stage=/tmp/social-durable-moment-web-20261004.VWf2st
+native_build_exit=0
+native_build_stage=/tmp/social-durable-moment-native-20261004.xJJBxk

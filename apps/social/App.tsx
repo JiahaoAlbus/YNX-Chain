@@ -1829,8 +1829,13 @@ function MessageThread({
   );
 }
 
+import { DurableNativeMomentActions } from './src/durableNativeMomentActions';
+
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
-  const momentActions=useMemo(()=>new NativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[]);
+  const momentActions=useMemo(()=>new DurableNativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
+    read:key=>SecureStore.getItemAsync(key),
+    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
+  }),[]);
   const momentIntents=useMemo(()=>new NativeMomentIntents({
     read:key=>SecureStore.getItemAsync(key),
     write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),

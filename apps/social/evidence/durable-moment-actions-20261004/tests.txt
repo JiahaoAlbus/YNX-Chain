@@ -1,0 +1,14 @@
+✔ cold retry preserves exact unknown request identity (5.059916ms)
+✔ cold unknown action cannot silently become opposite action (0.663042ms)
+✔ storage failure blocks transport (0.184083ms)
+✔ authority loss after persistence retains original and sends nothing (0.306833ms)
+✔ malformed retained record is not replaced or sent (0.277375ms)
+✔ completed explicit next action gets a new request identity (0.279958ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.667208
