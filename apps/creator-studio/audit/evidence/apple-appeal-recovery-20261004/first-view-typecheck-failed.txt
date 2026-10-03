@@ -1,0 +1,54 @@
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:41:65: warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 39 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 40 |     private var catalog: [String:[String:String]]=[:]
+ 41 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                 `- warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 42 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 43 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:41:191: warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 39 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 40 |     private var catalog: [String:[String:String]]=[:]
+ 41 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                                                                                                                                               `- warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 42 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 43 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:41:65: warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 39 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 40 |     private var catalog: [String:[String:String]]=[:]
+ 41 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                 `- warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 42 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 43 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:41:191: warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 39 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 40 |     private var catalog: [String:[String:String]]=[:]
+ 41 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                                                                                                                                               `- warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 42 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 43 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+
+apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift:55:62: error: '==' is not a postfix unary operator
+ 53 |             }.navigationTitle("YNX Creator Studio")
+ 54 |                 .task {await model.start()}
+ 55 |                 .onChange(of:scenePhase) {_,phase in if phase==.active {Task {await model.restore()}} else if phase==.background {model.suspend()}}
+    |                                                              `- error: '==' is not a postfix unary operator
+ 56 |                 .onChange(of:model.connected) {_,connected in if !connected {handle="";name="";title="";description="";source="";license="";evidence="";owned=false;rightsLicense="";rightsEvidence="";payout="";selectedVideo=nil;choosingFile=false}}
+ 57 |                 .fileImporter(isPresented:$choosingFile,allowedContentTypes:[.mpeg4Movie,UTType(filenameExtension:"webm") ?? .movie]) {result in
+
+apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift:55:116: error: '==' is not a postfix unary operator
+ 53 |             }.navigationTitle("YNX Creator Studio")
+ 54 |                 .task {await model.start()}
+ 55 |                 .onChange(of:scenePhase) {_,phase in if phase==.active {Task {await model.restore()}} else if phase==.background {model.suspend()}}
+    |                                                                                                                    `- error: '==' is not a postfix unary operator
+ 56 |                 .onChange(of:model.connected) {_,connected in if !connected {handle="";name="";title="";description="";source="";license="";evidence="";owned=false;rightsLicense="";rightsEvidence="";payout="";selectedVideo=nil;choosingFile=false}}
+ 57 |                 .fileImporter(isPresented:$choosingFile,allowedContentTypes:[.mpeg4Movie,UTType(filenameExtension:"webm") ?? .movie]) {result in
+
+apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift:34:55: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+ 32 |         NavigationStack {
+ 33 |             ScrollView {
+ 34 |                 VStack(alignment:.leading,spacing:20) {
+    |                                                       `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+ 35 |                     header
+ 36 |                     Picker(model.text("overview"),selection:$section) {

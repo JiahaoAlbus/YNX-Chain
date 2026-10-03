@@ -1,0 +1,121 @@
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:5: error: property wrapper can only apply to a single variable
+ 20 | 
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+    |     `- error: property wrapper can only apply to a single variable
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+ 24 |     @Published var snapshot: CreatorSnapshot?
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:5: error: property wrapper can only apply to a single variable
+ 20 | 
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+    |     `- error: property wrapper can only apply to a single variable
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+ 24 |     @Published var snapshot: CreatorSnapshot?
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:5: error: property wrapper can only apply to a single variable
+ 20 | 
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+    |     `- error: property wrapper can only apply to a single variable
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+ 24 |     @Published var snapshot: CreatorSnapshot?
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:5: error: property wrapper can only apply to a single variable
+ 20 | 
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+    |     `- error: property wrapper can only apply to a single variable
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+ 24 |     @Published var snapshot: CreatorSnapshot?
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:23:5: error: property wrapper can only apply to a single variable
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+    |     `- error: property wrapper can only apply to a single variable
+ 24 |     @Published var snapshot: CreatorSnapshot?
+ 25 |     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:23:5: error: property wrapper can only apply to a single variable
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+    |     `- error: property wrapper can only apply to a single variable
+ 24 |     @Published var snapshot: CreatorSnapshot?
+ 25 |     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:23:5: error: property wrapper can only apply to a single variable
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+    |     `- error: property wrapper can only apply to a single variable
+ 24 |     @Published var snapshot: CreatorSnapshot?
+ 25 |     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:23:5: error: property wrapper can only apply to a single variable
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+    |     `- error: property wrapper can only apply to a single variable
+ 24 |     @Published var snapshot: CreatorSnapshot?
+ 25 |     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:23:5: error: property wrapper can only apply to a single variable
+ 21 | @MainActor final class CreatorModel: ObservableObject {
+ 22 |     @Published var connected=false, busy=false, signOutPending=false, awaitingWallet=false
+ 23 |     @Published var account="",message="",channelID="",pendingUploadTitle="",pendingOperation=false
+    |     `- error: property wrapper can only apply to a single variable
+ 24 |     @Published var snapshot: CreatorSnapshot?
+ 25 |     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:33:65: warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 31 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 32 |     private var catalog: [String:[String:String]]=[:]
+ 33 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                 `- warning: converting function value of type '@MainActor () throws -> CreatorNativeEngine' to '() throws -> CreatorNativeEngine' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 34 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 35 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:33:191: warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 31 |     private let makeDrafts: (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
+ 32 |     private var catalog: [String:[String:String]]=[:]
+ 33 |     init(makeEngine: @escaping () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
+    |                                                                                                                                                                                               `- warning: converting function value of type '@MainActor (CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' to '(CreatorNativeEngine, CreatorNativeEngine.Identity) throws -> CreatorDraftState' loses global actor 'MainActor'; this is an error in the Swift 6 language mode
+ 34 |         self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+ 35 |         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:12:115: error: ambiguous use of 'ID'
+ 10 |     struct Analytics: Decodable { let views, watch_seconds, subscribers, revenue_ynxt: Int; let source: String }
+ 11 |     struct Team: Decodable { let channel_id: String }
+ 12 |     struct Revenue: Decodable,Identifiable { let ID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {ID} }
+    |                                                  |                                                                `- error: ambiguous use of 'ID'
+    |                                                  `- note: 'ID' declared here
+ 13 |     struct Payout: Decodable,Identifiable { let ID,Owner,State: String;let AmountYNXT: Int;var id:String {ID} }
+ 14 |     let videos: [CreatorVideo]?
+
+main.CreatorSnapshot.Revenue.ID:3:49: note: 'ID' declared here
+1 | struct CreatorSnapshot {
+2 |   struct Revenue {
+3 | internal typealias main.CreatorSnapshot.Revenue.ID = String  }
+  |                                                 `- note: 'ID' declared here
+4 | }
+5 | 
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:13:107: error: ambiguous use of 'ID'
+ 11 |     struct Team: Decodable { let channel_id: String }
+ 12 |     struct Revenue: Decodable,Identifiable { let ID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {ID} }
+ 13 |     struct Payout: Decodable,Identifiable { let ID,Owner,State: String;let AmountYNXT: Int;var id:String {ID} }
+    |                                                 |                                                         `- error: ambiguous use of 'ID'
+    |                                                 `- note: 'ID' declared here
+ 14 |     let videos: [CreatorVideo]?
+ 15 |     let analytics: Analytics
+
+main.CreatorSnapshot.Payout.ID:3:48: note: 'ID' declared here
+1 | struct CreatorSnapshot {
+2 |   struct Payout {
+3 | internal typealias main.CreatorSnapshot.Payout.ID = String  }
+  |                                                `- note: 'ID' declared here
+4 | }
+5 | 

@@ -1,0 +1,272 @@
+{
+  "schema": "ynx.creator.apple.full-native-build.v1",
+  "sourceCommit": "8749478ada31edea731c47cb61ca817ab48e8db7",
+  "toolchain": "Xcode 27.0\nBuild version 27A266a",
+  "sourcePins": [
+    {
+      "path": "apps/creator-studio/ios/YNXCreator.xcodeproj/project.pbxproj",
+      "bytes": 6935,
+      "sha256": "d04b4d54863600ff140687df32a8d4c2c5807c8cc89234450e086b1bc39b858c",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift",
+      "bytes": 4099,
+      "sha256": "ff6687e2d04e4f28054ef1c97e86bbae3da2f18cf6eaed7c8dbd2ff25b382f76",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift",
+      "bytes": 10819,
+      "sha256": "5fc3ff4f223f51bf8839b33d74e35b7dce98b060c3834fa800d9855f39d48b3b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorModel.swift",
+      "bytes": 14845,
+      "sha256": "f771bd0624a4e2a72b967aaf39453ecd910cf3c0f3efd1bbc357ab15f4ed6e58",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift",
+      "bytes": 5670,
+      "sha256": "1beb0e7dd582e7b16e74f7335fb0fcd860799332a2f210552890d001151330a3",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift",
+      "bytes": 2891,
+      "sha256": "90d0eea42d872148284f11b570bc89705e7002c50a95aeb33be8a6f63bfa278a",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift",
+      "bytes": 21887,
+      "sha256": "d9f0b47188b851a7bfdf50b2ca7522731e4c51f543112ce12b01ab099da8ae8f",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift",
+      "bytes": 18455,
+      "sha256": "da351d88334e2014457f44004f3df0844e7546629c894c0e04123b228c3720bf",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift",
+      "bytes": 1475,
+      "sha256": "eaf26536c9b549cf478c5ba1064a41e4b6b8bec355db53fce229f274a576bab2",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/Info.plist",
+      "bytes": 1396,
+      "sha256": "152d5122212b3dd6cec3ed6ca2c246f23c8e4adcbf7fa94968f1a59f520b36c2",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/MacInfo.plist",
+      "bytes": 1185,
+      "sha256": "1b4c11a7e0a792c5b724ed1183abb846c6558e148df936eeb8603ac8d0ad2fe9",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+      "bytes": 26782,
+      "sha256": "00a71d8bf4721e163fd4200eade4e19fb71b32b7b9c6e5e59be49f9e76de6edc",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/catalog.json",
+      "bytes": 57329,
+      "sha256": "4a98f7de6186aff0620163d098e34166d7c80a174452e04f90a16315f7e90552",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/client.mjs",
+      "bytes": 3360,
+      "sha256": "8f50568d328a33d03bc9e4ce4d8022bee4295f10d73e6d5e9da124d27f1edac6",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/media-native-consumer.mjs",
+      "bytes": 51725,
+      "sha256": "03d620b5a1dd3f89e9d0ba43f2e6886981e2de2dc82a401bfa57f6a0cbe99dc1",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/source.json",
+      "bytes": 2139,
+      "sha256": "2d934be645b5fcca79b8f8253c120a14b34d9339ad5179dfc8cd917eb766dd35",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/creator-studio/scripts/build-apple-native.mjs",
+      "bytes": 3670,
+      "sha256": "177cdfce4d5abc53fb3dc44dae647610b31c97c2b96866d058fb11303b3f5b05",
+      "gitExact": true
+    }
+  ],
+  "candidates": [
+    {
+      "scheme": "YNXCreator",
+      "sdk": "iphonesimulator",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-1G9DF6/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-1G9DF6/YNXCreator.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Info.plist",
+          "bytes": 1273,
+          "sha256": "dab258f6092f2dfc5ba0bd6365a6069e680be761636069b167d0e73b6f7771f0"
+        },
+        {
+          "path": "PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "YNXCreator",
+          "bytes": 3965464,
+          "sha256": "831a004435b7b8ab9546fd9a2578d989b1ce14d253aa0ed327a99cc023f07867"
+        },
+        {
+          "path": "catalog.json",
+          "bytes": 57329,
+          "sha256": "4a98f7de6186aff0620163d098e34166d7c80a174452e04f90a16315f7e90552"
+        },
+        {
+          "path": "native-session/client.mjs",
+          "bytes": 3360,
+          "sha256": "8f50568d328a33d03bc9e4ce4d8022bee4295f10d73e6d5e9da124d27f1edac6"
+        },
+        {
+          "path": "native-session/index.html",
+          "bytes": 328,
+          "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+        },
+        {
+          "path": "native-session/media-native-consumer.mjs",
+          "bytes": 51725,
+          "sha256": "03d620b5a1dd3f89e9d0ba43f2e6886981e2de2dc82a401bfa57f6a0cbe99dc1"
+        },
+        {
+          "path": "native-session/registry.json",
+          "bytes": 10393,
+          "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+        },
+        {
+          "path": "native-session/source.json",
+          "bytes": 2139,
+          "sha256": "2d934be645b5fcca79b8f8253c120a14b34d9339ad5179dfc8cd917eb766dd35"
+        },
+        {
+          "path": "native-session/wallet-auth-native-consumer.mjs",
+          "bytes": 225738,
+          "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+        },
+        {
+          "path": "ynx-brand-original.png",
+          "bytes": 100732,
+          "sha256": "c4243934972df3cf1746f358a479710fb095c7f50a445df44d31413b1bf4d9fa"
+        }
+      ]
+    },
+    {
+      "scheme": "YNXCreatorMac",
+      "sdk": "macosx",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-1G9DF6/YNXCreatorMac/Build/Products/Debug/YNXCreatorMac.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-1G9DF6/YNXCreatorMac.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 1757,
+          "sha256": "91385eaf6ebcf98b2ab2c057a6f69284029ce7946896414d777eed118c6623e5"
+        },
+        {
+          "path": "Contents/MacOS/YNXCreatorMac",
+          "bytes": 2123696,
+          "sha256": "df0fdc03671f23e29259ec3b65209a95cd86b02259c61eaaa609ba43e06750a0"
+        },
+        {
+          "path": "Contents/PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "Contents/Resources/catalog.json",
+          "bytes": 57329,
+          "sha256": "4a98f7de6186aff0620163d098e34166d7c80a174452e04f90a16315f7e90552"
+        },
+        {
+          "path": "Contents/Resources/native-session/client.mjs",
+          "bytes": 3360,
+          "sha256": "8f50568d328a33d03bc9e4ce4d8022bee4295f10d73e6d5e9da124d27f1edac6"
+        },
+        {
+          "path": "Contents/Resources/native-session/index.html",
+          "bytes": 328,
+          "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+        },
+        {
+          "path": "Contents/Resources/native-session/media-native-consumer.mjs",
+          "bytes": 51725,
+          "sha256": "03d620b5a1dd3f89e9d0ba43f2e6886981e2de2dc82a401bfa57f6a0cbe99dc1"
+        },
+        {
+          "path": "Contents/Resources/native-session/registry.json",
+          "bytes": 10393,
+          "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+        },
+        {
+          "path": "Contents/Resources/native-session/source.json",
+          "bytes": 2139,
+          "sha256": "2d934be645b5fcca79b8f8253c120a14b34d9339ad5179dfc8cd917eb766dd35"
+        },
+        {
+          "path": "Contents/Resources/native-session/wallet-auth-native-consumer.mjs",
+          "bytes": 225738,
+          "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+        },
+        {
+          "path": "Contents/Resources/ynx-brand-original.png",
+          "bytes": 104171,
+          "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+        }
+      ]
+    }
+  ],
+  "actualWalletConsent": false,
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false,
+  "formalNativeV2Integration": false,
+  "shippedNativeSDKSource": "5c5e8a234206e306b6044deb6e938c1763ac7005"
+}
