@@ -90,3 +90,17 @@ func TestMarketTapeSingleDocumentRetainsAdditiveAuditFieldsAndWhitespace(t *test
 		t.Fatal("unbounded audit nesting accepted")
 	}
 }
+
+func TestLatestMarketTickRejectsMissingTimestamp(t *testing.T) {
+	for _, timestamp := range []string{"", `,"createdAt":null`, `,"createdAt":"0001-01-01T00:00:00Z"`} {
+		t.Run(timestamp, func(t *testing.T) {
+			body := `{"market":"YNXT-YUSD_TEST","source":"persisted deterministic matching-engine fills only","externalPrice":false,"trades":[{"priceMicro":100,"amountMicro":10` + timestamp + `}]}`
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(body)) }))
+			defer upstream.Close()
+			tick, err := (HTTPExchangeMarketData{BaseURL: upstream.URL, Client: upstream.Client()}).Latest("YNXT-YUSD_TEST")
+			if !errors.Is(err, ErrUnavailable) || tick != (MarketTick{}) {
+				t.Fatalf("undated latest price accepted: tick=%+v error=%v", tick, err)
+			}
+		})
+	}
+}

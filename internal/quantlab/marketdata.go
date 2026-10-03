@@ -247,7 +247,7 @@ func (h HTTPExchangeMarketData) Latest(market string) (MarketTick, error) {
 			latest = trade
 		}
 	}
-	if latest.PriceMicro <= 0 || latest.AmountMicro <= 0 {
+	if latest.PriceMicro <= 0 || latest.AmountMicro <= 0 || latest.CreatedAt.IsZero() {
 		return MarketTick{}, ErrUnavailable
 	}
 	return MarketTick{Price: latest.PriceMicro, Volume: latest.AmountMicro, Source: h.BaseURL + "/v1/market-data/trades", At: latest.CreatedAt}, nil
