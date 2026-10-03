@@ -1,0 +1,55 @@
+import {canonicalJSON, digestHex, exactFields, WalletAuthError} from "./canonical.js";
+import {encodeBase64url, decodeBase64url} from "./base64url.js";
+import {productPlatformBinding} from "./product-session-registry.js";
+import {productSessionGatewayAuthority} from "./product-session-gateway-client.js";
+import {parseRevocationIntent, revocationSessionMatches} from "./product-session-revocation-intent.js";
+import {RecoverableProductSessionClient} from "./product-session-recovery.js";
+
+// Platform ports must be implemented by the app's real protected native runtime.
+// No key creation, key export, browser persistence or signing fallback occurs here.
+export async function createNativeProductSessionClient(config) {
+  exactFields(config,["registry","productId","platform","scopes","purpose","gateway","runtime","clock",...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[])],"Native Product Session configuration");
+  if(config.platform==="web")fail("INVALID_PLATFORM","Native adapter cannot replace Web-origin protection");
+  const binding=productPlatformBinding(config.registry,config.productId,config.platform);
+  const authority=productSessionGatewayAuthority(config.gateway);
+  const runtime=config.runtime;
+  if(!runtime||Object.keys(runtime).sort().join("|")!==["readContext","randomBytes","sign","storage","openWallet"].sort().join("|")||["readContext","randomBytes","sign","openWallet"].some(k=>typeof runtime[k]!=="function"))fail("INVALID_DEVICE","Native protected runtime ports are required");
+  const nativeStore=runtime.storage;
+  if(!nativeStore||["get","set","remove","requestRevocation","revocationRequested","saveRevocationIntent","finishRevocationIntent"].some(k=>typeof nativeStore[k]!=="function"))fail("INSECURE_STORAGE","Native protected storage requires durable atomic revocation ports");
+  if(!Array.isArray(config.scopes)||config.scopes.length===0||new Set(config.scopes).size!==config.scopes.length||config.scopes.some(s=>!binding.scopes.includes(s))||canonicalJSON([...config.scopes].sort())!==canonicalJSON(config.scopes))fail("SCOPE_MISMATCH","Native scopes must be explicitly selected, sorted and registered");
+  if(typeof config.purpose!=="string"||config.purpose.trim()!==config.purpose||!config.purpose.length||config.purpose.length>180||typeof config.clock!=="function")fail("INVALID_DEVICE","Native purpose/clock is invalid");
+  const original=context(runtime.readContext(),binding),fence=canonicalJSON(original);
+  const scopes=Object.freeze([...config.scopes]);
+  const namespace="ynx.native-product-session.v2:"+digestHex("YNX_NATIVE_PRODUCT_SESSION_STORE_V2",{authority,chainId:binding.chainId,productId:binding.productId,clientId:binding.clientId,platform:binding.platform,applicationId:binding.applicationId,origin:binding.origin,callback:binding.callback,scopes,deviceId:original.deviceId,deviceKey:original.deviceKey,generation:original.generation,securityLevel:original.securityLevel,account:original.account});
+  let closed=false,client;
+  const inactive=()=>Object.freeze({status:"retry-required",message:"Native context changed or was closed; reconnect using the current protected runtime",actions:Object.freeze(["retry"])});
+  function live(){if(closed)fail("NATIVE_CONTEXT_CHANGED","Native adapter was closed");const current=context(runtime.readContext(),binding);if(closed||canonicalJSON(current)!==fence){closed=true;fail("NATIVE_CONTEXT_CHANGED","Native account, device or generation changed");}}
+  const storageKey=`ynx.product-session.v2:${binding.productId}:${binding.platform}:${binding.applicationId}`;
+  const allowed=new Set([storageKey,...["pending","return","completion","revoke"].map(s=>storageKey+":"+s)]);
+  function key(k){if(!allowed.has(k))fail("CROSS_PRODUCT_SESSION","Native protected store key crosses its product");}
+  async function stored(method,k,...args){key(k);await live();const result=await nativeStore[method](namespace,k,...args,original);await live();return result;}
+  function revocationRequested(){live();const result=nativeStore.revocationRequested(namespace,original);if(typeof result!=="boolean")fail("INSECURE_STORAGE","Native revocation signal must be synchronous and boolean");return result;}
+  async function get(k){const value=await stored("get",k);if(value!==null&&(typeof value!=="string"||value.length>16384))fail("INSECURE_STORAGE","Native protected state readback is invalid");return value;}
+  const storage=Object.freeze({securityLevel:original.securityLevel,get,set:(k,v)=>stored("set",k,v),remove:k=>stored("remove",k),
+    async saveRevocationIntent(k,v){const result=await stored("saveRevocationIntent",k,v);if(await get(k)!==result)fail("INSECURE_STORAGE","Native revocation intent did not persist exactly");return result;},
+    async finishRevocationIntent(k,raw){const intent=parseRevocationIntent(raw,binding,device);await stored("finishRevocationIntent",k,raw);if(await get(k)!==null||revocationRequested())fail("REVOCATION_CHANGED","Native revoke cleanup did not confirm the original target");const current=await get(storageKey);if(revocationSessionMatches(current,intent.session))fail("REVOCATION_CHANGED","Native revoke target remains in protected storage");if(current===null)for(const suffix of ["pending","return","completion"])if(await get(storageKey+":"+suffix)!==null)fail("REVOCATION_CHANGED","Native cancelled request remains in protected storage");},
+    requestRevocation(){live();nativeStore.requestRevocation(namespace,original);if(!revocationRequested())fail("INSECURE_STORAGE","Native sign-out signal was not saved synchronously");},revocationRequested});
+  const usedTokens=new Set();
+  function token(){const bytes=runtime.randomBytes(32);if(!(bytes instanceof Uint8Array)||bytes.length!==32)fail("INVALID_RANDOM_SOURCE","Native secure random source must return exactly 32 bytes synchronously");const value=encodeBase64url(bytes);if(usedTokens.has(value))fail("INVALID_RANDOM_SOURCE","Native secure token repeated within the adapter");usedTokens.add(value);return value;}
+  const device=Object.freeze({id:original.deviceId,key:original.deviceKey,scopes,purpose:config.purpose,async sign(input){await live();exactFields(input,["purpose","algorithm","deviceKey","payload"],"Native device signing input");if(input.algorithm!=="p256-sha256"||input.deviceKey!==original.deviceKey||!["challenge","http-proof"].includes(input.purpose))fail("DEVICE_CHANGED","Native signing tuple changed");let text,subject;try{text=new TextDecoder("utf-8",{fatal:true}).decode(decodeBase64url(input.payload,"payload"));const prefix=input.purpose==="challenge"?"YNX_PRODUCT_SESSION_CHALLENGE_V2\n":"YNX_PRODUCT_SESSION_HTTP_PROOF_V2\n";if(!text.startsWith(prefix))throw Error();subject=JSON.parse(text.slice(prefix.length));if(prefix+canonicalJSON(subject)!==text)throw Error();}catch{fail("INVALID_DEVICE","Native signer requires exact canonical protocol bytes");}
+    for(const field of ["productId","clientId","applicationId","bundleId","packageId","origin","callback"])if(subject[field]!==binding[field])fail("CROSS_PRODUCT_SESSION","Native signing subject crosses its registered product");
+    if(subject.deviceId!==original.deviceId||subject.deviceKey!==original.deviceKey||original.account!==null&&subject.account!==original.account)fail("DEVICE_CHANGED","Native signing account/device changed");
+    if(input.purpose==="challenge"&&(subject.chainId!==binding.chainId||subject.platform!==binding.platform||canonicalJSON(subject.scopes)!==canonicalJSON(scopes)))fail("SCOPE_MISMATCH","Native challenge scopes/platform changed");
+    const signature=await runtime.sign(Object.freeze({...input}),original);await live();return signature;
+  }});
+  const gateway=Object.freeze(Object.fromEntries(["currentTime","challenge","complete","introspect","revoke","walletInstalled","schemeRegistered"].map(name=>[name,async(...args)=>{await live();const result=await config.gateway[name](...args);await live();return result;}] )));
+  client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage,gateway,device,tokenFactory:token,clock:config.clock,...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds:config.finiteServiceSeconds}:{})});
+  const api={get current(){try{live();return client.current;}catch{return inactive();}},binding:Object.freeze({...binding,scopes}),capabilities:Object.freeze({kind:"product-private",identityGrant:false,securityLevel:original.securityLevel,protectedRuntimeRequired:true,privateKeyExported:false,authority}),close(){closed=true;},setNetworkAvailable(value){if(closed)return inactive();return client.setNetworkAvailable(value);},enterGuest(){if(closed)return inactive();return client.enterGuest();}};
+  for(const method of ["beginExplicit","beginDetected","retryDetected","restore","handleReturn","disconnect","createIntrospectionProof","createSocialAudienceProof","createBusinessProof","createBusinessProofCommitment"])api[method]=async(...args)=>{await live();const result=await client[method](...args);await live();return result;};
+  api.disconnect=()=>{live();const operation=client.disconnect();return operation.then(result=>{live();return result;});};
+  async function open(state){await live();if(state.status!=="connecting"||!state.route?.url||canonicalJSON(client.current.request)!==canonicalJSON(state.request))fail("NATIVE_ATTEMPT_CHANGED","No original active Wallet request can be opened");const receipt=await runtime.openWallet(Object.freeze({url:state.route.url,request:state.request}),original);await live();if(canonicalJSON(client.current.request)!==canonicalJSON(state.request))fail("NATIVE_ATTEMPT_CHANGED","Wallet attempt changed while opening; late callbacks cannot replace it");exactFields(receipt,["opened"],"Native Wallet launch receipt");if(typeof receipt.opened!=="boolean")fail("INVALID_GATEWAY_RESPONSE","Native Wallet launch receipt is invalid");return Object.freeze({opened:receipt.opened,state:client.current,approved:false});}
+  api.connect=async()=>open(await api.beginExplicit());api.resumeWallet=async()=>open(await api.restore());
+  await live();return Object.freeze(api);
+}
+function context(value,binding){exactFields(value,["platform","applicationId","deviceId","deviceKey","securityLevel","generation","account"],"Native protected context");if(value.platform!==binding.platform||value.applicationId!==binding.applicationId||!["hardware-backed","os-protected"].includes(value.securityLevel)||!Number.isSafeInteger(value.generation)||value.generation<1||typeof value.deviceId!=="string"||value.deviceId.length<16||typeof value.deviceKey!=="string"||value.account!==null&&(typeof value.account!=="string"||!/^ynx1[0-9a-z]{20,80}$/.test(value.account)))fail("INSECURE_STORAGE","Native runtime context is not the registered protected app/device");const bytes=decodeBase64url(value.deviceKey,"deviceKey");if(bytes.length!==33||![2,3].includes(bytes[0]))fail("INVALID_DEVICE","Native context requires compressed P-256 public key");return Object.freeze({...value});}
+function fail(code,message){throw new WalletAuthError(code,message);}

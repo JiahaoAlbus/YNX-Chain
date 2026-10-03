@@ -1,0 +1,93 @@
+{
+  "schema": "ynx.music.actual-browser-authority-qa.v1",
+  "sharedCommit": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "loaderSHA256": "d770ac7b089c90245fc7260ffcadfe94cf371a3b2334f41e8087fe7ecd809234",
+  "passed": [
+    "actual-loader",
+    "webcrypto-nonextractable-indexeddb",
+    "explicit-pending-request",
+    "callback-state-rejection",
+    "actual-authority-challenge-complete",
+    "exact-wire-signature-and-tamper-rejection",
+    "cold-restore-same-account-device-session",
+    "cold-pending-revocation-ui-blocks-signin",
+    "same-target-retry-actual-remote-revoke",
+    "pending-revoke-no-proof",
+    "cold-restore-no-active-session",
+    "wrong-origin-before-http"
+  ],
+  "gatewayCalls": [
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/challenge"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/complete"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/introspect"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/introspect"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/revoke"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    },
+    {
+      "method": "POST",
+      "path": "/v2/product-sessions/revoke"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/product-sessions/time"
+    }
+  ],
+  "actualWalletConsent": false,
+  "actualBusinessServerReadback": false,
+  "productionInstalled": false,
+  "realCentralCurrentActor": false
+}

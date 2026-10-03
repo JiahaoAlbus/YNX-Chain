@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx-media-owned-private-web-contract/v1",
-  "status": "OWNER_LIFECYCLE_SOURCE_READY_A_ADMISSION_REQUIRED",
+  "status": "MATCHING_5C_PRIVATE_WEB_SOURCE_ADOPTED_REAL_RUNTIME_PENDING",
   "productId": "music",
   "clientId": "ynx-music-v1",
   "platform": "web",
@@ -20,20 +20,26 @@
     "apps/music/web/canonical-request.js",
     "apps/music/web/canonical-session.js",
     "apps/music/web/app.js",
-    "apps/music/web/wallet-callback.js"
+    "apps/music/web/wallet-callback.js",
+    "apps/music/web/canonical-release.js"
   ],
   "businessProofHeader": "X-YNX-Music-Business-Proof-V2",
   "wirePath": "Original server path /api/* after the mounted /music prefix is stripped; query is separately validated",
   "multipart": "Final Request serialization before digest; preserve generated Content-Type boundary and exact original bytes; original 50MiB audio and50MiB/4 artwork plus1MiB HTTP bound, not shared512MiB ceiling",
   "remainingOwnerImplementation": [
-    "Replace canonical-release.js unavailable seam with the exact admitted frozen shared browser SDK/registry after A admission"
+    "Native protected ports and original SDK actor/device/account enrollment integration remain separate"
   ],
   "requiresA": [
-    "exact admitted frozen browser SDK and registry Web tuple",
-    "original Music V2 sender-bound route verification and atomic store nonce/live actor revalidation",
-    "real Wallet review support and normal formal deployment"
+    "Current trusted actor/CSRF or Native OS-device/account enrollment hook",
+    "Protected backend keys/registration and exact Host mounting",
+    "Real Wallet review and public/installed return-to-business acceptance"
   ],
   "admitted": false,
   "productionActivated": false,
-  "callbackRoute": "GET /wallet-auth/callback serves embedded wallet-callback.html with no-store and no-referrer; root restores the same SDK device/session then reads original /api/me"
+  "callbackRoute": "GET /wallet-auth/callback serves embedded wallet-callback.html with no-store and no-referrer; root restores the same SDK device/session then reads original /api/me",
+  "sharedRegistrationSourceCommit": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "sharedRegistrationSourceTree": "4742a47562040898a503702f413fd4a87a3d38c0",
+  "sourceRegistrationAcceptedForOwnedStaging": true,
+  "controlledProtectedBrowserAndOriginalBusinessPassed": true,
+  "verificationEvidence": "apps/video/audit/evidence/actual-authority-interop-20261003/final-embedded-browser-original-business-run2"
 }

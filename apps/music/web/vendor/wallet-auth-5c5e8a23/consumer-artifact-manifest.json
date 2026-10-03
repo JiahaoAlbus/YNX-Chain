@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "ynx-music-web-macos-sdk-artifacts/v1",
+  "sourceCommit": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "sourceTree": "4742a47562040898a503702f413fd4a87a3d38c0",
+  "artifacts": {
+    "product-session-browser.d.mts": {
+      "bytes": 241,
+      "sha256": "02e2ab298b658713638133c0de9be12cd0735d720dd486e349da48f22fde004c"
+    },
+    "product-session-browser.mjs": {
+      "bytes": 238991,
+      "sha256": "7e7992edf64b5cd6b07de944a29295ff6803c163bcee4afb1f7437efdc96d313"
+    },
+    "product-session-native.d.mts": {
+      "bytes": 257,
+      "sha256": "e06b8c3c78cac828fabb42c0156ec6caa4215aeecb0ca7edb7a70d3e0f296bf2"
+    },
+    "product-session-native.mjs": {
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    "product-session-registry.json": {
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    }
+  },
+  "allExternalBundleImports": 0,
+  "necessaryTypesSourceDirectory": "source/packages/wallet-auth/src",
+  "privateBusinessOnly": true,
+  "musicIdentityMember": false,
+  "originalMediaV1AutomaticallyMigrated": false,
+  "formalUseVerified": false
+}

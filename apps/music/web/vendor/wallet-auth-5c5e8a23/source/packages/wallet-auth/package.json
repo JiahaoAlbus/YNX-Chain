@@ -1,0 +1,154 @@
+{
+  "name": "@ynx-chain/wallet-auth",
+  "version": "1.2.0",
+  "packageManager": "npm@11.5.1",
+  "license": "UNLICENSED",
+  "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
+  "type": "module",
+  "exports": {
+    "./central-browser-session-contract": {
+      "types": "./src/central-browser-session-contract.d.ts",
+      "import": "./src/central-browser-session-contract.js",
+      "default": "./src/central-browser-session-contract.js"
+    },
+    "./central-browser-session-registry": {
+      "types": "./src/central-browser-session-registry.d.ts",
+      "import": "./src/central-browser-session-registry.js",
+      "default": "./src/central-browser-session-registry.js"
+    },
+    "./application-action-launcher": {
+      "types": "./src/application-action-launcher.d.ts",
+      "import": "./src/application-action-launcher.js",
+      "default": "./src/application-action-launcher.js"
+    },
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./gateway-node-host": {
+      "types": "./src/gateway-node-host.d.ts",
+      "import": "./src/gateway-node-host.js",
+      "default": "./src/gateway-node-host.js"
+    },
+    "./gateway-backup": {
+      "types": "./src/gateway-backup.d.ts",
+      "import": "./src/gateway-backup.js",
+      "default": "./src/gateway-backup.js"
+    },
+    "./standard-wallet-connection": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-connection.js",
+      "default": "./src/standard-wallet-connection.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./evm-product-login": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-login.js",
+      "default": "./src/evm-product-login.js"
+    },
+    "./evm-product-session": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-session.js",
+      "default": "./src/evm-product-session.js"
+    },
+    "./finance-evm-subject": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-subject.js",
+      "default": "./src/finance-evm-subject.js"
+    },
+    "./finance-evm-order-approval": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-order-approval.js",
+      "default": "./src/finance-evm-order-approval.js"
+    },
+    "./finance-order-opaque-transport": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-order-opaque-transport.js",
+      "default": "./src/finance-order-opaque-transport.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
+    },
+    "./product-session-browser": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-browser.js",
+      "default": "./src/product-session-browser.js"
+    },
+    "./product-session-gateway-node-host": {
+      "types": "./src/product-session-gateway-node-host.d.ts",
+      "import": "./src/product-session-gateway-node-host.js",
+      "default": "./src/product-session-gateway-node-host.js"
+    },
+    "./product-session-control-node-host": {
+      "types": "./src/product-session-control-node-host.d.ts",
+      "import": "./src/product-session-control-node-host.js",
+      "default": "./src/product-session-control-node-host.js"
+    },
+    "./hosted-adapter": {
+      "types": "./src/hosted-adapter.d.ts",
+      "import": "./src/hosted-adapter.js",
+      "default": "./src/hosted-adapter.js"
+    },
+    "./product-session-native": {
+      "types": "./src/product-session-native.d.ts",
+      "import": "./src/product-session-native.js",
+      "default": "./src/product-session-native.js"
+    }
+  },
+  "types": "./src/index.d.ts",
+  "files": [
+    "src",
+    "scripts",
+    "testdata",
+    "integration",
+    "proposals",
+    "central-registry.json",
+    "product-session-registry.json",
+    "registry-conflict-evidence.json",
+    "CENTRAL_INTEGRATION.md",
+    "EVM_PRODUCT_SESSION_V1.md",
+    "FINANCE_EVM_PRIVATE_ORDER_V1.md",
+    "FINANCE_ORDER_OPAQUE_V2.md"
+  ],
+  "bin": {
+    "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
+    "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
+    "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs"
+  },
+  "scripts": {
+    "build:central-browser": "esbuild src/central-browser-session-browser.js --bundle --platform=browser --format=iife --legal-comments=none --outfile=src/central-browser-session-browser.bundle.js",
+    "test": "node --test test/*.test.mjs && npm run test:types",
+    "test:types": "tsc -p tsconfig.types.json",
+    "check": "npm test",
+    "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
+    "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
+    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "@walletconnect/sign-client": "2.23.10",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true
+}

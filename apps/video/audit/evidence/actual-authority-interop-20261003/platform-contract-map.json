@@ -1,0 +1,522 @@
+{
+  "schema": "ynx.media.actual-frozen-registry-platform-map.v1",
+  "sharedCommit": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "registrySHA256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2",
+  "rows": [
+    {
+      "productId": "video",
+      "platform": "android",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "android",
+        "applicationId": "com.ynxweb4.video",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.video",
+        "origin": "app://android/com.ynxweb4.video",
+        "callback": "ynxvideo://wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "video",
+      "platform": "ios",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "ios",
+        "applicationId": "com.ynxweb4.video",
+        "bundleId": "com.ynxweb4.video",
+        "packageId": null,
+        "origin": "app://ios/com.ynxweb4.video",
+        "callback": "ynxvideo://wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "video",
+      "platform": "linux",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "linux",
+        "applicationId": "com.ynxweb4.video",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.video",
+        "origin": "app://linux/com.ynxweb4.video",
+        "callback": "ynxvideo://wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "video",
+      "platform": "macos",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "macos",
+        "applicationId": "com.ynxweb4.video",
+        "bundleId": "com.ynxweb4.video",
+        "packageId": null,
+        "origin": "app://macos/com.ynxweb4.video",
+        "callback": "ynxvideo://wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "video",
+      "platform": "web",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "web",
+        "applicationId": "com.ynxweb4.video.web",
+        "bundleId": null,
+        "packageId": null,
+        "origin": "https://video.ynxweb4.com",
+        "callback": "https://video.ynxweb4.com/wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "video",
+      "platform": "windows",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "platform": "windows",
+        "applicationId": "com.ynxweb4.video",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.video",
+        "origin": "app://windows/com.ynxweb4.video",
+        "callback": "ynxvideo://wallet-auth/callback",
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "android",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "android",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.creator-studio",
+        "origin": "app://android/com.ynxweb4.creator-studio",
+        "callback": "ynxcreator://wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "ios",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "ios",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "bundleId": "com.ynxweb4.creator-studio",
+        "packageId": null,
+        "origin": "app://ios/com.ynxweb4.creator-studio",
+        "callback": "ynxcreator://wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "linux",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "linux",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.creator-studio",
+        "origin": "app://linux/com.ynxweb4.creator-studio",
+        "callback": "ynxcreator://wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "macos",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "macos",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "bundleId": "com.ynxweb4.creator-studio",
+        "packageId": null,
+        "origin": "app://macos/com.ynxweb4.creator-studio",
+        "callback": "ynxcreator://wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "web",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "web",
+        "applicationId": "com.ynxweb4.creator-studio.web",
+        "bundleId": null,
+        "packageId": null,
+        "origin": "https://creator.ynxweb4.com",
+        "callback": "https://creator.ynxweb4.com/wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "creator-studio",
+      "platform": "windows",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "platform": "windows",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.creator-studio",
+        "origin": "app://windows/com.ynxweb4.creator-studio",
+        "callback": "ynxcreator://wallet-auth/callback",
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
+      "sessionTTLSeconds": 240,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "android",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "music",
+        "clientId": "ynx-music-v1",
+        "displayName": "YNX Music",
+        "platform": "android",
+        "applicationId": "com.ynxweb4.music",
+        "bundleId": null,
+        "packageId": "com.ynxweb4.music",
+        "origin": "app://android/com.ynxweb4.music",
+        "callback": "ynxmusic://auth/callback",
+        "scopes": [
+          "music.creator",
+          "music.library",
+          "music.playback",
+          "music.profile"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "music.creator",
+        "music.library",
+        "music.playback",
+        "music.profile"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "ios",
+      "registered": true,
+      "binding": {
+        "chainId": "ynx_6423-1",
+        "productId": "music",
+        "clientId": "ynx-music-v1",
+        "displayName": "YNX Music",
+        "platform": "ios",
+        "applicationId": "com.ynxweb4.music",
+        "bundleId": "com.ynxweb4.music",
+        "packageId": null,
+        "origin": "app://ios/com.ynxweb4.music",
+        "callback": "ynxmusic://auth/callback",
+        "scopes": [
+          "music.creator",
+          "music.library",
+          "music.playback",
+          "music.profile"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300,
+        "walletAuthorizeCallback": "ynxwallet://authorize",
+        "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+        "metaMaskDownloadUrl": "https://metamask.io/download"
+      },
+      "scopes": [
+        "music.creator",
+        "music.library",
+        "music.playback",
+        "music.profile"
+      ],
+      "sessionTTLSeconds": 300,
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "linux",
+      "registered": false,
+      "code": "INVALID_PLATFORM",
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "macos",
+      "registered": false,
+      "code": "INVALID_PLATFORM",
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "web",
+      "registered": false,
+      "code": "INVALID_PLATFORM",
+      "actualInstalledOrPublicAcceptance": false
+    },
+    {
+      "productId": "music",
+      "platform": "windows",
+      "registered": false,
+      "code": "INVALID_PLATFORM",
+      "actualInstalledOrPublicAcceptance": false
+    }
+  ],
+  "notes": [
+    "Registry bindings only; OS enrollment, current actor/CSRF, installed app and public business flow remain separate",
+    "Music Web/macOS are required by the goal and are unregistered in this exact frozen source",
+    "Music existing Android/iOS native callback is ynxmusic://auth/callback; do not substitute wallet-auth/callback",
+    "Creator native binding in the shared registry alone does not prove an installed Creator native app"
+  ]
+}

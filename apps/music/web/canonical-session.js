@@ -31,7 +31,7 @@ export function createMusicSession({load,activate,dispose,fetch=globalThis.fetch
   restore:(online=true)=>operation(client=>client.restore(online)),
   begin:()=>operation(client=>client.beginExplicit()),
   finishReturn:url=>{const target=new URL(url);if(target.origin+target.pathname!==MUSIC_CALLBACK||target.hash||target.username||target.password)throw Error('Unexpected Music callback');return operation(client=>client.handleReturn(url))},
-  async disconnect(){++epoch;dispose();let timer;const work=(async()=>{const b=browser||await get();return b.client.disconnect()})();try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Music sign-out is still pending. Retry to finish the original revocation.')),timeoutMs)})])}finally{clearTimeout(timer)}},
+  async disconnect(){++epoch;dispose();let timer;const work=(async()=>{const b=browser||await get();const state=await b.client.disconnect();return ['disconnected','expired'].includes(state.status)?state:{...state,revocationPending:true}})();try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Music sign-out is still pending. Retry to finish the original revocation.')),timeoutMs)})])}finally{clearTimeout(timer)}},
   invalidate(){++epoch;dispose()},
  });
 }

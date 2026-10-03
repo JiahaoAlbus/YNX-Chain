@@ -68,7 +68,7 @@ func mediaSDKProof(t *testing.T, s productsessionv2.Session, key *ecdsa.PrivateK
 }
 func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 	for _, product := range []string{"music"} {
-		for _, platform := range []string{"web", "android", "macos"} {
+		for _, platform := range []string{"android", "ios"} {
 			t.Run(product+"/"+platform, func(t *testing.T) {
 				key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				if e != nil {
@@ -83,7 +83,7 @@ func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 				if platform != "web" {
 					s.ApplicationID = application
 					s.Origin = "app://" + platform + "/" + application
-					s.Callback = scheme + "://wallet-auth/callback"
+					s.Callback = scheme + "://auth/callback"
 					if platform == "android" {
 						s.PackageID = &application
 					} else {

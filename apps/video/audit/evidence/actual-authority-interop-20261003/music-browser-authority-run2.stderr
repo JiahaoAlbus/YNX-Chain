@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: {"status":"retry-required","message":"Install YNX Wallet or return to Guest / Try mode","gatewayCalls":[{"method":"GET","path":"/v2/product-sessions/time"}]}
++ actual - expected
+
++ 'retry-required'
+- 'disconnected'
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/canonical-browser-authority-check.cjs:33:73 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'retry-required',
+  expected: 'disconnected',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

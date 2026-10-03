@@ -1,0 +1,7 @@
+locator.waitFor: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByText('Product Session authority time could not be verified; Retry when Auth is available') to be visible[22m
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/canonical-web-check.cjs:5:1465 {
+  name: 'TimeoutError'
+}

@@ -1,0 +1,2 @@
+PASS actual mobile sign-in: unavailable authority explicit, retry enabled, no grant/private HTTP
+PASS shipped callback clears query before SDK load, no credential reflection, no unauthorized redirect

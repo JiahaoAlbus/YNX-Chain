@@ -1,0 +1,870 @@
+{
+  "sharedSourceCommit": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedSourceTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "inputPins": [
+    {
+      "owner": "Media module",
+      "path": "go.mod",
+      "bytes": 4437,
+      "sha256": "30a4cbe49a5c69d52a09c0f8790c730726fdce5d9d347cccb518b0686cc1dec1"
+    },
+    {
+      "owner": "Media module",
+      "path": "go.sum",
+      "bytes": 36934,
+      "sha256": "f7020adc8fa5e09de67a2ce8f3502889d1ccf652c248e28013514772bb6281fc"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/README.md",
+      "bytes": 4098,
+      "sha256": "cce07befe4aa61ec776fbf9d54c6cbc1ba410b32b1f55bb587a58b93d9b91925"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/account_readback_test.go",
+      "bytes": 1296,
+      "sha256": "32970998996565f002a965cb072bba15beffe40603e6a888875b849afd44e3fd"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/assets_rights_recovery_test.go",
+      "bytes": 9570,
+      "sha256": "a8613982f473ee89747e5f3d48eaf534861567379218e2982650d94fde50a844"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/backup.go",
+      "bytes": 6023,
+      "sha256": "5e8534b31b3ffc6ccf13ea8d3a3c144ad130152cfd62acf0f42fd1c1543112c1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/backup_test.go",
+      "bytes": 2805,
+      "sha256": "333fe59de94061b554c5658049598861a97b78650c9204ad8e8a11395c9974f0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_lease.go",
+      "bytes": 6948,
+      "sha256": "cc61b2f5352d1b35e61a0bf95e426dbd2134f5f3be762557504055fded0af249"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_lease_test.go",
+      "bytes": 13365,
+      "sha256": "a780038c06b8dda0f3cd7f3d3dc475de15f946a6e4c2985ac5ab73edfb44be1a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_request.go",
+      "bytes": 9286,
+      "sha256": "42cb7c850f2f015f87ddd541df512f31d5d1a899c67f12c984a32489d417ca21"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_request_test.go",
+      "bytes": 12315,
+      "sha256": "dc786b1afa6a837bbbd1cdb7fc01b861406832a08683c6f5c99ad59635a043d7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk.go",
+      "bytes": 4176,
+      "sha256": "462d4e80fd80ea094ca6a16fbec40a66c72ef6d432b7396f9064814029c06fe2"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk_node_test.go",
+      "bytes": 14231,
+      "sha256": "d4b068379d5de1054970e36001774efc6fa9b6dc3db86fd219af2d88868494f5"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk_test.go",
+      "bytes": 11863,
+      "sha256": "ccb0f07be9b65f74e8e405d09a98264ce1991486145663c7b5a0a0667a4400df"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth.go",
+      "bytes": 4760,
+      "sha256": "151e152413686656213a722423e9e57456b51a73a3262963842c8c6a331dd4db"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_test.go",
+      "bytes": 4883,
+      "sha256": "9b6e83042e31154d755c39b2347802011c5ab34886d05c64b94d5fcd8101de80"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_v2.go",
+      "bytes": 9021,
+      "sha256": "375a1e079b99fea0edbcb89ddad81063611e2758dd9ea2bed44c54bccef168e0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_v2_test.go",
+      "bytes": 13265,
+      "sha256": "307d7335782863b0ee78679184d4189726e60e5f9d9405ea8a2abc6764c3813a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_transport.go",
+      "bytes": 728,
+      "sha256": "8bae81094a726740628f1d8431e1dc0616b9ea2fe32a7bf57420ff2897303f85"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/main.go",
+      "bytes": 3529,
+      "sha256": "bc20371f61a77b8da9086c46398984e133734c7879029681b6e990cccc55c843"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/video-recover/main.go",
+      "bytes": 1624,
+      "sha256": "a5f9c3c6a1c62552642761f4d507b99f136e755b74aab9d4d3a4e55192390e54"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/video-smoke/main.go",
+      "bytes": 11076,
+      "sha256": "8dc84180c21e6f5a815bba179e4ea6df4e63e27f53c99ed29cdd25bc7579c83c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_access.go",
+      "bytes": 16882,
+      "sha256": "f0d440e7187fdc2f205a39d9578e4ca0497c4b3376f03bb8a59b9d43f7efebd1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_access_test.go",
+      "bytes": 12646,
+      "sha256": "6dd5abb0bce2fc3e174d8e3d0ad0e30a27807c02137075f69f440752f23896bc"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_ai_recovery_test.go",
+      "bytes": 1284,
+      "sha256": "2e82d3d6b1b145c63df7926ebf9f177590c7df5a7638f7f465c1442d6cf497b6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/effect_recovery.go",
+      "bytes": 1141,
+      "sha256": "3aad60ab0b32059f2c633e8da5787745cd0f88633e92a7f6fecd35a1c8986ad6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/effect_recovery_test.go",
+      "bytes": 11395,
+      "sha256": "bf5a2ed82e08d3c2a3dfcef15db0b80f29cdebaa6c097600d7ddff464f6d33fe"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/gateway_auth.go",
+      "bytes": 8688,
+      "sha256": "afc1867f847342cf2cac0d4c0ba2f69513e6e8861f7a5060e9788dde9714b703"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/gateway_auth_test.go",
+      "bytes": 4617,
+      "sha256": "7de764e58d7cc696be3e169cc9b637596cae766cf7fbc4641fdb33eab2873506"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration/appgateway-video-manifest.json",
+      "bytes": 1653,
+      "sha256": "7692ec7ebecdc50c6c1b3084c351098ee487135289943771ee8244ce37fb874f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration/registry-v2.json",
+      "bytes": 1621,
+      "sha256": "4e42a94cdf0ca59315e584e8ebc8aea7fc7affa1d8b99c14143cbc5154d1e310"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration_boundary.go",
+      "bytes": 1076,
+      "sha256": "726985d4542e62f54bb8b842db64da1326a2e10ff12c7a6d3380915f448c1f3a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integrations.go",
+      "bytes": 7501,
+      "sha256": "03aab6e0b6a1440d0048e5560986e55453f6e8bd3cbdf54907de568e8eb6ff57"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integrations_test.go",
+      "bytes": 5693,
+      "sha256": "9b2810c353cf26d3f5a347bdb59b8c699a1def63784adce3a7e6f7dd78d84d51"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/lifecycle.go",
+      "bytes": 9332,
+      "sha256": "689c46261e53a384883ef705b73e56e2bc4cc828e8a9fa8b6bbe30f398a57bc0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/lifecycle_test.go",
+      "bytes": 12218,
+      "sha256": "737d7b00b38dc128cac489ef16d9e65a8c6256e0ffbd07662c2bfe845b3fd1e7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/media_http_test.go",
+      "bytes": 2069,
+      "sha256": "58f241fccdd18a723609349067bbcf6e63a3d414a9c66080277e02615e808013"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/migration_test.go",
+      "bytes": 2546,
+      "sha256": "ea81062366f3d1fd37d1fcc6406f7091ef9b5dd6fe0186eaf3d6f9959dbb2504"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/object_storage.go",
+      "bytes": 2434,
+      "sha256": "574b790d0a6e521fee975d362c88887c7391bdd699c46796dbd36b6388bbe7ba"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/object_storage_test.go",
+      "bytes": 956,
+      "sha256": "9de33680df39e062b53b1d5443dc87a0084d9e9ad3666c0ef7eeb11e62ea3a93"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/processing.go",
+      "bytes": 6839,
+      "sha256": "f8f016345ddd51ad0f8363d00cbbeccda9e2bee4cdf0e538c7d33fdb6c2d223b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/server.go",
+      "bytes": 30790,
+      "sha256": "a6acc1fa13f583f66a2c5d5d80d91b5ee15a9c7d95eb5e1d2ddedab0088e04d0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/server_test.go",
+      "bytes": 19510,
+      "sha256": "57c89c379af24ce3de15ceb82625f8f6a53ccdb678cc74826bcdc276cc32e865"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/service.go",
+      "bytes": 66688,
+      "sha256": "28836233ce0f1164528b6ba57f118beecb03d6daeeebe891fa4d285d2bd49800"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/service_test.go",
+      "bytes": 23794,
+      "sha256": "ee93c7446e50d1e496b303e4ba5aeb09f4601682d2e8b6dd38df0b8dc6b1872b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/store.go",
+      "bytes": 10487,
+      "sha256": "1a46b2f78cabe7b24998c024fa99abe54d8f98fc61617fdf1b40b43452b3eed2"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/store_migration_test.go",
+      "bytes": 2811,
+      "sha256": "bcbd68d92153f24d529a6a71c5202e8e2de525e61c0c52f9d66f9608a6b5915c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/README.md",
+      "bytes": 376,
+      "sha256": "a6cb264d33765ad4b8b0770d58801fac291b42102c50646bd5da823fa897fef2"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/media-private-authority-node.mjs",
+      "bytes": 6424,
+      "sha256": "7134be9232587c29e0cd24da9cb85c4d60c199e445183fb51126197cb6249f01"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/ynx-owned-test.mp4",
+      "bytes": 12525,
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/types.go",
+      "bytes": 14452,
+      "sha256": "ae7dda77ab784c2dec149c06665392e8165ffc706fcc7ff341bec4fa3ed06540"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/upload_recovery_test.go",
+      "bytes": 11813,
+      "sha256": "ddf4faf88c077f09b57e4a542b1488e6ef5d3a281e25871c3be4ad93a9d2e1b1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_library_test.go",
+      "bytes": 4555,
+      "sha256": "b85346ba76106ebb82c3cdd1ea8130ab3df46ce85c02d091bb77c6fe710c5fba"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_progress.go",
+      "bytes": 2740,
+      "sha256": "65a0827399624a7e77b9ae64be6c2fab87f12950a25a476baf08bd2fccce0f32"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_progress_test.go",
+      "bytes": 5194,
+      "sha256": "9dc0da0b6d91b6624fa320a51ca04d31ab6fc0473e868f95d4c5055af089f289"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/account.go",
+      "bytes": 1969,
+      "sha256": "fbccedab81f452420ee82e10ae351e0021f0efa77badb5c81dd738c902634715"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/ai_output_test.go",
+      "bytes": 2987,
+      "sha256": "af6715beb288796529b7ab702233230bcc189e9081a78b951243fec28f8d094e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/backup.go",
+      "bytes": 12665,
+      "sha256": "9d4417d134e075734e3cbba9b75d378a7eaa42d9a310934ab08252dce1a1ee72"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_ai_stream.go",
+      "bytes": 8827,
+      "sha256": "3ff2a195191b4294dca4e049545bacf2e156ccfc7c6cbf515f32df6d29a76baf"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_ai_stream_test.go",
+      "bytes": 5650,
+      "sha256": "d4de855b2f5d4cc98488b74ed9cb785cdc1077644a0ac037435a8d97aa76c32d"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_effect.go",
+      "bytes": 7875,
+      "sha256": "d5c2ef8b624fdc0f3e9a06bb21b382fa59a1ffd5acd0781394fbecce03c80b96"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_effect_test.go",
+      "bytes": 16631,
+      "sha256": "5ad98e8af6a4bb8fa383eed568101708d26716b9d14c27d443c4df67510dd7c9"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_request.go",
+      "bytes": 10615,
+      "sha256": "653cc6e3fe35a769f79dfa5f733a2e3186a541289dbf669d6130b67448fe71e0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_request_test.go",
+      "bytes": 16762,
+      "sha256": "2b81df494d11a13a5d698b5c1c48d508a3653d0a933df449b0d2b3e1018242a7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_sdk.go",
+      "bytes": 4074,
+      "sha256": "c20631f1ded2b24177400ff286c8a3ac8c32ac14cc853ce086aeb390f7080e9e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_sdk_test.go",
+      "bytes": 11074,
+      "sha256": "ecea518a4f3c13fbab2ebeb19dee47ffe018e37869e7005592fe04f45a98b200"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/callback_test.go",
+      "bytes": 958,
+      "sha256": "404bdbe6cca6598bbd6c0d366f500595d927907ba6df8657a2cb91d4d26ca0ad"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/central.go",
+      "bytes": 4223,
+      "sha256": "2977f43939b3fd6b49ee99277e9eea5ac601b5b1182dcbb0fe1c08e87f9df9da"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/compatibility.go",
+      "bytes": 2752,
+      "sha256": "e67ec48b37d89c7b09eaf7a61a2721970a8d3eadb7e8e0b590736e20f7c8f0b6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/compatibility_test.go",
+      "bytes": 1751,
+      "sha256": "f6fda0d3ad0d824d1a52b74b208af512a38b8823d73c4af2b962e40fd9e3f26c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/first_use_test.go",
+      "bytes": 5557,
+      "sha256": "2adafd5fcf301ffab4e35f86969d3860c6fa9a10bcd5a5193a9cdac339b6eb68"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/pay_review_test.go",
+      "bytes": 1958,
+      "sha256": "61032958caef2a68c3ec3859da8e0bcdef1df05ba3117c9001f88f6d94ea78b3"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/playback_binding_test.go",
+      "bytes": 3001,
+      "sha256": "3c0ab1c5a8120591320c825b8779d292b8ca5d8f6c9e81babf958c3c19ac72cb"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/playlist_recovery_test.go",
+      "bytes": 3420,
+      "sha256": "99a9060d79d1b96a00356ee3742f7eaae54abd04de6b9d7089f38ca6d845405c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/server.go",
+      "bytes": 25327,
+      "sha256": "36c082c5154a5989cbc96090f271b8fa93aaa808fb078c6a363e2fced1d98e7d"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/server_test.go",
+      "bytes": 12711,
+      "sha256": "9ca72a6a3b02660adb4efcdde93b2c1b86609157977e9133f56f518f3a992ec0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/service.go",
+      "bytes": 37974,
+      "sha256": "9dcfd6b713fc44c2112d84da05df1823c1acf90c1e1302eec352162445835cb1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/service_test.go",
+      "bytes": 18380,
+      "sha256": "7aca664061bb939c261aac4e7944f90a071ee25cb6630a3e0f6e0a8d9b0d1a45"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/store.go",
+      "bytes": 13638,
+      "sha256": "51fc5ef67d16db31e02b908f4be21625d2abf3eda486eee8e7af46acdf06d3c5"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/store_backup_test.go",
+      "bytes": 13606,
+      "sha256": "43b33505a1927e7d75286f4d7665353c148da4da788334d39f8f307eb789a34f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-empty.json",
+      "bytes": 313,
+      "sha256": "c5a70af75a143c53d2a95362b23f98679b352eda97cb2ab40d0ebedd71e828df"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/README.md",
+      "bytes": 949,
+      "sha256": "47e76af8cfe9c2e48169a4a021310751b827526d58eeb4d5de3489f94c14f50c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/expectations.json",
+      "bytes": 839,
+      "sha256": "26a8f18e7ff4324cd4386265a122265fecf071f418f390c206731d2f1fd9b69f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.art",
+      "bytes": 32,
+      "sha256": "7e5a1711b00d4f782a8a2ddd2a104884558c17c4c8462fafcfdf149ac2a751a5"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.wav",
+      "bytes": 24044,
+      "sha256": "57d5f3bf36c4daf885fcbd6efd73fe435788c84f0d66efccef92d2f4f7cd1995"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/state.json",
+      "bytes": 10879,
+      "sha256": "6dce3b73f13e81d1c231374f5a58263a3c5632fb7a09b2a682319e5f1be06d20"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/types.go",
+      "bytes": 7626,
+      "sha256": "d5b463d3fb0b87e97a90f42b150698e02bf480634d18a19fb674e2e3d0fbf56f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/visibility.go",
+      "bytes": 2855,
+      "sha256": "6556f8506e6d09788f6fa9527bb112b03ef0f6443d430c0518e5120278e4078a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/visibility_test.go",
+      "bytes": 18267,
+      "sha256": "ca97afe1726590a38d71705bff802cac973ea55315d14f55d8b5dbc3443c9436"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/wav.go",
+      "bytes": 3343,
+      "sha256": "318eba8d1e35ed106ee64352a362c127aa59e41e064b90a3958b7b461277785e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/wav_test.go",
+      "bytes": 5427,
+      "sha256": "f1d90aac8a8c5ed6e170a0398bc92c90a0ee0d9d28dc189f44af05d0103d3b1b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/accountaddress/address_test.go",
+      "bytes": 1676,
+      "sha256": "b3b1b3c242e9f826c069c41175bdb06413bc2394d8c3506b96b1f7705ac3b948"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/buildinfo/buildinfo.go",
+      "bytes": 538,
+      "sha256": "68358db14c043fc2d6c90531c19f86a6b8b2a606ca24c997b5d591808aec961f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/nativewallet/crypto.go",
+      "bytes": 4873,
+      "sha256": "a1cb70f6b85a79e82a017647f725dadac3e816313a87285f3f39be01f5e25a8f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/nativewallet/crypto_test.go",
+      "bytes": 1829,
+      "sha256": "d7e570487299b05a72e402aa0cd4319a931bc594221f4b3f7ed7c6f695ce4408"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/BACKEND-KEY-CONFIGURATION.md",
+      "bytes": 2608,
+      "sha256": "d8ead5fffae8990acfbbb4172866aaae72e09c0bbc245fcfbe781c914ab7d2db"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/README.md",
+      "bytes": 3526,
+      "sha256": "2f33f7ef3246392c5ed9ad8d33d1d6d9e7178d96c79d783237ce93f634fcdcfe"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/REGISTERED_CLIENT_CONSUMER_CONTRACT.md",
+      "bytes": 3755,
+      "sha256": "75b0d1ae88f9d89dde3716379f821baf845d3ec9cace38b77a66fece4dc1f3a7"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/action_body.go",
+      "bytes": 2887,
+      "sha256": "21dcb8c2be36dc661a329e2cb1659bdb48bc0005bf744735d2f924e4f58c88e8"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/action_proof.go",
+      "bytes": 4621,
+      "sha256": "3f293e7202f21360d2969291616359cc802c641fffe0a38e70c1ab9c89be759d"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/action_proof_test.go",
+      "bytes": 4593,
+      "sha256": "d493cd30796a6e61bba7ea1a430430000504367083ef9c1776e00ee12cc55854"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/backend_key.go",
+      "bytes": 3985,
+      "sha256": "09b1ff2b1c4c271669172dd256851c0e6d91c20eb31195eec6dbb3270f83f3ad"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/backend_key_pem_test.go",
+      "bytes": 2391,
+      "sha256": "466f33d1abf82f759f480c2c56397a8c1d66f0998c6cdcdbc112c1b84d06da1d"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/backend_key_test.go",
+      "bytes": 3966,
+      "sha256": "fa440a9f5acd56fe25be9799323b62eeb8fd0a7634df005471c1177347d24fe3"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/browser_sso.go",
+      "bytes": 15128,
+      "sha256": "575d3a335c3f1370d4e0d7376f353b8e98ac57eff32c8e02b249ca4d223f1b06"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/browser_sso_test.go",
+      "bytes": 13306,
+      "sha256": "1260bdc5fd7ee98830128c36cbf99966443c15adec385c428ce88b77e700ac65"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/business_proof.go",
+      "bytes": 7535,
+      "sha256": "3dc2f33081a599be43a2a0931c903aea2154df28eb1bc48c54bb17c583a5ccae"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/business_proof_test.go",
+      "bytes": 5807,
+      "sha256": "faf88e562843fcec7b8c43afe0745bd4d9a58e6b9f854b998ee677aac4b4494c"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/business_revalidation_test.go",
+      "bytes": 4606,
+      "sha256": "a68f0a24a0d1f3dd494455f1b9c4da9da53382ccd27075073792ef1ea3ebc614"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/client.go",
+      "bytes": 16133,
+      "sha256": "866203b52887098d3d559f6ff2e40c19c8952d1467f853c97f7dcdbd2e20fd07"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/client_test.go",
+      "bytes": 9843,
+      "sha256": "7a700c6eac58385cb050bcf38fe1b8c395d48b3e0335facc53312b5e0db5d7c9"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/private_business_revalidation_test.go",
+      "bytes": 4783,
+      "sha256": "3841b999460f4a2e3152c01876a5e16ed2d91bbc5b80d8bbd7b159738098e197"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/private_business_v3_revalidation_test.go",
+      "bytes": 4792,
+      "sha256": "f3a587d8c0ec3f3aaf0682f10048ccfb34b667ca1f50609d5323eda173044a5c"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/registered_clients.go",
+      "bytes": 4601,
+      "sha256": "0b5181a0be8087358a270f70cef97057f017e9efd42d4aa275eddb8da39d7ead"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/registered_clients_test.go",
+      "bytes": 4534,
+      "sha256": "d97a210731f2a42396f403af3ddf6dc173d2255acc6bd6d9b7946474e0cf1282"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/revalidation.go",
+      "bytes": 8446,
+      "sha256": "adc2064e1d6fe9dee0a5fb789faacd43072c45422e36b97970bd551d41a12171"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/revalidation_test.go",
+      "bytes": 6865,
+      "sha256": "62917dc576c5e01909f23f4567b36f2fe1333b932f291f85b9a5b9e356428f30"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/business-revalidation-node.mjs",
+      "bytes": 3116,
+      "sha256": "a163d5b94f66ac5ac98483e3656d5aeea6b732a26765924e0a9690ba63e938ee"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/finance-finite-v2.json",
+      "bytes": 5709,
+      "sha256": "364681baa5088965deba2ca5feb17ef49d849be9324e6677329717d6e33b00de"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/finance-v2.json",
+      "bytes": 5338,
+      "sha256": "dc2f7305448dadabd50ae123b5cba92cceb846763be478eb9c36dc141dfe10c9"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/generate-finite.mjs",
+      "bytes": 3041,
+      "sha256": "4d0e76f7f4c4b89f678ff9c0294026c8a47419460e727a997c9c63cbb4f82109"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/generate.mjs",
+      "bytes": 2920,
+      "sha256": "8b7a73bf74e595624a27065dcd1676ab5400eb4cd31ba8a42ca47423f2a4aba1"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-binary-js-proof.json",
+      "bytes": 2261,
+      "sha256": "4aa82aa796ba395cab9acfad6b8408f440f5b1d8123ba7326a4c653bfe970029"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-get-js-proof.json",
+      "bytes": 2251,
+      "sha256": "3604f18e0d3acabc75c8c04fcc475357b9aa7c938935ed539ddf17a54cad8bea"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-js-proof.json",
+      "bytes": 2287,
+      "sha256": "6d227b20f1e4add8ee3981cc70b5e568003a1b4f72a00187aa79850759aa4aa0"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-large-js-proof.json",
+      "bytes": 2291,
+      "sha256": "4534d1820a3171d6c4fd911015933519528b7325cb051751bcad92dfe5dee360"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-multipart-js-proof.json",
+      "bytes": 2334,
+      "sha256": "cdfdbd1bc284880dae7201bd7185257d5475622c327cb3cc597ea7cbe77b99c0"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/mail-business-native-js-proof.json",
+      "bytes": 2269,
+      "sha256": "bd3ce4547660ec8d9e021f7e8b9a2ef91639a5770b9c9e5756bbdb4b2f174fe1"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/private-business-revalidation-node.mjs",
+      "bytes": 3499,
+      "sha256": "ae3ff247a662b842a682740b81f47c2e03ed51359a63707b82c23a6c37415bc8"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/private-business-v3-revalidation-node.mjs",
+      "bytes": 5049,
+      "sha256": "15a46ed768aae5db3e054cf2d994e2ed253ca51b4e2897f487bedcfe501af5ef"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/revalidation-node.mjs",
+      "bytes": 3047,
+      "sha256": "f8733618c7c5c296d60cb0888d2727707985b27f854d4f17a5192a1f2c288840"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/social-action-js-body-cases.json",
+      "bytes": 14856,
+      "sha256": "c05a2e1c62b2ba0b6cf1704b674cb2bc65ab2dc6630c9f0c74015120c843afb0"
+    },
+    {
+      "owner": "A frozen Git",
+      "path": "internal/productsessionv2/testdata/social-action-js-proof.json",
+      "bytes": 2391,
+      "sha256": "10921896e76cb0909a9731a681f222ed17bb28795f41ed3a4b87e8ef41c46061"
+    }
+  ],
+  "results": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "-tags=ynx_canonical_media",
+        "-json",
+        "./internal/video",
+        "./internal/music"
+      ],
+      "exitCode": 0,
+      "log": "combined-go-race.jsonl"
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "-tags=ynx_canonical_media",
+        "./internal/video",
+        "./internal/music"
+      ],
+      "exitCode": 0,
+      "log": "combined-go-vet.txt"
+    }
+  ],
+  "toolchain": "go version go1.25.13 darwin/arm64",
+  "dependency": {
+    "Path": "golang.org/x/sys",
+    "Version": "v0.47.0",
+    "Time": "2026-06-30T17:07:31Z",
+    "Indirect": true,
+    "Dir": "/Users/huangjiahao/go/pkg/mod/golang.org/x/sys@v0.47.0",
+    "GoMod": "/Users/huangjiahao/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.47.0.mod",
+    "GoVersion": "1.25.0",
+    "Sum": "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=",
+    "GoModSum": "h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw="
+  },
+  "temporaryModulePins": [
+    {
+      "path": "go.mod",
+      "sha256": "3ff7e0ac64fa5f6b8851eb8e6980a7bae94b286f684f8b888d56767658a4c095"
+    },
+    {
+      "path": "go.sum",
+      "sha256": "c8069c178d6a4eacd2d7b2376d73c1eadf51e6ed1e58f459a3d77349d559d036"
+    }
+  ],
+  "fixturePackage": {
+    "manifestSHA256": "cb6a6262f1d0468e5f9192465c25d6d93480ca7ca7828895ad4f39b92ca6ef5a",
+    "verifiedFiles": 929,
+    "verifiedGitSourcePaths": 143,
+    "actualWalletConsent": false
+  },
+  "actualNodeAuthorityProtocol": true,
+  "actualSDKActionCrypto": true,
+  "actualWalletConsent": false,
+  "productionInstalled": false,
+  "note": "Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation."
+}

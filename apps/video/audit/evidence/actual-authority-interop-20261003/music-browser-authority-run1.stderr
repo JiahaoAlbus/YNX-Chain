@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'retry-required'
+- 'guest'
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/canonical-browser-authority-check.cjs:33:73 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'retry-required',
+  expected: 'guest',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

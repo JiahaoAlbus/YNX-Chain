@@ -1,0 +1,25 @@
+✔ foreign product and origin rejected before signing (0.5945ms)
+✔ original methods, query and route boundaries (9.748667ms)
+✔ final multipart boundary and bytes signed once and sent identically (4.40275ms)
+✔ large serialized upload uses complete byte commitment (21.809708ms)
+✔ oversized original audio rejected before proof or HTTP (7.122667ms)
+✔ account invalidation or abort during proof prevents HTTP (0.472167ms)
+✔ foreign response location rejected (0.173083ms)
+✔ cold restore activates only same original account readback (0.941292ms)
+✔ wrong business account never becomes visible (0.379917ms)
+✔ callback route validation and SDK verification precede account readback (0.296375ms)
+✔ late restore cannot activate after signout; pending revoke stays pending (3.234625ms)
+✔ stalled SDK times out; late grant cannot publish business (28.604167ms)
+✔ stalled revocation remains unavailable and explicit retry settles same SDK operation (20.610625ms)
+✔ prefers the explicitly requested YNX Wallet and preserves private degradation (1.988958ms)
+✔ uses MetaMask only when the user explicitly selects it (1.675333ms)
+✔ rejects missing wallets and rejected approval without creating a fallback (3.1975ms)
+✔ vendored browser SDK is byte-identical to the accepted source manifest (1.346166ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.571959

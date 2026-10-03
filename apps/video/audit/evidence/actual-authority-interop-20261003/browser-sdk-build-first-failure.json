@@ -1,0 +1,8 @@
+{
+  "toolChunk": "824ae6",
+  "exitCode": 1,
+  "error": "Unpinned browser graph input: source/packages/wallet-auth/media-sdk-entry.js",
+  "cause": "esbuild reports stdin entry relative to resolveDir; original literal entry is separately SHA pinned",
+  "sourceFixed": "Only exact generated stdin entry path is excluded from external graph lookup; actual external graph inputs remain required and SHA checked",
+  "productionChanged": false
+}
