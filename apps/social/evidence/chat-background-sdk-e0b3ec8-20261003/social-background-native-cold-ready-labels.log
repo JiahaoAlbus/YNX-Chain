@@ -1,0 +1,121 @@
+[
+  {
+    text: '',
+    label: 'Original YNX logo',
+    bounds: '[18,43][64,67]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'YNX Social',
+    label: '',
+    bounds: '[73,42][227,67]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Sign in',
+    bounds: '[237,31][302,79]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Sign in',
+    label: '',
+    bounds: '[249,45][290,64]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Chats',
+    label: '',
+    bounds: '[0,86][320,150]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Your conversations',
+    label: '',
+    bounds: '[82,292][238,317]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Sign in to restore your conversations on this device.',
+    label: '',
+    bounds: '[24,329][296,373]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Continue with YNX',
+    bounds: '[80,396][241,444]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Continue with YNX',
+    label: '',
+    bounds: '[102,410][219,429]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Chats',
+    bounds: '[0,543][80,608]',
+    checked: 'false',
+    selected: 'true'
+  },
+  {
+    text: 'Chats',
+    label: '',
+    bounds: '[25,581][54,596]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Contacts',
+    bounds: '[80,543][160,608]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Contacts',
+    label: '',
+    bounds: '[97,581][142,596]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Moments',
+    bounds: '[160,543][240,608]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Moments',
+    label: '',
+    bounds: '[176,581][224,596]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Settings',
+    bounds: '[240,543][320,608]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Settings',
+    label: '',
+    bounds: '[259,581][301,596]',
+    checked: 'false',
+    selected: 'false'
+  }
+]

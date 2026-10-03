@@ -1,0 +1,19 @@
+{
+  "qualification": "ACTUAL_MAINAPP_GUEST_SETTINGS_AND_NEW_APPROVED_SDK_ISOLATED_DEBUG_NOT_FORMAL_RELEASE",
+  "source": "e0b3ec8232c4dbaec12d5dc59bc763427adb97e0",
+  "tree": "9f941c3a2d489068ffaaf9716b3e640bfdf0a970",
+  "apk": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/chat-background-sdk-e0b3ec8-isolated-debug.apk",
+    "bytes": 134219842,
+    "sha256": "aeed8510e52e34bbc584353e9e8e5b23e5bf3ae6104251e0e1ab44f7b843586f"
+  },
+  "embedded": {
+    "path": "/tmp/ynx-social-native-matrix-qa.aZcKcz/android/app/src/main/assets/index.android.bundle",
+    "bytes": 4067505,
+    "sha256": "fc5ad239c5531b630dcd9b0dfcc43f2cf56bd7b528e77cae57dfa7d0779809fd"
+  },
+  "sdkSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "install": "IN_PLACE_NO_DATA_CLEAR",
+  "canonicalEnrollment": "NOT_PROVEN",
+  "MONSTER": "NOT_RUN"
+}

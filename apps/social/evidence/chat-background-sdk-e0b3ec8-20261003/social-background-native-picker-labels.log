@@ -1,0 +1,58 @@
+[
+  {
+    text: '',
+    label: 'Drag handle',
+    bounds: '[144,150][176,154]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Photos',
+    label: '',
+    bounds: '[74,198][119,218]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Collections',
+    label: '',
+    bounds: '[188,198][260,218]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'More',
+    bounds: '[292,196][316,220]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'YNX Social will only have access to the photos you select',
+    label: '',
+    bounds: '[80,272][288,308]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Dismiss',
+    label: '',
+    bounds: '[234,322][284,342]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Photo taken on Oct 3, 2026 3:15 PM',
+    bounds: '[0,389][106,495]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Photo taken on Oct 3, 2026 12:34 PM',
+    bounds: '[107,389][213,495]',
+    checked: 'false',
+    selected: 'false'
+  }
+]

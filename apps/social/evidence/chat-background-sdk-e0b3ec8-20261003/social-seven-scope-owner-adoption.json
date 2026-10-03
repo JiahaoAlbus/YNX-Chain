@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "ynx-social-owned-sdk-adoption/v1",
+  "approvedSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "approvedTree": "35c54f0a17e8f01807c38e3f1e99ff5beaec95e3",
+  "inputManifestSha256": "8961d270b15fb11c0b4f4eb55d8efa168fa1f7661f834066816cac0f697446ed",
+  "mappings": [
+    {
+      "source": "artifacts/product-session-registry.json",
+      "target": "apps/social/src/vendor/product-session-registry.json",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    },
+    {
+      "source": "artifacts/product-session-registry.json",
+      "target": "apps/social/web/vendor/product-session-registry.json",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    },
+    {
+      "source": "artifacts/product-session-browser.mjs",
+      "target": "apps/social/web/vendor/product-session-browser.mjs",
+      "bytes": 238902,
+      "sha256": "c765eca415a6e9605d36ec0b1a1b7cdbfa8da723a635796b5df4fb8e9ba97f74"
+    },
+    {
+      "source": "artifacts/product-session-browser.d.mts",
+      "target": "apps/social/web/vendor/product-session-browser.d.mts",
+      "bytes": 102,
+      "sha256": "753a16b8a8707d4b4dda147e4c12691dff6c443bf6b69e2553c735c579a225db"
+    },
+    {
+      "source": "artifacts/private-sdk-manifest.json",
+      "target": "apps/social/web/vendor/private-sdk-manifest.json",
+      "bytes": 660,
+      "sha256": "2a357886108123706e6bd2d781b0da0a20bf774cf5af3ca30832983348ce242a"
+    },
+    {
+      "source": "artifacts/standard-wallet-browser.mjs",
+      "target": "apps/social/web/vendor/standard-wallet-browser.mjs",
+      "bytes": 23341,
+      "sha256": "2eb63acdfc973020ed2deac89eb9ff01d457385861ef03915f4446d7074d9e23"
+    },
+    {
+      "source": "artifacts/standard-wallet-browser.d.mts",
+      "target": "apps/social/web/vendor/standard-wallet-browser.d.mts",
+      "bytes": 83,
+      "sha256": "6a13e4ddb6cc5b13ba45766a0f3dca0e6a3c93518223c105baf0c16363935f1d"
+    },
+    {
+      "source": "artifacts/wallet-sdk-manifest.json",
+      "target": "apps/social/web/vendor/wallet-sdk-manifest.json",
+      "bytes": 384,
+      "sha256": "9e96b57617c9f0e9ebf3879f4c4741d73e98cdbcee0608fdf6f024f4f197921c"
+    },
+    {
+      "source": "artifacts/product-session-native.mjs",
+      "target": "apps/social/src/vendor/product-session-native.mjs",
+      "bytes": 877346,
+      "sha256": "ceba7019856fa365afbc06533f76fce26e4dfc12658117dc7cbdd1b5b214e4b7"
+    },
+    {
+      "source": "artifacts/product-session-native.d.mts",
+      "target": "apps/social/src/vendor/product-session-native.d.mts",
+      "bytes": 34,
+      "sha256": "e747335bc7db47d79474deaa7a7285bf1688359763351705379d49efcddc6d75"
+    },
+    {
+      "source": "artifacts/native-sdk-manifest.json",
+      "target": "apps/social/src/vendor/native-sdk-manifest.json",
+      "bytes": 16576,
+      "sha256": "efa8b4b81792d84f9b5eea2ac736ee8963ca5f6778984646d6fe9c3342febe42"
+    },
+    {
+      "source": "artifacts/package.json",
+      "target": "apps/social/src/vendor/package.json",
+      "bytes": 33,
+      "sha256": "a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "source": "artifacts/types/application-action-launcher.d.ts",
+      "target": "apps/social/src/vendor/types/application-action-launcher.d.ts",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "source": "artifacts/types/application-action-launcher.d.ts",
+      "target": "apps/social/web/vendor/types/application-action-launcher.d.ts",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "source": "artifacts/types/index.d.ts",
+      "target": "apps/social/src/vendor/types/index.d.ts",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    },
+    {
+      "source": "artifacts/types/index.d.ts",
+      "target": "apps/social/web/vendor/types/index.d.ts",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    }
+  ],
+  "preservedTransports": [
+    {
+      "path": "apps/social/web/wallet-transports.js",
+      "bytes": 4020,
+      "sha256": "ec53ee45f4fd669fc233e25b247c899a39e567e98222711c904b45c876a12adc"
+    },
+    {
+      "path": "apps/social/web/vendor/ynx-wallet-transports-b38f74d3b.mjs",
+      "bytes": 1067240,
+      "sha256": "fc29db08a32ae60a6ef0151b1e9a4db4c9c1d795f4476b13cedeb1ed4f6f1e3a"
+    },
+    {
+      "path": "apps/social/web/vendor/ynx-wallet-transports-manifest.json",
+      "bytes": 129998,
+      "sha256": "637a0ee7fa791c15926787948b38eec2062e63c93813347a56191d01d73b65c0"
+    }
+  ],
+  "grantUpgrade": false,
+  "nativeEnrollment": false,
+  "MONSTER": "NOT_RUN"
+}

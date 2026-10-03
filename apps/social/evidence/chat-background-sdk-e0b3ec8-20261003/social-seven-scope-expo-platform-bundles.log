@@ -1,0 +1,32 @@
+
+> @ynx-chain/social@1.0.0 bundle-check
+> expo export --platform android --platform ios --output-dir dist
+
+Starting Metro Bundler
+
+| (node:89744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:89744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:89744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:89744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:89744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 8120ms index.ts (2760 modules)
+Android Bundled 13504ms index.ts (2758 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-22f7bf7c0aebac435bf1b3519a0d311e.hbc (5.8MB)
+
+› android bundles (1):
+_expo/static/js/android/index-4de1da41221ce01ff68825c10900eef9.hbc (5.8MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: dist

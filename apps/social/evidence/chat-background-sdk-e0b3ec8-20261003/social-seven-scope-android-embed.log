@@ -1,0 +1,10 @@
+Starting Metro Bundler
+
+| (node:86009) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:86009) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 2635ms index.ts (2759 modules)
+Writing bundle output to: android/app/src/main/assets/index.android.bundle
+Copying 1 asset files
+Done writing bundle output

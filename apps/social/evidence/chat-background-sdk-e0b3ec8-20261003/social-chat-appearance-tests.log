@@ -1,0 +1,21 @@
+✔ global defaults, room override and reset are distinct and survive a fresh store (1.047917ms)
+✔ guest and two account scopes never share a preference (0.169333ms)
+✔ cancel or stale selection never writes a setting (0.215375ms)
+✔ storage failure keeps the original background and can be retried (0.138333ms)
+✔ queued room changes merge without dropping global or other room preferences (0.114042ms)
+✔ a write finishing after account change belongs only to the original account (0.1675ms)
+✔ raw paths, remote URLs, forged schemas, prototype slots and unsupported backgrounds are rejected (0.155833ms)
+✔ corrupt local data is not silently replaced or overwritten (0.169583ms)
+✔ snapshot mutation cannot change saved settings (0.1405ms)
+✔ system dark and explicit light produce the defined readable chat canvases (0.092333ms)
+✔ partial inactive slot preserves the prior valid preference and next save recovers without destroying it (0.904208ms)
+✔ both corrupt slots fail closed instead of resetting account preferences (0.126834ms)
+✔ modified bytes without their exact SHA are not accepted as the current setting (0.102084ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 108.48525

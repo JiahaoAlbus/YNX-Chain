@@ -1,0 +1,198 @@
+[
+  {
+    text: 'Chat appearance',
+    label: '',
+    bounds: '[20,101][244,128]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Cancel background changes',
+    bounds: '[252,91][300,139]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Cancel',
+    label: '',
+    bounds: '[252,105][300,124]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Chat theme system',
+    bounds: '[20,139][94,30]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'System',
+    label: '',
+    bounds: '[34,139][80,14]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Chat theme light',
+    bounds: '[104,139][164,30]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Light',
+    label: '',
+    bounds: '[118,139][150,14]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Chat theme dark',
+    bounds: '[174,139][235,30]',
+    checked: 'true',
+    selected: 'false'
+  },
+  {
+    text: 'Dark',
+    label: '',
+    bounds: '[190,139][219,14]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background preview',
+    bounds: '[20,139][300,228]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Preview only. Your conversations are unchanged.',
+    label: '',
+    bounds: '[50,139][233,125]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Readable text on every background.',
+    label: '',
+    bounds: '[87,163][270,198]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background mist',
+    bounds: '[20,242][104,304]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'mist',
+    label: '',
+    bounds: '[43,258][80,287]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background ivory',
+    bounds: '[114,242][198,304]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'ivory',
+    label: '',
+    bounds: '[135,258][176,287]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background ocean',
+    bounds: '[208,242][292,304]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'ocean',
+    label: '',
+    bounds: '[226,258][274,287]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background sage',
+    bounds: '[20,314][104,376]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'sage',
+    label: '',
+    bounds: '[42,330][82,359]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Background ink',
+    bounds: '[114,314][198,376]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'ink',
+    label: '',
+    bounds: '[142,330][170,359]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Choose image from this device',
+    bounds: '[20,390][300,438]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Choose image from this device',
+    label: '',
+    bounds: '[34,404][286,423]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Reset global background and theme',
+    bounds: '[20,452][300,500]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Reset global background and theme',
+    label: '',
+    bounds: '[34,466][286,485]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: '',
+    label: 'Confirm background',
+    bounds: '[20,514][300,564]',
+    checked: 'false',
+    selected: 'false'
+  },
+  {
+    text: 'Confirm background',
+    label: '',
+    bounds: '[95,529][224,548]',
+    checked: 'false',
+    selected: 'false'
+  }
+]

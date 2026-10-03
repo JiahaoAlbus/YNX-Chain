@@ -1,0 +1,481 @@
+{
+  "qualification": "ACTUAL_INSTALLED_MAINAPP_GUEST_SETTINGS_AND_FULL_WEB_BUILD_DIRECT_QA_NOT_SOCIAL_COMPLETION_OR_PUBLIC_RELEASE",
+  "source": {
+    "background": "4e066b7a2c7f5c7fd3ae170269d8be6454b185d0",
+    "sdkIntegration": "e0b3ec8232c4dbaec12d5dc59bc763427adb97e0",
+    "tree": "9f941c3a2d489068ffaaf9716b3e640bfdf0a970",
+    "parent": "4e066b7a2c7f5c7fd3ae170269d8be6454b185d0",
+    "branch": "codex/social-wallet-chooser-20261001"
+  },
+  "approvedSDK": {
+    "commit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "tree": "35c54f0a17e8f01807c38e3f1e99ff5beaec95e3",
+    "freezeManifest": "8961d270b15fb11c0b4f4eb55d8efa168fa1f7661f834066816cac0f697446ed",
+    "pins": "1f23c193e0d311ba0c12be6070c84630e5a9d48ccc81eceffe422ecd1d99a170",
+    "noGrantUpgrade": true,
+    "originalB38Transports": "BYTE_EXACT_UNCHANGED"
+  },
+  "webArtifact": {
+    "path": "apps/social/evidence/chat-background-sdk-e0b3ec8-20261003/web-dist-e0b3ec8.tar.gz",
+    "bytes": 3333595,
+    "sha256": "82500866dc4aebc9fe94acc735f4dcfeb7f3d622cc45fd567ae0ef4f7f5c7a5c"
+  },
+  "native": {
+    "qualification": "ACTUAL_MAINAPP_GUEST_SETTINGS_AND_NEW_APPROVED_SDK_ISOLATED_DEBUG_NOT_FORMAL_RELEASE",
+    "source": "e0b3ec8232c4dbaec12d5dc59bc763427adb97e0",
+    "tree": "9f941c3a2d489068ffaaf9716b3e640bfdf0a970",
+    "apk": {
+      "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/chat-background-sdk-e0b3ec8-isolated-debug.apk",
+      "bytes": 134219842,
+      "sha256": "aeed8510e52e34bbc584353e9e8e5b23e5bf3ae6104251e0e1ab44f7b843586f"
+    },
+    "embedded": {
+      "path": "/tmp/ynx-social-native-matrix-qa.aZcKcz/android/app/src/main/assets/index.android.bundle",
+      "bytes": 4067505,
+      "sha256": "fc5ad239c5531b630dcd9b0dfcc43f2cf56bd7b528e77cae57dfa7d0779809fd"
+    },
+    "sdkSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "install": "IN_PLACE_NO_DATA_CLEAR",
+    "canonicalEnrollment": "NOT_PROVEN",
+    "MONSTER": "NOT_RUN"
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "nativeUnit": 236,
+    "webUnitWithVmFlag": 193,
+    "actualFullWebBuild": "PASS_TWICE_27_FILES_13329615_BYTES_IDENTICAL",
+    "androidActualBuildAndInPlaceInstall": "PASS",
+    "androidAndIosJSBundles": "PASS_NOT_APPLE_NATIVE_COMPILE",
+    "actualBrowser": {
+      "sourceComponent": "http://127.0.0.1:8873/",
+      "fullBuild": "http://127.0.0.1:8874/",
+      "noBackendSessionRoomProviderFixtures": true,
+      "previewCancelConfirmRefreshRestoreReset": "PASS",
+      "generatedRasterInvalidThenValidRecovery": "PASS",
+      "localImageRefreshRestore": "PASS",
+      "phoneDialogWidth": 352,
+      "phoneViewportWidth": 390,
+      "console": "EMPTY_ERRORS_WARNINGS_OBSERVED_WINDOW_ONLY"
+    },
+    "actualInstalledGuest": {
+      "normalSettingsEntry": true,
+      "cancelPreservedOriginal": "PASS",
+      "systemPhotoPicker": "SELECTED_ONLY_OWN_GENERATED_TEST_IMAGE_NO_BROAD_PHOTO_ACCESS",
+      "durableOriginalImageCopySha256": "634032f6dc74e45e22f7a30d5af9abbc4c935bdfeb4e5103a6a1ba8f41befbcc",
+      "bytes": 4973,
+      "dualSlotChecksum": "PASS",
+      "coldImageRendering": "PASS",
+      "resetGlobalDefault": "PASS",
+      "newSDKInstallRetainedSettings": "PASS"
+    },
+    "retainedFailures": [
+      "initial_Web_dialog_under_hidden_Chat_route_AX_empty_fixed_body_mount_and_visible_retested",
+      "early_native_cold_UI_capture_empty_not_ready_then_same_process_fresh_tree_and_actual_image_verified",
+      "native_skill_python_summary_failed_137_replaced_bounded_XML_helper",
+      "bad_tests_glob_unmatched_then_actual_matrix_suite_193_pass"
+    ]
+  },
+  "notVerified": [
+    "real_authenticated_room_background_override_and_account_switch_journey",
+    "public_source_bound_product_business",
+    "Native_canonical_Matrix_enrollment_and_mature_E2EE_MainApp_mount",
+    "complete_social_C01_C07_V01_V17",
+    "Apple_native_SDK_compile_link_runtime",
+    "true_MONSTER_invocation",
+    "real_Wallet_approve_reject_sign_send_relay_lifecycle"
+  ],
+  "sensitiveRequests": "NONE",
+  "deployment": "NONE",
+  "files": [
+    {
+      "name": "social-background-built-web-restored-20261003.jpg",
+      "bytes": 67180,
+      "sha256": "f2f288e90bfb8b007c0c0b994cb18233fa8dee8f36ef722001d8670ef47fff03"
+    },
+    {
+      "name": "social-background-native-baseline.xml",
+      "bytes": 19106,
+      "sha256": "6eb6951b45ae5d297159301a1e36b0705c306c7424d1bc9a8186f28268b62799"
+    },
+    {
+      "name": "social-background-native-cancel-reopened-labels.log",
+      "bytes": 3345,
+      "sha256": "084f631a0a79374737a7b2656bb9ad26275461b6b7cee42f283a87c89dac8925"
+    },
+    {
+      "name": "social-background-native-cancel-reopened.xml",
+      "bytes": 13415,
+      "sha256": "9c2ce88eb11a28b7d9c1ff1321d7fdbd22bc478818f85ed7b696acba91b12a7a"
+    },
+    {
+      "name": "social-background-native-cancel.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-background-native-cold-editor-labels.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "social-background-native-cold-editor-ready.xml",
+      "bytes": 13761,
+      "sha256": "ca1e0c9cfac159b2f7f20d4e353c0a4cb8cc3f7edbbb3261738d14c1cd8f5f14"
+    },
+    {
+      "name": "social-background-native-cold-image.png",
+      "bytes": 25622,
+      "sha256": "132dc8f209daaaca087d852ee18535f87567ac33a4195e6585f6d30a68fece47"
+    },
+    {
+      "name": "social-background-native-cold-labels.log",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "name": "social-background-native-cold-launch.log",
+      "bytes": 54,
+      "sha256": "b3c1e4a86fef2b585d3bc6b4977397b22900c3a78981b9ae6c4368c5efffe287"
+    },
+    {
+      "name": "social-background-native-cold-ready-labels.log",
+      "bytes": 2157,
+      "sha256": "307178611fd48a1060e6981e78ed3dc9cc2ad3e4898b7ee2ceb91d864e44342a"
+    },
+    {
+      "name": "social-background-native-cold-ready.xml",
+      "bytes": 17699,
+      "sha256": "8e833667185b92a2293892234add4887587e6fed53ff78c298b0dabb469a692a"
+    },
+    {
+      "name": "social-background-native-cold-restored-image.png",
+      "bytes": 37682,
+      "sha256": "ee1d6d5c4948c756847748393286f4f58bc06368f164c82515cd32397d04536c"
+    },
+    {
+      "name": "social-background-native-cold-restored-labels.log",
+      "bytes": 3346,
+      "sha256": "577e1a6fa62347e7b377244c069a1e87d5492431d273638b2f12ad2566422cc9"
+    },
+    {
+      "name": "social-background-native-cold-settings-ready.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-background-native-cold-settings.xml",
+      "bytes": 17699,
+      "sha256": "8e833667185b92a2293892234add4887587e6fed53ff78c298b0dabb469a692a"
+    },
+    {
+      "name": "social-background-native-cold.xml",
+      "bytes": 2267,
+      "sha256": "a77cd07e766e2c787a704de93fe00e120e2a6f291489799fb2dbbc6d0c96ee83"
+    },
+    {
+      "name": "social-background-native-confirm-dark.xml",
+      "bytes": 13415,
+      "sha256": "73457b8ecc24a9eb324fba65464ccc05248339baa8145e64fa8d9ed74f585375"
+    },
+    {
+      "name": "social-background-native-confirm-ocean.xml",
+      "bytes": 13415,
+      "sha256": "aaf0ae45a45ec57e8f4a6ac95a18d466e1e55be074ecd58639e5a37ca2fa1163"
+    },
+    {
+      "name": "social-background-native-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "social-background-native-dark.xml",
+      "bytes": 13415,
+      "sha256": "73457b8ecc24a9eb324fba65464ccc05248339baa8145e64fa8d9ed74f585375"
+    },
+    {
+      "name": "social-background-native-durable-a-readback.json",
+      "bytes": 226,
+      "sha256": "cb8f68432c38e9103ce3e386f02c8e51c6305076b88762382d4aa3a18d1060f5"
+    },
+    {
+      "name": "social-background-native-durable-a.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "social-background-native-editor-labels.log",
+      "bytes": 3345,
+      "sha256": "084f631a0a79374737a7b2656bb9ad26275461b6b7cee42f283a87c89dac8925"
+    },
+    {
+      "name": "social-background-native-editor.png",
+      "bytes": 36853,
+      "sha256": "83070c135a0a732a73bf9faa8eefe3972226dd74eb6cb35d3b74d87f7d0c2856"
+    },
+    {
+      "name": "social-background-native-editor.xml",
+      "bytes": 13415,
+      "sha256": "9c2ce88eb11a28b7d9c1ff1321d7fdbd22bc478818f85ed7b696acba91b12a7a"
+    },
+    {
+      "name": "social-background-native-image-confirmed.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-background-native-image-preview-labels.log",
+      "bytes": 3688,
+      "sha256": "3c5602ca792e938f2857ef9d4be00d913dc948993cff638e3eb3ae376226849f"
+    },
+    {
+      "name": "social-background-native-image-preview.png",
+      "bytes": 33499,
+      "sha256": "f6e1bf59b16827fd0f3953864599c2f616f644100ffce752e08ac4e94d59b19a"
+    },
+    {
+      "name": "social-background-native-image-preview.xml",
+      "bytes": 14796,
+      "sha256": "31d33c9e3a8a9fe3583c85d2d3841f12823fd4b8225b2addcecfa933c6a1eae1"
+    },
+    {
+      "name": "social-background-native-image-stage.log",
+      "bytes": 134,
+      "sha256": "f99b78db0ae2a86beca0625b6dfcca3b1866360453323b91e5a0c6ad285cee07"
+    },
+    {
+      "name": "social-background-native-installed.xml",
+      "bytes": 2267,
+      "sha256": "a77cd07e766e2c787a704de93fe00e120e2a6f291489799fb2dbbc6d0c96ee83"
+    },
+    {
+      "name": "social-background-native-ocean.xml",
+      "bytes": 13415,
+      "sha256": "aaf0ae45a45ec57e8f4a6ac95a18d466e1e55be074ecd58639e5a37ca2fa1163"
+    },
+    {
+      "name": "social-background-native-picker-labels.log",
+      "bytes": 1092,
+      "sha256": "4baf4ab8e3186a5f335a5e4239a594407f5753aa739d8cbf1e2d7321c07fb404"
+    },
+    {
+      "name": "social-background-native-picker.xml",
+      "bytes": 11438,
+      "sha256": "17f8d5c1bf74546fe31364a47df455fcc432c1f3cd9883957ed1f0ddf4f7e6a7"
+    },
+    {
+      "name": "social-background-native-ready-labels.json",
+      "bytes": 8602,
+      "sha256": "1983c47d63b3e993148fe164f94be608242059c05f474c0f72c255fc023a0d9a"
+    },
+    {
+      "name": "social-background-native-ready.xml",
+      "bytes": 17699,
+      "sha256": "8e833667185b92a2293892234add4887587e6fed53ff78c298b0dabb469a692a"
+    },
+    {
+      "name": "social-background-native-reset-b-readback.json",
+      "bytes": 205,
+      "sha256": "0355b7b0a5fe51aaad2ba68c5b4478adcff03d7f438a91f345bd5a601e82cbce"
+    },
+    {
+      "name": "social-background-native-reset-confirmed.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-background-native-reset-review.xml",
+      "bytes": 14450,
+      "sha256": "5f545d2c24b53487352f557c533f4efbb3f37c272d02ad36389080ae4830767e"
+    },
+    {
+      "name": "social-background-native-reset-scroll.xml",
+      "bytes": 14796,
+      "sha256": "31d33c9e3a8a9fe3583c85d2d3841f12823fd4b8225b2addcecfa933c6a1eae1"
+    },
+    {
+      "name": "social-background-native-scroll-labels.log",
+      "bytes": 3687,
+      "sha256": "b37a6cbc361c2d928f7f4f128f724e9acd6e6c7afd6197af5bea6f1cfc116720"
+    },
+    {
+      "name": "social-background-native-scroll.xml",
+      "bytes": 14450,
+      "sha256": "be3967eb70fab305445884be00ee3fb83c6a08b2da3e6900af255b6889b85d34"
+    },
+    {
+      "name": "social-background-native-settings.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-background-native-stored-copy.png",
+      "bytes": 4973,
+      "sha256": "634032f6dc74e45e22f7a30d5af9abbc4c935bdfeb4e5103a6a1ba8f41befbcc"
+    },
+    {
+      "name": "social-background-native-tap.sh",
+      "bytes": 415,
+      "sha256": "d89a4059e2d129fe2db4249e87c21fb54e8f314b32056bbd3c3b1af135b35ce5"
+    },
+    {
+      "name": "social-background-native-ui-actions.log",
+      "bytes": 50201,
+      "sha256": "0a1af7f302a262bfa4e11ca444ea71e1917a0a365bf1776e5588822bf6b52036"
+    },
+    {
+      "name": "social-chat-appearance-android-build.log",
+      "bytes": 21852,
+      "sha256": "9df9cfb7ac8ad1a66de44ba96f9cb735e0a3c900bd8eeceb2ae386991c9c3a15"
+    },
+    {
+      "name": "social-chat-appearance-android-embed.log",
+      "bytes": 531,
+      "sha256": "376f65e1e5130768fea696200148667c99a4576330dfaf59fe33270760f67b95"
+    },
+    {
+      "name": "social-chat-appearance-android-install.log",
+      "bytes": 90,
+      "sha256": "29f1cc14c446cb1be6aadb4b1be01461f970eaca80d4d0ce2cea04ef7bcd02d6"
+    },
+    {
+      "name": "social-chat-appearance-native-full-tests.log",
+      "bytes": 23019,
+      "sha256": "55c2edc5edbc3dd7d1c7d2009a43458af27a5a8e3d2f07f1f90a52e8853ad458"
+    },
+    {
+      "name": "social-chat-appearance-tests.log",
+      "bytes": 1265,
+      "sha256": "d9323151ad6ca77603decd6c61c5c7b3ea3dcea2c16b1903ced1f310925b1344"
+    },
+    {
+      "name": "social-chat-appearance-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "name": "social-chat-appearance-typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "name": "social-chat-appearance-web-full-tests.log",
+      "bytes": 17081,
+      "sha256": "351bad056087f5b205aae7ecbb5d5dee3748ffffdc5cb46b2f28311baf03b54a"
+    },
+    {
+      "name": "social-chat-background-native-artifact.json",
+      "bytes": 979,
+      "sha256": "d4d55ed0a3d931bd9ba7d0d6cfb188ec69252cd268190173124a0f7a2eb09e5d"
+    },
+    {
+      "name": "social-chat-background-web-image-restored-20261003.jpg",
+      "bytes": 45740,
+      "sha256": "d46ce66917fa2667c6ed70e815e6f8708dfe663bd73d13d1190e5e9cbc2205ac"
+    },
+    {
+      "name": "social-chat-background-web-preview-20261003.jpg",
+      "bytes": 64955,
+      "sha256": "e4d9d3d13189fc16a71393bdf9e8d86565d2682c6317c1235a9686b885662ba6"
+    },
+    {
+      "name": "social-seven-scope-android-artifact.json",
+      "bytes": 904,
+      "sha256": "f5bf8488de64cd053c526796d8bde4e12d7f1e4cee6d8f72d6152c3759965d1a"
+    },
+    {
+      "name": "social-seven-scope-android-build.log",
+      "bytes": 21852,
+      "sha256": "94c9fbd2668e0c43dc825da1827d7ebbd21e9f9b50c654c06ff3b190d318efb7"
+    },
+    {
+      "name": "social-seven-scope-android-editor-labels.log",
+      "bytes": 3345,
+      "sha256": "084f631a0a79374737a7b2656bb9ad26275461b6b7cee42f283a87c89dac8925"
+    },
+    {
+      "name": "social-seven-scope-android-editor.png",
+      "bytes": 36754,
+      "sha256": "73231fb38e52782211c09b22a295956db228b400f373898d9de64a49fed014d9"
+    },
+    {
+      "name": "social-seven-scope-android-editor.xml",
+      "bytes": 13415,
+      "sha256": "9c2ce88eb11a28b7d9c1ff1321d7fdbd22bc478818f85ed7b696acba91b12a7a"
+    },
+    {
+      "name": "social-seven-scope-android-embed.log",
+      "bytes": 531,
+      "sha256": "80de743fbee4b8fe76d9160690866f3f704a3d142672ecc17e6166abb69611b9"
+    },
+    {
+      "name": "social-seven-scope-android-initial-labels.log",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "name": "social-seven-scope-android-initial.xml",
+      "bytes": 58,
+      "sha256": "406bd8df88b9c43b78dc2a75c35ee3f96f79a5b3ea922e8ead222b4c5b5752f9"
+    },
+    {
+      "name": "social-seven-scope-android-install.log",
+      "bytes": 90,
+      "sha256": "29f1cc14c446cb1be6aadb4b1be01461f970eaca80d4d0ce2cea04ef7bcd02d6"
+    },
+    {
+      "name": "social-seven-scope-android-ready.xml",
+      "bytes": 17699,
+      "sha256": "8e833667185b92a2293892234add4887587e6fed53ff78c298b0dabb469a692a"
+    },
+    {
+      "name": "social-seven-scope-android-settings.xml",
+      "bytes": 21669,
+      "sha256": "1fb57a8194507d2c7385b2acf993a7ce94333b48c54b8bf9cf7924d12268065e"
+    },
+    {
+      "name": "social-seven-scope-expo-platform-bundles.log",
+      "bytes": 1363,
+      "sha256": "705c15dffc90c49840dd6294aea49ee6fd82fa64ce410a06c0a480e588a5b5d0"
+    },
+    {
+      "name": "social-seven-scope-full-web-files.json",
+      "bytes": 4629,
+      "sha256": "77b0e15d70ef6bb63d5f2ee0db4e67986d62f60f0df56d07163fe2cc118f8691"
+    },
+    {
+      "name": "social-seven-scope-full-web-first-files.json",
+      "bytes": 4088,
+      "sha256": "ac3bdd7e692dc36316bdb844b4b4fd9448bef3b65b4b3b89115a0c3831dfa076"
+    },
+    {
+      "name": "social-seven-scope-owner-adoption.json",
+      "bytes": 4845,
+      "sha256": "44c0bcc9e9f2568e58afa3a7aa14bd4e47c3e28e65faa637c7bbab077c44daca"
+    },
+    {
+      "name": "social-seven-scope-owner-native-tests.log",
+      "bytes": 23023,
+      "sha256": "421e392c6eb50a1200e56b43d346d4ffee749072949e3eca9fcc34d108eb35b3"
+    },
+    {
+      "name": "social-seven-scope-owner-typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "name": "social-seven-scope-owner-web-build.log",
+      "bytes": 59,
+      "sha256": "facc0a863d7576068753313a49e1f2929fb6090cde2ede0c42017c9ccf191403"
+    },
+    {
+      "name": "social-seven-scope-owner-web-second-build.log",
+      "bytes": 59,
+      "sha256": "facc0a863d7576068753313a49e1f2929fb6090cde2ede0c42017c9ccf191403"
+    },
+    {
+      "name": "social-seven-scope-owner-web-tests.log",
+      "bytes": 17095,
+      "sha256": "02a5c73dcd5ee9cee80a7a22bdf5bb7315fcc7ed13b6b657e053b04a4c36fa11"
+    }
+  ]
+}

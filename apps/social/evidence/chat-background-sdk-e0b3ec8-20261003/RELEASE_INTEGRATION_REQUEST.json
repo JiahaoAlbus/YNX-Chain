@@ -1,0 +1,51 @@
+{
+  "status": "CENTRAL_REVIEW_REQUIRED_NOT_DEPLOY_AUTHORIZATION",
+  "product": "social",
+  "origin": "https://social.ynxweb4.com/",
+  "source": {
+    "background": "4e066b7a2c7f5c7fd3ae170269d8be6454b185d0",
+    "sdkIntegration": "e0b3ec8232c4dbaec12d5dc59bc763427adb97e0",
+    "tree": "9f941c3a2d489068ffaaf9716b3e640bfdf0a970",
+    "parent": "4e066b7a2c7f5c7fd3ae170269d8be6454b185d0",
+    "branch": "codex/social-wallet-chooser-20261001"
+  },
+  "artifact": {
+    "path": "apps/social/evidence/chat-background-sdk-e0b3ec8-20261003/web-dist-e0b3ec8.tar.gz",
+    "bytes": 3333595,
+    "sha256": "82500866dc4aebc9fe94acc735f4dcfeb7f3d622cc45fd567ae0ef4f7f5c7a5c"
+  },
+  "staticBuildContract": {
+    "command": "npm --prefix apps/social run web:build",
+    "output": "apps/social/web/dist",
+    "manifest": "social-seven-scope-full-web-files.json",
+    "doubleBuild": "BYTE_EXACT_PASS"
+  },
+  "currentPublicDeployment": {
+    "exactDeploymentId": null,
+    "exactArtifact": null,
+    "requiredOwner": "Central",
+    "lastDirectObservation": "OLD_Y_LETTER_MARKETING_SOURCE_NOT_THIS_SOURCE"
+  },
+  "executor": {
+    "identity": null,
+    "requiredOwner": "Central",
+    "singleExecutorRequired": true
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "expiryAfterIssuanceMinutes": 30
+  },
+  "rollback": {
+    "deployment": null,
+    "artifact": null,
+    "procedure": null,
+    "requiredOwner": "Central"
+  },
+  "callbackAndBackendHostRoutes": {
+    "requiredOwner": "Central",
+    "mustPreserve": "/matrix/login/callback and current Product Session/HS/OP mapping",
+    "notIncludedOrVerifiedByStaticArchive": true
+  },
+  "allowedPostReleaseChecks": "NON_SENSITIVE_ONLY_NO_ACCOUNT_GRANT_SIGN_OR_TX",
+  "MONSTER": "NOT_RUN"
+}

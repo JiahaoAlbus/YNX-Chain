@@ -1,0 +1,137 @@
+[
+  {
+    "path": "app.js",
+    "bytes": 17476,
+    "sha256": "5423cde5dd89aa89b9dd2c032d942702816c4baefeb8c9a58964f7e331a4ec72"
+  },
+  {
+    "path": "assets/metamask.svg",
+    "bytes": 755,
+    "sha256": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"
+  },
+  {
+    "path": "assets/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "assets/ynx-wallet.svg",
+    "bytes": 280,
+    "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"
+  },
+  {
+    "path": "index.html",
+    "bytes": 17029,
+    "sha256": "f81fa34f5a71b95a01ef389c2a6adef5795023ab0f724847866f44dcba1b2045"
+  },
+  {
+    "path": "matrix/login-callback-entry.mjs",
+    "bytes": 5417,
+    "sha256": "8412420d35cbeec2041a5fd7c50604190a22c25769584a180448e06049c99a86"
+  },
+  {
+    "path": "matrix/login-callback.html",
+    "bytes": 2985,
+    "sha256": "acff1b697a57a57ea8a7632f64ce75a5b11b08f0fba5d4d573ed849c2c4255d7"
+  },
+  {
+    "path": "matrix-session-ui.js",
+    "bytes": 3240440,
+    "sha256": "326559d8cf118abca27e001b49a0a901adf78e40a01d3d14bd434e4ed28c28c9"
+  },
+  {
+    "path": "pkg/matrix_sdk_crypto_wasm_bg.wasm",
+    "bytes": 7805486,
+    "sha256": "e6fc166a85fc6aef11d67228768a2d61f964e22e37d218f237ce13641c76522d"
+  },
+  {
+    "path": "private-session-ui.js",
+    "bytes": 514583,
+    "sha256": "b4fc79de263928c2d995848f100f8b34ee46b82812b6c6999be842d12f75d58a"
+  },
+  {
+    "path": "product-shell.css",
+    "bytes": 11173,
+    "sha256": "ddcea0a9e1d250c32f452e6f91555469a089d1347534e3dc2a3d23ed77e8718c"
+  },
+  {
+    "path": "product-shell.js",
+    "bytes": 3173,
+    "sha256": "0569f9d8f08650222f6115de76cb0b7eaaa9ead963be79fba8a267af5ef82e9c"
+  },
+  {
+    "path": "styles.css",
+    "bytes": 7164,
+    "sha256": "450138dbe2a0adf850437b0a1829c8a2df3fcd70376a5d8d23f946b227fc81c7"
+  },
+  {
+    "path": "vendor/private-sdk-manifest.json",
+    "bytes": 660,
+    "sha256": "2a357886108123706e6bd2d781b0da0a20bf774cf5af3ca30832983348ce242a"
+  },
+  {
+    "path": "vendor/product-session-browser.d.mts",
+    "bytes": 102,
+    "sha256": "753a16b8a8707d4b4dda147e4c12691dff6c443bf6b69e2553c735c579a225db"
+  },
+  {
+    "path": "vendor/product-session-browser.mjs",
+    "bytes": 238902,
+    "sha256": "c765eca415a6e9605d36ec0b1a1b7cdbfa8da723a635796b5df4fb8e9ba97f74"
+  },
+  {
+    "path": "vendor/product-session-registry.json",
+    "bytes": 10361,
+    "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+  },
+  {
+    "path": "vendor/standard-wallet-browser.d.mts",
+    "bytes": 83,
+    "sha256": "6a13e4ddb6cc5b13ba45766a0f3dca0e6a3c93518223c105baf0c16363935f1d"
+  },
+  {
+    "path": "vendor/standard-wallet-browser.mjs",
+    "bytes": 23341,
+    "sha256": "2eb63acdfc973020ed2deac89eb9ff01d457385861ef03915f4446d7074d9e23"
+  },
+  {
+    "path": "vendor/types/application-action-launcher.d.ts",
+    "bytes": 1387,
+    "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+  },
+  {
+    "path": "vendor/types/index.d.ts",
+    "bytes": 103600,
+    "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+  },
+  {
+    "path": "vendor/wallet-sdk-manifest.json",
+    "bytes": 384,
+    "sha256": "9e96b57617c9f0e9ebf3879f4c4741d73e98cdbcee0608fdf6f024f4f197921c"
+  },
+  {
+    "path": "vendor/ynx-wallet-transports-b38f74d3b.mjs",
+    "bytes": 1067240,
+    "sha256": "fc29db08a32ae60a6ef0151b1e9a4db4c9c1d795f4476b13cedeb1ed4f6f1e3a"
+  },
+  {
+    "path": "vendor/ynx-wallet-transports-manifest.json",
+    "bytes": 129998,
+    "sha256": "637a0ee7fa791c15926787948b38eec2062e63c93813347a56191d01d73b65c0"
+  },
+  {
+    "path": "wallet-provider.js",
+    "bytes": 6757,
+    "sha256": "6cfcf13b2cebb3e8de876e5f3387cf4e0717ac246288d3c8c4a40fbff50ff1c3"
+  },
+  {
+    "path": "wallet-transports.js",
+    "bytes": 4020,
+    "sha256": "ec53ee45f4fd669fc233e25b247c899a39e567e98222711c904b45c876a12adc"
+  },
+  {
+    "path": "workspace.css",
+    "bytes": 12648,
+    "sha256": "06c6511c683b1d3479a2522943fd4ca3b179861ccc4b9c44594d36cdd1e674e8"
+  }
+]
