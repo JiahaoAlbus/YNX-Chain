@@ -32,6 +32,38 @@ const controlsRender=app.slice(app.indexOf('function renderOwnedControls('),app.
 const publicRender=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const bookRender=app.slice(app.indexOf('function renderBook('),app.indexOf('function renderAccount('));
 
+test('final AI, asset and truth-help batch preserves actual controls and fails closed without write approval',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.evaluate(()=>{window.originalFinalInputs=Array.from(document.querySelectorAll('#ai-kind,#ai-context,#ai-prompt,#ai-permission,#deposit-network,#deposit-tx,#withdraw-destination,#withdraw-amount'));document.querySelector('#ai-kind').value='order_draft';document.querySelector('#ai-context').value='owned_balances';document.querySelector('#ai-prompt').value='Only this exact draft · 原文';document.querySelector('#ai-permission').checked=true;document.querySelector('#deposit-tx').value='exact-test-hash';document.querySelector('#withdraw-destination').value='ynx1exact';document.querySelector('#withdraw-amount').value='0.000001';window.approvals=0});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    const aiState=app.slice(app.indexOf('function renderAIState('),app.indexOf('\nboot();'));
+    const unavailable=app.slice(app.indexOf('function productApiUnavailable('),app.indexOf('function requireProductSession('));
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);${unavailable}\n${aiState}\nwindow.renderActualAI=renderAIState;`});
+    await page.evaluate(()=>window.renderActualAI());
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const [id,key] of [['ai-kind','Workflow'],['ai-context','Bounded context'],['ai-prompt','Request'],['ai-permission','ai-context-consent'],['deposit-network','Network:'],['deposit-tx','Committed transaction hash'],['withdraw-destination','Native destination'],['withdraw-amount','Amount']])assert.equal(await page.locator('#'+id).evaluate(el=>Array.from(el.closest('label').childNodes).find(n=>n.nodeType===3&&n.textContent.trim()).textContent.trim()),catalogs[locale][key]);
+      assert.deepEqual(await page.locator('#ai-kind option').allTextContents(),['Explain market','Summarize my trades','Explain risk','Draft an order'].map(key=>catalogs[locale][key]));
+      assert.deepEqual(await page.locator('#ai-context option').allTextContents(),['Public market rules','My orders','My trades','My balances'].map(key=>catalogs[locale][key]));
+      for(const [id,value] of [['ai-kind','order_draft'],['ai-context','owned_balances'],['ai-prompt','Only this exact draft · 原文'],['deposit-tx','exact-test-hash'],['withdraw-destination','ynx1exact'],['withdraw-amount','0.000001']])assert.equal(await page.locator('#'+id).inputValue(),value);
+      assert.equal(await page.locator('#ai-permission').isChecked(),true);assert.equal(await page.locator('#ai-submit').textContent(),catalogs[locale]['Request draft']);
+      assert.equal(await page.locator('#ai-result p').textContent(),catalogs[locale].API_UNAVAILABLE+' (API_UNAVAILABLE)');
+      assert.equal(await page.locator('#deposit-network').inputValue(),'YNX Testnet · ynx_6423-1');assert.equal(await page.locator('#deposit-network option').last().evaluate(el=>el.disabled),true);
+      assert.equal(await page.locator('#deposit-network option').last().getAttribute('value'),'External / cross-chain · unavailable');
+      assert.equal(await page.locator('#deposit-state').textContent(),catalogs[locale]['deposit-policy-help']);assert.equal(await page.locator('#withdraw-form + .source-note').textContent(),catalogs[locale]['withdraw-broadcast-help']);
+      for(const key of ['private-scope-help','metamask-session-help','market-order-gap'])assert.equal(await page.locator(`[data-exchange-locale="${key}"]`).textContent(),catalogs[locale][key]);
+      assert.equal(await page.evaluate(()=>window.originalFinalInputs.every(el=>el.isConnected&&document.getElementById(el.id)===el)),true);
+      assert.equal(await page.locator('#private-standard-wallet').count(),1);assert.equal(await page.locator('#private-standard-wallet').evaluate(el=>el.tagName),'BUTTON');
+    }
+    assert.equal(requests,0,'presentation changes cannot upload selected context, create a session or send a transaction');
+    assert.equal(await page.evaluate(()=>window.approvals),0);
+  }finally{await browser.close()}
+});
+
 test('actual security and support form labels preserve input nodes, raw values and user drafts across 12 languages',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

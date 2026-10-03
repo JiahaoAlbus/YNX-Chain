@@ -25,10 +25,10 @@
       <header><h2 id="private-title" data-exchange-locale="private-title">Exchange private account</h2><span data-exchange-locale="private-read-boundary">Read-only · separate from standard Wallet</span></header>
       <p id="private-status" class="state-box" role="status" aria-live="polite">Guest mode. Public market data does not require private account approval.</p>
       <div class="private-actions"><button id="private-begin" data-exchange-locale="private-prepare" type="button">Prepare read-only Wallet sign-in</button><a id="private-open" hidden rel="noreferrer" data-exchange-locale="private-open">Open YNX Wallet to review read-only access</a><button id="private-retry" data-exchange-locale="private-retry" type="button" class="secondary">Retry private account</button><button id="private-refresh" data-exchange-locale="private-refresh" type="button" class="secondary" hidden>Refresh account data</button><button id="private-guest" data-exchange-locale="private-guest" type="button" class="secondary">Hide private data · Guest</button><button id="private-disconnect" data-exchange-locale="private-revoke" type="button" class="secondary">Revoke private session…</button></div>
-      <p>Only <code>exchange:read</code> is requested. Native YNX account balances below are venue ledger balances, not an EVM Wallet balance or a transaction authorization. Guest hides local data without claiming server revocation.</p>
+      <p data-exchange-locale="private-scope-help">Only exchange:read is requested. Native YNX account balances below are venue ledger balances, not an EVM Wallet balance or a transaction authorization. Guest hides local data without claiming server revocation.</p>
       <div id="private-details" hidden><p><span data-exchange-locale="private-native-label">Native account:</span> <code id="private-native-account">—</code></p><p><span data-exchange-locale="private-expiry-label">Session expires:</span> <span id="private-expiry">—</span></p></div>
       <p id="private-source" class="source-note">No verified account snapshot.</p>
-      <p><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Download YNX Wallet</a> · <button id="private-standard-wallet" type="button" class="text-button">YNX / MetaMask standard Wallet options</button>. MetaMask does not issue YNX native Product Sessions.</p>
+      <p><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Download YNX Wallet</a> · <button id="private-standard-wallet" type="button" class="text-button">YNX / MetaMask standard Wallet options</button>. <span data-exchange-locale="metamask-session-help">MetaMask does not issue YNX native Product Sessions.</span></p>
     </section>
     <section id="market" class="view active" aria-labelledby="market-title">
       <div class="market-strip">
@@ -50,6 +50,7 @@
             <p id="order-limits" class="source-note">Waiting for verified venue rules. Market/stop orders are not supported.</p><p id="order-error" class="source-note" role="status" aria-live="polite"></p>
             <button type="button" id="draft-order" class="secondary">Ask AI to draft fields</button><button class="primary wide" id="review-order">Preview order · no submission</button>
             <p class="form-help" data-exchange-locale="ai-draft-boundary">AI can draft values only. It cannot place, cancel, sign, or change risk controls.</p>
+            <p class="form-help" data-exchange-locale="market-order-gap">Market and stop orders are not supported. Only a limit-order preview is available here; it does not submit an order.</p>
           </form>
         </section>
       </div>

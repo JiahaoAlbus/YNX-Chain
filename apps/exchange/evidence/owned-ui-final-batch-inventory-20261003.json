@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-exchange",
+  "kind": "OWNED_UI_FINAL_BATCH_SOURCE_INVENTORY",
+  "predecessor": {
+    "commit": "ada8d295ee7d20cbb81dee7f240f5cad29c2b1dd",
+    "tree": "d425c93101046188d81c633f84121be1e96812d0"
+  },
+  "sourceIdentity": "Use the immutable commit containing this manifest; no self-referential source hash.",
+  "scope": [
+    "apps/exchange/web/app.js",
+    "apps/exchange/web/locale.js",
+    "apps/exchange/web/index.html",
+    "apps/exchange/tests/locale-browser.test.mjs",
+    "apps/exchange/evidence"
+  ],
+  "inventory": [
+    {
+      "path": "apps/exchange/web/app.js",
+      "bytes": 39763,
+      "sha256": "b5a8d6ae3842d85e7779d48e3428191a29a6e7e57a5943850b40e0530ff93b9e",
+      "blob": "ec4d1b93869c12c23b0f62df532b6488cb73482a"
+    },
+    {
+      "path": "apps/exchange/web/locale.js",
+      "bytes": 165330,
+      "sha256": "500b80095af1c80699b245b1a9f9a7732bc3e08d6fb920e836574595af3e2774",
+      "blob": "b0ee03540a9546c795fa8ccbe367e5c9f6dea42c"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "bytes": 10300,
+      "sha256": "31908cd10220980a6c21255233c5156e9d8505826f484be73f0faa850a3e35ee",
+      "blob": "bc956bd7ba0630475471b0048990eeb13abe5abf"
+    },
+    {
+      "path": "apps/exchange/web/index.html",
+      "bytes": 18706,
+      "sha256": "95c1aa79dab15593393a09a82a4581d193bf2466f336d3ec676de09cbabb901c",
+      "blob": "aa0bc02db92dccf15815b353fd36d824aa339325"
+    },
+    {
+      "path": "apps/exchange/web/market-data.js",
+      "bytes": 7383,
+      "sha256": "aec0449f144c4be15f41c173bc7689d7768bd470768c1d62a434da0b1ed807f3",
+      "blob": "7729855f9252cf58145e1b538cb524c07b6be918"
+    },
+    {
+      "path": "apps/exchange/web/order-preview.js",
+      "bytes": 4550,
+      "sha256": "5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3",
+      "blob": "2a9e61fe5ee8df4ddefc82ac7ffb8a68ab1aa139"
+    },
+    {
+      "path": "apps/exchange/web/wallet-connect-entry.js",
+      "bytes": 12540,
+      "sha256": "ab5dca98afdd1cd840645fe8db6b7eab32a5e2ba92b011366912934a58994b20",
+      "blob": "9563c8f41a09d66580aa04f78e17473878790aa0"
+    },
+    {
+      "path": "apps/exchange/web/private-session-entry.js",
+      "bytes": 1275,
+      "sha256": "17d5fab286841735509247bfa66ba5755d320ec1d302c413c94e787a8c4331cf",
+      "blob": "7ba937e75f6ce4913c576a90ec7a3181910725ab"
+    }
+  ],
+  "servedStaticFiles": [
+    "app.js",
+    "locale.js",
+    "styles.css",
+    "index.html",
+    "market-data.js",
+    "order-preview.js"
+  ],
+  "generatedRuntimeFiles": [
+    {
+      "path": "wallet-connect.js",
+      "entry": "wallet-connect-entry.js",
+      "owner": "wallet_release_owner A"
+    },
+    {
+      "path": "private-session.js",
+      "entry": "private-session-entry.js",
+      "owner": "wallet_release_owner A"
+    }
+  ],
+  "compatibility": {
+    "serverStaticRoot": "apps/exchange/web",
+    "catalogLocales": 12,
+    "catalogKeys": 246,
+    "defaultLanguage": "en",
+    "arabicRTL": true,
+    "selectedOptionValuesPreserved": true,
+    "standardWalletAndPrivateSessionSeparated": true,
+    "sharedSDKAndAuthorityUnchanged": true,
+    "noNewFinancialModule": true,
+    "noWriteScopeExpansion": true,
+    "noFakeOrderOrWithdrawalOrAIResult": true
+  },
+  "tests": {
+    "combined": {
+      "passed": 67,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 20322.163792,
+      "command": "YNX_EXCHANGE_CONTROLLER_HTTP_QA=1 node --test apps/exchange/tests/locale-browser.test.mjs apps/exchange/tests/owned-controls-browser.test.mjs apps/exchange/tests/private-account.test.mjs apps/exchange/tests/market-data.test.mjs apps/exchange/tests/order-preview.test.mjs"
+    },
+    "serverStaticRace": {
+      "pass": true,
+      "durationSeconds": 1.396
+    },
+    "initialRegression": {
+      "passed": 66,
+      "failed": 1,
+      "reason": "Playwright option isDisabled matcher did not reflect DOM option.disabled; assertion now checks the actual property.",
+      "retained": true
+    }
+  },
+  "releaseRequirements": [
+    "A must include locale.js in runtime inventory.",
+    "A must regenerate the complete compatible versioned index/app/module graph; inherited cache hashes are not this source's public binding.",
+    "A must freeze and publish one immutable product runtime, then owner verifies actual public original business flows."
+  ],
+  "truth": {
+    "sourceLocalQA": true,
+    "coherentProductionBuild": false,
+    "deployedPublic": false,
+    "installed": false,
+    "realProviderApproval": false,
+    "realProductSession": false,
+    "realOrder": false,
+    "realWithdrawal": false,
+    "realAIExecution": false,
+    "userAcceptance": false
+  },
+  "rollback": "Omit/revert this isolated owned UI commit and have A coherently rebuild; no production mutation performed."
+}

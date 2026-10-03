@@ -54,7 +54,7 @@ const marketFeed=createMarketFeed({onSnapshot(value){state.book=value.orderBook;
 async function boot(){
   let languageStorage;try{languageStorage=window.localStorage}catch{}
   window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot)renderAccount();estimate()}});
-  bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Separate approved deposit workflow required';$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
+  bind();renderBook();renderPublicMarket();renderAIState();$('#custody-address').textContent='Separate approved deposit workflow required';window.YNXExchangeLocale?.write($('#custody-address'),'Separate approved deposit workflow required');$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
 }
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
@@ -229,6 +229,6 @@ async function observeDeposit(event){event.preventDefault();requireProductSessio
 function reviewWithdrawal(event){event.preventDefault();requireProductSession()}
 async function saveSecurity(event){event.preventDefault();requireProductSession()}
 async function openSupport(event){event.preventDefault();requireProductSession()}
-async function requestAI(){requireProductSession()}
-function renderAIState(){const root=$('#ai-result');root.replaceChildren();const message=document.createElement('p');message.textContent=productApiUnavailable().message;root.append(message)}
+async function requestAI(){renderAIState();requireProductSession()}
+function renderAIState(){const root=$('#ai-result');window.YNXExchangeLocale?.forget(root);root.replaceChildren();const message=document.createElement('p'),error=productApiUnavailable();message.textContent=error.message;window.YNXExchangeLocale?.error(message,error);root.append(message)}
 boot();
