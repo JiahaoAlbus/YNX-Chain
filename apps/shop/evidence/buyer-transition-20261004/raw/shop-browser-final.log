@@ -1,0 +1,11 @@
+
+Running 4 tests using 1 worker
+
+(node:20757) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/order-action-recovery.spec.mjs:2:1 › normal review starts unselected and submits actual chosen rating and body through real current SDK proof (2.7s)
+  ✓  2 [chromium] › test/browser/order-action-recovery.spec.mjs:3:1 › lost response then cold reopen only reads original result, preserves key and stores no private review text (4.1s)
+  ✓  3 [chromium] › test/browser/order-action-recovery.spec.mjs:4:1 › prepared proof failure can be discarded explicitly without any order request or false success (2.5s)
+  ✓  4 [chromium] › test/browser/order-action-recovery.spec.mjs:5:1 › closing or signing out during original readback retains unknown identity and clears private UI (2.7s)
+
+  4 passed (12.5s)

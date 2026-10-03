@@ -1,0 +1,62 @@
+
+Running 4 tests using 1 worker
+
+(node:19239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/order-action-recovery.spec.mjs:2:1 › normal review starts unselected and submits actual chosen rating and body through real current SDK proof (2.9s)
+  ✘  2 [chromium] › test/browser/order-action-recovery.spec.mjs:3:1 › lost response then cold reopen only reads original result, preserves key and stores no private review text (30.2s)
+(node:20123) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › test/browser/order-action-recovery.spec.mjs:4:1 › prepared proof failure can be discarded explicitly without any order request or false success (2.8s)
+  ✓  4 [chromium] › test/browser/order-action-recovery.spec.mjs:5:1 › closing or signing out during original readback retains unknown identity and clears private UI (2.6s)
+
+
+  1) [chromium] › test/browser/order-action-recovery.spec.mjs:3:1 › lost response then cold reopen only reads original result, preserves key and stores no private review text 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-action=recover_action]')
+        - locator resolved to <button data-order="qa-order" data-action="recover_action">Check original request</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is not visible
+        - retrying click action
+          - waiting 100ms
+        53 × waiting for element to be visible, enabled and stable
+           - element is not visible
+         - retrying click action
+           - waiting 500ms
+
+
+      1 | import{test,expect,installPrivateShop,orderFixture}from'./shop-fixture.mjs';
+      2 | test('normal review starts unselected and submits actual chosen rating and body through real current SDK proof',async({page})=>{const f=await installPrivateShop(page,{orders:[orderFixture()]});await page.locator('#ordersButton').click();await page.locator('[data-action=reviewed]').click();await expect(page.locator('[name=rating]')).toHaveValue('');await page.locator('#actionSubmit').click();expect(f.requests.filter(r=>r.path.endsWith('/transition'))).toHaveLength(0);await page.locator('[name=rating]').selectOption('2');await page.locator('[name=body]').fill('Actual buyer review');await page.locator('#actionSubmit').click();await expect(page.locator('#actionDialog')).not.toBeVisible();const request=f.requests.find(r=>r.path.endsWith('/transition'));expect(request.body.Rating).toBe(2);expect(request.body.Body).toBe('Actual buyer review');expect(request.headers['x-ynx-product-session-action-proof-v2']).toBeTruthy();});
+    > 3 | test('lost response then cold reopen only reads original result, preserves key and stores no private review text',async({page})=>{const f=await installPrivateShop(page,{orders:[orderFixture()],beforeNavigate:({state})=>{state.dropTransitionOnce=true;}});await page.locator('#ordersButton').click();await page.locator('[data-action=reviewed]').click();await page.locator('[name=rating]').selectOption('2');await page.locator('[name=body]').fill('Private original review');await page.locator('#actionSubmit').click();await expect(page.locator('#actionState')).not.toBeEmpty();const original=f.requests.find(r=>r.path.endsWith('/transition'));const saved=await page.evaluate(()=>Object.entries(localStorage).filter(([k])=>k.startsWith('ynx-shop-order-action-v1:')));expect(saved.flat().join('')).not.toContain('Private original review');expect(saved.flat().join('')).not.toContain(f.account);await page.reload();await page.locator('#ordersButton').click();await page.locator('[data-action=recover_action]').click();await page.locator('#originalAction').selectOption('reviewed');await page.locator('[name=rating]').selectOption('2');await page.locator('[name=body]').fill('Changed review');await page.locator('#actionRecover').click();await expect(page.locator('#actionState')).toContainText('unconfirmed');expect(f.requests.filter(r=>r.path.endsWith('/transition-intent-lookup'))).toHaveLength(0);await page.locator('[name=body]').fill('Private original review');await page.locator('#actionRecover').click();await expect(page.locator('#actionDialog')).not.toBeVisible();expect(f.requests.filter(r=>r.path.endsWith('/transition'))).toHaveLength(1);const lookup=f.requests.find(r=>r.path.endsWith('/transition-intent-lookup'));expect(lookup.body.IdempotencyKey).toBe(original.body.IdempotencyKey);expect(lookup.body).toEqual(original.body);expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('ynx-shop-order-action-v1:')&&!k.endsWith(':revision')))).toHaveLength(0);});
+        |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ^
+      4 | test('prepared proof failure can be discarded explicitly without any order request or false success',async({page})=>{const f=await installPrivateShop(page,{orders:[orderFixture()]});await page.locator('#ordersButton').click();await page.locator('[data-action=reviewed]').click();await page.route('**/api/sso/account',route=>route.fulfill({json:{signedIn:false}}));await page.locator('[name=rating]').selectOption('3');await page.locator('[name=body]').fill('Kept editable input');await page.locator('#actionSubmit').click();await expect(page.locator('#actionState')).not.toBeEmpty();expect(f.requests.filter(r=>r.path.endsWith('/transition'))).toHaveLength(0);await page.locator('#actionDiscard').click();await expect(page.locator('#actionState')).toContainText('discarded');await expect(page.locator('[name=body]')).toHaveValue('Kept editable input');await expect(page.locator('#actionDialog')).toBeVisible();expect(f.requests.filter(r=>r.path.endsWith('/transition-intent-lookup'))).toHaveLength(0);});
+      5 | test('closing or signing out during original readback retains unknown identity and clears private UI',async({page})=>{let release;const barrier=new Promise(resolve=>release=resolve);const f=await installPrivateShop(page,{orders:[orderFixture()],beforeNavigate:({state})=>{state.dropTransitionOnce=true;}});await page.locator('#ordersButton').click();await page.locator('[data-action=reviewed]').click();await page.locator('[name=rating]').selectOption('2');await page.locator('[name=body]').fill('Original private review');await page.locator('#actionSubmit').click();await expect(page.locator('#actionState')).not.toBeEmpty();f.state.lookupBarrier=barrier;const before=await page.evaluate(()=>Object.entries(localStorage).filter(([k])=>k.startsWith('ynx-shop-order-action-v1:')));await page.locator('#actionRecover').click();await expect.poll(()=>f.requests.filter(r=>r.path.endsWith('/transition-intent-lookup')).length).toBe(1);await page.locator('#closeAction').click();await page.locator('#disconnectWallet').click();release();await expect(page.locator('#orders')).toBeEmpty();await expect(page.locator('#actionDialog')).not.toBeVisible();expect(await page.evaluate(()=>Object.entries(localStorage).filter(([k])=>k.startsWith('ynx-shop-order-action-v1:')))).toEqual(before);expect(f.requests.filter(r=>r.path.endsWith('/transition'))).toHaveLength(1);});
+      6 |
+        at /private/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/order-action-recovery.spec.mjs:3:1005
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/order-action-recovery-lost-eb8b0-ores-no-private-review-text-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/order-action-recovery-lost-eb8b0-ores-no-private-review-text-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/order-action-recovery-lost-eb8b0-ores-no-private-review-text-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/order-action-recovery-lost-eb8b0-ores-no-private-review-text-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › test/browser/order-action-recovery.spec.mjs:3:1 › lost response then cold reopen only reads original result, preserves key and stores no private review text 
+  3 passed (40.1s)
