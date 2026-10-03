@@ -1,0 +1,123 @@
+{
+  "schema": "ynx.music.apple.full-native-build.freeze.v1",
+  "createdAt": "2026-10-03T17:30:32.239063+00:00",
+  "sourceCommit": "cb4c25cd307cb2281b66790869ab8a93bf9932b8",
+  "sourceTree": "24a423dc5312da4234659143b7d89c3ad18c8ac9",
+  "sourceArchive": {
+    "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/media-owned-source-cb4c25cd.tar.gz",
+    "bytes": 3852418,
+    "sha256": "1be6406fc63ba9fd82fed1319b974c09f0669b5be4c84c456e79a92b86aaa677",
+    "fileCount": 574,
+    "everyMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "appleCandidates": [
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/music-iphonesimulator-unsigned-cb4c25cd.tar.gz",
+      "bytes": 841872,
+      "sha256": "40a29e5390bfeb9fc940b91a7574ed88ef28945b2f2308af3a2804fed08bfe8f",
+      "fileCount": 5,
+      "everyMemberVerified": true,
+      "scheme": "YNXMusic",
+      "formalSigning": false,
+      "installed": false,
+      "launched": false
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/music-macosx-unsigned-cb4c25cd.tar.gz",
+      "bytes": 513419,
+      "sha256": "35babbe0a9095bab51abbd846a81d047b56fee7933454d855d55454121b79d78",
+      "fileCount": 5,
+      "everyMemberVerified": true,
+      "scheme": "YNXMusicMac",
+      "formalSigning": false,
+      "installed": false,
+      "launched": false
+    }
+  ],
+  "compiledSourcePinsGitExact": 11,
+  "toolchain": "Xcode 27.0\nBuild version 27A266a",
+  "checks": {
+    "fullIOSSimulatorSwiftUIBuild": "PASS",
+    "fullNativeMacOSSwiftUIBuild": "PASS",
+    "hostAccountKeySessionPlayerPersistence": "PASS injected storage/transport only",
+    "actualOSStorage": false,
+    "actualRenderedNativeUI": false,
+    "actualWalletConsent": false,
+    "formalNativeV2Integration": false
+  },
+  "changes": [
+    "Original Music playlist editor lexical Swift errors repaired after real full iOS build failure; same input/model/account boundaries preserved",
+    "Native macOS target compiles full inherited Music screens and same original com.ynxweb4.music callback/resources",
+    "Reusable build-apple-native.mjs compiles both complete targets, pins all source bytes, retains logs, unregisters only its own temporary Mac candidate; never launch/install/select Xcode"
+  ],
+  "compiledBrandPixelsMatchOriginal": true,
+  "existingIdentityPreserved": [
+    "device-p256 Keychain record and original UTF-8 base64 raw key representation unchanged",
+    "sessionBinding legacy record and existing account-separated MusicAccounts content unchanged",
+    "No real user storage/key/Wallet read by build or injected QA"
+  ],
+  "creatorFinding": {
+    "originalApprovedRegistry": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+    "productId": "creator-studio",
+    "applicationId": "com.ynxweb4.creator-studio",
+    "clientId": "ynx-creator-studio-web-v1",
+    "nativeCallback": "ynxcreator://wallet-auth/callback",
+    "AppleOwnBindingAlreadyDeclared": true,
+    "missing": "Native Creator full app/upload drafts and SDK flow; never borrow Video identity"
+  },
+  "remaining": [
+    "Music Apple UI still uses old wallet-v1 challenge/session and legacy app-session headers; original NativeSDK5c full normal connect/callback/restore/revoke/private business must be integrated",
+    "Music native signed streaming/playback, original same-account upload and durable upload draft recovery",
+    "Creator Apple app and complete own identity upload/publish/revenue journeys",
+    "Real Keychain/Wallet/UI/device/codec acceptance, formal signing/TestFlight and unique release owner public pair deployment"
+  ],
+  "inheritedMediaCheckpoint": {
+    "path": "apps/video/audit/media-apple-native-playlist-checkpoint-20261004.json",
+    "bytes": 8235,
+    "sha256": "a385e190bcdf4f62e0b82be75d23ba17e1fd9ee7588c895245f95d8344f920d1"
+  },
+  "evidence": [
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/YNXMusic-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/YNXMusic-build.log",
+      "bytes": 124971,
+      "sha256": "af713e67622f881cf1ba84b58382180f07ddb796b91e456b86ef875686878059"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/YNXMusicMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/YNXMusicMac-build.log",
+      "bytes": 71007,
+      "sha256": "47bdd179ef90b3bb8270e8d449b4832b82012792a65c60d08f6b0ca730462412"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/apple-full-native-build-receipt.json",
+      "bytes": 5144,
+      "sha256": "42d66b8e024152cab2e13644f72eb7c3af4cdd6bc347d13fc76ba27812854b04"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/first-ios-build-failed.log",
+      "bytes": 88976,
+      "sha256": "998ce89cabf41f1146a7f841cb80612c0f0ef3b65fd4fffa1b08eaca3e1c5c63"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/host-account-check.txt",
+      "bytes": 2019,
+      "sha256": "1431d284535d01aeb00e8742fcdbc1701484ea030602e6138dc7debc3b7c7430"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-full-native-build-r2-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    }
+  ],
+  "preparationFailurePreserved": "apps/music/audit/evidence/apple-full-native-build-20261004/failed-freeze-preparation.txt"
+}

@@ -1,0 +1,151 @@
+{
+  "schema": "ynx.music.apple.full-native-build.v1",
+  "sourceCommit": "cb4c25cd307cb2281b66790869ab8a93bf9932b8",
+  "toolchain": "Xcode 27.0\nBuild version 27A266a",
+  "sourcePins": [
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+      "bytes": 38685,
+      "sha256": "86c724dbeaf2cebcd17b812a98fbc2886731a4808899ab5420ca62053ff7d5ee",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAPI.swift",
+      "bytes": 10179,
+      "sha256": "b8f04e9fd2c9b48c2edaf422afe5d037a7243e7038112376606cf3c26c0d3a6e",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAccountState.swift",
+      "bytes": 8223,
+      "sha256": "45855fff64414ca593362a12e07ff0a627778af6c351cee68185dd53557cd4e5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicCredentials.swift",
+      "bytes": 4697,
+      "sha256": "a59cba734ecc768a5893337f7e2a1eeb227ca16a7251da968c36e8ba6f89ff5a",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/Info.plist",
+      "bytes": 1049,
+      "sha256": "a24bd1a7e709db560fb67b640aa9e45f32ee32faddad3120986f344471c2593f",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MacInfo.plist",
+      "bytes": 1102,
+      "sha256": "d3a8d75d1d3ad72d9bd1722082c0fb94b6997894a79adca5f5de69b6b6b4cd4a",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusic.entitlements",
+      "bytes": 239,
+      "sha256": "f78d1674ddc52e751214988f87e419028528a6cf9c11a06f91cffe15317dd813",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/ios/YNXMusic.xcodeproj/project.pbxproj",
+      "bytes": 8176,
+      "sha256": "4e86dc277907f301af1d7becfca73bccf9e8c6f763716451dcb252970f5a1129",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/shared/i18n.json",
+      "bytes": 47420,
+      "sha256": "d2de4d58c45e42d7737b6dfb7c94f1ccfc51d9a027a2fc66afd39dfe4a94b9c4",
+      "gitExact": true
+    },
+    {
+      "path": "apps/music/scripts/build-apple-native.mjs",
+      "bytes": 3611,
+      "sha256": "1a27b0a66b4a626f4401c91b637ed959883bc94128f3ef66aeb16946bef7595a",
+      "gitExact": true
+    }
+  ],
+  "candidates": [
+    {
+      "scheme": "YNXMusic",
+      "sdk": "iphonesimulator",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-pQfTnk/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-pQfTnk/YNXMusic.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Info.plist",
+          "bytes": 970,
+          "sha256": "48f7b88c8b11d25e24155eb3854409edba4579d707b83dc2126e6fec295bae09"
+        },
+        {
+          "path": "PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "YNXMusic",
+          "bytes": 2850280,
+          "sha256": "fd8fdea30dfbae6b447910d302934bc3837896597f2bfebe4dd9601a2e9d668d"
+        },
+        {
+          "path": "i18n.json",
+          "bytes": 47420,
+          "sha256": "d2de4d58c45e42d7737b6dfb7c94f1ccfc51d9a027a2fc66afd39dfe4a94b9c4"
+        },
+        {
+          "path": "ynx-brand-original.png",
+          "bytes": 100732,
+          "sha256": "c4243934972df3cf1746f358a479710fb095c7f50a445df44d31413b1bf4d9fa"
+        }
+      ]
+    },
+    {
+      "scheme": "YNXMusicMac",
+      "sdk": "macosx",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-pQfTnk/YNXMusicMac/Build/Products/Debug/YNXMusicMac.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-pQfTnk/YNXMusicMac.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 1658,
+          "sha256": "27e66255dd557dfe3f1d02883016a4580d41249830f3718d86df6304434dc6a0"
+        },
+        {
+          "path": "Contents/MacOS/YNXMusicMac",
+          "bytes": 1574616,
+          "sha256": "f341893b396ef28ac77e1b79ee15b553ecd690d7569be8642ee9ed086ced9b3c"
+        },
+        {
+          "path": "Contents/PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "Contents/Resources/i18n.json",
+          "bytes": 47420,
+          "sha256": "d2de4d58c45e42d7737b6dfb7c94f1ccfc51d9a027a2fc66afd39dfe4a94b9c4"
+        },
+        {
+          "path": "Contents/Resources/ynx-brand-original.png",
+          "bytes": 104171,
+          "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+        }
+      ]
+    }
+  ],
+  "actualWalletConsent": false,
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false,
+  "formalNativeV2Integration": false
+}

@@ -1,0 +1,1 @@
+First freeze preparation failed because Xcode optimizes the iOS PNG representation; comparing compiled PNG bytes directly to source was invalid. Source and original failed artifacts preserved. Successor verifies decoded sRGB pixel identity and compiled file hashes. No source image edited.
