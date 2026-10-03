@@ -21,6 +21,7 @@ public final class NativeStoreCheck {
         JSONObject stateB=ownerB.load();stateB.put("favorites",new JSONArray().put("track_b"));ownerB.save(stateB);
         rejected=false;try{ownerB.save(stateA);}catch(java.io.IOException expected){rejected=true;}check(rejected,"old account cache cannot be rewritten as B");
         ownerA=MusicStore.selectAccount(context,a);check(ownerA.load().getJSONArray("favorites").getString(0).equals("track_owned"),"returning A restores A records");
+        context.failCommits=true;MusicStore.detach(context);check(new MusicStore(context).load().getJSONArray("favorites").length()==0,"unconfirmed detach exposed original private cache");context.failCommits=false;ownerA=MusicStore.selectAccount(context,a);
         MusicStore.detach(context);rejected=false;try{ownerA.save(ownerA.load());}catch(java.io.IOException expected){rejected=true;}check(rejected,"detached worker cannot save");check(new MusicStore(context).load().getJSONArray("favorites").length()==0,"detached state hides private data");
         ownerB=MusicStore.selectAccount(context,b);ownerB.clearCurrent();check(MusicStore.selectAccount(context,a).load().getJSONArray("favorites").length()==1,"explicit B clear retains A data");
         ownerA=MusicStore.selectAccount(context,a);ownerA.clearCurrent();check(!ownerA.offline("track_owned").exists(),"explicit clear removes this account offline file");check(MusicStore.selectAccount(context,a).load().getJSONArray("favorites").length()==0,"explicit clear cannot remigrate deleted legacy cache");

@@ -9,17 +9,21 @@ import java.security.MessageDigest;
 
 final class MusicStore {
     private static final Object WRITE_LOCK=new Object();
+    private static final java.util.Set<String> DETACHED_ROOTS=new java.util.HashSet<>();
     private final Context c;
     private final String account;
     private final File directory;
     private boolean recoveryBlocked;
-    MusicStore(Context c){this(c,c.getSharedPreferences("music-identity",0).getString("account",""));}
+    MusicStore(Context c){this(c,selectedAccount(c));}
+    private static String selectedAccount(Context c){synchronized(WRITE_LOCK){return DETACHED_ROOTS.contains(c.getFilesDir().getAbsolutePath())?"":c.getSharedPreferences("music-identity",0).getString("account","");}}
     private MusicStore(Context c,String account){this.c=c;this.account=account;directory=new File(c.getFilesDir(),"music-accounts/"+partition(account));}
     // Call only with the account returned by the authenticated /api/me read.
     static MusicStore selectAccount(Context c,String account)throws Exception{synchronized(WRITE_LOCK){
         if(!account.matches("ynx1[0-9a-z]{20,80}"))throw new IOException("Invalid verified Music account");
+        DETACHED_ROOTS.add(c.getFilesDir().getAbsolutePath());
         MusicStore selected=new MusicStore(c,account);
-        if(!c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit()||!account.equals(c.getSharedPreferences("music-identity",0).getString("account","")))throw new IOException("Original Music account selection is unconfirmed");
+        if(!c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit()||!account.equals(selectedAccount(c)))throw new IOException("Original Music account selection is unconfirmed");
+        DETACHED_ROOTS.remove(c.getFilesDir().getAbsolutePath());
         File target=selected.file(),legacy=new File(c.getFilesDir(),"music-state.json");
         if(!target.exists()&&!new File(selected.directory,"legacy-migration-disabled").exists()&&legacy.isFile()){
             try{JSONObject old=read(legacy),remote=old.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");
@@ -28,12 +32,12 @@ final class MusicStore {
         }
         return selected;
     }}
-    static void detach(Context c){synchronized(WRITE_LOCK){c.getSharedPreferences("music-identity",0).edit().remove("account").commit();}}
-    JSONObject load(){synchronized(WRITE_LOCK){if(account.isEmpty())return fresh();try{File f=file();if(!f.exists())return fresh();JSONObject s=read(f);if(s.optInt("version")!=1||!account.equals(s.optString("account")))throw new IOException("account binding");return s;}catch(Exception e){
+    static void detach(Context c){synchronized(WRITE_LOCK){DETACHED_ROOTS.add(c.getFilesDir().getAbsolutePath());c.getSharedPreferences("music-identity",0).edit().remove("account").commit();}}
+    JSONObject load(){synchronized(WRITE_LOCK){if(account.isEmpty()||!account.equals(selectedAccount(c)))return fresh();try{File f=file();if(!f.exists())return fresh();JSONObject s=read(f);if(s.optInt("version")!=1||!account.equals(s.optString("account")))throw new IOException("account binding");return s;}catch(Exception e){
         JSONObject s=fresh();try{File original=file();if(original.exists()){File retained=new File(directory,"music-state.recovery-"+java.util.UUID.randomUUID()+".json");try(InputStream in=new FileInputStream(original);FileOutputStream out=new FileOutputStream(retained)){MusicIO.copy(in,out,8L*1024*1024,null);out.getFD().sync();}}recoveryBlocked=false;s.put("recoveryWarning",true);}catch(Exception preservationFailure){recoveryBlocked=true;try{s.put("recoveryWarning",true);}catch(Exception ignored){}}return s;
     }}}
     void save(JSONObject s)throws Exception{synchronized(WRITE_LOCK){
-        if(account.isEmpty()||!account.equals(c.getSharedPreferences("music-identity",0).getString("account","")))throw new IOException("Music account changed");
+        if(account.isEmpty()||!account.equals(selectedAccount(c)))throw new IOException("Music account changed");
         if(recoveryBlocked)throw new IOException("Original damaged Music state must be preserved before replacement");
         if(s.has("account")&&!account.equals(s.optString("account")))throw new IOException("Music cache belongs to another account");
         JSONObject output=new JSONObject(s.toString());output.put("account",account);
@@ -41,7 +45,7 @@ final class MusicStore {
         File f=file(),t=new File(directory,"music-state.tmp");try(FileOutputStream out=new FileOutputStream(t)){out.write(output.toString().getBytes(StandardCharsets.UTF_8));out.getFD().sync();}if(!t.renameTo(f))throw new IOException("atomic state replace failed");
     }}
     File offline(String trackId){if(!trackId.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Invalid Music track");return new File(directory,"offline/"+trackId+".wav");}
-    void requireAccount(String expected)throws IOException{synchronized(WRITE_LOCK){if(account.isEmpty()||!account.equals(expected)||!account.equals(c.getSharedPreferences("music-identity",0).getString("account","")))throw new IOException("Original upload account changed");}}
+    void requireAccount(String expected)throws IOException{synchronized(WRITE_LOCK){if(account.isEmpty()||!account.equals(expected)||!account.equals(selectedAccount(c)))throw new IOException("Original upload account changed");}}
     void updateUpload(JSONObject intent,JSONObject snapshot,boolean acknowledge)throws Exception{synchronized(WRITE_LOCK){
         requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("uploadIntent");
         if(!acknowledge){if(pending!=null)throw new IOException("Original pending upload already exists");current.put("uploadIntent",new JSONObject(intent.toString()));}
