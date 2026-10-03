@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import ImageIO
 
 // Original wire files remain in the Creator account directory after cancel or
 // acknowledgement. Neither a new account nor a damaged record replaces them.
@@ -21,7 +22,14 @@ import Foundation
             method=try box.decodeIfPresent(String.self,forKey:.method) ?? "POST"
         }
     }
-    private struct Saved: Codable { let version: Int; let account: String; var upload: Upload?; var operation: Operation? }
+    struct Asset:Codable,Equatable {
+        let key,account,videoID,kind,contentSHA,wireSHA,contentType,language,label:String
+        let mediaBytes,wireBytes:Int
+        var path:String {"/v1/videos/"+videoID+"/"+kind}
+        var limit:Int {kind=="thumbnail" ? 5*1024*1024 : 1024*1024}
+    }
+    private struct Saved: Codable { let version: Int; let account: String; var upload: Upload?; var operation: Operation?;var asset:Asset? }
+
     let account: String
     let directory: URL
     private let authority: () throws -> Void
@@ -49,9 +57,11 @@ import Foundation
             saved=decoded
             if let upload=saved.upload { try validate(upload) }
             if let operation=saved.operation { try validate(operation) }
+            if let asset=saved.asset {try validate(asset)}
         } else { saved=Saved(version:1,account:account,upload:nil,operation:nil) }
         try require()
     }
+    func pendingAsset() throws -> Asset? {try require();return saved.asset}
     func pendingUpload() throws -> Upload? { try require();return saved.upload }
     func pendingOperation() throws -> Operation? { try require();return saved.operation }
     func wire(_ upload: Upload) throws -> URL {
@@ -61,7 +71,7 @@ import Foundation
         guard sha==upload.wireSHA,count==upload.wireBytes else { throw Failure.damaged };try require();return file
     }
     func stage(file: URL,channelID: String,title: String,description: String,basis: String,source: String,license: String,territories: String,evidence: String,owned: Bool) throws -> Upload {
-        try require();guard saved.upload==nil else { throw Failure.pending }
+        try require();guard saved.upload==nil,saved.asset==nil else { throw Failure.pending }
         guard file.isFileURL,owned,Self.validID(channelID),!title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,title.count<=140,description.utf8.count<=5000,
               ["owned","licensed","public-domain"].contains(basis),!source.isEmpty,source.count<=256,!license.isEmpty,license.count<=160,!territories.isEmpty,territories.count<=256,
               evidence.isEmpty || CreatorNativeState.matches(evidence,"^[a-f0-9]{64}$") else { throw Failure.invalid }
@@ -93,6 +103,49 @@ import Foundation
         let (wireSHA,wireBytes)=try Self.digest(wire,limit:512*1024*1024)
         let draft=Upload(key:key,account:account,channelID:channelID,title:title,contentSHA:contentSHA,wireSHA:wireSHA,contentType:"multipart/form-data; boundary="+boundary,mediaBytes:size,wireBytes:wireBytes)
         var next=saved;next.upload=draft;try persist(next);return draft
+    }
+    func stageAsset(file:URL,videoID:String,kind:String,language:String="",label:String="",expectedContentSHA:String?=nil) throws -> Asset {
+        try require();guard saved.asset==nil,saved.operation==nil,saved.upload==nil else {throw Failure.pending}
+        guard file.isFileURL,Self.validID(videoID),["thumbnail","captions"].contains(kind) else {throw Failure.invalid}
+        let limit=kind=="thumbnail" ? 5*1024*1024 : 1024*1024
+        let bytes=try Self.read(file,limit:limit);guard !bytes.isEmpty,expectedContentSHA==nil || expectedContentSHA==CreatorNativeState.hash(bytes) else {throw Failure.invalid}
+        let mime:String,filename:String
+        if kind=="thumbnail" {
+            if bytes.starts(with:[137,80,78,71,13,10,26,10]) {mime="image/png";filename="thumbnail.png"}
+            else if bytes.starts(with:[255,216,255]) {mime="image/jpeg";filename="thumbnail.jpg"}
+            else if bytes.count>=12,bytes.prefix(4)==Data("RIFF".utf8),bytes.subdata(in:8..<12)==Data("WEBP".utf8) {mime="image/webp";filename="thumbnail.webp"}
+            else {throw Failure.invalid}
+            guard let source=CGImageSourceCreateWithData(bytes as CFData,nil),CGImageSourceGetCount(source)>0,CGImageSourceCreateThumbnailAtIndex(source,0,[kCGImageSourceCreateThumbnailFromImageAlways:true,kCGImageSourceThumbnailMaxPixelSize:640] as CFDictionary) != nil else {throw Failure.invalid}
+        } else {
+            guard let text=String(data:bytes,encoding:.utf8),text.replacingOccurrences(of:"\u{feff}",with:"").hasPrefix("WEBVTT"),!text.contains("\0"),CreatorNativeState.matches(language,"^[A-Za-z0-9-]{1,16}$"),!label.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,label.count<=80 else {throw Failure.invalid}
+            mime="text/vtt";filename="captions.vtt"
+        }
+        let key="creator-asset-"+UUID().uuidString,boundary="ynx-"+key
+        var wire=Data("--\(boundary)\r\nContent-Disposition: form-data; name=\"\(kind)\"; filename=\"\(filename)\"\r\nContent-Type: \(mime)\r\n\r\n".utf8);wire.append(bytes)
+        var fields=[("size",String(bytes.count))]
+        if kind=="captions" {fields += [("language",language),("label",label),("ai_proposed","false")]}
+        for (name,value) in fields {
+            guard !value.contains("\r\n--"+boundary) else {throw Failure.invalid}
+            wire.append(Data("\r\n--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)".utf8))
+        }
+        wire.append(Data("\r\n--\(boundary)--\r\n".utf8));guard wire.count<=limit+65536 else {throw Failure.invalid};try require()
+        let file=directory.appendingPathComponent(key+".multipart")
+        guard !FileManager.default.fileExists(atPath:file.path) else {throw Failure.invalid}
+        try wire.write(to:file,options:.atomic);try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:file.path)
+        let (hash,count)=try Self.digest(file,limit:limit+65536);guard hash==CreatorNativeState.hash(wire),count==wire.count else {throw Failure.damaged}
+        let asset=Asset(key:key,account:account,videoID:videoID,kind:kind,contentSHA:CreatorNativeState.hash(bytes),wireSHA:hash,contentType:"multipart/form-data; boundary="+boundary,language:language,label:label,mediaBytes:bytes.count,wireBytes:count)
+        var next=saved;next.asset=asset;try persist(next);return asset
+    }
+    func wire(_ asset:Asset) throws -> URL {
+        try require();try validate(asset);guard saved.asset==asset else {throw Failure.changed}
+        let file=directory.appendingPathComponent(asset.key+".multipart"), (hash,count)=try Self.digest(file,limit:asset.limit+65536)
+        guard hash==asset.wireSHA,count==asset.wireBytes else {throw Failure.damaged};try require();return file
+    }
+    func acknowledge(_ asset:Asset) throws {try require();guard saved.asset==asset else {throw Failure.changed};var next=saved;next.asset=nil;try persist(next)}
+    func cancelAsset() throws {try require();var next=saved;next.asset=nil;try persist(next)}
+    private func validate(_ asset:Asset) throws {
+        guard asset.account==account,CreatorNativeState.matches(asset.key,"^creator-asset-[A-Fa-f0-9-]{36}$"),Self.validID(asset.videoID),["thumbnail","captions"].contains(asset.kind),CreatorNativeState.matches(asset.contentSHA,"^[a-f0-9]{64}$"),CreatorNativeState.matches(asset.wireSHA,"^[a-f0-9]{64}$"),asset.mediaBytes>0,asset.mediaBytes<=asset.limit,asset.wireBytes>asset.mediaBytes,asset.wireBytes<=asset.limit+65536,asset.contentType=="multipart/form-data; boundary=ynx-"+asset.key else {throw Failure.damaged}
+        if asset.kind=="captions" {guard CreatorNativeState.matches(asset.language,"^[A-Za-z0-9-]{1,16}$"),!asset.label.isEmpty,asset.label.count<=80 else {throw Failure.damaged}}
     }
     func acknowledge(_ upload: Upload) throws { try require();guard saved.upload==upload else { throw Failure.changed };var next=saved;next.upload=nil;try persist(next) }
     func cancelUpload() throws { try require();var next=saved;next.upload=nil;try persist(next) }

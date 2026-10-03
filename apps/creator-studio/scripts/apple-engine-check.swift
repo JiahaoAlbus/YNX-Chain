@@ -13,7 +13,7 @@ import Foundation
             let root=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-creator-qa-"+UUID().uuidString,isDirectory:true)
             try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
             defer {try? FileManager.default.removeItem(at:root)}
-            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",hold=false,held: CheckedContinuation<Void,Never>?
+            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=CreatorNativeTransport()
             let sender: CreatorNativeEngine.Sender = { request,limit in
@@ -61,6 +61,22 @@ import Foundation
                         case "uiPerform":await model.perform(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:],method:command["method"] as? String ?? "POST")
                         case "uiSubmitAppeal":await model.submitAppeal(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
                         case "uiSubmitDispute":await model.submitDispute(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:model.currentRevision)
+                        case "uiAsset":
+                            let kind=command["kind"] as! String,file=root.appendingPathComponent(kind=="thumbnail" ? "selected.png" : "selected.vtt")
+                            var content=kind=="thumbnail" ? Data(base64Encoded:"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j2ioAAAAASUVORK5CYII=")! : Data("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nOriginal human caption\n".utf8)
+                            if command["invalid"] as? Bool==true {content=Data("not a supported original asset".utf8)}
+                            try content.write(to:file);let previewHash=CreatorNativeState.hash(content)
+                            if command["changed"] as? Bool==true {try (content+Data([1])).write(to:file)}
+                            await model.stageAsset(file:file,videoID:command["videoID"] as! String,kind:kind,language:"en",label:"Original human subtitle",expectedContentSHA:previewHash,expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
+                        case "uiRetryAsset":await model.retryAsset()
+                        case "uiCancelAsset":model.cancelAsset()
+                        case "corruptAssetWire","rememberAssetWire":
+                            guard let account=engine.identity?.account else {throw CreatorNativeEngine.Failure.retired}
+                            let directory=root.appendingPathComponent(CreatorNativeState.hash(Data(account.utf8))),record=try CreatorNativeState.object(String(decoding:Data(contentsOf:directory.appendingPathComponent("drafts.json")),as:UTF8.self))
+                            guard let asset=record["asset"] as? [String:Any],let key=asset["key"] as? String else {throw CreatorDraftState.Failure.invalid}
+                            assetWire=directory.appendingPathComponent(key+".multipart");assetBackup=try Data(contentsOf:assetWire!);if name=="corruptAssetWire" {try (assetBackup!+Data([1])).write(to:assetWire!)}
+                        case "restoreAssetWire":guard let assetWire,let assetBackup else {throw CreatorDraftState.Failure.invalid};try assetBackup.write(to:assetWire)
+                        case "retainedAssetWire":value["retained"]=assetWire.map{FileManager.default.fileExists(atPath:$0.path)} ?? false
                         case "uiRetryOperation":await model.retryOperation()
                         case "uiCancelOperation":model.cancelOperation()
                         case "dropNextUpload":dropMutation=true
@@ -94,9 +110,9 @@ import Foundation
                         default:throw CreatorNativeEngine.Failure.invalidSource
                         }
                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
-                        value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message
+                        value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message;value["assetPending"]=model.pendingAssetKind
                         value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
-                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? ""] as [String:Any]}
+                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? "","thumbnail":$0.thumbnail_key ?? "","captions":($0.captions ?? []).map{["key":$0.object_key,"language":$0.language,"label":$0.label,"aiProposed":$0.ai_proposed,"humanApproved":$0.human_approved] as [String:Any]}] as [String:Any]}
                         value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
                         value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state]}] as [String:Any]}
                         value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? ""]}

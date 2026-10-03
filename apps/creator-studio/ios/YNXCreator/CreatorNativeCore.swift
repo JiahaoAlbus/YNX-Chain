@@ -41,14 +41,19 @@ final class CreatorHTTP: NSObject, URLSessionTaskDelegate {
         return data
     }
     @MainActor func accountData(_ path: String, method: String = "GET", body: Data? = nil, file: URL? = nil, contentType: String = "application/json",
-                               engine: CreatorNativeEngine? = nil,requestKey: String = UUID().uuidString,guardRequest: @MainActor () throws -> Void = {}) async throws -> Data {
+                               engine: CreatorNativeEngine? = nil,responseLimit:Int=2_097_152,requestKey: String = UUID().uuidString,guardRequest: @MainActor () throws -> Void = {}) async throws -> Data {
         let url=try Self.url(path),bytes=body ?? Data(),method=method.uppercased()
         let finalBytes: Int, digest: String
+        let fileLimit:Int
+        if path=="/v1/uploads" {fileLimit=512*1024*1024}
+        else if CreatorNativeState.matches(path,"^/v1/videos/[A-Za-z0-9_-]{1,160}/thumbnail$") {fileLimit=5*1024*1024+65536}
+        else if CreatorNativeState.matches(path,"^/v1/videos/[A-Za-z0-9_-]{1,160}/captions$") {fileLimit=1024*1024+65536}
+        else {fileLimit=0}
         if let file {
-            guard path=="/v1/uploads",method=="POST",body==nil,file.isFileURL else { throw Failure.invalidPath }
-            (digest,finalBytes)=try CreatorDraftState.digest(file,limit:512*1024*1024)
+            guard fileLimit>0,method=="POST",body==nil,file.isFileURL else {throw Failure.invalidPath}
+            (digest,finalBytes)=try CreatorDraftState.digest(file,limit:fileLimit)
         } else { finalBytes=bytes.count;digest=CreatorNativeState.hash(bytes) }
-        guard let engine,let original=engine.identity,finalBytes<=(file==nil ? 1_048_576 : 512*1024*1024),
+        guard let engine,let original=engine.identity,finalBytes<=(file==nil ? 1_048_576 : fileLimit),responseLimit>0,responseLimit<=5*1024*1024,
               method != "GET" || bytes.isEmpty,
               CreatorNativeState.matches(requestKey,"^[A-Za-z0-9_-]{16,128}$") else { throw Failure.nativeSessionUnavailable }
         let epoch=engine.epoch;try guardRequest();try engine.require(original,epoch)
@@ -67,7 +72,7 @@ final class CreatorHTTP: NSObject, URLSessionTaskDelegate {
             request.setValue(requestKey,forHTTPHeaderField:"Idempotency-Key")
         }
         try guardRequest();try engine.require(original,epoch)
-        let (data,response)=try await engine.sendBusiness(request,2_097_152,original,epoch)
+        let (data,response)=try await engine.sendBusiness(request,responseLimit,original,epoch)
         try guardRequest();try engine.require(original,epoch)
         if response.statusCode==401 { try engine.rejected(original) }
         guard (200..<300).contains(response.statusCode) else {

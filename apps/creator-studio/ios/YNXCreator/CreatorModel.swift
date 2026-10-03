@@ -7,6 +7,9 @@ struct CreatorVideo: Decodable, Identifiable {
     let rights_declaration_id: String?
     let version: UInt64?
     let reviewed_by: String?
+    struct Caption:Decodable,Equatable {let language,label,object_key:String;let ai_proposed,human_approved:Bool}
+    let thumbnail_key:String?
+    let captions:[Caption]?
 }
 struct CreatorSnapshot: Decodable {
     struct Analytics: Decodable { let views, watch_seconds, subscribers, revenue_ynxt: Int; let source: String }
@@ -57,6 +60,7 @@ struct CreatorSnapshot: Decodable {
     @Published var channelID=""
     @Published var pendingUploadTitle=""
     @Published var pendingOperation=false
+    @Published var pendingAssetKind=""
     @Published var snapshot: CreatorSnapshot?
     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
     private(set) var engine: CreatorNativeEngine?
@@ -77,7 +81,7 @@ struct CreatorSnapshot: Decodable {
     func text(_ key: String) -> String { catalog[locale]?[key] ?? catalog["en"]?[key] ?? key }
     func language(_ value: String) {locale=value;UserDefaults.standard.set(value,forKey:"ynx.creator.locale")}
     func number(_ value: Int) -> String {value.formatted(.number.locale(Locale(identifier:locale)))}
-    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false}
+    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false;pendingAssetKind=""}
     private func ensure() throws -> CreatorNativeEngine {
         if let engine {return engine};let created=try makeEngine();engine=created
         created.onChange={ [weak self,weak created] in
@@ -93,6 +97,7 @@ struct CreatorSnapshot: Decodable {
                 self.connected=true;self.account=identity.account
                 self.pendingUploadTitle=try store.pendingUpload()?.title ?? ""
                 self.pendingOperation=try store.pendingOperation() != nil
+                self.pendingAssetKind=try store.pendingAsset()?.kind ?? ""
             } catch {self.clear();self.message=self.text("draftUnavailable")}
         }
         return created
@@ -162,7 +167,7 @@ struct CreatorSnapshot: Decodable {
     }
     func cancelUpload() {guard !busy else {return};do {try drafts?.cancelUpload();pendingUploadTitle="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
     func perform(_ path: String,body: [String:Any]=[:],method:String="POST",expectedRevision:UInt64?=nil) async {
-        guard !busy,expectedRevision==nil || expectedRevision==revision,let store=drafts else {return}
+        guard !busy,pendingAssetKind.isEmpty,expectedRevision==nil || expectedRevision==revision,let store=drafts else {return}
         do {_ = try store.reserve(path:path,body:body,method:method);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}
         await retryOperation()
     }
@@ -178,6 +183,35 @@ struct CreatorSnapshot: Decodable {
         } catch {if captured==revision {lastFailure=String(describing:error);message=text("operationPending");try? await refreshCaptured(active,captured)}}
     }
     func cancelOperation() {guard !busy else {return};do {try drafts?.cancelOperation();pendingOperation=false;message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
+    func canManageAssets(_ video:CreatorVideo) -> Bool {connected && ["owner","editor","uploader"].contains(role(video.channel_id) ?? "")}
+    func stageAsset(file:URL,videoID:String,kind:String,language:String="",label:String="",expectedContentSHA:String?=nil,expectedRevision:UInt64) async {
+        guard !busy,expectedRevision==revision,let store=drafts,let video=snapshot?.videos?.first(where:{$0.id==videoID}),canManageAssets(video) else {return}
+        do {_ = try store.stageAsset(file:file,videoID:videoID,kind:kind,language:language,label:label,expectedContentSHA:expectedContentSHA);pendingAssetKind=kind}
+        catch {if expectedRevision==revision {message=text("assetInvalid")};return}
+        await retryAsset()
+    }
+    func retryAsset() async {
+        guard !busy,let active=engine,let store=drafts else {return};busy=true;let captured=revision
+        defer {if captured==revision {busy=false}}
+        do {
+            guard let asset=try store.pendingAsset() else {return};let wire=try store.wire(asset)
+            let reply=try await CreatorHTTP.shared.accountData(asset.path,method:"POST",file:wire,contentType:asset.contentType,engine:active,requestKey:asset.key,guardRequest:{try self.require(active,captured)})
+            try require(active,captured);try await refreshCaptured(active,captured)
+            guard let video=snapshot?.videos?.first(where:{$0.id==asset.videoID}) else {throw CreatorHTTP.Failure.unexpectedResponse}
+            let key:String
+            if asset.kind=="captions" {
+                let track=try JSONDecoder().decode(CreatorVideo.Caption.self,from:reply)
+                guard track.language==asset.language,track.label==asset.label,!track.ai_proposed,track.human_approved,video.captions?.contains(track)==true else {throw CreatorHTTP.Failure.unexpectedResponse};key=track.object_key
+            } else {
+                guard let value=try JSONSerialization.jsonObject(with:reply) as? [String:Any],value["ok"] as? Bool==true,let original=video.thumbnail_key,!original.isEmpty else {throw CreatorHTTP.Failure.unexpectedResponse};key=original
+            }
+            guard CreatorNativeState.matches(key,"^[A-Za-z0-9_./-]{1,512}$"),!key.contains(".."),key.hasPrefix(asset.videoID+"/") else {throw CreatorHTTP.Failure.unexpectedResponse}
+            let readback=try await CreatorHTTP.shared.accountData("/media/"+key,engine:active,responseLimit:asset.limit,guardRequest:{try self.require(active,captured)})
+            try require(active,captured);guard readback.count==asset.mediaBytes,CreatorNativeState.hash(readback)==asset.contentSHA else {throw CreatorHTTP.Failure.unexpectedResponse}
+            try store.acknowledge(asset);pendingAssetKind="";message=text("assetSaved")
+        } catch {if captured==revision {lastFailure=String(describing:error);message=text("assetUnconfirmed");try? await refreshCaptured(active,captured)}}
+    }
+    func cancelAsset() {guard !busy else {return};do {try drafts?.cancelAsset();pendingAssetKind="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
     func canAppeal(_ report:CreatorSnapshot.Report) -> Bool {
         connected && report.State=="takedown" && snapshot?.videos?.contains(where:{$0.id==report.VideoID && $0.owner==account})==true && !(snapshot?.appeals ?? []).contains(where:{$0.ReportID==report.id && $0.State=="submitted"})
     }

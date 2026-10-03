@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import ImageIO
 
 @main struct YNXCreatorApp: App {
     @StateObject private var model=CreatorModel()
@@ -23,6 +24,7 @@ struct CreatorView: View {
     @State private var choosingFile=false
     @State private var cancelUpload=false
     @State private var cancelOperation=false
+    @State private var cancelAsset=false
     @State private var selectedVideo: CreatorVideo?
     @State private var pickerRevision: UInt64=0
     @State private var rightsLicense=""
@@ -34,7 +36,7 @@ struct CreatorView: View {
                 VStack(alignment:.leading,spacing:20) {
                     header
                     Picker(model.text("overview"),selection:$section) {
-                        ForEach(["overview","channel","team","content","upload","moderation","earn","disputes"],id:\.self) {Text(model.text($0)).tag($0)}
+                        ForEach(["overview","channel","team","content","upload","moderation","earn","disputes","assets"],id:\.self) {Text(model.text($0)).tag($0)}
                     }.pickerStyle(.menu)
                     if !model.message.isEmpty {Text(model.message).foregroundStyle(.secondary).textSelection(.enabled)}
                     if !model.connected {
@@ -49,6 +51,7 @@ struct CreatorView: View {
                         case "upload": upload
                         case "earn": earnings
                         case "disputes": CreatorDisputeView()
+                        case "assets": CreatorAssetsView()
                         default: overview
                         }
                     }
@@ -65,6 +68,7 @@ struct CreatorView: View {
                     }
                 }
                 .confirmationDialog(model.text("cancelQuestion"),isPresented:$cancelUpload,titleVisibility:.visible) {Button(model.text("cancelDraft"),role:.destructive) {model.cancelUpload()}}
+                .confirmationDialog(model.text("cancelQuestion"),isPresented:$cancelAsset,titleVisibility:.visible) {Button(model.text("cancelAsset"),role:.destructive) {model.cancelAsset()}}
                 .confirmationDialog(model.text("cancelQuestion"),isPresented:$cancelOperation,titleVisibility:.visible) {Button(model.text("cancelOperation"),role:.destructive) {model.cancelOperation()}}
                 .sheet(item:$selectedVideo) {video in rights(video)}
         }
@@ -93,6 +97,9 @@ struct CreatorView: View {
                 Label(model.pendingUploadTitle,systemImage:"arrow.up.document")
                 HStack {Button(model.text("retryUpload")) {Task {await model.retryUpload()}};Button(model.text("cancelDraft"),role:.destructive) {cancelUpload=true}}
             }
+            if !model.pendingAssetKind.isEmpty {
+                HStack {Text(model.text("assetUnconfirmed"));Button(model.text("retryAsset")) {Task {await model.retryAsset()}};Button(model.text("cancelAsset"),role:.destructive) {cancelAsset=true}}
+            }
             if model.pendingOperation {
                 HStack {Text(model.text("operationPending"));Button(model.text("retry")) {Task {await model.retryOperation()}};Button(model.text("cancelOperation"),role:.destructive) {cancelOperation=true}}
             }
@@ -118,7 +125,7 @@ struct CreatorView: View {
             TextField(model.text("channelID"),text:$model.channelID).textFieldStyle(.roundedBorder)
             TextField(model.text("handle"),text:$handle).textFieldStyle(.roundedBorder)
             TextField(model.text("name"),text:$name).textFieldStyle(.roundedBorder)
-            Button(model.text("createChannel")) {Task {await model.perform("/v1/channels",body:["handle":handle,"name":name])}}.buttonStyle(.borderedProminent).disabled(model.busy || model.pendingOperation || handle.isEmpty || name.isEmpty)
+            Button(model.text("createChannel")) {Task {await model.perform("/v1/channels",body:["handle":handle,"name":name])}}.buttonStyle(.borderedProminent).disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || handle.isEmpty || name.isEmpty)
         }
     }
     private var upload: some View {
@@ -148,8 +155,8 @@ struct CreatorView: View {
                     ViewThatFits {
                         HStack {videoActions(video)}
                         VStack(alignment:.leading) {videoActions(video)}
-                    }.disabled(model.busy || model.pendingOperation)
-                    CreatorPublicationControls(video:video).disabled(model.busy || model.pendingOperation)
+                    }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty)
+                    CreatorPublicationControls(video:video).disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty)
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
         }
@@ -173,7 +180,7 @@ struct CreatorView: View {
                 TextField(model.text("territories"),text:$territories)
                 TextField(model.text("evidence"),text:$rightsEvidence)
                 Text(model.text("independentReview")).foregroundStyle(.secondary)
-                Button(model.text("declareRights")) {Task {await model.perform("/v1/videos/"+video.id+"/rights",body:["basis":basis=="public-domain" ? "public_domain" : basis,"license_reference":rightsLicense,"territories":territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespaces)},"contributor_splits":[],"evidence_sha256":rightsEvidence.lowercased(),"source_sha256":video.sha256]);if !model.pendingOperation {selectedVideo=nil}}}.disabled(model.busy || model.pendingOperation || rightsEvidence.count != 64)
+                Button(model.text("declareRights")) {Task {await model.perform("/v1/videos/"+video.id+"/rights",body:["basis":basis=="public-domain" ? "public_domain" : basis,"license_reference":rightsLicense,"territories":territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespaces)},"contributor_splits":[],"evidence_sha256":rightsEvidence.lowercased(),"source_sha256":video.sha256]);if !model.pendingOperation {selectedVideo=nil}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || rightsEvidence.count != 64)
             }.navigationTitle(model.text("rights")).toolbar {Button(model.text("close")) {selectedVideo=nil}}
         }.frame(minWidth:320,minHeight:360)
     }
@@ -185,7 +192,7 @@ struct CreatorView: View {
             ForEach(model.snapshot?.payout_intents ?? []) {intent in HStack {Text(model.number(intent.AmountYNXT)+" YNXT");Spacer();Text(intent.State).foregroundStyle(.secondary)}}
             TextField(model.text("payoutAmount"),text:$payout).textFieldStyle(.roundedBorder)
             Text(model.text("payoutConsent")).font(.caption).foregroundStyle(.secondary)
-            Button(model.text("createPayout")) {if let amount=Int(payout),amount>0 {Task {await model.perform("/v1/studio/payout-intents",body:["amount_ynxt":amount])}}}.disabled(model.busy || model.pendingOperation || (Int(payout) ?? 0)<=0)
+            Button(model.text("createPayout")) {if let amount=Int(payout),amount>0 {Task {await model.perform("/v1/studio/payout-intents",body:["amount_ynxt":amount])}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || (Int(payout) ?? 0)<=0)
         }
     }
 }
@@ -228,7 +235,7 @@ struct CreatorTeamView: View {
                     }
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
-        }.disabled(model.busy || model.pendingOperation)
+        }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty)
             .confirmationDialog(model.text("revokeQuestion"),isPresented:Binding(get:{revoking != nil},set:{if !$0 {revoking=nil}}),titleVisibility:.visible) {
                 Button(model.text("revoke"),role:.destructive) {if let path=revoking {Task {await model.perform("/v1/channels/"+path,method:"DELETE")}};revoking=nil}
             }
@@ -264,7 +271,7 @@ struct CreatorReviewView: View {
                     }
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
-        }.disabled(model.busy || model.pendingOperation)
+        }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty)
             .onChange(of:model.account) {_,_ in reason=""}
     }
 }
@@ -290,14 +297,14 @@ struct CreatorPublicationControls: View {
             NavigationStack {Form {
                 TextField(model.text("title"),text:$title)
                 TextField(model.text("description"),text:$description,axis:.vertical)
-                Button(model.text("save")) {Task {await model.perform("/v1/videos/"+video.id+"/metadata",body:["title":title,"description":description]);if !model.pendingOperation {editing=false}}}.disabled(model.busy || model.pendingOperation || title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || title.count>140 || description.utf8.count>5000)
+                Button(model.text("save")) {Task {await model.perform("/v1/videos/"+video.id+"/metadata",body:["title":title,"description":description]);if !model.pendingOperation {editing=false}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || title.count>140 || description.utf8.count>5000)
             }.navigationTitle(model.text("edit")).toolbar {Button(model.text("close")) {editing=false}}}.frame(minWidth:320,minHeight:300)
         }
         .sheet(isPresented:$scheduling) {
             NavigationStack {Form {
                 DatePicker(model.text("publicationTime"),selection:$when,in:Date()...)
                 Picker(model.text("publish"),selection:$visibility) {ForEach(["public","unlisted"],id:\.self) {Text(model.text($0)).tag($0)}}
-                Button(model.text("schedule")) {Task {await model.perform("/v1/videos/"+video.id+"/schedule",body:["visibility":visibility,"scheduled_at":ISO8601DateFormatter().string(from:when)]);if !model.pendingOperation {scheduling=false}}}.disabled(model.busy || model.pendingOperation || when<=Date())
+                Button(model.text("schedule")) {Task {await model.perform("/v1/videos/"+video.id+"/schedule",body:["visibility":visibility,"scheduled_at":ISO8601DateFormatter().string(from:when)]);if !model.pendingOperation {scheduling=false}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || when<=Date())
             }.navigationTitle(model.text("schedule")).toolbar {Button(model.text("close")) {scheduling=false}}}.frame(minWidth:320,minHeight:300)
         }
         .onChange(of:model.account) {_,_ in editing=false;scheduling=false;title="";description=""}
@@ -335,7 +342,7 @@ struct CreatorDisputeView:View {
             ForEach(model.snapshot?.disputes ?? []) {dispute in
                 VStack(alignment:.leading,spacing:6) {Text(dispute.Reason);Text(dispute.id+" · "+dispute.State).font(.caption);Text(dispute.RevenueRecordID).font(.caption).textSelection(.enabled)}
             }
-        }.disabled(model.busy || model.pendingOperation)
+        }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty)
         .sheet(item:$selected) {request in CreatorDisputeForm(request:request)}
         .onChange(of:model.currentRevision) {_,_ in selected=nil}
         .onChange(of:model.connected) {_,connected in if !connected {selected=nil}}
@@ -359,10 +366,96 @@ struct CreatorDisputeForm:View {
                         else {await model.submitDispute(request.id,reason:captured,expectedRevision:request.revision)}
                         if !model.pendingOperation {dismiss()}
                     }
-                }.disabled(model.busy || model.pendingOperation || request.revision != model.currentRevision || reason.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || reason.count>2000)
+                }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || request.revision != model.currentRevision || reason.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || reason.count>2000)
             }.navigationTitle(model.text(request.appeal ? "submitAppeal" : "submitDispute"))
             .toolbar {Button(model.text("close")) {dismiss()}}
             .onChange(of:model.connected) {_,connected in if !connected {reason="";dismiss()}}
         }.frame(minWidth:320,minHeight:320)
+    }
+}
+
+struct CreatorAssetsView:View {
+    @EnvironmentObject private var model:CreatorModel
+    @State private var selected:Request?
+    struct Request:Identifiable {let videoID,kind:String;let revision:UInt64;var id:String {videoID+kind}}
+    var body:some View {
+        VStack(alignment:.leading,spacing:16) {
+            Text(model.text("assets")).font(.title2)
+            Text(model.text("assetHelp")).foregroundStyle(.secondary)
+            if (model.snapshot?.videos ?? []).isEmpty {Text(model.text("noVideos")).foregroundStyle(.secondary)}
+            ForEach(model.snapshot?.videos ?? []) {video in
+                VStack(alignment:.leading,spacing:10) {
+                    Text(video.title).font(.headline)
+                    if let key=video.thumbnail_key {Text(model.text("thumbnail")+" · "+key).font(.caption).textSelection(.enabled)}
+                    ForEach(video.captions ?? [],id:\.object_key) {track in
+                        Text(track.label+" · "+track.language+" · "+model.text(track.human_approved ? "humanApproved" : "humanReviewRequired")).font(.caption)
+                    }
+                    if model.canManageAssets(video) {
+                        HStack {ForEach(["thumbnail","captions"],id:\.self) {kind in Button(model.text(kind)) {selected=Request(videoID:video.id,kind:kind,revision:model.currentRevision)}}}
+                    }
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+        }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || !model.pendingUploadTitle.isEmpty)
+        .sheet(item:$selected) {request in CreatorAssetForm(request:request)}
+        .onChange(of:model.currentRevision) {_,_ in selected=nil}
+        .onChange(of:model.connected) {_,connected in if !connected {selected=nil}}
+    }
+}
+struct CreatorAssetForm:View {
+    @EnvironmentObject private var model:CreatorModel
+    @Environment(\.dismiss) private var dismiss
+    let request:CreatorAssetsView.Request
+    @State private var file:URL?
+    @State private var scoped=false
+    @State private var fileSHA=""
+    @State private var fileBytes=0
+    @State private var captionPreview=""
+    @State private var preview:CGImage?
+    @State private var language="en"
+    @State private var label=""
+    @State private var choosing=false
+    @State private var failure=false
+    @State private var humanApproved=false
+    private var types:[UTType] {request.kind=="thumbnail" ? [.png,.jpeg,UTType(filenameExtension:"webp") ?? .image] : [UTType(filenameExtension:"vtt") ?? .plainText]}
+    private func clearFile() {if let file,scoped {file.stopAccessingSecurityScopedResource()};file=nil;scoped=false;fileSHA="";fileBytes=0;captionPreview="";preview=nil}
+    var body:some View {
+        NavigationStack {
+            Form {
+                Text(model.text("assetHelp")).foregroundStyle(.secondary)
+                if request.kind=="captions" {TextField(model.text("captionLanguage"),text:$language);TextField(model.text("captionLabel"),text:$label)}
+                Button(model.text("chooseAsset")) {choosing=true}
+                if let file {
+                    Text(file.lastPathComponent);Text(model.number(fileBytes)+" bytes").font(.caption)
+                    Text(fileSHA).font(.caption2).textSelection(.enabled)
+                    if let preview {Image(decorative:preview,scale:1).resizable().scaledToFit().frame(maxHeight:240)}
+                    if !captionPreview.isEmpty {Text(captionPreview).font(.caption).textSelection(.enabled)}
+                }
+                if request.kind=="captions" {Toggle(model.text("captionConsent"),isOn:$humanApproved)}
+                if failure {Text(model.text("assetInvalid")).foregroundStyle(.secondary)}
+                Button(model.text("uploadAsset")) {
+                    guard let file else {return};let captured=(language,label,fileSHA)
+                    Task {
+                        await model.stageAsset(file:file,videoID:request.videoID,kind:request.kind,language:captured.0,label:captured.1,expectedContentSHA:captured.2,expectedRevision:request.revision)
+                        if !model.pendingAssetKind.isEmpty || model.message==model.text("assetSaved") {clearFile();dismiss()}
+                    }
+                }.disabled(file==nil || model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || request.revision != model.currentRevision || request.kind=="captions" && (!humanApproved || language.isEmpty || label.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty))
+            }.navigationTitle(model.text(request.kind))
+            .toolbar {Button(model.text("close")) {clearFile();dismiss()}.disabled(model.busy)}
+            .fileImporter(isPresented:$choosing,allowedContentTypes:types) {result in
+                guard model.connected,request.revision==model.currentRevision,case .success(let selected)=result else {return};clearFile();failure=false;humanApproved=false
+                let access=selected.startAccessingSecurityScopedResource()
+                do {
+                    let bytes=try CreatorDraftState.read(selected,limit:request.kind=="thumbnail" ? 5*1024*1024 : 1024*1024)
+                    guard !bytes.isEmpty else {throw CreatorDraftState.Failure.invalid}
+                    if request.kind=="thumbnail" {
+                        guard let source=CGImageSourceCreateWithData(bytes as CFData,nil),let image=CGImageSourceCreateThumbnailAtIndex(source,0,[kCGImageSourceCreateThumbnailFromImageAlways:true,kCGImageSourceThumbnailMaxPixelSize:640] as CFDictionary) else {throw CreatorDraftState.Failure.invalid};preview=image
+                    } else {guard let text=String(data:bytes,encoding:.utf8),text.replacingOccurrences(of:"\u{feff}",with:"").hasPrefix("WEBVTT") else {throw CreatorDraftState.Failure.invalid};captionPreview=String(text.prefix(4000))}
+                    file=selected;scoped=access;fileBytes=bytes.count;fileSHA=CreatorNativeState.hash(bytes)
+                } catch {if access {selected.stopAccessingSecurityScopedResource()};failure=true;preview=nil;captionPreview=""}
+            }
+            .onChange(of:model.currentRevision) {_,_ in clearFile();label="";humanApproved=false;dismiss()}
+            .onChange(of:model.connected) {_,connected in if !connected {clearFile();label="";humanApproved=false;dismiss()}}
+            .onDisappear {clearFile();label="";humanApproved=false}
+        }.frame(minWidth:320,minHeight:420)
     }
 }

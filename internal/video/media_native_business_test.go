@@ -61,7 +61,16 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if product == "creator-studio" {
 				callback = "ynxcreator://wallet-auth/callback"
 			}
-			owned, originalChannel := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
+			owned, originalChannel := fixture(t, func(cfg *Config) {
+				cfg.Now = time.Now
+				// The legacy 96-byte fixture only fits one tiny video. This
+				// isolated original-service journey also saves real PNG/VTT
+				// bytes; production quota and separate quota regressions stay
+				// unchanged.
+				if product == "creator-studio" && (platform == "ios" || platform == "macos") && os.Getenv("YNX_QA_APPLE_CREATOR_ENGINE_BIN") != "" {
+					cfg.AccountQuotaBytes = 16 << 20
+				}
+			})
 			nativeMediaKey, nativeVideoID := "", ""
 			if product == "video" {
 				published := upload(t, owned, originalChannel, "Original Native media fixture")
@@ -214,13 +223,15 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualRevokedTeamDenied      bool   `json:"actualRevokedTeamMutationDenied"`
 				ActualAppealColdRecovery     bool   `json:"actualAppealColdRecovery"`
 				ActualAppealFreshReview      bool   `json:"actualAppealRequiresFreshPublicationReview"`
+				ActualAssetColdRecovery      bool   `json:"actualAssetColdRecovery"`
+				ActualAssetOriginalReadback  bool   `json:"actualAssetOriginalByteReadback"`
 				ActualWalletConsent          bool   `json:"actualWalletConsent"`
 				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()
@@ -266,6 +277,19 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 						t.Fatal("missing original single recovered owner appeal and independent human acceptance")
 					}
 					original := studio.Videos[0]
+					if original.ThumbnailKey == "" || len(original.Captions) != 1 || !original.Captions[0].HumanApproved || original.Captions[0].AIProposed {
+						t.Fatal("missing original single thumbnail and human-approved caption after cold recovery")
+					}
+					for _, key := range []string{original.ThumbnailKey, original.Captions[0].ObjectKey} {
+						path, err := owned.MediaPath(actor.Account, key)
+						if err != nil {
+							t.Fatal(err)
+						}
+						bytes, err := os.ReadFile(path)
+						if err != nil || len(bytes) == 0 {
+							t.Fatal("missing original asset bytes")
+						}
+					}
 					if original.ReviewedBy != creatorModerator || original.SubmittedBy == original.ReviewedBy || len(actors) != 2 {
 						t.Fatal("missing two exact original SDK actors and independent publication reviewer")
 					}
