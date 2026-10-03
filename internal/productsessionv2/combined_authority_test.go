@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -28,7 +29,7 @@ func TestCombinedAuthorityRealHTTP(t *testing.T) {
 		t.Skip("explicit reviewed Central source required")
 	}
 	for _, product := range []string{"ai", "mail"} {
-		for _, scenario := range []string{"success", "family-success", "private-revoke-after-browser-await", "browser-revoke-after-private-await", "generation", "expiry", "outage", "bindings", "response-tamper", "expiry-after-response"} {
+		for _, scenario := range []string{"success", "family-success", "private-revoke-after-browser-await", "browser-revoke-after-private-await", "generation", "expiry", "outage", "bindings", "response-tamper", "expiry-after-response", "cancel-before-http", "cancel-after-http", "deadline-during-http", "cancel-after-body", "cancel-after-close", "cancel-during-sync-decision"} {
 			t.Run(product+"/"+scenario, func(t *testing.T) {
 				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 				defer cancel()
@@ -117,6 +118,7 @@ func TestCombinedAuthorityRealHTTP(t *testing.T) {
 				if err != nil || !reflect.DeepEqual(current, original) || !reflect.DeepEqual(grant, ready.Grant) {
 					t.Fatal("combined original read", err)
 				}
+				decisionContext := ctx
 				switch scenario {
 				case "success", "family-success":
 					before := mustReadFile(t, filepath.Join(directory, "authority"))
@@ -184,6 +186,57 @@ func TestCombinedAuthorityRealHTTP(t *testing.T) {
 						}
 					}
 					return
+				case "cancel-before-http":
+					decisionContext, cancelDecision := context.WithCancel(ctx)
+					cancelDecision()
+					if _, _, e := set.RevalidateBrowser(decisionContext, original, browser, sealed, p.AllowedScopes); e == nil {
+						t.Fatal("cancelled original context accepted")
+					}
+					return
+				case "cancel-after-http", "cancel-after-body", "cancel-after-close", "cancel-during-sync-decision":
+					var cancelDecision context.CancelFunc
+					decisionContext, cancelDecision = context.WithCancel(ctx)
+					defer cancelDecision()
+					if scenario == "cancel-during-sync-decision" {
+						realClock := client.clock
+						calls := 0
+						client.clock = func() time.Time {
+							calls++
+							if calls == 4 {
+								cancelDecision()
+							}
+							return realClock()
+						}
+					} else {
+						client.http.Transport = roundTrip(func(req *http.Request) (*http.Response, error) {
+							res, e := transport.RoundTrip(req)
+							if e != nil {
+								return nil, e
+							}
+							if scenario == "cancel-after-http" {
+								cancelDecision()
+							} else {
+								if scenario == "cancel-after-close" {
+									res.Body = &cancelOnBodyClose{ReadCloser: res.Body, cancel: cancelDecision}
+								} else {
+									res.Body = &cancelOnBodyEnd{ReadCloser: res.Body, cancel: cancelDecision}
+								}
+							}
+							return res, nil
+						})
+					}
+				case "deadline-during-http":
+					var cancelDecision context.CancelFunc
+					decisionContext, cancelDecision = context.WithTimeout(ctx, 30*time.Millisecond)
+					defer cancelDecision()
+					client.http.Transport = roundTrip(func(req *http.Request) (*http.Response, error) {
+						res, e := transport.RoundTrip(req)
+						if e != nil {
+							return nil, e
+						}
+						<-req.Context().Done()
+						return res, nil
+					})
 				case "expiry-after-response":
 					client.http.Transport = roundTrip(func(req *http.Request) (*http.Response, error) {
 						res, e := transport.RoundTrip(req)
@@ -216,8 +269,15 @@ func TestCombinedAuthorityRealHTTP(t *testing.T) {
 					}
 					return
 				}
-				if _, _, err = set.RevalidateBrowser(ctx, original, browser, sealed, p.AllowedScopes); err == nil {
+				failedSession, failedGrant, err := set.RevalidateBrowser(decisionContext, original, browser, sealed, p.AllowedScopes)
+				if err == nil {
 					t.Fatal("stale combined authorization accepted")
+				}
+				if strings.HasPrefix(scenario, "cancel-") || scenario == "deadline-during-http" {
+					authErr, ok := err.(*Error)
+					if !ok || authErr.Code != "AUTHORITY_UNAVAILABLE" || authErr.Status != 503 || decisionContext.Err() == nil || !reflect.DeepEqual(failedSession, Session{}) || !reflect.DeepEqual(failedGrant, BrowserGrant{}) {
+						t.Fatal("cancelled read returned a credential or a non503 decision", err)
+					}
 				}
 			})
 		}
@@ -231,3 +291,23 @@ func mustReadFile(t *testing.T, path string) []byte {
 	}
 	return raw
 }
+
+type cancelOnBodyEnd struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *cancelOnBodyEnd) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if err == io.EOF {
+		b.cancel()
+	}
+	return n, err
+}
+
+type cancelOnBodyClose struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (b *cancelOnBodyClose) Close() error { err := b.ReadCloser.Close(); b.cancel(); return err }

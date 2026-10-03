@@ -181,6 +181,9 @@ const combinedRevalidationPath = "/v2/browser-sessions/product-browser-revalidat
 // replace the owner's transaction-time actor/object/member/nonce fences.
 func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, browser *BrowserSSO, sealedBinding string, scopes []string) (Session, BrowserGrant, error) {
 	var zero Session
+	if err := revalidationContext(ctx); err != nil {
+		return zero, BrowserGrant{}, err
+	}
 	var grant BrowserGrant
 	if r == nil || r.client == nil || !r.business || browser == nil || browser.product != r.client.policy.ProductID || browser.authority != r.client.endpoint {
 		return zero, BrowserGrant{}, fail("INVALID_ROUTE_POLICY", 500)
@@ -216,6 +219,9 @@ func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, b
 	if err != nil {
 		return zero, BrowserGrant{}, err
 	}
+	if err := revalidationContext(ctx); err != nil {
+		return zero, BrowserGrant{}, err
+	}
 	if !exactKeys(payload, []string{"active", "session", "browser"}) || payload["active"] != true {
 		return zero, BrowserGrant{}, fail("INVALID_AUTHORITY_RESPONSE", 503)
 	}
@@ -229,10 +235,16 @@ func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, b
 	if !expires.After(c.clock()) || !browser.valid(grant) {
 		return zero, BrowserGrant{}, fail("SESSION_EXPIRED", 401)
 	}
+	if err := revalidationContext(ctx); err != nil {
+		return zero, BrowserGrant{}, err
+	}
 	return original, grant, nil
 }
 
-func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (map[string]any, error) {
+func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (result map[string]any, resultErr error) {
+	if err := revalidationContext(ctx); err != nil {
+		return nil, err
+	}
 	raw, err := canonical(body)
 	if err != nil {
 		return nil, fail("INVALID_SESSION", 403)
@@ -260,7 +272,18 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (ma
 	if err != nil {
 		return nil, fail("AUTHORITY_UNAVAILABLE", 503)
 	}
-	defer response.Body.Close()
+	defer func() {
+		response.Body.Close()
+		// This defer runs before our local cancel(). Include body Close in the
+		// HTTP child deadline without mistaking that local cancel for a caller
+		// cancellation, and never return a successful result after Close aborts.
+		if err := revalidationContext(ctx); err != nil {
+			result, resultErr = nil, err
+		}
+	}()
+	if err := revalidationContext(ctx); err != nil {
+		return nil, err
+	}
 	media, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	if err != nil || media != "application/json" || !noStore(response.Header.Get("Cache-Control")) {
 		return nil, fail("INVALID_AUTHORITY_RESPONSE", 503)
@@ -269,9 +292,15 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (ma
 	if err != nil || len(data) > maxResponseBytes {
 		return nil, fail("INVALID_AUTHORITY_RESPONSE", 503)
 	}
+	if err := revalidationContext(ctx); err != nil {
+		return nil, err
+	}
 	payload, err := canonicalObject(data)
 	if err != nil {
 		return nil, fail("INVALID_AUTHORITY_RESPONSE", 503)
+	}
+	if err := revalidationContext(ctx); err != nil {
+		return nil, err
 	}
 	if response.StatusCode == 200 {
 		return payload, nil
@@ -299,4 +328,17 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (ma
 func revalidationToken(value string) bool {
 	raw, err := base64.RawURLEncoding.DecodeString(value)
 	return err == nil && len(raw) == 32 && base64.RawURLEncoding.EncodeToString(raw) == value
+}
+
+// Check both cancellation and the deadline itself at synchronous decision
+// boundaries; the deadline timer need not have delivered Err() yet. This is a
+// rejection fence, not a retry, renewed authorization or distributed write lock.
+func revalidationContext(ctx context.Context) error {
+	if ctx == nil || ctx.Err() != nil {
+		return fail("AUTHORITY_UNAVAILABLE", 503)
+	}
+	if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		return fail("AUTHORITY_UNAVAILABLE", 503)
+	}
+	return nil
 }
