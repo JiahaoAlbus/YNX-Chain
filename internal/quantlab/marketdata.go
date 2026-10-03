@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,6 +19,22 @@ type MarketTick struct {
 type MarketData interface {
 	History(market string, limit int) ([]Bar, string, error)
 	Latest(market string) (MarketTick, error)
+}
+
+// Context-capable adapters retain the original request cancellation. Legacy
+// local adapters stay compatible; they are not raced against abandoned workers.
+type ContextMarketHistory interface {
+	HistoryContext(context.Context, string, int) ([]Bar, string, error)
+}
+
+func marketHistory(ctx context.Context, adapter MarketData, market string, limit int) ([]Bar, string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
+	if contextual, ok := adapter.(ContextMarketHistory); ok {
+		return contextual.HistoryContext(ctx, market, limit)
+	}
+	return adapter.History(market, limit)
 }
 
 type HTTPExchangeMarketData struct {
@@ -47,11 +64,17 @@ type tradeTape struct {
 }
 
 func (h HTTPExchangeMarketData) tape() (tradeTape, error) {
+	return h.tapeContext(context.Background())
+}
+
+func (h HTTPExchangeMarketData) tapeContext(ctx context.Context) (tradeTape, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 	client := h.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
-	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(h.BaseURL, "/")+"/v1/market-data/trades", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(h.BaseURL, "/")+"/v1/market-data/trades", nil)
 	if err != nil {
 		return tradeTape{}, ErrUnavailable
 	}
@@ -84,10 +107,20 @@ func ownedExchangeTapeSource(source string) bool {
 	}
 }
 func (h HTTPExchangeMarketData) History(market string, limit int) ([]Bar, string, error) {
+	return h.HistoryContext(context.Background(), market, limit)
+}
+
+func (h HTTPExchangeMarketData) HistoryContext(ctx context.Context, market string, limit int) ([]Bar, string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
 	if market != "YNXT-YUSD_TEST" || limit < 20 || limit > 10000 {
 		return nil, "", ErrInvalid
 	}
-	t, e := h.tape()
+	t, e := h.tapeContext(ctx)
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
 	if e != nil || len(t.Trades) < 20 {
 		return nil, "", ErrUnavailable
 	}

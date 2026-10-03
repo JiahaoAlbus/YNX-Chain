@@ -103,7 +103,7 @@ func (s *Server) publicStatus(w http.ResponseWriter, r *http.Request) {
 	source := ""
 	barCount := 0
 	if s.service.cfg.MarketData != nil {
-		if bars, observedSource, err := s.service.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); err == nil && len(bars) >= 20 {
+		if bars, observedSource, err := marketHistory(r.Context(), s.service.cfg.MarketData, "YNXT-YUSD_TEST", 10000); err == nil && len(bars) >= 20 {
 			status, source, barCount = "ready", observedSource, len(bars)
 		}
 	}

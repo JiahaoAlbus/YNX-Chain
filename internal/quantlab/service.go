@@ -876,7 +876,7 @@ func (s *Service) RunBacktestFromMarketContext(ctx context.Context, strategy Str
 	if s.cfg.MarketData == nil {
 		return Experiment{}, ErrUnavailable
 	}
-	bars, source, err := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000)
+	bars, source, err := marketHistory(ctx, s.cfg.MarketData, "YNXT-YUSD_TEST", 10000)
 	if contextErr := ctx.Err(); contextErr != nil {
 		return Experiment{}, contextErr
 	}
