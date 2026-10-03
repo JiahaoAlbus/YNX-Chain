@@ -44,8 +44,8 @@ class MatrixVault(context: Context, val account: String, val hs: String, val mxi
 
   private fun read(name: String): JSONObject? {
     val file = File(root, name)
-    if (!file.exists()) return null
-    val sealed = JSONObject(file.readText())
+    if (!file.exists() && !File(root, name + ".bak").exists()) return null
+    val sealed = JSONObject(AtomicFile(file).openRead().bufferedReader().use { it.readText() })
     val cipher = Cipher.getInstance("AES/GCM/NoPadding")
     cipher.init(Cipher.DECRYPT_MODE, key(false), GCMParameterSpec(128, Base64.decode(sealed.getString("iv"), Base64.NO_WRAP)))
     cipher.updateAAD((namespace + ":" + name).toByteArray())
@@ -140,5 +140,29 @@ class MatrixVault(context: Context, val account: String, val hs: String, val mxi
     journal.getJSONObject(id).put("eventId", event).put("state", "sdk-sent-needs-readback")
     write("send-journal.sealed", journal)
     return id
+  }
+
+  @Synchronized fun pending(room: String): List<Map<String, Any?>> {
+    val journal = read("send-journal.sealed") ?: return emptyList()
+    return journal.keys().asSequence().sorted().mapNotNull { id ->
+      val entry = journal.getJSONObject(id)
+      if (entry.getString("roomId") != room) null else mapOf("intentId" to id, "roomId" to room,
+        "kind" to entry.getString("kind"), "body" to if (entry.getString("kind") == "text") entry.getString("body") else null,
+        "state" to entry.getString("state"), "eventId" to if (entry.has("eventId")) entry.getString("eventId") else null)
+    }.toList()
+  }
+
+  // Only an own, SDK-decoded event carrying the original encrypted nonce may
+  // identify this entry. SDK callbacks alone cannot identify an original send.
+  @Synchronized fun observeOriginal(intent: String, room: String, kind: String, body: String?, event: String): Boolean {
+    val journal = read("send-journal.sealed") ?: return false
+    if (!journal.has(intent)) return false
+    val entry = journal.getJSONObject(intent)
+    check(entry.getString("roomId") == room && entry.getString("kind") == kind
+      && (kind != "text" || entry.getString("body") == body)
+      && (!entry.has("eventId") || entry.getString("eventId") == event)) { "MATRIX_ORIGINAL_EVENT_CONFLICT" }
+    entry.put("eventId", event).put("state", "sdk-observed-needs-authenticated-readback")
+    write("send-journal.sealed", journal)
+    return true // Not a fresh server readback, audience receipt, or settlement.
   }
 }

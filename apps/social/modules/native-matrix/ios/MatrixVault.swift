@@ -158,4 +158,29 @@ public final class MatrixVault: ClientSessionDelegate, @unchecked Sendable {
     try write("send-journal", JSONSerialization.data(withJSONObject: entries))
     return id
   }
+
+  func pending(room: String) throws -> [[String: Any]] {
+    lock.lock(); defer { lock.unlock() }
+    return try journal().sorted { $0.key < $1.key }.compactMap { id, entry in
+      guard entry["roomId"] == room else { return nil }
+      return ["intentId": id, "roomId": room, "kind": entry["kind"] ?? "",
+        "body": entry["kind"] == "text" ? (entry["body"] as Any? ?? NSNull()) : NSNull(),
+        "state": entry["state"] ?? "", "eventId": entry["eventId"] as Any? ?? NSNull()]
+    }
+  }
+
+  func observeOriginal(intent: String, room: String, kind: String, body: String?, event: String) throws -> Bool {
+    lock.lock(); defer { lock.unlock() }
+    var entries = try journal()
+    guard var entry = entries[intent] else { return false }
+    guard entry["roomId"] == room, entry["kind"] == kind,
+      kind != "text" || entry["body"] == body,
+      entry["eventId"] == nil || entry["eventId"] == event else {
+      throw MatrixBridgeFailure.denied("MATRIX_ORIGINAL_EVENT_CONFLICT")
+    }
+    entry["eventId"] = event; entry["state"] = "sdk-observed-needs-authenticated-readback"
+    entries[intent] = entry
+    try write("send-journal", JSONSerialization.data(withJSONObject: entries))
+    return true // SDK observation only: no delete, resend, or delivered claim.
+  }
 }

@@ -18,6 +18,7 @@ import org.matrix.rustcomponents.sdk.*
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
+import org.json.JSONObject
 
 class MatrixBindingRecord : Record {
   @Field var account: String = ""
@@ -45,7 +46,8 @@ class YNXSocialMatrixModule : Module() {
     var verification: SessionVerificationController? = null
     var sasRevision = 0
     var sasAvailable = false
-    var activeIntent: String? = null
+    @Volatile var verificationPeer: String? = null
+    @Volatile var verificationAttempt = 0
     @Volatile var upload: SendAttachmentJoinHandle? = null
     val items = mutableListOf<TimelineItem>()
   }
@@ -59,7 +61,8 @@ class YNXSocialMatrixModule : Module() {
 
   private fun emit(h: Handle, type: String, fields: Map<String, Any?> = emptyMap()) {
     if (h.generation == epoch.get() && h.binding.expiresAtMs > System.currentTimeMillis())
-      sendEvent("onMatrixEvent", mapOf("generation" to h.generation, "type" to type) + fields)
+      sendEvent("onMatrixEvent", mapOf("generation" to h.generation, "type" to type) +
+        (if (type == "sas" || type.startsWith("verification-")) mapOf("peerUserId" to h.verificationPeer, "verificationAttempt" to h.verificationAttempt) else emptyMap()) + fields)
   }
 
   private suspend fun room(h: Handle, id: String): Room {
@@ -86,7 +89,28 @@ class YNXSocialMatrixModule : Module() {
       "transactionId" to (id as? EventOrTransactionId.TransactionId)?.transactionId,
       "sender" to item.sender, "own" to item.isOwn, "remote" to item.isRemote,
       "kind" to when (kind) { is MsgLikeKind.Message -> "message"; is MsgLikeKind.UnableToDecrypt -> "unable-to-decrypt"; is MsgLikeKind.Redacted -> "redacted"; else -> "other" },
-      "body" to message?.content?.body)
+      "body" to message?.content?.body, "intentId" to originalPacket(item)?.first)
+  }
+
+  private fun extraContent(intent: String, kind: String): String = JSONObject().put("org.ynx.social.intent.v1",
+    JSONObject().put("id", intent).put("kind", kind)).toString()
+
+  private fun originalPacket(item: EventTimelineItem): Pair<String, String>? {
+    if (!item.isOwn || !item.isRemote) return null
+    val raw = item.lazyProvider.debugInfo().originalJson ?: return null
+    val packet = JSONObject(raw).optJSONObject("content")?.optJSONObject("org.ynx.social.intent.v1") ?: return null
+    val id = packet.optString("id"); val kind = packet.optString("kind")
+    if (!Regex("native-matrix-[a-f0-9]{32}").matches(id) || kind !in listOf("text", "file")) return null
+    return id to kind
+  }
+
+  private fun recordSDKEvent(h: Handle, room: String, item: EventTimelineItem) {
+    current(h.generation)
+    if (item.sender != h.binding.userId || !item.isOwn || !item.isRemote) return
+    val packet = originalPacket(item) ?: return
+    val eventId = (item.eventOrTransactionId as? EventOrTransactionId.EventId)?.eventId ?: return
+    val body = ((item.content as? TimelineItemContent.MsgLike)?.content?.kind as? MsgLikeKind.Message)?.content?.body
+    h.vault.observeOriginal(packet.first, room, packet.second, body, eventId)
   }
 
   private suspend fun closeRoom(h: Handle) {
@@ -185,7 +209,7 @@ class YNXSocialMatrixModule : Module() {
         override fun onUpdate(update: RoomSendQueueUpdate) {
           try {
             when (update) {
-              is RoomSendQueueUpdate.NewLocalEvent -> h.activeIntent?.let { h.vault.correlate(it, update.transactionId) }
+              is RoomSendQueueUpdate.NewLocalEvent -> emit(h, "sdk-local-echo", mapOf("roomId" to id, "transactionId" to update.transactionId))
               is RoomSendQueueUpdate.SentEvent -> {
                 val intent = h.vault.receipt(id, update.transactionId, update.eventId)
                 emit(h, "sdk-sent-needs-readback", mapOf("roomId" to id, "intentId" to intent,
@@ -202,6 +226,7 @@ class YNXSocialMatrixModule : Module() {
       h.timeline = timeline
       h.timelineTask = timeline.addListener(object : TimelineListener {
         override fun onUpdate(diff: List<TimelineDiff>) {
+          if (h.generation != epoch.get() || h.roomId != id) return
           try { synchronized(h.items) {
             for (d in diff) when (d) {
               is TimelineDiff.Append -> h.items.addAll(d.values)
@@ -216,7 +241,8 @@ class YNXSocialMatrixModule : Module() {
               is TimelineDiff.Truncate -> while (h.items.size > d.length.toInt()) h.items.removeAt(h.items.lastIndex)
               is TimelineDiff.Reset -> { h.items.clear(); h.items.addAll(d.values) }
             }
-            emit(h, "timeline", mapOf("roomId" to id, "events" to h.items.mapNotNull { it.asEvent()?.let(::eventDto) }))
+            val events = h.items.mapNotNull { it.asEvent()?.let { event -> recordSDKEvent(h, id, event); eventDto(event) } }
+            emit(h, "timeline", mapOf("roomId" to id, "events" to events))
           } } catch (_: Throwable) { emit(h, "timeline-decode-error", mapOf("roomId" to id)) }
         }
       })
@@ -226,19 +252,25 @@ class YNXSocialMatrixModule : Module() {
 
     AsyncFunction("closeRoom") Coroutine { generation: Int -> mutex.withLock { closeRoom(current(generation)) } }
 
+    AsyncFunction("pendingIntents") Coroutine { generation: Int, id: String -> mutex.withLock {
+      val h = current(generation)
+      room(h, id)
+      check(h.roomId == id) { "MATRIX_REVIEWED_ROOM_REQUIRED" }
+      val entries = h.vault.pending(id)
+      current(generation)
+      entries
+    } }
+
     AsyncFunction("sendText") Coroutine { generation: Int, id: String, intent: String, body: String -> mutex.withLock {
       val h = current(generation)
       require(body.isNotBlank() && body.length <= 16000)
       val target = room(h, id)
       check(h.roomId == id && h.timeline != null) { "MATRIX_REVIEWED_ROOM_REQUIRED" }
       h.vault.reserve(intent, id, "text", body)
-      h.activeIntent = intent
-      try {
-        target.enableSendQueue(true)
-        h.timeline!!.send(messageEventContentFromMarkdown(body))
-        current(generation)
-        mapOf("queued" to true)
-      } finally { h.activeIntent = null }
+      target.enableSendQueue(true)
+      h.timeline!!.sendWithExtraContent(messageEventContentFromMarkdown(body), extraContent(intent, "text"))
+      current(generation)
+      mapOf("queued" to true)
     } }
 
     AsyncFunction("stageFile") Coroutine { generation: Int, source: String -> mutex.withLock {
@@ -265,17 +297,16 @@ class YNXSocialMatrixModule : Module() {
       val file = File(Uri.parse(uri).path ?: error("MATRIX_PRIVATE_STAGING_REQUIRED")).canonicalFile
       require(file.path.startsWith(h.vault.staging.canonicalPath + File.separator) && file.isFile && file.length() <= 20 * 1024 * 1024)
       h.vault.reserve(intent, id, "file", uri)
-      h.activeIntent = intent
       try {
         target.enableSendQueue(true)
-        val upload = h.timeline!!.sendFile(UploadParameters(UploadSource.File(file.path), caption, null, null, null),
+        val upload = h.timeline!!.sendFile(UploadParameters(UploadSource.File(file.path), caption, null, null, null, extraContent(intent, "file")),
           FileInfo(mime, file.length().toULong(), null, null))
         h.upload = upload
         upload.join()
         current(generation)
         // Normal join is also possible after cancellation. Not a delivery receipt.
         mapOf("queued" to true)
-      } finally { h.activeIntent = null; h.upload = null }
+      } finally { h.upload = null }
     } }
 
     AsyncFunction("readEvent") Coroutine { generation: Int, id: String, eventId: String -> mutex.withLock {
@@ -285,28 +316,46 @@ class YNXSocialMatrixModule : Module() {
       h.timeline!!.fetchDetailsForEvent(eventId)
       val event = h.timeline!!.getEventTimelineItemByEventId(eventId)
       current(generation)
+      recordSDKEvent(h, id, event)
       eventDto(event)
     } }
 
     AsyncFunction("requestVerification") Coroutine { generation: Int, peer: String -> mutex.withLock {
       val h = current(generation)
-      val controller = h.client.getSessionVerificationController()
+      require(peer.startsWith("@") && peer != h.binding.userId)
+      val attempt = synchronized(h) {
+        check(h.verificationPeer == null) { "MATRIX_VERIFICATION_FLOW_ALREADY_ACTIVE" }
+        h.verificationPeer = peer; h.sasAvailable = false; ++h.verificationAttempt
+      }
+      val controller = try { h.client.getSessionVerificationController() } catch (error: Throwable) { h.verificationPeer = null; throw error }
       h.verification = controller
       controller.setDelegate(object : SessionVerificationControllerDelegate {
-        override fun didReceiveVerificationRequest(details: SessionVerificationRequestDetails) { emit(h, "verification-request") }
-        override fun didAcceptVerificationRequest() { emit(h, "verification-accepted") }
-        override fun didStartSasVerification() { emit(h, "verification-started") }
-        override fun didReceiveVerificationData(data: SessionVerificationData) {
-          h.sasRevision++; h.sasAvailable = true
-          val values = when (data) { is SessionVerificationData.Emojis -> data.emojis.map { it.symbol() + " " + it.description() }; is SessionVerificationData.Decimals -> data.values.map { it.toString() } }
-          emit(h, "sas", mapOf("revision" to h.sasRevision, "values" to values))
+        private fun activeFlow() = h.generation == epoch.get() && h.verificationAttempt == attempt && h.verificationPeer == peer
+        override fun didReceiveVerificationRequest(details: SessionVerificationRequestDetails) {
+          if (!activeFlow()) return
+          synchronized(h) { h.sasRevision++; h.sasAvailable = false }
+          if (details.senderProfile.userId != h.verificationPeer) {
+            emit(h, "verification-peer-mismatch", mapOf("peerUserId" to details.senderProfile.userId)); return
+          }
+          emit(h, "verification-request")
         }
-        override fun didFail() { h.sasAvailable = false; emit(h, "verification-failed") }
-        override fun didCancel() { h.sasAvailable = false; emit(h, "verification-cancelled") }
-        override fun didFinish() { h.sasAvailable = false; emit(h, "verification-finished") }
+        override fun didAcceptVerificationRequest() { if (activeFlow()) emit(h, "verification-accepted") }
+        override fun didStartSasVerification() { if (activeFlow()) emit(h, "verification-started") }
+        override fun didReceiveVerificationData(data: SessionVerificationData) {
+          val revision = synchronized(h) {
+            if (!activeFlow()) return
+            h.sasRevision++; h.sasAvailable = true; h.sasRevision
+          }
+          val values = when (data) { is SessionVerificationData.Emojis -> data.emojis.map { it.symbol() + " " + it.description() }; is SessionVerificationData.Decimals -> data.values.map { it.toString() } }
+          emit(h, "sas", mapOf("revision" to revision, "values" to values, "peerUserId" to peer, "verificationAttempt" to attempt))
+        }
+        override fun didFail() { if (activeFlow()) { h.sasAvailable = false; emit(h, "verification-failed"); h.verificationPeer = null } }
+        override fun didCancel() { if (activeFlow()) { h.sasAvailable = false; emit(h, "verification-cancelled"); h.verificationPeer = null } }
+        override fun didFinish() { if (activeFlow()) { h.sasAvailable = false; emit(h, "verification-finished"); h.verificationPeer = null } }
       })
-      controller.requestUserVerification(peer)
+      try { controller.requestUserVerification(peer) } catch (error: Throwable) { h.verificationPeer = null; throw error }
       current(generation)
+      mapOf("attempt" to attempt)
     } }
 
     AsyncFunction("verificationAction") Coroutine { generation: Int, action: String, revision: Int -> mutex.withLock {
@@ -315,7 +364,7 @@ class YNXSocialMatrixModule : Module() {
       when (action) {
         "accept" -> controller.acceptVerificationRequest()
         "start" -> controller.startSasVerification()
-        "approve" -> { check(h.sasAvailable && h.sasRevision == revision); h.sasAvailable = false; controller.approveVerification() }
+        "approve" -> { synchronized(h) { check(h.sasAvailable && h.sasRevision == revision); h.sasAvailable = false }; controller.approveVerification() }
         "reject" -> { h.sasAvailable = false; controller.declineVerification() }
         "cancel" -> { h.sasAvailable = false; controller.cancelVerification() }
         else -> error("MATRIX_VERIFICATION_ACTION_INVALID")

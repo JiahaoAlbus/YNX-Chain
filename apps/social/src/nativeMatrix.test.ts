@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { checkedMatrixBinding, NativeMatrixConsumer, type NativeMatrixBridge, type MatrixBinding, type MatrixNativeEvent } from './nativeMatrix';
+import type { MatrixPendingIntent } from './nativeMatrixRecovery';
 
 const binding: MatrixBinding = { account: 'ynx1abc123', homeserverUrl: 'https://hs.example.test', userId: '@original:example.test', deviceId: 'ORIGINAL', authorityId: 'original-authority', expiresAtMs: Date.now() + 3600000 };
 const person = 'sp_' + 'a'.repeat(32);
@@ -11,18 +12,21 @@ function fixture() {
   let sendCount = 0;
   let restoreWait: (() => Promise<void>) | undefined;
   let listener: ((event: MatrixNativeEvent) => void) | undefined;
+  let originalEntries: MatrixPendingIntent[] = [];
   const bridge: NativeMatrixBridge = {
     async restore() { await restoreWait?.(); return { generation: 7 }; }, invalidate() {}, async suspend() {},
     async rooms() { return [room]; }, async directRoom() { return room; }, async observeRoom() {}, async closeRoom() {},
+    async pendingIntents() { return originalEntries.map(entry => ({ ...entry })); },
     async stageFile() { return { uri: 'file:///private/staging/original' }; },
-    async sendText() { sendCount++; return { queued: true }; }, async sendFile() { return { queued: true }; },
-    async readEvent(_generation, _room, eventId) { return { eventId, transactionId: null, sender: binding.userId, own: true, remote: true, kind: 'message', body: 'Original' }; },
-    async requestVerification() {}, async verificationAction() {}, async logout() {},
+    async sendText(_generation, roomId, intentId, body) { sendCount++; originalEntries.push({ roomId, intentId, body, kind: 'text', state: 'queued', eventId: null }); return { queued: true }; }, async sendFile() { return { queued: true }; },
+    async readEvent(_generation, _room, eventId) { const original = originalEntries.find(entry => entry.eventId === eventId); return { eventId, transactionId: null, sender: binding.userId, own: true, remote: true, kind: 'message', body: original?.body ?? 'Original', intentId: original?.intentId }; },
+    async requestVerification() { return { attempt: 1 }; }, async verificationAction() {}, async logout() {},
     addListener(_event, callback) { listener = callback; return { remove() { listener = undefined; } }; }
   };
   const consumer = new NativeMatrixConsumer(bridge, async () => current, async () => ({ personId: person, userId: '@peer:example.test', accepted, blocked: false, authorityId: current.authorityId }));
   return { consumer, bridge, setCurrent(value: MatrixBinding) { current = value; }, rejectPeer() { accepted = false; },
-    setRestoreWait(value: () => Promise<void>) { restoreWait = value; }, count: () => sendCount, emit(event: MatrixNativeEvent) { listener?.(event); } };
+    setRestoreWait(value: () => Promise<void>) { restoreWait = value; }, setOriginals(entries: MatrixPendingIntent[]) { originalEntries = entries; },
+    originals: () => originalEntries, count: () => sendCount, emit(event: MatrixNativeEvent) { listener?.(event); } };
 }
 
 test('binding rejects insecure HS, expired authority, callback URLs and invalid identity', () => {
@@ -68,4 +72,76 @@ test('lock fences old native plaintext callbacks and clears visible view', async
   await f.consumer.restore(); await f.consumer.open(person); f.consumer.lock();
   f.emit({ generation: 7, type: 'timeline', roomId: room.roomId, events: [] });
   assert.equal(events.at(-1)?.type, 'locked');
+});
+
+test('restored original journal prevents a changed body or replacement nonce', async () => {
+  const f = fixture(); const id = 'native-matrix-' + '4'.repeat(32);
+  await f.consumer.restore(); await f.consumer.open(person); await f.consumer.send(id, 'Original');
+  f.consumer.lock(); await f.consumer.restore(); await f.consumer.open(person);
+  const [original] = await f.consumer.originals();
+  assert.ok(original, 'the original intent must survive restoration');
+  assert.equal(original.intentId, id);
+  await assert.rejects(f.consumer.send(id, 'Changed'), /COLLISION/);
+  await assert.rejects(f.consumer.send('native-matrix-' + '5'.repeat(32), 'Replacement'), /RECONCILIATION/);
+  await assert.rejects(f.consumer.file('native-matrix-' + '6'.repeat(32), 'file:///private/staging/file', 'image/png', ''), /RECONCILIATION/);
+  assert.equal(f.count(), 1);
+});
+test('an SDK observation does not settle or delete the original journal', async () => {
+  const f = fixture(); const id = 'native-matrix-' + '7'.repeat(32);
+  f.setOriginals([{ intentId: id, roomId: room.roomId, kind: 'text', body: 'Original', state: 'sdk-observed-needs-authenticated-readback', eventId: '$original' }]);
+  await f.consumer.restore(); await f.consumer.open(person);
+  const proof = await f.consumer.inspectOriginal(id);
+  assert.equal(proof.sdkObserved, true); assert.equal(proof.delivered, false);
+  assert.equal(proof.freshServerReadback, false); assert.equal(proof.socialIndexConfirmed, false);
+  assert.equal(f.originals().length, 1);
+  f.bridge.readEvent = async () => ({ eventId: '$original', transactionId: null, sender: binding.userId, own: true, remote: true, kind: 'message', body: 'Original', intentId: 'native-matrix-' + '8'.repeat(32) });
+  await assert.rejects(f.consumer.inspectOriginal(id), /ORIGINAL_EVENT_CONFLICT/);
+});
+test('an older restore completion cannot invalidate a newer successful restoration', async () => {
+  const f = fixture(); let completeOld!: (value: { generation: number }) => void;
+  let restores = 0; let invalidations = 0;
+  f.bridge.invalidate = () => { invalidations++; };
+  f.bridge.restore = async () => ++restores === 1 ? new Promise(resolve => { completeOld = resolve; }) : { generation: 8 };
+  const older = f.consumer.restore(); const rejected = assert.rejects(older, /STALE_AUTHORITY/);
+  await new Promise(resolve => setImmediate(resolve));
+  await f.consumer.restore(); const before = invalidations;
+  completeOld({ generation: 7 }); await rejected;
+  assert.equal(invalidations, before); assert.equal((await f.consumer.rooms()).length, 1);
+});
+test('authority expiry clears the view without deleting native original entries', async () => {
+  const f = fixture(); const seen: MatrixNativeEvent[] = [];
+  f.consumer.listen(event => seen.push(event));
+  f.setOriginals([{ intentId: 'native-matrix-' + '9'.repeat(32), roomId: room.roomId, kind: 'file', body: null, state: 'unknown', eventId: null }]);
+  f.setCurrent({ ...binding, expiresAtMs: Date.now() + 70 });
+  await f.consumer.restore(); await f.consumer.open(person);
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(seen.at(-1)?.type, 'locked'); assert.equal(f.originals().length, 1);
+  await assert.rejects(f.consumer.rooms(), /SESSION_REQUIRED/);
+});
+test('verification rechecks the accepted person before approving SDK trust', async () => {
+  const f = fixture(); let actions = 0;
+  f.bridge.verificationAction = async () => { actions++; };
+  await f.consumer.restore(); await f.consumer.open(person); await f.consumer.requestVerification(person);
+  f.rejectPeer(); await assert.rejects(f.consumer.verification('approve', 1), /ACCEPTED_PEER/);
+  assert.equal(actions, 0);
+});
+test('SAS requires matching peer, current SDK revision and one human approval attempt', async () => {
+  const f = fixture(); let actions = 0;
+  f.bridge.verificationAction = async () => { actions++; };
+  await f.consumer.restore(); await f.consumer.open(person); await f.consumer.requestVerification(person);
+  await assert.rejects(f.consumer.verification('approve', 1), /CURRENT_SAS/);
+  f.emit({ generation: 7, type: 'sas', peerUserId: '@peer:example.test', verificationAttempt: 1, revision: 2, values: ['1234', '2345', '3456'] });
+  await new Promise(resolve => setImmediate(resolve));
+  await assert.rejects(f.consumer.verification('approve', 1), /CURRENT_SAS/);
+  await f.consumer.verification('approve', 2);
+  await assert.rejects(f.consumer.verification('approve', 2), /CURRENT_SAS/);
+  assert.equal(actions, 1);
+});
+test('another peer cannot feed comparison values into the reviewed verification flow', async () => {
+  const f = fixture(); const seen: MatrixNativeEvent[] = []; f.consumer.listen(event => seen.push(event));
+  await f.consumer.restore(); await f.consumer.open(person); await f.consumer.requestVerification(person);
+  f.emit({ generation: 7, type: 'sas', peerUserId: '@other:example.test', verificationAttempt: 1, revision: 1, values: ['1234', '2345', '3456'] });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(seen.at(-1)?.type, 'locked');
+  await assert.rejects(f.consumer.verification('approve', 1), /FLOW_REQUIRED/);
 });

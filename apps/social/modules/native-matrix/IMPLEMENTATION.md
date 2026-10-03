@@ -97,3 +97,29 @@ entries. Normal authorized Matrix operations, final product mounting, HS enrollm
 formal installation/public E2E, and dot MONSTER acceptance remain NOT_VERIFIED.
 The Web build currently fails closed on SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH;
 only the integration owner may supply the exact approved Social registry carrier.
+
+## Original intent recovery and verification fencing successor
+
+The native sealed journal now exposes only its original non-sensitive intent DTOs,
+never staged file paths, keys, tokens or passphrases. Android AtomicFile backup
+recovery is retained. SDK sendWithExtraContent and upload extraContentJson carry
+the original nonce inside SDK-managed encrypted content. Only an own remote SDK
+event with matching original nonce, room, kind and text can mark it observed.
+Queue callbacks without content no longer guess the current intent by timing.
+
+Observation deliberately does not settle, remove or resend an original journal
+entry. The consumer and recovery UI refuse replacement nonces while originals
+remain pending. Fresh authenticated server readback and original Social index
+settlement are still required and are not implemented by a cached SDK read.
+
+Verification callbacks are bound to generation, accepted peer and attempt; SAS
+approval requires the latest SDK revision and explicit human comparison. Expired
+authority clears visible state while retaining the sealed original journal. Late
+restore failures cannot invalidate a newer session. Synthetic source tests cover
+these boundaries; they are not real encrypted delivery or device trust evidence.
+
+This successor passes typecheck, 203 source tests, actual pinned Android module
+compilation, debug APK assembly and Android/iOS JS export. Swift parsing passes,
+but Apple SDK typechecking/linking still requires full Xcode. Actual isolated
+Android UI exercises unavailable canonical authority, close and reopen only.
+Product native mounting, authorized enrollment/lifecycle and dot remain open.

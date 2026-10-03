@@ -490,8 +490,8 @@ function SocialApp() {
       <SafeAreaView style={[styles.auth, { direction: isRTL ? "rtl" : "ltr" }]}>
         <StatusBar style="dark" />
         <LanguagePicker />
-        <View style={[styles.mark, { backgroundColor: "transparent", width: 84, height: 84 }]}>
-          <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 84, height: 84 * 420 / 798, flexShrink: 0 }} />
+        <View style={[styles.mark, { backgroundColor: "transparent", width: 48, height: 48 }]}>
+          <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 24 * 798 / 420, height: 24, flexShrink: 0 }} />
         </View>
         <Text style={styles.authTitle}>YNX Social</Text>
         <Text style={styles.authBody}>
@@ -3709,7 +3709,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  authTitle: { fontSize: 34, fontWeight: "700", color: INK, marginTop: 22 },
+  authTitle: { fontSize: 24, fontWeight: "700", color: INK, marginTop: 16 },
   authBody: {
     fontSize: 16,
     lineHeight: 24,
@@ -3745,7 +3745,8 @@ const styles = StyleSheet.create({
   },
   primaryText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   header: {
-    height: 54,
+    minHeight: 54,
+    paddingVertical: 8,
     paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
@@ -3775,16 +3776,17 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   screen: { flex: 1, backgroundColor: "#FFFFFF" },
   titleRow: {
-    height: 64,
+    minHeight: 64,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  title: { fontSize: 28, fontWeight: "700", color: INK },
+  title: { fontSize: 24, fontWeight: "700", color: INK },
   iconButton: {
-    width: 40,
-    height: 40,
+    minWidth: 48,
+    minHeight: 48,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: LINE,

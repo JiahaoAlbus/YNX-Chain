@@ -12,8 +12,8 @@ a{color:inherit;text-decoration:none}
 .button-secondary{background:#fff;border-color:#cbd3e1}
 .hero{min-height:720px;padding:86px max(28px,calc((100vw - 1240px)/2));display:grid;grid-template-columns:1.08fr .92fr;gap:84px;align-items:center;background:radial-gradient(circle at 82% 18%,#dce6ff 0,transparent 34%),linear-gradient(180deg,#fbfcff,#f4f7ff)}
 .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.13em;font-weight:850;color:var(--blue)}
-.hero h1{font-size:clamp(52px,6.4vw,88px);line-height:.96;letter-spacing:-.06em;margin:24px 0}
-.hero-copy>p{font-size:20px;line-height:1.65;color:var(--muted);max-width:670px}
+.hero h1{font-size:clamp(1.5rem,3.2vw,2rem);line-height:1.15;letter-spacing:-.03em;margin:24px 0}
+.hero-copy>p{font-size:1rem;line-height:1.65;color:var(--muted);max-width:670px}
 .hero-actions{display:flex;gap:12px;margin-top:34px}
 .fineprint{font-size:13px!important}
 .phone{width:min(410px,100%);margin:auto;border:10px solid #111827;border-radius:48px;padding:26px;background:#fff;box-shadow:0 40px 90px #20356c33}
@@ -32,8 +32,8 @@ a{color:inherit;text-decoration:none}
 .post-image{height:188px;border-radius:20px;background:linear-gradient(145deg,#1138bd,#7599ff 55%,#dbe5ff)}
 .section{padding:108px max(28px,calc((100vw - 1240px)/2))}
 .section-head{max-width:720px}
-.section h2{font-size:clamp(38px,4.6vw,62px);letter-spacing:-.045em;margin:14px 0}
-.section p,.section li{color:var(--muted);font-size:17px;line-height:1.65}
+.section h2{font-size:1.5rem;letter-spacing:-.025em;margin:14px 0}
+.section p,.section li{color:var(--muted);font-size:1rem;line-height:1.65}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:48px}
 .grid article{border:1px solid var(--line);border-radius:22px;padding:30px;background:#fff}
 .grid article>span{color:var(--blue);font-weight:800}
@@ -51,7 +51,7 @@ a{color:inherit;text-decoration:none}
 .wallet-dialog{width:min(620px,calc(100vw - 30px));border:0;border-radius:24px;padding:28px;box-shadow:0 32px 90px #0b173a4d}
 .wallet-dialog::backdrop{background:#0a163a99;backdrop-filter:blur(4px)}
 .dialog-head{display:flex;justify-content:space-between;align-items:flex-start}
-.dialog-head h2{font-size:34px;margin:8px 0}
+.dialog-head h2{font-size:1.5rem;margin:8px 0}
 .icon-button{border:0;background:var(--soft);width:42px;height:42px;border-radius:50%;font-size:25px;cursor:pointer}
 .wallet-list{display:grid;gap:12px;margin:28px 0}
 .wallet-option{display:flex;width:100%;gap:15px;align-items:center;text-align:left;border:1px solid var(--line);border-radius:16px;background:#fff;padding:16px;cursor:pointer}
@@ -82,7 +82,7 @@ a{color:inherit;text-decoration:none}
 /* Exact first-party YNX geometry; third-party provider/account images are untouched. */
 body > .topbar > a.brand > img.brand-logo,
 .chat-heading .chat-wordmark > img {
-  width:76px; height:40px; object-fit:contain; flex-shrink:0; border-radius:0;
+  width:calc(24px * 798 / 420); height:24px; object-fit:contain; flex-shrink:0; border-radius:0;
 }
 @media (max-width: 700px) {
   body > .topbar { height:auto; min-height:76px; flex-wrap:wrap; gap:8px; padding:14px 18px; }

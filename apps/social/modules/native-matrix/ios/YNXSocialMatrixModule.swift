@@ -34,20 +34,20 @@ private final class V2Observer: SyncListenerV2, @unchecked Sendable {
   func onUpdate(response: SyncResponseV2) { update() }
 }
 private final class SASObserver: SessionVerificationControllerDelegate, @unchecked Sendable {
-  let update: @Sendable (String, [String]) -> Void
-  init(_ update: @escaping @Sendable (String, [String]) -> Void) { self.update = update }
-  func didReceiveVerificationRequest(details: SessionVerificationRequestDetails) { update("verification-request", []) }
-  func didAcceptVerificationRequest() { update("verification-accepted", []) }
-  func didStartSasVerification() { update("verification-started", []) }
+  let update: @Sendable (String, [String], String?) -> Void
+  init(_ update: @escaping @Sendable (String, [String], String?) -> Void) { self.update = update }
+  func didReceiveVerificationRequest(details: SessionVerificationRequestDetails) { update("verification-request", [], details.senderProfile.userId) }
+  func didAcceptVerificationRequest() { update("verification-accepted", [], nil) }
+  func didStartSasVerification() { update("verification-started", [], nil) }
   func didReceiveVerificationData(data: SessionVerificationData) {
     switch data {
-    case let .emojis(emojis, _): update("sas", emojis.map { $0.symbol() + " " + $0.description() })
-    case let .decimals(values): update("sas", values.map { String($0) })
+    case let .emojis(emojis, _): update("sas", emojis.map { $0.symbol() + " " + $0.description() }, nil)
+    case let .decimals(values): update("sas", values.map { String($0) }, nil)
     }
   }
-  func didFail() { update("verification-failed", []) }
-  func didCancel() { update("verification-cancelled", []) }
-  func didFinish() { update("verification-finished", []) }
+  func didFail() { update("verification-failed", [], nil) }
+  func didCancel() { update("verification-cancelled", [], nil) }
+  func didFinish() { update("verification-finished", [], nil) }
 }
 
 private actor MatrixEngine {
@@ -66,7 +66,8 @@ private actor MatrixEngine {
     var verification: SessionVerificationController?
     var sasRevision = 0
     var sasAvailable = false
-    var activeIntent: String?
+    var verificationPeer: String?
+    var verificationAttempt = 0
     var upload: SendAttachmentJoinHandle?
     var sending = false
     init(_ generation: Int, _ binding: MatrixBindingRecord, _ vault: MatrixVault, _ client: Client) {
@@ -188,7 +189,26 @@ private actor MatrixEngine {
       }
     }
     return ["eventId": event, "transactionId": transaction, "sender": item.sender, "own": item.isOwn,
-      "remote": item.isRemote, "kind": kind, "body": body]
+      "remote": item.isRemote, "kind": kind, "body": body, "intentId": originalPacket(item)?.id as Any? ?? NSNull()]
+  }
+  private func extraContent(_ intent: String, _ kind: String) throws -> String {
+    String(decoding: try JSONSerialization.data(withJSONObject: ["org.ynx.social.intent.v1": ["id": intent, "kind": kind]]), as: UTF8.self)
+  }
+  private func originalPacket(_ item: EventTimelineItem) -> (id: String, kind: String)? {
+    guard item.isOwn, item.isRemote, let raw = item.lazyProvider.debugInfo().originalJson,
+      let event = try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
+      let content = event["content"] as? [String: Any], let packet = content["org.ynx.social.intent.v1"] as? [String: String],
+      let id = packet["id"], id.range(of: "^native-matrix-[a-f0-9]{32}$", options: .regularExpression) != nil,
+      let kind = packet["kind"], ["text", "file"].contains(kind) else { return nil }
+    return (id, kind)
+  }
+  private func recordSDKEvent(_ h: Handle, _ room: String, _ item: EventTimelineItem) throws {
+    _ = try current(h.generation)
+    guard item.sender == h.binding.userId, item.isOwn, item.isRemote, let packet = originalPacket(item),
+      case let .eventId(eventId) = item.eventOrTransactionId else { return }
+    var body: String?
+    if case let .msgLike(content) = item.content, case let .message(message) = content.kind { body = message.body }
+    _ = try h.vault.observeOriginal(intent: packet.id, room: room, kind: packet.kind, body: body, event: eventId)
   }
   func observeRoom(_ generation: Int, _ id: String) async throws {
     let h = try current(generation)
@@ -224,12 +244,19 @@ private actor MatrixEngine {
       case let .reset(values): h.items = values
       }
     }
-    emit(h, "timeline", ["roomId": id, "events": h.items.compactMap { $0.asEvent().map(eventDto) }])
+    do {
+      let events = try h.items.compactMap { item -> [String: Any]? in
+        guard let event = item.asEvent() else { return nil }
+        try recordSDKEvent(h, id, event)
+        return eventDto(event)
+      }
+      emit(h, "timeline", ["roomId": id, "events": events])
+    } catch { emit(h, "native-journal-error") }
   }
   private func queueUpdate(_ h: Handle, _ id: String, _ update: RoomSendQueueUpdate) {
     do {
       switch update {
-      case let .newLocalEvent(transaction): if let intent = h.activeIntent { try h.vault.correlate(intent: intent, transaction: transaction) }
+      case let .newLocalEvent(transaction): emit(h, "sdk-local-echo", ["roomId": id, "transactionId": transaction])
       case let .sentEvent(transaction, event):
         let intent = try h.vault.receipt(room: id, transaction: transaction, event: event)
         emit(h, "sdk-sent-needs-readback", ["roomId": id, "transactionId": transaction, "eventId": event, "intentId": intent as Any? ?? NSNull()])
@@ -240,15 +267,22 @@ private actor MatrixEngine {
     } catch { emit(h, "native-journal-error") }
   }
   func closeRoom(_ generation: Int) async throws { await close(try current(generation)) }
+  func pendingIntents(_ generation: Int, _ id: String) async throws -> [[String: Any]] {
+    let h = try current(generation)
+    _ = try await room(h, id)
+    guard h.roomId == id else { throw MatrixBridgeFailure.denied("MATRIX_REVIEWED_ROOM_REQUIRED") }
+    let entries = try h.vault.pending(room: id)
+    _ = try current(generation)
+    return entries
+  }
   func sendText(_ generation: Int, _ id: String, _ intent: String, _ body: String) async throws -> [String: Any] {
     let h = try current(generation)
     guard !h.sending, h.roomId == id, let timeline = h.timeline, !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, body.count <= 16000 else { throw MatrixBridgeFailure.denied("MATRIX_REVIEWED_SEND_REQUIRED") }
-    h.sending = true; defer { h.sending = false; h.activeIntent = nil }
+    h.sending = true; defer { h.sending = false }
     let target = try await room(h, id)
     try h.vault.reserve(intent: intent, room: id, kind: "text", body: body)
-    h.activeIntent = intent
     target.enableSendQueue(enable: true)
-    _ = try await timeline.send(msg: messageEventContentFromMarkdown(md: body))
+    _ = try await timeline.sendWithExtraContent(msg: messageEventContentFromMarkdown(md: body), extraContentJson: extraContent(intent, "text"))
     _ = try current(generation)
     return ["queued": true]
   }
@@ -267,13 +301,12 @@ private actor MatrixEngine {
     guard !h.sending, h.roomId == id, let timeline = h.timeline, let file = URL(string: uri), file.isFileURL,
       file.resolvingSymlinksInPath().path.hasPrefix(h.vault.staging.resolvingSymlinksInPath().path + "/"),
       let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 20 * 1024 * 1024 else { throw MatrixBridgeFailure.denied("MATRIX_PRIVATE_STAGING_REQUIRED") }
-    h.sending = true; defer { h.sending = false; h.activeIntent = nil; h.upload = nil }
+    h.sending = true; defer { h.sending = false; h.upload = nil }
     let target = try await room(h, id)
     try h.vault.reserve(intent: intent, room: id, kind: "file", body: uri)
-    h.activeIntent = intent
     target.enableSendQueue(enable: true)
     let upload = try timeline.sendFile(params: UploadParameters(source: .file(filename: file.path), caption: caption,
-      formattedCaption: nil, mentions: nil, inReplyTo: nil), fileInfo: FileInfo(mimetype: mime, size: UInt64(size), thumbnailInfo: nil, thumbnailSource: nil))
+      formattedCaption: nil, mentions: nil, inReplyTo: nil, extraContentJson: extraContent(intent, "file")), fileInfo: FileInfo(mimetype: mime, size: UInt64(size), thumbnailInfo: nil, thumbnailSource: nil))
     h.upload = upload
     try await upload.join()
     _ = try current(generation)
@@ -286,20 +319,35 @@ private actor MatrixEngine {
     try await timeline.fetchDetailsForEvent(eventId: eventId)
     let event = try await timeline.getEventTimelineItemByEventId(eventId: eventId)
     _ = try current(generation)
+    try recordSDKEvent(h, id, event)
     return eventDto(event)
   }
-  func requestVerification(_ generation: Int, _ peer: String) async throws {
+  func requestVerification(_ generation: Int, _ peer: String) async throws -> [String: Any] {
     let h = try current(generation)
+    guard peer.hasPrefix("@"), peer != h.binding.userId, h.verificationPeer == nil else { throw MatrixBridgeFailure.denied("MATRIX_VERIFICATION_FLOW_ALREADY_ACTIVE") }
+    h.verificationPeer = peer
+    h.sasAvailable = false
+    h.verificationAttempt += 1
+    let attempt = h.verificationAttempt
+    do {
     let controller = try await h.client.getSessionVerificationController()
     h.verification = controller
-    controller.setDelegate(delegate: SASObserver { [weak self] type, values in Task { await self?.verificationUpdate(h, type, values) } })
+    controller.setDelegate(delegate: SASObserver { [weak self] type, values, sender in Task { await self?.verificationUpdate(h, type, values, sender, attempt) } })
     try await controller.requestUserVerification(userId: peer)
     _ = try current(generation)
+    return ["attempt": attempt]
+    } catch { h.verificationPeer = nil; throw error }
   }
-  private func verificationUpdate(_ h: Handle, _ type: String, _ values: [String]) {
+  private func verificationUpdate(_ h: Handle, _ type: String, _ values: [String], _ sender: String?, _ attempt: Int) {
+    guard h.generation == gate.current(), h.verificationAttempt == attempt, let peer = h.verificationPeer else { return }
+    if type == "verification-request" {
+      h.sasRevision += 1; h.sasAvailable = false
+      if sender != peer { emit(h, "verification-peer-mismatch", ["peerUserId": sender as Any? ?? NSNull()]); return }
+    }
     if type == "sas" { h.sasRevision += 1; h.sasAvailable = true }
     if ["verification-finished", "verification-failed", "verification-cancelled"].contains(type) { h.sasAvailable = false }
-    emit(h, type, ["revision": h.sasRevision, "values": values])
+    emit(h, type, ["revision": h.sasRevision, "values": values, "peerUserId": peer, "verificationAttempt": attempt])
+    if ["verification-finished", "verification-failed", "verification-cancelled"].contains(type) { h.verificationPeer = nil }
   }
   func verificationAction(_ generation: Int, _ action: String, _ revision: Int) async throws {
     let h = try current(generation)
@@ -336,11 +384,12 @@ public final class YNXSocialMatrixModule: Module, @unchecked Sendable {
     AsyncFunction("directRoom") { (generation: Int, peer: String) async throws -> [String: Any] in try await self.engine.directRoom(generation, peer) }
     AsyncFunction("observeRoom") { (generation: Int, id: String) async throws in try await self.engine.observeRoom(generation, id) }
     AsyncFunction("closeRoom") { (generation: Int) async throws in try await self.engine.closeRoom(generation) }
+    AsyncFunction("pendingIntents") { (generation: Int, id: String) async throws -> [[String: Any]] in try await self.engine.pendingIntents(generation, id) }
     AsyncFunction("sendText") { (generation: Int, id: String, intent: String, body: String) async throws -> [String: Any] in try await self.engine.sendText(generation, id, intent, body) }
     AsyncFunction("stageFile") { (generation: Int, source: String) async throws -> [String: Any] in try await self.engine.stageFile(generation, source) }
     AsyncFunction("sendFile") { (generation: Int, id: String, intent: String, uri: String, mime: String, caption: String) async throws -> [String: Any] in try await self.engine.sendFile(generation, id, intent, uri, mime, caption) }
     AsyncFunction("readEvent") { (generation: Int, id: String, event: String) async throws -> [String: Any] in try await self.engine.readEvent(generation, id, event) }
-    AsyncFunction("requestVerification") { (generation: Int, peer: String) async throws in try await self.engine.requestVerification(generation, peer) }
+    AsyncFunction("requestVerification") { (generation: Int, peer: String) async throws -> [String: Any] in try await self.engine.requestVerification(generation, peer) }
     AsyncFunction("verificationAction") { (generation: Int, action: String, revision: Int) async throws in try await self.engine.verificationAction(generation, action, revision) }
     AsyncFunction("logout") { (generation: Int) async throws in try await self.engine.logout(generation) }
     OnDestroy { self.gate.invalidate(); Task { await self.engine.suspend() } }

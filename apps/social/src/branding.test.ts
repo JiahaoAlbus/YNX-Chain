@@ -19,7 +19,8 @@ test('Native brand is outside the App state boundary and protects the original a
   const brand = readFileSync(new URL('./BrandRoot.tsx', import.meta.url), 'utf8');
   assert.match(entry, /registerRootComponent\(withSocialBrand\(App\)\)/);
   assert.match(brand, /resizeMode="contain"/);
-  assert.match(brand, /height: 76 \* 420 \/ 798, flexShrink: 0/);
+  assert.match(brand, /width: 24 \* 798 \/ 420, height: 24, flexShrink: 0/);
+  assert.doesNotMatch(brand, /numberOfLines|allowFontScaling=\{false\}|maxFontSizeMultiplier/);
   assert.match(brand, /<View style=\{styles\.content\}><App \/><\/View>/);
   const app = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8');
   assert.equal((app.match(/source=\{require\("\.\/assets\/ynx-original-logo\.png"\)\}/g) ?? []).length, 2);
@@ -31,6 +32,7 @@ test('Web brand has contain geometry and small-screen navigation cannot cover th
   const css = readFileSync(new URL('../web/styles.css', import.meta.url), 'utf8');
   assert.match(html, /class="brand-logo"[^>]*width="76" height="40"/);
   assert.match(css, /object-fit:contain; flex-shrink:0; border-radius:0/);
+  assert.match(css, /width:calc\(24px \* 798 \/ 420\); height:24px/);
   assert.match(css, /body > \.topbar > nav \{ position:static; inset:auto; transform:none; order:3/);
   assert.match(css, /#connect-wallet \{[^}]*min-height:44px/);
 });
