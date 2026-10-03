@@ -35,7 +35,7 @@ export function parseProductSessionRegistry(input) {
   uniqueSorted(products.map((item) => item.productId), "productId");
   unique(products.map((item) => item.clientId), "clientId");
   unique(products.map((item) => item.applicationId), "applicationId");
-  unique(products.map((item) => item.webOrigin), "webOrigin");
+  unique(products.filter((item) => !item.platforms || item.platforms.includes("web")).map((item) => item.webOrigin), "webOrigin");
   unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
   const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}\n${item.productId}`));
   const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
@@ -76,7 +76,7 @@ export function productPlatformBinding(registryInput, productId, platform) {
     bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
     packageId: ["android", "linux", "windows"].includes(platform) ? product.applicationId : null,
     origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
-    callback: web ? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
+    callback: web ? product.webCallback ?? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
     scopes: product.scopes,
     evmCompatible: product.evmCompatible,
     sessionDurationSeconds: product.sessionDurationSeconds,
@@ -112,19 +112,29 @@ export function migrateLegacyCallback(registryInput, legacyValue, context) {
 
 function parseProduct(input) {
   const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
-  exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
-  // Omission preserves the existing six-platform contract. The explicit form is
-  // currently limited to Web-only products with no registered native client.
-  if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
-    fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
-  }
+  const hasWebCallback = input !== null && typeof input === "object" && Object.hasOwn(input, "webCallback");
+  exactFields(input, [...PRODUCT_FIELDS, ...(hasPlatforms ? ["platforms"] : []), ...(hasWebCallback ? ["webCallback"] : [])], "Product Session product registration");
+  // Omission preserves the original six-platform contract. Explicit subsets
+  // admit only owner-declared clients, never imaginary native installations.
+  const platforms = hasPlatforms ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS.length, value => {
+    if (!PRODUCT_SESSION_PLATFORMS.includes(value)) fail("INVALID_ROUTER_REGISTRY", "Product platform is unsupported");
+    return value;
+  }) : PRODUCT_SESSION_PLATFORMS;
   const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
   const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
   const displayName = text(input.displayName, "displayName", 2, 64);
   const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
   const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+  let webCallback;
+  if (hasWebCallback) {
+    webCallback = callback(input.webCallback, "webCallback", { allowHttps: true });
+    const target = new URL(webCallback);
+    if (!platforms.includes("web") || target.protocol !== "https:" || target.origin !== webOrigin || target.search || target.hash || target.pathname === "/" || target.pathname.split("/").some(part => part === "." || part === "..") || target.pathname.includes("%")) {
+      fail("INVALID_ROUTER_REGISTRY", "Web callback requires an exact same-origin registered Web client route");
+    }
+  }
   let nativeCallback, legacyCallbacks;
-  if (hasPlatforms) {
+  if (!platforms.some(platform => platform !== "web")) {
     if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
       fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
     }
@@ -147,7 +157,8 @@ function parseProduct(input) {
   }
   return Object.freeze({
     productId, clientId, displayName, applicationId, webOrigin, nativeCallback,
-    ...(hasPlatforms ? { platforms: Object.freeze(["web"]) } : {}),
+    ...(hasPlatforms ? { platforms: Object.freeze(platforms) } : {}),
+    ...(hasWebCallback ? { webCallback } : {}),
     legacyCallbacks: Object.freeze(legacyCallbacks), scopes: Object.freeze(scopes),
     evmCompatible: input.evmCompatible, sessionDurationSeconds: input.sessionDurationSeconds,
   });
@@ -189,3 +200,27 @@ function unique(values, label) { if (new Set(values).size !== values.length) fai
 function pattern(value, label, regex) { const result = text(value, label, 1, 512); if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`); return result; }
 function text(value, label, minimum, maximum) { if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`); return value; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
+
+// Operator configuration selects exact private products/platforms independently
+// of browser identity consent. Public key provisioning is a separate mandatory
+// server dependency; this function neither enables a product nor grants scopes.
+export function parsePrivateBusinessRegistrations(registryInput, inputs) {
+  const registry = parseProductSessionRegistry(registryInput);
+  if (!Array.isArray(inputs) || inputs.length > 32) fail("INVALID_PRIVATE_REGISTRATION", "Private backend roster is bounded");
+  const allowedProducts = new Set(["finance","exchange","quant","social","ai","developer","calendar","cloud","docs","mail","shop","video","creator-studio","music","card","pay-merchant"]);
+  const entries = inputs.map(input => {
+    exactFields(input, ["productId", "platform", "keyId", "allowedScopes"], "Private business backend registration");
+    if (!allowedProducts.has(input.productId)) fail("INVALID_PRIVATE_REGISTRATION", "Private business product is not admitted");
+    const binding = productPlatformBinding(registry, input.productId, input.platform);
+    const keyId = pattern(input.keyId, "private key id", /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/);
+    const allowedScopes = stringList(input.allowedScopes, "private allowed scopes", 1, 8, value => {
+      if (typeof value !== "string" || !binding.scopes.includes(value)) fail("INVALID_PRIVATE_REGISTRATION", "Private scope is not exactly registered");
+      return value;
+    });
+    return Object.freeze({backendClientId: `${binding.clientId}-business-${binding.platform}-v1`, keyId,
+      ...Object.fromEntries(["chainId","productId","clientId","platform","applicationId","bundleId","packageId","origin","callback"].map(field => [field,binding[field]])),
+      allowedScopes: Object.freeze(allowedScopes)});
+  });
+  unique(entries.map(entry => entry.backendClientId), "private backend client");
+  return Object.freeze(entries);
+}

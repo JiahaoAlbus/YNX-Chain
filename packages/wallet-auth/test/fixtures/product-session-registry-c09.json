@@ -220,29 +220,6 @@
       "sessionDurationSeconds": 240
     },
     {
-      "productId": "music",
-      "clientId": "ynx-music-v1",
-      "displayName": "YNX Music",
-      "applicationId": "com.ynxweb4.music",
-      "webOrigin": "https://music.ynxweb4.com",
-      "platforms": [
-        "android",
-        "ios"
-      ],
-      "nativeCallback": "ynxmusic://auth/callback",
-      "legacyCallbacks": [
-        "ynxmusic://auth/callback"
-      ],
-      "scopes": [
-        "music.creator",
-        "music.library",
-        "music.playback",
-        "music.profile"
-      ],
-      "evmCompatible": false,
-      "sessionDurationSeconds": 300
-    },
-    {
       "productId": "pay",
       "clientId": "ynx-pay-v1",
       "displayName": "YNX Pay",
@@ -259,33 +236,7 @@
         "pay:settlement:submit"
       ],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180,
-      "platforms": [
-        "android",
-        "ios",
-        "linux",
-        "macos",
-        "windows"
-      ]
-    },
-    {
-      "productId": "pay-merchant",
-      "clientId": "ynx-merchant-console-v1",
-      "displayName": "YNX Merchant Console",
-      "applicationId": "com.ynxweb4.merchant-console",
-      "webOrigin": "https://pay.ynxweb4.com",
-      "webCallback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
-      "platforms": [
-        "web"
-      ],
-      "nativeCallback": null,
-      "legacyCallbacks": [],
-      "scopes": [
-        "account:read",
-        "merchant:session:create"
-      ],
-      "evmCompatible": true,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 180
     },
     {
       "productId": "quant",
@@ -323,8 +274,7 @@
       "scopes": [
         "account:read",
         "shop:orders:write",
-        "shop:profile:write",
-        "shop:seller:operate"
+        "shop:profile:write"
       ],
       "evmCompatible": true,
       "sessionDurationSeconds": 240

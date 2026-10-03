@@ -1,8 +1,18 @@
 import {WALLETCONNECT_CHAIN,WALLETCONNECT_SESSION_METHODS,WALLETCONNECT_SESSION_EVENTS,parseWalletConnectPairingUri} from './walletconnect-protocol.js';
 
 export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
-const ORIGINS=new Set(['https://finance.ynxweb4.com','https://exchange.ynxweb4.com','https://quant.ynxweb4.com','https://wallet-auth.ynxweb4.com','https://social.ynxweb4.com','https://assistant.ynxweb4.com','https://video.ynxweb4.com','https://creator.ynxweb4.com']);
-const METHODS=new Set(['personal_sign','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
+// Exact first-party transport policy; admission does not grant a ProductSession,
+// expand the default identity roster, or approve a Wallet RPC request.
+const LEGACY_METHODS=Object.freeze(['personal_sign','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
+const PRIVATE_METHODS=Object.freeze(['ynx_requestProductSessionV2']);
+const IDENTITY_METHODS=Object.freeze(['ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
+const ORIGIN_METHODS=new Map([
+  ...['finance','exchange','quant','wallet-auth'].map(host=>[`https://${host}.ynxweb4.com`,LEGACY_METHODS]),
+  ...['social','assistant','video','creator'].map(host=>[`https://${host}.ynxweb4.com`,PRIVATE_METHODS]),
+  ...['web4','docs','calendar','mail','developer','shop'].map(host=>[`https://${host}.ynxweb4.com`,IDENTITY_METHODS]),
+  ...['music','pay','card'].map(host=>[`https://${host}.ynxweb4.com`,PRIVATE_METHODS]),
+]);
+const READ_METHODS=new Set(['eth_accounts','eth_requestAccounts','eth_chainId']);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const reason={code:6000,message:'User disconnected'};
 // Preserve the historical SDK database and empty storage prefix. A module
@@ -49,7 +59,7 @@ const corePairings=client=>client.core.pairing.pairings.getAll();
 export class WalletConnectDAppConnection{
   #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
-    if(!ORIGINS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!METHODS.has(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)||(['https://social.ynxweb4.com','https://assistant.ynxweb4.com','https://video.ynxweb4.com','https://creator.ynxweb4.com'].includes(origin)&&method!=='ynx_requestProductSessionV2')))fail('YNX_PAIR_CONFIGURATION_INVALID');
+    if(!ORIGIN_METHODS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!ORIGIN_METHODS.get(origin).includes(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
     this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this));this.#deadline=deadlineMs;this.#now=now;
   }
@@ -84,7 +94,7 @@ export class WalletConnectDAppConnection{
     if(url.origin!=='https://wallet.ynxweb4.com'||url.username||url.password)fail('YNX_PAIR_PEER_INVALID');
     const namespaces=session.namespaces;if(!namespaces||Object.keys(namespaces).join(',')!=='eip155')fail('YNX_PAIR_NAMESPACE_INVALID');
     const value=namespaces.eip155;
-    if(!Array.isArray(value.accounts)||value.accounts.length!==1||!/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0])||!Array.isArray(value.methods)||this.#methods.some(method=>!value.methods.includes(method))||value.methods.some(method=>!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_NAMESPACE_INVALID');
+    if(!Array.isArray(value.accounts)||value.accounts.length!==1||!/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0])||!Array.isArray(value.methods)||this.#methods.some(method=>!value.methods.includes(method))||value.methods.some(method=>!WALLETCONNECT_SESSION_METHODS.includes(method)||(!ORIGIN_METHODS.get(this.#origin).includes(method)&&!READ_METHODS.has(method))))fail('YNX_PAIR_NAMESPACE_INVALID');
     if(value.chains&&(!Array.isArray(value.chains)||value.chains.length!==1||value.chains[0]!==WALLETCONNECT_CHAIN))fail('YNX_PAIR_CHAIN_INVALID');
     return session;
   }

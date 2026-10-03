@@ -49,6 +49,17 @@ func NewBusinessRevalidator(client *Client, backendClientID, keyID string, key e
 	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...), backendClientID: backendClientID, business: true}, nil
 }
 
+// NewPrivateBusinessRevalidator uses a distinct operator-approved backend role
+// for exactly this private product/platform. It does not add browser identity
+// consent or install its public key at the authority. The server must explicitly
+// register this same tuple/key/scopes independently before requests can succeed.
+func NewPrivateBusinessRevalidator(client *Client, backendClientID, keyID string, key ed25519.PrivateKey) (*Revalidator, error) {
+	if client == nil || client.endpoint != "https://wallet-auth.ynxweb4.com" || backendClientID != client.policy.ClientID+"-business-"+client.policy.Platform+"-v1" || !slices.Contains([]string{"finance", "exchange", "quant", "social", "ai", "developer", "calendar", "cloud", "docs", "mail", "shop", "video", "creator-studio", "music", "card", "pay-merchant"}, client.policy.ProductID) || keyID == "" || len(key) != ed25519.PrivateKeySize {
+		return nil, fail("INVALID_REVALIDATION_CONFIG", 500)
+	}
+	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...), backendClientID: backendClientID, business: true}, nil
+}
+
 func (r *Revalidator) Revalidate(ctx context.Context, original Session, requiredScopes []string) (Session, error) {
 	var zero Session
 	c := r.client

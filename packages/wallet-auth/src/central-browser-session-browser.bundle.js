@@ -34,9 +34,9 @@
   ));
   var __toCommonJS = (mod3) => __copyProps(__defProp({}, "__esModule", { value: true }), mod3);
 
-  // node_modules/events/events.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/events/events.js
   var require_events = __commonJS({
-    "node_modules/events/events.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/events/events.js"(exports, module) {
       "use strict";
       var R3 = typeof Reflect === "object" ? Reflect : null;
       var ReflectApply = R3 && typeof R3.apply === "function" ? R3.apply : function ReflectApply2(target, receiver, args) {
@@ -403,7 +403,7 @@
     }
   });
 
-  // node_modules/tslib/tslib.es6.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/tslib/tslib.es6.js
   var tslib_es6_exports = {};
   __export(tslib_es6_exports, {
     __assign: () => __assign,
@@ -708,7 +708,7 @@
   }
   var extendStatics, __assign;
   var init_tslib_es6 = __esm({
-    "node_modules/tslib/tslib.es6.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/tslib/tslib.es6.js"() {
       extendStatics = function(d3, b4) {
         extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d4, b5) {
           d4.__proto__ = b5;
@@ -730,9 +730,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/utils/delay.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/delay.js
   var require_delay = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/utils/delay.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/delay.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.delay = void 0;
@@ -747,9 +747,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/constants/misc.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/misc.js
   var require_misc = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/constants/misc.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/misc.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ONE_THOUSAND = exports.ONE_HUNDRED = void 0;
@@ -758,9 +758,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/constants/time.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/time.js
   var require_time = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/constants/time.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/time.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ONE_YEAR = exports.FOUR_WEEKS = exports.THREE_WEEKS = exports.TWO_WEEKS = exports.ONE_WEEK = exports.THIRTY_DAYS = exports.SEVEN_DAYS = exports.FIVE_DAYS = exports.THREE_DAYS = exports.ONE_DAY = exports.TWENTY_FOUR_HOURS = exports.TWELVE_HOURS = exports.SIX_HOURS = exports.THREE_HOURS = exports.ONE_HOUR = exports.SIXTY_MINUTES = exports.THIRTY_MINUTES = exports.TEN_MINUTES = exports.FIVE_MINUTES = exports.ONE_MINUTE = exports.SIXTY_SECONDS = exports.THIRTY_SECONDS = exports.TEN_SECONDS = exports.FIVE_SECONDS = exports.ONE_SECOND = void 0;
@@ -792,9 +792,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/constants/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/index.js
   var require_constants = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/constants/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/constants/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -803,9 +803,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/utils/convert.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/convert.js
   var require_convert = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/utils/convert.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/convert.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.fromMiliseconds = exports.toMiliseconds = void 0;
@@ -821,9 +821,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/utils/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/index.js
   var require_utils = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/utils/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/utils/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -832,9 +832,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/watch.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/watch.js
   var require_watch = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/watch.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/watch.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Watch = void 0;
@@ -874,9 +874,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/types/watch.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/types/watch.js
   var require_watch2 = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/types/watch.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/types/watch.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.IWatch = void 0;
@@ -886,9 +886,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/types/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/types/index.js
   var require_types = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/types/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/types/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -896,9 +896,9 @@
     }
   });
 
-  // node_modules/@walletconnect/time/dist/cjs/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/index.js
   var require_cjs = __commonJS({
-    "node_modules/@walletconnect/time/dist/cjs/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/time/dist/cjs/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -909,26 +909,26 @@
     }
   });
 
-  // node_modules/@walletconnect/events/dist/esm/events.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/events/dist/esm/events.js
   var IEvents;
   var init_events = __esm({
-    "node_modules/@walletconnect/events/dist/esm/events.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/events/dist/esm/events.js"() {
       IEvents = class {
       };
     }
   });
 
-  // node_modules/@walletconnect/events/dist/esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/events/dist/esm/index.js
   var init_esm = __esm({
-    "node_modules/@walletconnect/events/dist/esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/events/dist/esm/index.js"() {
       init_events();
     }
   });
 
-  // node_modules/@walletconnect/heartbeat/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/heartbeat/dist/index.es.js
   var import_events, import_time, n, s, r, i;
   var init_index_es = __esm({
-    "node_modules/@walletconnect/heartbeat/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/heartbeat/dist/index.es.js"() {
       import_events = __toESM(require_events());
       import_time = __toESM(require_cjs());
       init_esm();
@@ -975,7 +975,7 @@
     }
   });
 
-  // node_modules/destr/dist/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/destr/dist/index.mjs
   function jsonParseTransform(key, value) {
     if (key === "__proto__" || key === "constructor" && value && typeof value === "object" && "prototype" in value) {
       warnKeyDropped(key);
@@ -1042,14 +1042,14 @@
   }
   var suspectProtoRx, suspectConstructorRx, JsonSigRx;
   var init_dist = __esm({
-    "node_modules/destr/dist/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/destr/dist/index.mjs"() {
       suspectProtoRx = /"(?:_|\\u0{2}5[Ff]){2}(?:p|\\u0{2}70)(?:r|\\u0{2}72)(?:o|\\u0{2}6[Ff])(?:t|\\u0{2}74)(?:o|\\u0{2}6[Ff])(?:_|\\u0{2}5[Ff]){2}"\s*:/;
       suspectConstructorRx = /"(?:c|\\u0063)(?:o|\\u006[Ff])(?:n|\\u006[Ee])(?:s|\\u0073)(?:t|\\u0074)(?:r|\\u0072)(?:u|\\u0075)(?:c|\\u0063)(?:t|\\u0074)(?:o|\\u006[Ff])(?:r|\\u0072)"\s*:/;
       JsonSigRx = /^\s*["[{]|^\s*-?\d{1,16}(\.\d{1,17})?([Ee][+-]?\d+)?\s*$/;
     }
   });
 
-  // node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs
   function wrapToPromise(value) {
     if (!value || typeof value.then !== "function") {
       return Promise.resolve(value);
@@ -1146,12 +1146,12 @@
   }
   var BASE64_PREFIX;
   var init_unstorage_zVDD2mZo = __esm({
-    "node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs"() {
       BASE64_PREFIX = "base64:";
     }
   });
 
-  // node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs
   function defineDriver(factory) {
     return factory;
   }
@@ -1557,7 +1557,7 @@
   }
   var DRIVER_NAME, memory;
   var init_dist2 = __esm({
-    "node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs"() {
       init_dist();
       init_unstorage_zVDD2mZo();
       DRIVER_NAME = "memory";
@@ -1598,7 +1598,7 @@
     }
   });
 
-  // node_modules/idb-keyval/dist/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/idb-keyval/dist/index.js
   function promisifyRequest(request) {
     return new Promise((resolve, reject) => {
       request.oncomplete = request.onsuccess = () => resolve(request.result);
@@ -1669,11 +1669,11 @@
   }
   var defaultGetStoreFunc;
   var init_dist3 = __esm({
-    "node_modules/idb-keyval/dist/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/idb-keyval/dist/index.js"() {
     }
   });
 
-  // node_modules/@walletconnect/safe-json/dist/esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/safe-json/dist/esm/index.js
   function safeJsonParse(value) {
     if (typeof value !== "string") {
       throw new Error(`Cannot safe json parse value of type ${typeof value}`);
@@ -1689,7 +1689,7 @@
   }
   var JSONStringify, JSONParse;
   var init_esm2 = __esm({
-    "node_modules/@walletconnect/safe-json/dist/esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/safe-json/dist/esm/index.js"() {
       JSONStringify = (data) => JSON.stringify(data, (_3, value) => typeof value === "bigint" ? value.toString() + "n" : value);
       JSONParse = (json) => {
         const numbersBiggerThanMaxInt = /([\[:])?(\d{17,}|(?:[9](?:[1-9]07199254740991|0[1-9]7199254740991|00[8-9]199254740991|007[2-9]99254740991|007199[3-9]54740991|0071992[6-9]4740991|00719925[5-9]740991|007199254[8-9]40991|0071992547[5-9]0991|00719925474[1-9]991|00719925474099[2-9])))([,\}\]])/g;
@@ -1704,14 +1704,14 @@
     }
   });
 
-  // node_modules/@walletconnect/keyvaluestorage/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/dist/index.es.js
   function k(i3) {
     var t2;
     return [i3[0], safeJsonParse((t2 = i3[1]) != null ? t2 : "")];
   }
   var x, z, D, E, _, l2, c, K, N, y, O, j, h;
   var init_index_es2 = __esm({
-    "node_modules/@walletconnect/keyvaluestorage/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/keyvaluestorage/dist/index.es.js"() {
       init_dist2();
       init_dist3();
       init_esm2();
@@ -1870,7 +1870,7 @@
     }
   });
 
-  // node_modules/@walletconnect/logger/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/logger/dist/index.es.js
   function se(e2) {
     try {
       return JSON.stringify(e2);
@@ -2160,7 +2160,7 @@
   }
   var b, ie, G, E2, le, A, P, ae, Oe, Z, k2, x2, ze, _e, y2, je, q, Se, Ee, ke, B, J, Ce, Ie, Te, xe, Be, Ae, Pe, Ve, Ne, $e, Fe, H, Me, De, W, p, w;
   var init_index_es3 = __esm({
-    "node_modules/@walletconnect/logger/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/logger/dist/index.es.js"() {
       b = { exports: {} };
       ie = oe;
       G = ie;
@@ -2325,10 +2325,10 @@
     }
   });
 
-  // node_modules/@walletconnect/types/dist/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/types/dist/index.js
   var import_events4, n2, h2, a2, g, u, p2, d, x3, y3, v2, C, S, M;
   var init_dist4 = __esm({
-    "node_modules/@walletconnect/types/dist/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/types/dist/index.js"() {
       init_esm();
       import_events4 = __toESM(require_events());
       n2 = class extends IEvents {
@@ -2399,7 +2399,7 @@
     }
   });
 
-  // node_modules/@walletconnect/relay-auth/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/relay-auth/dist/index.es.js
   function En(t2) {
     return t2 instanceof Uint8Array || ArrayBuffer.isView(t2) && t2.constructor.name === "Uint8Array";
   }
@@ -3109,7 +3109,7 @@
   }
   var import_time2, it, _t, xn, An, wt, St, _n, Sn, vn, In, Un, Tn, Fn, Nn, Ln, On, Hn, zn, Mn, $n, kn, Rn, jn, Zn, Gn, x4, Vn, Yn, P2, Q2, Jn, Kn, vt, be2, Wn, Xn, K3, Lt, er, nr, M2, N3, nt, rr, Ht, Be2, Ce2, ur, cr, Se2, gt, qt, Ie2, G2, j2, yt, wr, Er, kt, Ue2, xr, Te2, Br, Cr, Sr, vr, Rt, jt, Zt, ut, Dt, Gt, xt, Vt, Yt, Jt, dt, Kt, Wt, Ne2, Ur, Tr, He, Fr, Nr, Lr, Or, Hr, ze2, zr, Bt, ht, Mr, qr, k3, $r, kr, Rr, jr, Zr, Gr, Vr, Yr, Jr, Kr, Wr, Xr, Pr, Qr, to, eo, no, ro, oo, so, io, uo, co, ao, fo, Do, ho, lo, bo, po, wo, Eo, Me2, go, yo, Co, Ao, mo, qe, _o, So, vo, Io, Uo, ke2, To, Fo, No, Lo, Oo, Ho, zo, Mo, qo, $o, ko, Re2, je2, Ze, Qt, Ro, Ge2, jo, Ve2, Zo, Go, Vo, Ye, Yo, Je, Jo, Ko, Wo, Ke, Xe, te2, Pe2;
   var init_index_es4 = __esm({
-    "node_modules/@walletconnect/relay-auth/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/relay-auth/dist/index.es.js"() {
       import_time2 = __toESM(require_cjs());
       init_esm2();
       it = typeof globalThis == "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
@@ -3475,7 +3475,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/vendor/base-x.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/vendor/base-x.js
   function base(ALPHABET, name2) {
     if (ALPHABET.length >= 255) {
       throw new TypeError("Alphabet too long");
@@ -3608,17 +3608,17 @@
   }
   var src, _brrp__multiformats_scope_baseX, base_x_default;
   var init_base_x = __esm({
-    "node_modules/multiformats/esm/vendor/base-x.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/vendor/base-x.js"() {
       src = base;
       _brrp__multiformats_scope_baseX = src;
       base_x_default = _brrp__multiformats_scope_baseX;
     }
   });
 
-  // node_modules/multiformats/esm/src/bytes.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bytes.js
   var empty, equals, coerce, fromString, toString;
   var init_bytes = __esm({
-    "node_modules/multiformats/esm/src/bytes.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bytes.js"() {
       empty = new Uint8Array(0);
       equals = (aa, bb) => {
         if (aa === bb)
@@ -3648,10 +3648,10 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base.js
   var Encoder, Decoder, ComposedDecoder, or2, Codec, from, baseX, decode, encode, rfc4648;
   var init_base = __esm({
-    "node_modules/multiformats/esm/src/bases/base.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base.js"() {
       init_base_x();
       init_bytes();
       Encoder = class {
@@ -3808,14 +3808,14 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/identity.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/identity.js
   var identity_exports = {};
   __export(identity_exports, {
     identity: () => identity
   });
   var identity;
   var init_identity = __esm({
-    "node_modules/multiformats/esm/src/bases/identity.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/identity.js"() {
       init_base();
       init_bytes();
       identity = from({
@@ -3827,14 +3827,14 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base2.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base2.js
   var base2_exports = {};
   __export(base2_exports, {
     base2: () => base2
   });
   var base2;
   var init_base2 = __esm({
-    "node_modules/multiformats/esm/src/bases/base2.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base2.js"() {
       init_base();
       base2 = rfc4648({
         prefix: "0",
@@ -3845,14 +3845,14 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base8.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base8.js
   var base8_exports = {};
   __export(base8_exports, {
     base8: () => base8
   });
   var base8;
   var init_base8 = __esm({
-    "node_modules/multiformats/esm/src/bases/base8.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base8.js"() {
       init_base();
       base8 = rfc4648({
         prefix: "7",
@@ -3863,14 +3863,14 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base10.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base10.js
   var base10_exports = {};
   __export(base10_exports, {
     base10: () => base10
   });
   var base10;
   var init_base10 = __esm({
-    "node_modules/multiformats/esm/src/bases/base10.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base10.js"() {
       init_base();
       base10 = baseX({
         prefix: "9",
@@ -3880,7 +3880,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base16.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base16.js
   var base16_exports = {};
   __export(base16_exports, {
     base16: () => base16,
@@ -3888,7 +3888,7 @@
   });
   var base16, base16upper;
   var init_base16 = __esm({
-    "node_modules/multiformats/esm/src/bases/base16.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base16.js"() {
       init_base();
       base16 = rfc4648({
         prefix: "f",
@@ -3905,7 +3905,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base32.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base32.js
   var base32_exports = {};
   __export(base32_exports, {
     base32: () => base32,
@@ -3920,7 +3920,7 @@
   });
   var base32, base32upper, base32pad, base32padupper, base32hex, base32hexupper, base32hexpad, base32hexpadupper, base32z;
   var init_base32 = __esm({
-    "node_modules/multiformats/esm/src/bases/base32.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base32.js"() {
       init_base();
       base32 = rfc4648({
         prefix: "b",
@@ -3979,7 +3979,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base36.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base36.js
   var base36_exports = {};
   __export(base36_exports, {
     base36: () => base36,
@@ -3987,7 +3987,7 @@
   });
   var base36, base36upper;
   var init_base36 = __esm({
-    "node_modules/multiformats/esm/src/bases/base36.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base36.js"() {
       init_base();
       base36 = baseX({
         prefix: "k",
@@ -4002,7 +4002,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base58.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base58.js
   var base58_exports = {};
   __export(base58_exports, {
     base58btc: () => base58btc,
@@ -4010,7 +4010,7 @@
   });
   var base58btc, base58flickr;
   var init_base58 = __esm({
-    "node_modules/multiformats/esm/src/bases/base58.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base58.js"() {
       init_base();
       base58btc = baseX({
         name: "base58btc",
@@ -4025,7 +4025,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base64.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base64.js
   var base64_exports = {};
   __export(base64_exports, {
     base64: () => base64,
@@ -4035,7 +4035,7 @@
   });
   var base64, base64pad, base64url, base64urlpad;
   var init_base64 = __esm({
-    "node_modules/multiformats/esm/src/bases/base64.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base64.js"() {
       init_base();
       base64 = rfc4648({
         prefix: "m",
@@ -4064,7 +4064,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/bases/base256emoji.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base256emoji.js
   var base256emoji_exports = {};
   __export(base256emoji_exports, {
     base256emoji: () => base256emoji
@@ -4088,7 +4088,7 @@
   }
   var alphabet, alphabetBytesToChars, alphabetCharsToBytes, base256emoji;
   var init_base256emoji = __esm({
-    "node_modules/multiformats/esm/src/bases/base256emoji.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/bases/base256emoji.js"() {
       init_base();
       alphabet = Array.from("\u{1F680}\u{1FA90}\u2604\u{1F6F0}\u{1F30C}\u{1F311}\u{1F312}\u{1F313}\u{1F314}\u{1F315}\u{1F316}\u{1F317}\u{1F318}\u{1F30D}\u{1F30F}\u{1F30E}\u{1F409}\u2600\u{1F4BB}\u{1F5A5}\u{1F4BE}\u{1F4BF}\u{1F602}\u2764\u{1F60D}\u{1F923}\u{1F60A}\u{1F64F}\u{1F495}\u{1F62D}\u{1F618}\u{1F44D}\u{1F605}\u{1F44F}\u{1F601}\u{1F525}\u{1F970}\u{1F494}\u{1F496}\u{1F499}\u{1F622}\u{1F914}\u{1F606}\u{1F644}\u{1F4AA}\u{1F609}\u263A\u{1F44C}\u{1F917}\u{1F49C}\u{1F614}\u{1F60E}\u{1F607}\u{1F339}\u{1F926}\u{1F389}\u{1F49E}\u270C\u2728\u{1F937}\u{1F631}\u{1F60C}\u{1F338}\u{1F64C}\u{1F60B}\u{1F497}\u{1F49A}\u{1F60F}\u{1F49B}\u{1F642}\u{1F493}\u{1F929}\u{1F604}\u{1F600}\u{1F5A4}\u{1F603}\u{1F4AF}\u{1F648}\u{1F447}\u{1F3B6}\u{1F612}\u{1F92D}\u2763\u{1F61C}\u{1F48B}\u{1F440}\u{1F62A}\u{1F611}\u{1F4A5}\u{1F64B}\u{1F61E}\u{1F629}\u{1F621}\u{1F92A}\u{1F44A}\u{1F973}\u{1F625}\u{1F924}\u{1F449}\u{1F483}\u{1F633}\u270B\u{1F61A}\u{1F61D}\u{1F634}\u{1F31F}\u{1F62C}\u{1F643}\u{1F340}\u{1F337}\u{1F63B}\u{1F613}\u2B50\u2705\u{1F97A}\u{1F308}\u{1F608}\u{1F918}\u{1F4A6}\u2714\u{1F623}\u{1F3C3}\u{1F490}\u2639\u{1F38A}\u{1F498}\u{1F620}\u261D\u{1F615}\u{1F33A}\u{1F382}\u{1F33B}\u{1F610}\u{1F595}\u{1F49D}\u{1F64A}\u{1F639}\u{1F5E3}\u{1F4AB}\u{1F480}\u{1F451}\u{1F3B5}\u{1F91E}\u{1F61B}\u{1F534}\u{1F624}\u{1F33C}\u{1F62B}\u26BD\u{1F919}\u2615\u{1F3C6}\u{1F92B}\u{1F448}\u{1F62E}\u{1F646}\u{1F37B}\u{1F343}\u{1F436}\u{1F481}\u{1F632}\u{1F33F}\u{1F9E1}\u{1F381}\u26A1\u{1F31E}\u{1F388}\u274C\u270A\u{1F44B}\u{1F630}\u{1F928}\u{1F636}\u{1F91D}\u{1F6B6}\u{1F4B0}\u{1F353}\u{1F4A2}\u{1F91F}\u{1F641}\u{1F6A8}\u{1F4A8}\u{1F92C}\u2708\u{1F380}\u{1F37A}\u{1F913}\u{1F619}\u{1F49F}\u{1F331}\u{1F616}\u{1F476}\u{1F974}\u25B6\u27A1\u2753\u{1F48E}\u{1F4B8}\u2B07\u{1F628}\u{1F31A}\u{1F98B}\u{1F637}\u{1F57A}\u26A0\u{1F645}\u{1F61F}\u{1F635}\u{1F44E}\u{1F932}\u{1F920}\u{1F927}\u{1F4CC}\u{1F535}\u{1F485}\u{1F9D0}\u{1F43E}\u{1F352}\u{1F617}\u{1F911}\u{1F30A}\u{1F92F}\u{1F437}\u260E\u{1F4A7}\u{1F62F}\u{1F486}\u{1F446}\u{1F3A4}\u{1F647}\u{1F351}\u2744\u{1F334}\u{1F4A3}\u{1F438}\u{1F48C}\u{1F4CD}\u{1F940}\u{1F922}\u{1F445}\u{1F4A1}\u{1F4A9}\u{1F450}\u{1F4F8}\u{1F47B}\u{1F910}\u{1F92E}\u{1F3BC}\u{1F975}\u{1F6A9}\u{1F34E}\u{1F34A}\u{1F47C}\u{1F48D}\u{1F4E3}\u{1F942}");
       alphabetBytesToChars = alphabet.reduce((p4, c4, i3) => {
@@ -4108,7 +4108,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/vendor/varint.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/vendor/varint.js
   function encode3(num, out, offset) {
     out = out || [];
     offset = offset || 0;
@@ -4141,7 +4141,7 @@
   }
   var encode_1, MSB, REST, MSBALL, INT, decode3, MSB$1, REST$1, N1, N22, N32, N4, N5, N6, N7, N8, N9, length, varint, _brrp_varint, varint_default;
   var init_varint = __esm({
-    "node_modules/multiformats/esm/vendor/varint.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/vendor/varint.js"() {
       encode_1 = encode3;
       MSB = 128;
       REST = 127;
@@ -4172,10 +4172,10 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/varint.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/varint.js
   var decode4, encodeTo, encodingLength;
   var init_varint2 = __esm({
-    "node_modules/multiformats/esm/src/varint.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/varint.js"() {
       init_varint();
       decode4 = (data, offset = 0) => {
         const code2 = varint_default.decode(data, offset);
@@ -4194,10 +4194,10 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/hashes/digest.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/digest.js
   var create, decode5, equals2, Digest;
   var init_digest = __esm({
-    "node_modules/multiformats/esm/src/hashes/digest.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/digest.js"() {
       init_bytes();
       init_varint2();
       create = (code2, digest2) => {
@@ -4238,10 +4238,10 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/hashes/hasher.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/hasher.js
   var from2, Hasher;
   var init_hasher = __esm({
-    "node_modules/multiformats/esm/src/hashes/hasher.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/hasher.js"() {
       init_digest();
       from2 = ({ name: name2, code: code2, encode: encode6 }) => new Hasher(name2, code2, encode6);
       Hasher = class {
@@ -4262,7 +4262,7 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/hashes/sha2-browser.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/sha2-browser.js
   var sha2_browser_exports = {};
   __export(sha2_browser_exports, {
     sha256: () => sha256,
@@ -4270,7 +4270,7 @@
   });
   var sha, sha256, sha512;
   var init_sha2_browser = __esm({
-    "node_modules/multiformats/esm/src/hashes/sha2-browser.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/sha2-browser.js"() {
       init_hasher();
       sha = (name2) => async (data) => new Uint8Array(await crypto.subtle.digest(name2, data));
       sha256 = from2({
@@ -4286,14 +4286,14 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/hashes/identity.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/identity.js
   var identity_exports2 = {};
   __export(identity_exports2, {
     identity: () => identity2
   });
   var code, name, encode4, digest, identity2;
   var init_identity2 = __esm({
-    "node_modules/multiformats/esm/src/hashes/identity.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/hashes/identity.js"() {
       init_bytes();
       init_digest();
       code = 0;
@@ -4309,26 +4309,26 @@
     }
   });
 
-  // node_modules/multiformats/esm/src/codecs/raw.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/codecs/raw.js
   var init_raw = __esm({
-    "node_modules/multiformats/esm/src/codecs/raw.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/codecs/raw.js"() {
       init_bytes();
     }
   });
 
-  // node_modules/multiformats/esm/src/codecs/json.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/codecs/json.js
   var textEncoder, textDecoder;
   var init_json = __esm({
-    "node_modules/multiformats/esm/src/codecs/json.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/codecs/json.js"() {
       textEncoder = new TextEncoder();
       textDecoder = new TextDecoder();
     }
   });
 
-  // node_modules/multiformats/esm/src/cid.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/cid.js
   var CID, parseCIDtoBytes, toStringV0, toStringV1, DAG_PB_CODE, SHA_256_CODE, encodeCID, cidSymbol, readonly, hidden, version, deprecate, IS_CID_DEPRECATION;
   var init_cid = __esm({
-    "node_modules/multiformats/esm/src/cid.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/cid.js"() {
       init_varint2();
       init_digest();
       init_base58();
@@ -4640,9 +4640,9 @@ if (cid) {
     }
   });
 
-  // node_modules/multiformats/esm/src/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/index.js
   var init_src = __esm({
-    "node_modules/multiformats/esm/src/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/index.js"() {
       init_cid();
       init_varint2();
       init_bytes();
@@ -4651,10 +4651,10 @@ if (cid) {
     }
   });
 
-  // node_modules/multiformats/esm/src/basics.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/basics.js
   var bases, hashes;
   var init_basics = __esm({
-    "node_modules/multiformats/esm/src/basics.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/multiformats/esm/src/basics.js"() {
       init_identity();
       init_base2();
       init_base8();
@@ -4689,7 +4689,7 @@ if (cid) {
     }
   });
 
-  // node_modules/uint8arrays/esm/src/util/as-uint8array.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/util/as-uint8array.js
   function asUint8Array(buf) {
     if (globalThis.Buffer != null) {
       return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -4697,11 +4697,11 @@ if (cid) {
     return buf;
   }
   var init_as_uint8array = __esm({
-    "node_modules/uint8arrays/esm/src/util/as-uint8array.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/util/as-uint8array.js"() {
     }
   });
 
-  // node_modules/uint8arrays/esm/src/alloc.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/alloc.js
   function allocUnsafe(size3 = 0) {
     if (globalThis.Buffer != null && globalThis.Buffer.allocUnsafe != null) {
       return asUint8Array(globalThis.Buffer.allocUnsafe(size3));
@@ -4709,12 +4709,12 @@ if (cid) {
     return new Uint8Array(size3);
   }
   var init_alloc = __esm({
-    "node_modules/uint8arrays/esm/src/alloc.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/alloc.js"() {
       init_as_uint8array();
     }
   });
 
-  // node_modules/uint8arrays/esm/src/util/bases.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/util/bases.js
   function createCodec(name2, prefix, encode6, decode7) {
     return {
       name: name2,
@@ -4729,7 +4729,7 @@ if (cid) {
   }
   var string, ascii, BASES, bases_default;
   var init_bases = __esm({
-    "node_modules/uint8arrays/esm/src/util/bases.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/util/bases.js"() {
       init_basics();
       init_alloc();
       string = createCodec("utf8", "u", (buf) => {
@@ -4766,7 +4766,7 @@ if (cid) {
     }
   });
 
-  // node_modules/uint8arrays/esm/src/from-string.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/from-string.js
   function fromString2(string2, encoding = "utf8") {
     const base3 = bases_default[encoding];
     if (!base3) {
@@ -4778,13 +4778,13 @@ if (cid) {
     return base3.decoder.decode(`${base3.prefix}${string2}`);
   }
   var init_from_string = __esm({
-    "node_modules/uint8arrays/esm/src/from-string.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/from-string.js"() {
       init_bases();
       init_as_uint8array();
     }
   });
 
-  // node_modules/detect-browser/es/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/detect-browser/es/index.js
   function detect(userAgent) {
     if (!!userAgent) {
       return parseUserAgent(userAgent);
@@ -4855,7 +4855,7 @@ if (cid) {
   }
   var __spreadArray, BrowserInfo, NodeInfo, SearchBotDeviceInfo, BotInfo, ReactNativeInfo, SEARCHBOX_UA_REGEX, SEARCHBOT_OS_REGEX, REQUIRED_VERSION_PARTS, userAgentRules, operatingSystemRules;
   var init_es = __esm({
-    "node_modules/detect-browser/es/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/detect-browser/es/index.js"() {
       __spreadArray = function(to3, from8, pack) {
         if (pack || arguments.length === 2) for (var i3 = 0, l4 = from8.length, ar3; i3 < l4; i3++) {
           if (ar3 || !(i3 in from8)) {
@@ -4991,9 +4991,9 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/window-getters/dist/cjs/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/window-getters/dist/cjs/index.js
   var require_cjs2 = __commonJS({
-    "node_modules/@walletconnect/window-getters/dist/cjs/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/window-getters/dist/cjs/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.getLocalStorage = exports.getLocalStorageOrThrow = exports.getCrypto = exports.getCryptoOrThrow = exports.getLocation = exports.getLocationOrThrow = exports.getNavigator = exports.getNavigatorOrThrow = exports.getDocument = exports.getDocumentOrThrow = exports.getFromWindowOrThrow = exports.getFromWindow = void 0;
@@ -5056,9 +5056,9 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/window-metadata/dist/cjs/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/window-metadata/dist/cjs/index.js
   var require_cjs3 = __commonJS({
-    "node_modules/@walletconnect/window-metadata/dist/cjs/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/window-metadata/dist/cjs/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.getWindowMetadata = void 0;
@@ -5151,7 +5151,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js
   function fromBig(n4, le4 = false) {
     if (le4)
       return { h: Number(n4 & U32_MASK64), l: Number(n4 >> _32n & U32_MASK64) };
@@ -5173,7 +5173,7 @@ if (cid) {
   }
   var U32_MASK64, _32n, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, rotr32H, rotr32L, rotlSH, rotlSL, rotlBH, rotlBL, add3L, add3H, add4L, add4H, add5L, add5H;
   var init_u64 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js"() {
       U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
       _32n = /* @__PURE__ */ BigInt(32);
       shrSH = (h4, _l, s2) => h4 >>> s2;
@@ -5197,15 +5197,15 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js
   var crypto2;
   var init_crypto = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js"() {
       crypto2 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js
   function isBytes2(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array";
   }
@@ -5354,7 +5354,7 @@ if (cid) {
   }
   var isLE, swap8IfBE, swap32IfBE, hasHexBuiltin2, hexes2, asciis, Hash;
   var init_utils = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js"() {
       init_crypto();
       isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
       swap8IfBE = isLE ? (n4) => n4 : (n4) => byteSwap(n4);
@@ -5370,7 +5370,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
   function keccakP(s2, rounds = 24) {
     const B3 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
@@ -5413,7 +5413,7 @@ if (cid) {
   }
   var _0n, _1n, _2n, _7n, _256n, _0x71n, SHA3_PI, SHA3_ROTL, _SHA3_IOTA, IOTAS, SHA3_IOTA_H, SHA3_IOTA_L, rotlH, rotlL, Keccak, gen, keccak_256;
   var init_sha3 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js"() {
       init_u64();
       init_utils();
       _0n = BigInt(0);
@@ -5558,31 +5558,31 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Abi.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Abi.js
   var init_Abi = __esm({
-    "node_modules/ox/_esm/core/Abi.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Abi.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/version.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/version.js
   var version2;
   var init_version = __esm({
-    "node_modules/ox/_esm/core/version.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/version.js"() {
       version2 = "0.1.1";
     }
   });
 
-  // node_modules/ox/_esm/core/internal/errors.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/errors.js
   function getVersion() {
     return version2;
   }
   var init_errors = __esm({
-    "node_modules/ox/_esm/core/internal/errors.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/errors.js"() {
       init_version();
     }
   });
 
-  // node_modules/ox/_esm/core/Errors.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Errors.js
   function walk(err, fn) {
     if (fn?.(err))
       return err;
@@ -5592,7 +5592,7 @@ if (cid) {
   }
   var BaseError;
   var init_Errors = __esm({
-    "node_modules/ox/_esm/core/Errors.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Errors.js"() {
       init_errors();
       BaseError = class _BaseError extends Error {
         constructor(shortMessage, options = {}) {
@@ -5681,15 +5681,15 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/crypto.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/crypto.js
   var crypto3;
   var init_crypto2 = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/crypto.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/crypto.js"() {
       crypto3 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/utils.js
   function isBytes3(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array";
   }
@@ -5790,7 +5790,7 @@ if (cid) {
   }
   var isLE2, swap32IfBE2, Hash2;
   var init_utils2 = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
       init_crypto2();
       isLE2 = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
       swap32IfBE2 = isLE2 ? (u2) => u2 : byteSwap322;
@@ -5799,7 +5799,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/_md.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/_md.js
   function setBigUint64(view, byteOffset, value, isLE4) {
     if (typeof view.setBigUint64 === "function")
       return view.setBigUint64(byteOffset, value, isLE4);
@@ -5820,7 +5820,7 @@ if (cid) {
   }
   var HashMD, SHA256_IV;
   var init_md = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/_md.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/_md.js"() {
       init_utils2();
       HashMD = class extends Hash2 {
         constructor(blockLen, outputLen, padOffset, isLE4) {
@@ -5925,7 +5925,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/_u64.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/_u64.js
   function fromBig2(n4, le4 = false) {
     if (le4)
       return { h: Number(n4 & U32_MASK642), l: Number(n4 >> _32n2 & U32_MASK642) };
@@ -5943,7 +5943,7 @@ if (cid) {
   }
   var U32_MASK642, _32n2, rotlSH2, rotlSL2, rotlBH2, rotlBL2;
   var init_u642 = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/_u64.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/_u64.js"() {
       U32_MASK642 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
       _32n2 = /* @__PURE__ */ BigInt(32);
       rotlSH2 = (h4, l4, s2) => h4 << s2 | l4 >>> 32 - s2;
@@ -5953,7 +5953,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
   function keccakP2(s2, rounds = 24) {
     const B3 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
@@ -5996,7 +5996,7 @@ if (cid) {
   }
   var _0n2, _1n2, _2n2, _7n2, _256n2, _0x71n2, SHA3_PI2, SHA3_ROTL2, _SHA3_IOTA2, IOTAS2, SHA3_IOTA_H2, SHA3_IOTA_L2, rotlH2, rotlL2, Keccak2, gen2, keccak_2562;
   var init_sha32 = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/sha3.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/sha3.js"() {
       init_u642();
       init_utils2();
       _0n2 = BigInt(0);
@@ -6141,10 +6141,10 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/sha2.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/sha2.js
   var SHA256_K, SHA256_W, SHA256, sha2562;
   var init_sha2 = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/sha2.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/sha2.js"() {
       init_md();
       init_utils2();
       SHA256_K = /* @__PURE__ */ Uint32Array.from([
@@ -6288,7 +6288,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js
   function isBytes4(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array";
   }
@@ -6487,7 +6487,7 @@ if (cid) {
   }
   var _0n3, _1n3, hasHexBuiltin3, hexes3, asciis2, isPosBig, bitMask, u8n, u8fr, validatorFns;
   var init_utils3 = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js"() {
       _0n3 = /* @__PURE__ */ BigInt(0);
       _1n3 = /* @__PURE__ */ BigInt(1);
       hasHexBuiltin3 = // @ts-ignore
@@ -6512,7 +6512,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/internal/bytes.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/bytes.js
   function assertSize(bytes, size_) {
     if (size(bytes) > size_)
       throw new SizeOverflowError({
@@ -6548,7 +6548,7 @@ if (cid) {
   }
   var charCodeMap;
   var init_bytes2 = __esm({
-    "node_modules/ox/_esm/core/internal/bytes.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/bytes.js"() {
       init_Bytes();
       charCodeMap = {
         zero: 48,
@@ -6561,7 +6561,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/internal/hex.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/hex.js
   function assertSize2(hex, size_) {
     if (size2(hex) > size_)
       throw new SizeOverflowError2({
@@ -6617,12 +6617,12 @@ if (cid) {
     return `0x${data}`;
   }
   var init_hex = __esm({
-    "node_modules/ox/_esm/core/internal/hex.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/hex.js"() {
       init_Hex();
     }
   });
 
-  // node_modules/ox/_esm/core/Json.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Json.js
   function stringify2(value, replacer, space) {
     return JSON.stringify(value, (key, value2) => {
       if (typeof replacer === "function")
@@ -6634,12 +6634,12 @@ if (cid) {
   }
   var bigIntSuffix;
   var init_Json = __esm({
-    "node_modules/ox/_esm/core/Json.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Json.js"() {
       bigIntSuffix = "#__bigint";
     }
   });
 
-  // node_modules/ox/_esm/core/Hex.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Hex.js
   function assert(value, options = {}) {
     const { strict = false } = options;
     if (!value)
@@ -6745,7 +6745,7 @@ if (cid) {
   }
   var encoder, hexes4, IntegerOutOfRangeError, InvalidHexTypeError, InvalidHexValueError, SizeOverflowError2, SliceOffsetOutOfBoundsError2, SizeExceedsPaddingSizeError2;
   var init_Hex = __esm({
-    "node_modules/ox/_esm/core/Hex.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Hex.js"() {
       init_Errors();
       init_hex();
       init_Json();
@@ -6826,7 +6826,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Bytes.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bytes.js
   function assert2(value) {
     if (value instanceof Uint8Array)
       return;
@@ -6896,7 +6896,7 @@ if (cid) {
   }
   var encoder2, InvalidBytesTypeError, SizeOverflowError, SizeExceedsPaddingSizeError;
   var init_Bytes = __esm({
-    "node_modules/ox/_esm/core/Bytes.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bytes.js"() {
       init_Errors();
       init_Hex();
       init_bytes2();
@@ -6941,7 +6941,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Hash.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Hash.js
   function keccak256(value, options = {}) {
     const { as = typeof value === "string" ? "Hex" : "Bytes" } = options;
     const bytes = keccak_2562(from4(value));
@@ -6950,17 +6950,17 @@ if (cid) {
     return fromBytes(bytes);
   }
   var init_Hash = __esm({
-    "node_modules/ox/_esm/core/Hash.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Hash.js"() {
       init_sha32();
       init_Bytes();
       init_Hex();
     }
   });
 
-  // node_modules/ox/_esm/core/internal/lru.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/lru.js
   var LruMap;
   var init_lru = __esm({
-    "node_modules/ox/_esm/core/internal/lru.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/lru.js"() {
       LruMap = class extends Map {
         constructor(size3) {
           super();
@@ -6993,10 +6993,10 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Caches.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Caches.js
   var caches, checksum;
   var init_Caches = __esm({
-    "node_modules/ox/_esm/core/Caches.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Caches.js"() {
       init_lru();
       caches = {
         checksum: /* @__PURE__ */ new LruMap(8192)
@@ -7005,7 +7005,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/PublicKey.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/PublicKey.js
   function assert3(publicKey, options = {}) {
     const { compressed } = options;
     const { prefix, x: x7, y: y6 } = publicKey;
@@ -7090,7 +7090,7 @@ if (cid) {
   }
   var InvalidError, InvalidPrefixError, InvalidCompressedPrefixError, InvalidUncompressedPrefixError, InvalidSerializedSizeError;
   var init_PublicKey = __esm({
-    "node_modules/ox/_esm/core/PublicKey.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/PublicKey.js"() {
       init_Bytes();
       init_Errors();
       init_Hex();
@@ -7166,7 +7166,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Address.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Address.js
   function assert4(value, options = {}) {
     const { strict = true } = options;
     if (!addressRegex.test(value))
@@ -7221,7 +7221,7 @@ if (cid) {
   }
   var addressRegex, InvalidAddressError, InvalidInputError, InvalidChecksumError;
   var init_Address = __esm({
-    "node_modules/ox/_esm/core/Address.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Address.js"() {
       init_Bytes();
       init_Caches();
       init_Errors();
@@ -7266,16 +7266,16 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiItem.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiItem.js
   var init_AbiItem = __esm({
-    "node_modules/ox/_esm/core/AbiItem.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiItem.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Solidity.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Solidity.js
   var arrayRegex, bytesRegex, integerRegex, maxInt8, maxInt16, maxInt24, maxInt32, maxInt40, maxInt48, maxInt56, maxInt64, maxInt72, maxInt80, maxInt88, maxInt96, maxInt104, maxInt112, maxInt120, maxInt128, maxInt136, maxInt144, maxInt152, maxInt160, maxInt168, maxInt176, maxInt184, maxInt192, maxInt200, maxInt208, maxInt216, maxInt224, maxInt232, maxInt240, maxInt248, maxInt256, minInt8, minInt16, minInt24, minInt32, minInt40, minInt48, minInt56, minInt64, minInt72, minInt80, minInt88, minInt96, minInt104, minInt112, minInt120, minInt128, minInt136, minInt144, minInt152, minInt160, minInt168, minInt176, minInt184, minInt192, minInt200, minInt208, minInt216, minInt224, minInt232, minInt240, minInt248, minInt256, maxUint8, maxUint16, maxUint24, maxUint32, maxUint40, maxUint48, maxUint56, maxUint64, maxUint72, maxUint80, maxUint88, maxUint96, maxUint104, maxUint112, maxUint120, maxUint128, maxUint136, maxUint144, maxUint152, maxUint160, maxUint168, maxUint176, maxUint184, maxUint192, maxUint200, maxUint208, maxUint216, maxUint224, maxUint232, maxUint240, maxUint248, maxUint256;
   var init_Solidity = __esm({
-    "node_modules/ox/_esm/core/Solidity.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Solidity.js"() {
       arrayRegex = /^(.*)\[([0-9]*)\]$/;
       bytesRegex = /^bytes([1-9]|1[0-9]|2[0-9]|3[0-2])?$/;
       integerRegex = /^(u?int)(8|16|24|32|40|48|56|64|72|80|88|96|104|112|120|128|136|144|152|160|168|176|184|192|200|208|216|224|232|240|248|256)?$/;
@@ -7378,7 +7378,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiParameters.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiParameters.js
   function encodePacked(types, values) {
     if (types.length !== values.length)
       throw new LengthMismatchError({
@@ -7395,7 +7395,7 @@ if (cid) {
   }
   var BytesSizeMismatchError, LengthMismatchError, InvalidTypeError;
   var init_AbiParameters = __esm({
-    "node_modules/ox/_esm/core/AbiParameters.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiParameters.js"() {
       init_Address();
       init_Errors();
       init_Hex();
@@ -7487,58 +7487,58 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiConstructor.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiConstructor.js
   var init_AbiConstructor = __esm({
-    "node_modules/ox/_esm/core/AbiConstructor.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiConstructor.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiError.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiError.js
   var init_AbiError = __esm({
-    "node_modules/ox/_esm/core/AbiError.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiError.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiEvent.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiEvent.js
   var init_AbiEvent = __esm({
-    "node_modules/ox/_esm/core/AbiEvent.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiEvent.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AbiFunction.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiFunction.js
   var init_AbiFunction = __esm({
-    "node_modules/ox/_esm/core/AbiFunction.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AbiFunction.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AccessList.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AccessList.js
   var init_AccessList = __esm({
-    "node_modules/ox/_esm/core/AccessList.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AccessList.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AccountProof.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AccountProof.js
   var init_AccountProof = __esm({
-    "node_modules/ox/_esm/core/AccountProof.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AccountProof.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/AesGcm.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AesGcm.js
   var init_AesGcm = __esm({
-    "node_modules/ox/_esm/core/AesGcm.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/AesGcm.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Rlp.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Rlp.js
   var init_Rlp = __esm({
-    "node_modules/ox/_esm/core/Rlp.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Rlp.js"() {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/hashes/esm/hmac.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/hmac.js
   var HMAC, hmac;
   var init_hmac = __esm({
-    "node_modules/ox/node_modules/@noble/hashes/esm/hmac.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/hashes/esm/hmac.js"() {
       init_utils2();
       HMAC = class extends Hash2 {
         constructor(hash, _key) {
@@ -7609,7 +7609,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js
   function mod(a3, b4) {
     const result = a3 % b4;
     return result >= _0n4 ? result : b4 + result;
@@ -7858,7 +7858,7 @@ if (cid) {
   }
   var _0n4, _1n4, _2n3, _3n, _4n, _5n, _8n, FIELD_FIELDS;
   var init_modular = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js"() {
       init_utils2();
       init_utils3();
       _0n4 = BigInt(0);
@@ -7890,7 +7890,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js
   function constTimeNegate(condition, item) {
     const neg = item.negate();
     return condition ? neg : item;
@@ -8121,7 +8121,7 @@ if (cid) {
   }
   var _0n5, _1n5, pointPrecomputes, pointWindowSizes;
   var init_curve = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js"() {
       init_modular();
       init_utils3();
       _0n5 = BigInt(0);
@@ -8131,7 +8131,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js
   function validateSigVerOpts(opts) {
     if (opts.lowS !== void 0)
       abool("lowS", opts.lowS);
@@ -8908,7 +8908,7 @@ if (cid) {
   }
   var DERErr, DER, _0n6, _1n6, _2n4, _3n2, _4n2;
   var init_weierstrass = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
       init_curve();
       init_modular();
       init_utils3();
@@ -9025,7 +9025,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js
   function getHash(hash) {
     return {
       hash,
@@ -9038,14 +9038,14 @@ if (cid) {
     return { ...create2(defHash), create: create2 };
   }
   var init_shortw_utils = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js"() {
       init_hmac();
       init_utils2();
       init_weierstrass();
     }
   });
 
-  // node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
   function sqrtMod(y6) {
     const P5 = secp256k1P;
     const _3n6 = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
@@ -9070,7 +9070,7 @@ if (cid) {
   }
   var secp256k1P, secp256k1N, _0n7, _1n7, _2n5, divNearest, Fpk1, secp256k1;
   var init_secp256k1 = __esm({
-    "node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js"() {
       init_sha2();
       init_shortw_utils();
       init_modular();
@@ -9121,7 +9121,7 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Signature.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Signature.js
   var Signature_exports = {};
   __export(Signature_exports, {
     InvalidRError: () => InvalidRError,
@@ -9331,7 +9331,7 @@ if (cid) {
   }
   var InvalidSerializedSizeError2, MissingPropertiesError, InvalidRError, InvalidSError, InvalidYParityError, InvalidVError;
   var init_Signature = __esm({
-    "node_modules/ox/_esm/core/Signature.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Signature.js"() {
       init_secp256k1();
       init_Bytes();
       init_Errors();
@@ -9412,22 +9412,22 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Authorization.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Authorization.js
   var init_Authorization = __esm({
-    "node_modules/ox/_esm/core/Authorization.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Authorization.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Base58.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Base58.js
   var init_Base58 = __esm({
-    "node_modules/ox/_esm/core/Base58.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Base58.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Base64.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Base64.js
   var integerToCharacter, characterToInteger;
   var init_Base64 = __esm({
-    "node_modules/ox/_esm/core/Base64.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Base64.js"() {
       integerToCharacter = /* @__PURE__ */ Object.fromEntries(Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/").map((a3, i3) => [i3, a3.charCodeAt(0)]));
       characterToInteger = {
         ...Object.fromEntries(Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/").map((a3, i3) => [a3.charCodeAt(0), i3])),
@@ -9438,22 +9438,22 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/BinaryStateTree.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BinaryStateTree.js
   var init_BinaryStateTree = __esm({
-    "node_modules/ox/_esm/core/BinaryStateTree.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BinaryStateTree.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Kzg.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Kzg.js
   var init_Kzg = __esm({
-    "node_modules/ox/_esm/core/Kzg.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Kzg.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Blobs.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Blobs.js
   var blobsPerTransaction, bytesPerFieldElement, fieldElementsPerBlob, bytesPerBlob, maxBytesPerTransaction;
   var init_Blobs = __esm({
-    "node_modules/ox/_esm/core/Blobs.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Blobs.js"() {
       blobsPerTransaction = 6;
       bytesPerFieldElement = 32;
       fieldElementsPerBlob = 4096;
@@ -9464,64 +9464,64 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Transaction.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Transaction.js
   var init_Transaction = __esm({
-    "node_modules/ox/_esm/core/Transaction.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Transaction.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Withdrawal.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Withdrawal.js
   var init_Withdrawal = __esm({
-    "node_modules/ox/_esm/core/Withdrawal.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Withdrawal.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Block.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Block.js
   var init_Block = __esm({
-    "node_modules/ox/_esm/core/Block.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Block.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/BlockOverrides.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BlockOverrides.js
   var init_BlockOverrides = __esm({
-    "node_modules/ox/_esm/core/BlockOverrides.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BlockOverrides.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Bloom.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bloom.js
   var init_Bloom = __esm({
-    "node_modules/ox/_esm/core/Bloom.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bloom.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Bls.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bls.js
   var init_Bls = __esm({
-    "node_modules/ox/_esm/core/Bls.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Bls.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/BlsPoint.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BlsPoint.js
   var init_BlsPoint = __esm({
-    "node_modules/ox/_esm/core/BlsPoint.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/BlsPoint.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/ContractAddress.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/ContractAddress.js
   var init_ContractAddress = __esm({
-    "node_modules/ox/_esm/core/ContractAddress.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/ContractAddress.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Ed25519.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Ed25519.js
   var init_Ed25519 = __esm({
-    "node_modules/ox/_esm/core/Ed25519.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Ed25519.js"() {
     }
   });
 
-  // node_modules/@adraffy/ens-normalize/dist/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@adraffy/ens-normalize/dist/index.mjs
   var S0, L0, V0, T0, L_COUNT, V_COUNT, T_COUNT, N_COUNT, S_COUNT, S1, L1, V1, T1;
   var init_dist5 = __esm({
-    "node_modules/@adraffy/ens-normalize/dist/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@adraffy/ens-normalize/dist/index.mjs"() {
       S0 = 44032;
       L0 = 4352;
       V0 = 4449;
@@ -9538,26 +9538,26 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Ens.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Ens.js
   var init_Ens = __esm({
-    "node_modules/ox/_esm/core/Ens.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Ens.js"() {
       init_dist5();
     }
   });
 
-  // node_modules/ox/_esm/core/Fee.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Fee.js
   var init_Fee = __esm({
-    "node_modules/ox/_esm/core/Fee.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Fee.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Filter.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Filter.js
   var init_Filter = __esm({
-    "node_modules/ox/_esm/core/Filter.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Filter.js"() {
     }
   });
 
-  // node_modules/@scure/base/lib/esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@scure/base/lib/esm/index.js
   function isBytes5(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array";
   }
@@ -9791,7 +9791,7 @@ if (cid) {
   }
   var gcd, radix2carry, powers, base322, genBase58, base58;
   var init_esm3 = __esm({
-    "node_modules/@scure/base/lib/esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@scure/base/lib/esm/index.js"() {
       gcd = (a3, b4) => b4 === 0 ? a3 : gcd(b4, a3 % b4);
       radix2carry = /* @__NO_SIDE_EFFECTS__ */ (from8, to3) => from8 + (to3 - gcd(from8, to3));
       powers = /* @__PURE__ */ (() => {
@@ -9806,15 +9806,15 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/internal/entropy.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/entropy.js
   var extraEntropy;
   var init_entropy = __esm({
-    "node_modules/ox/_esm/core/internal/entropy.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/internal/entropy.js"() {
       extraEntropy = false;
     }
   });
 
-  // node_modules/ox/_esm/core/Secp256k1.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Secp256k1.js
   var Secp256k1_exports = {};
   __export(Secp256k1_exports, {
     createKeyPair: () => createKeyPair,
@@ -9888,7 +9888,7 @@ if (cid) {
   }
   var noble;
   var init_Secp256k1 = __esm({
-    "node_modules/ox/_esm/core/Secp256k1.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Secp256k1.js"() {
       init_secp256k1();
       init_Address();
       init_Bytes();
@@ -9899,13 +9899,13 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/HdKey.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/HdKey.js
   var init_HdKey = __esm({
-    "node_modules/ox/_esm/core/HdKey.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/HdKey.js"() {
     }
   });
 
-  // node_modules/@noble/ciphers/esm/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/utils.js
   function isBytes6(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array";
   }
@@ -10012,7 +10012,7 @@ if (cid) {
   }
   var isLE3, wrapCipher;
   var init_utils4 = __esm({
-    "node_modules/@noble/ciphers/esm/utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/utils.js"() {
       isLE3 = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
       wrapCipher = /* @__NO_SIDE_EFFECTS__ */ (params, constructor) => {
         function wrappedCipher(key, ...args) {
@@ -10066,46 +10066,46 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Keystore.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Keystore.js
   var init_Keystore = __esm({
-    "node_modules/ox/_esm/core/Keystore.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Keystore.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Log.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Log.js
   var init_Log = __esm({
-    "node_modules/ox/_esm/core/Log.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Log.js"() {
     }
   });
 
-  // node_modules/@scure/bip39/esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@scure/bip39/esm/index.js
   var init_esm4 = __esm({
-    "node_modules/@scure/bip39/esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@scure/bip39/esm/index.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Mnemonic.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Mnemonic.js
   var init_Mnemonic = __esm({
-    "node_modules/ox/_esm/core/Mnemonic.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Mnemonic.js"() {
       init_esm4();
     }
   });
 
-  // node_modules/ox/_esm/core/P256.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/P256.js
   var init_P256 = __esm({
-    "node_modules/ox/_esm/core/P256.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/P256.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/PersonalMessage.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/PersonalMessage.js
   var init_PersonalMessage = __esm({
-    "node_modules/ox/_esm/core/PersonalMessage.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/PersonalMessage.js"() {
     }
   });
 
-  // node_modules/eventemitter3/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/eventemitter3/index.js
   var require_eventemitter3 = __commonJS({
-    "node_modules/eventemitter3/index.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/eventemitter3/index.js"(exports, module) {
       "use strict";
       var has = Object.prototype.hasOwnProperty;
       var prefix = "~";
@@ -10265,18 +10265,18 @@ if (cid) {
     }
   });
 
-  // node_modules/eventemitter3/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/eventemitter3/index.mjs
   var import_index2;
   var init_eventemitter3 = __esm({
-    "node_modules/eventemitter3/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/eventemitter3/index.mjs"() {
       import_index2 = __toESM(require_eventemitter3(), 1);
     }
   });
 
-  // node_modules/ox/_esm/core/RpcResponse.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcResponse.js
   var BaseError2, InvalidInputError2, ResourceNotFoundError, ResourceUnavailableError, TransactionRejectedError, MethodNotSupportedError, LimitExceededError, VersionNotSupportedError, InvalidRequestError, MethodNotFoundError, InvalidParamsError, InternalError, ParseError;
   var init_RpcResponse = __esm({
-    "node_modules/ox/_esm/core/RpcResponse.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcResponse.js"() {
       BaseError2 = class extends Error {
         constructor(errorObject) {
           const { cause, code: code2, message, data, stack } = errorObject;
@@ -10646,10 +10646,10 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/Provider.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Provider.js
   var ProviderRpcError, UserRejectedRequestError, UnauthorizedError, UnsupportedMethodError, DisconnectedError, ChainDisconnectedError, SwitchChainError, UnsupportedNonOptionalCapabilityError, UnsupportedChainIdError, DuplicateIdError, UnknownBundleIdError, BundleTooLargeError, AtomicReadyWalletRejectedUpgradeError, AtomicityNotSupportedError;
   var init_Provider = __esm({
-    "node_modules/ox/_esm/core/Provider.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Provider.js"() {
       init_eventemitter3();
       ProviderRpcError = class extends Error {
         constructor(code2, message) {
@@ -10978,106 +10978,106 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/RpcRequest.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcRequest.js
   var init_RpcRequest = __esm({
-    "node_modules/ox/_esm/core/RpcRequest.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcRequest.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/RpcSchema.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcSchema.js
   var init_RpcSchema = __esm({
-    "node_modules/ox/_esm/core/RpcSchema.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcSchema.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/RpcTransport.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcTransport.js
   var init_RpcTransport = __esm({
-    "node_modules/ox/_esm/core/RpcTransport.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/RpcTransport.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Siwe.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Siwe.js
   var init_Siwe = __esm({
-    "node_modules/ox/_esm/core/Siwe.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Siwe.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/StateOverrides.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/StateOverrides.js
   var init_StateOverrides = __esm({
-    "node_modules/ox/_esm/core/StateOverrides.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/StateOverrides.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/Value.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Value.js
   var init_Value = __esm({
-    "node_modules/ox/_esm/core/Value.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/Value.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelope.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelope.js
   var init_TransactionEnvelope = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelope.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelope.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js
   var init_TransactionEnvelopeEip1559 = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js
   var init_TransactionEnvelopeEip2930 = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js
   var init_TransactionEnvelopeEip4844 = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js
   var init_TransactionEnvelopeEip7702 = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js
   var init_TransactionEnvelopeLegacy = __esm({
-    "node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionReceipt.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionReceipt.js
   var init_TransactionReceipt = __esm({
-    "node_modules/ox/_esm/core/TransactionReceipt.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionReceipt.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TransactionRequest.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionRequest.js
   var init_TransactionRequest = __esm({
-    "node_modules/ox/_esm/core/TransactionRequest.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TransactionRequest.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/TypedData.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TypedData.js
   var init_TypedData = __esm({
-    "node_modules/ox/_esm/core/TypedData.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/TypedData.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/ValidatorData.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/ValidatorData.js
   var init_ValidatorData = __esm({
-    "node_modules/ox/_esm/core/ValidatorData.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/ValidatorData.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/WebAuthnP256.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/WebAuthnP256.js
   var createChallenge;
   var init_WebAuthnP256 = __esm({
-    "node_modules/ox/_esm/core/WebAuthnP256.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/WebAuthnP256.js"() {
       createChallenge = Uint8Array.from([
         105,
         171,
@@ -11099,21 +11099,21 @@ if (cid) {
     }
   });
 
-  // node_modules/ox/_esm/core/WebCryptoP256.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/WebCryptoP256.js
   var init_WebCryptoP256 = __esm({
-    "node_modules/ox/_esm/core/WebCryptoP256.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/WebCryptoP256.js"() {
     }
   });
 
-  // node_modules/ox/_esm/core/X25519.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/X25519.js
   var init_X25519 = __esm({
-    "node_modules/ox/_esm/core/X25519.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/core/X25519.js"() {
     }
   });
 
-  // node_modules/ox/_esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/index.js
   var init_esm5 = __esm({
-    "node_modules/ox/_esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ox/_esm/index.js"() {
       init_Abi();
       init_AbiConstructor();
       init_AbiError();
@@ -11184,7 +11184,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js
   function setBigUint643(view, byteOffset, value, isLE4) {
     if (typeof view.setBigUint64 === "function")
       return view.setBigUint64(byteOffset, value, isLE4);
@@ -11205,7 +11205,7 @@ if (cid) {
   }
   var HashMD2, SHA256_IV2, SHA384_IV2, SHA512_IV2;
   var init_md2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js"() {
       init_utils();
       HashMD2 = class extends Hash {
         constructor(blockLen, outputLen, padOffset, isLE4) {
@@ -11346,10 +11346,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js
   var SHA256_K2, SHA256_W2, SHA2562, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA512, SHA384, T256_IV, SHA512_256, sha2563, sha5122, sha384, sha512_256;
   var init_sha22 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js"() {
       init_md2();
       init_u64();
       init_utils();
@@ -11754,10 +11754,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js
   var BSIGMA;
   var init_blake = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js"() {
       BSIGMA = /* @__PURE__ */ Uint8Array.from([
         0,
         1,
@@ -12020,7 +12020,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js
   function G1b(a3, b4, c4, d3, msg, x7) {
     const Xl = msg[x7], Xh = msg[x7 + 1];
     let Al = BBUF[2 * a3], Ah = BBUF[2 * a3 + 1];
@@ -12073,7 +12073,7 @@ if (cid) {
   }
   var B2B_IV, BBUF, BLAKE2, BLAKE2b, blake2b;
   var init_blake2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js"() {
       init_blake();
       init_u64();
       init_utils();
@@ -12311,7 +12311,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
   function utf8Count(str) {
     const strLength = str.length;
     let byteLength = 0;
@@ -12438,7 +12438,7 @@ if (cid) {
   }
   var sharedTextEncoder, TEXT_ENCODER_THRESHOLD, CHUNK_SIZE, sharedTextDecoder, TEXT_DECODER_THRESHOLD;
   var init_utf8 = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs"() {
       sharedTextEncoder = new TextEncoder();
       TEXT_ENCODER_THRESHOLD = 50;
       CHUNK_SIZE = 4096;
@@ -12447,10 +12447,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
   var ExtData;
   var init_ExtData = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs"() {
       ExtData = class {
         type;
         data;
@@ -12462,10 +12462,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs
   var DecodeError;
   var init_DecodeError = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs"() {
       DecodeError = class _DecodeError extends Error {
         constructor(message) {
           super(message);
@@ -12481,7 +12481,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs
   function setUint64(view, offset, value) {
     const high = value / 4294967296;
     const low = value;
@@ -12506,12 +12506,12 @@ if (cid) {
   }
   var UINT32_MAX;
   var init_int = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs"() {
       UINT32_MAX = 4294967295;
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs
   function encodeTimeSpecToTimestamp({ sec, nsec }) {
     if (sec >= 0 && nsec >= 0 && sec <= TIMESTAMP64_MAX_SEC) {
       if (nsec === 0 && sec <= TIMESTAMP32_MAX_SEC) {
@@ -12584,7 +12584,7 @@ if (cid) {
   }
   var EXT_TIMESTAMP, TIMESTAMP32_MAX_SEC, TIMESTAMP64_MAX_SEC, timestampExtension;
   var init_timestamp = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs"() {
       init_DecodeError();
       init_int();
       EXT_TIMESTAMP = -1;
@@ -12598,10 +12598,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs
   var ExtensionCodec;
   var init_ExtensionCodec = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs"() {
       init_ExtData();
       init_timestamp();
       ExtensionCodec = class _ExtensionCodec {
@@ -12667,7 +12667,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
   function isArrayBufferLike(buffer) {
     return buffer instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer;
   }
@@ -12683,14 +12683,14 @@ if (cid) {
     }
   }
   var init_typedArrays = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs"() {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs
   var DEFAULT_MAX_DEPTH, DEFAULT_INITIAL_BUFFER_SIZE, Encoder2;
   var init_Encoder = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs"() {
       init_utf8();
       init_ExtensionCodec();
       init_int();
@@ -13099,30 +13099,30 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/encode.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/encode.mjs
   function encode5(value, options) {
     const encoder3 = new Encoder2(options);
     return encoder3.encodeSharedRef(value);
   }
   var init_encode = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/encode.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/encode.mjs"() {
       init_Encoder();
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
   function prettyByte(byte) {
     return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
   }
   var init_prettyByte = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs"() {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
   var DEFAULT_MAX_KEY_LENGTH, DEFAULT_MAX_LENGTH_PER_KEY, CachedKeyDecoder;
   var init_CachedKeyDecoder = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs"() {
       init_utf8();
       DEFAULT_MAX_KEY_LENGTH = 16;
       DEFAULT_MAX_LENGTH_PER_KEY = 16;
@@ -13181,10 +13181,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs
   var STATE_ARRAY, STATE_MAP_KEY, STATE_MAP_VALUE, mapKeyConverter, StackPool, HEAD_BYTE_REQUIRED, EMPTY_VIEW, EMPTY_BYTES, MORE_DATA, sharedCachedKeyDecoder, Decoder2;
   var init_Decoder = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs"() {
       init_prettyByte();
       init_ExtensionCodec();
       init_int();
@@ -13821,32 +13821,32 @@ if (cid) {
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/decode.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/decode.mjs
   function decode6(buffer, options) {
     const decoder = new Decoder2(options);
     return decoder.decode(buffer);
   }
   var init_decode = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/decode.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/decode.mjs"() {
       init_Decoder();
     }
   });
 
-  // node_modules/@msgpack/msgpack/dist.esm/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/index.mjs
   var init_dist6 = __esm({
-    "node_modules/@msgpack/msgpack/dist.esm/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@msgpack/msgpack/dist.esm/index.mjs"() {
       init_encode();
       init_decode();
     }
   });
 
-  // node_modules/uint8arrays/esm/src/compare.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/compare.js
   var init_compare = __esm({
-    "node_modules/uint8arrays/esm/src/compare.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/compare.js"() {
     }
   });
 
-  // node_modules/uint8arrays/esm/src/concat.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/concat.js
   function concat2(arrays, length2) {
     if (!length2) {
       length2 = arrays.reduce((acc, curr) => acc + curr.length, 0);
@@ -13860,19 +13860,19 @@ if (cid) {
     return asUint8Array(output);
   }
   var init_concat = __esm({
-    "node_modules/uint8arrays/esm/src/concat.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/concat.js"() {
       init_alloc();
       init_as_uint8array();
     }
   });
 
-  // node_modules/uint8arrays/esm/src/equals.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/equals.js
   var init_equals = __esm({
-    "node_modules/uint8arrays/esm/src/equals.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/equals.js"() {
     }
   });
 
-  // node_modules/uint8arrays/esm/src/to-string.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/to-string.js
   function toString2(array, encoding = "utf8") {
     const base3 = bases_default[encoding];
     if (!base3) {
@@ -13884,22 +13884,22 @@ if (cid) {
     return base3.encoder.encode(array).substring(1);
   }
   var init_to_string = __esm({
-    "node_modules/uint8arrays/esm/src/to-string.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/to-string.js"() {
       init_bases();
     }
   });
 
-  // node_modules/uint8arrays/esm/src/xor.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/xor.js
   var init_xor = __esm({
-    "node_modules/uint8arrays/esm/src/xor.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/xor.js"() {
       init_alloc();
       init_as_uint8array();
     }
   });
 
-  // node_modules/uint8arrays/esm/src/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/index.js
   var init_src2 = __esm({
-    "node_modules/uint8arrays/esm/src/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/uint8arrays/esm/src/index.js"() {
       init_compare();
       init_concat();
       init_equals();
@@ -13909,7 +13909,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@noble/ciphers/esm/_arx.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/_arx.js
   function rotl(a3, b4) {
     return a3 << b4 | a3 >>> 32 - b4;
   }
@@ -14009,7 +14009,7 @@ if (cid) {
   }
   var _utf8ToBytes, sigma16, sigma32, sigma16_32, sigma32_32, BLOCK_LEN, BLOCK_LEN32, MAX_COUNTER, U32_EMPTY;
   var init_arx = __esm({
-    "node_modules/@noble/ciphers/esm/_arx.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/_arx.js"() {
       init_utils4();
       _utf8ToBytes = (str) => Uint8Array.from(str.split("").map((c4) => c4.charCodeAt(0)));
       sigma16 = _utf8ToBytes("expand 16-byte k");
@@ -14023,7 +14023,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@noble/ciphers/esm/_poly1305.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/_poly1305.js
   function wrapConstructorWithKey(hashCons) {
     const hashC = (msg, key) => hashCons(key).update(toBytes5(msg)).digest();
     const tmp = hashCons(new Uint8Array(32));
@@ -14034,7 +14034,7 @@ if (cid) {
   }
   var u8to16, Poly1305, poly1305;
   var init_poly1305 = __esm({
-    "node_modules/@noble/ciphers/esm/_poly1305.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/_poly1305.js"() {
       init_utils4();
       u8to16 = (a3, i3) => a3[i3++] & 255 | (a3[i3++] & 255) << 8;
       Poly1305 = class {
@@ -14284,7 +14284,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@noble/ciphers/esm/chacha.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/chacha.js
   function chachaCore(s2, k5, n4, out, cnt, rounds = 20) {
     let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k5[0], y05 = k5[1], y06 = k5[2], y07 = k5[3], y08 = k5[4], y09 = k5[5], y10 = k5[6], y11 = k5[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
     let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
@@ -14464,7 +14464,7 @@ if (cid) {
   }
   var chacha20, xchacha20, ZEROS16, updatePadded, ZEROS32, _poly1305_aead, chacha20poly1305, xchacha20poly1305;
   var init_chacha = __esm({
-    "node_modules/@noble/ciphers/esm/chacha.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/ciphers/esm/chacha.js"() {
       init_arx();
       init_poly1305();
       init_utils4();
@@ -14520,10 +14520,10 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js
   var HMAC2, hmac2;
   var init_hmac2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js"() {
       init_utils();
       HMAC2 = class extends Hash {
         constructor(hash, _key) {
@@ -14594,7 +14594,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js
   function extract2(hash, ikm, salt) {
     ahash(hash);
     if (salt === void 0)
@@ -14627,7 +14627,7 @@ if (cid) {
   }
   var HKDF_COUNTER, EMPTY_BUFFER, hkdf;
   var init_hkdf = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js"() {
       init_hmac2();
       init_utils();
       HKDF_COUNTER = /* @__PURE__ */ Uint8Array.from([0]);
@@ -14636,16 +14636,16 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js
   var sha2564;
   var init_sha256 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js"() {
       init_sha22();
       sha2564 = sha2563;
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js
   function _abool2(value, title = "") {
     if (typeof value !== "boolean") {
       const prefix = title && `"${title}"`;
@@ -14806,7 +14806,7 @@ if (cid) {
   }
   var _0n8, _1n8, isPosBig2, bitMask2, notImplemented;
   var init_utils5 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js"() {
       init_utils();
       init_utils();
       _0n8 = /* @__PURE__ */ BigInt(0);
@@ -14819,7 +14819,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js
   function mod2(a3, b4) {
     const result = a3 % b4;
     return result >= _0n9 ? result : b4 + result;
@@ -15136,7 +15136,7 @@ if (cid) {
   }
   var _0n9, _1n9, _2n6, _3n3, _4n3, _5n2, _7n3, _8n2, _9n, _16n, isNegativeLE, FIELD_FIELDS2;
   var init_modular2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js"() {
       init_utils5();
       _0n9 = BigInt(0);
       _1n9 = BigInt(1);
@@ -15171,7 +15171,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js
   function negateCt(condition, item) {
     const neg = item.negate();
     return condition ? neg : item;
@@ -15319,7 +15319,7 @@ if (cid) {
   }
   var _0n10, _1n10, pointPrecomputes2, pointWindowSizes2, wNAF2;
   var init_curve2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js"() {
       init_utils5();
       init_modular2();
       _0n10 = BigInt(0);
@@ -15456,7 +15456,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
   function isEdValidXY(Fp2, CURVE, x7, y6) {
     const x22 = Fp2.sqr(x7);
     const y22 = Fp2.sqr(y6);
@@ -15937,7 +15937,7 @@ if (cid) {
   }
   var _0n11, _1n11, _2n7, _8n3, PrimeEdwardsPoint;
   var init_edwards = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js"() {
       init_utils5();
       init_curve2();
       init_modular2();
@@ -16015,7 +16015,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js
   function validateOpts2(curve) {
     _validateObject(curve, {
       adjustScalarBytes: "function",
@@ -16133,7 +16133,7 @@ if (cid) {
   }
   var _0n12, _1n12, _2n8;
   var init_montgomery = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js"() {
       init_utils5();
       init_modular2();
       _0n12 = BigInt(0);
@@ -16142,7 +16142,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js
   function ed25519_pow_2_252_3(x7) {
     const _10n = BigInt(10), _20n = BigInt(20), _40n = BigInt(40), _80n = BigInt(80);
     const P5 = ed25519_CURVE_p;
@@ -16220,7 +16220,7 @@ if (cid) {
   }
   var _0n13, _1n13, _2n9, _3n4, _5n3, _8n4, ed25519_CURVE_p, ed25519_CURVE, ED25519_SQRT_M1, Fp, Fn2, ed25519Defaults, ed25519, x25519, SQRT_M1, SQRT_AD_MINUS_ONE, INVSQRT_A_MINUS_D, ONE_MINUS_D_SQ, D_MINUS_ONE_SQ, invertSqrt, MAX_255B, bytes255ToNumberLE, _RistrettoPoint;
   var init_ed25519 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js"() {
       init_sha22();
       init_utils();
       init_curve2();
@@ -16389,7 +16389,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
   function _splitEndoScalar(k5, basis, n4) {
     const [[a1, b1], [a22, b22]] = basis;
     const c1 = divNearest2(b22 * k5, n4);
@@ -17293,7 +17293,7 @@ if (cid) {
   }
   var divNearest2, DERErr2, DER2, _0n14, _1n14, _2n10, _3n5, _4n4;
   var init_weierstrass2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
       init_hmac2();
       init_utils();
       init_utils5();
@@ -17413,21 +17413,21 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js
   function createCurve2(curveDef, defHash) {
     const create2 = (hash) => weierstrass2({ ...curveDef, hash });
     return { ...create2(defHash), create: create2 };
   }
   var init_shortw_utils2 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js"() {
       init_weierstrass2();
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js
   var p256_CURVE, p384_CURVE, p521_CURVE, Fp256, Fp384, Fp521, p256, p384, p521;
   var init_nist = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js"() {
       init_sha22();
       init_shortw_utils2();
       init_modular2();
@@ -17467,26 +17467,26 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js
   var p2562;
   var init_p256 = __esm({
-    "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js"() {
       init_nist();
       p2562 = p256;
     }
   });
 
-  // node_modules/@walletconnect/relay-api/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/relay-api/dist/index.es.js
   var C2;
   var init_index_es5 = __esm({
-    "node_modules/@walletconnect/relay-api/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/relay-api/dist/index.es.js"() {
       C2 = { waku: { publish: "waku_publish", batchPublish: "waku_batchPublish", subscribe: "waku_subscribe", batchSubscribe: "waku_batchSubscribe", subscription: "waku_subscription", unsubscribe: "waku_unsubscribe", batchUnsubscribe: "waku_batchUnsubscribe", batchFetchMessages: "waku_batchFetchMessages" }, irn: { publish: "irn_publish", batchPublish: "irn_batchPublish", subscribe: "irn_subscribe", batchSubscribe: "irn_batchSubscribe", subscription: "irn_subscription", unsubscribe: "irn_unsubscribe", batchUnsubscribe: "irn_batchUnsubscribe", batchFetchMessages: "irn_batchFetchMessages" }, iridium: { publish: "iridium_publish", batchPublish: "iridium_batchPublish", subscribe: "iridium_subscribe", batchSubscribe: "iridium_batchSubscribe", subscription: "iridium_subscription", unsubscribe: "iridium_unsubscribe", batchUnsubscribe: "iridium_batchUnsubscribe", batchFetchMessages: "iridium_batchFetchMessages" } };
     }
   });
 
-  // node_modules/blakejs/util.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/util.js
   var require_util = __commonJS({
-    "node_modules/blakejs/util.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/util.js"(exports, module) {
       var ERROR_MSG_INPUT = "Input must be an string, Buffer or Uint8Array";
       function normalizeInput(input) {
         let ret;
@@ -17556,9 +17556,9 @@ if (cid) {
     }
   });
 
-  // node_modules/blakejs/blake2b.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/blake2b.js
   var require_blake2b = __commonJS({
-    "node_modules/blakejs/blake2b.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/blake2b.js"(exports, module) {
       var util = require_util();
       function ADD64AA(v8, a3, b4) {
         const o0 = v8[a3] + v8[b4];
@@ -18030,9 +18030,9 @@ if (cid) {
     }
   });
 
-  // node_modules/blakejs/blake2s.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/blake2s.js
   var require_blake2s = __commonJS({
-    "node_modules/blakejs/blake2s.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/blake2s.js"(exports, module) {
       var util = require_util();
       function B2S_GET32(v8, i3) {
         return v8[i3] ^ v8[i3 + 1] << 8 ^ v8[i3 + 2] << 16 ^ v8[i3 + 3] << 24;
@@ -18322,9 +18322,9 @@ if (cid) {
     }
   });
 
-  // node_modules/blakejs/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/index.js
   var require_blakejs = __commonJS({
-    "node_modules/blakejs/index.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/blakejs/index.js"(exports, module) {
       var b2b = require_blake2b();
       var b2s = require_blake2s();
       module.exports = {
@@ -18342,7 +18342,7 @@ if (cid) {
     }
   });
 
-  // node_modules/@walletconnect/utils/dist/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/dist/index.js
   function ae2(e2) {
     const [t2, n4] = e2.split(G3);
     return { namespace: t2, reference: n4 };
@@ -19324,7 +19324,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   }
   var import_time3, import_window_getters, import_window_metadata, import_blakejs, G3, Ke2, Fe2, qe2, g2, Be3, er2, tr2, ut2, ur2, lr2, K4, lt2, dt2, ft2, Ee3, pt, ve3, y4, S2, ee2, k4, Se3, D2, F, wr2, St2, q2, Oe3, Tt2, $e3, mo2, wo2;
   var init_dist7 = __esm({
-    "node_modules/@walletconnect/utils/dist/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/utils/dist/index.js"() {
       init_es();
       import_time3 = __toESM(require_cjs(), 1);
       import_window_getters = __toESM(require_cjs2(), 1);
@@ -19435,10 +19435,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js
   var PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, SERVER_ERROR, RESERVED_ERROR_CODES, SERVER_ERROR_CODE_RANGE, STANDARD_ERROR_MAP, DEFAULT_ERROR;
   var init_constants = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js"() {
       PARSE_ERROR = "PARSE_ERROR";
       INVALID_REQUEST = "INVALID_REQUEST";
       METHOD_NOT_FOUND = "METHOD_NOT_FOUND";
@@ -19459,7 +19459,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js
   function isServerErrorCode(code2) {
     return code2 <= SERVER_ERROR_CODE_RANGE[0] && code2 >= SERVER_ERROR_CODE_RANGE[1];
   }
@@ -19510,14 +19510,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return e2.message.includes("getaddrinfo ENOTFOUND") || e2.message.includes("connect ECONNREFUSED") ? new Error(`Unavailable ${type} RPC url at ${url}`) : e2;
   }
   var init_error = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js"() {
       init_constants();
     }
   });
 
-  // node_modules/@walletconnect/environment/dist/cjs/crypto.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/crypto.js
   var require_crypto = __commonJS({
-    "node_modules/@walletconnect/environment/dist/cjs/crypto.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/crypto.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.isBrowserCryptoAvailable = exports.getSubtleCrypto = exports.getBrowerCrypto = void 0;
@@ -19537,9 +19537,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/environment/dist/cjs/env.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/env.js
   var require_env = __commonJS({
-    "node_modules/@walletconnect/environment/dist/cjs/env.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/env.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.isBrowser = exports.isNode = exports.isReactNative = void 0;
@@ -19558,9 +19558,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/environment/dist/cjs/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/index.js
   var require_cjs4 = __commonJS({
-    "node_modules/@walletconnect/environment/dist/cjs/index.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/environment/dist/cjs/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       var tslib_1 = (init_tslib_es6(), __toCommonJS(tslib_es6_exports));
@@ -19569,21 +19569,21 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js
   var env_exports = {};
   __export(env_exports, {
     isNodeJs: () => isNodeJs
   });
   var import_environment, isNodeJs;
   var init_env = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js"() {
       import_environment = __toESM(require_cjs4());
       __reExport(env_exports, __toESM(require_cjs4()));
       isNodeJs = import_environment.isNode;
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js
   function payloadId(entropy = 3) {
     const date = Date.now() * Math.pow(10, entropy);
     const extra = Math.floor(Math.random() * Math.pow(10, entropy));
@@ -19630,13 +19630,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return error;
   }
   var init_format = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js"() {
       init_error();
       init_constants();
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js
   function isValidRoute(route) {
     if (route.includes("*")) {
       return isValidWildcardRoute(route);
@@ -19671,14 +19671,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return !isValidDefaultRoute(route) && isValidWildcardRoute(route) && !route.split("*")[1].trim();
   }
   var init_routing = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js"() {
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-types/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-types/dist/index.es.js
   var e, o2, n3, r2;
   var init_index_es6 = __esm({
-    "node_modules/@walletconnect/jsonrpc-types/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-types/dist/index.es.js"() {
       e = class {
       };
       o2 = class extends e {
@@ -19699,14 +19699,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js
   var init_types = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js"() {
       init_index_es6();
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js
   function getUrlProtocol(url) {
     const matches = url.match(new RegExp(/^\w+:/, "gi"));
     if (!matches || !matches.length)
@@ -19730,13 +19730,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   }
   var HTTP_REGEX, WS_REGEX;
   var init_url = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js"() {
       HTTP_REGEX = "^https?:";
       WS_REGEX = "^wss?:";
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js
   function isJsonRpcPayload(payload) {
     return typeof payload === "object" && "id" in payload && "jsonrpc" in payload && payload.jsonrpc === "2.0";
   }
@@ -19756,11 +19756,11 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return "error" in validation && validation.valid === false;
   }
   var init_validators = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js"() {
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js
   var esm_exports = {};
   __export(esm_exports, {
     DEFAULT_ERROR: () => DEFAULT_ERROR,
@@ -19807,7 +19807,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     validateJsonRpcError: () => validateJsonRpcError
   });
   var init_esm6 = __esm({
-    "node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js"() {
       init_constants();
       init_error();
       init_env();
@@ -19820,10 +19820,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js
   var import_events5, o3;
   var init_index_es7 = __esm({
-    "node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js"() {
       import_events5 = __toESM(require_events());
       init_esm6();
       o3 = class extends r2 {
@@ -19890,9 +19890,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/ws/browser.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ws/browser.js
   var require_browser = __commonJS({
-    "node_modules/ws/browser.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/ws/browser.js"(exports, module) {
       "use strict";
       module.exports = function() {
         throw new Error(
@@ -19902,10 +19902,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js
   var import_events6, v4, w3, d2, h3, b2, f;
   var init_index_es8 = __esm({
-    "node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js"() {
       import_events6 = __toESM(require_events());
       init_esm2();
       init_esm6();
@@ -20013,25 +20013,25 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs
   function isEqualsSameValueZero(value, other) {
     return value === other || Number.isNaN(value) && Number.isNaN(other);
   }
   var init_isEqualsSameValueZero = __esm({
-    "node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs"() {
     }
   });
 
-  // node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
   function getSymbols(object2) {
     return Object.getOwnPropertySymbols(object2).filter((symbol) => Object.prototype.propertyIsEnumerable.call(object2, symbol));
   }
   var init_getSymbols = __esm({
-    "node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
     }
   });
 
-  // node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
   function getTag(value) {
     if (value == null) {
       return value === void 0 ? "[object Undefined]" : "[object Null]";
@@ -20039,14 +20039,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return Object.prototype.toString.call(value);
   }
   var init_getTag = __esm({
-    "node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
     }
   });
 
-  // node_modules/es-toolkit/dist/compat/_internal/tags.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/tags.mjs
   var regexpTag, stringTag, numberTag, booleanTag, argumentsTag, symbolTag, dateTag, mapTag, setTag, arrayTag, functionTag, arrayBufferTag, objectTag, errorTag, dataViewTag, uint8ArrayTag, uint8ClampedArrayTag, uint16ArrayTag, uint32ArrayTag, bigUint64ArrayTag, int8ArrayTag, int16ArrayTag, int32ArrayTag, bigInt64ArrayTag, float32ArrayTag, float64ArrayTag;
   var init_tags = __esm({
-    "node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
       regexpTag = "[object RegExp]";
       stringTag = "[object String]";
       numberTag = "[object Number]";
@@ -20076,7 +20076,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/es-toolkit/dist/predicate/isPlainObject.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isPlainObject.mjs
   function isPlainObject2(value) {
     if (!value || typeof value !== "object") {
       return false;
@@ -20089,11 +20089,11 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return Object.prototype.toString.call(value) === "[object Object]";
   }
   var init_isPlainObject = __esm({
-    "node_modules/es-toolkit/dist/predicate/isPlainObject.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isPlainObject.mjs"() {
     }
   });
 
-  // node_modules/es-toolkit/dist/predicate/isEqualWith.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isEqualWith.mjs
   function isEqualWith(a3, b4, areValuesEqual) {
     return isEqualWithImpl(a3, b4, void 0, void 0, void 0, void 0, areValuesEqual);
   }
@@ -20270,7 +20270,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   }
   var init_isEqualWith = __esm({
-    "node_modules/es-toolkit/dist/predicate/isEqualWith.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isEqualWith.mjs"() {
       init_isPlainObject();
       init_getSymbols();
       init_getTag();
@@ -20279,33 +20279,33 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/es-toolkit/dist/function/noop.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/function/noop.mjs
   function noop() {
   }
   var init_noop = __esm({
-    "node_modules/es-toolkit/dist/function/noop.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/function/noop.mjs"() {
     }
   });
 
-  // node_modules/es-toolkit/dist/predicate/isEqual.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isEqual.mjs
   function isEqual2(a3, b4) {
     return isEqualWith(a3, b4, noop);
   }
   var init_isEqual = __esm({
-    "node_modules/es-toolkit/dist/predicate/isEqual.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/predicate/isEqual.mjs"() {
       init_isEqualWith();
       init_noop();
     }
   });
 
-  // node_modules/es-toolkit/dist/compat/index.mjs
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/index.mjs
   var init_compat = __esm({
-    "node_modules/es-toolkit/dist/compat/index.mjs"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/es-toolkit/dist/compat/index.mjs"() {
       init_isEqual();
     }
   });
 
-  // node_modules/@walletconnect/core/dist/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/core/dist/index.js
   var dist_exports = {};
   __export(dist_exports, {
     CORE_CONTEXT: () => W4,
@@ -20390,7 +20390,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   });
   var import_events7, import_time4, import_window_getters2, ct3, lt3, W4, S3, Dt3, zt3, Kt3, gt2, $t3, Mt3, Ut3, qt3, Vt3, Bt3, Ft3, Gt3, Wt3, pt2, Yt3, p3, Ht3, v5, Jt3, Ki, Q3, $i, D3, Y3, jt3, Xt3, dt3, b3, Mi, Zt3, Qt3, Ui, te4, ee3, qi, U2, q3, T3, ie3, se3, re3, P4, oe3, Vi, ne3, Bi, ae3, H4, he4, ce2, le3, ge4, Fi, x6, O3, Gi, Wi, Yi, Hi, pe4, de3, ue2, ye4, me3, _e3, be4, Ji, ji, we4, fe4, ve4, Ee4, Ie4, Te4, Pe4, Re4, Se4, Ce4, Xi;
   var init_dist8 = __esm({
-    "node_modules/@walletconnect/core/dist/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/core/dist/index.js"() {
       import_events7 = __toESM(require_events(), 1);
       init_index_es();
       init_index_es2();
@@ -22135,7 +22135,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/@walletconnect/sign-client/dist/index.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/sign-client/dist/index.js
   var dist_exports2 = {};
   __export(dist_exports2, {
     AUTH_CONTEXT: () => lt4,
@@ -22175,7 +22175,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   });
   var import_events8, import_time5, be5, Ae4, xe4, _e4, fe5, ys, ws, ke3, ms, _s, fs, st2, Ss, Ce5, it4, Z3, rt3, T4, Se5, D4, nt3, ot2, at2, ct4, Es, lt4, pt3, ht2, dt4, ue3, $4, Rs, Is, ut4, Ts, qs, vs, Ps, Ns, gt3, Os, bs;
   var init_dist9 = __esm({
-    "node_modules/@walletconnect/sign-client/dist/index.js"() {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@walletconnect/sign-client/dist/index.js"() {
       import_events8 = __toESM(require_events(), 1);
       init_dist8();
       init_dist4();
@@ -23499,18 +23499,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/can-promise.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/can-promise.js
   var require_can_promise = __commonJS({
-    "node_modules/qrcode/lib/can-promise.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/can-promise.js"(exports, module) {
       module.exports = function() {
         return typeof Promise === "function" && Promise.prototype && Promise.prototype.then;
       };
     }
   });
 
-  // node_modules/qrcode/lib/core/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/utils.js
   var require_utils2 = __commonJS({
-    "node_modules/qrcode/lib/core/utils.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/utils.js"(exports) {
       var toSJISFunction;
       var CODEWORDS_COUNT = [
         0,
@@ -23587,9 +23587,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/error-correction-level.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/error-correction-level.js
   var require_error_correction_level = __commonJS({
-    "node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
       exports.L = { bit: 1 };
       exports.M = { bit: 0 };
       exports.Q = { bit: 3 };
@@ -23632,9 +23632,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/bit-buffer.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/bit-buffer.js
   var require_bit_buffer = __commonJS({
-    "node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
       function BitBuffer() {
         this.buffer = [];
         this.length = 0;
@@ -23667,9 +23667,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/bit-matrix.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/bit-matrix.js
   var require_bit_matrix = __commonJS({
-    "node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
       function BitMatrix(size3) {
         if (!size3 || size3 < 1) {
           throw new Error("BitMatrix size must be defined and greater than 0");
@@ -23696,9 +23696,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/alignment-pattern.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/alignment-pattern.js
   var require_alignment_pattern = __commonJS({
-    "node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
       var getSymbolSize = require_utils2().getSymbolSize;
       exports.getRowColCoords = function getRowColCoords(version3) {
         if (version3 === 1) return [];
@@ -23731,9 +23731,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/finder-pattern.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/finder-pattern.js
   var require_finder_pattern = __commonJS({
-    "node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
       var getSymbolSize = require_utils2().getSymbolSize;
       var FINDER_PATTERN_SIZE = 7;
       exports.getPositions = function getPositions(version3) {
@@ -23750,9 +23750,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/mask-pattern.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/mask-pattern.js
   var require_mask_pattern = __commonJS({
-    "node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
       exports.Patterns = {
         PATTERN000: 0,
         PATTERN001: 1,
@@ -23892,9 +23892,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/error-correction-code.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/error-correction-code.js
   var require_error_correction_code = __commonJS({
-    "node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
       var ECLevel = require_error_correction_level();
       var EC_BLOCKS_TABLE = [
         // L  M  Q  H
@@ -24253,9 +24253,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/galois-field.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/galois-field.js
   var require_galois_field = __commonJS({
-    "node_modules/qrcode/lib/core/galois-field.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/galois-field.js"(exports) {
       var EXP_TABLE = new Uint8Array(512);
       var LOG_TABLE = new Uint8Array(256);
       (function initTables() {
@@ -24286,9 +24286,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/polynomial.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/polynomial.js
   var require_polynomial = __commonJS({
-    "node_modules/qrcode/lib/core/polynomial.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/polynomial.js"(exports) {
       var GF = require_galois_field();
       exports.mul = function mul(p1, p22) {
         const coeff = new Uint8Array(p1.length + p22.length - 1);
@@ -24322,9 +24322,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/reed-solomon-encoder.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/reed-solomon-encoder.js
   var require_reed_solomon_encoder = __commonJS({
-    "node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
       var Polynomial = require_polynomial();
       function ReedSolomonEncoder(degree) {
         this.genPoly = void 0;
@@ -24354,18 +24354,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/version-check.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/version-check.js
   var require_version_check = __commonJS({
-    "node_modules/qrcode/lib/core/version-check.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/version-check.js"(exports) {
       exports.isValid = function isValid(version3) {
         return !isNaN(version3) && version3 >= 1 && version3 <= 40;
       };
     }
   });
 
-  // node_modules/qrcode/lib/core/regex.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/regex.js
   var require_regex = __commonJS({
-    "node_modules/qrcode/lib/core/regex.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/regex.js"(exports) {
       var numeric = "[0-9]+";
       var alphanumeric = "[A-Z $%*+\\-./:]+";
       var kanji = "(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+";
@@ -24391,9 +24391,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/mode.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/mode.js
   var require_mode = __commonJS({
-    "node_modules/qrcode/lib/core/mode.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/mode.js"(exports) {
       var VersionCheck = require_version_check();
       var Regex = require_regex();
       exports.NUMERIC = {
@@ -24472,9 +24472,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/version.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/version.js
   var require_version = __commonJS({
-    "node_modules/qrcode/lib/core/version.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/version.js"(exports) {
       var Utils = require_utils2();
       var ECCode = require_error_correction_code();
       var ECLevel = require_error_correction_level();
@@ -24567,9 +24567,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/format-info.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/format-info.js
   var require_format_info = __commonJS({
-    "node_modules/qrcode/lib/core/format-info.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/format-info.js"(exports) {
       var Utils = require_utils2();
       var G15 = 1 << 10 | 1 << 8 | 1 << 5 | 1 << 4 | 1 << 2 | 1 << 1 | 1 << 0;
       var G15_MASK = 1 << 14 | 1 << 12 | 1 << 10 | 1 << 4 | 1 << 1;
@@ -24585,9 +24585,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/numeric-data.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/numeric-data.js
   var require_numeric_data = __commonJS({
-    "node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
       var Mode = require_mode();
       function NumericData(data) {
         this.mode = Mode.NUMERIC;
@@ -24620,9 +24620,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/alphanumeric-data.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/alphanumeric-data.js
   var require_alphanumeric_data = __commonJS({
-    "node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
       var Mode = require_mode();
       var ALPHA_NUM_CHARS = [
         "0",
@@ -24699,9 +24699,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/byte-data.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/byte-data.js
   var require_byte_data = __commonJS({
-    "node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
       var Mode = require_mode();
       function ByteData(data) {
         this.mode = Mode.BYTE;
@@ -24729,9 +24729,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/kanji-data.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/kanji-data.js
   var require_kanji_data = __commonJS({
-    "node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
       var Mode = require_mode();
       var Utils = require_utils2();
       function KanjiData(data) {
@@ -24768,9 +24768,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/dijkstrajs/dijkstra.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/dijkstrajs/dijkstra.js
   var require_dijkstra = __commonJS({
-    "node_modules/dijkstrajs/dijkstra.js"(exports, module) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/dijkstrajs/dijkstra.js"(exports, module) {
       "use strict";
       var dijkstra = {
         single_source_shortest_paths: function(graph, s2, d3) {
@@ -24869,9 +24869,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/segments.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/segments.js
   var require_segments = __commonJS({
-    "node_modules/qrcode/lib/core/segments.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/segments.js"(exports) {
       var Mode = require_mode();
       var NumericData = require_numeric_data();
       var AlphanumericData = require_alphanumeric_data();
@@ -25055,9 +25055,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/core/qrcode.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/qrcode.js
   var require_qrcode = __commonJS({
-    "node_modules/qrcode/lib/core/qrcode.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/core/qrcode.js"(exports) {
       var Utils = require_utils2();
       var ECLevel = require_error_correction_level();
       var BitBuffer = require_bit_buffer();
@@ -25316,9 +25316,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/renderer/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/utils.js
   var require_utils3 = __commonJS({
-    "node_modules/qrcode/lib/renderer/utils.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/utils.js"(exports) {
       function hex2rgba(hex) {
         if (typeof hex === "number") {
           hex = hex.toString();
@@ -25396,9 +25396,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/renderer/canvas.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/canvas.js
   var require_canvas = __commonJS({
-    "node_modules/qrcode/lib/renderer/canvas.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/canvas.js"(exports) {
       var Utils = require_utils3();
       function clearCanvas(ctx, canvas, size3) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -25449,9 +25449,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/renderer/svg-tag.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/svg-tag.js
   var require_svg_tag = __commonJS({
-    "node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
       var Utils = require_utils3();
       function getColorAttrib(color, attrib) {
         const alpha = color.a / 255;
@@ -25507,9 +25507,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     }
   });
 
-  // node_modules/qrcode/lib/browser.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/browser.js
   var require_browser2 = __commonJS({
-    "node_modules/qrcode/lib/browser.js"(exports) {
+    "../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/qrcode/lib/browser.js"(exports) {
       var canPromise = require_can_promise();
       var QRCode2 = require_qrcode();
       var CanvasRenderer = require_canvas();
@@ -25656,7 +25656,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return value;
   }
 
-  // node_modules/@noble/hashes/utils.js
+  // ../../../../finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules/@noble/hashes/utils.js
   function isBytes(a3) {
     return a3 instanceof Uint8Array || ArrayBuffer.isView(a3) && a3.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a3 && a3.BYTES_PER_ELEMENT === 1;
   }
@@ -25760,7 +25760,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     uniqueSorted(products.map((item) => item.productId), "productId");
     unique(products.map((item) => item.clientId), "clientId");
     unique(products.map((item) => item.applicationId), "applicationId");
-    unique(products.map((item) => item.webOrigin), "webOrigin");
+    unique(products.filter((item) => !item.platforms || item.platforms.includes("web")).map((item) => item.webOrigin), "webOrigin");
     unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
     const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
 ${item.productId}`));
@@ -25775,17 +25775,27 @@ ${item.productId}`));
   }
   function parseProduct(input) {
     const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
-    exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
-    if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
-      fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
-    }
+    const hasWebCallback = input !== null && typeof input === "object" && Object.hasOwn(input, "webCallback");
+    exactFields(input, [...PRODUCT_FIELDS, ...hasPlatforms ? ["platforms"] : [], ...hasWebCallback ? ["webCallback"] : []], "Product Session product registration");
+    const platforms = hasPlatforms ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS.length, (value) => {
+      if (!PRODUCT_SESSION_PLATFORMS.includes(value)) fail("INVALID_ROUTER_REGISTRY", "Product platform is unsupported");
+      return value;
+    }) : PRODUCT_SESSION_PLATFORMS;
     const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
     const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
     const displayName = text(input.displayName, "displayName", 2, 64);
     const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
     const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+    let webCallback;
+    if (hasWebCallback) {
+      webCallback = callback(input.webCallback, "webCallback", { allowHttps: true });
+      const target = new URL(webCallback);
+      if (!platforms.includes("web") || target.protocol !== "https:" || target.origin !== webOrigin || target.search || target.hash || target.pathname === "/" || target.pathname.split("/").some((part) => part === "." || part === "..") || target.pathname.includes("%")) {
+        fail("INVALID_ROUTER_REGISTRY", "Web callback requires an exact same-origin registered Web client route");
+      }
+    }
     let nativeCallback, legacyCallbacks;
-    if (hasPlatforms) {
+    if (!platforms.some((platform) => platform !== "web")) {
       if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
         fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
       }
@@ -25813,7 +25823,8 @@ ${item.productId}`));
       applicationId,
       webOrigin,
       nativeCallback,
-      ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
+      ...hasPlatforms ? { platforms: Object.freeze(platforms) } : {},
+      ...hasWebCallback ? { webCallback } : {},
       legacyCallbacks: Object.freeze(legacyCallbacks),
       scopes: Object.freeze(scopes),
       evmCompatible: input.evmCompatible,
@@ -25877,9 +25888,12 @@ ${item.productId}`));
   // src/central-browser-session-registry.js
   var CENTRAL_BROWSER_ISSUER = "https://wallet-auth.ynxweb4.com";
   var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai", "developer"]);
-  function createCentralBrowserSessionRegistry(productRegistry) {
+  var ECOSYSTEM_ADOPTED = Object.freeze([...ADOPTED, "calendar", "cloud", "docs", "mail", "shop", "video", "creator-studio"]);
+  function createCentralBrowserSessionRegistry(productRegistry, options = {}) {
+    exactFields(options, Object.hasOwn(options, "ecosystem") ? ["ecosystem"] : [], "Central adoption configuration");
+    if (Object.hasOwn(options, "ecosystem") && typeof options.ecosystem !== "boolean") fail2("SSO_REGISTRY_INVALID");
     const registry = parseProductSessionRegistry(productRegistry);
-    return Object.freeze(ADOPTED.map((productId) => {
+    return Object.freeze((options.ecosystem === true ? ECOSYSTEM_ADOPTED : ADOPTED).map((productId) => {
       const product = registry.products.find((value) => value.productId === productId);
       if (!product) fail2("SSO_REGISTRY_INVALID");
       return Object.freeze({
@@ -25901,7 +25915,7 @@ ${item.productId}`));
   function fail2(code2) {
     throw new WalletAuthError(code2, "Central browser client is not exactly registered");
   }
-  var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"]]);
+  var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"], [...ECOSYSTEM_ADOPTED]]);
   function centralBrowserProfiles(registry) {
     return PROFILE_PRODUCTS.filter((ids) => ids.every((id) => registry.some((c4) => c4.productId === id))).map((ids) => ({ id: ids.length, clients: ids.map((id) => {
       const c4 = registry.find((c5) => c5.productId === id);
@@ -26530,8 +26544,17 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.ai",
         webOrigin: "https://assistant.ynxweb4.com",
         nativeCallback: "ynxai://wallet-auth/callback",
-        legacyCallbacks: ["ynxai://wallet-auth/callback"],
-        scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"],
+        legacyCallbacks: [
+          "ynxai://wallet-auth/callback"
+        ],
+        scopes: [
+          "ai:actions",
+          "ai:attachments",
+          "ai:conversations",
+          "ai:data-control",
+          "ai:generate",
+          "ai:permissions"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26542,8 +26565,14 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.calendar",
         webOrigin: "https://calendar.ynxweb4.com",
         nativeCallback: "ynxcalendar://wallet-auth/callback",
-        legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
-        scopes: ["calendar:account", "calendar:recover"],
+        legacyCallbacks: [
+          "ynxcalendar",
+          "ynxcalendar://wallet-auth/callback"
+        ],
+        scopes: [
+          "calendar:account",
+          "calendar:recover"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26554,8 +26583,18 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.card",
         webOrigin: "https://card.ynxweb4.com",
         nativeCallback: "ynxcard://wallet-auth/callback",
-        legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"],
-        scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"],
+        legacyCallbacks: [
+          "ynxcard",
+          "ynxcard://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "card:application:write",
+          "card:controls:write",
+          "card:dispute:write",
+          "card:simulation:write",
+          "card:topup:write"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26565,10 +26604,15 @@ ${item.productId}`));
         displayName: "YNX Cloud",
         applicationId: "com.ynxweb4.cloud",
         webOrigin: "https://web4.ynxweb4.com",
-        platforms: ["web"],
+        platforms: [
+          "web"
+        ],
         nativeCallback: null,
         legacyCallbacks: [],
-        scopes: ["files.read", "files.write"],
+        scopes: [
+          "files.read",
+          "files.write"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       },
@@ -26579,8 +26623,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.creator-studio",
         webOrigin: "https://creator.ynxweb4.com",
         nativeCallback: "ynxcreator://wallet-auth/callback",
-        legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"],
-        scopes: ["creator:account", "creator:publish", "creator:revenue"],
+        legacyCallbacks: [
+          "ynxcreator",
+          "ynxcreator://wallet-auth/callback"
+        ],
+        scopes: [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26591,8 +26642,14 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.developer.testnetpreview",
         webOrigin: "https://developer.ynxweb4.com",
         nativeCallback: "ynxdeveloper://wallet-auth/callback",
-        legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
-        scopes: ["account:read", "developer:deploy"],
+        legacyCallbacks: [
+          "ynxdeveloper",
+          "ynxdeveloper://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "developer:deploy"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26603,8 +26660,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.dex",
         webOrigin: "https://dex.ynxweb4.com",
         nativeCallback: "ynxdex://wallet-auth/callback",
-        legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"],
-        scopes: ["dex:account", "dex:orders", "dex:trade"],
+        legacyCallbacks: [
+          "ynxdex",
+          "ynxdex://wallet-auth/callback"
+        ],
+        scopes: [
+          "dex:account",
+          "dex:orders",
+          "dex:trade"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26615,8 +26679,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.docs",
         webOrigin: "https://docs.ynxweb4.com",
         nativeCallback: "ynxdocs://wallet-auth/callback",
-        legacyCallbacks: ["ynxdocs://wallet-auth/callback"],
-        scopes: ["docs.read", "docs.write", "files.read", "files.write"],
+        legacyCallbacks: [
+          "ynxdocs://wallet-auth/callback"
+        ],
+        scopes: [
+          "docs.read",
+          "docs.write",
+          "files.read",
+          "files.write"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       },
@@ -26627,8 +26698,17 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.exchange",
         webOrigin: "https://exchange.ynxweb4.com",
         nativeCallback: "ynxexchange://wallet-auth/callback",
-        legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"],
-        scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+        legacyCallbacks: [
+          "ynxexchange",
+          "ynxexchange://wallet-auth/callback"
+        ],
+        scopes: [
+          "exchange:ai",
+          "exchange:deposit",
+          "exchange:read",
+          "exchange:trade",
+          "exchange:withdrawal-review"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26639,10 +26719,58 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.finance",
         webOrigin: "https://finance.ynxweb4.com",
         nativeCallback: "ynxfinance://wallet-auth/callback",
-        legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"],
-        scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+        legacyCallbacks: [
+          "ynxfinance",
+          "ynxfinance://wallet-auth/callback"
+        ],
+        scopes: [
+          "finance.ai.draft",
+          "finance.pay.read",
+          "finance.portfolio.read",
+          "finance.profile.write"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 240
+      },
+      {
+        productId: "mail",
+        clientId: "ynx-mail-v1",
+        displayName: "YNX Mail",
+        applicationId: "com.ynxweb4.mail",
+        webOrigin: "https://mail.ynxweb4.com",
+        nativeCallback: "ynxmail://wallet-auth/callback",
+        legacyCallbacks: [
+          "ynxmail://wallet-auth/callback"
+        ],
+        scopes: [
+          "mail:account",
+          "mail:recover"
+        ],
+        evmCompatible: false,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "music",
+        clientId: "ynx-music-v1",
+        displayName: "YNX Music",
+        applicationId: "com.ynxweb4.music",
+        webOrigin: "https://music.ynxweb4.com",
+        platforms: [
+          "android",
+          "ios"
+        ],
+        nativeCallback: "ynxmusic://auth/callback",
+        legacyCallbacks: [
+          "ynxmusic://auth/callback"
+        ],
+        scopes: [
+          "music.creator",
+          "music.library",
+          "music.playback",
+          "music.profile"
+        ],
+        evmCompatible: false,
+        sessionDurationSeconds: 300
       },
       {
         productId: "pay",
@@ -26651,10 +26779,43 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.pay",
         webOrigin: "https://pay.ynxweb4.com",
         nativeCallback: "ynxpay://wallet-auth/callback",
-        legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"],
-        scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+        legacyCallbacks: [
+          "ynxpay",
+          "ynxpay://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "pay:case:create",
+          "pay:settlement:submit"
+        ],
         evmCompatible: true,
-        sessionDurationSeconds: 180
+        sessionDurationSeconds: 180,
+        platforms: [
+          "android",
+          "ios",
+          "linux",
+          "macos",
+          "windows"
+        ]
+      },
+      {
+        productId: "pay-merchant",
+        clientId: "ynx-merchant-console-v1",
+        displayName: "YNX Merchant Console",
+        applicationId: "com.ynxweb4.merchant-console",
+        webOrigin: "https://pay.ynxweb4.com",
+        webCallback: "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+        platforms: [
+          "web"
+        ],
+        nativeCallback: null,
+        legacyCallbacks: [],
+        scopes: [
+          "account:read",
+          "merchant:session:create"
+        ],
+        evmCompatible: true,
+        sessionDurationSeconds: 240
       },
       {
         productId: "quant",
@@ -26663,8 +26824,18 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.quant",
         webOrigin: "https://quant.ynxweb4.com",
         nativeCallback: "ynxquant://wallet-auth/callback",
-        legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
-        scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:paper:workspace", "quant:records:read"],
+        legacyCallbacks: [
+          "ynxquant",
+          "ynxquant://wallet-auth/callback"
+        ],
+        scopes: [
+          "quant:account",
+          "quant:mandate:create",
+          "quant:mandate:execute",
+          "quant:mandate:revoke",
+          "quant:paper:workspace",
+          "quant:records:read"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26675,8 +26846,16 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.shop",
         webOrigin: "https://shop.ynxweb4.com",
         nativeCallback: "ynxshop://wallet-auth/callback",
-        legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"],
-        scopes: ["account:read", "shop:orders:write", "shop:profile:write"],
+        legacyCallbacks: [
+          "ynxshop",
+          "ynxshop://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "shop:orders:write",
+          "shop:profile:write",
+          "shop:seller:operate"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 240
       },
@@ -26687,8 +26866,19 @@ ${item.productId}`));
         applicationId: "com.ynx.social",
         webOrigin: "https://social.ynxweb4.com",
         nativeCallback: "ynx-social://com.ynx.social",
-        legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"],
-        scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
+        legacyCallbacks: [
+          "ynx-social",
+          "ynx-social://com.ynx.social"
+        ],
+        scopes: [
+          "account:read",
+          "profile:link",
+          "social.ai",
+          "social.contacts",
+          "social.feed",
+          "social.messaging",
+          "social.profile"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26699,8 +26889,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.video",
         webOrigin: "https://video.ynxweb4.com",
         nativeCallback: "ynxvideo://wallet-auth/callback",
-        legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"],
-        scopes: ["video:account", "video:library", "video:playback"],
+        legacyCallbacks: [
+          "ynxvideo",
+          "ynxvideo://wallet-auth/callback"
+        ],
+        scopes: [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       }
@@ -26800,8 +26997,16 @@ ${item.productId}`));
 
   // src/walletconnect-dapp-connection.js
   var YNX_PAIR_PROJECT_ID = "41857128a14a593ca4e4a7cb7c838d71";
-  var ORIGINS = /* @__PURE__ */ new Set(["https://finance.ynxweb4.com", "https://exchange.ynxweb4.com", "https://quant.ynxweb4.com", "https://wallet-auth.ynxweb4.com", "https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"]);
-  var METHODS = /* @__PURE__ */ new Set(["personal_sign", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
+  var LEGACY_METHODS = Object.freeze(["personal_sign", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
+  var PRIVATE_METHODS = Object.freeze(["ynx_requestProductSessionV2"]);
+  var IDENTITY_METHODS = Object.freeze(["ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
+  var ORIGIN_METHODS = new Map([
+    ...["finance", "exchange", "quant", "wallet-auth"].map((host) => [`https://${host}.ynxweb4.com`, LEGACY_METHODS]),
+    ...["social", "assistant", "video", "creator"].map((host) => [`https://${host}.ynxweb4.com`, PRIVATE_METHODS]),
+    ...["web4", "docs", "calendar", "mail", "developer", "shop"].map((host) => [`https://${host}.ynxweb4.com`, IDENTITY_METHODS]),
+    ...["music", "pay", "card"].map((host) => [`https://${host}.ynxweb4.com`, PRIVATE_METHODS])
+  ]);
+  var READ_METHODS = /* @__PURE__ */ new Set(["eth_accounts", "eth_requestAccounts", "eth_chainId"]);
   var fail5 = (code2) => {
     throw Object.assign(new Error(code2), { code: code2 });
   };
@@ -26874,7 +27079,7 @@ ${item.productId}`));
     #restoring = 0;
     #cancelledAttempt = 0;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
-      if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method) || ["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && method !== "ynx_requestProductSessionV2")) fail5("YNX_PAIR_CONFIGURATION_INVALID");
+      if (!ORIGIN_METHODS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !ORIGIN_METHODS.get(origin).includes(method) || !WALLETCONNECT_SESSION_METHODS.includes(method))) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       this.#origin = origin;
       this.#methods = [...methods];
@@ -26985,7 +27190,7 @@ ${item.productId}`));
       const namespaces = session.namespaces;
       if (!namespaces || Object.keys(namespaces).join(",") !== "eip155") fail5("YNX_PAIR_NAMESPACE_INVALID");
       const value = namespaces.eip155;
-      if (!Array.isArray(value.accounts) || value.accounts.length !== 1 || !/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0]) || !Array.isArray(value.methods) || this.#methods.some((method) => !value.methods.includes(method)) || value.methods.some((method) => !WALLETCONNECT_SESSION_METHODS.includes(method))) fail5("YNX_PAIR_NAMESPACE_INVALID");
+      if (!Array.isArray(value.accounts) || value.accounts.length !== 1 || !/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0]) || !Array.isArray(value.methods) || this.#methods.some((method) => !value.methods.includes(method)) || value.methods.some((method) => !WALLETCONNECT_SESSION_METHODS.includes(method) || !ORIGIN_METHODS.get(this.#origin).includes(method) && !READ_METHODS.has(method))) fail5("YNX_PAIR_NAMESPACE_INVALID");
       if (value.chains && (!Array.isArray(value.chains) || value.chains.length !== 1 || value.chains[0] !== WALLETCONNECT_CHAIN)) fail5("YNX_PAIR_CHAIN_INVALID");
       return session;
     }
@@ -27190,7 +27395,7 @@ ${item.productId}`));
   // src/central-browser-session-browser.js
   var import_qrcode = __toESM(require_browser2(), 1);
 
-  // ../../apps/wallet-web/vendor/product-session-registry-123016847.json
+  // src/hosted-adapter.js
   var product_session_registry_123016847_default = {
     schemaVersion: 2,
     chainId: "ynx_6423-1",
@@ -27383,8 +27588,12 @@ ${item.productId}`));
       }
     ]
   };
-
-  // ../../apps/wallet-web/src/hosted-protocol.js
+  var PRODUCT_SESSION_PLATFORMS2 = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+  var CENTRAL_BROWSER_ISSUER2 = "https://wallet-auth.ynxweb4.com";
+  var ADOPTED2 = Object.freeze(["finance", "exchange", "quant", "social", "ai", "developer"]);
+  var ECOSYSTEM_ADOPTED2 = Object.freeze([...ADOPTED2, "calendar", "cloud", "docs", "mail", "shop", "video", "creator-studio"]);
+  var PROFILE_PRODUCTS2 = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"], [...ECOSYSTEM_ADOPTED2]]);
+  var CENTRAL_BROWSER_RPC_METHOD2 = "ynx_requestCentralBrowserSignIn";
   var HOSTED_PROTOCOL = "ynx-hosted-wallet/v1";
   var HOSTED_WALLET_ORIGIN = "https://wallet.ynxweb4.com";
   var HOSTED_WALLET_PATH = "/hosted/";
@@ -27397,12 +27606,12 @@ ${item.productId}`));
   }
   function registeredProduct(origin) {
     if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
-    if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
+    if (origin === CENTRAL_BROWSER_ISSUER2) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
     return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false || product.productId === "video" && product.clientId === "ynx-video-mobile-v1" && product.applicationId === "com.ynxweb4.video" && origin === "https://video.ynxweb4.com" && product.evmCompatible === false || product.productId === "creator-studio" && product.clientId === "ynx-creator-studio-web-v1" && product.applicationId === "com.ynxweb4.creator-studio" && origin === "https://creator.ynxweb4.com" && product.evmCompatible === false)) ?? null;
   }
   function assertHostedMethodAllowed(origin, method) {
     if (["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : origin === "https://assistant.ynxweb4.com" ? "HOSTED_AI_PRIVATE_ONLY" : "HOSTED_NATIVE_PRIVATE_ONLY");
-    if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6("HOSTED_IDENTITY_ONLY");
+    if (origin === CENTRAL_BROWSER_ISSUER2 && ![CENTRAL_BROWSER_RPC_METHOD2, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6("HOSTED_IDENTITY_ONLY");
   }
   function randomHostedId(cryptoProvider = globalThis.crypto) {
     if (!cryptoProvider?.getRandomValues) fail6("HOSTED_CRYPTO_UNAVAILABLE");
@@ -27418,8 +27627,6 @@ ${item.productId}`));
     if (now >= request.expiresAt) fail6("HOSTED_REQUEST_EXPIRED");
     return { protocol: HOSTED_PROTOCOL, requestId: request.requestId, nonce: request.nonce, messageId: randomHostedId(), expiresAt: Math.min(request.expiresAt, now + 3e4), type, ...extra };
   }
-
-  // ../../apps/wallet-web/src/extension-chain-params.js
   var record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
   var ownKeys = (value, allowed) => record(value) && Object.keys(value).every((key) => allowed.includes(key));
   var trustedSubset = (value, allowed) => Array.isArray(value) && value.length > 0 && value.length <= allowed.length && new Set(value).size === value.length && value.every((url) => typeof url === "string" && allowed.includes(url));
@@ -27437,8 +27644,6 @@ ${item.productId}`));
     if (!valid) throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."), { code: "INVALID_CHAIN_PARAMS" });
     return true;
   }
-
-  // ../../apps/wallet-web/src/hosted-adapter.js
   function failure(code2) {
     return Object.assign(new Error(code2), { code: code2 });
   }
@@ -28258,7 +28463,11 @@ ${item.productId}`));
         const result = await request("cancel", { challengeId: challenge.challengeId });
         const redirect = new URL(result.redirectUri);
         if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
-        location.assign(redirect.href);
+        if (context.mode === "oidc") {
+          const target = new URL(context.oidcCancelRedirect);
+          if (target.protocol !== "https:" || target.username || target.password || target.hash || !target.pathname.endsWith("/_synapse/client/oidc/callback") || target.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
+          location.assign(target.href);
+        } else location.assign(redirect.href);
       } catch (error) {
         const code2 = failure2(error, "server-cancel");
         safeReturn.hidden = false;
@@ -28281,3 +28490,56 @@ ${item.productId}`));
     });
   }
 })();
+/*! Bundled license information:
+
+tslib/tslib.es6.js:
+  (*! *****************************************************************************
+  Copyright (c) Microsoft Corporation.
+  
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
+  
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+  ***************************************************************************** *)
+
+@walletconnect/relay-auth/dist/index.es.js:
+  (*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/hashes/esm/utils.js:
+@noble/hashes/esm/utils.js:
+  (*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/curves/esm/abstract/utils.js:
+@noble/curves/esm/abstract/modular.js:
+@noble/curves/esm/abstract/curve.js:
+@noble/curves/esm/abstract/weierstrass.js:
+@noble/curves/esm/_shortw_utils.js:
+@noble/curves/esm/secp256k1.js:
+@noble/curves/esm/utils.js:
+@noble/curves/esm/abstract/modular.js:
+@noble/curves/esm/abstract/curve.js:
+@noble/curves/esm/abstract/edwards.js:
+@noble/curves/esm/abstract/montgomery.js:
+@noble/curves/esm/ed25519.js:
+@noble/curves/esm/abstract/weierstrass.js:
+@noble/curves/esm/_shortw_utils.js:
+@noble/curves/esm/nist.js:
+@noble/curves/esm/p256.js:
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@scure/base/lib/esm/index.js:
+  (*! scure-base - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/ciphers/esm/utils.js:
+  (*! noble-ciphers - MIT License (c) 2023 Paul Miller (paulmillr.com) *)
+
+@scure/bip39/esm/index.js:
+  (*! scure-bip39 - MIT License (c) 2022 Patricio Palladino, Paul Miller (paulmillr.com) *)
+*/

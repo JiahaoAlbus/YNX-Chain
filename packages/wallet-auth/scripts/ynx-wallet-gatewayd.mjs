@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import {loadCentralOIDCConfiguration} from '../src/central-oidc-provider.js';
 import {loadCentralBackendConfiguration} from '../src/central-browser-backend-auth.js';
-import { readFileSync, lstatSync } from "node:fs";
+import { readFileSync, lstatSync, openSync, closeSync, fstatSync, constants } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { isIP } from "node:net";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { canonicalJSON } from "../src/canonical.js";
+import { canonicalJSON, exactFields } from "../src/canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admission.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
@@ -30,6 +30,14 @@ if(productSessionStateVersion==='3'&&!process.env.YNX_PRODUCT_SESSION_GATEWAY_ST
 const capacityPolicy=productSessionStateVersion==='3'?parseProductSessionControlCapacityPolicy(process.env.YNX_PRODUCT_SESSION_CONTROL_CAPACITY_POLICY===undefined?undefined:JSON.parse(process.env.YNX_PRODUCT_SESSION_CONTROL_CAPACITY_POLICY)):undefined;
 const productSessionStatePath=process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH?resolve(process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH):`${statePath}.product-session-v2`;
 const centralBrowser=boolean(process.env.YNX_CENTRAL_BROWSER_SSO??'false','YNX_CENTRAL_BROWSER_SSO');
+const ecosystemIdentity=boolean(process.env.YNX_CENTRAL_BROWSER_ECOSYSTEM??'false','YNX_CENTRAL_BROWSER_ECOSYSTEM');
+const businessRevalidation=boolean(process.env.YNX_PRODUCT_BUSINESS_REVALIDATION??'false','YNX_PRODUCT_BUSINESS_REVALIDATION');
+const privateBusinessRevalidation=boolean(process.env.YNX_PRIVATE_BUSINESS_REVALIDATION??'false','YNX_PRIVATE_BUSINESS_REVALIDATION');
+const privateRegistrationFile=process.env.YNX_PRIVATE_BUSINESS_REGISTRATION_FILE;
+if((ecosystemIdentity||businessRevalidation||privateBusinessRevalidation)&&!centralBrowser)throw new Error('Business and ecosystem adoption require explicit Central routes');
+if(Boolean(privateRegistrationFile)!==privateBusinessRevalidation)throw new Error('Private business adoption requires an explicit protected registration file');
+if(productSessionStateVersion==='3'&&(businessRevalidation||privateBusinessRevalidation)&&ProductSessionControlNodeHost.businessRevalidationSupported!==true)throw new Error('Version-three business revalidation requires an explicit supported control-host capability; do not ignore adoption flags');
+
 if(address!=="127.0.0.1"&&address!=="::1"&&address!=="localhost"&&!(isIP(address)&&address.startsWith("127.")))throw new Error("YNX_WALLET_GATEWAY_HTTP_ADDR must be loopback");
 if(!statePath)throw new Error("YNX_WALLET_GATEWAY_STATE_PATH is required");
 if(remoteDeployed&&!build)throw new Error("remote deployment requires YNX_WALLET_GATEWAY_SOURCE_COMMIT, YNX_WALLET_GATEWAY_RELEASE and YNX_WALLET_GATEWAY_BUILD_TIME");
@@ -52,7 +60,7 @@ const productHost=new ProductHost(productRegistry,{statePath:productSessionState
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
 if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OIDC requires explicit Central browser adoption');
-const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),{...loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE),oidc:loadCentralOIDCConfiguration(process.env.YNX_CENTRAL_OIDC_CONFIG_FILE),productRevalidator:(session,scopes,productId,at)=>productHost.revalidate(session,scopes,productId,at)})):null;
+const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry,{ecosystem:ecosystemIdentity}),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),{...loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE),oidc:loadCentralOIDCConfiguration(process.env.YNX_CENTRAL_OIDC_CONFIG_FILE),businessRevalidation,privateBusinessRevalidation,privateProductRegistry:productRegistry,privateBackendRegistrations:privateBusinessRevalidation?loadPrivateRegistrations(privateRegistrationFile):[],productRevalidator:(session,scopes,productId,at)=>productHost.revalidate(session,scopes,productId,at,businessRevalidation||privateBusinessRevalidation)})):null;
 const admission=new GatewayAdmissionController({maxConcurrent:integer(process.env.YNX_WALLET_GATEWAY_MAX_CONCURRENT??"64","YNX_WALLET_GATEWAY_MAX_CONCURRENT",1,1024),maxPerWindow:integer(process.env.YNX_WALLET_GATEWAY_RATE_LIMIT??"300","YNX_WALLET_GATEWAY_RATE_LIMIT",1,100000)});
 const legacyHandler=host.handler(),productHandler=productHost.handler();
 const gatewayHandler=async(request,response)=>{
@@ -71,3 +79,14 @@ server.requestTimeout=15000;server.headersTimeout=10000;
 function integer(value,label,min,max){if(!/^[0-9]+$/.test(value))throw new Error(`${label} must be an integer`);const parsed=Number(value);if(!Number.isSafeInteger(parsed)||parsed<min||parsed>max)throw new Error(`${label} is outside policy`);return parsed}
 function boolean(value,label){if(value==="true")return true;if(value==="false")return false;throw new Error(`${label} must be true or false`)}
 function buildIdentity(env){const values=[env.YNX_WALLET_GATEWAY_SOURCE_COMMIT,env.YNX_WALLET_GATEWAY_RELEASE,env.YNX_WALLET_GATEWAY_BUILD_TIME];if(values.every(value=>value===undefined))return null;if(values.some(value=>value===undefined))throw new Error("Gateway build identity variables must be supplied together");const[sourceCommit,release,buildTime]=values;if(!/^[0-9a-f]{40}$/.test(sourceCommit))throw new Error("YNX_WALLET_GATEWAY_SOURCE_COMMIT must be a full lowercase Git SHA");if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(release))throw new Error("YNX_WALLET_GATEWAY_RELEASE is invalid");const parsed=Date.parse(buildTime);if(!Number.isFinite(parsed)||new Date(parsed).toISOString()!==buildTime)throw new Error("YNX_WALLET_GATEWAY_BUILD_TIME must be canonical ISO-8601 UTC");return{buildTime,release,sourceCommit}}
+
+// Operator-only source admission; no Host or key provisioning is performed.
+function loadPrivateRegistrations(file){
+ if(typeof file!=='string'||!file.startsWith('/')||resolve(file)!==file)throw new Error('Private business registration path must be absolute');
+ const fd=openSync(file,constants.O_RDONLY|(constants.O_NOFOLLOW??0));
+ let bytes;
+ try{const st=fstatSync(fd),fresh=lstatSync(file);if(!st.isFile()||st.nlink!==1||(st.mode&0o077)||typeof process.getuid==='function'&&st.uid!==process.getuid()||st.size>32768||fresh.dev!==st.dev||fresh.ino!==st.ino)throw new Error('Private business registration must be bounded and operator-protected');bytes=readFileSync(fd)}finally{closeSync(fd)}
+ const config=JSON.parse(bytes.toString('utf8'));exactFields(config,['schemaVersion','registrations'],'Private business registration file');
+ if(config.schemaVersion!=='ynx-private-business-registrations/v1'||!Array.isArray(config.registrations)||!config.registrations.length)throw new Error('Private business registration schema is invalid');
+ return config.registrations;
+}

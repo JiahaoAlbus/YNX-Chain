@@ -8,7 +8,7 @@ import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provi
 import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval,approveCentralBrowserProfile} from './central-browser-session-contract.js';
 import {WalletConnectDAppConnection} from './walletconnect-dapp-connection.js';
 import QRCode from 'qrcode';
-import {createHostedWalletAdapter} from '../../../apps/wallet-web/src/hosted-adapter.js';
+import {createHostedWalletAdapter} from './hosted-adapter.js';
 
 const context=JSON.parse(document.getElementById('context').textContent);
 let savedLanguage;try{savedLanguage=localStorage.getItem('ynx-central-ui-language');}catch{}

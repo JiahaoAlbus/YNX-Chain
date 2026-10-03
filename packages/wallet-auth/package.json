@@ -95,6 +95,11 @@
       "types": "./src/product-session-control-node-host.d.ts",
       "import": "./src/product-session-control-node-host.js",
       "default": "./src/product-session-control-node-host.js"
+    },
+    "./hosted-adapter": {
+      "types": "./src/hosted-adapter.d.ts",
+      "import": "./src/hosted-adapter.js",
+      "default": "./src/hosted-adapter.js"
     }
   },
   "types": "./src/index.d.ts",

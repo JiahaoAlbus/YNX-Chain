@@ -14,6 +14,7 @@ const ROUTES = new Set([...READ_ROUTES, ...OWNER_ROUTES, "/v2/product-sessions/c
 
 /** Explicit v3 host; it never initializes or migrates a serving state file. */
 export class ProductSessionControlNodeHost {
+  static get businessRevalidationSupported() { return true; }
   #registry; #origins; #store; #now; #tokens; #capacityPolicy;
   constructor(registry, options) {
     exactFields(options, ["now", "statePath", "tokenFactory", ...(Object.hasOwn(options, "io") ? ["io"] : []), ...(Object.hasOwn(options, "capacityPolicy") ? ["capacityPolicy"] : [])], "Product Session control Node host options");
@@ -25,7 +26,7 @@ export class ProductSessionControlNodeHost {
     this.#store = new ProductSessionControlNodeStore({ statePath: options.statePath, ...(options.io ? { io: options.io } : {}) });
   }
   snapshot() { return this.#store.snapshot(); }
-  revalidate(session,scopes,productId,at){const snapshot=this.#store.snapshot(),handler=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,snapshot,this.#capacityPolicy);return handler.revalidate(session,scopes,productId,at);}
+  revalidate(session,scopes,productId,at,businessRevalidation=false){const snapshot=this.#store.snapshot(),handler=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,snapshot,this.#capacityPolicy);return handler.revalidate(session,scopes,productId,at,businessRevalidation);}
   handler() {
     return async (request, response) => {
       const requestId = validRequestId(request.headers["x-request-id"]) ? request.headers["x-request-id"] : "req_invalid_request_000";
