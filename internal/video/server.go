@@ -162,6 +162,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		defer s.completeIdempotency(actor, r.Header.Get("Idempotency-Key"), capture)
 	}
 	if !s.allow(actor) {
+		seconds := int(time.Until(time.Now().UTC().Truncate(time.Minute).Add(time.Minute)).Seconds()) + 1
+		w.Header().Set("Retry-After", strconv.Itoa(seconds))
 		problem(w, 429, errors.New("rate limit exceeded"))
 		return
 	}
@@ -581,6 +583,20 @@ func (s *Server) reserveIdempotency(actor string, r *http.Request) (IdempotencyR
 			if existing.Actor != actor || existing.Method != r.Method || existing.Path != r.URL.RequestURI() || existing.RequestHash != requestHash {
 				return errors.New("idempotency key was reused with a different request")
 			}
+			// Admission rate limiting runs before any business handler. Preserve
+			// the original key/body commitment while allowing a fresh authorized
+			// attempt after the rate window, including legacy completed 429s.
+			var admission struct {
+				Error string `json:"error"`
+			}
+			legacyRateLimited := existing.State == "complete" && existing.Status == http.StatusTooManyRequests && json.Unmarshal([]byte(existing.ResponseBody), &admission) == nil && admission.Error == "rate limit exceeded"
+			if existing.State == "rate_limited" || legacyRateLimited {
+				existing.State = "running"
+				state.Idempotency[index] = existing
+				s.service.audit(state, actor, "idempotency.retry_rate_limit", "request", key, requestHash)
+				result = existing
+				return nil
+			}
 			if existing.State != "complete" {
 				return errors.New("idempotent request is incomplete; operator recovery is required")
 			}
@@ -602,7 +618,14 @@ func (s *Server) completeIdempotency(actor, key string, response *captureRespons
 		if !ok || record.State != "running" {
 			return errors.New("idempotency reservation is missing")
 		}
-		if response.overflow {
+		if response.status == http.StatusTooManyRequests {
+			// Only the admission gate emits 429 after reservation; no business
+			// operation has run. Keep its rejection as a recoverable record.
+			record.State = "rate_limited"
+			record.Status = response.status
+			record.ContentType = response.Header().Get("Content-Type")
+			record.ResponseBody = response.body.String()
+		} else if response.overflow {
 			record.State = "recovery_required"
 		} else {
 			record.State = "complete"

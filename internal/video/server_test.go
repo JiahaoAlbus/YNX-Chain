@@ -273,6 +273,77 @@ func TestWriteIdempotencyReplaysAfterRestartAndRejectsMutation(t *testing.T) {
 	}
 }
 
+func TestAdmissionRateLimitKeepsOriginalWriteRecoverable(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		t.Run(fmt.Sprintf("legacy-complete-%t", legacy), func(t *testing.T) {
+			s, channel := fixture(t, nil)
+			video := upload(t, s, channel, "Original limited write")
+			approveTestPublication(t, s, channel.Owner, video.ID)
+			if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
+				t.Fatal(err)
+			}
+			auth := StaticTokenAuth{Tokens: map[string]string{"owner-token": channel.Owner}}
+			server := NewServer(s, auth)
+			server.maxPerMinute = 1 // lower isolated budget, production remains 120
+			request := func(handler http.Handler, method, path, body string) *httptest.ResponseRecorder {
+				r := httptest.NewRequest(method, path, strings.NewReader(body))
+				r.Header.Set("Authorization", "Bearer owner-token")
+				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Idempotency-Key", "original-rate-limited-comment-0001")
+				w := httptest.NewRecorder()
+				handler.ServeHTTP(w, r)
+				return w
+			}
+			if w := request(server.Handler(), http.MethodGet, "/v1/account", ""); w.Code != http.StatusOK {
+				t.Fatal(w.Code)
+			}
+			path := "/v1/videos/" + video.ID + "/comments"
+			limited := request(server.Handler(), http.MethodPost, path, `{"body":"same original comment"}`)
+			if limited.Code != http.StatusTooManyRequests || limited.Header().Get("Retry-After") == "" {
+				t.Fatalf("missing original admission rejection: %d %s", limited.Code, limited.Body.String())
+			}
+			index := channel.Owner + "\noriginal-rate-limited-comment-0001"
+			if err := s.store.update(func(state *State) error {
+				record := state.Idempotency[index]
+				if record.State != "rate_limited" || record.Status != http.StatusTooManyRequests {
+					return fmt.Errorf("unrecoverable rate record: %+v", record)
+				}
+				if legacy {
+					record.State = "complete"
+					state.Idempotency[index] = record
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if comments, err := s.Comments(channel.Owner, video.ID); err != nil || len(comments) != 0 {
+				t.Fatalf("rate-limited request executed business: %d %v", len(comments), err)
+			}
+			changed := request(server.Handler(), http.MethodPost, path, `{"body":"different comment"}`)
+			if changed.Code != http.StatusConflict {
+				t.Fatalf("limited original key accepted different body: %d", changed.Code)
+			}
+			restarted, err := NewService(s.cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			retryServer := NewServer(restarted, auth)
+			retryServer.maxPerMinute = 1
+			committed := request(retryServer.Handler(), http.MethodPost, path, `{"body":"same original comment"}`)
+			if committed.Code != http.StatusOK {
+				t.Fatalf("same original rate-limited key did not recover: %d %s", committed.Code, committed.Body.String())
+			}
+			replayed := request(retryServer.Handler(), http.MethodPost, path, `{"body":"same original comment"}`)
+			if replayed.Code != committed.Code || replayed.Body.String() != committed.Body.String() {
+				t.Fatal("completed original replay changed under full rate bucket")
+			}
+			if comments, err := restarted.Comments(channel.Owner, video.ID); err != nil || len(comments) != 1 {
+				t.Fatalf("same-key rate recovery duplicated original effect: %d %v", len(comments), err)
+			}
+		})
+	}
+}
+
 func TestCreatorTeamAndRightsHTTPBoundaries(t *testing.T) {
 	s, channel := fixture(t, nil)
 	video := uploadWithoutRights(t, s, channel, "HTTP rights")
