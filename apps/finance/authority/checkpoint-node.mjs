@@ -101,7 +101,18 @@ async function publishBytes(target,bytes){
 }
 
 async function markerExists(marker,content){const bytes=await readPublishedBytes(marker,{missing:true});if(bytes===null)return false;if(!bytes.equals(content))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');return true;}
-async function ensureMarker(marker,content){const result=await publishBytes(marker,content);if(!result.stored.equals(content))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');}
+async function ensureMarker(marker,content){
+  const directory=path.dirname(marker),before=await privateDirectoryState(directory);
+  // A validated durable marker needs no new temporary file or fsync. Keep the
+  // same ancestor identity checks around the read; missing markers still use
+  // the original exclusive, durable publication and interrupted-link repair.
+  if(!await markerExists(marker,content)){
+    const result=await publishBytes(marker,content);
+    if(!result.stored.equals(content))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');
+  }
+  const after=await privateDirectoryState(directory);
+  if(!sameDirectory(before,after))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DIRECTORY_CHANGED');
+}
 
 function parseGenesis(bytes){
   let value;try{value=JSON.parse(bytes.toString('utf8'));}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');}
