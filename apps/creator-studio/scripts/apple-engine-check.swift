@@ -16,6 +16,12 @@ import Foundation
             var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,dropStream=false,foreignStream=false,streamLines=0,legacyCancelledDelta=false,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             var networkTrace=[[String:Any]]()
+            var businessWindow=Int(Date().timeIntervalSince1970/60),businessRequests=0
+            func businessBudget()->[String:Any] {
+                let now=Date().timeIntervalSince1970,window=Int(now/60)
+                if window != businessWindow {businessWindow=window;businessRequests=0}
+                return ["remaining":120-businessRequests,"waitMilliseconds":Int((Double(window+1)*60-now)*1000)+100]
+            }
             var dropStudio=false,holdStudio=false,failHeldStudio=false
             func trace(_ path:String,_ status:Int,_ mocked:Bool=false) {networkTrace.append(["path":path,"status":status,"mockedMismatch":mocked]);if networkTrace.count>64 {networkTrace.removeFirst(networkTrace.count-64)}}
             let network=CreatorNativeTransport()
@@ -28,6 +34,7 @@ import Foundation
                 else if url.host=="creator.ynxweb4.com",url.path.hasPrefix("/video/api/") { target=URL(string:backend.absoluteString+url.path.dropFirst("/video/api".count))! }
                 else { throw CreatorNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
+                if url.host=="creator.ynxweb4.com" {_ = businessBudget();businessRequests+=1}
                 let (bytes,response)=try await network.send(redirected,limit);trace(url.path,response.statusCode)
                 if url.path=="/video/api/v1/studio" {
                     if holdStudio {holdStudio=false;await withCheckedContinuation {held=$0};if failHeldStudio {failHeldStudio=false;throw CreatorHTTP.Failure.unexpectedResponse}}
@@ -134,6 +141,7 @@ import Foundation
                         case "uiRetryUpload":await model.retryUpload()
                         case "uiCancelUpload":model.cancelUpload()
                         case "uiRefresh":await model.refresh()
+                        case "rateBudget":value["originalBusinessBudget"]=businessBudget()
                         case "uiRestore":await model.restore()
                         case "dropNextStudio":dropStudio=true
                         case "holdNextStudio":holdStudio=true
