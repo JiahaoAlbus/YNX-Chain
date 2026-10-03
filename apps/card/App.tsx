@@ -608,8 +608,8 @@ export default function App(){
         </View>
       </View>
       <View style={[s.headerActions,rtl&&s.rowRTL]}>
-        <Pressable accessibilityRole="button" accessibilityLabel={tr("settings")} onPress={()=>setSettings(true)} style={[s.round,{backgroundColor:c.surface}]}> <Globe2 color={BLUE} size={19}/></Pressable>
-        {session?<Pressable accessibilityRole="button" accessibilityLabel={tr("refresh")} onPress={()=>void refresh()} style={[s.round,{backgroundColor:c.surface}]}> {busy?<ActivityIndicator size="small" color={BLUE}/>:<RefreshCw color={BLUE} size={19}/>} </Pressable>:null}
+        <Pressable accessibilityRole="button" accessibilityLabel={tr("settings")} onPress={()=>setSettings(true)} style={[s.round,{backgroundColor:c.surface}]}><Globe2 color={BLUE} size={19}/></Pressable>
+        {session?<Pressable accessibilityRole="button" accessibilityLabel={tr("refresh")} onPress={()=>void refresh()} style={[s.round,{backgroundColor:c.surface}]}>{busy?<ActivityIndicator size="small" color={BLUE}/>:<RefreshCw color={BLUE} size={19}/>}</Pressable>:null}
       </View>
     </View>
 
@@ -833,7 +833,7 @@ function Support({c,tr,state,session,refresh,setError}:{c:Colors;tr:T;state:Card
   const pending=state?.aiRuns.filter(run=>run.status==="review")??[];
   return <ScrollView contentContainerStyle={s.content}>
     <Text style={[s.sectionTitle,{color:c.text}]}>{tr("support")}</Text>
-    <View style={[s.supportBlock,{borderColor:c.separator}]}> <ShieldCheck color={BLUE} size={24}/><View style={s.supportCopy}><Text style={[s.rowValue,{color:c.text}]}>{tr("security")}</Text><Text style={[s.caption,{color:c.secondary}]}>{tr("reviewOnly")}</Text></View></View>
+    <View style={[s.supportBlock,{borderColor:c.separator}]}><ShieldCheck color={BLUE} size={24}/><View style={s.supportCopy}><Text style={[s.rowValue,{color:c.text}]}>{tr("security")}</Text><Text style={[s.caption,{color:c.secondary}]}>{tr("reviewOnly")}</Text></View></View>
     <Text style={[s.label,{color:c.secondary}]}>{"Notifications"}</Text>
     {state?.notifications.length?state.notifications.map(item=><View key={item.id} style={[s.notice,{borderBottomColor:c.separator}]}><Text style={[s.rowValue,{color:c.text}]}>{item.title}</Text><Text style={[s.caption,{color:c.secondary}]}>{item.body}</Text></View>):<Text style={[s.caption,{color:c.secondary}]}>No notifications</Text>}
     <Text style={[s.label,{color:c.secondary}]}>{"AI review"}</Text>
@@ -892,7 +892,7 @@ const darkColors={canvas:"#000000",surface:"#1C1C1E",text:"#F5F5F7",secondary:"#
 
 const s=StyleSheet.create({
   safe:{flex:1},
-  rtl:{direction:"rtl"},
+  rtl:(Platform.OS==='web'?{writingDirection:'rtl'}:{direction:'rtl'}) as import('react-native').ViewStyle,
   rowRTL:{flexDirection:"row-reverse"},
   textRTL:{textAlign:"right"},
   header:{minHeight:72,paddingHorizontal:20,paddingVertical:12,borderBottomWidth:StyleSheet.hairlineWidth,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},
