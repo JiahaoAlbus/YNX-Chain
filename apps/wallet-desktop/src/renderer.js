@@ -405,6 +405,8 @@ let walletConnectQR = document.querySelector("#walletconnect-qr");
 const walletConnectQRStatus = document.querySelector("#walletconnect-qr-status");
 const sessionsPanel = document.querySelector("#walletconnect-sessions");
 let walletConnectSessionsRevision = 0;
+const walletConnectDisconnectOwners = new Map();
+let walletConnectDisconnectRevision = 0;
 let walletConnectInputRevision = 0;
 let walletConnectStatusRevision = 0;
 function walletConnectViewCurrent() {
@@ -421,7 +423,7 @@ pairCancel.addEventListener("click",async()=>{
   pairCancel.disabled = true;
   try { const result=await window.ynxWallet.walletConnectCancelPair(); if(current()&&!result.ok)walletConnectDetail.textContent=errorText(result); }
   catch {if(current())copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");}
-  finally { if(current()){try{const status=await window.ynxWallet.walletConnectStatus();if(current())renderWalletConnect(status);}catch{if(current())copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");}if(current())pairCancel.disabled=false;} }
+  finally { if(current()){const revision=++walletConnectStatusRevision;try{const status=await window.ynxWallet.walletConnectStatus();if(current()&&revision===walletConnectStatusRevision)renderWalletConnect(status);}catch{if(current()&&revision===walletConnectStatusRevision)copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");}if(current()&&revision===walletConnectStatusRevision)pairCancel.disabled=false;} }
 });
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
@@ -450,7 +452,8 @@ function invalidateWalletConnectSessions() {
 async function refreshWalletConnectSessions() {
   const revision = ++walletConnectSessionsRevision;
   const account = activeAccount, view = accountViewRevision, security = accountSecurityIntent, keyRevision = keyState.revision;
-  const current = () => revision === walletConnectSessionsRevision && account === activeAccount && view === accountViewRevision && security === accountSecurityIntent && keyRevision === keyState.revision;
+  const contextCurrent = () => account === activeAccount && view === accountViewRevision && security === accountSecurityIntent && keyRevision === keyState.revision;
+  const current = () => revision === walletConnectSessionsRevision && contextCurrent();
   let sessions;
   try {
     const response = await window.ynxWallet.walletConnectSessions();
@@ -489,17 +492,23 @@ async function refreshWalletConnectSessions() {
     let busy = false;
     disconnect.addEventListener("click", async () => {
       if (!current() || busy) return;
+      if(walletConnectDisconnectOwners.get(session.topic)?.contextCurrent())return;
+      const actionRevision=++walletConnectDisconnectRevision;
+      const operation={contextCurrent};walletConnectDisconnectOwners.set(session.topic,operation);
+      const resultCurrent=()=>contextCurrent()&&actionRevision===walletConnectDisconnectRevision&&walletConnectDisconnectOwners.get(session.topic)===operation;
       busy = true;
       disconnect.disabled = true;
       try {
         const result = await window.ynxWallet.walletConnectDisconnect(session.topic);
-        if (!current()) return;
+        if (!resultCurrent()) return;
         const complete = result?.ok === true && result.value?.topic === session.topic && result.value.disconnected === true && result.value.localPermissionRevoked === true;
         copyUI(walletConnectDetail,complete ? "Session disconnected and local account permission revoked." : "Disconnect did not return complete confirmation. Refresh connected apps before deciding whether to retry.");
       } catch {
-        if (current()) copyUI(walletConnectDetail,"Disconnect did not return complete confirmation. Refresh connected apps before deciding whether to retry.");
+        if (resultCurrent()) copyUI(walletConnectDetail,"Disconnect did not return complete confirmation. Refresh connected apps before deciding whether to retry.");
       } finally {
-        const refresh = current();
+        const owned=walletConnectDisconnectOwners.get(session.topic)===operation;
+        const refresh = owned&&contextCurrent();
+        if(owned)walletConnectDisconnectOwners.delete(session.topic);
         busy = false; disconnect.disabled = false;
         if (refresh) await refreshWalletConnectSessions();
       }
@@ -540,7 +549,7 @@ pairButton.addEventListener("click", async () => {
     if (!result.ok) walletConnectDetail.textContent = errorText(result);
     else copyUI(walletConnectDetail,"Connection proposal received. Review before approving.");
   } catch { if(current())copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying."); }
-  finally {if(current()){try{const status=await window.ynxWallet.walletConnectStatus();if(current())renderWalletConnect(status);}catch{if(current()){copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");pairButton.disabled=false;}}}}
+  finally {if(current()){const revision=++walletConnectStatusRevision;try{const status=await window.ynxWallet.walletConnectStatus();if(current()&&revision===walletConnectStatusRevision)renderWalletConnect(status);}catch{if(current()&&revision===walletConnectStatusRevision){copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");pairButton.disabled=false;}}}}
 });
 function invalidateWalletConnectInput() {
   walletConnectInputRevision++;

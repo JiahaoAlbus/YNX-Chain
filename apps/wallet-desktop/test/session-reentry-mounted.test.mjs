@@ -9,7 +9,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{reso
 const session={topic:"original-topic",origin:"https://app.example.invalid",name:"App",expiry:Math.floor(Date.now()/1000)+3600};
 function fixture(){
   const reads=[],actions=[];function node(){return{children:[],textContent:"",disabled:false,append(...values){this.children.push(...values)},replaceChildren(...values){this.children=values},addEventListener(type,fn){this[type]=fn}}}
-  const panel=node(),detail=node(),context={invalidateWalletConnectInput(){},sessionsPanel:panel,walletConnectDetail:detail,walletConnectSessionsRevision:0,accountViewRevision:0,accountSecurityIntent:0,activeAccount:"account-a",keyState:{locked:false,revision:1},
+  const panel=node(),detail=node(),context={walletConnectDisconnectOwners:new Map(),walletConnectDisconnectRevision:0,invalidateWalletConnectInput(){},sessionsPanel:panel,walletConnectDetail:detail,walletConnectSessionsRevision:0,accountViewRevision:0,accountSecurityIntent:0,activeAccount:"account-a",keyState:{locked:false,revision:1},
     document:{createElement:node},window:{ynxWallet:{walletConnectSessions:()=>{const d=deferred();reads.push(d);return d.promise},walletConnectDisconnect:topic=>{const d=deferred();actions.push({...d,topic});return d.promise}}},showAccountError:(target,error)=>{target.textContent=error.message}};
   const start=source.indexOf("function invalidateWalletConnectSessions("),fallback=source.indexOf("async function refreshWalletConnectSessions()"),end=source.indexOf("window.ynxWallet.onWalletConnectStatus",fallback);
   runInNewContext(source.match(/^function copyUI\([^\n]+/m)[0]+"\n"+source.slice(start<0?fallback:start,end),context);
@@ -62,6 +62,14 @@ for(const value of [null,{},[{...session,expiry:0}],[session,session],[{...sessi
 test("explicit invalidation detaches old rows and retries only the current account inventory",async()=>{
   const h=fixture(),oldButton=await h.load();h.context.invalidateWalletConnectSessions();h.context.activeAccount="account-b";h.context.accountViewRevision++;
   await oldButton.click();assert.equal(h.actions.length,0);const retry=h.panel.children[0].click();h.reads[1].resolve({ok:true,value:[]});await retry;assert.equal(h.panel.children[0].textContent,"No active WalletConnect sessions.");
+});
+test("own session-changed event retires row clicks but preserves the original complete disconnect acknowledgement",async()=>{
+ const h=fixture(),button=await h.load(),job=button.click();h.context.invalidateWalletConnectSessions();const read=h.context.refreshWalletConnectSessions();h.reads[1].resolve({ok:true,value:[]});await read;await button.click();assert.equal(h.actions.length,1);
+ h.actions[0].resolve({ok:true,value:{topic:session.topic,disconnected:true,localPermissionRevoked:true}});await new Promise(resolve=>setImmediate(resolve));if(h.reads[2])h.reads[2].resolve({ok:true,value:[]});await job;assert.equal(h.detail.textContent,"Session disconnected and local account permission revoked.");
+});
+test("same-context inventory replacement cannot dispatch a duplicate pending topic from its new row",async()=>{
+ const h=fixture(),button=await h.load(),job=button.click();const reload=h.context.refreshWalletConnectSessions();h.reads[1].resolve({ok:true,value:[session]});await reload;const extra=h.panel.children[0].children[1].click(),count=h.actions.length;
+ for(const action of h.actions)action.resolve({ok:true,value:{topic:session.topic,disconnected:true,localPermissionRevoked:true}});await new Promise(resolve=>setImmediate(resolve));for(const read of h.reads.slice(2))read.resolve({ok:true,value:[]});await Promise.all([job,extra]);assert.equal(count,1);
 });
 test("all twelve languages include every session read/revoke/retry state without translating session data",()=>{
  for(const locale of WALLET_LOCALES){assert.equal(Object.keys(SESSION_COPY[locale]).length,6);for(const [key,value] of Object.entries(SESSION_COPY[locale])){assert.equal(WALLET_COPY[locale][key],value);assert.ok(value.length>0);}}

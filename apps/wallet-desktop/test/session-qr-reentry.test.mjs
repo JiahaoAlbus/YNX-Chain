@@ -32,7 +32,7 @@ test("current QR decodes locally without pairing or approving",async()=>{
 function pairingFixture(cancel=false){
  const h=fixture(),pending=deferred(),status=deferred(),nodes={};
  const button={disabled:false,addEventListener(type,fn){this[type]=fn}};
- Object.assign(h.context,{pairButton:button,pairCancel:button,walletConnectDetail:{textContent:""},errorText:()=>"old refusal",copyUI:(node,key)=>{node.textContent=key},renderWalletConnect:value=>{nodes.rendered=value},statusReads:0});
+ Object.assign(h.context,{walletConnectStatusRevision:0,pairButton:button,pairCancel:button,walletConnectDetail:{textContent:""},errorText:()=>"old refusal",copyUI:(node,key)=>{node.textContent=key},renderWalletConnect:value=>{nodes.rendered=value},statusReads:0});
  Object.assign(h.context.window.ynxWallet,{walletConnectPair:()=>pending.promise,walletConnectCancelPair:()=>pending.promise,walletConnectStatus:()=>{h.context.statusReads++;return status.promise}});
  const start=source.indexOf(cancel?'pairCancel.addEventListener("click"':'pairButton.addEventListener("click"'),end=source.indexOf(cancel?"function renderWalletConnect(payload)":source.includes("function invalidateWalletConnectInput()")?"function invalidateWalletConnectInput()":'walletConnectQR.addEventListener("change"',start);
  runInNewContext(source.slice(start,end),h.context);return{...h,pending,status,button,nodes};
@@ -56,4 +56,8 @@ test("re-entered connection status wins over an older status read",async()=>{
 });
 test("status read failure after account recovery cannot replace its current notice",async()=>{
  const h=statusFixture(),old=h.context.refreshWalletConnectConnectionView();h.retire();h.context.walletConnectDetail.textContent="current recovery";h.reads[0].reject(Error("old failure"));await old;assert.equal(h.context.walletConnectDetail.textContent,"current recovery");
+});
+for(const cancel of [false,true])for(const fail of [false,true])test(`newer status event survives a late ${cancel?"cancel":"pair"} status ${fail?"failure":"snapshot"}`,async()=>{
+ const h=pairingFixture(cancel),job=h.button.click();h.pending.resolve({ok:true});await new Promise(resolve=>setImmediate(resolve));h.context.walletConnectStatusRevision++;h.context.walletConnectDetail.textContent="new pairing event";h.button.disabled=true;
+ if(fail)h.status.reject(Error("old status"));else h.status.resolve({started:true,pairing:false,pair:{phase:"canceled"}});await job;assert.equal(h.context.walletConnectDetail.textContent,"new pairing event");assert.equal(h.button.disabled,true);assert.equal(h.nodes.rendered,undefined);
 });

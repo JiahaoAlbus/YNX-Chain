@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "status": "OWNER_SOURCE_FIX_NOT_INDEPENDENT_ADMISSION",
+  "parentCheckpoint": "22f3a751de1dc897395f0232851dabd8e597c679",
+  "combinedReviewBase": "801cdd901fd05732c0c78487716079276a7c5ae5",
+  "independentReview": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/wallet801-ui-independent-review/review.md",
+  "independentReviewSHA256": "3c0a985ce211a9768a1e2f24adf7ae1843897ec7714deeb3afbb1f3669ccea31",
+  "fixes": [
+    "Keep inventory revision as the row-click fence; bind in-flight disconnect receipt separately to its exact topic operation, account/view/security/key revision and latest action. The actual session-change event can retire rows before IPC acknowledgement without losing the matching complete acknowledgement.",
+    "Track pending topics across same-view inventory replacement. A newly rendered row cannot dispatch a second IPC for a currently owned topic. An old account's finally cannot remove a newer operation owner.",
+    "Pair/cancel finally reads now capture and compare the existing WalletConnect status revision on both success and failure. Later status events cannot be overwritten or have their busy controls enabled by an older read."
+  ],
+  "unchangedGuards": ["old row click authority", "matching complete ACK requires exact topic and both true flags", "account/view/security/key context", "newer action ownership", "transport and main authority", "signed originals and journals", "Native App.tsx", "shared SDK/Auth/Pay factory and release graph"],
+  "evidenceRoot": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW",
+  "evidence": [
+    {"file": "event-order-original22-bounded.log", "pass": 32, "fail": 6, "sha256": "0df0f10b40afe316a4ba6e1bb7bdee720ec9d379c2fd1f8602a6e6c8c3b26b6b"},
+    {"file": "event-order-provider-final-related.log", "pass": 196, "fail": 0, "sha256": "51b638b6c2eacd4db441f812c2e4d7227b3dbb9831158d3b69c954e2c9513ef4"},
+    {"file": "event-order-independent-recheck.log", "exit": 0, "actualEventOrderAssertions": 3, "sha256": "b054d046a31ca9b922c6d3f0a4cdddc3888cf49b2738ddf9675d6ea69becbbe7"}
+  ],
+  "recheck": "Adapted only fixture globals to the new exact operation map/current-view helper and changed bug expectations to correct output in the retained independent actual-renderer extraction. Actual session-change handler and actual renderWalletConnect are used. Original Root probe/log and all original 801/22 failures remain unchanged. No real Pair, SDK transport, account or OS action.",
+  "intermediateFixture": "First added replacement-row probe awaited a synthetic duplicate before resolving it. Its bounded timeout log is retained; the fixture now captures count, resolves original/extra replies and all their reads, then asserts single IPC. Failure assertions were not weakened.",
+  "combinedNativeEvidence": "The unchanged Native side of 22 retains 274/274 and ordinary tsc exit0; it was not rerun for this Desktop-only fix. AI runner input remains PREPARED_NOT_RUN with exact GGeV7i hashes and no owned booted device.",
+  "overallComplete": false,
+  "notVerified": ["independent successor admission", "real installed picker or camera", "real Wallet/Product Session/Pay/biometrics/system approval", "formal source/build/signing/install/public graph", "MONSTER", "user acceptance", "new crypto activation"]
+}
