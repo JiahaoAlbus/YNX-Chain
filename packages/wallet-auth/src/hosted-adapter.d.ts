@@ -11,7 +11,10 @@ export type HostedWalletAdapter=Readonly<{
   detach():Promise<void>;
   on(name:string,callback:(value:unknown)=>void):void;
   removeListener(name:string,callback:(value:unknown)=>void):boolean|undefined;
-  connected:boolean;account:string|null;selection:HostedWalletSelection|null;
+  supportsCardApplicationApproval:boolean;connected:boolean;account:string|null;selection:HostedWalletSelection|null;
 }>;
 /** Requires a real registered browser origin. Opens/approves only in the current user gesture; reserve sends no signing data. */
 export declare function createHostedWalletAdapter(options?:Readonly<{window?:Window;walletOrigin?:"https://wallet.ynxweb4.com"}>):HostedWalletAdapter;
+
+/** Accepted Hosted-only finite Card review; Native/Pair support is not implied. */
+export declare const HOSTED_CARD_APPROVAL_METHOD:"ynx_requestCardApplicationApproval";

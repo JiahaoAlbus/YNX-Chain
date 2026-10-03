@@ -10,9 +10,9 @@ test('AI official subentry maps exact identity only; browser identity cannot cre
  const binding=productPlatformBinding(registry,'ai','android');assert.equal(binding.origin,'app://android/com.ynxweb4.ai');assert.notEqual(binding.callback,ai.redirectUri);assert.notEqual(binding.clientId,ai.clientId);assert(!binding.scopes.includes('identity:read'));
  assert.throws(()=>createProductSessionRequest(registry,{productId:'ai',platform:'android',deviceId:'a'.repeat(43),deviceKey:'invalid',scopes:['identity:read'],purpose:'private AI',nonce:'b'.repeat(43),state:'c'.repeat(43)}));
 });
-test('SDK Hosted adapter closes package import graph without apps source or invented Card approval',()=>{
+test('SDK Hosted adapter closes package import graph with package-contained accepted Hosted-only Card transport',()=>{
  const source=readFileSync(new URL('../src/central-browser-session-browser.js',import.meta.url),'utf8'),adapter=readFileSync(new URL('../src/hosted-adapter.js',import.meta.url),'utf8');
  assert(source.includes("from './hosted-adapter.js'"));assert(!source.includes("from '../../../apps/"));assert(!/^import .*from /m.test(adapter));
  assert.equal(typeof createHostedWalletAdapter,'function');assert.equal(Object.hasOwn(nativeRoot,'createHostedWalletAdapter'),false);assert.equal(typeof RecoverableProductSessionClient.prototype.createBusinessProof,'function');assert.equal(typeof RecoverableProductSessionClient.prototype.createBusinessProofCommitment,'function');
- assert(!adapter.includes('ynx_requestCardApplicationApproval'));
+ assert(adapter.includes('ynx_requestCardApplicationApproval'));assert(adapter.includes('supportsCardApplicationApproval'));assert(!adapter.includes('createSignedCardApplicationApproval'));
 });

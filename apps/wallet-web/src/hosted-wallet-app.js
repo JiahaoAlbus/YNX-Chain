@@ -10,6 +10,8 @@ import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivat
 import { HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
 import { toYNXAddress, toEVMAddress } from "./wallet-address.js";
 import { CENTRAL_BROWSER_RPC_METHOD, assertHostedMethodAllowed } from "./hosted-protocol.js";
+import { approveHostedCardApplication } from "./hosted-card-application-approval.js";
+import { HOSTED_CARD_APPROVAL_METHOD, HOSTED_CARD_APPROVAL_CAPABILITY } from "./hosted-protocol.js";
 import { approveHostedCentralSignIn } from "./hosted-central-sign-in.js";
 import { HOSTED_LOCALES, HOSTED_LOCALE_KEY, hostedCopy, hostedDynamicCopy, normalizeHostedLocale } from "./hosted-i18n.js";
 
@@ -64,7 +66,7 @@ function assertRequestLive(context) {
     if(!accountManager||!$("web-wallet-dashboard")||context!==activeRequest||context.cancelled||Date.now()>=context.expiresAt||document.visibilityState!=="visible"||!vault||context.accountRecord!==JSON.stringify(vault)||!accountManager.isUnlocked(vault))fail("HOSTED_APPROVAL_CANCELLED");
     return;
   }
-  if (!context || context !== activeRequest || context.cancelled || Date.now() >= context.expiresAt || !session || window.opener?.closed || Date.now() >= session.expiresAt) fail("HOSTED_REQUEST_EXPIRED");
+  if (!context || context !== activeRequest || context.cancelled || Date.now() >= context.expiresAt || !session || window.opener?.closed || Date.now() >= session.expiresAt || (context.connection && (session !== context.connection || context.accountRecord !== JSON.stringify(vault) || context.connectionRecord !== JSON.stringify([session.origin,session.requestId,session.nonce,session.grant])))) fail("HOSTED_REQUEST_EXPIRED");
 }
 function cancelActiveRequest() {
   if (!activeRequest) return;
@@ -251,6 +253,14 @@ async function handleMethod(method, params, context) {
       },
     });
   }
+  if (method === HOSTED_CARD_APPROVAL_METHOD) {
+    if (!session.grant) fail("HOSTED_GRANT_INVALID");
+    return approveHostedCardApplication({params,origin:session.origin,vault,store,
+      assertLive:()=>{assertRequestLive(context);if(context.cardReviewApproved===true&&document.visibilityState!=="visible")fail("HOSTED_APPROVAL_CANCELLED");},
+      assertAccount:assertCurrentAccount,unlock:unlockEncryptedVault,
+      review:async(request,detail)=>{context.expiresAt=Math.min(context.expiresAt,Date.parse(request.expiresAt));const choice=await askUser({title:request.version==="2"?"Review TEST provider Card application":"Review testnet Card application",detail,secretRequired:true,context});if(choice.approved===true){if(document.visibilityState!=="visible")fail("HOSTED_APPROVAL_CANCELLED");context.cardReviewApproved=true;}return choice;},
+    });
+  }
   if (method === "ynx_requestProductSessionV2") {
     const request = parsePrivateRequest(params, session.origin);
     const replay = privateReplayKey(request);
@@ -307,7 +317,8 @@ async function receive(event) {
       if (!currentConnection(connection)) return;
       const sessionExpiresAt = grant.expiresAt;
       reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt,
-        grant:{id:grant.id,epoch:grant.epoch,account:grant.account,expiresAt:grant.expiresAt} });
+        grant:{id:grant.id,epoch:grant.epoch,account:grant.account,expiresAt:grant.expiresAt},
+        ...(requestingOrigin === "https://card.ynxweb4.com" ? {capabilities:{cardApplicationApproval:HOSTED_CARD_APPROVAL_CAPABILITY}} : {}) });
       session.expiresAt = sessionExpiresAt;
       session.grant = grant;
       messageKey("connected", { origin: session.origin });
@@ -319,7 +330,7 @@ async function receive(event) {
   if (data.type !== "request" || session.approved !== true) return;
   if (busy) { reply("response", { replyTo: data.messageId, ok: false, code: "HOSTED_APPROVAL_BUSY" }); return; }
   busy = true;
-  const context = { messageId: data.messageId, expiresAt: data.expiresAt, cancelled: false };
+  const context = { messageId: data.messageId, expiresAt: data.expiresAt, cancelled: false, connection:session, accountRecord:JSON.stringify(vault), connectionRecord:JSON.stringify([session.origin,session.requestId,session.nonce,session.grant]) };
   activeRequest = context;
   try {
     if (!Array.isArray(data.params) || JSON.stringify(data.params).length > 65536 || typeof data.method !== "string" || data.method.length > 80) fail("HOSTED_METHOD_INVALID");

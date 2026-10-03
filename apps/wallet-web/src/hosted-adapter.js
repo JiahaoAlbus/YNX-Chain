@@ -1,5 +1,5 @@
 /** Explicit first-party browser adapter. It does not install window.ethereum. */
-import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct, assertHostedMethodAllowed } from "./hosted-protocol.js";
+import { HOSTED_CARD_APPROVAL_METHOD, HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct, assertHostedMethodAllowed } from "./hosted-protocol.js";
 import { validateYNXChainMutation } from "./extension-chain-params.js";
 
 function failure(code) { return Object.assign(new Error(code), { code }); }
@@ -8,6 +8,7 @@ const CHAIN = Object.freeze({ chainId: HOSTED_CHAIN_ID, chainName: "YNX Testnet"
 export function createHostedWalletAdapter({ window: browserWindow = globalThis.window, walletOrigin = HOSTED_WALLET_ORIGIN } = {}) {
   const origin = browserWindow.location.origin;
   if (!registeredProduct(origin) || walletOrigin !== HOSTED_WALLET_ORIGIN) throw failure("HOSTED_ORIGIN_UNREGISTERED");
+  let cardApprovalSupported = false;
   let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0, closing = false, helloId = null, grant = null, reservation = null;
   const hintKey = "ynx-hosted-selection-v1";
   const hintStorage=browserWindow.localStorage??browserWindow.sessionStorage;
@@ -24,6 +25,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     closing = true;
     if (monitor) browserWindow.clearInterval(monitor);
     const transportOnly = ["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(code);
+    cardApprovalSupported = false;
     monitor = null; connected = false; request = null; helloId = null; reservation = null;
     if (!transportOnly || !grant || grant.expiresAt <= Date.now()) { account = null; grant = null; }
     remember();
@@ -56,6 +58,8 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
       const previousAccount = account;
       grant = data.grant ? {...data.grant} : null;
       remember();
+      const cardCapability = data.capabilities?.cardApplicationApproval;
+      cardApprovalSupported = origin === "https://card.ynxweb4.com" && Boolean(data.grant) && cardCapability?.method === HOSTED_CARD_APPROVAL_METHOD && Array.isArray(cardCapability.versions) && cardCapability.versions.length === 2 && cardCapability.versions[0] === "1" && cardCapability.versions[1] === "2" && Object.keys(cardCapability).sort().join(",") === "method,versions";
       account = data.account; connected = true; lastPong = Date.now(); if (previousAccount !== account) emit("accountsChanged", [account]);
       if (!connected || request?.requestId !== connectedRequest.requestId) return;
       emit("connect", { chainId: HOSTED_CHAIN_ID });
@@ -106,6 +110,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
       await (reservation ?? connect());
     }
     if (!live()) throw failure("HOSTED_DISCONNECTED");
+    if (method === HOSTED_CARD_APPROVAL_METHOD && !cardApprovalSupported) throw failure("HOSTED_CARD_APPROVAL_UNSUPPORTED");
     if ([...pending.keys()].some(key => key !== "connect")) throw failure("HOSTED_REQUEST_PENDING");
     const envelope = hostedEnvelope(request, "request", { method, params });
     return new Promise((resolve, reject) => {
@@ -134,8 +139,11 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     detach: async () => { try { await disconnect(); } finally { browserWindow.removeEventListener("message", onMessage); } },
     on: (name, callback) => { if (typeof callback !== "function") throw new TypeError("callback"); if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },
     removeListener: (name, callback) => listeners.get(name)?.delete(callback),
+    get supportsCardApplicationApproval() { return live() && cardApprovalSupported; },
     get connected() { return live(); },
     get account() { return live() ? account : null; },
     get selection() { return grant && grant.expiresAt > Date.now() ? {account:grant.account,chainId:HOSTED_CHAIN_ID,expiresAt:grant.expiresAt} : null; },
   });
 }
+
+export { HOSTED_CARD_APPROVAL_METHOD } from "./hosted-protocol.js";

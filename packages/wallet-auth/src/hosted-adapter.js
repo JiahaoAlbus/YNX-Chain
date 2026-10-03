@@ -205,6 +205,8 @@ var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["financ
 var CENTRAL_BROWSER_RPC_METHOD = "ynx_requestCentralBrowserSignIn";
 
 // ../../apps/wallet-web/src/hosted-protocol.js
+var HOSTED_CARD_APPROVAL_METHOD = "ynx_requestCardApplicationApproval";
+var HOSTED_CARD_APPROVAL_CAPABILITY = Object.freeze({ method: HOSTED_CARD_APPROVAL_METHOD, versions: Object.freeze(["1", "2"]) });
 var HOSTED_PROTOCOL = "ynx-hosted-wallet/v1";
 var HOSTED_WALLET_ORIGIN = "https://wallet.ynxweb4.com";
 var HOSTED_WALLET_PATH = "/hosted/";
@@ -218,9 +220,11 @@ function fail(code) {
 function registeredProduct(origin) {
   if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
   if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
-  return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false || product.productId === "video" && product.clientId === "ynx-video-mobile-v1" && product.applicationId === "com.ynxweb4.video" && origin === "https://video.ynxweb4.com" && product.evmCompatible === false || product.productId === "creator-studio" && product.clientId === "ynx-creator-studio-web-v1" && product.applicationId === "com.ynxweb4.creator-studio" && origin === "https://creator.ynxweb4.com" && product.evmCompatible === false)) ?? null;
+  return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "card" && product.clientId === "ynx-card-v1" && product.applicationId === "com.ynxweb4.card" && origin === "https://card.ynxweb4.com" || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false || product.productId === "video" && product.clientId === "ynx-video-mobile-v1" && product.applicationId === "com.ynxweb4.video" && origin === "https://video.ynxweb4.com" && product.evmCompatible === false || product.productId === "creator-studio" && product.clientId === "ynx-creator-studio-web-v1" && product.applicationId === "com.ynxweb4.creator-studio" && origin === "https://creator.ynxweb4.com" && product.evmCompatible === false)) ?? null;
 }
 function assertHostedMethodAllowed(origin, method) {
+  if (method === HOSTED_CARD_APPROVAL_METHOD && origin !== "https://card.ynxweb4.com") fail("HOSTED_CARD_ORIGIN_MISMATCH");
+  if (origin === "https://card.ynxweb4.com" && ![HOSTED_CARD_APPROVAL_METHOD, "ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail("HOSTED_CARD_PRIVATE_ONLY");
   if (["https://social.ynxweb4.com", "https://assistant.ynxweb4.com", "https://video.ynxweb4.com", "https://creator.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : origin === "https://assistant.ynxweb4.com" ? "HOSTED_AI_PRIVATE_ONLY" : "HOSTED_NATIVE_PRIVATE_ONLY");
   if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail("HOSTED_IDENTITY_ONLY");
 }
@@ -266,6 +270,7 @@ var CHAIN = Object.freeze({ chainId: HOSTED_CHAIN_ID, chainName: "YNX Testnet", 
 function createHostedWalletAdapter({ window: browserWindow = globalThis.window, walletOrigin = HOSTED_WALLET_ORIGIN } = {}) {
   const origin = browserWindow.location.origin;
   if (!registeredProduct(origin) || walletOrigin !== HOSTED_WALLET_ORIGIN) throw failure("HOSTED_ORIGIN_UNREGISTERED");
+  let cardApprovalSupported = false;
   let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0, closing = false, helloId = null, grant = null, reservation = null;
   const hintKey = "ynx-hosted-selection-v1";
   const hintStorage = browserWindow.localStorage ?? browserWindow.sessionStorage;
@@ -301,6 +306,7 @@ function createHostedWalletAdapter({ window: browserWindow = globalThis.window, 
     closing = true;
     if (monitor) browserWindow.clearInterval(monitor);
     const transportOnly = ["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(code);
+    cardApprovalSupported = false;
     monitor = null;
     connected = false;
     request = null;
@@ -345,6 +351,8 @@ function createHostedWalletAdapter({ window: browserWindow = globalThis.window, 
       const previousAccount = account;
       grant = data.grant ? { ...data.grant } : null;
       remember();
+      const cardCapability = data.capabilities?.cardApplicationApproval;
+      cardApprovalSupported = origin === "https://card.ynxweb4.com" && Boolean(data.grant) && cardCapability?.method === HOSTED_CARD_APPROVAL_METHOD && Array.isArray(cardCapability.versions) && cardCapability.versions.length === 2 && cardCapability.versions[0] === "1" && cardCapability.versions[1] === "2" && Object.keys(cardCapability).sort().join(",") === "method,versions";
       account = data.account;
       connected = true;
       lastPong = Date.now();
@@ -424,6 +432,7 @@ function createHostedWalletAdapter({ window: browserWindow = globalThis.window, 
       await (reservation ?? connect());
     }
     if (!live()) throw failure("HOSTED_DISCONNECTED");
+    if (method === HOSTED_CARD_APPROVAL_METHOD && !cardApprovalSupported) throw failure("HOSTED_CARD_APPROVAL_UNSUPPORTED");
     if ([...pending.keys()].some((key) => key !== "connect")) throw failure("HOSTED_REQUEST_PENDING");
     const envelope = hostedEnvelope(request, "request", { method, params });
     return new Promise((resolve, reject) => {
@@ -484,6 +493,9 @@ function createHostedWalletAdapter({ window: browserWindow = globalThis.window, 
       listeners.get(name).add(callback);
     },
     removeListener: (name, callback) => listeners.get(name)?.delete(callback),
+    get supportsCardApplicationApproval() {
+      return live() && cardApprovalSupported;
+    },
     get connected() {
       return live();
     },
@@ -496,5 +508,6 @@ function createHostedWalletAdapter({ window: browserWindow = globalThis.window, 
   });
 }
 export {
+  HOSTED_CARD_APPROVAL_METHOD,
   createHostedWalletAdapter
 };

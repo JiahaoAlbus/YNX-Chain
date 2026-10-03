@@ -5,3 +5,6 @@ const connected:boolean=adapter.connected;const result:Promise<unknown>=adapter.
 const supports:true=ProductSessionControlNodeHost.businessRevalidationSupported;void supports;
 // @ts-expect-error Hosted is a Web-only adapter with exact Wallet origin.
 createHostedWalletAdapter({walletOrigin:'https://evil.test'});
+
+const cardCapability:boolean=adapter.supportsCardApplicationApproval;
+void cardCapability;
