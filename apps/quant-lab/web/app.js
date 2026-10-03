@@ -51,6 +51,10 @@ function readPendingResearchIntent() {
   try {
     if (raw.length > 65536) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     const value = JSON.parse(raw), strategy = value?.strategy, costs = value?.assumptions;
+    // Persisted intents are exact JSON.stringify envelopes, not imported JSON.
+    // Refuse duplicate-key or rewritten bytes instead of silently normalizing
+    // them into an apparently valid idempotent replay.
+    if(JSON.stringify(value)!==raw)throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     if(Object.keys(strategy).sort().join(',')!=='family,id,license,limitations,name,params,seed,source,sourceCommit' || Object.keys(costs).sort().join(',')!=='feeBPS,latencyBars,participationBPS,seed,slippageBPS,trainEnd,walkForwardWindows' || strategy.source!=='quant://user/ma' || strategy.sourceCommit!=='local' || strategy.license!=='Apache-2.0' || typeof strategy.limitations!=='string')throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     if (Object.keys(value).sort().join(',') !== 'assumptions,idempotencyKey,strategy' || !/^quant-research-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.idempotencyKey) || !/^ma-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(strategy?.id) || strategy.family !== 'transparent' || typeof strategy.name !== 'string' || !strategy.name.trim() || strategy.name.length > 80 || !Number.isSafeInteger(strategy.seed) || Object.keys(strategy.params).sort().join(',') !== 'fast,slow' || !Number.isSafeInteger(strategy.params.fast) || strategy.params.fast < 2 || !Number.isSafeInteger(strategy.params.slow) || strategy.params.slow <= strategy.params.fast || !Number.isSafeInteger(costs.feeBPS) || costs.feeBPS < 0 || !Number.isSafeInteger(costs.slippageBPS) || costs.slippageBPS < 0 || costs.seed !== strategy.seed || costs.latencyBars !== 1 || costs.participationBPS !== 1000 || costs.trainEnd !== 24 || costs.walkForwardWindows !== 3) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     return value;

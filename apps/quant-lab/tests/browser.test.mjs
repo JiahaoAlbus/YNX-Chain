@@ -1,5 +1,26 @@
 import test from 'node:test';import assert from'node:assert/strict';import{spawn}from'node:child_process';import{mkdtemp,mkdir,readFile}from'node:fs/promises';import net from'node:net';import os from'node:os';import path from'node:path';import{fileURLToPath}from'node:url';import{chromium}from'playwright';
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
+test('actual Chrome preserves rewritten pending research bytes and refuses replay after reload in every locale',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let posts=0;const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await context.route('**/api/v1/backtests/from-market',async route=>{posts++;return route.abort('failed')});
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    await page.waitForFunction(()=>!researchSubmitting&&pendingResearchIntent!==null);
+    const original=await page.evaluate(()=>{const key=Object.keys(localStorage).find(key=>key.startsWith('ynx.quant.research.pending.v1:'));return {key,raw:localStorage.getItem(key)}});
+    assert.equal(posts,1);assert.ok(original.raw);
+    for(const raw of [original.raw.replace('"feeBPS":','"feeBPS":999,"feeBPS":'),original.raw.replace('"strategy":','"strategy":null,"strategy":'),JSON.stringify(JSON.parse(original.raw),null,2)]){
+      await page.evaluate(({key,raw})=>localStorage.setItem(key,raw),{key:original.key,raw});await page.reload({waitUntil:'networkidle'});
+      assert.equal(await page.evaluate(()=>pendingResearchInvalid),true);
+      for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+        await page.selectOption('#locale',language);await page.locator('#research-submit').click();
+        assert.equal(await page.evaluate(key=>localStorage.getItem(key),original.key),raw);
+        assert.equal(await page.locator('#research-request-status').textContent(),await page.evaluate(()=>t('researchRequestUnconfirmed')));assert.equal(posts,1);
+      }
+    }
+    assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+  }finally{await context.close()}
+});
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
 test('actual Chrome translates research fields and experiment columns in every locale without destroying draft inputs or submitting',async()=>{

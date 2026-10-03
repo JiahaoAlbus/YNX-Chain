@@ -692,6 +692,23 @@ test('invalid persisted research intent is retained and cannot silently create a
   const app=harness({savedStorage:[["ynx.quant.tenant.v1",id],[key,raw]]});await settle();await app.submit('backtest');
   assert.equal(app.storage.get(key),raw);assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.ids.get('research-request-status').hidden,false);
 });
+test('rewritten persisted research envelopes fail closed without discarding the exact pending bytes',async()=>{
+  const original=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();await original.submit('backtest');
+  const key=[...original.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending.v1:')),raw=original.storage.get(key);
+  assert.ok(raw);
+  const parsed=JSON.parse(raw);
+  for(const changed of [raw.replace('"feeBPS":','"feeBPS":999,"feeBPS":'),raw.replace('"strategy":','"strategy":null,"strategy":'),JSON.stringify(parsed,null,2)]){
+    const storage=new Map(original.storage);storage.set(key,changed);
+    const app=harness({savedStorage:storage});await settle();
+    assert.equal(vm.runInContext('pendingResearchInvalid',app.context),true);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});await app.submit('backtest');
+      assert.equal(app.storage.get(key),changed);assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+      assert.equal(app.ids.get('research-request-status').hidden,false);
+    }
+    assert.equal(app.proofs(),0);
+  }
+});
 test('real shipped Quant HTTP deadline covers non-cooperative response and body without replaying a write',async()=>{
   const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
   for(const stage of ['response','body']){
