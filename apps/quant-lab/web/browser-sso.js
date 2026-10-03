@@ -1,6 +1,6 @@
 import {privateSessionCopy} from './private-session-copy.js';
 
-let account=null,csrf=null,available=false,pending=null,silentAttempted=false;
+let account=null,csrf=null,available=false,pending=null;
 const suppression='ynx.quant.browser-identity.explicit-logout.v1';
 const notification=typeof BroadcastChannel==='function'?new BroadcastChannel('ynx.quant.browser-identity.recheck.v1'):null;
 function render(unavailable=false){
@@ -19,23 +19,17 @@ export function recheckBrowserIdentity(){
   pending=(async()=>{
     try{
       const result=await request('/api/v1/sso/account');
-      if(result.status===401||result.status===403){if(account)window.dispatchEvent(new CustomEvent('ynx:quant-wallet-context',{detail:{identityChanged:true}}));account=null;csrf=null;render();await restoreQuietly();return;}
+      if(result.status===401||result.status===403){if(account)window.dispatchEvent(new CustomEvent('ynx:quant-wallet-context',{detail:{identityChanged:true}}));account=null;csrf=null;render();return;}
       if(result.status!==200||result.data.signedIn!==true||result.data.privateWorkspaceAuthorized!==false||!/^(ynx1)[a-z0-9]{38}$/.test(result.data.account||'')||typeof result.data.csrfToken!=='string')throw new Error('IDENTITY_UNAVAILABLE');
       if(account&&account!==result.data.account)window.dispatchEvent(new CustomEvent('ynx:quant-wallet-context',{detail:{identityChanged:true}}));
       account=result.data.account;csrf=result.data.csrfToken;render();
     }catch{render(true);} // Data/service failure does not fabricate logout.
   })().finally(()=>{pending=null;});return pending;
 }
-async function restoreQuietly(){
-  const walletRevision=window.YNXQuantWallet?.getPrivateWalletContext?.()?.revision;
-  const operationPending=()=>document.getElementById('records-status')?.dataset.pending==='true'||['checking','connecting'].includes(window.YNXQuantWallet?.getPrivateSessionState?.()?.status);
-  if(silentAttempted||localStorage.getItem(suppression)==='true'||operationPending())return;
-  const config=await request('/api/v1/sso/config');
-  if(config.status!==200||config.data.enabled!==true||config.data.silentRestoreAllowed!==true||account||operationPending()||walletRevision!==window.YNXQuantWallet?.getPrivateWalletContext?.()?.revision)return;
-  silentAttempted=true;
-  const view=document.querySelector('nav [data-view].active')?.dataset.view||'research';
-  location.assign('/sso/start?prompt=none&target='+encodeURIComponent(view));
-}
+// A guest account GET is not evidence of a restorable Central family/grant.
+// SilentAllowed is permission for identity-only recovery, never a requirement
+// to interrupt a research draft. Existing identity cookies restore via 200;
+// only the explicit fixed sign-in button may navigate to the SSO start route.
 export function mountBrowserSSO(){
   document.getElementById('browser-signin')?.addEventListener('click',()=>{
     if(!available)return;localStorage.removeItem(suppression);
