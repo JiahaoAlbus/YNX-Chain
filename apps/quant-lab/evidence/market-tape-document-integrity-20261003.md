@@ -20,9 +20,15 @@ This validates document completeness and ambiguity only. It does not create a cr
 
 Focused document/provenance/actual HTTP cancellation race regression: PASS, 1.589 s before adding the final positive compatibility case.
 
-Final `go test -race ./internal/quantlab ./apps/quant-lab/server -count=1`: PASS, 2.944 s / 1.349 s. `go vet ./internal/quantlab ./apps/quant-lab/server`: PASS. `git diff --check`: PASS.
+First complete `go test -race ./internal/quantlab ./apps/quant-lab/server -count=1`: PASS, 2.944 s / 1.349 s. `go vet ./internal/quantlab ./apps/quant-lab/server`: PASS. `git diff --check`: PASS.
 
 Final tests cover eight invalid local HTTP documents (the original seven plus a case-folded duplicate consumed trade amount), each unable to alter the existing durable research state. Positive complete tape with whitespace and unique additive audit metadata retains original row count, source URL, exact price/volume/time. Excessive nesting rejects. Existing cancellation/receipt replay/concurrency and provenance fixtures remain in the complete regression. Optional PostgreSQL tests still require the separate disposable QA URL; package success does not certify skipped DB tests.
+
+### Unicode follow-up, superseding the ASCII-only duplicate fence
+
+After checkpoint `6566fba840cd7378026de734bc5ba83d6a50bcc7`, a ninth actual HTTP counterexample (`source` followed by Unicode `ſource`) still returned success and changed state: Go JSON accepts the Unicode simple-fold alias but ordinary lowercasing did not produce the same duplicate key. This genuine failure is preserved. The successor canonicalizes each key by its Unicode SimpleFold cycle before checking uniqueness, matching the decoder's alias boundary instead of silently admitting contradictory source labels.
+
+Final complete race regression after this correction: PASS, internal 2.818 s / actual server 1.370 s; both vet and diff gates PASS. All nine invalid document/no-persistence cases and the prior positive compatibility case run in that complete regression. Release integration must consume this successor rather than the earlier ASCII-only checkpoint alone.
 
 ## Release handoff
 

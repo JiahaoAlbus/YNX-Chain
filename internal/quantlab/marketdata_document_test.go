@@ -36,6 +36,7 @@ func TestMarketTapeDocumentRejectionCannotPersistResearch(t *testing.T) {
 		"duplicate-price-boundary":    []byte(strings.Replace(string(valid), `"externalPrice":false`, `"externalPrice":true,"externalPrice":false`, 1)),
 		"folded-price-boundary":       []byte(strings.Replace(string(valid), `"externalPrice":false`, `"externalPrice":true,"ExternalPrice":false`, 1)),
 		"duplicate-consumed-trade":    []byte(strings.Replace(string(valid), `"amountMicro":`, `"amountMicro":1,"AmountMicro":`, 1)),
+		"unicode-folded-source":       []byte(strings.Replace(string(valid), `"source":`, `"source":"foreign feed","ſource":`, 1)),
 	}
 	for name, body := range cases {
 		t.Run(name, func(t *testing.T) {

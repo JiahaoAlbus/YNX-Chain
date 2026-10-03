@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 )
 
 type MarketTick struct {
@@ -130,7 +131,7 @@ func unambiguousMarketTapeDocument(payload []byte) bool {
 				if err != nil || !ok {
 					return false
 				}
-				key = strings.ToLower(key)
+				key = canonicalMarketJSONKey(key)
 				if seen[key] {
 					return false
 				}
@@ -169,6 +170,22 @@ func unambiguousMarketTapeDocument(payload []byte) bool {
 		}
 	}
 	return false
+}
+
+// encoding/json also accepts Unicode simple-fold aliases (for example ſ/S),
+// so ASCII lowercasing alone cannot fence duplicate consumed field names.
+func canonicalMarketJSONKey(key string) string {
+	var result strings.Builder
+	for _, r := range key {
+		canonical := r
+		for folded := unicode.SimpleFold(r); folded != r; folded = unicode.SimpleFold(folded) {
+			if folded < canonical {
+				canonical = folded
+			}
+		}
+		result.WriteRune(canonical)
+	}
+	return result.String()
 }
 
 func ownedExchangeTapeSource(source string) bool {
