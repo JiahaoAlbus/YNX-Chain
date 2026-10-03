@@ -56,10 +56,10 @@ try {
   const connection=['-h','127.0.0.1','-p',String(receipt.port),'-U','ynx_quant_qa'];
   requireSuccess(await run('createdb',path.join(bin,'createdb'),[...connection,'quant_isolated_qa']));
   receipt.databaseIdentity=requireSuccess(await run('identity',path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-At','-c',"SELECT current_database(),inet_server_addr(),current_setting('server_version')"])).stdout.trim();
-  const required=['TestPostgreSQLStateStoreMultiInstanceCASRestartAndTenantIsolation','TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers','TestPostgreSQLResearchReplayConcurrentInstancesRestartAndTenantIsolation','TestFinanceReadPostgresTenantAndCrossInstanceReplay'];
+  const required=['TestPostgreSQLStateStoreMultiInstanceCASRestartAndTenantIsolation','TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers','TestPostgreSQLResearchReplayConcurrentInstancesRestartAndTenantIsolation','TestFinanceReadPostgresTenantAndCrossInstanceReplay','TestPostgreSQLPaperKillFencesInFlightMarketAndSurvivesRestart'];
   const result=requireSuccess(await run('integration','go',['test','-race','./internal/quantlab','-run','^(TestPostgreSQL|TestFinanceReadPostgres)','-count=2','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/quant_isolated_qa?sslmode=disable`}));
-  if(result.stdout.includes('--- SKIP:') || required.some(name=>(result.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==2)) throw Error('All four actual PostgreSQL gates must execute twice, not skip.');
-  receipt.integrationPasses=8;
+  if(result.stdout.includes('--- SKIP:') || required.some(name=>(result.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==2)) throw Error('All required actual PostgreSQL gates must execute twice, not skip.');
+  receipt.integrationPasses=required.length*2;
   const sql=async (phase,query)=>requireSuccess(await run(phase,path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-v','ON_ERROR_STOP=1','-At','-c',query])).stdout.trim();
   await sql('restart-probe-create',"CREATE TABLE qa_restart_probe (value TEXT NOT NULL); INSERT INTO qa_restart_probe VALUES ('isolated_restart_receipt')");
   await stopOwnedCluster('restart-stop');
