@@ -149,7 +149,7 @@ func (s *Server) handleFunc(pattern string, handler http.HandlerFunc) {
 		if policy.mode != "local" {
 			// External side effects/streams need their durable admission and
 			// post-await checks before this v2 service can execute them.
-			failBusiness(w, &businessHTTPError{"BUSINESS_EXTERNAL_ADMISSION_REQUIRED", 503})
+			s.serveBusinessExternal(w, r, pattern, body, verified)
 			return
 		}
 		capture := &bufferedBusinessResponse{header: make(http.Header)}

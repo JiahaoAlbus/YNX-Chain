@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 12
+	CurrentPersistenceSchemaVersion = 13
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -143,7 +143,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, BusinessNonces: map[string]struct{}{}, BusinessActorNamespaces: map[string]string{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, BusinessNonces: map[string]struct{}{}, BusinessActorNamespaces: map[string]string{}, BusinessEffects: map[string]BusinessEffect{}, RetiredBusinessEffects: map[string]struct{}{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() (bool, error) {
@@ -156,6 +156,15 @@ func (s *Store) normalize() (bool, error) {
 	}
 	migrated := version != CurrentPersistenceSchemaVersion
 	s.s.Version = CurrentPersistenceSchemaVersion
+	if s.s.BusinessEffects == nil {
+		s.s.BusinessEffects = map[string]BusinessEffect{}
+	}
+	if s.s.RetiredBusinessEffects == nil {
+		s.s.RetiredBusinessEffects = map[string]struct{}{}
+	}
+	if err := validateBusinessEffects(s.s); err != nil {
+		return false, err
+	}
 	if s.s.BusinessActorNamespaces == nil {
 		s.s.BusinessActorNamespaces = map[string]string{}
 	}
@@ -319,7 +328,7 @@ func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
 
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
-		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v11", ErrPersistenceVersion)
+		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v12", ErrPersistenceVersion)
 	}
 	if hasBusinessProtection(s.s) {
 		return nil, fmt.Errorf("%w: older snapshots cannot enforce consumed business proofs", ErrConflict)
@@ -356,7 +365,7 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
-	fields = omitRawFields(fields, "BusinessNonces", "BusinessActorNamespaces")
+	fields = omitRawFields(fields, "BusinessNonces", "BusinessActorNamespaces", "BusinessEffects", "RetiredBusinessEffects")
 	if targetVersion < 8 {
 		fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
 	}
@@ -504,6 +513,17 @@ func RestoreCommerceBackup(path string, key []byte) error {
 }
 
 func containsRetiredIntents(candidate, current Snapshot) bool {
+	for id, record := range current.BusinessEffects {
+		previous, ok := candidate.BusinessEffects[id]
+		if !ok || requestHash(previous) != requestHash(record) {
+			return false
+		}
+	}
+	for id := range current.RetiredBusinessEffects {
+		if _, ok := candidate.RetiredBusinessEffects[id]; !ok {
+			return false
+		}
+	}
 	for digest, namespace := range current.BusinessActorNamespaces {
 		if candidate.BusinessActorNamespaces[digest] != namespace {
 			return false
@@ -536,7 +556,7 @@ func hasPrivacyProtection(snapshot Snapshot) bool {
 }
 
 func hasBusinessProtection(snapshot Snapshot) bool {
-	return len(snapshot.BusinessNonces) > 0 || len(snapshot.BusinessActorNamespaces) > 0
+	return len(snapshot.BusinessNonces) > 0 || len(snapshot.BusinessActorNamespaces) > 0 || len(snapshot.BusinessEffects) > 0 || len(snapshot.RetiredBusinessEffects) > 0
 }
 
 func verifyRetiredIntentsRestore(path string, key []byte, candidate Snapshot) error {
@@ -675,8 +695,10 @@ func (s *Store) idempotencyLocked(actor, route, key string, input any) (string, 
 	if len(key) < 8 || len(key) > 128 {
 		return "", false, errors.New("idempotency key must contain 8 to 128 characters")
 	}
-	if _, retired := s.s.RetiredIdempotency[retiredIdempotencyDigest(actor, route, key)]; retired {
-		return "", false, fmt.Errorf("%w: idempotency key retired after personal data deletion", ErrConflict)
+	for _, alias := range businessActorAliases(actor) {
+		if _, retired := s.s.RetiredIdempotency[retiredIdempotencyDigest(alias, route, key)]; retired {
+			return "", false, fmt.Errorf("%w: idempotency key retired after personal data deletion", ErrConflict)
+		}
 	}
 	h := requestHash(input)
 	rec, ok := s.s.Idempotency[idemMapKey(actor, route, key)]

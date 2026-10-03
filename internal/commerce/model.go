@@ -1,6 +1,22 @@
 package commerce
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
+
+type BusinessEffect struct {
+	ID, Actor, Role, Kind, Target, RequestHash, Phase, Admission string
+	Input, Result, Response                                      json.RawMessage
+	CreatedAt, UpdatedAt                                         time.Time
+	Steps                                                        []BusinessEffectStep
+}
+
+type BusinessEffectStep struct {
+	Method, Origin, Path, RequestDigest, Phase string
+	Request, Response                          []byte
+	Status                                     int
+}
 
 const (
 	ChainID      = 6423
@@ -25,15 +41,16 @@ type BuyerProfile struct {
 }
 
 type BuyerDataExport struct {
-	SchemaVersion   int          `json:"schemaVersion"`
-	ExportedAt      time.Time    `json:"exportedAt"`
-	Account         string       `json:"account"`
-	Profile         BuyerProfile `json:"profile"`
-	Cart            Cart         `json:"cart"`
-	Orders          []Order      `json:"orders"`
-	AIJobs          []AIJob      `json:"aiJobs"`
-	AuditEvents     []AuditEvent `json:"auditEvents"`
-	RetentionNotice string       `json:"retentionNotice"`
+	SchemaVersion   int              `json:"schemaVersion"`
+	ExportedAt      time.Time        `json:"exportedAt"`
+	Account         string           `json:"account"`
+	Profile         BuyerProfile     `json:"profile"`
+	Cart            Cart             `json:"cart"`
+	Orders          []Order          `json:"orders"`
+	AIJobs          []AIJob          `json:"aiJobs"`
+	AuditEvents     []AuditEvent     `json:"auditEvents"`
+	BusinessEffects []BusinessEffect `json:"businessEffects"`
+	RetentionNotice string           `json:"retentionNotice"`
 }
 
 type BuyerDataDeletionReceipt struct {
@@ -42,6 +59,7 @@ type BuyerDataDeletionReceipt struct {
 	ProfileDeleted           bool      `json:"profileDeleted"`
 	CartDeleted              bool      `json:"cartDeleted"`
 	AIJobsDeleted            int       `json:"aiJobsDeleted"`
+	BusinessEffectsDeleted   int       `json:"businessEffectsDeleted"`
 	IdempotencyDeleted       int       `json:"idempotencyDeleted"`
 	RateWindowsDeleted       int       `json:"rateWindowsDeleted"`
 	OrdersPseudonymized      int       `json:"ordersPseudonymized"`
@@ -245,6 +263,8 @@ type Snapshot struct {
 	RetiredIdempotency      map[string]struct{}
 	BusinessNonces          map[string]struct{}
 	BusinessActorNamespaces map[string]string
+	BusinessEffects         map[string]BusinessEffect
+	RetiredBusinessEffects  map[string]struct{}
 	BuyerDeletions          map[string]BuyerDeletionRecord
 	PrivacyDeletionBoundary string
 	Audits                  []AuditEvent

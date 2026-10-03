@@ -8,6 +8,21 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
 
+// Only the existing checksum-valid codec may establish representation aliases.
+// Historical deletion digests cannot reveal which representation was used;
+// check both without rewriting records or retaining additional identities.
+func businessActorAliases(actor string) []string {
+	canonical, err := accountaddress.Normalize(actor)
+	if err != nil {
+		return []string{actor}
+	}
+	native, err := accountaddress.Encode(canonical)
+	if err != nil {
+		return []string{actor}
+	}
+	return []string{canonical, native}
+}
+
 // Resolve only a cryptographically verified Wallet account using the existing
 // checked address codec. Never rewrite signed proof/session fields. This runs
 // on the transaction's staged Store, so the namespace decision and nonce commit
@@ -31,6 +46,11 @@ func (s *Store) resolveBusinessActor(walletAccount string) (string, error) {
 	}
 
 	has := func(actor string) bool {
+		for _, v := range s.s.BusinessEffects {
+			if v.Actor == actor {
+				return true
+			}
+		}
 		if _, ok := s.s.BuyerProfiles[actor]; ok {
 			return true
 		}

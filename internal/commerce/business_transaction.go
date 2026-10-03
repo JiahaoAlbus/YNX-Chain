@@ -33,6 +33,16 @@ func businessNonceDigest(binding, nonce string) string {
 // fence checks the original actor generation again immediately before publish.
 // No result may be sent to the caller until this method returns successfully.
 func (s *Store) withBusinessAction(ctx context.Context, proof businessActionAuthorization, fence func() error, work func(*Store) error) error {
+	return s.withBusinessCommit(ctx, proof, fence, true, work)
+}
+
+// Continue only a nonce durably admitted with an external operation. Callers
+// additionally compare that operation's exact active admission in work.
+func (s *Store) withBusinessContinuation(ctx context.Context, proof businessActionAuthorization, fence func() error, work func(*Store) error) error {
+	return s.withBusinessCommit(ctx, proof, fence, false, work)
+}
+
+func (s *Store) withBusinessCommit(ctx context.Context, proof businessActionAuthorization, fence func() error, consume bool, work func(*Store) error) error {
 	if ctx == nil || fence == nil || work == nil || !businessProofToken.MatchString(proof.SessionBinding) || !businessProofToken.MatchString(proof.Nonce) {
 		return fmt.Errorf("%w: invalid verified business transaction", ErrUnauthorized)
 	}
@@ -51,8 +61,12 @@ func (s *Store) withBusinessAction(ctx context.Context, proof businessActionAuth
 		return err
 	}
 	digest := businessNonceDigest(proof.SessionBinding, proof.Nonce)
-	if _, exists := s.s.BusinessNonces[digest]; exists {
+	_, exists := s.s.BusinessNonces[digest]
+	if consume && exists {
 		return fmt.Errorf("%w: business proof already consumed", ErrConflict)
+	}
+	if !consume && !exists {
+		return fmt.Errorf("%w: missing original business admission", ErrUnauthorized)
 	}
 	copy, err := cloneSnapshot(s.s)
 	if err != nil {

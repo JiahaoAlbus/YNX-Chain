@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -81,7 +82,20 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 			store, _ := Open(filepath.Join(directory, "commerce.json"))
 			active := true
 			revokeAfterAuthorize := false
-			server, err := NewCommerceV2Server(store, ServerConfig{}, []string{platform}, "qa", key, transport, func(_ context.Context, session v2.Session) (func() error, error) {
+			var payCalls atomic.Int32
+			payProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				payCalls.Add(1)
+				if r.URL.Path == "/pay/intents" {
+					w.Write([]byte(`{"id":"signed-intent"}`))
+				} else if r.URL.Path == "/pay/invoices" {
+					w.Write([]byte(`{"id":"signed-invoice"}`))
+				} else {
+					w.WriteHeader(404)
+				}
+			}))
+			defer payProvider.Close()
+			cfg := ServerConfig{Pay: HTTPPayVerifier{BaseURL: payProvider.URL, APIKey: "qa-pay", MerchantID: "signed-merchant", PayoutAddress: account}}
+			server, err := NewCommerceV2Server(store, cfg, []string{platform}, "qa", key, transport, func(_ context.Context, session v2.Session) (func() error, error) {
 				if session.Account != ready.Account || session.SessionBinding != ready.Binding {
 					return nil, ErrUnauthorized
 				}
@@ -142,6 +156,24 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 				t.Fatal("replaced actor read leaked", w.Code)
 			}
 			active = true
+			_, owner := actor(t, 1)
+			shop, product := setupCatalog(t, store, owner, 5)
+			order, err := store.CreateOrder(account, orderInput(shop, product, "actual-sdk-order-key"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			payBody := `{"IdempotencyKey":"actual-sdk-pay-key"}`
+			payPath := "/api/orders/" + order.ID + "/pay-handoff"
+			payScopes := []string{"account:read", "shop:orders:write"}
+			if w := request("POST", payPath, payBody, payScopes, false, payBody); w.Code != 201 || payCalls.Load() != 2 {
+				t.Fatal("signed external operation failed", w.Code, w.Body.String())
+			}
+			if w := request("POST", payPath, payBody, payScopes, true, payBody); w.Code != 409 || payCalls.Load() != 2 {
+				t.Fatal("signed external replay sent again", w.Code)
+			}
+			if w := request("POST", payPath, payBody, payScopes, false, payBody); w.Code != 201 || payCalls.Load() != 2 {
+				t.Fatal("fresh authorization did not recover actual receipt", w.Code, w.Body.String())
+			}
 			revokeAfterAuthorize = true
 			nonces := len(store.s.BusinessNonces)
 			if w := request("PUT", "/api/profile", body, scopes, false, body); w.Code != 401 || len(store.s.BusinessNonces) != nonces || store.Profile(account).DisplayName != "exact SDK wire" {

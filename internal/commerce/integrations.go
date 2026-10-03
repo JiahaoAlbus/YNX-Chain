@@ -355,9 +355,28 @@ func (s *Store) DeleteAIJob(actor, id string) error {
 	if j.Status == "running" {
 		return ErrInvalidState
 	}
+	for _, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor && effect.Kind == "ai.generate" && effect.Target == id && effect.Phase != "completed" && effect.Phase != "abandoned" {
+			return ErrInvalidState
+		}
+	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return err
+	}
+	for effectID, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor && effect.Kind == "ai.generate" && effect.Target == id {
+			delete(s.s.BusinessEffects, effectID)
+			s.s.RetiredBusinessEffects[effectID] = struct{}{}
+		}
+	}
 	delete(s.s.AIJobs, id)
 	s.auditLocked(actor, "user", "ai_job_deleted", "ai_job", id, "deleted", "result and selected context removed")
-	return s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		s.s = before
+		return err
+	}
+	return nil
 }
 func (s *Store) DecideAIJob(actor, id, decision string) (AIJob, error) {
 	s.mu.Lock()
@@ -397,12 +416,24 @@ func (s *Store) CancelAIJob(actor, id string) (AIJob, error) {
 	if j.Status != "permission_granted" && j.Status != "running" {
 		return AIJob{}, ErrInvalidState
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return AIJob{}, err
+	}
+	for key, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor && effect.Kind == "ai.generate" && effect.Target == id && (effect.Phase == "admitted" || effect.Phase == "received") {
+			effect.Phase = "abandoned"
+			effect.UpdatedAt = s.now()
+			s.s.BusinessEffects[key] = effect
+		}
+	}
 	j.Cancelled = true
 	j.Status = "cancelled"
 	j.UpdatedAt = s.now()
 	s.s.AIJobs[id] = j
 	s.auditLocked(actor, "user", "ai_cancelled", "ai_job", id, "cancelled", "")
 	if err := s.persistLocked(); err != nil {
+		s.s = before
 		return AIJob{}, err
 	}
 	return j, nil

@@ -89,14 +89,14 @@ func TestV2HTTPRejectedBodyRoleAndReplacementKeepBusinessAndNonceUnchanged(t *te
 		t.Fatal("replacement published staged private data", w.Code, w.Body.String())
 	}
 }
-func TestV2HTTPExternalRoutesCannotDispatchUnderLocalTransaction(t *testing.T) {
+func TestV2HTTPUnsupportedExternalRouteRemainsClosed(t *testing.T) {
 	s, _ := Open("")
 	_, buyer := actor(t, 2)
 	calls := 0
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(200) }))
 	defer provider.Close()
 	server := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}, Pay: HTTPPayVerifier{BaseURL: provider.URL, APIKey: "qa", MerchantID: "qa"}})
-	w := businessHTTPRequest(server, "POST", "/api/orders/order_abc/pay-handoff", strings.Repeat("b", 43), `{}`)
+	w := businessHTTPRequest(server, "POST", "/api/orders/order_abc/confirm-payment", strings.Repeat("b", 43), `{}`)
 	if w.Code != 503 || calls != 0 || len(s.s.BusinessNonces) != 0 {
 		t.Fatal("external effect dispatched or silently consumed", w.Code, calls)
 	}

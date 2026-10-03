@@ -178,6 +178,21 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 		}
 	}
 	sort.Slice(jobs, func(i, j int) bool { return jobs[i].CreatedAt.After(jobs[j].CreatedAt) })
+	effects := make([]BusinessEffect, 0)
+	for _, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor && effect.Role == "buyer" {
+			effect.Input = append(json.RawMessage(nil), effect.Input...)
+			effect.Result = append(json.RawMessage(nil), effect.Result...)
+			effect.Response = append(json.RawMessage(nil), effect.Response...)
+			effect.Steps = append([]BusinessEffectStep(nil), effect.Steps...)
+			for i := range effect.Steps {
+				effect.Steps[i].Request = append([]byte(nil), effect.Steps[i].Request...)
+				effect.Steps[i].Response = append([]byte(nil), effect.Steps[i].Response...)
+			}
+			effects = append(effects, effect)
+		}
+	}
+	sort.Slice(effects, func(i, j int) bool { return effects[i].CreatedAt.After(effects[j].CreatedAt) })
 
 	audits := make([]AuditEvent, 0)
 	for _, event := range s.s.Audits {
@@ -196,7 +211,8 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 		Orders:          orders,
 		AIJobs:          jobs,
 		AuditEvents:     audits,
-		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request details can be deleted. Minimal one-way digests of retired request keys, consumed business proofs and account representation decisions, representation flags, and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
+		BusinessEffects: effects,
+		RetentionNotice: "Profile, saved addresses, cart, AI jobs, completed or cancelled-known external request records, and buyer-scoped request details can be deleted. Unconfirmed external outcomes require recovery before deletion to prevent duplicate dispatch. Minimal one-way digests of retired request keys and external operations, consumed business proofs and account representation decisions, representation flags, and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
 	}
 }
 
@@ -282,11 +298,18 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 	if requestID != "" {
 		requestKey = requestHash([3]string{"ynx-commerce-buyer-deletion-v1", actor, requestID})
 		requestDigest = deletionIntentDigest(intents)
-		if prior, ok := s.s.BuyerDeletions[requestKey]; ok {
-			if prior.RequestDigest != requestDigest {
-				return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: deletion request ID reused with different intents", ErrConflict)
+		for _, alias := range businessActorAliases(actor) {
+			if prior, ok := s.s.BuyerDeletions[requestHash([3]string{"ynx-commerce-buyer-deletion-v1", alias, requestID})]; ok {
+				if prior.RequestDigest != requestDigest {
+					return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: deletion request ID reused with different intents", ErrConflict)
+				}
+				return deletionReceiptForRequest(prior.Receipt, requestID), nil
 			}
-			return deletionReceiptForRequest(prior.Receipt, requestID), nil
+		}
+	}
+	for _, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor && effect.Phase != "completed" && effect.Phase != "abandoned" {
+			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: external operation outcome requires recovery before deletion", ErrInvalidState)
 		}
 	}
 
@@ -381,6 +404,16 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 		}
 		if (s.s.Audits[i].ObjectType == "profile" || s.s.Audits[i].ObjectType == "cart") && s.s.Audits[i].ObjectID == actor {
 			s.s.Audits[i].ObjectID = pseudonym
+		}
+	}
+	for id, effect := range s.s.BusinessEffects {
+		if effect.Actor == actor {
+			delete(s.s.BusinessEffects, id)
+			receipt.BusinessEffectsDeleted++
+			if s.s.RetiredBusinessEffects == nil {
+				s.s.RetiredBusinessEffects = map[string]struct{}{}
+			}
+			s.s.RetiredBusinessEffects[id] = struct{}{}
 		}
 	}
 	s.auditLocked("privacy-service", "system", "buyer_data_deleted", "privacy_receipt", receipt.ReceiptID, "completed", fmt.Sprintf("profile=%t cart=%t orders=%d aiJobs=%d", receipt.ProfileDeleted, receipt.CartDeleted, receipt.OrdersPseudonymized, receipt.AIJobsDeleted))

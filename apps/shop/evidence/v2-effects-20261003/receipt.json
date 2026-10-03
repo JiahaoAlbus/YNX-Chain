@@ -1,0 +1,293 @@
+{
+  "sourceBasis": "945f9527d1d9e2f82660ba6fe966cc79546e0d30",
+  "schema": 13,
+  "sharedFrozenSource": "c09cb9b8ad13fe879363f7e6ad3d129912740c7e",
+  "results": {
+    "final-ordinary-race.log": {
+      "topLevel": 95,
+      "leaf": 136,
+      "failed": 0,
+      "skipped": 0,
+      "summary": [
+        "PASS",
+        "ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/commerce\t7.848s"
+      ],
+      "bytes": 23183,
+      "sha256": "596fc8bb79eaefd5b3dca6d1e7cdc383cd0cc9a4b23672cf661245d3e224ab0a"
+    },
+    "final-tagged-race.log": {
+      "topLevel": 100,
+      "leaf": 143,
+      "failed": 0,
+      "skipped": 0,
+      "summary": [
+        "PASS",
+        "ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/commerce\t10.561s"
+      ],
+      "bytes": 24293,
+      "sha256": "c312cf2f867113f8c1576deea6c0500c76965a1eb0537728a2428e40f6d6eb07"
+    },
+    "actual-sdk-effects-race.log": {
+      "topLevel": 1,
+      "leaf": 3,
+      "failed": 0,
+      "skipped": 0,
+      "summary": [
+        "PASS",
+        "ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/commerce\t3.852s"
+      ],
+      "bytes": 612,
+      "sha256": "1b610e82831051da225ab85323e8d70c851a9e2f1be9da42317553ab6cff8788"
+    }
+  },
+  "sourcePins": {
+    "internal/commerce/accounts.go": {
+      "bytes": 38710,
+      "sha256": "d8c4ae68b0816c2b1e9f3d7c7aadd24f0346ed48cfd2a2f28f63b4e98a1a9875"
+    },
+    "internal/commerce/ai_completion_boundary_test.go": {
+      "bytes": 3832,
+      "sha256": "2ff48373a243ca2b9af5e16dd951c51e284f083d9a30735b5b815309b0eb3ff0"
+    },
+    "internal/commerce/auth.go": {
+      "bytes": 12820,
+      "sha256": "58fddd62d78a638c7bd6de66b6f129dbdeca5d20cb1fc47319df631774c3438e"
+    },
+    "internal/commerce/auth_gateway_test.go": {
+      "bytes": 8298,
+      "sha256": "b4c0f5e2c62e6d7d3e4d1652a7cdc09d82a3584690756268572e3326ea1a16b1"
+    },
+    "internal/commerce/auth_v2.go": {
+      "bytes": 6401,
+      "sha256": "700d646e72dd0245b9436b96babbbb85fdae8ee5460e979855c666558ecd5b36"
+    },
+    "internal/commerce/auth_v2_test.go": {
+      "bytes": 7344,
+      "sha256": "f532adc1ce79292705ad7d60e2e273889b31f543bb40642772af0ee9cccb7a1d"
+    },
+    "internal/commerce/business_actor.go": {
+      "bytes": 3340,
+      "sha256": "2611dd532dc48599b6a3ada71d61e7e668c1a8c257e71a43ba509d341bf80233"
+    },
+    "internal/commerce/business_actor_test.go": {
+      "bytes": 3197,
+      "sha256": "584fafe182b8f220f8e3e86a2fb3dba5d3faa44260254a9ea56f35c9d450095f"
+    },
+    "internal/commerce/business_effect.go": {
+      "bytes": 9297,
+      "sha256": "f8556ac6e04445fcff775c6b0951a6139b30b6d0f872dbf86f526086d9ab41f5"
+    },
+    "internal/commerce/business_effect_http.go": {
+      "bytes": 5020,
+      "sha256": "5e263d743a097ae9a63bd3d82e2c69b986f2da99754c3bb487ffefc71e1af250"
+    },
+    "internal/commerce/business_effect_plans.go": {
+      "bytes": 7696,
+      "sha256": "6acf498f9ab1fa888cfda7a4e791f4fdfd1cff00832f19b6024135cbd86e29f5"
+    },
+    "internal/commerce/business_effect_test.go": {
+      "bytes": 12238,
+      "sha256": "f8f29351757550a9354e5ee86b3dd5a6c7f6fa0dc6f9e105a70cb420b763c1f9"
+    },
+    "internal/commerce/business_http.go": {
+      "bytes": 5604,
+      "sha256": "94cdbb6061505903b8d230c8a83911b6d3470d9b97c79f9d0932115155494198"
+    },
+    "internal/commerce/business_http_test.go": {
+      "bytes": 6138,
+      "sha256": "f95d9986bd312380588474933f80ab970745e895933f261d971eeff727797bfd"
+    },
+    "internal/commerce/business_routes.go": {
+      "bytes": 9129,
+      "sha256": "ee94f5fe8544c92a59f67436dd41de0696c850d16fb84693243cdb90950fb2d3"
+    },
+    "internal/commerce/business_transaction.go": {
+      "bytes": 3564,
+      "sha256": "437a1cd2ee770c43bd46934257a530ac79f9c138c253f5e5b955a4e28e9a2719"
+    },
+    "internal/commerce/business_transaction_test.go": {
+      "bytes": 8071,
+      "sha256": "1bd23b77126852325675e63684ecfd9b07164da8c9bac6f7f92ca15dc665d8a7"
+    },
+    "internal/commerce/buyer_boundary_test.go": {
+      "bytes": 6949,
+      "sha256": "77478853c6e0a294acc15b5529c4ec96234d40c1af13ef2544861e186e408840"
+    },
+    "internal/commerce/cart_intent_test.go": {
+      "bytes": 3349,
+      "sha256": "08ba3bfeb0956b10c8f23f5744eeec6402c33d8a5846f205cdaa1883971479bb"
+    },
+    "internal/commerce/checkout_cart.go": {
+      "bytes": 1280,
+      "sha256": "a619df32067c277111483817c4a3946d341a705e52fbadbb1bcfb74a7cf5f3ec"
+    },
+    "internal/commerce/checkout_cart_test.go": {
+      "bytes": 6149,
+      "sha256": "ab224c5330ece75b256c6d1742d3a3c113fa213afbba4b099b31f0509fcdb6b3"
+    },
+    "internal/commerce/client_subject_test.go": {
+      "bytes": 972,
+      "sha256": "5ced3997f048ce805757633d16a31e4e3a960362485d1311962f1b738da03dfb"
+    },
+    "internal/commerce/commerce_test.go": {
+      "bytes": 17776,
+      "sha256": "45c9206b3e562fc3dcf57b31fbed7654ad195311c4d3ec3e694593e8b4d7317b"
+    },
+    "internal/commerce/data_lifecycle.go": {
+      "bytes": 9226,
+      "sha256": "1150d83209fbf2a9e1eb13187408ae480ee19348d68b0060da23de0863c05f83"
+    },
+    "internal/commerce/data_lifecycle_test.go": {
+      "bytes": 7339,
+      "sha256": "dbddad8e28227466dde0aec102e011c2c524267b309300fe96c70a57f67ae806"
+    },
+    "internal/commerce/integrations.go": {
+      "bytes": 16366,
+      "sha256": "5c7d2afe5031a89c53d885c4b8a09705b88c065ee3c1d8c2aa445c1a7d599fe5"
+    },
+    "internal/commerce/model.go": {
+      "bytes": 12567,
+      "sha256": "ec07442fa5bbbe6126e7bd796b6f4ab63a555cbf525c28509908ee5067225ff8"
+    },
+    "internal/commerce/observability.go": {
+      "bytes": 12602,
+      "sha256": "075e5b9c91329d8be691fe6e55f74d0b2f449a5fb1aa60eea765f9730e22dd53"
+    },
+    "internal/commerce/observability_test.go": {
+      "bytes": 8198,
+      "sha256": "a05645ab6c6501066c3947f3372ee69fb8795d7647ddba7f3842a8c3552bb2ba"
+    },
+    "internal/commerce/order_boundary_test.go": {
+      "bytes": 12891,
+      "sha256": "66b32b6e9e78bd7f8348bbeabb10c4de5ff9b1d85caac2057dc4acc500644b53"
+    },
+    "internal/commerce/privacy_replay_test.go": {
+      "bytes": 22291,
+      "sha256": "988aa10ac0c4ac826d772fcab5403df850dc8062b00d33107c921e0711a64e17"
+    },
+    "internal/commerce/privacy_test.go": {
+      "bytes": 4219,
+      "sha256": "e758130bb2a71e64f18122eaba4b1125313dad4dbd31bbe3c1b0d4121b342d3a"
+    },
+    "internal/commerce/provider_registry.go": {
+      "bytes": 17946,
+      "sha256": "ec74c6ce9a9e58529b9b450f85ae39172d3f1329fec3c46662a2db56b0a75d53"
+    },
+    "internal/commerce/provider_registry_test.go": {
+      "bytes": 4845,
+      "sha256": "9f59893303d8fb4544a39f5987d876b4e01622e9e59f979c6a0c9c8d67c3e6e0"
+    },
+    "internal/commerce/role_revocation_server_test.go": {
+      "bytes": 8044,
+      "sha256": "467c5d48cc77b4c340e666ce9843edceaa55426f0b1d16359acd4731066c73ac"
+    },
+    "internal/commerce/roles.go": {
+      "bytes": 3039,
+      "sha256": "18b57d799dd4f1387a3ed09da5e25352e25931de2adb1228486471d08f1bed2a"
+    },
+    "internal/commerce/roles_test.go": {
+      "bytes": 10249,
+      "sha256": "90f093e1b6e2ade108e29b34b6ca2827ea66eca550264f6fd6b73dc0e0991a49"
+    },
+    "internal/commerce/seller_test_helpers_test.go": {
+      "bytes": 419,
+      "sha256": "e86bc134a1c2649a780fce1926e8ffab93bab9ba227edf127b50e261e1dbf24d"
+    },
+    "internal/commerce/server.go": {
+      "bytes": 37030,
+      "sha256": "a5f6c59a371c1bf32b7a4b7e2b66f24cc881a5a1f1bf80e9b3e3f3cf52be0b1f"
+    },
+    "internal/commerce/server_workflow_test.go": {
+      "bytes": 10022,
+      "sha256": "67201d31e47130b1323fe712f1674e494125bafb5b125f16b2532bd17d7cb258"
+    },
+    "internal/commerce/service.go": {
+      "bytes": 28348,
+      "sha256": "e5e84bc949faa804dc1d9c20082581c602eaa869b30002484682cf8d96d39f25"
+    },
+    "internal/commerce/snapshot_rollback_test.go": {
+      "bytes": 14324,
+      "sha256": "149d7b3188727b7bcb4e689aaab3830b435b9c60db22c512ebc46c2ab014530a"
+    },
+    "internal/commerce/store.go": {
+      "bytes": 27149,
+      "sha256": "5e1030329d7bc2490974294d837abaf00427fe0cb6256ae261b1e8cae7f45081"
+    },
+    "internal/commerce/team_invitation_server_test.go": {
+      "bytes": 5740,
+      "sha256": "f254972a101360355a18f19abf37b7034c870b8f7535c98bd7684e26db7891a9"
+    },
+    "internal/commerce/team_invitation_test.go": {
+      "bytes": 11687,
+      "sha256": "223fea1ebd9fbbaab6278be9879c2b7384c0d8be1ca318f7b6b87e41ed86c739"
+    },
+    "internal/commerce/trust.go": {
+      "bytes": 4510,
+      "sha256": "e287f2bb6d2cd7a891591e1706edd060b86c4671d62439981375213fc0f1637a"
+    },
+    "internal/commerce/trust_test.go": {
+      "bytes": 1976,
+      "sha256": "cf6e083d0c6c1861def8d2e92da5d071bbf423e6c915010c93ce895f26d71789"
+    }
+  },
+  "evidencePins": {
+    "actual-sdk-effects-race.log": {
+      "bytes": 612,
+      "sha256": "1b610e82831051da225ab85323e8d70c851a9e2f1be9da42317553ab6cff8788"
+    },
+    "final-ordinary-race.log": {
+      "bytes": 23183,
+      "sha256": "596fc8bb79eaefd5b3dca6d1e7cdc383cd0cc9a4b23672cf661245d3e224ab0a"
+    },
+    "final-tagged-race.log": {
+      "bytes": 24293,
+      "sha256": "c312cf2f867113f8c1576deea6c0500c76965a1eb0537728a2428e40f6d6eb07"
+    },
+    "first-reopen-failure.log": {
+      "bytes": 1182,
+      "sha256": "2b71f0918fd9e616f0f0263451847670cd58fe35ff1630595d785eca9694e314"
+    },
+    "independent_review_test.go.txt": {
+      "bytes": 3906,
+      "sha256": "1fe3de0fd4d2a401786c6840a95620fa7b2daebc7c78b9472ddff3b7dcb656c6"
+    },
+    "original-independent-actual-cart-failure.jsonl": {
+      "bytes": 1994,
+      "sha256": "3b783e59d71ea63fb7fe81f9ccc961bb605ed803ad78eb6e9146261c1bd1db1d"
+    },
+    "original-independent-negative-failure.jsonl": {
+      "bytes": 3776,
+      "sha256": "e1aa70e60d6c65a12cb74a47f3d2c6a3d5b86c97e9dd297dbce3624251aa4f8e"
+    },
+    "record-receipt.mjs": {
+      "bytes": 2876,
+      "sha256": "66431cffd1c9185e2243c6d84856c025ab4d0ec57e6dae6b5ca04ea4242ce535"
+    }
+  },
+  "independentOriginalProbes": "Both original schema11 deleted-native replay cases PASS unchanged; original FAIL logs retained",
+  "externalSourceAdmission": {
+    "payInvoiceHandoff": true,
+    "aiGeneration": true,
+    "settlement": false,
+    "orderTransition": false,
+    "providerTest": false,
+    "sellerAuthorityRevocation": false,
+    "aiStream": false
+  },
+  "limitations": {
+    "controlledActorBinder": true,
+    "softwareQAKeys": true,
+    "publicBusinessVerified": false,
+    "realWalletApproval": false,
+    "nativeInstalled": false,
+    "productionV2Mounted": false,
+    "releaseAccepted": false,
+    "refundExecution": false,
+    "fullGoalComplete": false
+  },
+  "setupNotes": [
+    "Initial targeted run selected no tests because the local Python executable did not write the test file; no-pass result was rejected and file created with apply_patch.",
+    "A temporary composition copy first used a relative source path and reran stale original failures; corrected to exact owned absolute source paths.",
+    "Initial RawMessage journal reopen failures retained; exact wire bytes now preserved as byte arrays."
+  ]
+}
