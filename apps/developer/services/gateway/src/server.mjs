@@ -66,6 +66,7 @@ runtime = createWorkspaceRuntime({
   languageRequests: {
     cpp: routedLanguageRequest(runCppLanguageRequest),
     typescript: routedLanguageRequest(runTypescriptLanguageRequest),
+    javascript: routedLanguageRequest(runTypescriptLanguageRequest),
     python: routedLanguageRequest(runPythonLanguageRequest),
     go: routedLanguageRequest(runGoLanguageRequest),
     rust: routedLanguageRequest(runRustLanguageRequest),

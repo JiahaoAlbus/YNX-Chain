@@ -12,7 +12,9 @@ const samples=[
 ];
 for(const sample of samples){
  const response=await fetch(`http://127.0.0.1:${port}/runtime/language/${sample.language}`,{method:'POST',headers:{'content-type':'application/json',cookie},body:JSON.stringify({protocolVersion:'ynx-code/v1',projectId:`package-language-${sample.language}`,files:{[sample.activePath]:sample.source},activePath:sample.activePath,operation:'completion',position:sample.position}),signal:AbortSignal.timeout(45000)});
- assert.equal(response.status,200,`${sample.language} runtime request failed`);const value=await response.json();
+ const value=await response.json();
+ const code=/^[a-z0-9_]{1,80}$/.test(value?.code||'')?value.code:'request_failed';
+ assert.equal(response.status,200,`${sample.language} runtime request failed (${code})`);
  assert.equal(value.language,sample.language);assert.equal(value.sandbox?.network,false);
  const items=Array.isArray(value.result)?value.result:value.result?.items||[];assert.ok(items.length>0,`${sample.language} produced no completions`);
  if(sample.label)assert.ok(items.some(item=>String(item.label)===sample.label),`${sample.language} missing actual project symbol`);
