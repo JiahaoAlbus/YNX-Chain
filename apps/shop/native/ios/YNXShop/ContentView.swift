@@ -9,7 +9,10 @@ struct ContentView:View {
         NavigationStack{CartView()}.tabItem{Label("nav_cart",systemImage:"cart")}.badge(model.cart.count)
         NavigationStack{OrdersView()}.tabItem{Label("nav_orders",systemImage:"shippingbox")}
         NavigationStack{AccountView()}.tabItem{Label("nav_account",systemImage:"person.crop.circle")}
-    }.tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){if !model.state.isEmpty{Text(LocalizedStringKey(model.state)).font(.caption).frame(maxWidth:.infinity).padding(6).background(.thinMaterial).accessibilityLabel("accessibility_status")}}}
+    }.tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){VStack(spacing:0){
+        HStack(spacing:10){Image("YNXLogo").resizable().scaledToFit().frame(width:60,height:32).accessibilityLabel("YNX");Text("app_name").font(.headline);Spacer(minLength:8)}.padding(.horizontal,16).padding(.vertical,8).background(.regularMaterial)
+        if !model.state.isEmpty{Text(LocalizedStringKey(model.state)).font(.caption).frame(maxWidth:.infinity).padding(6).background(.thinMaterial).accessibilityLabel("accessibility_status")}
+    }}}
 }
 
 struct CatalogView:View {@EnvironmentObject var model:ShopModel

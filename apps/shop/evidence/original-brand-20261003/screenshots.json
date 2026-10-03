@@ -1,0 +1,441 @@
+{
+  "classification": "LOCAL_SOURCE_QA_ONLY",
+  "controlledPrivateFixtures": true,
+  "sharedLegacyStandardSDKCommit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+  "originalLogoSha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "publicVerified": false,
+  "nativeInstalled": false,
+  "canonicalPrivateWalletFlowVerified": false,
+  "results": [
+    {
+      "app": "shop",
+      "state": "signed-out",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 72,
+          "y": 16.5,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "85edc16f3eeabe670098230326a69fabc7f1551dcf25b5a412802931d429e704",
+      "screenshot": "shop-signed-out-1440.png"
+    },
+    {
+      "app": "shop",
+      "state": "controlled-private",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 72,
+          "y": 16.5,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "a6ee52ca77d8271bbb1265e2bda05e953fbb2d550f8d91d935d055e02db2bdc7",
+      "screenshot": "shop-controlled-private-1440.png"
+    },
+    {
+      "app": "shop",
+      "state": "private-cleared",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 72,
+          "y": 16.5,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "59e8521bce375c6ca1d21ca93f48c2de2e0e355b08de4f1db8fe5313b3152ac5",
+      "screenshot": "shop-private-cleared-1440.png"
+    },
+    {
+      "app": "shop",
+      "state": "signed-out",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 14,
+          "y": 8,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "acc4e23d85534ad1acec89df7588129361c88f1439140acdd4495e4cfcd37cd0",
+      "screenshot": "shop-signed-out-320.png"
+    },
+    {
+      "app": "shop",
+      "state": "controlled-private",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 14,
+          "y": 8,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "bc0d3a7113e72db2dcae0605284055a79d4811418d853811ef3d661519488beb",
+      "screenshot": "shop-controlled-private-320.png"
+    },
+    {
+      "app": "shop",
+      "state": "private-cleared",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 14,
+          "y": 8,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/brand/ynx-logo.png"
+        }
+      ],
+      "sha256": "acd80d35f74bb1b7cc54b7e93a48b17d5af5224e5349ca29430719566c7983b1",
+      "screenshot": "shop-private-cleared-320.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "signed-out",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 24,
+          "y": 32,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "56b21becb0092e1345441b1b451fa47bb47f025613fa5ea8b4cbe52ec3dbb89e",
+      "screenshot": "seller-console-signed-out-1440.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "controlled-private",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 24,
+          "y": 32,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "e6fc5cf25e67a5be9b2ec69fe88f2a68628dfd1e04b1021ee112790e292dca65",
+      "screenshot": "seller-console-controlled-private-1440.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "private-cleared",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 24,
+          "y": 32,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "bf69302c0e9a50d940919ece984a23d63fa8800e9641d449a882308808eaf12f",
+      "screenshot": "seller-console-private-cleared-1440.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "signed-out",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 22,
+          "y": 18,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "f733dd22a1c6b6f452031d1a04154d24cb6c0ff0b9b949ac1998fb9f0cfb4301",
+      "screenshot": "seller-console-signed-out-320.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "controlled-private",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 22,
+          "y": 18,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "3a3bde5629106403f6b7d68a0684ccd19dd48b514fa4c8f416d060d99796af52",
+      "screenshot": "seller-console-controlled-private-320.png"
+    },
+    {
+      "app": "seller-console",
+      "state": "private-cleared",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 22,
+          "y": 18,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "d7158b8df070f2665ccdeedd5e824dcb18a073f36c74de50db117fa1afa23108",
+      "screenshot": "seller-console-private-cleared-320.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "signed-out",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 20,
+          "y": 14,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        },
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 76,
+          "y": 136,
+          "width": 72,
+          "height": 72,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "54308a7b1a99577d86da38a28db6f0c5eff63571818bd28710a40c6b6e83e556",
+      "screenshot": "merchant-console-signed-out-1440.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "private-degraded",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 20,
+          "y": 14,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "e9a4909250f94bad2ea24cc688cc4a6fd3c9d49a5c133597823744b7c6cec82f",
+      "screenshot": "merchant-console-private-degraded-1440.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "controlled-private",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 20,
+          "y": 14,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        },
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 22,
+          "y": 80,
+          "width": 72,
+          "height": 38,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "df34370d31dab7b2e80388d5aad941da5da265a1538a6960a126d86f56e41ed3",
+      "screenshot": "merchant-console-controlled-private-1440.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "private-cleared",
+      "width": 1440,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 20,
+          "y": 14,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        },
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 76,
+          "y": 136,
+          "width": 72,
+          "height": 72,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "ce529801ab91b10b4c8322280d9876e45ed5f0cd7473fdba90ba43e6d6c72af6",
+      "screenshot": "merchant-console-private-cleared-1440.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "signed-out",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 8,
+          "y": 10,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        },
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 28,
+          "y": 122,
+          "width": 72,
+          "height": 72,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "693ee1abd31f4d51eb7644ab3a2a2c6a04d68b00559b8038db6cc19eedc8a98f",
+      "screenshot": "merchant-console-signed-out-320.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "private-degraded",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 8,
+          "y": 10,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "bc0306faf1b2d39009c79aaf59c4268b7595128c30ed845db5741b1a8c3c6966",
+      "screenshot": "merchant-console-private-degraded-320.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "controlled-private",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 8,
+          "y": 10,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "d8c05014f9267a00f97d86ad9ae4c7c97421da9f8261c89cce5c058337320829",
+      "screenshot": "merchant-console-controlled-private-320.png"
+    },
+    {
+      "app": "merchant-console",
+      "state": "private-cleared",
+      "width": 320,
+      "images": [
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 8,
+          "y": 10,
+          "width": 60,
+          "height": 32,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        },
+        {
+          "naturalWidth": 798,
+          "naturalHeight": 420,
+          "x": 28,
+          "y": 122,
+          "width": 72,
+          "height": 72,
+          "objectFit": "contain",
+          "source": "assets/ynx-logo.png"
+        }
+      ],
+      "sha256": "00e4bf5eaa7526d4838daeb54f3f3d32be4c3bc2cf1ae5a8a2d832d959f2f7d2",
+      "screenshot": "merchant-console-private-cleared-320.png"
+    }
+  ]
+}

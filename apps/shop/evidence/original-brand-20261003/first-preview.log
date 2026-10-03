@@ -1,0 +1,60 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+ExpectError: expect(locator).toBeVisible() failed
+
+Locator: locator('.shell')
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "to.be.visible" with timeout 5000ms
+  - waiting for locator('.shell')
+
+    at captureRawStack (/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/shop/node_modules/playwright-core/lib/coreBundle.js:3172:17)
+    at callMatcherAsStep (/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/shop/node_modules/playwright/lib/matchers/expect.js:12877:57)
+    at Object.toBeVisible (/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/shop/node_modules/playwright/lib/matchers/expect.js:12867:23)
+    at /Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/shop/evidence/original-brand-20261003/capture-preview.mjs:54:64 {
+  matcherResult: {
+    message: 'expect(locator).toBeVisible() failed\n' +
+      '\n' +
+      "Locator: locator('.shell')\n" +
+      'Expected: visible\n' +
+      'Timeout: 5000ms\n' +
+      'Error: element(s) not found\n' +
+      '\n' +
+      'Call log:\n' +
+      '  - Expect "to.be.visible" with timeout 5000ms\n' +
+      "  - waiting for locator('.shell')\n",
+    pass: false,
+    actual: undefined,
+    name: 'toBeVisible',
+    expected: 'visible',
+    log: [
+      '  - Expect "to.be.visible" with timeout 5000ms',
+      "  - waiting for locator('.shell')"
+    ],
+    timeout: 5000,
+    ariaSnapshot: '- link "Skip to content":\n' +
+      '  - /url: "#main"\n' +
+      '- navigation "Commerce":\n' +
+      '  - link "YNX Pay Merchant home":\n' +
+      '    - /url: /merchant/\n' +
+      '    - img "YNX"\n' +
+      '    - text: YNX Pay\n' +
+      '  - link "Shop":\n' +
+      '    - /url: https://shop.ynxweb4.com/shop/\n' +
+      '  - link "Sell products":\n' +
+      '    - /url: https://seller.ynxweb4.com/seller/\n' +
+      '  - link "Merchant invoices":\n' +
+      '    - /url: https://merchant.ynxweb4.com/\n' +
+      '- status:\n' +
+      '  - paragraph: The operation could not be completed. Check authorization and network status, then retry.\n' +
+      '  - button "Retry"\n' +
+      '  - button "Sign out"'
+  }
+}
+
+Node.js v26.7.0

@@ -1,0 +1,250 @@
+{
+  "sourceBasis": "bb8772eb4b8fffcbae0e4eff928b1a0735444db7",
+  "backendCommit": "bb8772eb4b8fffcbae0e4eff928b1a0735444db7",
+  "classification": "LOCAL_SOURCE_QA_ONLY",
+  "originalLogo": {
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "width": 798,
+    "height": 420,
+    "sourceGitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+  },
+  "sourcePins": {
+    "apps/shop/assets/brand/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/shop/styles.css": {
+      "bytes": 9297,
+      "sha256": "9f4013e4b946596100677c5c81fc93a376d0b1a63362239ff089bc042be78119"
+    },
+    "apps/seller-console/assets/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/seller-console/styles.css": {
+      "bytes": 5012,
+      "sha256": "616f501ca15837a3249c0916a730f0f483098f76a97ee715ef46dfa4cb9f5723"
+    },
+    "apps/merchant-console/src/assets/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/merchant-console/src/index.html": {
+      "bytes": 1152,
+      "sha256": "05adfc8c9c5f66d1e180465a113f9c37ab36cb2028bfea9538e532920bfbbf6b"
+    },
+    "apps/merchant-console/src/styles.css": {
+      "bytes": 7086,
+      "sha256": "8cd6ed4515843ba45777132471ef5a57c7e7f7a0afe47afc122d422a150c7354"
+    },
+    "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/MainActivity.java": {
+      "bytes": 44036,
+      "sha256": "b8adbcaa36e5656677c5e8ae28f6715380bc147944cb63e041339f26509c6a0d"
+    },
+    "apps/shop/native/android/app/src/main/res/drawable-nodpi/ynx_logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/shop/native/ios/YNXShop/ContentView.swift": {
+      "bytes": 5783,
+      "sha256": "001e6c2f0de9e5f117e8fc33f658d3fea725131fd6ea41040687b11ffb1ab91f"
+    },
+    "apps/shop/native/ios/YNXShop/Assets.xcassets/YNXLogo.imageset/Contents.json": {
+      "bytes": 99,
+      "sha256": "35766d330b134c31a9d8c854cf0242c77ee6fc73877422ea2ba9ae4df4153ba1"
+    },
+    "apps/shop/native/ios/YNXShop/Assets.xcassets/YNXLogo.imageset/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    }
+  },
+  "evidencePins": {
+    "capture-preview.mjs": {
+      "bytes": 7605,
+      "sha256": "654b32c4d6938d1294135dd9e3c229ea12a721d510228b929993846164940f8d"
+    },
+    "final-preview.log": {
+      "bytes": 113,
+      "sha256": "cad369f8eabcee73efee261b36e2bb1fb7a92f2f2b2e0def29af254778e428aa"
+    },
+    "first-preview.log": {
+      "bytes": 2283,
+      "sha256": "c532799840a9dfe77df9d4cc12e26115cdebdb1d4080b7bb62431315669a8cc6"
+    },
+    "first-shop-mobile-nav-overlap.png": {
+      "bytes": 97225,
+      "sha256": "5c5caf734a80346bbf1a2f91eca51bb1c965730a66be438951c0f3b4de817b80"
+    },
+    "merchant-console-controlled-private-1440.png": {
+      "bytes": 96257,
+      "sha256": "df34370d31dab7b2e80388d5aad941da5da265a1538a6960a126d86f56e41ed3"
+    },
+    "merchant-console-controlled-private-320.png": {
+      "bytes": 68924,
+      "sha256": "d8c05014f9267a00f97d86ad9ae4c7c97421da9f8261c89cce5c058337320829"
+    },
+    "merchant-console-private-cleared-1440.png": {
+      "bytes": 116739,
+      "sha256": "ce529801ab91b10b4c8322280d9876e45ed5f0cd7473fdba90ba43e6d6c72af6"
+    },
+    "merchant-console-private-cleared-320.png": {
+      "bytes": 73007,
+      "sha256": "00e4bf5eaa7526d4838daeb54f3f3d32be4c3bc2cf1ae5a8a2d832d959f2f7d2"
+    },
+    "merchant-console-private-degraded-1440.png": {
+      "bytes": 28190,
+      "sha256": "e9a4909250f94bad2ea24cc688cc4a6fd3c9d49a5c133597823744b7c6cec82f"
+    },
+    "merchant-console-private-degraded-320.png": {
+      "bytes": 22680,
+      "sha256": "bc0306faf1b2d39009c79aaf59c4268b7595128c30ed845db5741b1a8c3c6966"
+    },
+    "merchant-console-signed-out-1440.png": {
+      "bytes": 109698,
+      "sha256": "54308a7b1a99577d86da38a28db6f0c5eff63571818bd28710a40c6b6e83e556"
+    },
+    "merchant-console-signed-out-320.png": {
+      "bytes": 67540,
+      "sha256": "693ee1abd31f4d51eb7644ab3a2a2c6a04d68b00559b8038db6cc19eedc8a98f"
+    },
+    "merchant-console-unit.log": {
+      "bytes": 2545,
+      "sha256": "e169e68917ee90959cfa07422423f20b2490891cc7315307f0e767f3bf1c3487"
+    },
+    "native-static.log": {
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    "record-receipt.mjs": {
+      "bytes": 4055,
+      "sha256": "b1bd94ca63000e17fc2361e7b60c86b58669ebd1400d5a7793c2edf818e9617a"
+    },
+    "screenshots.json": {
+      "bytes": 11832,
+      "sha256": "71519c903ae6b3e787ac2f86d7aa0e64e8c9274eeb62242ee3663d67b0e2c80f"
+    },
+    "seller-console-controlled-private-1440.png": {
+      "bytes": 129086,
+      "sha256": "e6fc5cf25e67a5be9b2ec69fe88f2a68628dfd1e04b1021ee112790e292dca65"
+    },
+    "seller-console-controlled-private-320.png": {
+      "bytes": 101292,
+      "sha256": "3a3bde5629106403f6b7d68a0684ccd19dd48b514fa4c8f416d060d99796af52"
+    },
+    "seller-console-private-cleared-1440.png": {
+      "bytes": 99322,
+      "sha256": "bf69302c0e9a50d940919ece984a23d63fa8800e9641d449a882308808eaf12f"
+    },
+    "seller-console-private-cleared-320.png": {
+      "bytes": 74846,
+      "sha256": "d7158b8df070f2665ccdeedd5e824dcb18a073f36c74de50db117fa1afa23108"
+    },
+    "seller-console-signed-out-1440.png": {
+      "bytes": 103548,
+      "sha256": "56b21becb0092e1345441b1b451fa47bb47f025613fa5ea8b4cbe52ec3dbb89e"
+    },
+    "seller-console-signed-out-320.png": {
+      "bytes": 78567,
+      "sha256": "f733dd22a1c6b6f452031d1a04154d24cb6c0ff0b9b949ac1998fb9f0cfb4301"
+    },
+    "seller-console-unit.log": {
+      "bytes": 1790,
+      "sha256": "b60435b83b3bebdce90953c446fb13dadb18d492edaa7a7b40eb03ec6a2b8357"
+    },
+    "shop-controlled-private-1440.png": {
+      "bytes": 116146,
+      "sha256": "a6ee52ca77d8271bbb1265e2bda05e953fbb2d550f8d91d935d055e02db2bdc7"
+    },
+    "shop-controlled-private-320.png": {
+      "bytes": 99534,
+      "sha256": "bc0d3a7113e72db2dcae0605284055a79d4811418d853811ef3d661519488beb"
+    },
+    "shop-private-cleared-1440.png": {
+      "bytes": 117767,
+      "sha256": "59e8521bce375c6ca1d21ca93f48c2de2e0e355b08de4f1db8fe5313b3152ac5"
+    },
+    "shop-private-cleared-320.png": {
+      "bytes": 99634,
+      "sha256": "acd80d35f74bb1b7cc54b7e93a48b17d5af5224e5349ca29430719566c7983b1"
+    },
+    "shop-signed-out-1440.png": {
+      "bytes": 101359,
+      "sha256": "85edc16f3eeabe670098230326a69fabc7f1551dcf25b5a412802931d429e704"
+    },
+    "shop-signed-out-320.png": {
+      "bytes": 92403,
+      "sha256": "acc4e23d85534ad1acec89df7588129361c88f1439140acdd4495e4cfcd37cd0"
+    },
+    "shop-unit.log": {
+      "bytes": 2511,
+      "sha256": "55908a8df8883abc311a9fe96691fda36cb28431ad6d7ffd04a7e0de48517a14"
+    },
+    "swift-source-parse.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "units": {
+    "shop": {
+      "pass": 27,
+      "fail": 0,
+      "skip": 0
+    },
+    "seller-console": {
+      "pass": 18,
+      "fail": 0,
+      "skip": 0
+    },
+    "merchant-console": {
+      "pass": 26,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "visual": {
+    "count": 20,
+    "viewports": [
+      1440,
+      320
+    ],
+    "sourceApplications": [
+      "Shop",
+      "Seller",
+      "Merchant"
+    ],
+    "states": [
+      "signed-out",
+      "controlled-private",
+      "private-cleared",
+      "merchant private-degraded"
+    ],
+    "allOriginalGraphicsFullyVisible": true,
+    "noHorizontalOverflow": true,
+    "compactShopNavigationAtViewportBottom": true
+  },
+  "native": {
+    "androidOriginalPNGAndCompactLayoutSource": true,
+    "swiftOriginalUniversalAssetAndAllTabHeaderSource": true,
+    "staticContractLocaleCheckPassed": true,
+    "swiftSourceParsed": true,
+    "installedAndroidVerified": false,
+    "installedIOSVerified": false,
+    "installedMacOSVerified": false
+  },
+  "composition": {
+    "temporaryOnly": true,
+    "dependenciesInstalled": false,
+    "inheritedStandardSDKCommit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+    "inheritedStandardSDKTree": "c526fd89d08024cc955a12055b9d5d5643e1cb6f",
+    "newCanonicalSDKConsumerAcceptance": false
+  },
+  "failuresRetained": [
+    "first-preview.log: Merchant product API unavailable according to original Endpoint Manifest, so private screen not reached until an isolated loopback visual fixture was explicitly supplied",
+    "first-shop-mobile-nav-overlap.png: original backdrop-filter made fixed mobile tabs cover header search; compact header now removes that containing block",
+    "Initial isolated build lacked relative shared DApp SDK files; exact tracked inherited SDK archive supplied only in temporary QA module"
+  ],
+  "publicRuntimeVerified": false,
+  "actualWalletApprovalVerified": false,
+  "formalPackageBuilt": false,
+  "fullGoalComplete": false
+}
