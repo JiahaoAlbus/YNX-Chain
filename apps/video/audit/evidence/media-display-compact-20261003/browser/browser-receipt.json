@@ -1,0 +1,1411 @@
+{
+  "status": "PASS",
+  "sourceHash": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "scope": "Actual shipped main and callback DOM, synthetic visual account state only; not Wallet or real business acceptance",
+  "screenshots": [
+    {
+      "product": "video",
+      "width": 320,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          30.703125,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-320-guest.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          52.203125,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-320-connected.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          30.703125,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-320-signed-out.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-en",
+      "screenshot": "video-320-large-en.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "video-320-large-zh-Hans.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "video-320-large-zh-Hant.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-ja",
+      "screenshot": "video-320-large-ja.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-ko",
+      "screenshot": "video-320-large-ko.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-es",
+      "screenshot": "video-320-large-es.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-fr",
+      "screenshot": "video-320-large-fr.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-de",
+      "screenshot": "video-320-large-de.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-pt",
+      "screenshot": "video-320-large-pt.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-ru",
+      "screenshot": "video-320-large-ru.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-ar",
+      "screenshot": "video-320-large-ar.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "larger-200%-id",
+      "screenshot": "video-320-large-id.png"
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "state": "callback",
+      "screenshot": "video-320-callback.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          46.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-guest.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          43.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-connected.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          46.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-signed-out.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-en",
+      "screenshot": "video-390-large-en.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "video-390-large-zh-Hans.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "video-390-large-zh-Hant.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-ja",
+      "screenshot": "video-390-large-ja.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-ko",
+      "screenshot": "video-390-large-ko.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-es",
+      "screenshot": "video-390-large-es.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-fr",
+      "screenshot": "video-390-large-fr.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-de",
+      "screenshot": "video-390-large-de.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-pt",
+      "screenshot": "video-390-large-pt.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-ru",
+      "screenshot": "video-390-large-ru.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-ar",
+      "screenshot": "video-390-large-ar.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "larger-200%-id",
+      "screenshot": "video-390-large-id.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "video-390-callback.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          21.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-guest.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          21.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-connected.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          21.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-signed-out.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-en",
+      "screenshot": "video-1440-large-en.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "video-1440-large-zh-Hans.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "video-1440-large-zh-Hant.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-ja",
+      "screenshot": "video-1440-large-ja.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-ko",
+      "screenshot": "video-1440-large-ko.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-es",
+      "screenshot": "video-1440-large-es.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-fr",
+      "screenshot": "video-1440-large-fr.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-de",
+      "screenshot": "video-1440-large-de.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-pt",
+      "screenshot": "video-1440-large-pt.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-ru",
+      "screenshot": "video-1440-large-ru.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-ar",
+      "screenshot": "video-1440-large-ar.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "larger-200%-id",
+      "screenshot": "video-1440-large-id.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "video-1440-callback.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-320-guest.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-320-connected.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-320-signed-out.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-en",
+      "screenshot": "creator-320-large-en.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "creator-320-large-zh-Hans.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "creator-320-large-zh-Hant.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-ja",
+      "screenshot": "creator-320-large-ja.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-ko",
+      "screenshot": "creator-320-large-ko.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-es",
+      "screenshot": "creator-320-large-es.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-fr",
+      "screenshot": "creator-320-large-fr.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-de",
+      "screenshot": "creator-320-large-de.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-pt",
+      "screenshot": "creator-320-large-pt.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-ru",
+      "screenshot": "creator-320-large-ru.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-ar",
+      "screenshot": "creator-320-large-ar.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "larger-200%-id",
+      "screenshot": "creator-320-large-id.png"
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "state": "callback",
+      "screenshot": "creator-320-callback.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-guest.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-connected.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-signed-out.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-en",
+      "screenshot": "creator-390-large-en.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "creator-390-large-zh-Hans.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "creator-390-large-zh-Hant.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-ja",
+      "screenshot": "creator-390-large-ja.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-ko",
+      "screenshot": "creator-390-large-ko.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-es",
+      "screenshot": "creator-390-large-es.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-fr",
+      "screenshot": "creator-390-large-fr.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-de",
+      "screenshot": "creator-390-large-de.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-pt",
+      "screenshot": "creator-390-large-pt.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-ru",
+      "screenshot": "creator-390-large-ru.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-ar",
+      "screenshot": "creator-390-large-ar.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "larger-200%-id",
+      "screenshot": "creator-390-large-id.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "creator-390-callback.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          34,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-guest.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          34,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-connected.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          34,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-signed-out.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-en",
+      "screenshot": "creator-1440-large-en.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "creator-1440-large-zh-Hans.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "creator-1440-large-zh-Hant.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-ja",
+      "screenshot": "creator-1440-large-ja.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-ko",
+      "screenshot": "creator-1440-large-ko.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-es",
+      "screenshot": "creator-1440-large-es.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-fr",
+      "screenshot": "creator-1440-large-fr.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-de",
+      "screenshot": "creator-1440-large-de.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-pt",
+      "screenshot": "creator-1440-large-pt.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-ru",
+      "screenshot": "creator-1440-large-ru.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-ar",
+      "screenshot": "creator-1440-large-ar.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "larger-200%-id",
+      "screenshot": "creator-1440-large-id.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "creator-1440-callback.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-320-guest.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-320-connected.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-320-signed-out.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-en",
+      "screenshot": "music-320-large-en.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "music-320-large-zh-Hans.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "music-320-large-zh-Hant.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-ja",
+      "screenshot": "music-320-large-ja.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-ko",
+      "screenshot": "music-320-large-ko.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-es",
+      "screenshot": "music-320-large-es.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-fr",
+      "screenshot": "music-320-large-fr.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-de",
+      "screenshot": "music-320-large-de.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-pt",
+      "screenshot": "music-320-large-pt.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-ru",
+      "screenshot": "music-320-large-ru.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-ar",
+      "screenshot": "music-320-large-ar.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "larger-200%-id",
+      "screenshot": "music-320-large-id.png"
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "state": "callback",
+      "screenshot": "music-320-callback.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-guest.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-connected.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          22,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-signed-out.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-en",
+      "screenshot": "music-390-large-en.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "music-390-large-zh-Hans.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "music-390-large-zh-Hant.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-ja",
+      "screenshot": "music-390-large-ja.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-ko",
+      "screenshot": "music-390-large-ko.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-es",
+      "screenshot": "music-390-large-es.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-fr",
+      "screenshot": "music-390-large-fr.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-de",
+      "screenshot": "music-390-large-de.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-pt",
+      "screenshot": "music-390-large-pt.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-ru",
+      "screenshot": "music-390-large-ru.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-ar",
+      "screenshot": "music-390-large-ar.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "larger-200%-id",
+      "screenshot": "music-390-large-id.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "music-390-callback.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          23.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-guest.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          23.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-connected.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "visibleBlueHeight": 23.942857142857143,
+        "blueInkYBounds": [
+          0,
+          418
+        ],
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          23.5,
+          45.59375,
+          24
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-signed-out.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-en",
+      "screenshot": "music-1440-large-en.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-zh-Hans",
+      "screenshot": "music-1440-large-zh-Hans.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-zh-Hant",
+      "screenshot": "music-1440-large-zh-Hant.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-ja",
+      "screenshot": "music-1440-large-ja.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-ko",
+      "screenshot": "music-1440-large-ko.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-es",
+      "screenshot": "music-1440-large-es.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-fr",
+      "screenshot": "music-1440-large-fr.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-de",
+      "screenshot": "music-1440-large-de.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-pt",
+      "screenshot": "music-1440-large-pt.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-ru",
+      "screenshot": "music-1440-large-ru.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-ar",
+      "screenshot": "music-1440-large-ar.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "larger-200%-id",
+      "screenshot": "music-1440-large-id.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "music-1440-callback.png"
+    }
+  ]
+}
