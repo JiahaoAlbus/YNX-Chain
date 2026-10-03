@@ -9,9 +9,59 @@ const value={id:"invoice-original-001",intentId:"intent-original-001",merchant:"
 const invoice=()=>parseWalletPayInvoice(value,value.id);
 const ok=(v:unknown)=>new Response(JSON.stringify(v),{status:200});
 
+test("Pay byte limit accepts exactly 32 KiB and preserves split UTF-8 characters", async () => {
+  const empty = JSON.stringify({ ...value, ignoredMetadata: "" });
+  const exact = JSON.stringify({ ...value, ignoredMetadata: "x".repeat(32768 - empty.length) });
+  assert.equal(Buffer.byteLength(exact), 32768);
+  assert.deepEqual(await new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(exact)).invoice(value.id, () => {}), value);
+  const unicode = { ...value, merchant: "商戶 🚀" }, bytes = Buffer.from(JSON.stringify(unicode));
+  let offset = 0;
+  const body = new ReadableStream({ pull(controller) {
+    if (offset === bytes.length) { controller.close(); return; }
+    const next = Math.min(offset + 7, bytes.length);
+    controller.enqueue(new Uint8Array(bytes.subarray(offset, next))); offset = next;
+  } }, { highWaterMark: 0 });
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(body));
+  assert.deepEqual(await client.invoice(value.id, () => {}), unicode);
+});
+test("non-streaming mobile transport retains finite reads and enforces UTF-8 bytes", async () => {
+  for (const oversized of [false, true]) {
+    const raw = JSON.stringify(oversized ? { ...value, ignoredMetadata: "界".repeat(20000) } : value);
+    const response = { ok: true, redirected: false, url: "", text: async () => raw } as Response;
+    const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => response);
+    if (oversized) await assert.rejects(() => client.invoice(value.id, () => {}), /PAY_RESPONSE_TOO_LARGE/);
+    else assert.deepEqual(await client.invoice(value.id, () => {}), value);
+  }
+});
+for (const action of ["cancel", "timeout"]) test(`stalled Pay stream releases its reader after ${action}`, async () => {
+  let cancelled = false, reading = false;
+  const body = new ReadableStream({ pull() { reading = true; return new Promise(() => {}); }, cancel() { cancelled = true; } }, { highWaterMark: 0 });
+  const abort = new AbortController();
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(body), action === "timeout" ? 5 : 8000);
+  const pending = client.invoice(value.id, () => {}, abort.signal);
+  if (action === "cancel") { await new Promise(resolve => setImmediate(resolve)); assert.equal(reading, true); abort.abort(); }
+  await assert.rejects(pending, action === "cancel" ? /PAY_READ_CANCELLED/ : /PAY_READ_TIMEOUT/);
+  assert.equal(cancelled, true);
+  assert.equal(body.locked, false);
+});
+
 test("original invoice IDs, deep links and checkout paths remain public references only",()=>{
   for(const reference of [value.id,`ynxpay://invoice/${value.id}`,`https://pay.ynxweb4.com/invoices/${value.id}`,`https://pay.ynxweb4.com/pay/checkout/${value.id}`,`/pay/checkout/${value.id}`])assert.equal(walletPayInvoiceID(reference),value.id);
   for(const reference of [`https://evil.invalid/invoices/${value.id}`,`https://pay.ynxweb4.com@evil.invalid/invoices/${value.id}`,`ynxpay://invoice/${value.id}?amount=1`,`ynxpay://invoice/${value.id}#approve`,`ynxpay://invoice/%69nvoice-original-001`,` ${value.id}`])assert.throws(()=>walletPayInvoiceID(reference));
+});
+
+for (const kind of ["declared", "multibyte", "stream"]) test(`Pay reference rejects ${kind} oversized bodies by bytes before parsing`, async () => {
+  let reads = 0, cancelled = false;
+  const stream = new ReadableStream({
+    pull(controller) { reads++; if (reads === 1) controller.enqueue(new Uint8Array(32769)); else controller.error(new Error("body must not be fully consumed")); },
+    cancel() { cancelled = true; },
+  }, { highWaterMark: 0 });
+  const response = kind === "stream" ? new Response(stream)
+    : kind === "declared" ? new Response(JSON.stringify(value), { headers: { "content-length": "1073741824" } })
+    : new Response(JSON.stringify({ ...value, ignoredMetadata: "界".repeat(20000) }));
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => response);
+  await assert.rejects(() => client.invoice(value.id, () => {}), /PAY_RESPONSE_TOO_LARGE/);
+  if (kind === "stream") { assert.equal(reads, 1); assert.equal(cancelled, true); }
 });
 test("invoice identity, native checksum, status, safe whole units and expiry bind the review",()=>{
   assertWalletPayReview(invoice(),account,Date.parse("2026-10-02T13:00:00Z"));

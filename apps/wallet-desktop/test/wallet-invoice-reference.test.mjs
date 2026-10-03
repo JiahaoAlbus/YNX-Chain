@@ -9,9 +9,59 @@ import {createInvoiceReferenceUI} from "../src/wallet-invoice-reference-ui.mjs";
 const account="0x"+"1".repeat(40),payee=ynxAddressFromEVM("0x"+"2".repeat(40));
 const invoice={id:"invoice-original-001",intentId:"intent-original-001",merchant:"Original merchant",payoutAddress:payee,amount:25,currency:"YNXT",status:"issued",createdAt:"2026-10-02T12:00:00Z",dueAt:"2026-10-03T12:00:00Z"};
 const ok=value=>new Response(JSON.stringify(value));
+
+test("Pay byte limit accepts exactly 32 KiB and preserves split UTF-8 characters", async () => {
+  const empty = JSON.stringify({ ...invoice, ignoredMetadata: "" });
+  const exact = JSON.stringify({ ...invoice, ignoredMetadata: "x".repeat(32768 - empty.length) });
+  assert.equal(Buffer.byteLength(exact), 32768);
+  assert.deepEqual(await new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(exact)).invoice(invoice.id, () => {}), invoice);
+  const unicode = { ...invoice, merchant: "商戶 🚀" }, bytes = Buffer.from(JSON.stringify(unicode));
+  let offset = 0;
+  const body = new ReadableStream({ pull(controller) {
+    if (offset === bytes.length) { controller.close(); return; }
+    const next = Math.min(offset + 7, bytes.length);
+    controller.enqueue(new Uint8Array(bytes.subarray(offset, next))); offset = next;
+  } }, { highWaterMark: 0 });
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(body));
+  assert.deepEqual(await client.invoice(invoice.id, () => {}), unicode);
+});
+test("non-streaming mobile transport retains finite reads and enforces UTF-8 bytes", async () => {
+  for (const oversized of [false, true]) {
+    const raw = JSON.stringify(oversized ? { ...invoice, ignoredMetadata: "界".repeat(20000) } : invoice);
+    const response = { ok: true, redirected: false, url: "", text: async () => raw };
+    const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => response);
+    if (oversized) await assert.rejects(() => client.invoice(invoice.id, () => {}), /PAY_RESPONSE_TOO_LARGE/);
+    else assert.deepEqual(await client.invoice(invoice.id, () => {}), invoice);
+  }
+});
+for (const action of ["cancel", "timeout"]) test(`stalled Pay stream releases its reader after ${action}`, async () => {
+  let cancelled = false, reading = false;
+  const body = new ReadableStream({ pull() { reading = true; return new Promise(() => {}); }, cancel() { cancelled = true; } }, { highWaterMark: 0 });
+  const abort = new AbortController();
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => new Response(body), action === "timeout" ? 5 : 8000);
+  const pending = client.invoice(invoice.id, () => {}, abort.signal);
+  if (action === "cancel") { await new Promise(resolve => setImmediate(resolve)); assert.equal(reading, true); abort.abort(); }
+  await assert.rejects(pending, action === "cancel" ? /PAY_READ_CANCELLED/ : /PAY_READ_TIMEOUT/);
+  assert.equal(cancelled, true);
+  assert.equal(body.locked, false);
+});
 test("original Pay ID/deep link/checkout syntax accepts a reference only, never a supplied origin or action",()=>{
   for(const reference of [invoice.id,`ynxpay://invoice/${invoice.id}`,`https://pay.ynxweb4.com/invoices/${invoice.id}`,`/pay/checkout/${invoice.id}`])assert.equal(walletPayInvoiceID(reference),invoice.id);
   for(const reference of [`https://evil.invalid/invoices/${invoice.id}`,`https://pay.ynxweb4.com@evil.invalid/invoices/${invoice.id}`,`ynxpay://invoice/${invoice.id}?amount=1`,`ynxpay://invoice/${invoice.id}#approve`,`ynxpay://invoice/%69nvoice-original-001`,` ${invoice.id}`])assert.throws(()=>walletPayInvoiceID(reference));
+});
+
+for (const kind of ["declared", "multibyte", "stream"]) test(`Pay reference rejects ${kind} oversized bodies by bytes before parsing`, async () => {
+  let reads = 0, cancelled = false;
+  const stream = new ReadableStream({
+    pull(controller) { reads++; if (reads === 1) controller.enqueue(new Uint8Array(32769)); else controller.error(new Error("body must not be fully consumed")); },
+    cancel() { cancelled = true; },
+  }, { highWaterMark: 0 });
+  const response = kind === "stream" ? new Response(stream)
+    : kind === "declared" ? new Response(JSON.stringify(invoice), { headers: { "content-length": "1073741824" } })
+    : new Response(JSON.stringify({ ...invoice, ignoredMetadata: "界".repeat(20000) }));
+  const client = new WalletPayInvoiceClient("https://api.ynxweb4.com", async () => response);
+  await assert.rejects(() => client.invoice(invoice.id, () => {}), /PAY_RESPONSE_TOO_LARGE/);
+  if (kind === "stream") { assert.equal(reads, 1); assert.equal(cancelled, true); }
 });
 test("legacy projection validates native checksum, exact invoice, whole amount, date and known status without claiming trust",()=>{
   assert.deepEqual(parseWalletPayInvoice(invoice,invoice.id),invoice);

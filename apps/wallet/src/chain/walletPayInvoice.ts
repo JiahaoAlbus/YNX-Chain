@@ -76,6 +76,51 @@ export function parseWalletPaySettlement(value:unknown,invoice:WalletPayInvoice,
 }
 
 type FetchLike=(url:string,options:RequestInit)=>Promise<Response>;
+const MAX_PAY_RESPONSE_BYTES = 32768;
+async function boundedPayText(response:Response, signal:AbortSignal):Promise<string> {
+  const declared = response.headers?.get("content-length");
+  if (declared != null) {
+    if (!/^\d+$/.test(declared)) fail("PAY_INVALID_RESPONSE");
+    if (Number(declared) > MAX_PAY_RESPONSE_BYTES) fail("PAY_RESPONSE_TOO_LARGE");
+  }
+  // React Native transports without a streaming body retain the finite timeout.
+  // Validate UTF-8 bytes without allocating a second potentially large buffer.
+  if (typeof response.body?.getReader !== "function") {
+    const raw = await response.text();
+    if (raw.length > MAX_PAY_RESPONSE_BYTES) fail("PAY_RESPONSE_TOO_LARGE");
+    let bytes = 0;
+    for (const character of raw) {
+      const point = character.codePointAt(0)!;
+      bytes += point <= 0x7f ? 1 : point <= 0x7ff ? 2 : point <= 0xffff ? 3 : 4;
+      if (bytes > MAX_PAY_RESPONSE_BYTES) fail("PAY_RESPONSE_TOO_LARGE");
+    }
+    return raw;
+  }
+  const reader = response.body.getReader(), bytes = new Uint8Array(MAX_PAY_RESPONSE_BYTES);
+  let length = 0;
+  const cancel = () => {
+    try { void Promise.resolve(reader.cancel()).catch(() => {}); } catch {}
+    try { reader.releaseLock(); } catch {}
+  };
+  signal.addEventListener("abort", cancel, { once: true });
+  try {
+    if (signal.aborted) fail("PAY_READ_CANCELLED");
+    while (true) {
+      const chunk = await reader.read();
+      if (signal.aborted) fail("PAY_READ_CANCELLED");
+      if (chunk.done) break;
+      if (!(chunk.value instanceof Uint8Array)) fail("PAY_INVALID_RESPONSE");
+      if (chunk.value.byteLength > MAX_PAY_RESPONSE_BYTES - length) fail("PAY_RESPONSE_TOO_LARGE");
+      bytes.set(chunk.value, length);
+      length += chunk.value.byteLength;
+    }
+    try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, length)); }
+    catch { return fail("PAY_INVALID_RESPONSE"); }
+  } finally {
+    signal.removeEventListener("abort", cancel);
+    cancel();
+  }
+}
 export class WalletPayInvoiceClient {
   readonly origin:string;
   constructor(origin="https://api.ynxweb4.com",private readonly fetcher:FetchLike=fetch,private readonly timeoutMs=8000) {
@@ -105,7 +150,7 @@ export class WalletPayInvoiceClient {
         const response=await this.fetcher(url,{method:"GET",redirect:"error",credentials:"omit",signal:controller.signal,headers:{Accept:"application/json","X-YNX-Client":"ynx-wallet-v1"}});
         if(response.redirected||response.url&&response.url!==url)fail("PAY_READ_ORIGIN_MISMATCH");
         if(!response.ok)fail(response.status===401||response.status===403?"PAY_SESSION_REQUIRED":"PAY_READ_UNAVAILABLE");
-        const raw=await response.text();if(raw.length>32768)fail("PAY_RESPONSE_TOO_LARGE");
+        const raw=await boundedPayText(response,controller.signal);
         try{return JSON.parse(raw) as unknown}catch{return fail("PAY_INVALID_RESPONSE")}
       })(),stopped]);
     } catch(error) {if(error instanceof WalletPayError)throw error;return fail("PAY_READ_UNAVAILABLE")}
