@@ -8,6 +8,25 @@ const start=app.indexOf('function validateFinanceOverview(')>=0?app.indexOf('fun
 const views=app.slice(start,app.indexOf('const formSaves='));
 const formatters=app.slice(app.indexOf('const fmt='),app.indexOf('\n\nconst wait='));
 const overview=()=>({portfolio:{account:'owned-render-fixture',balanceYnxt:0,stakedYnxt:0,asOf:'2026-10-04T00:00:00Z',activity:[],payReceipts:[],explorerStatus:{available:true},payStatus:{available:true}},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true}},alerts:[],budgetProgress:[],support:{}});
+test('indexed Finance activity exposes exact escaped reference and only contract-bound Explorer links',async()=>{
+  const f=await fixture();try{
+    const value=overview(),hash='0x'+'a'.repeat(64);
+    value.portfolio.activity=[{id:hash,type:'transfer',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:'2026-10-04T00:00:00Z',source:'ynx-explorerd:indexed-transaction'}];
+    value.portfolio.explorerStatus={available:true,source:'https://explorer.example.invalid'};
+    await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.equal(await f.page.locator('#activity-body a').getAttribute('href'),'https://explorer.example.invalid/tx/'+hash);
+    await f.page.locator('#activity-body summary').click();assert.equal(await f.page.locator('#activity-body code').textContent(),hash);
+    for(const source of ['javascript:alert(1)','http://explorer.example.invalid','https://user:secret@explorer.example.invalid','https://explorer.example.invalid/api/txs','https://explorer.example.invalid/?redirect=x','//explorer.example.invalid']){
+      value.portfolio.explorerStatus.source=source;await f.page.evaluate(value=>overviewQA.render(value),value);assert.equal(await f.page.locator('#activity-body a').count(),0);
+    }
+    value.portfolio.explorerStatus.source='https://explorer.example.invalid';
+    for(const row of [{id:'internal-order-1',source:'ynx-explorerd:indexed-transaction'},{id:hash,source:'internal-order'},{id:'<img src=x onerror=alert(1)>',source:'ynx-explorerd:indexed-transaction'}]){
+      Object.assign(value.portfolio.activity[0],row);await f.page.evaluate(value=>overviewQA.render(value),value);assert.equal(await f.page.locator('#activity-body a,#activity-body img').count(),0);assert.equal(await f.page.locator('#activity-body code').textContent(),row.id);
+    }
+    value.portfolio.activity[0].id=hash;value.portfolio.explorerStatus.available=false;await f.page.evaluate(value=>overviewQA.render(value),value);assert.equal(await f.page.locator('#activity-body a').count(),0);
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('actual Finance views never normalize impossible or locale-dependent source timestamps into observed dates',async()=>{
   const f=await fixture();try{
     for(const timestamp of ['2026-02-30T00:00:00Z','2025-02-29T00:00:00Z','2026-04-31T00:00:00Z','10/04/2026',0,1,['2026-10-04T00:00:00Z'],'2026-10-04','2026-10-04T00:00:00']){

@@ -21,6 +21,7 @@ html[dir="rtl"] .account-menu-panel{right:auto;left:0}
 html[dir="rtl"] .table-wrap th,html[dir="rtl"] .table-wrap td{text-align:start}
 html[dir="rtl"] .table-wrap .num,html[dir="rtl"] .risk dd{text-align:end}
 html[dir="rtl"] .evidence,html[dir="rtl"] input[name="quantity"],html[dir="rtl"] input[name="limitPrice"]{direction:ltr;unicode-bidi:isolate}
+details.evidence summary{cursor:pointer}details.evidence code{display:block;white-space:normal;overflow-wrap:anywhere;max-width:32rem;user-select:text}
 .session,.panel,.channel-card,.account-menu-panel{min-width:0;overflow-wrap:anywhere}
 /* A privacy boundary must override display styles on link-shaped buttons. */
 [hidden]{display:none!important}
