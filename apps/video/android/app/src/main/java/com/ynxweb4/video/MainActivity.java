@@ -315,20 +315,27 @@ public final class MainActivity extends Activity {
     @Override protected void onStop(){if(activePlayer!=null)activePlayer.pause();if(privatePlayer!=null)privatePlayer.pause();super.onStop();}
     @Override protected void onDestroy(){beginNavigation();nativeBridge.removeListener(authorityChanged);worker.shutdownNow();super.onDestroy();}
 
-    private void showFailure(String detail) { content.removeAllViews(); content.addView(label(t("unavailable"), 20, Color.DKGRAY)); TextView reason=label(detail,14,Color.GRAY); content.addView(reason); Button retry=button(t("retry")); retry.setOnClickListener(v -> loadVideos("")); content.addView(retry); showState(t("unavailable"), true); }
+    private void showFailure(String detail) { content.removeAllViews(); content.addView(label(t("unavailable"), 20, Color.DKGRAY)); TextView reason=label(detail,14,Color.GRAY); content.addView(reason); Button retry=button(t("retry")); retry.setOnClickListener(v -> restoreSession()); content.addView(retry); showState(t("unavailable"), true); }
     private void showState(String message, boolean failed) { status.setText(message); status.setTextColor(failed ? Color.rgb(155,35,53) : Color.DKGRAY); progress.setVisibility(failed ? View.GONE : View.VISIBLE); }
 
+    private void refreshNativeBridge(){
+        NativeSessionBridge current=NativeSessionBridge.acquire(this);
+        if(current!=nativeBridge){nativeBridge.removeListener(authorityChanged);nativeBridge=current;nativeBridge.addListener(authorityChanged);}
+    }
     private void startWallet(){
+        refreshNativeBridge();
         final long generation=beginNavigation();authTransition=true;shownIdentity=null;showState(t("loading"),false);
         nativeBridge.disconnect((value,error)->{if(!boundary.matches(generation))return;if(error!=null){authTransition=false;showState(error.getMessage(),true);return;}
             nativeBridge.connect((launched,failure)->{if(!boundary.matches(generation))return;authTransition=false;showState(failure==null?t("signIn"):failure.getMessage(),failure!=null);progress.setVisibility(View.GONE);});});
     }
     private void restoreSession(){restoreSession("");}
     private void restoreSession(String query){
+        refreshNativeBridge();
         final long generation=beginNavigation();authTransition=true;shownIdentity=null;showState(t("loading"),false);
         nativeBridge.restore((value,error)->{if(!boundary.matches(generation))return;authTransition=false;if(error!=null){showFailure(error.getMessage());return;}accountLine.setText(nativeBridge.session()==null?t("signIn"):nativeBridge.session().account);loadVideos(query);});
     }
     private void signOut(){
+        refreshNativeBridge();
         final long generation=beginNavigation();authTransition=true;shownIdentity=null;showState(t("loading"),false);
         nativeBridge.disconnect((value,error)->{if(!boundary.matches(generation))return;authTransition=false;accountLine.setText(t("signIn"));if(error!=null){showFailure(error.getMessage());return;}loadVideos("");});
     }
@@ -338,6 +345,7 @@ public final class MainActivity extends Activity {
         if ("wallet-auth".equals(data.getHost()) && "/callback".equals(data.getPath())) {
             final String originalCallback=data.toString();setIntent(new Intent(intent).setData(null));
             final long generation=beginNavigation();authTransition=true;shownIdentity=null;showState(t("loading"),false);
+            refreshNativeBridge();
             nativeBridge.handleReturn(originalCallback,(value,error)->{if(!boundary.matches(generation))return;authTransition=false;if(error!=null||nativeBridge.session()==null){showFailure(error==null?t("signIn"):error.getMessage());return;}accountLine.setText(nativeBridge.session().account);loadVideos("");});
             return true;
         }
