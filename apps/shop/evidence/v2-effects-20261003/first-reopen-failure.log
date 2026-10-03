@@ -1,0 +1,17 @@
+Captured targeted test output before correcting wire-byte journal storage:
+=== RUN   TestBusinessPayPerDispatchFenceAndReceivedRecovery
+=== RUN   TestBusinessPayPerDispatchFenceAndReceivedRecovery/0
+    business_effect_test.go:136: migrate commerce state: invalid state transition
+=== RUN   TestBusinessPayPerDispatchFenceAndReceivedRecovery/1
+    business_effect_test.go:136: migrate commerce state: invalid state transition
+=== RUN   TestBusinessPayPerDispatchFenceAndReceivedRecovery/2
+    business_effect_test.go:136: migrate commerce state: invalid state transition
+--- FAIL: TestBusinessPayPerDispatchFenceAndReceivedRecovery (0.40s)
+    --- FAIL: TestBusinessPayPerDispatchFenceAndReceivedRecovery/0 (0.16s)
+    --- FAIL: TestBusinessPayPerDispatchFenceAndReceivedRecovery/1 (0.11s)
+    --- FAIL: TestBusinessPayPerDispatchFenceAndReceivedRecovery/2 (0.13s)
+
+Cause: encoding/json normalizes RawMessage whitespace while persisting a snapshot;
+the journal's actual wire digest then no longer matched the serialized request.
+Correction: persist exact wire request/response bytes as []byte (base64 in JSON),
+and retain JSON and digest validation. No expected failure was waived.

@@ -1,0 +1,10 @@
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos
+--- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary (2.36s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web (0.88s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android (0.75s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos (0.73s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	3.852s
