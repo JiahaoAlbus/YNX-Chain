@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-03 Asia/Shanghai",
+  "baseline": "f1bff3b4649e1370f6ea976a3ba127466a688803",
+  "sourceCommit": "aabd343b93dda524a323496138c0b0ca13f15234",
+  "sourceTree": "13f649020273afdfad7995b33615cb25a472477b",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "scope": "Original Commerce owned product sources; no shared SDK/registry/Host/payment protocol/key or production writes",
+  "archive": {
+    "path": "commerce-owned-source-aabd343b9.tar",
+    "trackedOwnedMembers": 402,
+    "bytes": 14274560,
+    "sha256": "9c298dea3019814073246b6a0ca4d1c0dc4efdabb9d3816b8af822510f1d9b6a",
+    "exclusions": "Existing evidence folders only. Original source, tests, native implementations, docs and package/vendor files retained."
+  },
+  "checks": {
+    "merchantNode": {
+      "pass": 69,
+      "fail": 0
+    },
+    "sellerNode": {
+      "pass": 49,
+      "fail": 0
+    },
+    "builds": [
+      "Merchant Web PASS",
+      "Seller Web PASS"
+    ],
+    "actualJournalBrowser": {
+      "pass": 8,
+      "formalPrivateAuthority": false
+    },
+    "actualBuiltGuestBrowser": {
+      "pass": 2,
+      "width": 390,
+      "height": 844,
+      "pageErrors": 0,
+      "privateRequests": 0,
+      "mode": "Isolated candidate static routing; no public deployment or private sign-in claim"
+    },
+    "goRace": {
+      "topLevel": 11,
+      "accepted": [
+        "TestCentralGatewayStoreAuthorizationRevocationBindsAccountAndReceipt",
+        "TestCentralGatewayStoreAuthorizationRevocationUnavailableWhenContractMissing",
+        "TestV2BoundInvoiceRecoveryAfterRestartUsesStoredInvoiceAndNonce",
+        "TestBusinessTransitionsKeepOriginalFulfillmentAndReviewFlow",
+        "TestSellerDataExportIsOwnerOnlyStoreScopedAndDeepCopied",
+        "TestProviderRegistryLifecycleIsStoreScopedRedactedAndDurable",
+        "TestSellerMutationLookupOriginalStoreColdReadAndActorIsolation",
+        "TestSellerMutationLookupInventoryIsPureAndRechecksMembership",
+        "TestSellerMutationLookupTransitionReadsLaterStateWithoutAnotherTransition",
+        "TestSellerMutationLookupStoreUpdateKeepsLaterStateAndCurrentOwner",
+        "TestSellerStoreUpdateFailureRetainsOriginalStoreAuditAndKey"
+      ]
+    }
+  },
+  "dependencyBasis": "Isolated cached complete641 artifacts; original package/vendor files unchanged; no install",
+  "gates": {
+    "formalMerchantSellerBrowserQualification": false,
+    "nativeSellerMerchantApproval": false,
+    "fullSwiftUIAppBuild": false,
+    "iOSExactApprovedTuple": false,
+    "integratedWalletInvoiceHandlerReturn": false,
+    "finalIntegratedPackages": false,
+    "installedRuntime": false,
+    "publicBusinessFlow": false,
+    "userAcceptance": false,
+    "wholeGoalComplete": false
+  },
+  "records": [
+    {
+      "path": "merchant-form-journey-final.log",
+      "bytes": 7140,
+      "sha256": "674c6c0c986751cfd5e66324dfd7feb1a19198474552ba53284515bc04564d04"
+    },
+    {
+      "path": "merchant-form-build-final.log",
+      "bytes": 59,
+      "sha256": "455639f8d6e90adcbea9cb29b3cd58a2baa31385e22479946ff167e6a01ccbd4"
+    },
+    {
+      "path": "seller-form-journey-final.log",
+      "bytes": 4475,
+      "sha256": "de4b2695c771d73abf8e64b06555bebfe7b54675f778eb5318d14fd12641c177"
+    },
+    {
+      "path": "seller-form-build-final.log",
+      "bytes": 36,
+      "sha256": "f36a8fdbf4515f0be4136671b824852179c287944a2828ad30a96c6fc006332a"
+    },
+    {
+      "path": "browser-form-journey-final.log",
+      "bytes": 506,
+      "sha256": "78988b0377ff60b106618b020a48e62331cc8fd73fabf35b972ccde0eda7c44c"
+    },
+    {
+      "path": "browser-form-journey-check.cjs",
+      "bytes": 4899,
+      "sha256": "d3c6ee2241d5c013d16555651aadb025ae5e15978cc6d1ce65c668e96768d98c"
+    },
+    {
+      "path": "browser-guest-entry-final.log",
+      "bytes": 362,
+      "sha256": "a8be44545e70addc871fed9a84cc95c6c0d60e77c83517984f22f8cad99b2e9d"
+    },
+    {
+      "path": "browser-guest-entry-check.cjs",
+      "bytes": 2058,
+      "sha256": "35b3552d2f03ce78f01b7a8658f39be8511c10424ab92cef4300c45df902ad2d"
+    },
+    {
+      "path": "merchant-guest-entry.png",
+      "bytes": 58961,
+      "sha256": "5035e0f03e0327ccee41da6bf423d982fbc86fef9b2329dc95334756b4ae5cc6"
+    },
+    {
+      "path": "seller-guest-entry.png",
+      "bytes": 76896,
+      "sha256": "4cd58e66d0aca0074c6c1cc5c089fe0de4bf5e47442dd5690bad34e8de381c5b"
+    },
+    {
+      "path": "go-form-store-final.jsonl",
+      "bytes": 11459,
+      "sha256": "18ead11216a15a8b79b3f50636808399ba928571c09b7e7839374e117a78e07c"
+    }
+  ]
+}
