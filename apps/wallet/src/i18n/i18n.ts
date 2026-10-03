@@ -293,12 +293,16 @@ const DETAIL_MESSAGES={
   "Saving receipt review…":["正在保存收据查看记录…","جارٍ حفظ سجل مراجعة الإيصال…"],
 } as const;
 export type WalletDetailMessage=keyof typeof DETAIL_MESSAGES;
+function isWalletDetailMessage(text:string):text is WalletDetailMessage{
+  return Object.prototype.hasOwnProperty.call(DETAIL_MESSAGES,text);
+}
 export function walletCopy(locale:WalletLocale,text:WalletDetailMessage,values:Readonly<Record<string,string|number>>={}):string{
+  if(!SUPPORTED_LOCALES.includes(locale)||!isWalletDetailMessage(text))throw new Error("Unsupported Wallet detail copy");
   const template=locale==="en"?text:locale==="zh-Hans"?DETAIL_MESSAGES[text][0]:locale==="ar"?DETAIL_MESSAGES[text][1]:extraWalletDetailCopy(locale,text);
   return template.replace(/\{([a-zA-Z]+)\}/g,(token,key:string)=>Object.prototype.hasOwnProperty.call(values,key)?String(values[key]):token);
 }
 export function walletDetailError(locale:WalletLocale,error:string):string{
-  if(error in DETAIL_MESSAGES)return walletCopy(locale,error as WalletDetailMessage);
+  if(isWalletDetailMessage(error))return walletCopy(locale,error);
   const rejected=/^Auth could not complete the request \(([A-Z][A-Z0-9_]{2,63})\)\. Review and retry\.$/.exec(error);
   if(rejected)return walletCopy(locale,"Auth could not complete the request ({code}). Review and retry.",{code:rejected[1]!});
   // Keep the original diagnostic available without treating an unverified result
@@ -306,5 +310,5 @@ export function walletDetailError(locale:WalletLocale,error:string):string{
   return `${walletCopy(locale,"The result could not be verified. Review and retry.")}\n${error}`;
 }
 export function walletAccessibilitySummary(locale:WalletLocale,summary:string):string{
-  return summary.split(" · ").map(part=>part in DETAIL_MESSAGES?walletCopy(locale,part as WalletDetailMessage):part).join(" · ");
+  return summary.split(" · ").map(part=>isWalletDetailMessage(part)?walletCopy(locale,part):part).join(" · ");
 }

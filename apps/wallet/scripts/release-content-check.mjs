@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { RELEASE_MARKER_PATTERNS } from "./release-content-policy.mjs";
 
 const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const sourceRoot = path.join(walletRoot, "src");
@@ -33,8 +34,7 @@ const releaseFiles = [
 ];
 
 const forbiddenContent = [
-  ["TODO marker", /\bTODO\b/i],
-  ["FIXME marker", /\bFIXME\b/i],
+  ...RELEASE_MARKER_PATTERNS,
   ["coming-soon claim", /\bcoming\s+soon\b/i],
   ["example domain", /\bexample\.com\b/i],
   ["fake balance", /\bfake\s+balance\b/i],

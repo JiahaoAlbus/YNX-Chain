@@ -22,6 +22,7 @@ const allowedStatuses = new Set([
 ]);
 
 let coverageSummary;
+let recordedSourceCommit;
 if (matrix.productNumber === "02") {
   assert.equal(matrix.productSlug, "wallet-auth");
   assert.equal(matrix.branch, "codex/final-wallet-auth");
@@ -75,6 +76,7 @@ if (matrix.productNumber === "02") {
     "coverage summary must count every item exactly once",
   );
   coverageSummary = `${matrix.items.length} owner requirements`;
+  recordedSourceCommit = matrix.sourceCommit;
 } else {
   assert.equal(matrix.owner, "29-integration", "non-Wallet root coverage must belong to the central controller");
   const centralMatrix = JSON.parse(
@@ -96,6 +98,7 @@ if (matrix.productNumber === "02") {
     assert.equal(binding?.reachable, true, "central Wallet source binding must be reachable");
   }
   coverageSummary = `${wallet.tests.coverage.total} centrally observed owner requirements`;
+  recordedSourceCommit = wallet.centralAcceptance.acceptedSourceCommit;
 }
 
 const authPackage = JSON.parse(
@@ -119,5 +122,7 @@ const gatewayCliMode = (await stat(gatewayCliPath)).mode & 0o777;
 assert.equal(gatewayCliMode & 0o100, 0o100, "Gateway CLI owner execute bit is required for npm bin packaging");
 
 console.log(
-  `wallet full-goal coverage verified: ${coverageSummary} with valid source, CI and acceptance evidence`,
+  `wallet recorded coverage structure checked: ${coverageSummary} with internally consistent recorded source, CI and acceptance fields`,
 );
+console.log(`Recorded coverage source: ${recordedSourceCommit ?? "not recorded"}`);
+console.log("This check does not establish current Wallet release, OS, installer, UI or business acceptance.");
