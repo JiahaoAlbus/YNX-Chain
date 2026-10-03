@@ -356,10 +356,11 @@ type state struct {
 	Integrity          string                           `json:"integrity"`
 }
 type Service struct {
-	mu    sync.Mutex
-	cfg   Config
-	state state
-	store stateStore
+	mu                   sync.Mutex
+	cfg                  Config
+	state                state
+	store                stateStore
+	durableStateObserved bool
 }
 
 type SnapshotSourceMetadata struct {
@@ -410,8 +411,14 @@ func (s *Service) checkDurableStateReadable() error {
 	if s.store == nil || !s.store.multiInstance() {
 		return ErrUnavailable
 	}
-	_, _, err := s.store.load()
-	return err
+	_, found, err := s.store.load()
+	if err != nil {
+		return err
+	}
+	if !found {
+		return ErrUnavailable
+	}
+	return nil
 }
 
 func (s *Service) snapshotSourceMetadata(status string) SnapshotSourceMetadata {
@@ -460,7 +467,7 @@ func New(cfg Config) (*Service, error) {
 		s = newQuantState()
 	}
 	normalizeQuantState(&s)
-	return &Service{cfg: cfg, state: s, store: store}, nil
+	return &Service{cfg: cfg, state: s, store: store, durableStateObserved: found}, nil
 }
 
 func (s *Service) Close() error {
@@ -1803,9 +1810,13 @@ func (s *Service) reload() error {
 		return err
 	}
 	if !found {
+		if s.durableStateObserved {
+			return ErrUnavailable
+		}
 		return nil
 	}
 	normalizeQuantState(&latest)
+	s.durableStateObserved = true
 	s.state = latest
 	return nil
 }
@@ -1829,6 +1840,7 @@ func (s *Service) save() error {
 		}
 		return err
 	}
+	s.durableStateObserved = true
 	return nil
 }
 func writeAtomic(path string, b []byte) error {
