@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "kind": "ENGINEERING_AND_INSTALLED_OFFLINE_SDK_PROBE_NOT_PRODUCT_E2E",
+  "source": "51d455ccaaad9d572ff531850dad69974617e406",
+  "tree": "6138a384bedb4bd2cffeb3e766cb69c350ebd5b5",
+  "parent": "f5925b84e299baa198015615d6e2b1461550a762",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sourcePins": [
+    {
+      "path": "apps/social/modules/native-matrix/RECEIVED-MEDIA.md",
+      "bytes": 2456,
+      "sha256": "37be3ad511abebbb09a0540816cc65112600e773801a21aab2327907e7729718",
+      "blob": "4c937a39692f3334db592071a87a340968330fc5"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixMediaDescriptor.kt",
+      "bytes": 1877,
+      "sha256": "a9da4a26a0e6abfe10ffea6fd863fd540c705b3daf10ed835954761d999b6c0f",
+      "blob": "50220b09a9b5658adcdb0f68a364c3fb717b7af5"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixReceivedMedia.kt",
+      "bytes": 6026,
+      "sha256": "56b3edd5c9500f3d7b6ea5234f8d4f5d38e941be1fc9a62abb4e5af9d8eaa948",
+      "blob": "381c1b348ebe8d3aa157ca4f0947dad622c7fc49"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixReceivedMedia.swift",
+      "bytes": 6049,
+      "sha256": "d2b127619d6bd4f93bd540101bf1e443d26a5c2731f01856ebc1974b01b440da",
+      "blob": "d4d9983afa0ff7366cc4c259b331d72dcdc3c599"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixMedia.test.ts",
+      "bytes": 3930,
+      "sha256": "493b89cb2423fd4d79d4e458f97b0d3888c901ae1673328e37f3ba857f3663b7",
+      "blob": "5f15a1504e06cd37ed47bc37e3ae357616824176"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixMedia.ts",
+      "bytes": 2488,
+      "sha256": "957b4dc207156a7f5b30f64327db5ff97d3b9cece23c4a75975c047ffd54b7a9",
+      "blob": "72d5208e697d4d229895a33e2e833ab2a4a0bb13"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "media-typecheck-first.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "media-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "media-tests-first.log",
+      "bytes": 20445,
+      "sha256": "7599b36c1c34375f57699c1b83eb34e7fd875d3fc9c010bc4c6fe2470359e73a"
+    },
+    {
+      "path": "media-tests-final.log",
+      "bytes": 20442,
+      "sha256": "a2d2414dc28e6cf9d068f4ce10d9dc3d7d705f11e0a2d03eb8adfb3988dfe338"
+    },
+    {
+      "path": "media-native-compile-first.log",
+      "bytes": 8805,
+      "sha256": "3f76be25d945eb775ad02cb3e0d3aa0f9a3b25090c5d7000bb5f8b79a391921c"
+    },
+    {
+      "path": "media-native-compile-final.log",
+      "bytes": 8008,
+      "sha256": "7ee07399b1cb6afcf446e6833769108cec9eca697d8fc427a1ad3da1db517839"
+    },
+    {
+      "path": "media-swift-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "media-swift-parse-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "media-probe-build.log",
+      "bytes": 23189,
+      "sha256": "01b6435822d5417172d96792ccdd214c687a75de879438fd4732a7d2f48f2737"
+    },
+    {
+      "path": "media-probe-build-final.log",
+      "bytes": 21776,
+      "sha256": "1a8f92641228220369b8f0308fcdb24bff074fb60c79944190804e670bbe405a"
+    },
+    {
+      "path": "media-probe-ui.xml",
+      "bytes": 1892,
+      "sha256": "be04457f62dbdd6222e2910fbc18dfe1241d446de8a51535b9e80c929b291036"
+    },
+    {
+      "path": "media-probe-ui.png",
+      "bytes": 24530,
+      "sha256": "5ef66f71b60b46b175ce0f631e9951d229784c84ca56b9a85521115a584933d8"
+    },
+    {
+      "path": "media-probe-ui-final.xml",
+      "bytes": 1920,
+      "sha256": "0c32a37a590f71564d4c6affff9d5dea37f841d2c2965eef7314706fa556a05c"
+    },
+    {
+      "path": "media-probe-ui-final.png",
+      "bytes": 26358,
+      "sha256": "c110c7a52ebaf09959e13b4bc11186710a6d39a674b430bd8fb6354f63fea1ec"
+    },
+    {
+      "path": "media-probe-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "probe": {
+    "sourceSHA": "e23d64e4f04dc0b58860aaf309261bb8bee398d80e81cbfb707934038f8ae542",
+    "fixtureOnly": true,
+    "zeroKeyPublicFixture": true,
+    "realAndroidSDKExecution": true,
+    "network": false,
+    "accounts": false,
+    "download": false,
+    "cryptoDelivery": false,
+    "verified": [
+      "encrypted MediaSource serialization",
+      "JWK key_ops reorder accepted by actual owner comparator",
+      "changed IV rejected",
+      "duplicate key_ops rejected"
+    ],
+    "sdkAAR_SHA": "5aa337869a5df71d05e907902d93b4953ed986495c61728728a251077c61f793"
+  },
+  "apk": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/media-source-probe-51d455c-debug.apk",
+    "bytes": 130152277,
+    "sha256": "45aca4efee9d2fe36f0a9e39fc6f3f57f80e1d003b7d5a3dcc3d4ff66a41b237",
+    "temporaryProbeActivity": true,
+    "notFormalProductArtifact": true
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "sourceTests": "208/208 PASS",
+    "androidSDKModuleAndProbeBuild": "PASS",
+    "swiftParse": "PASS_NOT_APPLE_SDK_TYPECHECK"
+  },
+  "notVerified": [
+    "media adapter Expo registration against canonical native handle",
+    "actual received file/image viewer mounted in product",
+    "authenticated real media download/decrypt and hash mismatch lifecycle",
+    "SDK media handle file deletion and restart cleanup on real device",
+    "native canonical enrollment and accepted-peer integration",
+    "Apple SDK typecheck/link/install",
+    "fresh server and original business-index delivery settlement",
+    "full ABC C01-C07 V01-V17",
+    "compatible public/installed product source binding",
+    "true dot MONSTER invocation"
+  ],
+  "sensitiveActions": [],
+  "deployments": [],
+  "coordinator": "01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}
