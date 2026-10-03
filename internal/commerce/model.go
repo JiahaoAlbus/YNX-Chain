@@ -244,6 +244,7 @@ type Snapshot struct {
 	Idempotency             map[string]IdempotencyRecord
 	RetiredIdempotency      map[string]struct{}
 	BusinessNonces          map[string]struct{}
+	BusinessActorNamespaces map[string]string
 	BuyerDeletions          map[string]BuyerDeletionRecord
 	PrivacyDeletionBoundary string
 	Audits                  []AuditEvent

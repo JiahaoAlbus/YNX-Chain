@@ -1,0 +1,53 @@
+{
+  "status": "SOURCE_CONTROLLED_COMPOSITION_PASS; COMPLETE_COMMERCE_NOT_VERIFIED",
+  "sourceBasis": "c95ef6d99397861455c7761929241b163e6b438a + owned pending successor",
+  "sharedCommit": "c09cb9b8ad13fe879363f7e6ad3d129912740c7e",
+  "sharedTree": "a3405fa6aeb8d0743385430f4e09d66e13c12857",
+  "contractSHA256": "a37dc4e05669ea4bda2726758b4e05be7ef999dc573e7aa279dadcb592521b51",
+  "persistenceSchemaVersion": 12,
+  "taggedSuite": {
+    "passed": true,
+    "topLevelPassed": 91,
+    "leafPassed": 130,
+    "skipLines": 0
+  },
+  "cryptoPlatforms": [
+    "web",
+    "android",
+    "macos"
+  ],
+  "plainRace": "PASS 5.870s",
+  "files": [
+    {
+      "path": "authority-revocation-race.log",
+      "sha256": "19609798786eb7986e4768da1ebf089935a041decfe5a8d6e74c5e418ef5f1d6"
+    },
+    {
+      "path": "final-tagged-race.log",
+      "sha256": "6107936194b1240f3653202c70cd8604ad0e10387b6ed1aa5d523241c6043802"
+    },
+    {
+      "path": "first-account-namespace-failure.log",
+      "sha256": "804000aafd8cd99a77a375349c503d897fb2e7400fe906566e20176a23263537"
+    },
+    {
+      "path": "first-test-lookup-namespace-failure.log",
+      "sha256": "aa8e39e97a52f644e61b3b8f60098e33837761bfc09734fa0f67da7d2504d0dd"
+    }
+  ],
+  "qualifications": [
+    "isolated loopback Node authority and software QA keys",
+    "frozen tracked c09 SDK snapshot; existing node_modules read via symlink, no package installation",
+    "current-central-actor generation fence is controlled QA state, not production central identity evidence",
+    "shared Go package is composed only in temporary QA source; no shared source copied into owner worktree",
+    "build tag commerce_v2 requires A coherent shared composition and real registered backend key/actor binder; CLI production selection not wired",
+    "Seller scope registry successor not present in c09; no synthetic seller grant issued",
+    "external Pay/AI/Trust/provider/revocation and streams remain explicit v2 admission holds; no fallback",
+    "existing v1 default constructor still used by current production command until coherent v2 wiring",
+    "Web/native consumer migration, final install/public/private business journeys still required"
+  ],
+  "formalBuildVerified": false,
+  "installedVerified": false,
+  "publicBusinessVerified": false,
+  "completeGoal": false
+}

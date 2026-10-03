@@ -18,6 +18,7 @@ var BuildVersion = "0.3.0-testnet-preview"
 var BuildCommit = "development"
 
 type ServerConfig struct {
+	businessV2                businessVerifier
 	Auth                      AuthGateway
 	Pay                       HTTPPayVerifier
 	Trust                     TrustGateway
@@ -39,60 +40,60 @@ func NewServer(store *Store, cfg ServerConfig) *Server {
 }
 func (s *Server) Handler() http.Handler { return s.observe(s.security(s.mux)) }
 func (s *Server) routes() {
-	s.mux.HandleFunc("GET /health", s.health)
-	s.mux.HandleFunc("GET /version", s.version)
-	s.mux.HandleFunc("GET /metrics", s.prometheusMetrics)
-	s.mux.HandleFunc("GET /api/capabilities", s.capabilities)
-	s.mux.HandleFunc("GET /api/auth/config", s.authConfig)
-	s.mux.HandleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
-	s.mux.HandleFunc("POST /api/auth/gateway/sessions", s.gatewaySession)
-	s.mux.HandleFunc("GET /api/products", s.products)
-	s.mux.HandleFunc("GET /api/products/{id}", s.product)
-	s.mux.HandleFunc("GET /api/stores/{id}", s.publicStore)
-	s.mux.HandleFunc("GET /api/profile", s.profile)
-	s.mux.HandleFunc("PUT /api/profile", s.saveProfile)
-	s.mux.HandleFunc("GET /api/cart", s.cart)
-	s.mux.HandleFunc("PUT /api/cart", s.saveCart)
-	s.mux.HandleFunc("GET /api/privacy/export", s.exportBuyerData)
-	s.mux.HandleFunc("POST /api/privacy/delete", s.deleteBuyerData)
-	s.mux.HandleFunc("GET /api/orders", s.orders)
-	s.mux.HandleFunc("POST /api/orders", s.createOrder)
-	s.mux.HandleFunc("POST /api/orders/intent-lookup", s.orderIntentLookup)
-	s.mux.HandleFunc("GET /api/orders/{id}", s.order)
-	s.mux.HandleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
-	s.mux.HandleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
-	s.mux.HandleFunc("POST /api/orders/{id}/transition", s.orderTransition)
-	s.mux.HandleFunc("POST /api/seller/stores", s.createStore)
-	s.mux.HandleFunc("GET /api/seller/stores", s.sellerStores)
-	s.mux.HandleFunc("PUT /api/seller/stores/{id}", s.updateStore)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/exports", s.exportSellerData)
-	s.mux.HandleFunc("GET /api/seller/stores/{id}/providers", s.providerConfigs)
-	s.mux.HandleFunc("PUT /api/seller/stores/{id}/providers/{kind}", s.configureProvider)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/test", s.testProvider)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/disable", s.disableProvider)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/rotate", s.rotateProviderReference)
-	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
-	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
-	s.mux.HandleFunc("GET /api/seller/invitations", s.mySellerInvitations)
-	s.mux.HandleFunc("POST /api/seller/invitations/{invitation}/accept", s.acceptSellerInvitation)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/invitations", s.createSellerInvitation)
-	s.mux.HandleFunc("POST /api/seller/stores/{id}/invitations/{invitation}/cancel", s.cancelSellerInvitation)
-	s.mux.HandleFunc("POST /api/seller/products", s.createProduct)
-	s.mux.HandleFunc("GET /api/seller/products", s.sellerProducts)
-	s.mux.HandleFunc("PUT /api/seller/products/{id}", s.updateProduct)
-	s.mux.HandleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)
-	s.mux.HandleFunc("POST /api/seller/products/{id}/unpublish", s.unpublishProduct)
-	s.mux.HandleFunc("POST /api/seller/inventory", s.inventory)
-	s.mux.HandleFunc("GET /api/seller/audit", s.audit)
-	s.mux.HandleFunc("GET /api/seller/settlements", s.settlements)
-	s.mux.HandleFunc("POST /api/ai/jobs", s.createAI)
-	s.mux.HandleFunc("POST /api/ai/jobs/{id}/run", s.runAI)
-	s.mux.HandleFunc("POST /api/ai/jobs/{id}/decision", s.decideAI)
-	s.mux.HandleFunc("POST /api/ai/jobs/{id}/cancel", s.cancelAI)
-	s.mux.HandleFunc("GET /api/ai/jobs/{id}/stream", s.streamAI)
-	s.mux.HandleFunc("DELETE /api/ai/jobs/{id}", s.deleteAI)
+	s.handleFunc("GET /health", s.health)
+	s.handleFunc("GET /version", s.version)
+	s.handleFunc("GET /metrics", s.prometheusMetrics)
+	s.handleFunc("GET /api/capabilities", s.capabilities)
+	s.handleFunc("GET /api/auth/config", s.authConfig)
+	s.handleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
+	s.handleFunc("POST /api/auth/gateway/sessions", s.gatewaySession)
+	s.handleFunc("GET /api/products", s.products)
+	s.handleFunc("GET /api/products/{id}", s.product)
+	s.handleFunc("GET /api/stores/{id}", s.publicStore)
+	s.handleFunc("GET /api/profile", s.profile)
+	s.handleFunc("PUT /api/profile", s.saveProfile)
+	s.handleFunc("GET /api/cart", s.cart)
+	s.handleFunc("PUT /api/cart", s.saveCart)
+	s.handleFunc("GET /api/privacy/export", s.exportBuyerData)
+	s.handleFunc("POST /api/privacy/delete", s.deleteBuyerData)
+	s.handleFunc("GET /api/orders", s.orders)
+	s.handleFunc("POST /api/orders", s.createOrder)
+	s.handleFunc("POST /api/orders/intent-lookup", s.orderIntentLookup)
+	s.handleFunc("GET /api/orders/{id}", s.order)
+	s.handleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
+	s.handleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
+	s.handleFunc("POST /api/orders/{id}/transition", s.orderTransition)
+	s.handleFunc("POST /api/seller/stores", s.createStore)
+	s.handleFunc("GET /api/seller/stores", s.sellerStores)
+	s.handleFunc("PUT /api/seller/stores/{id}", s.updateStore)
+	s.handleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
+	s.handleFunc("POST /api/seller/stores/{id}/exports", s.exportSellerData)
+	s.handleFunc("GET /api/seller/stores/{id}/providers", s.providerConfigs)
+	s.handleFunc("PUT /api/seller/stores/{id}/providers/{kind}", s.configureProvider)
+	s.handleFunc("POST /api/seller/stores/{id}/providers/{kind}/test", s.testProvider)
+	s.handleFunc("POST /api/seller/stores/{id}/providers/{kind}/disable", s.disableProvider)
+	s.handleFunc("POST /api/seller/stores/{id}/providers/{kind}/rotate", s.rotateProviderReference)
+	s.handleFunc("GET /api/seller/stores/{id}/roles", s.roles)
+	s.handleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
+	s.handleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
+	s.handleFunc("GET /api/seller/invitations", s.mySellerInvitations)
+	s.handleFunc("POST /api/seller/invitations/{invitation}/accept", s.acceptSellerInvitation)
+	s.handleFunc("POST /api/seller/stores/{id}/invitations", s.createSellerInvitation)
+	s.handleFunc("POST /api/seller/stores/{id}/invitations/{invitation}/cancel", s.cancelSellerInvitation)
+	s.handleFunc("POST /api/seller/products", s.createProduct)
+	s.handleFunc("GET /api/seller/products", s.sellerProducts)
+	s.handleFunc("PUT /api/seller/products/{id}", s.updateProduct)
+	s.handleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)
+	s.handleFunc("POST /api/seller/products/{id}/unpublish", s.unpublishProduct)
+	s.handleFunc("POST /api/seller/inventory", s.inventory)
+	s.handleFunc("GET /api/seller/audit", s.audit)
+	s.handleFunc("GET /api/seller/settlements", s.settlements)
+	s.handleFunc("POST /api/ai/jobs", s.createAI)
+	s.handleFunc("POST /api/ai/jobs/{id}/run", s.runAI)
+	s.handleFunc("POST /api/ai/jobs/{id}/decision", s.decideAI)
+	s.handleFunc("POST /api/ai/jobs/{id}/cancel", s.cancelAI)
+	s.handleFunc("GET /api/ai/jobs/{id}/stream", s.streamAI)
+	s.handleFunc("DELETE /api/ai/jobs/{id}", s.deleteAI)
 	if s.cfg.BuyerAssets != nil {
 		s.mux.Handle("/shop/", http.StripPrefix("/shop/", http.FileServer(s.cfg.BuyerAssets)))
 	}
@@ -116,7 +117,7 @@ func (s *Server) security(next http.Handler) http.Handler {
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	startedAt := s.metrics.snapshot().StartedAt
 	dependencies := map[string]string{
-		"walletGateway": availability(s.cfg.Auth != nil && s.cfg.Auth.Available()),
+		"walletGateway": availability(s.cfg.businessV2 != nil || (s.cfg.Auth != nil && s.cfg.Auth.Available())),
 		"pay":           availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
 		"trust":         availability(s.cfg.Trust != nil && s.cfg.Trust.Available()),
 		"ai":            availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
@@ -128,21 +129,26 @@ func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	wallet := "unavailable"
+	protocol := "wallet-auth-v1+p256-sha256"
 	if s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		wallet = "central_gateway"
 	}
+	if s.cfg.businessV2 != nil {
+		wallet = "canonical_v2"
+		protocol = "wallet-product-session-v2+p256-sha256"
+	}
 	authorizationRevocation := "unavailable"
-	if _, ok := s.cfg.Auth.(ProductAuthorizationRevoker); ok && s.cfg.Auth != nil && s.cfg.Auth.Available() {
+	if _, ok := s.cfg.Auth.(ProductAuthorizationRevoker); ok && s.cfg.businessV2 == nil && s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		authorizationRevocation = "candidate_configured"
 	}
 	write(w, 200, map[string]any{
-		"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256",
+		"walletAuth": wallet, "walletProtocol": protocol,
 		"sellerStoreAuthorizationRevocation": authorizationRevocation,
-		"paySettlement":                      availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
+		"paySettlement":                      availability(s.cfg.businessV2 == nil && s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
 		"logistics":                          "unavailable",
 		"tax":                                "unavailable",
-		"aiProvider":                         availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
-		"trustEvidence":                      availability(s.cfg.Trust != nil && s.cfg.Trust.Available()),
+		"aiProvider":                         availability(s.cfg.businessV2 == nil && s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
+		"trustEvidence":                      availability(s.cfg.businessV2 == nil && s.cfg.Trust != nil && s.cfg.Trust.Available()),
 		"privacyData":                        "export_and_delete",
 		"providerRegistry":                   "available_local_authority",
 		"providerKinds":                      ProviderKinds(),
@@ -199,6 +205,20 @@ func status(err error) int {
 	}
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, roles ...string) (Principal, bool) {
+	if verified, ok := r.Context().Value(businessRequestContextKey{}).(*verifiedBusinessRequest); ok {
+		if err := verified.current(r.Context()); err != nil {
+			failBusiness(w, err)
+			return Principal{}, false
+		}
+		for _, role := range roles {
+			if verified.principal.Role == role {
+				return verified.principal, true
+			}
+		}
+		fail(w, http.StatusForbidden, ErrUnauthorized)
+		return Principal{}, false
+	}
+
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if s.cfg.Auth == nil {
 		fail(w, http.StatusServiceUnavailable, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable))

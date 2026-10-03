@@ -196,7 +196,7 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 		Orders:          orders,
 		AIJobs:          jobs,
 		AuditEvents:     audits,
-		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request details can be deleted. Minimal one-way digests of retired request keys and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
+		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request details can be deleted. Minimal one-way digests of retired request keys, consumed business proofs and account representation decisions, representation flags, and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
 	}
 }
 

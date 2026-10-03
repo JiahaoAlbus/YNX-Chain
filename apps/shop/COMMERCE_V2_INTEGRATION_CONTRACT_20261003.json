@@ -107,7 +107,9 @@
           }
         }
       },
-      "decision": "Seller is a role in the existing Shop product/client/app, with one origin and callback. A adds the existing seller scope to Shop allowed scopes; approval requests only the chosen role scopes. Buyer approval never grants seller operate, and seller scope never creates owner/merchant membership. Entry role and selected store are navigation/authority context, not another account."
+      "decision": "Seller is a role in the existing Shop product/client/app, with one origin and callback. A adds the existing seller scope to Shop allowed scopes; approval requests only the chosen role scopes. Buyer approval never grants seller operate, and seller scope never creates owner/merchant membership. Entry role and selected store are navigation/authority context, not another account.",
+      "walletProductId": "shop",
+      "productIdNamespace": "product-release metadata; Wallet proof productId is shop"
     },
     {
       "productId": "pay-merchant",
