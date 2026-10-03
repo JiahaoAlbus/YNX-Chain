@@ -10,12 +10,12 @@ const controller=source.slice(source.indexOf('function financeTimestampValid('),
 const dataState=source.slice(source.indexOf('const dataDisabledControls='),source.indexOf('let loadOperation='));
 function fixture(){
   const calls=[],notices=[],state={context:1,connected:true},workspace={dataset:{dataState:'ready'}};
-  const button={disabled:false,closest:()=>form},attributes=new Map();
-  const form={values:[['name','My budget'],['limitYnxt','17']],resetCount:0,querySelector:()=>null,querySelectorAll:()=>[button],setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),reset(){this.resetCount++;}};
+  const button={disabled:false,closest:()=>form},attributes=new Map(),status={dataset:{},textContent:''};
+  const form={values:[['name','My budget'],['limitYnxt','17']],resetCount:0,querySelector:selector=>selector==='[data-save-state]'?status:null,querySelectorAll:()=>[button],setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),reset(){this.resetCount++;}};
   const scope={state,browserSSOIntentGeneration:1,document:{addEventListener(){}},crypto:{randomUUID},WeakMap,FormData:class{constructor(value){return value.values;}},$:id=>id==='#workspace'?workspace:{classList:{toggle(){}}},$$:()=>[button],financeText:k=>k,notify:x=>notices.push(x),notifyFailure:()=>notices.push('failed'),attestBrowserIdentityActivity:async()=>{},load:async()=>{},api:(path,options)=>new Promise((resolve,reject)=>calls.push({path,method:options.method,body:JSON.parse(options.body),resolve,reject}))};
   runInNewContext(controller+dataState+'\nglobalThis.save=submitForm;globalThis.dataState=workspaceDataState;globalThis.retireSaveView=retireOwnedFormSaveView;',scope);
   const reply=index=>{const call=calls[index],timestamp='2026-10-03T00:00:00Z';call.resolve(call.path==='/api/privacy'?{...call.body,updatedAt:timestamp}:{...call.body,id:'owned-'+index,source:'user',createdAt:timestamp,updatedAt:timestamp});};
-  return {scope,form,button,attributes,calls,notices,state,reply,save:(body={})=>scope.save(form,'/api/budgets',{name:'My budget',categoryId:'category-1',limitYnxt:17,period:'monthly',startsAt:'2026-10-03T00:00:00Z',...body})};
+  return {scope,form,button,attributes,status,calls,notices,state,reply,save:(body={})=>scope.save(form,'/api/budgets',{name:'My budget',categoryId:'category-1',limitYnxt:17,period:'monthly',startsAt:'2026-10-03T00:00:00Z',...body})};
 }
 test('same pending form uses one promise/request and restores submit controls',async()=>{
   const f=fixture(),first=f.save();assert.equal(f.save(),first);assert.equal(f.calls.length,1);assert.equal(f.button.disabled,true);assert.equal(f.attributes.get('aria-busy'),'true');
@@ -84,6 +84,13 @@ test('save followed by unavailable read preserves real control baseline and refr
   const f=fixture();f.scope.load=async()=>f.scope.dataState('unavailable');const saved=f.save();
   f.reply(0);await saved;assert.equal(f.button.disabled,true);
   f.scope.dataState('ready');assert.equal(f.button.disabled,false);
+});
+test('confirmed save remains confirmed when follow-up read rejects, without replaying the write',async()=>{
+  const f=fixture();let reads=0;f.scope.load=async()=>{reads++;throw new Error('overview unavailable')};
+  const saved=f.save();f.reply(0);await saved;
+  assert.equal(f.status.dataset.saveKey,'profileSaved');assert.equal(f.status.textContent,'profileSaved');
+  assert.equal(f.form.resetCount,1);assert.equal(f.calls.length,1);assert.equal(reads,1);
+  assert.deepEqual(f.notices,['profileSaved','failed']);assert.equal(f.attributes.has('aria-busy'),false);
 });
 test('privacy PUT coalesces without POST idempotency fields, preserves edited checkboxes and fences old errors',async()=>{
   const f=fixture(),options={method:'PUT',reset:false,successKey:'privacySaved'},body={includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true};

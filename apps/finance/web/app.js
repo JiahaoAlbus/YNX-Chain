@@ -733,7 +733,11 @@ function submitForm(form,path,body,event,{method='POST',reset=true,successKey='p
     const unchanged=formDraft(form)===operation.draft;
     if(reset&&unchanged)form.reset();
     if(!reset){if(unchanged)formUncommittedDrafts.delete(form);else formUncommittedDrafts.set(form,{context});}
-    ownedSaveStatus(form,successKey);notify(financeText(successKey));await load({fresh:true});
+    ownedSaveStatus(form,successKey);notify(financeText(successKey));
+    // A verified write receipt and a later overview read are separate outcomes.
+    // Never downgrade the persisted save to "unconfirmed" or replay it merely
+    // because readiness/rendering of the follow-up read fails.
+    try{await load({fresh:true})}catch(error){if(current())notifyFailure(error,'connectionUnavailable')}
   }catch(error){if(current()){ownedSaveStatus(form,'ownedSaveUnconfirmed');notifyFailure(error,'unavailable');}
   }finally{if(formSaves.get(form)===operation){formSaves.delete(form);form.removeAttribute('aria-busy');for(const {button,disabled} of buttons)button.disabled=disabled||!state.connected||$('#workspace').dataset.dataState==='unavailable';}}})();
   return operation.promise;
@@ -773,7 +777,7 @@ function loadStatement(form){
     if(typeof account!=='string'||!account.trim()||fromDate>toDate)throw new Error(financeText('statementCoverageInvalid'));
     const from=fromDate.toISOString();toDate.setUTCDate(toDate.getUTCDate()+1);const toExclusive=toDate.toISOString();
     const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toExclusive)}`);if(!current()||formDraft(form)!==draft)return;
-    if(candidate?.account!==account||typeof candidate.from!=='string'||typeof candidate.toExclusive!=='string'||Date.parse(candidate.from)!==fromDate.getTime()||Date.parse(candidate.toExclusive)!==toDate.getTime())throw new Error(financeText('statementCoverageInvalid'));
+    if(candidate?.account!==account||!financeTimestampValid(candidate.from)||!financeTimestampValid(candidate.toExclusive)||Date.parse(candidate.from)!==fromDate.getTime()||Date.parse(candidate.toExclusive)!==toDate.getTime())throw new Error(financeText('statementCoverageInvalid'));
     renderStatement(candidate);state.statement=candidate;state.statementError=false;
   }catch(error){if(!current()||formDraft(form)!==draft)return;state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable');
   }finally{if(statementOperation===operation){statementOperation=null;$('#statement').removeAttribute('aria-busy');form.removeAttribute('aria-busy');}}})();

@@ -13,6 +13,35 @@ const saves=app.slice(app.indexOf('function financeTimestampValid('),app.indexOf
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
 const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
+test('statement dates fail closed before showing coverage and explicit read recovers in real Chrome',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
+    page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addScriptTag({content:locale});
+    const helpers=app.slice(app.indexOf('const esc='),app.indexOf('const wait='));
+    const statement=app.slice(app.indexOf('function renderStatement('),app.indexOf('const ownedExportOperations='));
+    await page.addScriptTag({content:`const state={context:1,overview:{portfolio:{account:'controlled-statement-owner'}},statement:null,statementError:false};let browserSSOIntentGeneration=1;const $=s=>document.querySelector(s);const financeText=k=>YNXFinanceLocale.text(k);window.calls=[];window.failures=[];const notifyFailure=()=>failures.push('read-failed');const api=path=>new Promise(resolve=>calls.push({path,resolve}));function formDraft(form){return JSON.stringify(Array.from(new FormData(form)))}${helpers}${statement}window.statementQA={state};`});
+    await page.locator('#statement-form input[name=from]').fill('2026-03-02');await page.locator('#statement-form input[name=to]').fill('2026-03-02');
+    const submit=()=>page.evaluate(()=>document.querySelector('#statement-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    const respond=(index,patch)=>page.evaluate(({index,patch})=>{
+      const url=new URL(calls[index].path,'https://local-fixture.invalid');
+      calls[index].resolve({schemaVersion:'finance-statement-v2',coverageComplete:false,account:'controlled-statement-owner',network:'YNX Testnet',symbol:'YNXT',from:url.searchParams.get('from'),toExclusive:url.searchParams.get('to'),activity:[],totals:{incomingYnxt:null,outgoingYnxt:null,feesYnxt:null},calculationStatus:'partial',observedTotals:{incomingYnxt:0,outgoingYnxt:0,feesYnxt:0},openingBalance:'unknown',coverage:'Controlled partial local receipt, not full history',...patch});
+    },{index,patch});
+    await submit();await respond(0,{from:'2026-02-30T00:00:00Z'});
+    await page.waitForFunction(()=>!document.querySelector('#statement-form').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#statement').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('unavailable')));
+    assert.equal(await page.evaluate(()=>statementQA.state.statement),null);
+    await submit();await respond(1,{});await page.waitForFunction(()=>statementQA.state.statement!==null);
+    assert.match(await page.locator('#statement').innerText(),/Controlled partial local receipt/);
+    assert.equal(await page.evaluate(()=>statementQA.state.statement.coverageComplete),false);
+    await page.locator('#statement-form input[name=from]').fill('2024-02-29');await page.locator('#statement-form input[name=to]').fill('2024-02-29');
+    await submit();await respond(2,{from:'2024-02-29T08:00:00+08:00',toExclusive:'2024-03-01T08:00:00+08:00'});
+    await page.waitForFunction(()=>statementQA.state.statement?.from==='2024-02-29T08:00:00+08:00');
+    assert.equal(await page.evaluate(()=>calls.length),3);assert.equal(await page.evaluate(()=>calls.every(c=>c.path.startsWith('/api/statements?'))),true);
+    assert.deepEqual(await page.evaluate(()=>failures),['read-failed']);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await browser.close()}
+});
 test('invalid calendar receipt preserves the visible draft and same retry request in real Chrome',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
@@ -30,6 +59,27 @@ test('invalid calendar receipt preserves the visible draft and same retry reques
     await page.evaluate(()=>calls[1].resolve({...calls[1].body,id:'controlled-category',source:'user',color:calls[1].body.color.toUpperCase(),createdAt:'2024-02-29T00:00:00+08:00'}));
     await page.waitForFunction(()=>!document.querySelector('#category-form').hasAttribute('aria-busy'));
     assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'');assert.equal(await page.evaluate(()=>reads),1);assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
+});
+test('real Chrome retains confirmed save status across failed follow-up read and locale changes without another POST',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const context=await browser.newContext(),page=await context.newPage(),errors=[];
+    page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>route.abort());
+    await page.route('https://finance-confirmed-save.test/',route=>route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}));
+    await page.goto('https://finance-confirmed-save.test/');await page.addScriptTag({content:locale});
+    await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.reads=0;window.failures=[];const financeText=k=>YNXFinanceLocale.text(k),notify=()=>{},notifyFailure=(e,key)=>failures.push(key),attestBrowserIdentityActivity=async()=>{},load=async()=>{reads++;throw Error('Controlled overview unavailable')};const api=(path,options)=>new Promise(resolve=>calls.push({path,body:JSON.parse(options.body),resolve}));${saves}`});
+    await page.locator('#category-form input[name=name]').fill('Confirmed category');
+    await page.evaluate(()=>document.querySelector('#category-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    await page.evaluate(()=>calls[0].resolve({...calls[0].body,id:'controlled-save',source:'user',color:calls[0].body.color.toUpperCase(),createdAt:'2026-10-04T00:00:00Z'}));
+    await page.waitForFunction(()=>!document.querySelector('#category-form').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'');
+    for(const language of ['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(language=>YNXFinanceLocale.set(language),language);
+      assert.equal(await page.locator('#category-form [data-save-state]').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('profileSaved')));
+    }
+    assert.equal(await page.evaluate(()=>calls.length),1);assert.equal(await page.evaluate(()=>reads),1);
+    assert.deepEqual(await page.evaluate(()=>failures),['connectionUnavailable']);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
   }finally{await browser.close()}
 });
 test('confirmed category save reads a new overview and ignores a delayed pre-save overview in real Chrome',async()=>{

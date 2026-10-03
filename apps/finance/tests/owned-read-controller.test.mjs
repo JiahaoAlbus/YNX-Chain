@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 
 const source=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
+const timestampValidation=source.slice(source.indexOf('function financeTimestampValid('),source.indexOf('const date='));
 const statements=source.slice(source.indexOf('let statementOperation='),source.indexOf("$('#statement-form').addEventListener"));
 const downloads=source.slice(source.indexOf('const ownedExportOperations='),source.indexOf("$('#export-json').addEventListener"));
 const workspace=source.slice(source.indexOf('let loadOperation='),source.indexOf('async function reconnect('));
@@ -27,7 +28,7 @@ function fixture(){
   const form={values:[['from','2026-09-01'],['to','2026-09-30']],attributes:new Map(),setAttribute(k,v){this.attributes.set(k,v)},removeAttribute(k){this.attributes.delete(k)}};
   const panel={...form,attributes:new Map(),classList:{remove(){}}},calls=[],notices=[],rendered=[],urls=[];
   const scope={state:{context:1,overview:{portfolio:{account:'owned-account'}},statement:null,statementError:false},browserSSOIntentGeneration:1,FormData:class{constructor(form){this.values=form.values}get(key){return this.values.find(value=>value[0]===key)?.[1]}[Symbol.iterator](){return this.values[Symbol.iterator]()}},$:selector=>selector==='#statement-form'?form:panel,renderStatement:value=>rendered.push(value),financeText:key=>key,notifyFailure:()=>notices.push('failed'),api:(path)=>new Promise((resolve,reject)=>calls.push({path,resolve,reject})),URL:{createObjectURL:()=>{urls.push('created');return 'blob:isolated'},revokeObjectURL:()=>urls.push('revoked')},document:{createElement:()=>({click:()=>urls.push('clicked')})}};
-  runInNewContext('function formDraft(form){return JSON.stringify(Array.from(new FormData(form)));}\n'+statements+downloads+'globalThis.read=loadStatement;globalThis.exportOwned=download;globalThis.retireRead=retireOwnedStatementView;',scope);
+  runInNewContext(timestampValidation+'function formDraft(form){return JSON.stringify(Array.from(new FormData(form)));}\n'+statements+downloads+'globalThis.read=loadStatement;globalThis.exportOwned=download;globalThis.retireRead=retireOwnedStatementView;',scope);
   return {scope,form,panel,calls,notices,rendered,urls,read:()=>scope.read(form)};
 }
 function report(f,index){const url=new URL(f.calls[index].path,'https://finance.invalid');return {account:f.scope.state.overview.portfolio.account,from:url.searchParams.get('from'),toExclusive:url.searchParams.get('to')};}
@@ -65,6 +66,23 @@ test('invalid calendar days and reversed periods never issue a request',async()=
   for(const values of [[['from','2026-02-30'],['to','2026-03-01']],[['from','2026-10-01'],['to','2026-09-30']],[['from','bad'],['to','2026-09-30']]]){
     const f=fixture();f.form.values=values;await f.read();assert.equal(f.calls.length,0);assert.equal(f.scope.state.statementError,true);assert.equal(f.panel.attributes.has('aria-busy'),false);
   }
+});
+test('statement receipt rejects normalized impossible dates and timezone-free aliases before rendering; exact retry recovers',async()=>{
+  for(const [from,to,patch] of [
+    ['2026-03-02','2026-03-02',{from:'2026-02-30T00:00:00Z'}],
+    ['2026-03-01','2026-03-01',{toExclusive:'2026-02-30T00:00:00Z'}],
+    ['2026-09-01','2026-09-30',{from:'2026-09-01T00:00:00'}],
+    ['2026-09-01','2026-09-30',{toExclusive:'2026-10-01'}],
+  ]){
+    const f=fixture();f.form.values=[['from',from],['to',to]];
+    const pending=f.read();f.calls[0].resolve({...report(f,0),...patch});await pending;
+    assert.deepEqual(f.rendered,[]);assert.equal(f.scope.state.statement,null);assert.equal(f.scope.state.statementError,true);
+    const retry=f.read(),value=report(f,1);f.calls[1].resolve(value);await retry;
+    assert.deepEqual(f.rendered,[value]);assert.equal(f.scope.state.statementError,false);assert.equal(f.calls.length,2);
+  }
+  const f=fixture();f.form.values=[['from','2024-02-29'],['to','2024-02-29']];const pending=f.read();
+  const value={...report(f,0),from:'2024-02-29T08:00:00+08:00',toExclusive:'2024-03-01T08:00:00+08:00'};
+  f.calls[0].resolve(value);await pending;assert.deepEqual(f.rendered,[value]);
 });
 test('overview account change without epoch change retires the old report',async()=>{
   const f=fixture(),pending=f.read(),value=report(f,0);f.scope.state.overview.portfolio.account='next-account';f.calls[0].resolve(value);await pending;assert.deepEqual(f.rendered,[]);assert.deepEqual(f.notices,[]);
