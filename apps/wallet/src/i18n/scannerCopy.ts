@@ -1,5 +1,5 @@
 import type {WalletLocale} from "./i18n";
-export const SCANNER_COPY_KEYS=["allowTitle","reviewOnly","permissionFailure","allow","denied","unavailable","retry","title","kinds","invalid","again","cancel"] as const;
+export const SCANNER_COPY_KEYS=["allowTitle","reviewOnly","permissionFailure","allow","denied","unavailable","retry","title","kinds","invalid","again","cancel","routeFailure"] as const;
 export type ScannerCopyKey=typeof SCANNER_COPY_KEYS[number];
 const rows:Record<WalletLocale,string>={
 en:"Allow camera to scan|Scanning only fills a receiving address or opens an app request for review. It never approves a transfer.|Camera permission could not be requested. Try again or enter the address manually.|Allow camera|Camera permission is denied. You can enable it in system settings or enter the address manually.|Camera unavailable|Retry camera|Scan QR code|YNX Testnet receiving code, Pay invoice or WalletConnect connection code|This code is invalid or belongs to another network. Nothing was approved.|Scan again|Cancel scan",
@@ -15,8 +15,22 @@ ru:"Разрешить камеру для сканирования|Сканир
 ar:"السماح بالكاميرا للمسح|المسح يملأ عنوان الاستلام فقط أو يفتح طلب تطبيق للمراجعة. لا يوافق على تحويل أبدًا.|تعذر طلب إذن الكاميرا. حاول مجددًا أو أدخل العنوان يدويًا.|السماح بالكاميرا|إذن الكاميرا مرفوض. يمكنك تفعيله في إعدادات النظام أو إدخال العنوان يدويًا.|الكاميرا غير متاحة|إعادة محاولة الكاميرا|مسح رمز QR|رمز استلام YNX Testnet أو فاتورة Pay أو رمز اتصال WalletConnect|هذا الرمز غير صالح أو يخص شبكة أخرى. لم تتم الموافقة على شيء.|المسح مجددًا|إلغاء المسح",
 id:"Izinkan kamera untuk memindai|Pemindaian hanya mengisi alamat penerimaan atau membuka permintaan aplikasi untuk ditinjau. Pemindaian tidak menyetujui transfer.|Tidak dapat meminta izin kamera. Coba lagi atau masukkan alamat secara manual.|Izinkan kamera|Izin kamera ditolak. Aktifkan di pengaturan sistem atau masukkan alamat secara manual.|Kamera tidak tersedia|Coba kamera lagi|Pindai kode QR|Kode penerimaan YNX Testnet, faktur Pay, atau kode koneksi WalletConnect|Kode tidak valid atau berasal dari jaringan lain. Tidak ada yang disetujui.|Pindai lagi|Batalkan pemindaian"
 };
+const routeFailures:Record<WalletLocale,string>={
+en:"The code was recognized, but Wallet could not open it for review. Nothing was approved. Scan again or cancel.",
+"zh-Hans":"已识别二维码，但钱包无法打开核对页面。未批准任何操作。请重新扫描或取消。",
+"zh-Hant":"已識別二維碼，但錢包無法開啟核對頁面。未核准任何操作。請重新掃描或取消。",
+ja:"コードを認識しましたが、ウォレットで確認画面を開けませんでした。何も承認されていません。再スキャンするかキャンセルしてください。",
+ko:"코드는 인식했지만 지갑에서 검토 화면을 열지 못했습니다. 승인된 작업은 없습니다. 다시 스캔하거나 취소하세요.",
+es:"Se reconoció el código, pero Wallet no pudo abrirlo para revisarlo. No se aprobó nada. Escanea de nuevo o cancela.",
+fr:"Le code a été reconnu, mais Wallet n’a pas pu ouvrir la page de vérification. Rien n’a été approuvé. Scannez à nouveau ou annulez.",
+de:"Der Code wurde erkannt, aber Wallet konnte ihn nicht zur Prüfung öffnen. Nichts wurde genehmigt. Erneut scannen oder abbrechen.",
+pt:"O código foi reconhecido, mas a Wallet não conseguiu abri-lo para revisão. Nada foi aprovado. Leia novamente ou cancele.",
+ru:"Код распознан, но кошельку не удалось открыть его для проверки. Ничего не одобрено. Сканируйте снова или отмените.",
+ar:"تم التعرف على الرمز، لكن المحفظة لم تتمكن من فتحه للمراجعة. لم تتم الموافقة على شيء. امسح مجددًا أو ألغِ.",
+id:"Kode dikenali, tetapi Wallet tidak dapat membukanya untuk ditinjau. Tidak ada yang disetujui. Pindai lagi atau batalkan."
+};
 const copy=Object.fromEntries(Object.entries(rows).map(([locale,row])=>{
-const values=row.split("|");if(values.length!==SCANNER_COPY_KEYS.length||values.some(value=>!value))throw Error(`Incomplete scanner copy: ${locale}`);
+const values=[...row.split("|"),routeFailures[locale as WalletLocale]];if(values.length!==SCANNER_COPY_KEYS.length||values.some(value=>!value))throw Error(`Incomplete scanner copy: ${locale}`);
 return[locale,Object.fromEntries(SCANNER_COPY_KEYS.map((key,index)=>[key,values[index]]))];
 })) as Record<WalletLocale,Record<ScannerCopyKey,string>>;
 export function scannerCopy(locale:WalletLocale,key:ScannerCopyKey):string{return copy[locale][key]}
