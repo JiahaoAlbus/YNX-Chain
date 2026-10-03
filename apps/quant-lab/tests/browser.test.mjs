@@ -14,6 +14,20 @@ test('real research form coalesces a delayed request without displaying unconfir
     complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),false);assert.equal(posts,1);
   }finally{await context.close()}
 });
+test('actual local Go reconciliation reports a controlled stale-snapshot difference and persistent kill switch',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let writes=0,release;const gate=new Promise(resolve=>release=resolve);
+    await context.route('**/api/v1/paper/reconcile',async route=>{writes++;await gate;const response=await route.fetch();await route.fulfill({response})});
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Risk',exact:true}).click();
+    await page.evaluate(()=>{snapshot.paper.Cash-=1});await page.locator('#reconcile').click();
+    await page.evaluate(()=>document.getElementById('reconcile').onclick());assert.equal(writes,1);assert.equal(await page.locator('#reconcile').isDisabled(),true);
+    await page.selectOption('#locale','ar');assert.equal(await page.locator('#reconcile').isDisabled(),true);release();
+    await page.locator('#toast').getByText(/: 1$/).waitFor();assert.doesNotMatch(await page.locator('#toast').textContent(),/zero difference/);await page.waitForFunction(()=>snapshot.paper.KillSwitch===true&&snapshot.paper.ReconciliationDelta===1);
+    await page.selectOption('#locale','en');assert.equal(await page.locator('#toast').textContent(),'Reconciliation recorded a difference; kill switch is active: 1');
+    await page.locator('#refresh').click();await page.waitForFunction(()=>snapshot.paper.KillSwitch===true&&snapshot.paper.ReconciliationDelta===1);assert.equal(writes,1);
+  }finally{await context.close()}
+});
 test('actual guest research stays usable when Quant browser storage is denied',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

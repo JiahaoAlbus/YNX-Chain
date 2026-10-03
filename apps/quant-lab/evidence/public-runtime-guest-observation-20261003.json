@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "DIRECT_PUBLIC_READONLY_GUEST_OBSERVATION",
+  "observedDay": "2026-10-03",
+  "ownerSourcePredecessor": "f745fd1bf7283f99324ec3b1bf225d757c9355f6",
+  "method": "Unauthenticated fetch of version/health and actual isolated headless Chrome at 390x844; no provider/account/token injection or authorization/sign/transaction action",
+  "products": [
+    {
+      "product": "finance",
+      "url": "https://finance.ynxweb4.com/",
+      "publicCommit": "81e08b49d1eec3d901433e54d6b35227be43b6b3",
+      "version": {
+        "route": "/version",
+        "http": 200,
+        "bytes": 140,
+        "sha256": "4f29004ada07b1460807d189a4cc7c394bd704038fb12212268ee854777654d3"
+      },
+      "health": {
+        "route": "/health",
+        "http": 200,
+        "bytes": 557,
+        "sha256": "438bdb4da5eaf42fe8256dba0970eb6ad7fc72b7e618da81572eed4b517f3268"
+      },
+      "guest": {
+        "finalURL": "https://finance.ynxweb4.com/#overview",
+        "http": 200,
+        "language": "en",
+        "direction": "ltr",
+        "horizontalOverflow": false,
+        "createdTabDelta": 0,
+        "pageErrorCount": 0
+      }
+    },
+    {
+      "product": "exchange",
+      "url": "https://exchange.ynxweb4.com/",
+      "publicCommit": "91c1a40587d28ad4c931d4a4d601766bd467ea20",
+      "version": {
+        "route": "/api/version",
+        "http": 200,
+        "bytes": 107,
+        "sha256": "b4c022607d648d184914ec7e9041fc4e7c5c2ce5fcc13392f18350bfc2a6d8a8"
+      },
+      "health": {
+        "route": "/api/health",
+        "http": 200,
+        "bytes": 307,
+        "sha256": "9d16623ea43cc49bd257b1043c14bd1f1cd1d68a8df4b8e754a1ff2c5dbdc7de"
+      },
+      "guest": {
+        "finalURL": "https://exchange.ynxweb4.com/#assets",
+        "http": 200,
+        "language": "en",
+        "direction": "ltr",
+        "horizontalOverflow": false,
+        "createdTabDelta": 0,
+        "pageErrorCount": 0,
+        "latestLocaleControl": false,
+        "privateStatusAfterTwoSeconds": "Verifying the Exchange private account…"
+      }
+    },
+    {
+      "product": "quant",
+      "url": "https://quant.ynxweb4.com/",
+      "publicCommit": "664b80b00ac576317524f25b49fc01d1c0db7196",
+      "version": {
+        "route": "/api/version",
+        "http": 200,
+        "bytes": 274,
+        "sha256": "f82629a1bd63e50f6721611cbf7866f86d7bffd51820b05a417590541c4653df"
+      },
+      "health": {
+        "route": "/api/health",
+        "http": 200,
+        "bytes": 462,
+        "sha256": "9f20f70d5719359683c2f2e4a0dabacd7003072d01b16e1930520ea79b01b4cb"
+      },
+      "guest": {
+        "finalURL": "https://quant.ynxweb4.com/#research",
+        "http": 200,
+        "language": "en",
+        "direction": "ltr",
+        "horizontalOverflow": false,
+        "createdTabDelta": 0,
+        "pageErrorCount": 0,
+        "latestResearchPendingControl": false,
+        "latestStorageRecoveryNotice": false
+      }
+    }
+  ],
+  "allObservedDownloadURLs": [
+    "https://www.ynxweb4.com/dapp/download",
+    "https://metamask.io/download/"
+  ],
+  "routingNotes": [
+    "Exchange bare /version and /health return HTML fallback; native API receipts were correctly read at /api/version and /api/health.",
+    "Quant bare /version and /health are 404; native receipts were read at /api/version and /api/health.",
+    "Initial exact URL changed only by normal same-origin internal fragment; this is not a blank/external-tab claim."
+  ],
+  "blocker": "Unique release owner A has not yet supplied/published the coherent immutable current-source product graph. Old healthy HTTP/version is not current UI/business acceptance.",
+  "truth": {
+    "directPublicGuestObservation": true,
+    "currentSourcePublished": false,
+    "realProviderApproval": false,
+    "realProductSession": false,
+    "realOrder": false,
+    "realSign": false,
+    "realTransaction": false,
+    "computerControl": false,
+    "installed": false,
+    "userAcceptance": false
+  }
+}

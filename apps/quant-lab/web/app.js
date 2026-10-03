@@ -8,6 +8,8 @@ let latestResearchMode = null;
 let latestResearchResult = null;
 let researchSubmitting = false;
 let lastToastKey = null;
+let lastToastSuffix = '';
+const riskWrites = new Set();
 let pendingMandate = null;
 let pendingOrder = null;
 let previewRevision = 0;
@@ -218,6 +220,21 @@ const paperRiskCopy = {
   id: ["Kas simulasi", "Posisi simulasi", "Rekonsiliasi", "Sakelar penghentian", "AKTIF", "Siap", "Aktifkan sakelar penghentian tersimpan untuk simulasi/Testnet?", "Sakelar penghentian aktif", "Rekonsiliasi selesai: tidak ada selisih"],
 };
 for (const [language, [paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled]] of Object.entries(paperRiskCopy)) Object.assign(businessCopy[language], {paperCash, paperPosition, paperReconciliation, paperKill, riskActive, riskArmed, confirmKill, killActive, reconciled});
+const riskReceiptCopy = {
+  en:['Reconciliation recorded a difference; kill switch is active','Risk operation response is unconfirmed. No successful risk state is claimed.'],
+  'zh-CN':['对账存在差额；停止开关已启用','风控操作响应未确认，不声明风控状态成功。'],
+  'zh-TW':['對帳存在差額；停止開關已啟用','風控操作回應未確認，不宣稱風控狀態成功。'],
+  ja:['照合に差額があります。キルスイッチは有効です','リスク操作の応答は未確認です。成功状態を主張しません。'],
+  ko:['대사 차이가 기록되었습니다. 킬 스위치가 활성화되었습니다','위험 작업 응답이 확인되지 않았습니다. 성공 상태로 표시하지 않습니다.'],
+  es:['Conciliación con diferencia; interruptor de emergencia activo','Respuesta de riesgo no confirmada. No se afirma un estado correcto.'],
+  fr:['Écart de rapprochement enregistré ; arrêt d’urgence actif','Réponse de risque non confirmée. Aucun état réussi n’est affirmé.'],
+  de:['Abstimmungsdifferenz erfasst; Kill-Switch aktiv','Risikoantwort unbestätigt. Kein erfolgreicher Zustand wird behauptet.'],
+  pt:['Diferença de conciliação registrada; bloqueio de emergência ativo','Resposta de risco não confirmada. Nenhum estado de sucesso é afirmado.'],
+  ru:['При сверке обнаружена разница; аварийная остановка активна','Ответ операции риска не подтверждён. Успешное состояние не заявляется.'],
+  ar:['سُجل فرق في المطابقة؛ مفتاح الإيقاف نشط','استجابة عملية المخاطر غير مؤكدة. لا يُدّعى نجاح الحالة.'],
+  id:['Selisih rekonsiliasi tercatat; kill switch aktif','Respons operasi risiko belum terkonfirmasi. Tidak ada klaim status berhasil.']
+};
+for(const [language,[reconcileDifference,riskReceiptUnconfirmed]] of Object.entries(riskReceiptCopy)) Object.assign(businessCopy[language],{reconcileDifference,riskReceiptUnconfirmed});
 const runDetailsCopy = {
   en: ["Run details and formulas", "Data digest", "Strategy digest", "Fee model (bps)", "Slippage model (bps)", "Latency (bars)", "Volume participation (bps)", "Training split (bars)", "Walk-forward windows", "Random seed", "Formulas reported by the research service for this result."],
   "zh-CN": ["本次运行详情与公式", "数据摘要", "策略摘要", "手续费模型（基点）", "滑点模型（基点）", "延迟（根K线）", "成交量参与率（基点）", "训练分界（根K线）", "滚动验证窗口数", "随机种子", "研究服务为本次结果返回的计算公式。"],
@@ -285,8 +302,8 @@ function applyLocale() {
   renderResearchRequestState();
   $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
   $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
-  for (const id of ['reconcile','kill']) $('#'+id).disabled = !statefulPreview;
-  if (lastToastKey) $("#toast").textContent = t(lastToastKey);
+  renderRiskControls();
+  if (lastToastKey) $("#toast").textContent = t(lastToastKey) + lastToastSuffix;
 }
 const api = async (path, opt = {}) => {
   const r = await fetch("/api" + path, {
@@ -301,8 +318,9 @@ const api = async (path, opt = {}) => {
   if (!r.ok) throw Object.assign(new Error(b.error || `HTTP ${r.status}`), {status: r.status});
   return b;
 };
-const toast = (m, key = null) => {
+const toast = (m, key = null, suffix = '') => {
   lastToastKey = key;
+  lastToastSuffix = suffix;
   const e = $("#toast");
   e.textContent = m;
   e.classList.add("show");
@@ -315,7 +333,7 @@ async function refresh() {
   snapshot = next;
   statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
   $("#workspace-boundary").hidden = statefulPreview;
-  for (const id of ["reconcile", "kill"]) $("#" + id).disabled = !statefulPreview;
+  renderRiskControls();
   render();
 }
 function currentWalletIdentity(state) {
@@ -605,7 +623,7 @@ $("#paper-order").onsubmit = async (e) => {
     paperSubmitting = false;
     $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
     $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
-    for (const id of ['reconcile','kill']) $('#'+id).disabled = !statefulPreview;
+    renderRiskControls();
     $("#paper-submit").disabled = !statefulPreview || !$("#paper-strategy").value;
   }
 };
@@ -759,34 +777,49 @@ $("#testnet-order-form").onsubmit = async (e) => {
     toast(e.message);
   }
 };
+function renderRiskControls() {
+  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.has(id); button.ariaBusy=String(riskWrites.has(id)); }
+}
+function confirmedRiskReceipt(value) {
+  if(!value||!Number.isSafeInteger(value.Cash)||!Number.isSafeInteger(value.Position)||!Number.isSafeInteger(value.ReconciliationDelta)||value.ReconciliationDelta<0||typeof value.KillSwitch!=='boolean'||value.ReconciliationDelta>0&&!value.KillSwitch) throw Object.assign(new Error(t('riskReceiptUnconfirmed')), {localeKey:'riskReceiptUnconfirmed'});
+  return value;
+}
 $("#reconcile").onclick = async () => {
-  if (!statefulPreview) return;
+  if (!statefulPreview || riskWrites.has('reconcile')) return;
+  riskWrites.add('reconcile');renderRiskControls();
   try {
-    await api("/v1/paper/reconcile", {
+    const receipt=confirmedRiskReceipt(await api("/v1/paper/reconcile", {
       method: "POST",
       body: JSON.stringify({
         Cash: snapshot.paper.Cash,
         Position: snapshot.paper.Position,
       }),
-    });
-    toast(t("reconciled"), "reconciled");
+    }));
+    if(receipt.ReconciliationDelta===0) toast(t('reconciled'),'reconciled');
+    else {const suffix=': '+String(receipt.ReconciliationDelta);toast(t('reconcileDifference')+suffix,'reconcileDifference',suffix)}
     await refresh();
   } catch (e) {
-    toast(e.message);
+    toast(e.message,e.localeKey??null);
+  } finally {
+    riskWrites.delete('reconcile');renderRiskControls();
   }
 };
 $("#kill").onclick = async () => {
-  if (!statefulPreview) return;
+  if (!statefulPreview || riskWrites.has('kill')) return;
   if (!confirm(t("confirmKill"))) return;
+  riskWrites.add('kill');renderRiskControls();
   try {
-    await api("/v1/risk/kill", {
+    const receipt=confirmedRiskReceipt(await api("/v1/risk/kill", {
       method: "POST",
       body: JSON.stringify({ reason: "operator user confirmation" }),
-    });
+    }));
+    if(!receipt.KillSwitch)throw Object.assign(new Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
     toast(t("killActive"), "killActive");
     await refresh();
   } catch (e) {
-    toast(e.message);
+    toast(e.message,e.localeKey??null);
+  } finally {
+    riskWrites.delete('kill');renderRiskControls();
   }
 };
 applyLocale();

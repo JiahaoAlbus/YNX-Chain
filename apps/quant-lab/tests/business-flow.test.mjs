@@ -32,7 +32,7 @@ class Element {
   append(...elements) {this.children.push(...elements);}
   replaceChildren(...elements) {this.children = elements;}
 }
-function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, storageBoundary} = {}) {
+function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, storageBoundary, confirmAction = () => false} = {}) {
   snapshot = {access: {statefulPreview: true}, ...snapshot};
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
@@ -55,7 +55,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, stora
     readPortfolio: () => {reads++; return portfolioRead ? portfolioRead(current) : Promise.resolve(receipt(current.account));},
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
-  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: () => false,
+  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
     fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
@@ -108,6 +108,28 @@ test('failed research unlocks a new explicit request without fabricating an expe
   let posts=0;const app=harness({snapshot:{access:{statefulPreview:false}},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:(posts++,Promise.reject(Error('Exact bounded source failure')))});await settle();
   await app.submit('backtest');assert.equal(posts,1);assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('research-request-status').hidden,true);assert.equal(app.ids.get('latest-result').hidden,true);assert.match(app.ids.get('toast').textContent,/Exact bounded source failure/);
   await app.submit('backtest');assert.equal(posts,2);assert.equal(app.proofs(),0);assert.equal(vm.runInContext('Object.keys(publicExperiments).length',app.context),0);
+});
+
+test('risk outcomes use confirmed zero or exact nonzero receipts without false zero-difference claims',async()=>{
+  for(const delta of [0,1,Number.MAX_SAFE_INTEGER]){
+    const receipt={Cash:1000,Position:0,ReconciliationDelta:delta,KillSwitch:delta!==0};
+    const app=harness({snapshot:{paper:receipt},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:receipt}:receipt});await settle();
+    await app.ids.get('reconcile').onclick();const message=app.ids.get('toast').textContent;
+    if(delta===0)assert.match(message,/zero difference/);else{assert.doesNotMatch(message,/zero difference/);assert.match(message,new RegExp(': '+delta+'$'));assert.match(message,/kill switch is active/);app.ids.get('locale').onchange({target:{value:'ar'}});assert.match(app.ids.get('toast').textContent,new RegExp(': '+delta+'$'))}
+    assert.equal(app.ids.get('reconcile').disabled,false);assert.equal(app.proofs(),0);
+  }
+});
+
+test('risk receipt mismatch is unconfirmed and pending operations coalesce without duplicate confirmations',async()=>{
+  for(const id of ['reconcile','kill']){
+    let confirmations=0;const pending=deferred(),receipt={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:id==='kill'};
+    const app=harness({snapshot:{paper:receipt},confirmAction:()=>{confirmations++;return true},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:receipt}:pending.promise});await settle();
+    const first=app.ids.get(id).onclick();await app.ids.get(id).onclick();assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(confirmations,id==='kill'?1:0);assert.equal(app.ids.get(id).disabled,true);
+    app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.ids.get(id).disabled,true);assert.equal(app.ids.get(id).ariaBusy,'true');pending.resolve(receipt);await first;assert.equal(app.ids.get(id).ariaBusy,'false');
+  }
+  for(const receipt of [{},{Cash:0,Position:0,ReconciliationDelta:1,KillSwitch:false},{Cash:0,Position:0,ReconciliationDelta:Number.MAX_SAFE_INTEGER+1,KillSwitch:true},{Cash:0,Position:0,ReconciliationDelta:0,KillSwitch:false}]){
+    const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:{}}:receipt});await settle();await app.ids.get('kill').onclick();assert.match(app.ids.get('toast').textContent,/unconfirmed/);assert.doesNotMatch(app.ids.get('toast').textContent,/Kill switch active/);assert.equal(app.ids.get('kill').disabled,false);
+  }
 });
 
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
