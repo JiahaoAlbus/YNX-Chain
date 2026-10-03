@@ -1,0 +1,13 @@
+{"width":320,"scroll":335,"elements":[{"tag":"BUTTON","id":"","class":"active","rect":[266.53125,120.515625]},{"tag":"BUTTON","id":"","class":"","rect":[389.046875,84]},{"tag":"BUTTON","id":"","class":"","rect":[475.046875,84]},{"tag":"BUTTON","id":"","class":"","rect":[561.046875,91.796875]},{"tag":"BUTTON","id":"","class":"","rect":[654.84375,89.359375]},{"tag":"BUTTON","id":"","class":"","rect":[746.203125,131.578125]},{"tag":"BUTTON","id":"","class":"","rect":[879.78125,166.546875]},{"tag":"BUTTON","id":"","class":"","rect":[1048.328125,223.171875]},{"tag":"BUTTON","id":"","class":"","rect":[1273.5,138.09375]},{"tag":"BUTTON","id":"","class":"","rect":[1413.59375,218.296875]},{"tag":"BUTTON","id":"","class":"","rect":[1633.890625,203.359375]},{"tag":"SPAN","id":"","class":"","rect":[165,170.046875]}]}
+AssertionError [ERR_ASSERTION]: creator 320 200% de overflow
+
+true !== false
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:10:1179 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

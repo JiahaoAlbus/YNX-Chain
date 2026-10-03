@@ -1,0 +1,2 @@
+PASS exit 0: swiftc -frontend -parse apps/video/ios/YNXVideo/ContentView.swift apps/music/ios/YNXMusic/YNXMusicApp.swift
+Syntax parsing only; full typecheck/build and installed UI NOT_VERIFIED. Prior SDK SwiftUIMacros missing-plugin failure remains in inherited evidence.

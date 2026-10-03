@@ -1,0 +1,13 @@
+{"width":320,"scroll":400,"elements":[{"tag":"DIV","id":"","class":"empty","rect":[16,383.828125]},{"tag":"H2","id":"","class":"","rect":[41,333.828125]},{"tag":"P","id":"","class":"","rect":[41,333.828125]}]}
+AssertionError [ERR_ASSERTION]: video 320 200% de overflow
+
+true !== false
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:10:1179 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

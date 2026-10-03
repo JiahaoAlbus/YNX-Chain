@@ -1,0 +1,13 @@
+{"width":320,"scroll":429,"elements":[{"tag":"STRONG","id":"","class":"","rect":[-16.59375,22.625]},{"tag":"SPAN","id":"","class":"","rect":[-108.59375,82]},{"tag":"BUTTON","id":"","class":"","rect":[-95.375,132]},{"tag":"BUTTON","id":"","class":"","rect":[-55.625,144.296875]},{"tag":"BUTTON","id":"","class":"","rect":[-146.703125,89.078125]},{"tag":"BUTTON","id":"","class":"","rect":[-227.96875,79.265625]}]}
+AssertionError [ERR_ASSERTION]: video 320 200% ar overflow
+
+true !== false
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:10:881 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

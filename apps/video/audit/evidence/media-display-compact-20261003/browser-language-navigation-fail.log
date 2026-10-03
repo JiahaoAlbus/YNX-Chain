@@ -1,0 +1,4 @@
+page.evaluate: Execution context was destroyed, most likely because of a navigation
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:10:286 {
+  name: 'Error'
+}
