@@ -26,11 +26,15 @@ public final class MainActivity extends Activity {
     private final PrivacyExport privacyExport=new PrivacyExport();
     private final android.os.Handler sessionClock=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Set<AlertDialog> privateDialogs=new HashSet<>();
+    private final AIPresentation aiPresentation=new AIPresentation();
+    private AlertDialog aiDialog;
+    private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
     private ProductSession presentationSession;
     private long presentationPrivacyGeneration=-1;
     private String presentationPrivacyPhase="";
-    private void showDialog(AlertDialog dialog){privateDialogs.add(dialog);dialog.setOnDismissListener(d->privateDialogs.remove(dialog));dialog.show();}
-    private void clearPrivatePresentation(){for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void showDialog(AlertDialog dialog){showDialog(dialog,()->{});}
+    private void showDialog(AlertDialog dialog,Runnable dismissed){privateDialogs.add(dialog);dialog.setOnDismissListener(d->{privateDialogs.remove(dialog);dismissed.run();});dialog.show();}
+    private void clearPrivatePresentation(){clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -45,10 +49,10 @@ public final class MainActivity extends Activity {
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
     @Override protected void onResume(){super.onResume();if(api!=null)reconcileSession();}
-    @Override protected void onPause(){sessionClock.removeCallbacksAndMessages(null);super.onPause();}
+    @Override protected void onPause(){clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
-    @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
+    @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleIntent(intent);}
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);if(!privacyExport.matches(requestCode))return;
@@ -63,7 +67,7 @@ public final class MainActivity extends Activity {
             status.setText(getString(R.string.privacy_export_ready));
         }catch(Exception error){privacyExport.cancel(requestCode);status.setText(getString(R.string.privacy_export_unavailable));}
     }
-    @Override protected void onDestroy(){privacyExport.clear();sessionClock.removeCallbacksAndMessages(null);for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();wallet.close();api.close();images.close();super.onDestroy();}
+    @Override protected void onDestroy(){clearAI();privacyExport.clear();sessionClock.removeCallbacksAndMessages(null);for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();wallet.close();api.close();images.close();super.onDestroy();}
 
     private void build(){
         LinearLayout root=column();root.setBackgroundColor(Color.WHITE);
@@ -88,7 +92,7 @@ public final class MainActivity extends Activity {
         setContentView(root);
     }
 
-    private void showCatalog(){
+    private void showCatalog(){clearAI();
         content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),30,true);content.addView(heading);
         TextView boundary=text(getString(R.string.payment_boundary),14,false);boundary.setTextColor(BLUE);boundary.setPadding(0,dp(8),0,dp(14));content.addView(boundary);
         LinearLayout search=row();EditText query=input(getString(R.string.search_hint));search.addView(query,new LinearLayout.LayoutParams(0,dp(52),1));Button run=primary(getString(R.string.search));search.addView(run);content.addView(search);
@@ -131,7 +135,7 @@ public final class MainActivity extends Activity {
     private void syncRemoteCart()throws Exception{if(hasSession())api.request("PUT","/cart",new JSONObject().put("Items",new JSONArray(cart.toString())),(v,e)->{});}
     private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
-    private void showCart(){
+    private void showCart(){clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),30,true));
         if(cart.length()==0){content.addView(text(getString(R.string.cart_empty),15,false));return;}
@@ -158,7 +162,7 @@ public final class MainActivity extends Activity {
         }catch(Exception error){status.setText(message(error));}
     }
 
-    private void showOrders(){
+    private void showOrders(){clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_orders),30,true));if(!hasSession()){content.addView(primaryWallet());return;}
         LinearLayout list=column();content.addView(list);status.setText(getString(R.string.loading));api.request("GET","/orders",null,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(message(error));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->showOrders());list.addView(retry);return;}
@@ -185,7 +189,7 @@ public final class MainActivity extends Activity {
     private void postOrder(JSONObject order,String endpoint,JSONObject body){api.request("POST","/orders/"+order.optString("ID")+"/"+endpoint,body,(v,e)->runOnUiThread(()->{status.setText(e==null?getString(R.string.loading):message(e));if(e==null)showOrders();}));}
     private void transition(JSONObject order,String action,String explanation){JSONObject body=new JSONObject();try{body.put("Action",action).put("Reason",explanation).put("Explanation",explanation).put("Body",explanation).put("Rating",action.equals("reviewed")?5:0).put("IdempotencyKey",UUID.randomUUID().toString());if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));return;}postOrder(order,"transition",body);}catch(Exception e){status.setText(message(e));}}
 
-    private void showAccount(){
+    private void showAccount(){clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_account),30,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);
@@ -271,11 +275,31 @@ public final class MainActivity extends Activity {
     }
 
     private void runAI(String workflow,String contextClass,String summary,long units){
-        if(!hasSession()){signIn();return;}showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.ai_compare)).setMessage(getString(R.string.ai_privacy)+"\n\n"+summary+"\n"+units+" AI units · "+LocaleController.aiLanguage(this)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.grant_permission),(d,w)->{
-            try{JSONObject body=new JSONObject().put("Workflow",workflow).put("ContextClasses",new JSONArray().put(contextClass)).put("ContextSummary",summary+"; outputLanguage="+LocaleController.aiLanguage(this)).put("EstimateUnits",units).put("PermissionGranted",true).put("IdempotencyKey",UUID.randomUUID().toString());api.request("POST","/ai/jobs",body,(job,error)->{if(error!=null){runOnUiThread(()->status.setText(message(error)));return;}String id=job.optString("ID");api.request("POST","/ai/jobs/"+id+"/run",new JSONObject(),(result,runError)->runOnUiThread(()->{if(runError!=null){status.setText(message(runError));return;}showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.ai_compare)).setMessage(result.optString("Result")).setNegativeButton(getString(R.string.reject_draft),(x,y)->aiDecision(id,"reject")).setPositiveButton(getString(R.string.apply_draft),(x,y)->aiDecision(id,"apply")).create());}));});}catch(Exception e){status.setText(message(e));}
-        }).create());
+        if(!hasSession()){signIn();return;}clearAI();final long attempt=aiPresentation.begin();final boolean[] granted={false};
+        aiDialog=new AlertDialog.Builder(this).setTitle(getString(R.string.ai_compare)).setMessage(getString(R.string.ai_privacy)+"\n\n"+summary+"\n"+units+" AI units · "+LocaleController.aiLanguage(this)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.grant_permission),(d,w)->{
+            if(!aiPresentation.current(attempt))return;granted[0]=true;
+            try{
+                JSONObject body=new JSONObject().put("Workflow",workflow).put("ContextClasses",new JSONArray().put(contextClass)).put("ContextSummary",summary+"; outputLanguage="+LocaleController.aiLanguage(this)).put("EstimateUnits",units).put("PermissionGranted",true).put("IdempotencyKey",UUID.randomUUID().toString());
+                api.request("POST","/ai/jobs",body,()->aiPresentation.current(attempt),(job,error)->{
+                    if(!aiPresentation.current(attempt))return;if(error!=null){status.setText(message(error));return;}
+                    String id=job.optString("ID");
+                    api.request("POST","/ai/jobs/"+id+"/run",new JSONObject(),()->aiPresentation.current(attempt),(result,runError)->{
+                        if(!aiPresentation.current(attempt))return;if(runError!=null){status.setText(message(runError));return;}
+                        final boolean[] decided={false};
+                        aiDialog=new AlertDialog.Builder(this).setTitle(getString(R.string.ai_compare)).setMessage(result.optString("Result"))
+                            .setNegativeButton(getString(R.string.reject_draft),(x,y)->{decided[0]=true;aiDecision(id,"reject",attempt);})
+                            .setPositiveButton(getString(R.string.apply_draft),(x,y)->{decided[0]=true;aiDecision(id,"apply",attempt);}).create();
+                        showDialog(aiDialog,()->{if(!decided[0])aiPresentation.cancel(attempt);});
+                    });
+                });
+            }catch(Exception error){if(aiPresentation.current(attempt))status.setText(message(error));}
+        }).create();
+        showDialog(aiDialog,()->{if(!granted[0])aiPresentation.cancel(attempt);});
     }
-    private void aiDecision(String id,String decision){api.request("POST","/ai/jobs/"+id+"/decision",json("Decision",decision),(v,e)->runOnUiThread(()->status.setText(e==null?decision:message(e))));}
+    private void aiDecision(String id,String decision,long attempt){
+        if(!aiPresentation.current(attempt))return;
+        api.request("POST","/ai/jobs/"+id+"/decision",json("Decision",decision),()->aiPresentation.current(attempt),(v,e)->{if(aiPresentation.current(attempt))status.setText(e==null?decision:message(e));});
+    }
 
     private void signIn(){wallet.start((account,error)->runOnUiThread(()->status.setText(error==null?getString(R.string.loading):message(error))));}
     private void handleIntent(Intent intent){Uri data=intent==null?null:intent.getData();if(data!=null&&"wallet-auth".equals(data.getHost()))wallet.complete(data,(account,error)->runOnUiThread(()->{status.setText(error==null?getString(R.string.wallet_active):getString(R.string.security_error)+" "+message(error));if(error==null){reconcileSession();showAccount();}}));}

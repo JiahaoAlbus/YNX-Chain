@@ -12,6 +12,7 @@ for (const file of [
   'privacy-i18n.js',
   'app.js',
   'request-context.js',
+  'checkout-recovery.js',
   'ai-stream.js',
   'manifest.webmanifest',
   'sw.js',

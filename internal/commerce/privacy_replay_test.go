@@ -458,7 +458,7 @@ func TestPrivacySchemaV7MigrationPreservesExistingIdempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.s.Version != 8 || s.s.RetiredIdempotency == nil || s.s.BuyerDeletions == nil || !reflect.DeepEqual(expected, s.s.Idempotency[idemMapKey(buyer, "order.create", input.IdempotencyKey)]) {
+	if s.s.Version != CurrentPersistenceSchemaVersion || s.s.RetiredIdempotency == nil || s.s.BuyerDeletions == nil || !reflect.DeepEqual(expected, s.s.Idempotency[idemMapKey(buyer, "order.create", input.IdempotencyKey)]) {
 		t.Fatal("v7 migration changed an existing idempotency record")
 	}
 	if result, err := s.CreateOrder(buyer, input); err != nil || result.ID != order.ID {

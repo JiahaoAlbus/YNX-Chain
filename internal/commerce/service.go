@@ -33,6 +33,7 @@ type OrderInput struct {
 	Items          []CartItem
 	Address        Address
 	IdempotencyKey string
+	CartRevision   *string `json:"CartRevision,omitempty"`
 }
 
 func (s *Store) CreateStore(actor string, in CreateStoreInput) (StoreProfile, error) {
@@ -371,14 +372,9 @@ func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
 	return cloneProduct(p), nil
 }
 
-func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
+func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.recoverExpiredLocked() {
-		if err := s.persistLocked(); err != nil {
-			return Order{}, err
-		}
-	}
 	if len(in.Items) == 0 || len(in.Items) > 50 {
 		return Order{}, errors.New("one to fifty cart items required")
 	}
@@ -399,6 +395,19 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 		}
 		return cloneOrder(o), nil
 	}
+	if in.CartRevision != nil && (*in.CartRevision != s.s.Carts[actor].Revision || !sameCartItems(in.Items, s.s.Carts[actor].Items)) {
+		return Order{}, ErrCartRevisionConflict
+	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Order{}, err
+	}
+	defer func() {
+		if resultErr != nil {
+			s.s = before
+		}
+	}()
+	s.recoverExpiredLocked()
 	lines := []OrderLine{}
 	var total int64
 	seen := map[string]bool{}
@@ -448,6 +457,11 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 	}
 	now := s.now()
 	o := Order{ID: newID("order"), Buyer: actor, StoreID: in.StoreID, Status: "payment_pending", Currency: NativeSymbol, Lines: lines, Address: in.Address, SubtotalYNXT: total, TotalYNXT: total, TaxStatus: "unavailable_no_tax_service", LogisticsStatus: "unavailable_no_logistics_provider", RefundStatus: "not_requested", TrustStatus: "not_requested", ReservationExpiresAt: now.Add(30 * time.Minute), CreatedAt: now, UpdatedAt: now}
+	if in.CartRevision != nil {
+		c := Cart{Buyer: actor, Revision: newID("cart"), Items: []CartItem{}, UpdatedAt: now}
+		s.s.Carts[actor] = c
+		o.CartConsumption = &CartConsumption{PreviousRevision: *in.CartRevision, Revision: c.Revision}
+	}
 	s.orderEventLocked(&o, actor, "buyer", "order_created", "payment_pending", "inventory reserved; authoritative Pay evidence required")
 	s.s.Orders[o.ID] = o
 	s.recordIdempotencyLocked(actor, "order.create", in.IdempotencyKey, h, o.ID)

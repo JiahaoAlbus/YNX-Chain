@@ -57,6 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/privacy/delete", s.deleteBuyerData)
 	s.mux.HandleFunc("GET /api/orders", s.orders)
 	s.mux.HandleFunc("POST /api/orders", s.createOrder)
+	s.mux.HandleFunc("POST /api/orders/intent-lookup", s.orderIntentLookup)
 	s.mux.HandleFunc("GET /api/orders/{id}", s.order)
 	s.mux.HandleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
 	s.mux.HandleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
@@ -175,7 +176,11 @@ func write(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func fail(w http.ResponseWriter, status int, err error) {
-	write(w, status, map[string]string{"error": err.Error()})
+	payload := map[string]string{"error": err.Error()}
+	if errors.Is(err, ErrCartRevisionConflict) {
+		payload["code"] = "CART_REVISION_CONFLICT"
+	}
+	write(w, status, payload)
 }
 func status(err error) int {
 	switch {
@@ -365,11 +370,14 @@ func (s *Server) saveCart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var in struct{ Items []CartItem }
+	var in struct {
+		Items            []CartItem
+		ExpectedRevision *string
+	}
 	if !decode(w, r, &in) {
 		return
 	}
-	v, err := s.store.SaveCart(sess.Account, in.Items)
+	v, err := s.store.SaveCartRevision(sess.Account, in.Items, in.ExpectedRevision)
 	if err != nil {
 		fail(w, status(err), err)
 		return
@@ -436,6 +444,22 @@ func (s *Server) order(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, v)
+}
+func (s *Server) orderIntentLookup(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "buyer")
+	if !ok {
+		return
+	}
+	var in struct{ IdempotencyKey string }
+	if !decode(w, r, &in) {
+		return
+	}
+	order, err := s.store.OrderIntent(sess.Account, in.IdempotencyKey)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, order)
 }
 func (s *Server) createOrder(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer")

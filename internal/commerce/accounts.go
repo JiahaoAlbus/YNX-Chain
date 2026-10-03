@@ -58,8 +58,14 @@ func (s *Store) Cart(actor string) Cart {
 	return c
 }
 func (s *Store) SaveCart(actor string, items []CartItem) (Cart, error) {
+	return s.SaveCartRevision(actor, items, nil)
+}
+func (s *Store) SaveCartRevision(actor string, items []CartItem, expected *string) (Cart, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if expected != nil && *expected != s.s.Carts[actor].Revision {
+		return Cart{}, ErrCartRevisionConflict
+	}
 	if len(items) > 50 {
 		return Cart{}, errors.New("cart exceeds 50 lines")
 	}
@@ -92,10 +98,15 @@ func (s *Store) SaveCart(actor string, items []CartItem) (Cart, error) {
 			return Cart{}, ErrNotFound
 		}
 	}
-	c := Cart{Buyer: actor, Items: append([]CartItem(nil), items...), UpdatedAt: s.now()}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Cart{}, err
+	}
+	c := Cart{Revision: newID("cart"), Buyer: actor, Items: append([]CartItem(nil), items...), UpdatedAt: s.now()}
 	s.s.Carts[actor] = c
 	s.auditLocked(actor, "buyer", "cart_saved", "cart", actor, "approved", "persistent cart updated")
 	if err := s.persistLocked(); err != nil {
+		s.s = before
 		return Cart{}, err
 	}
 	c.Items = append([]CartItem(nil), c.Items...)

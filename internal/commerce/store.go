@@ -20,20 +20,21 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 8
+	CurrentPersistenceSchemaVersion = 9
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
 
 var (
-	ErrNotFound           = errors.New("not found")
-	ErrUnauthorized       = errors.New("unauthorized")
-	ErrConflict           = errors.New("conflict")
-	ErrUnavailable        = errors.New("unavailable")
-	ErrRateLimited        = errors.New("rate limited")
-	ErrInvalidState       = errors.New("invalid state transition")
-	ErrInventory          = errors.New("insufficient inventory")
-	ErrPersistenceVersion = errors.New("unsupported commerce persistence schema version")
+	ErrNotFound             = errors.New("not found")
+	ErrUnauthorized         = errors.New("unauthorized")
+	ErrConflict             = errors.New("conflict")
+	ErrCartRevisionConflict = fmt.Errorf("%w: cart changed; refresh before retrying", ErrConflict)
+	ErrUnavailable          = errors.New("unavailable")
+	ErrRateLimited          = errors.New("rate limited")
+	ErrInvalidState         = errors.New("invalid state transition")
+	ErrInventory            = errors.New("insufficient inventory")
+	ErrPersistenceVersion   = errors.New("unsupported commerce persistence schema version")
 )
 
 type PersistenceRollbackReport struct {
@@ -300,9 +301,12 @@ func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
 
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
-		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3, v4, v5, v6 or v7", ErrPersistenceVersion)
+		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v8", ErrPersistenceVersion)
 	}
-	if hasPrivacyProtection(s.s) {
+	if hasCartProtection(s.s) {
+		return nil, fmt.Errorf("%w: older snapshots cannot preserve cart revisions", ErrConflict)
+	}
+	if targetVersion < 8 && hasPrivacyProtection(s.s) {
 		return nil, fmt.Errorf("%w: Snapshot v%d cannot enforce retired idempotency keys", ErrConflict, targetVersion)
 	}
 	if targetVersion < 7 && len(s.s.ProviderConfigs) > 0 {
@@ -331,7 +335,9 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
-	fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
+	if targetVersion < 8 {
+		fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
+	}
 	if targetVersion < 7 {
 		fields = omitRawFields(fields, "ProviderConfigs")
 	}
@@ -542,6 +548,9 @@ func RollbackCommercePersistence(path string, key []byte, targetVersion int) (Pe
 		return report, fmt.Errorf("verify commerce state for rollback: %w", err)
 	}
 	snapshot = probe.s
+	if hasCartProtection(snapshot) {
+		return report, fmt.Errorf("%w: older snapshots cannot preserve cart revisions", ErrConflict)
+	}
 	if hasPrivacyProtection(snapshot) {
 		return report, fmt.Errorf("%w: Snapshot v%d cannot enforce retired idempotency keys", ErrConflict, targetVersion)
 	}

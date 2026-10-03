@@ -17,6 +17,14 @@ final class ApiClient {
     private final Handler main=new Handler(Looper.getMainLooper());
     private final SecureStore secure;
     private volatile boolean closed;
+    private Runnable sessionRejected=()->{};
+    void onSessionRejected(Runnable listener){sessionRejected=listener;}
+    private void observeResponse(String method,String path,ProductSession expected,Response response)throws Exception{
+        if(!rejectsSession(method,path,expected,response.status))return;
+        try{secure.rejectSession(expected);}finally{main.post(()->{if(!closed)sessionRejected.run();});}
+    }
+    static boolean rejectsSession(String method,String path,ProductSession expected,int status){return status==401&&expected!=null&&!publicRoute(method,path);}
+    private static boolean publicRoute(String method,String path){return path.startsWith("/auth/")||(method.equals("GET")&&(path.equals("/capabilities")||path.equals("/products")||path.startsWith("/products/")||path.startsWith("/stores/")));}
     ApiClient(SecureStore secure){this.secure=secure;}
     ProductSession session()throws Exception{secure.privacy();return ProductSession.parse(secure.get("commerce_session"),Instant.now());}
     PrivacyLifecycle privacy()throws Exception{return secure.privacy();}
@@ -30,15 +38,16 @@ final class ApiClient {
         if(expected==null)throw new SecurityException("Connect Wallet for an active Shop session");
         return privacy().admit(expected.account,method,path,body);
     }
-    void request(String method,String path,JSONObject body,Callback callback){
+    void request(String method,String path,JSONObject body,Callback callback){request(method,path,body,()->true,callback);}
+    void request(String method,String path,JSONObject body,ContextCheck presentation,Callback callback){
         final ProductSession expected;final JSONObject frozen;final PrivacyLifecycle.Ticket ticket;final long generation;
         try{expected=session();frozen=body==null?null:new JSONObject(body.toString());ticket=admit(method,path,frozen,expected);generation=expected==null?0:privacy().generation(expected.account);}
         catch(Exception error){callback.done(null,error);return;}
         try{executor.execute(()->{
             JSONObject value=null;Exception error=null;
-            try{value=execute(method,path,frozen,expected,ticket);}catch(Exception failure){error=failure;}
+            try{value=executeTracked(privacy(),ticket,()->current(expected)&&presentation.current()&&(ticket==null||privacy().current(ticket.account,ticket.generation)),()->network(method,path,frozen,expected),response->observeResponse(method,path,expected,response));}catch(Exception failure){error=failure;}
             final JSONObject result=value;final Exception failure=error;
-            main.post(()->{try{if(context(expected,generation))callback.done(result,failure);}catch(Exception ignored){}});
+            main.post(()->{try{if(context(expected,generation)&&presentation.current())callback.done(result,failure);}catch(Exception ignored){}});
         });}catch(Exception error){try{privacy().notSent(ticket);}catch(Exception storage){error.addSuppressed(storage);}if(!closed)callback.done(null,error);}
     }
     JSONObject requestSync(String method,String path,JSONObject body)throws Exception{return requestForSession(method,path,body,session());}
@@ -54,13 +63,15 @@ final class ApiClient {
         PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);return execute(method,path,frozen,expected,ticket);
     }
     private JSONObject execute(String method,String path,JSONObject body,ProductSession expected,PrivacyLifecycle.Ticket ticket)throws Exception{
-        return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),()->network(method,path,body,expected));
+        return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),()->network(method,path,body,expected),response->observeResponse(method,path,expected,response));
     }
     interface ContextCheck { boolean current() throws Exception; }
     interface NetworkCall { Response send() throws Exception; }
     // The production network path uses this seam; JVM tests can drive genuine
     // admission/dispatch/result ordering without pretending to exercise Android.
-    static JSONObject executeTracked(PrivacyLifecycle lifecycle,PrivacyLifecycle.Ticket ticket,ContextCheck context,NetworkCall network)throws Exception{
+    interface ResponseObserver { void received(Response response)throws Exception; }
+    static JSONObject executeTracked(PrivacyLifecycle lifecycle,PrivacyLifecycle.Ticket ticket,ContextCheck context,NetworkCall network)throws Exception{return executeTracked(lifecycle,ticket,context,network,response->{});}
+    static JSONObject executeTracked(PrivacyLifecycle lifecycle,PrivacyLifecycle.Ticket ticket,ContextCheck context,NetworkCall network,ResponseObserver observer)throws Exception{
         boolean dispatched=false,recorded=false;
         try{
             if(!context.current()){lifecycle.notSent(ticket);throw new SecurityException("Product session changed");}
@@ -68,7 +79,7 @@ final class ApiClient {
             Response response=network.send();
             // Record the authoritative response even when the Activity was
             // destroyed or the current account changed while HTTP was running.
-            if(ticket!=null){lifecycle.outcome(ticket,definitive(response.status));recorded=true;}
+            try{if(ticket!=null){lifecycle.outcome(ticket,definitive(response.status));recorded=true;}}finally{observer.received(response);}
             if(!context.current())throw new SecurityException("Product session changed");
             if(response.status<200||response.status>=300)throw new ApiException(response.status,response.value.optString("error","Request failed "+response.status));
             return response.value;
@@ -93,6 +104,7 @@ final class ApiClient {
                 if(response.status>=200&&response.status<300){privacy().confirm(expected.account,request,response.value);result=response.value;}
                 else{
                     if(!retry&&definitive(response.status))privacy().rejected(expected.account,request);else privacy().markUnknown(expected.account,request);
+                    observeResponse("POST","/privacy/delete",expected,response);
                     throw new ApiException(response.status,response.value.optString("error","Deletion was not confirmed"));
                 }
             }catch(Exception error){failure=error;if(request!=null)try{privacy().markUnknown(expected.account,request);}catch(Exception storage){error.addSuppressed(storage);}}
@@ -102,7 +114,7 @@ final class ApiClient {
     }
     static final class Response{final int status;final JSONObject value;Response(int status,JSONObject value){this.status=status;this.value=value;}}
     private Response network(String method,String path,JSONObject body,ProductSession expected)throws Exception{
-        boolean publicRoute=path.startsWith("/auth/")||path.equals("/capabilities")||path.startsWith("/products")||path.startsWith("/stores/");
+        boolean publicRoute=publicRoute(method,path);
         if(!publicRoute&&expected==null)throw new SecurityException("Connect Wallet for an active Shop session");
         URL url=new URL(BuildConfig.API_BASE_URL+"/api"+path);if(!url.getProtocol().equals("https")&&!BuildConfig.DEBUG)throw new SecurityException("release API requires HTTPS");
         HttpURLConnection connection=(HttpURLConnection)url.openConnection();
@@ -110,7 +122,9 @@ final class ApiClient {
             connection.setConnectTimeout(8000);connection.setReadTimeout(12000);connection.setRequestMethod(method);connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Content-Type","application/json");
             if(expected!=null)connection.setRequestProperty("Authorization","Bearer "+expected.token);
             if(body!=null){connection.setDoOutput(true);try(OutputStream out=connection.getOutputStream()){out.write(body.toString().getBytes(StandardCharsets.UTF_8));}}
-            int status=connection.getResponseCode();String text=read(status>=200&&status<300?connection.getInputStream():connection.getErrorStream());return new Response(status,text.isEmpty()?new JSONObject():new JSONObject(text));
+            int status=connection.getResponseCode();
+            try{String text=read(status>=200&&status<300?connection.getInputStream():connection.getErrorStream());return new Response(status,text.isEmpty()?new JSONObject():new JSONObject(text));}
+            catch(Exception malformed){if(status==401)return new Response(status,new JSONObject().put("error","Shop session rejected"));throw malformed;}
         }finally{connection.disconnect();}
     }
     void close(){closed=true;executor.shutdownNow();main.removeCallbacksAndMessages(null);}

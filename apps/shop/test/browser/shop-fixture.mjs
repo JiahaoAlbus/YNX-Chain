@@ -2,6 +2,7 @@ import {test as base,expect} from '@playwright/test';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
+import {randomUUID} from 'node:crypto';
 
 export const test=base.extend({
   shopServer:[async({},use)=>{
@@ -21,18 +22,18 @@ export {expect};
 // Gateway/business responses. This is not installed Wallet or canonical v2 SSO.
 export async function installPrivateShop(page,{cart=[],orders=[],profile={DisplayName:'Private buyer',Addresses:[{Recipient:'QA recipient',Line1:'Private QA address',City:'QA city',Country:'QA'}]},beforeNavigate,waitForSession=true}={}){
   const account='ynx1'+'q'.repeat(38),expiresAt=new Date(Date.now()+120000).toISOString();
-  const pending={version:'1',nonce:'shop-controlled-private-ui',chainId:'ynx_6423-1',requestingProduct:'shop-buyer',productClientId:'ynx-shop-v1',bundleId:'com.ynxweb4.shop',productDeviceAlgorithm:'p256-sha256',productDeviceKey:'controlled-device-binding',callback:'ynxshop://wallet-auth/callback',purpose:'Controlled local Shop UI test',scopes:['account:read','shop:orders:write','shop:profile:write'],expiresAt};
+  const pending={version:'1',nonce:randomUUID(),chainId:'ynx_6423-1',requestingProduct:'shop-buyer',productClientId:'ynx-shop-v1',bundleId:'com.ynxweb4.shop',productDeviceAlgorithm:'p256-sha256',productDeviceKey:'controlled-device-binding',callback:'ynxshop://wallet-auth/callback',purpose:'Controlled local Shop UI test',scopes:['account:read','shop:orders:write','shop:profile:write'],expiresAt};
   const response={...pending,account,grantedScopes:pending.scopes,requestDigest:'shop-controlled-ui-digest'};
   await page.addInitScript(value=>sessionStorage.setItem('ynx_wallet_pending',JSON.stringify(value)),pending);
   const product={ID:'qa-product',StoreID:'qa-store',Title:'QA product',Category:'tech',Description:'Controlled source fixture',Variants:[{ID:'qa-variant',Name:'QA variant',PriceYNXT:8,Inventory:20,Reserved:0}],Media:[]};
-  const state={cart,orders,profile,product},requests=[];
+  const state={cart,cartRevision:'qa-cart-v1',orders,profile,product},requests=[];
   await page.route('**/api/**',async route=>{
     const request=route.request(),path=new URL(request.url()).pathname;requests.push({path,method:request.method(),body:request.postDataJSON()});let body;
     if(path==='/api/auth/gateway/challenges')body={challenge:{nonce:'controlled-shop-challenge'}};
     else if(path==='/api/auth/gateway/sessions')body={account,token:'shop-controlled-product-bearer-1234567890',expiresAt};
     else if(path==='/api/capabilities')body={paySettlement:'unavailable',tax:'unavailable',logistics:'unavailable',aiProvider:'controlled-qa',privacyData:'available'};
     else if(path==='/api/products')body={products:[product]};
-    else if(path==='/api/cart')body={Items:state.cart};
+    else if(path==='/api/cart')body={Items:state.cart,Revision:state.cartRevision};
     else if(path==='/api/profile')body={profile:state.profile};
     else if(path==='/api/orders')body={orders:state.orders};
     else if(path==='/api/stores/qa-store')body={Name:'QA store',Policy:'Controlled QA policy'};

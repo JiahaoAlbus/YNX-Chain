@@ -65,6 +65,7 @@ type BuyerDeletionRecord struct {
 }
 
 type Cart struct {
+	Revision  string
 	Buyer     string
 	Items     []CartItem
 	UpdatedAt time.Time
@@ -150,7 +151,10 @@ type RefundEvidence struct {
 	RecordedAt                                                                                                        time.Time
 }
 
+type CartConsumption struct{ PreviousRevision, Revision string }
+
 type Order struct {
+	CartConsumption                                                                             *CartConsumption `json:",omitempty"`
 	ID, Buyer, StoreID, Status, Currency, InvoiceID, PayIntentID, PayMerchant, PayPayoutAddress string
 	Lines                                                                                       []OrderLine
 	Address                                                                                     Address
@@ -269,6 +273,10 @@ func cloneProduct(product Product) Product {
 // Orders contain mutable evidence pointers as well as line and timeline slices.
 // Keep stored records and response snapshots independent after releasing the lock.
 func cloneOrder(order Order) Order {
+	if order.CartConsumption != nil {
+		v := *order.CartConsumption
+		order.CartConsumption = &v
+	}
 	order.Lines = append([]OrderLine(nil), order.Lines...)
 	order.Timeline = append([]OrderEvent(nil), order.Timeline...)
 	if order.Settlement != nil {

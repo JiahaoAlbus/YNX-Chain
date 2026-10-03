@@ -22,6 +22,7 @@ final class SecureStore implements OfflineMutationQueue.Storage, PrivacyLifecycl
     private final StableValues values;
     private static SecureStore shared;
     private PrivacyLifecycle privacy;
+    private final SessionRevocation sessionRevocation=new SessionRevocation();
 
     static synchronized SecureStore open(Context context){if(shared==null)shared=new SecureStore(context.getApplicationContext());return shared;}
     private SecureStore(Context context) {
@@ -54,6 +55,17 @@ final class SecureStore implements OfflineMutationQueue.Storage, PrivacyLifecycl
     }
 
     public synchronized String get(String key) throws Exception {
+        String raw=readUnfiltered(key);
+        if(key.equals("commerce_session")&&!sessionRevocation.allows(raw,java.time.Instant.now()))return "";
+        return raw;
+    }
+    synchronized void rejectSession(ProductSession expected)throws Exception{
+        sessionRevocation.reject(expected,new SessionRevocation.Storage(){
+            public String read()throws Exception{return readUnfiltered("commerce_session");}
+            public void remove()throws Exception{SecureStore.this.remove("commerce_session");}
+        },java.time.Instant.now());
+    }
+    private String readUnfiltered(String key)throws Exception {
         String encoded = values.get(key);
         if (encoded == null || encoded.isEmpty()) return "";
         String[] pieces = encoded.split("\\.", 2);

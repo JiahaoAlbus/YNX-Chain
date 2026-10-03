@@ -24,7 +24,7 @@ export function createRequestContext(identity, { timeoutMs = 15000 } = {}) {
       const response = await fetcher(url, { ...options, signal: controller.signal });
       const data = await decode(response);
       assertCurrent();
-      if (!response.ok) throw Object.assign(new Error(data.error || `Request failed ${response.status}`), { status: response.status });
+      if (!response.ok) throw Object.assign(new Error(data.error || `Request failed ${response.status}`), { status: response.status, code: data.code });
       return data;
     } catch (error) { assertCurrent(); throw error; }
     finally { clearTimeout(timer); active.delete(controller); options.signal?.removeEventListener('abort', abort); }
