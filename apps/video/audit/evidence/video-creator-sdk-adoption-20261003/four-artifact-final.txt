@@ -1,0 +1,22 @@
+[
+  {
+    "artifact": "ynx-creator-9c2fad0d8-normal.tar.gz",
+    "sha256": "61c58fe5613aa2fd89948fff3ebe76974a85e880aa2baacc09e58814099de603",
+    "publicFiles": 26
+  },
+  {
+    "artifact": "ynx-creator-9c2fad0d8-recovery.tar.gz",
+    "sha256": "c79b1740362f41fdd85bc9bced09175414e99dfa500c2ef2983744e30aa42464",
+    "publicFiles": 9
+  },
+  {
+    "artifact": "ynx-viewer-9c2fad0d8-normal.tar.gz",
+    "sha256": "c7df644ac2b03fca92def7d8f457551328003c47e69a2119bdd4504c7cef7fc8",
+    "publicFiles": 32
+  },
+  {
+    "artifact": "ynx-viewer-9c2fad0d8-recovery.tar.gz",
+    "sha256": "ef2e21b5ff144fd4041e0bfb0221baa9a4b59d99d7953ec5bddb72a35a5c37b1",
+    "publicFiles": 9
+  }
+]

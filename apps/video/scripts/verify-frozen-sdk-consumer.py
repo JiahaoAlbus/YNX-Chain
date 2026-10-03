@@ -9,6 +9,7 @@ parser.add_argument('--evidence', required=True)
 parser.add_argument('--central-source-package', help='Exact A complete16195 or Music successor frozen fixture package; enables actual loopback authority tests')
 args = parser.parse_args()
 owned = pathlib.Path(__file__).resolve().parents[3]
+visible_owned_paths = set(subprocess.check_output(['git', '-C', str(owned), 'ls-files', '--cached', '--others', '--exclude-standard']).decode().splitlines())
 shared = pathlib.Path(args.shared_repository).resolve()
 evidence = pathlib.Path(args.evidence).resolve()
 evidence.mkdir(parents=True, exist_ok=True)
@@ -66,7 +67,7 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
         browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs']
         for product in ['video', 'creator-studio']:
             for path in (owned / 'apps' / product).rglob('*'):
-                if path.is_file() and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
+                if path.is_file() and str(path.relative_to(owned)) in visible_owned_paths and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] or part.startswith('.') for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
                     browser_inputs.append(path)
         for path in sorted(browser_inputs):
             if path.is_file():

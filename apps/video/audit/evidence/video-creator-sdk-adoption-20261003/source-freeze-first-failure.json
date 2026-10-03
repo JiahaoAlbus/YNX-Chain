@@ -1,0 +1,6 @@
+{
+  "sourceCommit": "9c2fad0d8ac6f767bdcdf8b5f5acf8ba1cf28b44",
+  "checkpointCreated": false,
+  "archiveCreated": false,
+  "cause": "Composition copied ignored .qa-runtime input which is absent from frozen Git. It was not executed by normal public routes. Exact-source guard rejected freeze. Source-visible and hidden-directory filter fixed; repeat exact source composition required."
+}
