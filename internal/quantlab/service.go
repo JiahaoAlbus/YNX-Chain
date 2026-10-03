@@ -953,12 +953,13 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	idleCapitalSamples := int64(0)
 	fast := int(st.Params["fast"])
 	slow := int(st.Params["slow"])
-	if fast < 2 {
-		fast = 3
+	// User defaults/ordering were normalized before simulation. Sensitivity
+	// variants may legitimately have equal windows or a one-bar fast average;
+	// silently replacing them with defaults changes the experiment being shown.
+	if fast < 1 || slow < 1 {
+		return Metrics{}, PnLAttribution{}, nil, researchInvalid("windows")
 	}
-	if slow <= fast {
-		slow = 8
-	}
+	lookback := max(fast, slow)
 	if startIndex < 1 {
 		startIndex = 1
 	}
@@ -987,7 +988,7 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 			continue
 		}
 		signalAt := i - 1 - a.LatencyBars
-		if signalAt < slow-1 {
+		if signalAt < lookback-1 {
 			recordEquity(i)
 			continue
 		}
