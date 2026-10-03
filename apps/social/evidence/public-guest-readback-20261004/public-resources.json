@@ -1,0 +1,61 @@
+{
+  "observed_at": "2026-10-03T16:07:42.785Z",
+  "owner_commit": "b04a73f0f67ad234f4a0abbcef2eff557a0af753",
+  "public_deployment_id": null,
+  "source_bound_current_owner": false,
+  "reason": "Public app.js does not match owner source; no embedded source identity. Request-region x-vercel-id is not deployment identity.",
+  "resources": [
+    {
+      "url": "https://social.ynxweb4.com/wallet-provider.js",
+      "status": 200,
+      "path": "wallet-provider.js",
+      "bytes": 7749,
+      "sha256": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75",
+      "observed_git_blob": "9ec356e2d1975b7a7c1c2cfcbc9fe2e96c1659bf",
+      "owner_source_path": "apps/social/web/wallet-provider.js",
+      "owner_git_blob": "35cc1edfa8fd4e67624a49d67382da1d239183a6",
+      "owner_exact": false,
+      "etag": "W/\"55c1245a0b2f599cb3595ffaa917907a\"",
+      "last_modified": "Sat, 03 Oct 2026 11:43:02 GMT"
+    },
+    {
+      "url": "https://social.ynxweb4.com/",
+      "status": 200,
+      "path": "index.html",
+      "bytes": 6098,
+      "sha256": "783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b",
+      "observed_git_blob": "3c05492a95c89afddf0e55cac33726d8fa6811cc",
+      "owner_source_path": "apps/social/web/index.html",
+      "owner_git_blob": "30bc8e16c13aced46669bd0a4bd1d6a946769d8c",
+      "owner_exact": false,
+      "etag": "W/\"c5b6ed26f2d8a92e40b4bf48155aac31\"",
+      "last_modified": "Thu, 01 Oct 2026 13:33:30 GMT"
+    },
+    {
+      "url": "https://social.ynxweb4.com/assets/ynx-wallet.svg",
+      "status": 200,
+      "path": "assets--ynx-wallet.svg",
+      "bytes": 280,
+      "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb",
+      "observed_git_blob": "31244000a7f815f45fddbfe1d7639fc7468ee06e",
+      "owner_source_path": "apps/social/web/assets/ynx-wallet.svg",
+      "owner_git_blob": "31244000a7f815f45fddbfe1d7639fc7468ee06e",
+      "owner_exact": true,
+      "etag": "\"fae936159d05194d8f26e2d3632f78e0\"",
+      "last_modified": "Thu, 01 Oct 2026 13:33:30 GMT"
+    },
+    {
+      "url": "https://social.ynxweb4.com/assets/metamask.svg",
+      "status": 200,
+      "path": "assets--metamask.svg",
+      "bytes": 755,
+      "sha256": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21",
+      "observed_git_blob": "265242b4b17ad3cc6ebc73d51fdcc94f87c8b6f1",
+      "owner_source_path": "apps/social/web/assets/metamask.svg",
+      "owner_git_blob": "265242b4b17ad3cc6ebc73d51fdcc94f87c8b6f1",
+      "owner_exact": true,
+      "etag": "\"d19c084f6dbf3930db5d460ca3389d06\"",
+      "last_modified": "Sat, 03 Oct 2026 11:43:03 GMT"
+    }
+  ]
+}

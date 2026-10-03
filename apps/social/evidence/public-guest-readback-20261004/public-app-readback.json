@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-10-03T16:04:37.650Z",
+  "url": "https://social.ynxweb4.com/app.js",
+  "http_status": 200,
+  "bytes": 6928,
+  "sha256": "966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d",
+  "headers": {
+    "etag": "W/\"1f568bea0dfc62f511742b5f2e62c9bb\"",
+    "last_modified": "Fri, 02 Oct 2026 06:10:35 GMT",
+    "x-vercel-id": "hnd1::7zqbp-1791043477462-c371463d3771"
+  },
+  "imports": [
+    "./wallet-provider.js"
+  ],
+  "embedded_source_lines": [],
+  "connect_handler_lines": [
+    "  byId(\"connect-wallet\").textContent = `${result.wallet === \"ynx\" ? \"YNX Wallet\" : \"MetaMask\"} · ${shortAccount(result.account)}`;",
+    "      byId(\"connect-wallet\").textContent = `${state.wallet === \"ynx\" ? \"YNX Wallet\" : \"MetaMask\"} · ${shortAccount(accounts[0])}`;",
+    "  byId(\"connect-wallet\").textContent = \"Connect wallet\";",
+    "byId(\"connect-wallet\").addEventListener(\"click\", () => {",
+    "byId(\"hero-connect-wallet\").addEventListener(\"click\", () => byId(\"wallet-dialog\").showModal());"
+  ],
+  "candidate_app_comparisons": [
+    {
+      "commit": "ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+      "web_app_exact": false,
+      "source_sha256": "73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346"
+    },
+    {
+      "commit": "cf27c8ca",
+      "web_app_exact": false,
+      "source_sha256": "73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346"
+    },
+    {
+      "commit": "b04a73f0f67ad234f4a0abbcef2eff557a0af753",
+      "web_app_exact": false,
+      "source_sha256": "5423cde5dd89aa89b9dd2c032d942702816c4baefeb8c9a58964f7e331a4ec72"
+    }
+  ]
+}
