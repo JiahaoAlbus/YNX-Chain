@@ -1,0 +1,7 @@
+# Inactive original Comet sign-byte adapter
+
+This isolated module calls the actual CometBFT v0.38.23 VoteSignBytes and ProposalSignBytes functions. It retains the complete varint-delimited canonical protobuf bytes in the V2 candidate envelope. Commit verification binds each validator’s own timestamp while enforcing a common height, round and block; validator power is unique and strictly greater than two thirds. All caller-owned votes, signatures, keys and block slices are copied before entering the real cryptographic provider.
+
+The tests generate ephemeral Ed25519 and CIRCL ML-DSA-87 fixture keys and sign only isolated candidate envelopes. Both signatures must verify. No original chain key, genesis, account state, runtime or root module changes. Existing legacy signatures are not signatures over the candidate envelope. Vote extensions are rejected until a separate full same-vote contract exists. No activation or live signer hook is supplied.
+
+The module pins cached x/crypto0.55 and x/text0.41 after an offline tidy cache miss, without network fetching or changing root dependencies. Targeted race verification covers official byte equality, distinct timestamps, insufficient/duplicate votes, changed timestamp/block/genesis, each corrupted signature half, and mutation of later votes/keys while the first real provider is paused. See owner-receipt.json and the original JSONL. Durable validator anti-double-sign state and final authoritative set/height integration remain separate unfinished work.

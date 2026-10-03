@@ -1,0 +1,68 @@
+{
+  "status": "ISOLATED_EXPERIMENT_SOURCE_TESTED_NOT_ACTIVATED",
+  "activationApproved": false,
+  "activated": false,
+  "actualEphemeralFixtureSigning": true,
+  "productionKeyRead": false,
+  "rootModuleChanged": false,
+  "realProvider": "CIRCL v1.6.5 ML-DSA-87 AND crypto/ed25519",
+  "cometVersion": "v0.38.23",
+  "officialSignByteFunctions": [
+    "types.VoteSignBytes",
+    "types.ProposalSignBytes"
+  ],
+  "testCommand": "GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off go test -mod=readonly -race -json ./...",
+  "testExit": 0,
+  "passedTests": [
+    "TestExactOfficialSignBytes",
+    "TestActualDualQuorumDistinctTimestamps/insufficient",
+    "TestActualDualQuorumDistinctTimestamps/duplicate",
+    "TestActualDualQuorumDistinctTimestamps/timestamp",
+    "TestActualDualQuorumDistinctTimestamps/different-block",
+    "TestActualDualQuorumDistinctTimestamps/pq-half",
+    "TestActualDualQuorumDistinctTimestamps/ed-half",
+    "TestActualDualQuorumDistinctTimestamps",
+    "TestSnapshotAllVotesBeforeProvider"
+  ],
+  "topTests": 3,
+  "leafTests": 8,
+  "failuresPreserved": [
+    "offline go mod tidy cache miss x/crypto0.54 x/text0.40 dependency-test check.v1",
+    "initial command incorrectly invoked root module: local Go1.25.7 below root1.25.13; no root changes"
+  ],
+  "limitations": [
+    "No live privval/consensus hook",
+    "No activation heights or signing permission",
+    "V2 candidate signatures cannot reuse legacy signatures",
+    "Vote extensions unsupported and rejected",
+    "No durable anti-double-sign journal implementation",
+    "Authenticated validator set/network/height remain caller integration contract"
+  ],
+  "files": [
+    {
+      "path": "adapter.go",
+      "size": 6576,
+      "sha256": "90720e9ac11b2088ec35150fd5447a64730084de4cf32c7636e722605e79920a"
+    },
+    {
+      "path": "adapter_test.go",
+      "size": 5544,
+      "sha256": "20c98fa6c009ab935e6de1dd08bec43d58beb7c03440b98bdd1dffcfc994aa02"
+    },
+    {
+      "path": "go.mod",
+      "size": 1342,
+      "sha256": "ea3daf9dc33893b2ab5c2e48c37df873c5773d7f8f1e7cf7e7ce4b09b3da0b9d"
+    },
+    {
+      "path": "go.sum",
+      "size": 39434,
+      "sha256": "ef702e8c71c6d1d82302d8cf3e4416ea82d4994ce8fe973edf9a9a067d3fcdd7"
+    },
+    {
+      "path": "targeted-race-output.jsonl",
+      "size": 9332,
+      "sha256": "a187f46644095096e505c53cd357200c49e98718e0c488629143abc2451cdc12"
+    }
+  ]
+}
