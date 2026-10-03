@@ -14,7 +14,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .app-shell { direction:ltr; height:100vh; display:grid; grid-template-columns:52px minmax(220px,260px) minmax(480px,1fr) minmax(310px,360px); grid-template-rows:48px minmax(0,1fr) 24px; grid-template-areas:"top top top top" "activity side main agent" "status status status status"; }
 .topbar { grid-area:top; display:flex; align-items:center; gap:10px; padding:0 10px; border-bottom:1px solid var(--line); background:var(--white); }
 .brand { display:flex; align-items:center; gap:8px; min-width:250px; font-size:var(--ui-size); font-weight:720; letter-spacing:-.01em; }
-.brand-logo-crop { display:grid; place-items:center; width:52px; height:29px; overflow:hidden; flex:0 0 52px; }
+.brand-logo-crop { display:grid; place-items:center; width:52px; height:29px; flex:0 0 52px; }
 .brand-mark { display:block; width:52px; height:auto; max-height:29px; object-fit:contain; }
 .surface-badge { padding:3px 6px; border:1px solid #9bb1ed; color:var(--blue); font-size:9px; letter-spacing:.08em; border-radius:4px; }
 .project-actions { display:flex; align-items:center; gap:5px; flex:1; min-width:0; }

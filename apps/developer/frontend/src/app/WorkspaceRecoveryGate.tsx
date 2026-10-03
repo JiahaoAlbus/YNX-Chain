@@ -33,6 +33,7 @@ export function WorkspaceRecoveryGate({ children }: { children: ReactNode }) {
   };
   return <main className="workspace-recovery" aria-labelledby="workspace-recovery-title">
     <section>
+      <header className="workspace-recovery-brand"><img src="/brand/ynx-logo.png" alt="YNX" /><strong>YNX Developer</strong></header>
       <p className="edition">YNX CODE</p>
       <h1 id="workspace-recovery-title">Your saved workspace needs recovery</h1>
       <p>{problem.kind === "unreadable"

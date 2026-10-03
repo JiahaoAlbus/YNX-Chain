@@ -130,12 +130,12 @@ input {
   font-size: 9px;
   font-weight: 900;
 }
-.brand-logo { width: 28px; height: 28px; object-fit: contain; flex: 0 0 28px; }
-.native-brand-logo { width: 64px; height: 64px; object-fit: contain; }
+.brand-logo { width: 57px; height: 30px; object-fit: contain; flex: 0 0 57px; }
+.native-brand-logo { width: 95px; height: 50px; object-fit: contain; flex-shrink: 0; }
 .native-home { height: 100dvh; overflow: auto; background: var(--bg); color: var(--text); }
 .native-home-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px max(24px, calc((100vw - 1080px) / 2)); border-bottom: 1px solid var(--border); background: var(--panel); }
 .native-home-header a { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; min-height: 44px; }
-.native-home-header img { width: 40px; height: 40px; object-fit: contain; }
+.native-home-header img { width: 76px; height: 40px; object-fit: contain; flex: 0 0 76px; }
 .native-home-main { width: min(100%, 880px); margin: 0 auto; padding: 48px 24px; }
 .native-home-intro h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; margin: 12px 0; }
 .native-home-intro .edition { display: inline-flex; width: fit-content; }
@@ -1213,3 +1213,6 @@ html[data-theme="dark"] .tree-row.file.active {
 .recovery-panel header, .recovery-copy { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .recovery-entry { border-top: 1px solid #cbd6f0; margin-top: 16px; padding-top: 16px; }
 .recovery-panel p, .recovery-copy { font-size: 14px; line-height: 1.55; margin: 10px 0; }
+
+.workspace-recovery-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.workspace-recovery-brand img { width: 76px; height: 40px; object-fit: contain; flex: 0 0 76px; }

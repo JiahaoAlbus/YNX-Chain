@@ -14,7 +14,9 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
     const path = join(context.projectDirectory, dir); await mkdir(path, { recursive: true, mode: 0o700 });
     if ((await lstat(path)).isSymbolicLink()) throw fault("Native project metadata directory is a link.", "core_state_unsafe", 409);
   }
-  const target = join(context.projectDirectory, "extensions", "ynx.ynx-developer-brand-0.1.0");
+  const branding = JSON.parse(await readFile(join(brandingRoot, 'package.json'), 'utf8'));
+  if (branding.publisher !== 'ynx' || branding.name !== 'ynx-developer-brand' || !/^\d+\.\d+\.\d+$/.test(branding.version || '')) throw fault("YNX branding manifest is invalid.", "core_brand_review_required", 503);
+  const target = join(context.projectDirectory, "extensions", `ynx.ynx-developer-brand-${branding.version}`);
   try { if (!(await lstat(target)).isDirectory() || (await lstat(target)).isSymbolicLink()) throw fault("YNX branding directory changed.", "core_brand_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(brandingRoot, target, { recursive: true, errorOnExist: true, force: false }); }
   for (const file of ["package.json", "klein-light.json", "ynx-logo.png", "LICENSE.txt"]) {

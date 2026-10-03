@@ -36,4 +36,19 @@ export async function verifyDerivedRuntime(root, expectedManifestDigest, upstrea
     if (!helper || createHash('sha256').update(helper).digest('hex') !== activity.sourceSha256 || helper.split('__YNX_WORKBENCH_WINDOW_CAPABILITY_V1__').length !== 2)
       throw fault("Derived trusted activity helper changed.", "core_upstream_mismatch", 503);
   }
+  if (manifest.workbenchBrand) {
+    const brand = manifest.workbenchBrand;
+    if (Object.keys(brand).sort().join(',') !== 'entry,logoSha256,styleSha256,version' || brand.version !== 1
+      || brand.entry !== 'out/vs/code/browser/workbench/workbench.html'
+      || brand.logoSha256 !== 'df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d'
+      || !/^[a-f0-9]{64}$/.test(brand.styleSha256 || ''))
+      throw fault("Derived original YNX brand provenance is invalid.", "core_upstream_mismatch", 503);
+    const entry = await readFile(join(root, brand.entry), 'utf8');
+    const styles = [...entry.matchAll(/<style data-ynx-workbench-brand="v1">([\s\S]*?)<\/style>/g)];
+    const style = styles.length === 1 ? styles[0][1] : null;
+    const images = style ? [...style.matchAll(/data:image\/png;base64,([A-Za-z0-9+/=]+)/g)] : [];
+    if (!style || createHash('sha256').update(style).digest('hex') !== brand.styleSha256 || images.length !== 1
+      || createHash('sha256').update(Buffer.from(images[0][1], 'base64')).digest('hex') !== brand.logoSha256)
+      throw fault("Derived original YNX workbench brand changed.", "core_upstream_mismatch", 503);
+  }
 }

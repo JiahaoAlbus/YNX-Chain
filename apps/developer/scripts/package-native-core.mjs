@@ -9,7 +9,7 @@ import { runtimeTreeDigest } from "../services/codeoss-service/src/derived-runti
 const [archive, destination, license, notices, logo192] = process.argv.slice(2);
 if (!archive || !destination || !license || !notices || !logo192) throw new Error("Usage: node scripts/package-native-core.mjs <official-x64.tar.gz> <NEW-output-directory> <LICENSE.txt> <ThirdPartyNotices.txt> <verified-ynx-icon-192.png>");
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
-for (const [path, expected] of [[archive, OPENVSCODE_X64.sha256], [license, OPENVSCODE_X64.licenseSha256], [notices, OPENVSCODE_X64.noticesSha256], [logo192, "37efed414f0cd67490f002d91c553adf875c6da6c207bc69b6a1fc1ea64dde9e"]])
+for (const [path, expected] of [[archive, OPENVSCODE_X64.sha256], [license, OPENVSCODE_X64.licenseSha256], [notices, OPENVSCODE_X64.noticesSha256], [logo192, "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af"]])
   if (digest(await readFile(path)) !== expected) throw new Error("Artifact or brand provenance mismatch.");
 const root = resolve(destination); await mkdir(root, { mode: 0o755 }); // refuse existing output
 const extracted = spawnSync("tar", ["-xzf", resolve(archive), "--strip-components=1", "-C", root], { stdio: "inherit", shell: false });
@@ -21,7 +21,11 @@ await writeFile(productPath, JSON.stringify(product, null, 2) + "\n");
 const server = join(root, "resources", "server"), logo = await readFile(logo192);
 await writeFile(join(server, "code-192.png"), logo);
 const brand = fileURLToPath(new URL("../native/ynx-brand/ynx-logo.png", import.meta.url));
-await cp(brand, join(server, "code-512.png"));
+const brandBytes = await readFile(brand);
+if (digest(brandBytes) !== "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d") throw new Error("Original YNX brand provenance mismatch.");
+const icon512 = await readFile(fileURLToPath(new URL("../native/ynx-brand/ynx-icon-512.png", import.meta.url)));
+if (digest(icon512) !== "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7") throw new Error("Original YNX app icon provenance mismatch.");
+await writeFile(join(server, "code-512.png"), icon512);
 const header = Buffer.alloc(22); header.writeUInt16LE(1, 2); header.writeUInt16LE(1, 4); header[6] = 192; header[7] = 192;
 header.writeUInt16LE(1, 10); header.writeUInt16LE(32, 12); header.writeUInt32LE(logo.length, 14); header.writeUInt32LE(22, 18);
 await writeFile(join(server, "favicon.ico"), Buffer.concat([header, logo]));
@@ -34,9 +38,13 @@ if (activity.includes("</script") || activity.split("__YNX_WORKBENCH_WINDOW_CAPA
 const workbenchPath = join(root, "out/vs/code/browser/workbench/workbench.html");
 const workbenchHTML = await readFile(workbenchPath, "utf8");
 if (workbenchHTML.split("<head>").length !== 2) throw new Error("Official fixed workbench entry changed.");
-await writeFile(workbenchPath, workbenchHTML.replace("<head>", `<head>\n<script data-ynx-workbench-activity="v1">${activity}</script>`));
+const brandCSS = await readFile(fileURLToPath(new URL("../native/ynx-brand/workbench-brand.css", import.meta.url)), "utf8");
+if (brandCSS.includes("</style") || brandCSS.split("__YNX_ORIGINAL_LOGO_DATA_URL__").length !== 2) throw new Error("Workbench brand stylesheet changed.");
+const injectedBrand = brandCSS.replace("__YNX_ORIGINAL_LOGO_DATA_URL__", `data:image/png;base64,${brandBytes.toString('base64')}`);
+await writeFile(workbenchPath, workbenchHTML.replace("<head>", `<head>\n<script data-ynx-workbench-activity="v1">${activity}</script>\n<style data-ynx-workbench-brand="v1">${injectedBrand}</style>`));
 const manifest = { product: "YNX Developer", upstreamVersion: OPENVSCODE_X64.version, upstreamCommit: OPENVSCODE_X64.commit,
-  upstreamArchiveSha256: OPENVSCODE_X64.sha256, license: "MIT", modifications: ["product names", "server icons/favicon/web manifest", "fixed workbench activity bootstrap"],
+  upstreamArchiveSha256: OPENVSCODE_X64.sha256, license: "MIT", modifications: ["product names", "server icons/favicon/web manifest", "fixed workbench activity bootstrap", "original YNX titlebar brand"],
+  workbenchBrand: { version: 1, logoSha256: digest(brandBytes), styleSha256: digest(injectedBrand), entry: "out/vs/code/browser/workbench/workbench.html" },
   workbenchActivity: { version: 1, sourceSha256: digest(activity), entry: "out/vs/code/browser/workbench/workbench.html" }, treeSha256: await runtimeTreeDigest(root) };
 const bytes = Buffer.from(JSON.stringify(manifest, null, 2) + "\n"); await writeFile(join(root, "YNX-DERIVED-RUNTIME.json"), bytes, { flag: "wx" });
 console.log(JSON.stringify({ path: root, manifestSha256: digest(bytes), treeSha256: manifest.treeSha256 }));

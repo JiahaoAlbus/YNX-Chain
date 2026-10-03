@@ -158,7 +158,7 @@ test('reviewed document changes reject concurrent edits, digest mismatch and dup
 test('pinned tools install survives reopen and never overwrites tampered extension or symlink', async () => {
   const projectDirectory = await mkdtemp(join(tmpdir(), 'ynx-tools-install-')), context = { projectDirectory };
   await prepareCoreProject(context); await prepareCoreProject(context);
-  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.2', 'src', 'guards.cjs');
+  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.3', 'src', 'guards.cjs');
   assert.match(await readFile(path, 'utf8'), /validateChanges/); await writeFile(path, 'changed by project');
   await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' }); assert.equal(await readFile(path, 'utf8'), 'changed by project');
   await import('node:fs/promises').then(fs => fs.unlink(path)); await symlink('/etc/passwd', path); await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' });
@@ -282,10 +282,13 @@ test('a saved selected edit from an earlier runtime remains readable without reb
 test('versioned Tools upgrade preserves legacy extension files and installs the new exact bundle separately',async t=>{
  const fs=await import('node:fs/promises'),root=await mkdtemp(join(tmpdir(),'ynx-tools-versioned-'));
  t.after(()=>fs.rm(root,{recursive:true,force:true}));const previous=join(root,'extensions','ynx.ynx-tools-0.2.0','src');await fs.mkdir(previous,{recursive:true});await writeFile(join(previous,'guards.cjs'),'previous candidate preserved');const legacy=join(root,'extensions','ynx.ynx-tools-0.1.0','src');await fs.mkdir(legacy,{recursive:true});await writeFile(join(legacy,'guards.cjs'),'legacy user file preserved');
+ const priorBrand=join(root,'extensions','ynx.ynx-developer-brand-0.1.0');await fs.mkdir(priorBrand,{recursive:true});await writeFile(join(priorBrand,'ynx-logo.png'),'preserved previous brand');
  await prepareCoreProject({projectDirectory:root});
+ assert.equal(await readFile(join(priorBrand,'ynx-logo.png'),'utf8'),'preserved previous brand');
+ assert.equal(JSON.parse(await readFile(join(root,'extensions','ynx.ynx-developer-brand-0.1.1','package.json'),'utf8')).version,'0.1.1');
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(previous,'guards.cjs'),'utf8'),'previous candidate preserved');
- const current=join(root,'extensions','ynx.ynx-tools-0.2.2');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.2');
+ const current=join(root,'extensions','ynx.ynx-tools-0.2.3');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.3');
  assert.match(await readFile(join(current,'src','guards.cjs'),'utf8'),/replacements/);await prepareCoreProject({projectDirectory:root});
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
 });

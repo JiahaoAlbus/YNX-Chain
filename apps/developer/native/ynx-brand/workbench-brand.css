@@ -1,0 +1,15 @@
+/* Original YNX graphic at the pinned OpenVSCode titlebar brand position.
+   Keep menu controls and provider/account icons intact. */
+.monaco-workbench .part.titlebar > .titlebar-container > .titlebar-left > .window-appicon {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px;
+  flex: 0 0 54px;
+  background-image: url('__YNX_ORIGINAL_LOGO_DATA_URL__') !important;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 44px auto !important;
+}
+.monaco-workbench .part.titlebar > .titlebar-container > .titlebar-left > .window-appicon::before {
+  content: none !important;
+}

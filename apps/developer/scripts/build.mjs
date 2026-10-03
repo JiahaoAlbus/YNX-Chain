@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = fileURLToPath(new URL("../dist/", import.meta.url));
 const client = fileURLToPath(new URL("../../../packages/developer-client/src/", import.meta.url));
-const brandLogo = fileURLToPath(new URL("../../../assets/brand/ynx-logo.png", import.meta.url));
+const brandLogo = fileURLToPath(new URL("../frontend/public/brand/ynx-logo.png", import.meta.url));
 const monacoCandidates = [
   fileURLToPath(new URL("../../../node_modules/monaco-editor/min/vs/", import.meta.url)),
   fileURLToPath(new URL("../node_modules/monaco-editor/min/vs/", import.meta.url)),
