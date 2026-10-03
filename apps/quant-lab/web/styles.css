@@ -504,6 +504,11 @@ th {
   }
 }
 /* Product UI sizing; OS/browser zoom remains unrestricted. */
+/* Owned research/Paper captions participate in display sizing. */
+.eyebrow,.mode{font-size:.75rem}
+.notice{font-size:.8125rem}
+.view h3,.inspector h3{font-size:1rem}
+.fields label,aside footer label,.view th,.timeline code{font-size:.8125rem}
 html{font-size:var(--ui-scale,107.142857%)}
 body{font-size:.875rem;line-height:1.5}
 h1,.market-strip h1,.section-title h1,.topbar h1{font-size:1.375rem;line-height:1.3;overflow-wrap:anywhere}

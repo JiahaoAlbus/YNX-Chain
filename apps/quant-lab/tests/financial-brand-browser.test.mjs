@@ -39,8 +39,15 @@ for(const product of products) test(`${product.name} original YNX logo remains c
         const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
         const logo=page.locator(product.selector(width));await logo.waitFor({state:'visible'});await logo.evaluate(image=>image.decode());
         const inspect=()=>logo.evaluate(image=>{const box=image.getBoundingClientRect(),style=getComputedStyle(image);return {width:image.naturalWidth,height:image.naturalHeight,fit:style.objectFit,shrink:style.flexShrink,x:box.x,right:box.right,boxHeight:box.height,visible:box.width>0&&box.height>0}});
+        const textSizes=()=>page.evaluate(()=>[...document.querySelectorAll('nav a,nav button,.eyebrow,.panel header h2,.panel label,.book-head,.state-box,.notice,.inspector h3,.view h3,.fields label,aside footer label,.view th,.timeline code')].filter(e=>e.getClientRects().length&&!e.closest('.private-account,#account-panel,#wallet-picker')).map(e=>({text:e.textContent.trim().slice(0,60),font:parseFloat(getComputedStyle(e).fontSize)})));
         for(const phase of ['guest','business']){
           if(phase==='business')await page.locator(product.navigation).click();
+          await page.locator('.ui-preferences summary').click();
+          const before=await textSizes();assert.ok(before.length>0);
+          await page.selectOption('#ui-text-size','large');const after=await textSizes();assert.equal(after.length,before.length);
+          for(let i=0;i<before.length;i++)assert.ok(after[i].font>before[i].font,`${product.name} ${width} ${phase} text size did not change: ${JSON.stringify(before[i])}`);
+          await page.selectOption('#ui-text-size','standard');
+          await page.locator('.ui-preferences summary').click();
           const observed=await inspect();assert.equal(observed.width,798);assert.equal(observed.height,420);assert.equal(observed.fit,'contain');assert.equal(observed.shrink,'0');assert.equal(observed.visible,true);assert.equal(observed.boxHeight,22);assert.ok(observed.x>=0&&observed.right<=width);
           assert.equal(context.pages().length,1);
           const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(sizes[0]<=sizes[1],`${product.name} ${width}: ${sizes}`);
@@ -48,7 +55,10 @@ for(const product of products) test(`${product.name} original YNX logo remains c
         }
         await page.locator('.ui-preferences summary').click();
         const standard=await page.evaluate(()=>parseFloat(getComputedStyle(document.body).fontSize));
+        const before=await textSizes();assert.ok(before.length>0);
         await page.selectOption('#ui-text-size','large');const large=await page.evaluate(()=>parseFloat(getComputedStyle(document.body).fontSize));assert.ok(large>standard);
+        const after=await textSizes();assert.equal(after.length,before.length);
+        for(let i=0;i<before.length;i++)assert.ok(after[i].font>before[i].font,`${product.name} ${width} text size did not change: ${JSON.stringify(before[i])}`);
         await page.reload();await logo.waitFor({state:'visible'});assert.equal(await page.locator('#ui-text-size').inputValue(),'large');
         for(const language of ['zh-CN','ar']){
           await page.evaluate(language=>{document.documentElement.lang=language;document.documentElement.dir=language==='ar'?'rtl':'ltr'},language);

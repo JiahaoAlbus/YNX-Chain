@@ -159,6 +159,12 @@ body.finance-route-broker #wallet-connect,body.finance-route-broker #broker-nav{
 @media(max-width:390px){#wallet-picker{padding:20px 16px}#wallet-picker .wallet-choice button{padding:12px;gap:10px}#wallet-picker .picker-choice-status{max-width:72px;text-align:end}}
 
 /* Product UI sizing; OS/browser zoom remains unrestricted. */
+/* Owned business labels must scale as well as body text. */
+nav a{font-size:.875rem}
+.eyebrow,.boundary strong{font-size:.75rem}
+.boundary{font-size:.75rem}
+.view h3{font-size:1.0625rem}
+[data-save-state]{font-size:.875rem}
 .hero h2{font-size:1.375rem;line-height:1.3}.hero p{font-size:.875rem;line-height:1.5}
 html{font-size:var(--ui-scale,107.142857%)}
 body{font-size:.875rem;line-height:1.5}

@@ -16,6 +16,15 @@
 .skip{max-width:calc(100% - 24px);overflow-wrap:anywhere}
 .table-wrap{position:relative}
 @media(max-width:700px){.topbar{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.topbar .brand{grid-column:1;grid-row:1}.brand span{overflow-wrap:anywhere}.topbar>.primary{grid-column:2;grid-row:1;font-size:.875rem}.topbar nav{grid-column:1/-1;grid-row:auto}.topbar .ui-preferences{grid-column:1/-1;width:auto}}
+/* Owned terminal typography follows the local display preference. */
+.view .panel header h2{font-size:.875rem}
+.view .panel header span,.view .book-head{font-size:.75rem}
+.view .panel label,.view .review dt,.view .review dd{font-size:.8125rem}
+.view .rows>div,.view .state-box{font-size:.8125rem}
+.view .mid,.view .market-feed p{font-size:.8125rem}
+.eyebrow,.truth,.disclosure{font-size:.75rem}
+.view .balance-card strong{font-size:1.125rem}
+.view .balance-card dt,.view .custody span{font-size:.75rem}
 html{font-size:var(--ui-scale,107.142857%)}
 body{font-size:.875rem;line-height:1.5}
 h1,.market-strip h1,.section-title h1,.topbar h1{font-size:1.375rem;line-height:1.3;overflow-wrap:anywhere}

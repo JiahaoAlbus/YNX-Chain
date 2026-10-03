@@ -1,0 +1,31 @@
+{
+  "kind": "OWNED_DISPLAY_FIX_NOT_PUBLIC_RELEASE",
+  "predecessorCommit": "552f0c04ee8cd9703a7e185cf83f504ac8026927",
+  "predecessorTree": "52cfb3f96c4cb837ba6fb8e7ac76e9a66608fe55",
+  "scope": "Ordinary Finance navigation/captions, Exchange terminal captions/labels, Quant research/Paper captions/labels. No Wallet/Auth/SDK or publishing graph changes.",
+  "defect": "Existing test checked body size only. Stronger real-Chrome check found Finance Overview nav fixed14px, Exchange panel heading fixed14px, Quant eyebrow fixed10px; larger preference did not enlarge them.",
+  "fix": "Root-relative rem overrides for owned text; assert computed sizes increase for visible ordinary text in guest and assets/Paper views, excluding private account and Wallet panels. Preserve original logo image dimensions and independent standard connection.",
+  "files": [
+    {"path":"apps/finance/web/styles.css","bytes":29808,"sha256":"3387c087e410e1cbef2bf9b7a3bfc3c57677bd2cab2ee83a130064e7e562db5e"},
+    {"path":"apps/exchange/web/styles.css","bytes":12869,"sha256":"7b890b997e5937a7b47a2e83e94d77b2157db903102a573ad95c907cbb4bbc6e"},
+    {"path":"apps/quant-lab/web/styles.css","bytes":12284,"sha256":"994b8aaa5a21213b1e4b12e11b75a7b1a6c98cf52794b00e583d6e56b38b6263"},
+    {"path":"apps/quant-lab/tests/financial-brand-browser.test.mjs","bytes":7412,"sha256":"2775e84c7833b5e85486ba16d1c4ad080bd7ff0b3072c43e7fd58531f82e087b"}
+  ],
+  "tests": {
+    "initialStrongerGate": {"pass":0,"fail":3,"reason":"Actual fixed-size ordinary text, not a service or authority failure"},
+    "intermediateHarness": "Guest-phase select was initially hidden in closed details; stopped the owned test process and fixed fixture to open/close actual display control before selection. Not a product failure.",
+    "finalDisplayGate": {"command":"node --test apps/quant-lab/tests/financial-brand-browser.test.mjs","pass":3,"fail":0,"skip":0,"durationMs":6296.928292,"coverage":"All three products: 1440/390/320, guest and controlled unavailable assets/Paper, actual text-size selection/computed increase, reload preference, contained original logo, 200%/Chinese/RTL layout"},
+    "businessBrowserRegression": {"command":"node --test apps/finance/tests/ai-order-intent-browser.test.mjs apps/finance/tests/owned-save-browser.test.mjs apps/finance/tests/finance-12-locales.test.mjs apps/exchange/tests/owned-controls-browser.test.mjs apps/exchange/tests/locale-browser.test.mjs apps/quant-lab/tests/browser.test.mjs","pass":55,"fail":0,"skip":0,"durationMs":47522.175209}
+  },
+  "screenshots": [
+    {"path":"finance-1440-guest.png","bytes":176221,"sha256":"7b57c1da6b185449b99638620c561f58b99371872e284d74920b0d64c7479ceb"},
+    {"path":"finance-390-business.png","bytes":57457,"sha256":"e98a6edcc8bd8a41733167ae8406a6fd176f365deb4dfe890854456d8023c50c"},
+    {"path":"exchange-1440-guest.png","bytes":141819,"sha256":"ce13acbc9e7e7ac4d83953afbd7c89eae96bcc52306281261c1e6a29463eac76"},
+    {"path":"exchange-390-business.png","bytes":55445,"sha256":"e62ba8fead7faf2eb46f04dc55c05d7ef9f3d47c6149997c2faddcf9dc83f429"},
+    {"path":"quant-lab-1440-guest.png","bytes":115655,"sha256":"375c876a9527ecbe4c9abb677b86eaccd6c6dda72f84f708718e200c3373c33e"},
+    {"path":"quant-lab-390-business.png","bytes":77769,"sha256":"87217b4f0c5265cd2a9cd2c7d907f0afe3d757c484d9d741e4ff27f3c4907fc0"}
+  ],
+  "evidenceBoundary": "Actual isolated local Chrome with unavailable API/controlled regression fixtures. Does not prove every business view, official current runtime, installed platform, real account or authorization.",
+  "integration": "A must merge these ordinary CSS overrides and refreeze final styles hashes/asset graph. Previous 552f source inventory stays historical, not a new release inventory. Return exact compatible public version and rollback for owner real-public user-flow acceptance.",
+  "truth": {"localDisplayFixed":true,"localBrowserRegression":true,"publicVerified":false,"installedVerified":false,"walletApproval":false,"productSession":false,"signatures":false,"transactions":false,"computerControl":false,"complete":false}
+}
