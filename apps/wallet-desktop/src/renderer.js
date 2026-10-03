@@ -13,9 +13,10 @@ const receiveCodeUI = createReceiveCodeUI({
   requestCode: account => window.ynxWallet.receiveCode(account),
 });
 const receiveShareUI=createReceiveShareUI({
-  getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount}),
+  getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount,keyRevision:keyState.revision}),
   requestCode:account=>window.ynxWallet.receiveCode(account),
   writeClipboard:value=>navigator.clipboard.writeText(value),
+  selectAddress:()=>document.querySelector("#receive-address").select(),
   report:value=>{document.querySelector("#receive-status").textContent=value},
 });
 
@@ -507,12 +508,7 @@ async function refreshAssets() {
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
-document.querySelector("#copy-address").addEventListener("click", async () => {
-  const address = accountState?.ynxAccount, selected = activeAccount;
-  if (!address || !selected) return;
-  try { await navigator.clipboard.writeText(address); if (selected === activeAccount) document.querySelector("#receive-status").textContent = "YNX address copied."; }
-  catch { document.querySelector("#receive-address").select(); document.querySelector("#receive-status").textContent = "Select and copy the address above."; }
-});
+document.querySelector("#copy-address").addEventListener("click",()=>void receiveShareUI.copyAddress());
 document.querySelector("#import-kind").addEventListener("change", event => {
   const encrypted = event.target.value === "encrypted-json";
   document.querySelector("#import-value").hidden = encrypted;
