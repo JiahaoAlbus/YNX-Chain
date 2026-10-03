@@ -121,14 +121,14 @@ public final class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.WHITE);
         LinearLayout top = row(); top.setPadding(dp(18), dp(12), dp(18), dp(12)); top.setBackgroundColor(BLUE);
         top.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
-        ImageView logo = new ImageView(this); logo.setImageResource(R.drawable.ynx_brand_original); logo.setScaleType(ImageView.ScaleType.FIT_CENTER); logo.setContentDescription("YNX"); logo.setBackgroundColor(Color.WHITE); logo.setPadding(dp(4),dp(4),dp(4),dp(4));
-        LinearLayout.LayoutParams logoLayout = new LinearLayout.LayoutParams(dp(80),dp(46)); logoLayout.setMarginEnd(dp(10)); top.addView(logo,logoLayout);
-        TextView brand = label("YNX Video", 22, Color.WHITE); brand.setTypeface(Typeface.DEFAULT_BOLD); top.addView(brand, new LinearLayout.LayoutParams(0, dp(48), 1));
+        ImageView logo = new ImageView(this); logo.setImageResource(R.drawable.ynx_brand_original); logo.setScaleType(ImageView.ScaleType.FIT_CENTER); logo.setContentDescription("YNX"); logo.setBackgroundColor(Color.WHITE); logo.setPadding(0,0,0,0);
+        LinearLayout.LayoutParams logoLayout = new LinearLayout.LayoutParams(dp(46),dp(24)); logoLayout.setMarginEnd(dp(10)); top.addView(logo,logoLayout);
+        TextView brand = label("YNX Video", 16, Color.WHITE); brand.setTypeface(Typeface.DEFAULT_BOLD); brand.setMinHeight(dp(48)); top.addView(brand, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         Button signIn = button(t("signIn")); signIn.setTextColor(BLUE); signIn.setContentDescription(t("signIn")); signIn.setOnClickListener(v -> startWallet()); top.addView(signIn);
         root.addView(top);
 
         LinearLayout controls = row(); controls.setPadding(dp(16), dp(10), dp(16), dp(4));
-        EditText search = new EditText(this); search.setHint(t("search")); search.setSingleLine(true); search.setContentDescription(t("search")); controls.addView(search, new LinearLayout.LayoutParams(0, dp(52), 1));
+        EditText search = new EditText(this); search.setHint(t("search")); search.setSingleLine(true); search.setMinHeight(dp(48)); search.setTextSize(16*DisplayPreferences.factor(this)); search.setContentDescription(t("search")); controls.addView(search, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         Button go = button(t("search")); go.setOnClickListener(v -> loadVideos(search.getText().toString())); controls.addView(go);
         root.addView(controls);
 
@@ -141,9 +141,10 @@ public final class MainActivity extends Activity {
         root.addView(nav);
 
         ScrollView scroll = new ScrollView(this); content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(18), dp(8), dp(18), dp(36)); scroll.addView(content); root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        LinearLayout state = row(); state.setPadding(dp(18), dp(8), dp(18), dp(12)); progress = new ProgressBar(this); state.addView(progress, new LinearLayout.LayoutParams(dp(32), dp(32))); status = label(t("loading"), 14, Color.DKGRAY); status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); state.addView(status, new LinearLayout.LayoutParams(0, dp(44), 1));
+        LinearLayout state = row(); state.setPadding(dp(18), dp(8), dp(18), dp(12)); progress = new ProgressBar(this); state.addView(progress, new LinearLayout.LayoutParams(dp(32), dp(32))); status = label(t("loading"), 14, Color.DKGRAY); status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); state.addView(status, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         Spinner locale = new Spinner(this); locale.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, LOCALES)); locale.setSelection(Arrays.asList(LOCALES).indexOf(prefs.getString("locale", "en")), false); locale.setContentDescription(t("language")); locale.setOnItemSelectedListener(new SimpleSelection(position -> { String chosen = LOCALES[position]; if (!chosen.equals(prefs.getString("locale", "en"))) { selectLanguage(chosen); recreate(); } })); state.addView(locale, new LinearLayout.LayoutParams(dp(92), dp(48)));
         Spinner aiLocale = new Spinner(this); aiLocale.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, LOCALES)); String selectedAI=prefs.getString("ai_locale",prefs.getString("locale","en")); aiLocale.setSelection(Math.max(0,Arrays.asList(LOCALES).indexOf(selectedAI)),false); aiLocale.setContentDescription(t("aiLanguage")); aiLocale.setOnItemSelectedListener(new SimpleSelection(position -> prefs.edit().putString("ai_locale",LOCALES[position]).apply())); state.addView(aiLocale,new LinearLayout.LayoutParams(dp(92),dp(48))); root.addView(state);
+        Button display=button(DisplayPreferences.labels(activeLocale())[0]); display.setOnClickListener(v->DisplayPreferences.show(this,activeLocale(),this::recreate)); root.addView(display);
         setContentView(root);
     }
 
@@ -339,8 +340,8 @@ public final class MainActivity extends Activity {
     String formatCurrency(long value) { NumberFormat f=NumberFormat.getCurrencyInstance(activeLocale()); f.setCurrency(java.util.Currency.getInstance("CNY")); return f.format(value); }
     String pluralRecords(int count) { return NumberFormat.getIntegerInstance(activeLocale()).format(count)+(count==1?" record":" records"); }
     private LinearLayout row() { LinearLayout x=new LinearLayout(this); x.setOrientation(LinearLayout.HORIZONTAL); x.setGravity(Gravity.CENTER_VERTICAL); return x; }
-    private TextView label(String text,int sp,int color) { TextView x=new TextView(this); x.setText(text); x.setTextSize(sp); x.setTextColor(color); x.setPadding(dp(6),dp(6),dp(6),dp(6)); return x; }
-    private Button button(String text) { Button x=new Button(this); x.setText(text); x.setAllCaps(false); x.setMinHeight(dp(48)); return x; }
+    private TextView label(String text,int sp,int color) { TextView x=new TextView(this); x.setText(text); x.setTextSize(sp*DisplayPreferences.factor(this)); x.setTextColor(color); x.setPadding(dp(6),dp(6),dp(6),dp(6)); return x; }
+    private Button button(String text) { Button x=new Button(this); x.setText(text); x.setAllCaps(false); x.setTextSize(14*DisplayPreferences.factor(this)); x.setMinHeight(dp(48)); return x; }
     private int dp(int value) { return Math.round(value*getResources().getDisplayMetrics().density); }
     private void Space(LinearLayout parent) { View space=new View(this); parent.addView(space,new LinearLayout.LayoutParams(1,dp(8))); }
 

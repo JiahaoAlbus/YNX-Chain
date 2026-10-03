@@ -16,7 +16,7 @@ const runtimeFiles = Object.freeze([
   "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png", "assets/ynx-brand-original.png",
   "app.js",
   "session-events.js",
-  "business-wire.js",
+  "business-wire.js", "display-settings.js", "display-settings.css",
   "product-session.js",
   "product-session-sdk.js",
   "product-session-registry.json",

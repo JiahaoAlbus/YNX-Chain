@@ -70,6 +70,9 @@ fi
 if git cat-file -e "${source_commit}:apps/video/business-wire.js" 2>/dev/null; then
   files+=(business-wire.js)
 fi
+if git cat-file -e "${source_commit}:apps/video/display-settings.js" 2>/dev/null; then
+  files+=(display-settings.js display-settings.css)
+fi
 
 if git cat-file -e "${source_commit}:apps/video/assets/ynx-brand-original.png" 2>/dev/null; then
   files+=(assets/ynx-brand-original.png)
