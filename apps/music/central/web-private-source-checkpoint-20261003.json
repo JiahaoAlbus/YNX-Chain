@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "ynx-media-source-checkpoint/v1",
+  "date": "2026-10-03",
+  "sourceCommit": "97c0f7b8910eada1a4c505abc8c13ccf293257f8",
+  "sourceTree": "344f932aa22aa949fea0c950bd0f7fb504340902",
+  "parent": "60e88209a8c55392fbbe4663c840c49cdf3f6e97",
+  "changes": [
+    "Music Web callback actual owned HTTP route, no-store/no-referrer, URL query removed before async load",
+    "Product SDK lifecycle consumer: original device/session restore, beginExplicit, handleReturn, disconnect; no manual credential/key persistence",
+    "Original /api/me account matches full Music Web session tuple before private UI",
+    "Exact final multipart bytes and boundary; bounded original 50MiB audio/12.5MiB artwork/1MiB overhead",
+    "Original 23 business routes use dotted Music scopes, two separately named proofs; forbid redirects/credentials/borrowed product capabilities",
+    "15s consumer lifecycle deadlines fence late activation; pending sign-out has explicit retry and no false success"
+  ],
+  "checks": [
+    {
+      "command": "node --test apps/music/scripts/canonical-session.test.mjs",
+      "result": "PASS",
+      "passed": 13,
+      "skipped": 0,
+      "authority": "synthetic SDK contract fixtures; not real Wallet acceptance"
+    },
+    {
+      "command": "go test -race ./internal/music ./apps/music",
+      "result": "PASS",
+      "includes": "actual callback HTTP route, all original Music service/store tests"
+    },
+    {
+      "command": "node apps/music/scripts/business-web-check.cjs",
+      "result": "PASS",
+      "authority": "actual shipped UI with synthetic business transport"
+    },
+    {
+      "command": "node apps/music/scripts/playlist-recovery-web-check.cjs",
+      "result": "PASS",
+      "includes": "actual shipped UI, cold reload, A/B isolation, IndexedDB two-tab atomic recovery"
+    },
+    {
+      "command": "node apps/music/scripts/canonical-web-check.cjs",
+      "result": "PASS",
+      "authority": "actual shipped modules in isolated Chromium routed origin; no injected Wallet/session"
+    },
+    {
+      "command": "node --test apps/music/scripts/wallet-connection.test.mjs",
+      "result": "PASS",
+      "passed": 4,
+      "skipped": 0
+    },
+    {
+      "command": "node apps/music/scripts/i18n-audit.mjs",
+      "result": "PASS",
+      "locales": 12,
+      "keysPerLocale": 69
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "admission": {
+    "ownerContract": "apps/music/central/web-private-registration-owner-contract-20261003.json",
+    "webTupleAdmitted": false,
+    "sdkReleaseFrozenForMusicWeb": false,
+    "productionActivated": false,
+    "releaseSeam": "apps/music/web/canonical-release.js deliberately returns explicit unavailable until A integrates exact admitted SDK/registry",
+    "backendV2BusinessHeaderConsumed": false
+  },
+  "nextOwnerA": [
+    "Admit exact proposed Music Web tuple with Wallet review support, protected backend registry, TTL300 and original four music.* scopes",
+    "Supply frozen complete browser SDK/registry graph and integrate canonical-release.js in exact owned consumer delta",
+    "Consume X-YNX-Product-Session-Proof-V2 and X-YNX-Music-Business-Proof-V2 using sender-bound original /api/* bytes, then atomic replay nonce and live actor/object policy; do not substitute current V1 bearer verifier",
+    "Deploy exact source/static graph then run normal real Wallet approval, callback, original account readback, content operation and sign-out/recovery"
+  ],
+  "acceptance": {
+    "formalMusicPrivateFlow": "NOT_VERIFIED",
+    "formalVideoCurrentOwnerSourceDeployed": false,
+    "nativeInstalledFlow": "NOT_VERIFIED",
+    "macOSFullProduct": "NOT_COMPLETED",
+    "fullMediaGoal": "NOT_COMPLETED"
+  },
+  "preservation": "Only apps/music and internal/music product-owned paths modified. Original Music trees, existing accounts/content/keys and shared A-owned source untouched."
+}
