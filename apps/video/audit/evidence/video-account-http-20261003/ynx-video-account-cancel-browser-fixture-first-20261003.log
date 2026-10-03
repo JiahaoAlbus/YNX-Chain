@@ -1,0 +1,4 @@
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/account-cancellation-browser-check.cjs:9:36 {
+  name: 'TimeoutError'
+}

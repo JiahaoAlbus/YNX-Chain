@@ -1,0 +1,8 @@
+--- FAIL: TestGatewayNeverForwardsProductProofThroughRedirect (0.00s)
+    --- FAIL: TestGatewayNeverForwardsProductProofThroughRedirect/v1 (0.00s)
+        central_gateway_auth_v2_test.go:269: product proof forwarded to redirected service 1 times
+    --- FAIL: TestGatewayNeverForwardsProductProofThroughRedirect/v2 (0.00s)
+        central_gateway_auth_v2_test.go:269: product proof forwarded to redirected service 1 times
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	0.808s
+FAIL

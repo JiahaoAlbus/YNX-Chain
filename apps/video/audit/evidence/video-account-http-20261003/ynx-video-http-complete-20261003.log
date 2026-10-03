@@ -1,0 +1,29 @@
+✔ Video uses the frozen browser SDK with exact Video registration and honest browser storage (2.601959ms)
+✔ product preparation protects pending request before explicit link and never asserts installation (0.670417ms)
+✔ wrong web origin stops before registry, SDK initialization and Gateway requests (0.31325ms)
+✔ callback, restore and disconnect use SDK authority while private scopes remain route specific (0.32875ms)
+✔ Video scope allowlist rejects Creator reads, moderation and unknown mutation paths (0.335ms)
+✔ public API starts without awaiting or attaching a Product Session (0.422625ms)
+✔ network retry generates fresh device proof with stable idempotency key and immutable body (0.221584ms)
+✔ private credentials never go to an overridden origin and rejected authority clears private UI (0.289625ms)
+✔ watch progress excludes guest playback and seeking; failed persistence retains real elapsed time (0.483417ms)
+✔ preparation retains the SDK pending logout state so the UI can expose explicit retry (0.114708ms)
+✔ native resume never re-prepares before callback storage exists; matched state still requires SDK restore (0.16175ms)
+✔ account changes during proof generation prevent a private mutation from reaching the service (0.978708ms)
+✔ an old 401 arriving after a new account cannot invalidate the new account (1.539208ms)
+✔ video callback resumes the original view only for the matching verified session (1.028042ms)
+✔ creator-studio callback resumes the original view only for the matching verified session (0.18325ms)
+✔ cross-tab hints deduplicate the two browser transports and contain no account or proof (0.536958ms)
+✔ cancellation settles an uncooperative private authorization without emitting a request (0.236875ms)
+✔ cancellation settles an uncooperative network without invalidating another account (0.207084ms)
+✔ cancellation settles an uncooperative body without invalidating another account (0.118083ms)
+✔ the complete Video request has the real 15 second authority deadline (15002.78875ms)
+✔ unbounded responses and foreign response locations are rejected before use (23.9315ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15085.722125

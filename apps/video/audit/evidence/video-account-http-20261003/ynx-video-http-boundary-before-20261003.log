@@ -1,0 +1,35 @@
+✔ account changes during proof generation prevent a private mutation from reaching the service (0.613708ms)
+✔ an old 401 arriving after a new account cannot invalidate the new account (1.0725ms)
+✔ video callback resumes the original view only for the matching verified session (0.85325ms)
+✔ creator-studio callback resumes the original view only for the matching verified session (0.143958ms)
+✔ cross-tab hints deduplicate the two browser transports and contain no account or proof (0.397417ms)
+✖ cancellation settles an uncooperative private authorization without emitting a request (82.352708ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 132.681042
+
+✖ failing tests:
+
+test at apps/video/session-boundaries.test.mjs:48:1
+✖ cancellation settles an uncooperative private authorization without emitting a request (82.352708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'hung'
+  - 'AbortError'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/session-boundaries.test.mjs:53:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'hung',
+    expected: 'AbortError',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

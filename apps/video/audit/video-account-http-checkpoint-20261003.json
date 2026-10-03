@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-03",
+  "sourceCommit": "a0b37b5fc448459dd2d350ff5edd723bb76f7941",
+  "sourceTree": "0ab05149011ae4585ee9569e9cada878fa2d5101",
+  "parentCheckpoint": "c4b5d1b4ee0c9c03dc0f7d4ae3ea471d6748235c",
+  "observedDefects": [
+    "Actual shipped API leaves a never-returning private authorization pending after AbortSignal cancellation: pre-fix test observed hung instead of AbortError",
+    "Original V1 and V2 Gateway clients follow HTTP307 and send proof to redirected service: pre-fix actual HTTP tests observed one forwarded request for each version"
+  ],
+  "changes": [
+    "Account invalidation/sign-out/new sign-in aborts all captured original private UI requests and installs a fresh controller for the next account; late proof cannot emit a request",
+    "A real 15-second deadline covers authorization, both network attempts and complete JSON body; ignoring transport AbortSignal still settles caller, fresh retry proofs retain original Idempotency-Key/body",
+    "JSON body read bound 16MiB, UTF8 validation, redirects/final response location rejected and body reader cleanup; encoded route traversal/fragments rejected before network",
+    "Both inherited V1 and V2 backend introspection use a new bounded no-cookie no-redirect HTTP client sharing only the configured transport; no shared source, protected credentials, authority registry or stored account data edited"
+  ],
+  "validation": {
+    "webCheck": "PASS 112 existing and new checks, 0 fail/skip; 12-language audit; actual unshortened 15-second private authorization deadline",
+    "goVideoRace": "PASS full internal/video including both real HTTP redirect-negative cases",
+    "browser": "PASS actual shipped app/API in Chromium: sign-out settles blocked history within1.5s, zero old-account HTTP, late original proof discarded, account B original history loads; synthetic authority, no production SDK/Wallet acceptance",
+    "diffCheck": "PASS"
+  },
+  "retainedDiagnostics": [
+    "First independent browser fixture omitted atRegisteredOrigin required by the original actual app, resulting in a30s wait timeout; fixed fixture contract only and retained original log",
+    "Initial browser-script shell call used apps/video cwd with a repo-relative path and created no source; corrected cwd before actual browser execution"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-http-boundary-before-20261003.log",
+      "sha256": "6c50509570523282ee1e936033c102094bb10636ac18591d5cb4e14a8d5d7cbb",
+      "kind": "expected_pre_fix_failure"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-gateway-redirect-before-20261003.log",
+      "sha256": "c5f9c89fa3a558d11c20170e7a420f949570e5af7acfb1f8adf06dd8031b459d",
+      "kind": "expected_pre_fix_failure"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-gateway-full-after-20261003.log",
+      "sha256": "6b413030d1cd9df87e431b2adfbd38d10cc0d0166071d0ab14c2d36809ff40b8",
+      "kind": "pass"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-http-complete-20261003.log",
+      "sha256": "21edfe1c31efd7aee79dcf895b611e4d2760fb4881675c058d200b634ae526f1",
+      "kind": "pass"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-web-http-final-20261003.log",
+      "sha256": "372df19bb0f949e1b3faff9c7b2f27304560a4925b300328a81d9fa292705993",
+      "kind": "pass"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-account-cancel-browser-20261003.log",
+      "sha256": "c383ff23d6a54b2cdf9570d2213f8891746a9be4e78f2834a70ab3bac7f78cb4",
+      "kind": "pass"
+    },
+    {
+      "path": "apps/video/audit/evidence/video-account-http-20261003/ynx-video-account-cancel-browser-fixture-first-20261003.log",
+      "sha256": "df2a95f242d407230306d353bdb8c5410524feb3d84dd0354fc9b9640d742260",
+      "kind": "fixture_error_retained"
+    }
+  ],
+  "sharedRegistrationCandidate": {
+    "path": "recovery-20261003/generic-business/registration-successor-c09/HANDOFF.md",
+    "statusObserved": "SOURCE_CANDIDATE_READY without Git freeze; not consumed/copied",
+    "requiredNext": "A exact admitted immutable complete SDK/native signer and backend role configuration; Media original routes must bind actual wire bytes, atomically consume nonce in business transaction and revalidate original live actor/object after I/O"
+  },
+  "formalEntryVerified": false,
+  "realWalletPrivateBusinessVerified": false,
+  "nativeInstalledVerified": false,
+  "macOSProductVerified": false,
+  "overallStatus": "NOT_COMPLETED"
+}
