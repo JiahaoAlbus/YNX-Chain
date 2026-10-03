@@ -1,0 +1,53 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :app:compileDebugJavaWithJavac FAILED
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionBridge.java:72: error: variables in try-with-resources are not supported in -source 8
+ private static byte[] bounded(InputStream input,int limit)throws Exception{try(input;ByteArrayOutputStream output=new ByteArrayOutputStream()){byte[] bytes=new byte[8192];int count,total=0;while((count=input.read(bytes))!=-1){total+=count;if(total>limit)throw new IOException("Native response exceeds limit");output.write(bytes,0,count);}return output.toByteArray();}}
+                                                                                     ^
+  (use -source 9 or higher to enable variables in try-with-resources)
+1 error
+
+[Incubating] Problems report is available at: file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionBridge.java:72: error: variables in try-with-resources are not supported in -source 8
+   private static byte[] bounded(InputStream input,int limit)throws Exception{try(input;ByteArrayOutputStream output=new ByteArrayOutputStream()){byte[] bytes=new byte[8192];int count,total=0;while((count=input.read(bytes))!=-1){total+=count;if(total>limit)throw new IOException("Native response exceeds limit");output.write(bytes,0,count);}return output.toByteArray();}}
+                                                                                       ^
+    (use -source 9 or higher to enable variables in try-with-resources)
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 3s
+16 actionable tasks: 1 executed, 15 up-to-date

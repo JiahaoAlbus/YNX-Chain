@@ -1,0 +1,61 @@
+{
+  "privateBusinessAcceptance": false,
+  "publicDeploymentOfThisSource": false,
+  "results": [
+    {
+      "name": "video",
+      "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "checkedAt": "2026-10-03T13:59:51.696896+00:00",
+      "authenticated": false,
+      "status": 200,
+      "finalURL": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87",
+      "parsedTopKeys": [
+        "schemaVersion",
+        "sourceCommit",
+        "entrypoint",
+        "listen",
+        "topology",
+        "dependencyModel",
+        "files"
+      ],
+      "sourceIdentity": {
+        "schemaVersion": "ynx-video-deployable-runtime/1",
+        "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3"
+      }
+    },
+    {
+      "name": "creator",
+      "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "checkedAt": "2026-10-03T13:59:51.697348+00:00",
+      "authenticated": false,
+      "status": 200,
+      "finalURL": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2",
+      "parsedTopKeys": [
+        "schemaVersion",
+        "product",
+        "sourceCommit",
+        "sourceTree",
+        "outputDirectory",
+        "upstreamCatalog",
+        "files"
+      ],
+      "sourceIdentity": {
+        "schemaVersion": 1,
+        "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+        "sourceTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+        "upstreamCatalog.commit": "7a89550d4964ea38b854cbd03f18775494c2f513"
+      }
+    },
+    {
+      "name": "api",
+      "url": "https://video.ynxweb4.com/video/api/healthz",
+      "checkedAt": "2026-10-03T13:59:51.697523+00:00",
+      "authenticated": false,
+      "error": "HTTP Error 401: Unauthorized"
+    }
+  ]
+}
