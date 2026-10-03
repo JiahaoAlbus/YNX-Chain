@@ -63,7 +63,16 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     const otherContext=await browser.newContext({viewport:{width:1280,height:800}}),otherPage=await otherContext.newPage();
     await otherContext.route('**/*',async route=>new URL(route.request().url()).origin!==base?route.abort():route.continue());
     const otherErrors=[];otherPage.on('pageerror',error=>otherErrors.push(error.message));
+    let otherPosts=0,otherSnapshotUnavailable=false;
+    await otherContext.route('**/api/v1/backtests/from-market',async route=>{otherPosts++;const response=await route.fetch();assert.equal(response.status(),201);otherSnapshotUnavailable=true;return route.fulfill({response});});
+    await otherContext.route('**/api/v1/snapshot',async route=>otherSnapshotUnavailable?route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'controlled history read unavailable'})}):route.continue());
     await otherPage.goto(base,{waitUntil:'networkidle'});await otherPage.locator('#strategy').fill('Independent browser research');await otherPage.locator('#fee').fill('29');await otherPage.locator('#research-submit').click();
+    await otherPage.waitForFunction(()=>workspaceReadUnavailable&&!researchSubmitting);
+    assert.equal(otherPosts,1);assert.equal(await otherPage.locator('#latest-result').isVisible(),true);
+    assert.equal(await otherPage.locator('#research-request-status').isVisible(),false);
+    assert.equal(await otherPage.evaluate(()=>pendingResearchIntent),null);
+    assert.equal(await otherPage.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.research.pending.v1:')).length),0);
+    otherSnapshotUnavailable=false;await otherPage.evaluate(()=>refresh());assert.equal(otherPosts,1,'history recovery must not resubmit confirmed research');
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
     const otherBefore=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));
     assert.equal(otherBefore.experiments[0].strategy.Name,'Independent browser research');assert.equal(otherBefore.experiments[0].assumptions.FeeBPS,29);
