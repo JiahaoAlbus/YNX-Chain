@@ -1,0 +1,4 @@
+typecheck_exit=0
+full_frontend_test_exit=0
+native_build_exit=0
+native_build_stage=/tmp/social-report-original-review-20261004.EHbhsF

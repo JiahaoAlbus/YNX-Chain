@@ -1831,7 +1831,7 @@ function MessageThread({
 
 import { DurableNativeMomentActions } from './src/durableNativeMomentActions';
 import { runCurrentMomentReport } from './src/currentMomentReport';
-import { NativeMomentReportIntents } from './src/nativeMomentReportIntents';
+import { NativeMomentReportIntents, type MomentReportDraft } from './src/nativeMomentReportIntents';
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
   const momentReportIntents=useMemo(()=>new NativeMomentReportIntents(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
@@ -2009,10 +2009,12 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       ],
     );
   };
-  const submitReport = async (item: FeedPost) => {
+  const submitReport = async (item: FeedPost, originalDraft?: MomentReportDraft) => {
     const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
     try {
-      const result = await runCurrentMomentReport(current,()=>digestStringAsync(
+      const result = originalDraft
+        ? await momentReportIntents.run(session.session.account,originalDraft,current,body=>api.report(body))
+        : await runCurrentMomentReport(current,()=>digestStringAsync(
           CryptoDigestAlgorithm.SHA256,
           [
             "ynx-social-trust-evidence-v1",
@@ -2035,19 +2037,24 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       if(current())setError(message(caught));
     }
   };
-  const report = (item: FeedPost) =>
-    Alert.alert(
-      "Report this moment?",
-      "Trust review receives one SHA-256 evidence fingerprint and your explicit report. No penalty is applied automatically.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Report",
-          style: "destructive",
-          onPress: () => void submitReport(item),
-        },
-      ],
-    );
+  const report = async (item: FeedPost) => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
+    try {
+      const original=await momentReportIntents.reviewOriginal(session.session.account,item.id,current);
+      if(!current())return;
+      const pending=original&&!original.completed?original.draft:undefined;
+      Alert.alert(
+        pending?"Retry the original report?":"Report this moment?",
+        pending
+          ? `The previous result is unknown. This retries only your saved ${pending.category} report and ${pending.evidenceHashes.length} original evidence fingerprint(s), without replacing them with this moment's latest content. No penalty is applied automatically.`
+          : "Trust review receives one SHA-256 evidence fingerprint and your explicit report. No penalty is applied automatically.",
+        [
+          {text:"Cancel",style:"cancel"},
+          {text:pending?"Retry original":"Report",style:"destructive",onPress:()=>{if(current())void submitReport(item,pending)}},
+        ],
+      );
+    } catch(caught) {if(current())setError(message(caught))}
+  };
   const appealReport = async () => {
     if (!reportRecord) return;
     try {

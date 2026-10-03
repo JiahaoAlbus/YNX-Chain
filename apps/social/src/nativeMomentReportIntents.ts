@@ -12,14 +12,22 @@ export class NativeMomentReportIntents {
   private readonly busy = new Set<string>();
   constructor(private readonly nonce: () => Promise<string>, private readonly storage: Storage) {}
 
+  async reviewOriginal(account: string, targetId: string, current: () => boolean): Promise<Readonly<{ draft: MomentReportDraft; completed: boolean; recordId: string | null }> | undefined> {
+    if (!current()) return undefined;
+    const key = await reportKey(account, targetId);
+    if (!current()) return undefined;
+    const raw = await this.storage.read(key);
+    if (!current() || raw === null) return undefined;
+    const original = decode(raw, account, targetId);
+    return Object.freeze({ draft: snapshot(original.body), completed: original.completed, recordId: original.recordId });
+  }
+
   async run<T extends Receipt>(account: string, input: MomentReportDraft, current: () => boolean,
     send: (body: Body) => Promise<T>): Promise<T | undefined> {
     if (!/^ynx1[0-9a-z]{38}$/.test(account)) throw new Error('Invalid report account');
     const draft = snapshot(input);
     if (!current()) return undefined;
-    const { sha256 } = await import('@noble/hashes/sha2.js');
-    const { bytesToHex, utf8ToBytes } = await import('@noble/hashes/utils.js');
-    const key = 'ynx.social.moment.report.v1.' + bytesToHex(sha256(utf8ToBytes(JSON.stringify([account, draft.targetType, draft.targetId]))));
+    const key = await reportKey(account, draft.targetId);
     if (!current() || this.busy.has(key)) return undefined;
     this.busy.add(key);
     try {
@@ -45,6 +53,13 @@ export class NativeMomentReportIntents {
       return current() ? result : undefined;
     } finally { this.busy.delete(key); }
   }
+}
+
+async function reportKey(account: string, targetId: string): Promise<string> {
+  if (!/^ynx1[0-9a-z]{38}$/.test(account) || typeof targetId !== 'string' || !targetId || targetId.length > 256) throw new Error('Invalid report review scope');
+  const { sha256 } = await import('@noble/hashes/sha2.js');
+  const { bytesToHex, utf8ToBytes } = await import('@noble/hashes/utils.js');
+  return 'ynx.social.moment.report.v1.' + bytesToHex(sha256(utf8ToBytes(JSON.stringify([account, 'moment', targetId]))));
 }
 
 function snapshot(input: MomentReportDraft): MomentReportDraft {
