@@ -1298,6 +1298,21 @@ $("#testnet-order-form").onsubmit = async (e) => {
 function renderRiskControls() {
   for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0||(id==='reconcile'&&workspaceReadUnavailable); button.ariaBusy=String(riskWrites.has(id)); }
 }
+const reconciliationConfirmationCopy = {
+  en: 'Confirm Paper reconciliation with the exact observed amounts below. A difference activates the persistent kill switch. Local simulation only; no wallet signature, chain transaction or network fee.',
+  'zh-CN': '确认使用下列精确观测金额对账。差异将启用持久化紧急停止。仅本地模拟，不产生钱包签名、链上交易或网络费用。',
+  'zh-TW': '確認使用下列精確觀測金額對帳。差異將啟用持久化緊急停止。僅本地模擬，不產生錢包簽名、鏈上交易或網路費用。',
+  ja: '下記の正確な観測値で模擬状態を照合します。差異は永続的な緊急停止を有効にします。ローカルシミュレーションのみで、署名・オンチェーン取引・ネットワーク手数料はありません。',
+  ko: '아래의 정확한 관측 금액으로 모의 상태를 조정합니다. 차이가 있으면 영구 비상 중지가 활성화됩니다. 로컬 시뮬레이션만 수행하며 서명, 온체인 거래, 네트워크 수수료는 없습니다.',
+  es: 'Confirme la conciliación simulada con los importes exactos observados abajo. Una diferencia activa la parada persistente. Solo simulación local: sin firma, transacción en cadena ni comisión de red.',
+  fr: 'Confirmez le rapprochement simulé avec les montants exacts observés ci-dessous. Un écart active l’arrêt persistant. Simulation locale uniquement : aucune signature, transaction sur chaîne ou commission réseau.',
+  de: 'Paper-Abgleich mit den unten angezeigten exakten Werten bestätigen. Eine Abweichung aktiviert den dauerhaften Notstopp. Nur lokale Simulation: keine Signatur, Blockchain-Transaktion oder Netzwerkgebühr.',
+  pt: 'Confirme a reconciliação simulada com os valores exatos observados abaixo. Uma diferença ativa a parada persistente. Apenas simulação local: sem assinatura, transação em cadeia ou taxa de rede.',
+  ru: 'Подтвердите сверку симуляции с точными наблюдаемыми суммами ниже. Разница включает постоянную аварийную остановку. Только локальная симуляция: без подписи, транзакции в сети и сетевой комиссии.',
+  ar: 'أكد مطابقة المحاكاة بالقيم المرصودة الدقيقة أدناه. أي فرق يفعّل الإيقاف الدائم. محاكاة محلية فقط، دون توقيع محفظة أو معاملة على الشبكة أو رسوم شبكة.',
+  id: 'Konfirmasi rekonsiliasi simulasi dengan jumlah teramati yang tepat di bawah. Selisih mengaktifkan penghentian persisten. Hanya simulasi lokal: tanpa tanda tangan, transaksi on-chain, atau biaya jaringan.',
+};
+for (const [language, confirmReconciliation] of Object.entries(reconciliationConfirmationCopy)) Object.assign(businessCopy[language], {confirmReconciliation});
 function confirmedRiskReceipt(value) {
   if(!value||!Number.isSafeInteger(value.Cash)||!Number.isSafeInteger(value.Position)||!Number.isSafeInteger(value.ReconciliationDelta)||value.ReconciliationDelta<0||typeof value.KillSwitch!=='boolean'||value.ReconciliationDelta>0&&!value.KillSwitch) throw Object.assign(new Error(t('riskReceiptUnconfirmed')), {localeKey:'riskReceiptUnconfirmed'});
   return value;
@@ -1315,15 +1330,16 @@ function applyConfirmedRiskReceipt(receipt) {
 $("#reconcile").onclick = async () => {
   if (!statefulPreview || riskWrites.size>0) return;
   if (workspaceReadUnavailable) { toast(t('workspaceReadUnavailable'),'workspaceReadUnavailable');return; }
-  riskWrites.add('reconcile');snapshotRevision++;renderRiskControls();
+  let ownsRiskLane=false;
   try {
     if (!Number.isSafeInteger(snapshot.paper?.Cash) || !Number.isSafeInteger(snapshot.paper?.Position)) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
+    const observed={Cash:snapshot.paper.Cash,Position:snapshot.paper.Position},revision=snapshotRevision;
+    if (!confirm(`${t('confirmReconciliation')}\n${t('paperCash')}: ${observed.Cash}\n${t('paperPosition')}: ${observed.Position}`)) return;
+    if (!statefulPreview || workspaceReadUnavailable || riskWrites.size>0 || revision!==snapshotRevision || snapshot.paper?.Cash!==observed.Cash || snapshot.paper?.Position!==observed.Position) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
+    riskWrites.add('reconcile');ownsRiskLane=true;snapshotRevision++;renderRiskControls();
     const receipt=confirmedRiskReceipt(await api("/v1/paper/reconcile", {
       method: "POST",
-      body: JSON.stringify({
-        Cash: snapshot.paper.Cash,
-        Position: snapshot.paper.Position,
-      }),
+      body: JSON.stringify(observed),
     }));
     applyConfirmedRiskReceipt(receipt);
     if(receipt.ReconciliationDelta===0) toast(t('reconciled'),'reconciled');
@@ -1332,7 +1348,7 @@ $("#reconcile").onclick = async () => {
   } catch (e) {
     toast(e.message,e.localeKey??null);
   } finally {
-    riskWrites.delete('reconcile');renderRiskControls();
+    if(ownsRiskLane)riskWrites.delete('reconcile');renderRiskControls();
   }
 };
 $("#kill").onclick = async () => {

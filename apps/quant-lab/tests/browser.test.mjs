@@ -458,7 +458,7 @@ test('actual local Go reconciliation reports a controlled stale-snapshot differe
     let writes=0,release;const gate=new Promise(resolve=>release=resolve);
     await context.route('**/api/v1/paper/reconcile',async route=>{writes++;await gate;const response=await route.fetch();await route.fulfill({response})});
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Risk',exact:true}).click();
-    await page.evaluate(()=>{snapshot.paper.Cash-=1});await page.locator('#reconcile').click();
+    await page.evaluate(()=>{snapshot.paper.Cash-=1});const dialog=page.waitForEvent('dialog'),click=page.locator('#reconcile').click();const preview=await dialog;assert.match(preview.message(),/persistent kill switch/);await preview.accept();await click;
     await page.evaluate(()=>document.getElementById('reconcile').onclick());assert.equal(writes,1);assert.equal(await page.locator('#reconcile').isDisabled(),true);
     await page.selectOption('#locale','ar');assert.equal(await page.locator('#reconcile').isDisabled(),true);release();
     await page.locator('#toast').getByText(/: 1$/).waitFor();assert.doesNotMatch(await page.locator('#toast').textContent(),/zero difference/);await page.waitForFunction(()=>snapshot.paper.KillSwitch===true&&snapshot.paper.ReconciliationDelta===1);
@@ -503,7 +503,27 @@ test('mobile Arabic risk confirmation is localized and cancellation leaves persi
   assert.match(await page.locator('#paper-state').textContent(),/النقد المحاكى.*المركز المحاكى.*المطابقة.*مفتاح الإيقاف.*جاهز/);
   await page.screenshot({path:path.join(evidence,'risk-arabic-confirmation-cancelled.png'),fullPage:true});
 });
-test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();await page.getByRole('button',{name:'Risk'}).click();await page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.locator('#toast').filter({hasText:'Kill switch active'}).waitFor();await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true})});
+test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{
+  const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');
+  await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();
+  await page.getByRole('button',{name:'Risk'}).click();
+  const dialog=page.waitForEvent('dialog'),click=page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await (await dialog).accept();await click;
+  await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.locator('#toast').filter({hasText:'Kill switch active'}).waitFor();
+  await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true});
+});
+test('actual Chrome reconciliation preview cancels in twelve locales without any write',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:-2,KillSwitch:false}})}));
+    const page=await context.newPage(),writes=[],errors=[];page.on('request',request=>{if(request.method()==='POST')writes.push(request.url())});page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="risk"]').click();
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);const expected=await page.evaluate(()=>t('confirmReconciliation'));const dialog=page.waitForEvent('dialog'),click=page.locator('#reconcile').click();const preview=await dialog;
+      assert.ok(preview.message().startsWith(expected));assert.ok(preview.message().includes(': 777'));assert.ok(preview.message().includes(': -2'));await preview.dismiss();await click;
+    }
+    assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('confirmed actual-service kill survives follow-up network loss and delayed pre-write snapshot',{timeout:15000},async()=>{
   // Delay a real isolated Go response, not a fabricated risk-state result.
   const context=await browser.newContext();let release;
@@ -534,7 +554,8 @@ test('confirmed actual-service kill survives follow-up network loss and delayed 
     await page.selectOption('#paper-strategy','e'.repeat(64));
     assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     await page.evaluate(()=>document.getElementById('paper-order').onsubmit({preventDefault(){}}));
-    assert.equal(paperPosts,0);assert.match(await page.locator('#toast').textContent(),/Kill switch active/);
+    assert.equal(paperPosts,0);assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('workspaceReadUnavailable')));
+    assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),true);
     assert.equal(await page.evaluate(()=>pendingPaperIntent),null);
     await page.reload({waitUntil:'networkidle'});
     assert.match(await page.locator('#paper-state').textContent(),/ACTIVE/);

@@ -543,10 +543,30 @@ test('real shipped Quant HTTP deadline covers non-cooperative response and body 
   }
 });
 
+test('reconciliation previews exact amounts in every language and cancellation writes nothing',async()=>{
+  let message='';const app=harness({snapshot:{paper:{Cash:777,Position:-2,KillSwitch:false}},confirmAction:value=>{message=value;return false}});await settle();
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});await app.ids.get('reconcile').onclick();
+    assert.ok(message.startsWith(vm.runInContext('t("confirmReconciliation")',app.context)));
+    assert.ok(message.includes(': 777'));assert.ok(message.includes(': -2'));
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+});
+test('reconciliation refuses state or authority changes during confirmation and binds accepted exact body',async()=>{
+  for(const mutation of ['snapshot.paper.Cash=778','snapshot.paper.Position=3','snapshotRevision++','workspaceReadUnavailable=true','statefulPreview=false','riskWrites.add("kill")']){
+    const app=harness({snapshot:{paper:{Cash:777,Position:2,KillSwitch:false}}});await settle();
+    app.context.confirm=()=>{vm.runInContext(mutation,app.context);return true};await app.ids.get('reconcile').onclick();
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+    if(mutation.includes('riskWrites'))assert.equal(vm.runInContext('riskWrites.has("kill")',app.context),true);
+  }
+  const receipt={Cash:777,Position:2,KillSwitch:false,ReconciliationDelta:0};
+  const app=harness({snapshot:{paper:receipt},confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{paper:receipt}:receipt});await settle();await app.ids.get('reconcile').onclick();
+  assert.deepEqual(JSON.parse(app.calls.find(call=>call.options.method==='POST').options.body),{Cash:777,Position:2});
+});
 test('risk outcomes use confirmed zero or exact nonzero receipts without false zero-difference claims',async()=>{
   for(const delta of [0,1,Number.MAX_SAFE_INTEGER]){
     const receipt={Cash:1000,Position:0,ReconciliationDelta:delta,KillSwitch:delta!==0};
-    const app=harness({snapshot:{paper:receipt},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:receipt}:receipt});await settle();
+    const app=harness({snapshot:{paper:receipt},confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:receipt}:receipt});await settle();
     await app.ids.get('reconcile').onclick();const message=app.ids.get('toast').textContent;
     if(delta===0)assert.match(message,/zero difference/);else{assert.doesNotMatch(message,/zero difference/);assert.match(message,new RegExp(': '+delta+'$'));assert.match(message,/kill switch is active/);app.ids.get('locale').onchange({target:{value:'ar'}});assert.match(app.ids.get('toast').textContent,new RegExp(': '+delta+'$'))}
     assert.equal(app.ids.get('reconcile').disabled,false);assert.equal(app.proofs(),0);
@@ -557,7 +577,7 @@ test('risk receipt mismatch is unconfirmed and pending operations coalesce witho
   for(const id of ['reconcile','kill']){
     let confirmations=0;const pending=deferred(),receipt={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:id==='kill'};
     const app=harness({snapshot:{paper:receipt},confirmAction:()=>{confirmations++;return true},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},paper:receipt}:pending.promise});await settle();
-    const first=app.ids.get(id).onclick();await app.ids.get(id).onclick();assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(confirmations,id==='kill'?1:0);assert.equal(app.ids.get(id).disabled,true);
+    const first=app.ids.get(id).onclick();await app.ids.get(id).onclick();assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(confirmations,1);assert.equal(app.ids.get(id).disabled,true);
     app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.ids.get(id).disabled,true);assert.equal(app.ids.get(id).ariaBusy,'true');pending.resolve(receipt);await first;assert.equal(app.ids.get(id).ariaBusy,'false');
   }
   for(const receipt of [{},{Cash:0,Position:0,ReconciliationDelta:1,KillSwitch:false},{Cash:0,Position:0,ReconciliationDelta:Number.MAX_SAFE_INTEGER+1,KillSwitch:true},{Cash:0,Position:0,ReconciliationDelta:0,KillSwitch:false}]){
@@ -597,7 +617,7 @@ test('reconcile and kill share one pending risk lane so late receipts cannot cro
     assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('reconcile').disabled,true);
     await app.ids.get(firstId==='kill'?'reconcile':'kill').onclick();
     assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1);
-    assert.equal(confirmations,firstId==='kill'?1:0);
+    assert.equal(confirmations,1);
     pending.resolve(receipt);await first;
     assert.equal(app.ids.get('kill').disabled,false);assert.equal(app.ids.get('reconcile').disabled,false);
   }
