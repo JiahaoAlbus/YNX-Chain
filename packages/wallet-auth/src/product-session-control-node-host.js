@@ -26,7 +26,7 @@ export class ProductSessionControlNodeHost {
     this.#store = new ProductSessionControlNodeStore({ statePath: options.statePath, ...(options.io ? { io: options.io } : {}) });
   }
   snapshot() { return this.#store.snapshot(); }
-  revalidate(session,scopes,productId,at,businessRevalidation=false){const snapshot=this.#store.snapshot(),handler=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,snapshot,this.#capacityPolicy);return handler.revalidate(session,scopes,productId,at,businessRevalidation);}
+  revalidate(session,scopes,productId,at,businessRevalidation=false){const snapshot=this.#store.snapshot(),handler=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,snapshot,this.#capacityPolicy);const result=handler.revalidate(session,scopes,productId,at,businessRevalidation);if(canonicalJSON(this.#store.snapshot())!==canonicalJSON(snapshot))fail("STATE_TAMPERED","Private authority changed during revalidation");return result;}
   handler() {
     return async (request, response) => {
       const requestId = validRequestId(request.headers["x-request-id"]) ? request.headers["x-request-id"] : "req_invalid_request_000";

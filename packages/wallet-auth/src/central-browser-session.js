@@ -229,6 +229,39 @@ export class CentralBrowserSessionAuthority {
       return result;
     });
   }
+  // One synchronous authority decision while the BrowserStore owns its lock.
+  // No introspect()/renew() call here: either would recurse or renew a lease.
+  revalidateProductBrowser(input,proof){
+    exactFields(input,['clientId','session','requiredScopes','browser'],'Combined confidential authority read');
+    if(!this.#productRevalidator||!this.#businessRevalidation&&!this.#privateBackends.length)fail('SSO_BACKEND_NOT_CONFIGURED');
+    exactFields(input.browser,['clientId','origin','grant'],'Original browser binding');
+    const browserClient=this.#registry.find(c=>c.clientId===input.browser.clientId);
+    if(!browserClient||browserClient.productId!==input.session?.productId||browserClient.origin!==input.browser.origin)fail('SSO_CLIENT_MISMATCH');
+    const original=input.browser.grant;
+    exactFields(original,['grantToken','identity','audience','scopes','expiresAt','csrf'],'Original sealed browser grant');
+    exactFields(original.identity,['subject','account','generation','expiresAt'],'Original browser identity');
+    if(!token(original.grantToken)||!token(original.csrf)||original.audience!==browserClient.audience||canonicalJSON(original.scopes)!==canonicalJSON(browserClient.scopes)||original.identity.account!==input.session.account||original.identity.subject!==input.session.account)fail('SSO_PRODUCT_BINDING_INVALID');
+    return this.#transaction((state,now)=>{
+      const privateBackend=this.#privateBackends.find(entry=>entry.backendClientId===input.clientId),client=this.#registry.find(c=>c.clientId===input.clientId);
+      if(privateBackend){
+        if(["chainId","productId","clientId","platform","applicationId","bundleId","packageId","origin","callback"].some(field=>input.session[field]!==privateBackend[field])||!Array.isArray(input.requiredScopes)||input.requiredScopes.length===0||input.requiredScopes.some(scope=>!privateBackend.allowedScopes.includes(scope))||proof?.keyId!==privateBackend.keyId)fail('SSO_CLIENT_MISMATCH');
+      }else if(!this.#businessRevalidation||!client||client.productId!==browserClient.productId||input.clientId!==`${input.session.clientId}-sso-v1`||input.session.platform!=='web'||input.session.origin!==client.origin)fail('SSO_CLIENT_MISMATCH');
+      if(state.backendNonces?.some(n=>n.hash===backendBodyDigest(proof?.nonce)&&n.clientId===input.clientId))fail('SSO_BACKEND_AUTH_REPLAY');
+      this.#authenticateBackend(state,now,'/v2/browser-sessions/product-browser-revalidate',input,proof);
+      const grant=state.grants.find(value=>equal(value.tokenHash,hash(original.grantToken)));
+      if(!grant||grant.protocol!==undefined||grant.revoked||grant.expiresAt<=now||grant.clientId!==browserClient.clientId)fail('SSO_GRANT_INVALID');
+      const session=state.sessions.find(value=>value.id===grant.sessionId);this.#assertActive(session,now);
+      if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');
+      const approved=this.#approved(state,session,browserClient.clientId);
+      if(grant.origin!==approved.origin||grant.audience!==approved.audience||canonicalJSON(grant.scopes)!==canonicalJSON(approved.scopes))fail('SSO_GRANT_INVALID');
+      if(grant.familyId)this.#activeFamily(state,state.families?.find(f=>f.id===grant.familyId),now);
+      if(canonicalJSON(this.#identity(session))!==canonicalJSON(original.identity)||grant.audience!==original.audience||canonicalJSON(grant.scopes)!==canonicalJSON(original.scopes)||iso(grant.expiresAt)!==original.expiresAt)fail('SSO_PRODUCT_BINDING_INVALID');
+      const result=this.#productRevalidator(input.session,input.requiredScopes,browserClient.productId,new Date(now));
+      // Promises/custom asynchronous verifiers cannot escape this lock boundary.
+      if(result?.then||result?.active!==true||canonicalJSON(result.session)!==canonicalJSON(input.session))fail('SSO_PRODUCT_BINDING_INVALID');
+      return {active:true,session:result.session,browser:structuredClone(input.browser)};
+    });
+  }
   get oidcEnabled(){return this.#oidc!==null;}
   oidcMetadata(){this.#requireOIDC();return this.#oidc.metadata();}
   oidcJwks(){this.#requireOIDC();return this.#oidc.jwks();}
@@ -305,7 +338,7 @@ export const CENTRAL_BROWSER_ROUTES=Object.freeze([
   '/sso/browser.js','/sso/session',
   '/v2/browser-sessions/bootstrap','/v2/browser-sessions/challenge','/v2/browser-sessions/complete',
   '/v2/browser-sessions/cancel','/v2/browser-sessions/profile','/v2/browser-sessions/status','/v2/browser-sessions/authorize',
-  '/v2/browser-sessions/token','/v2/browser-sessions/product-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
+  '/v2/browser-sessions/token','/v2/browser-sessions/product-revalidate','/v2/browser-sessions/product-browser-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
 ]);
 export class CentralBrowserSessionNodeRoutes {
   #authority;
@@ -325,7 +358,7 @@ export class CentralBrowserSessionNodeRoutes {
         return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"},body:centralUIPage('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Browser session</title><style>body{background:#fff;color:#122247;font:17px/1.6 system-ui;margin:0}main{max-width:560px;margin:8vh auto;padding:24px}button{min-height:44px;padding:12px 18px;border:0;border-radius:12px;background:#002FA7;color:#fff;font:inherit}button:disabled{opacity:.65}</style><main><h1>YNX browser session</h1><p id="status" role="status" aria-live="polite">Checking your server session…</p><p>Signing out here ends browser identity access across all linked YNX products. It does not revoke unrelated Wallet connection permissions.</p><button id="global-logout" type="button" disabled>Sign out of all YNX products</button><script id="context" type="application/json">{"mode":"session"}</script><script src="/sso/browser.js" defer></script></main></html>',headers['accept-language'])};
       }
       if(parsedUrl.hash||parsedUrl.search&&path!=='/v2/browser-sessions/authorize')fail('SSO_TRANSACTION_INVALID');
-      const backend=['/v2/browser-sessions/token','/v2/browser-sessions/product-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout-grant'].includes(path);
+      const backend=['/v2/browser-sessions/token','/v2/browser-sessions/product-revalidate','/v2/browser-sessions/product-browser-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout-grant'].includes(path);
       if(backend){
         // Credential responses are server-to-server ONLY. No product CORS, no
         // browser same-origin fetch, and no cookie auth to these two endpoints.
@@ -372,8 +405,9 @@ export class CentralBrowserSessionNodeRoutes {
         return this.#reply(200,{identity:result.identity,initiator:result.initiator},{'set-cookie':centralBrowserCookie(result.sessionToken)});
       }
       if(path==='/v2/browser-sessions/cancel'){exactFields(input,['challengeId'],'Central browser cancellation');return this.#reply(200,this.#authority.cancel(input.challengeId,transaction));}
-      if(['/v2/browser-sessions/product-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity'].includes(path)){
+      if(['/v2/browser-sessions/product-revalidate','/v2/browser-sessions/product-browser-revalidate','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity'].includes(path)){
         const raw=headers['x-ynx-backend-proof'];if(typeof raw!=='string'||raw.length>4096||!/^[A-Za-z0-9_-]+$/.test(raw))fail('SSO_BACKEND_AUTH_REQUIRED');let proof;try{proof=JSON.parse(Buffer.from(raw,'base64url').toString('utf8'))}catch{fail('SSO_BACKEND_AUTH_INVALID')}
+        if(path.endsWith('/product-browser-revalidate'))return this.#reply(200,this.#authority.revalidateProductBrowser(input,proof));
         if(path.endsWith('/product-revalidate'))return this.#reply(200,this.#authority.revalidateProduct(input,proof));
         const method=path.endsWith('/token-family')?'redeemWithFamily':path.endsWith('/renew')?'renewFamily':path.endsWith('/activity')?'recordFamilyActivity':'revokeFamily';return this.#reply(200,this.#authority[method](input,proof));
       }

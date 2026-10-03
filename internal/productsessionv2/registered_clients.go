@@ -121,3 +121,13 @@ func (s *RegisteredClientSet) Revalidate(ctx context.Context, session Session, s
 	}
 	return s.readers[c.policy.Platform].Revalidate(ctx, session, scopes)
 }
+
+// RevalidateBrowser retains the original registered platform and sealed browser
+// association. It never selects an identity policy from a caller-supplied tuple.
+func (s *RegisteredClientSet) RevalidateBrowser(ctx context.Context, original Session, browser *BrowserSSO, sealedBinding string, fixedRouteScopes []string) (Session, BrowserGrant, error) {
+	c, err := s.clientForSession(original)
+	if err != nil {
+		return Session{}, BrowserGrant{}, err
+	}
+	return s.readers[c.policy.Platform].RevalidateBrowser(ctx, original, browser, sealedBinding, fixedRouteScopes)
+}
