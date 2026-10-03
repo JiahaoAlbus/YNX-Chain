@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -134,6 +135,53 @@ func TestPublicReadsDiscloseSourceCoverageAndFileBackendDegradation(t *testing.T
 	}
 }
 
+func TestMissingDurableStateCannotPromoteCachedPublicMarketAndRecoversExactly(t *testing.T) {
+	service, _, path := newTestService(t)
+	if _, err := service.CreditTestQuote(adminKey, alice, AmountScale, "missing-state-fixture"); err != nil {
+		t.Fatal(err)
+	}
+	before := cloneState(service.state)
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+	retained := path + ".retained"
+	if err := os.Rename(path, retained); err != nil {
+		t.Fatal(err)
+	}
+	for _, route := range []string{"/v1/markets", "/v1/orderbook", "/v1/market-data/snapshot", "/v1/market-data/stream"} {
+		response, err := http.Get(server.URL + route)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body map[string]any
+		err = json.NewDecoder(response.Body).Decode(&body)
+		response.Body.Close()
+		if err != nil || response.StatusCode != http.StatusServiceUnavailable || body["code"] != "state_refresh_failed" {
+			t.Fatalf("route=%s status=%d body=%v error=%v", route, response.StatusCode, body, err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("failed read recreated missing authority: %v", err)
+		}
+	}
+	if service.state.IntegrityHash != before.IntegrityHash || service.state.Sequence != before.Sequence {
+		t.Fatal("failed reads replaced retained state")
+	}
+	if err := os.Rename(retained, path); err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.Get(server.URL + "/v1/market-data/snapshot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var snapshot MarketDataSnapshot
+	if err := json.NewDecoder(response.Body).Decode(&snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || snapshot.Revision != before.Sequence || snapshot.SourceMetadata.Status != "degraded_single_host" || snapshot.SourceMetadata.MultiInstance || service.state.IntegrityHash != before.IntegrityHash {
+		t.Fatalf("recovery changed or promoted state: status=%d snapshot=%+v", response.StatusCode, snapshot)
+	}
+}
+
 func TestMarketDataStreamEmitsReadOnlyDurableSnapshotAndClosesOnDisconnect(t *testing.T) {
 	service, _, _ := newTestService(t)
 	server := NewServer(service)
@@ -192,5 +240,40 @@ func TestMarketDataStreamEmitsReadOnlyDurableSnapshotAndClosesOnDisconnect(t *te
 	}
 	if event.Market != DefaultMarket || event.SourceMetadata.Coverage != "stream-orderbook-matched-trades" || event.SourceMetadata.Status != "degraded_single_host" {
 		t.Fatalf("stream snapshot overclaimed or malformed: %+v", event)
+	}
+}
+
+func TestOpenMarketStreamClosesWhenDurableAuthorityDisappears(t *testing.T) {
+	service, _, path := newTestService(t)
+	previousInterval := marketDataStreamPollInterval
+	marketDataStreamPollInterval = 5 * time.Millisecond
+	defer func() { marketDataStreamPollInterval = previousInterval }()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	response := newStreamingRecorder()
+	done := make(chan struct{})
+	go func() {
+		NewServer(service).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/market-data/stream", nil).WithContext(ctx))
+		close(done)
+	}()
+	select {
+	case <-response.wrote:
+	case <-time.After(time.Second):
+		t.Fatal("stream did not emit the initial durable snapshot")
+	}
+	if err := os.Rename(path, path+".retained"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("missing authority did not close the stream")
+	}
+	body := response.String()
+	if !bytes.Contains([]byte(body), []byte("event: source-unavailable\n")) || bytes.Contains([]byte(body), []byte("event: reconciled\n")) {
+		t.Fatalf("missing authority promoted or hid source failure: %s", body)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("stream recreated missing durable state: %v", err)
 	}
 }

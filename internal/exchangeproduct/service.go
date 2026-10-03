@@ -3179,6 +3179,9 @@ func (s *Service) refreshState() error {
 	if err != nil {
 		return err
 	}
+	if !exists {
+		return fmt.Errorf("authoritative exchange state disappeared; refusing cached readback")
+	}
 	if exists && authoritative.IntegrityHash != s.state.IntegrityHash {
 		s.state = authoritative
 	}
