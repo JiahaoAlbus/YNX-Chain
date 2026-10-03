@@ -27,12 +27,18 @@ func TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer handler.Close()
+	t.Cleanup(func() {
+		if err := handler.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	store := handler.baseService.store.(*postgresStateStore)
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE state_key = $1 OR state_key LIKE $2`, namespace, namespace+":tenant:%")
+		if _, err := store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE state_key = $1 OR state_key LIKE $2`, namespace, namespace+":tenant:%"); err != nil {
+			t.Error(err)
+		}
 	})
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -64,6 +70,7 @@ func TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers(t *testing.
 			t.Fatal(err)
 		}
 		req.Header.Set(TenantHeader, tenant)
+		req.Header.Set("X-YNX-Preview-Mode", "local-paper")
 		response, err := server.Client().Do(req)
 		if err != nil {
 			t.Fatal(err)
