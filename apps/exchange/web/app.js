@@ -80,7 +80,7 @@ async function initializeBrowserIdentity(){try{const {response,data}=await brows
 const marketFeed=createMarketFeed({onSnapshot(value){state.book=value.orderBook;state.publicTrades=value.trades;state.rules=value.tradingRules;state.source=value.sourceMetadata;renderBook();renderPublicMarket()},onStatus(value){state.marketPhase=value.phase;renderMarketStatus(value);estimate()}});
 async function boot(){
   let languageStorage;try{languageStorage=window.localStorage}catch{}
-  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot)renderAccount();renderPrivateReadMetadata(privateAccount.state());estimate()}});
+  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot){renderAccount();renderOwnedControls()}renderPrivateReadMetadata(privateAccount.state());estimate()}});
   bind();renderBook();renderPublicMarket();renderAIState();$('#custody-address').textContent='Separate approved deposit workflow required';window.YNXExchangeLocale?.write($('#custody-address'),'Separate approved deposit workflow required');$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
 }
 function bind(){

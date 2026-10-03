@@ -87,13 +87,17 @@ test('private account read timestamps follow the chosen language without request
     await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,snapshot:null};let currentRead;const privateAccount={state:()=>currentRead};const languageStorage={getItem:()=>null,setItem(){}};function renderAccount(){}function renderBook(){}function renderPublicMarket(){}function estimate(){}function resumeDeferredBrowserIdentity(){};${ownedTimes};${controls};window.privateTimeQA={set(value){currentRead=value;renderPrivateAccount(value)},source(){return JSON.stringify(currentRead)}};`});
     await page.addScriptTag({type:'module',content:`${localeSource}\n${localeSetup}`});
     try{await page.waitForFunction(()=>window.YNXExchangeLocale,{},{timeout:3000})}catch(error){assert.deepEqual(errors,[]);throw error}
-    const value={phase:'connected',account:'controlled-A',expiresAt:'2026-10-03T10:00:00+09:00',snapshot:{security:{updatedAt:'2026-10-03T01:00:00Z'},support:[],sourceMetadata:{status:'controlled_read',coverage:'owned_records_fixture',asOf:'2026-10-03T01:00:00Z'}}};
+    const value={phase:'connected',account:'controlled-A',expiresAt:'2026-10-03T10:00:00+09:00',snapshot:{security:{updatedAt:'2026-10-03T01:00:00Z'},support:[{account:'controlled-A',id:'existing-case',category:'security',status:'open',createdAt:'2026-10-03T01:00:00Z',message:'Existing account-owned case'}],sourceMetadata:{status:'controlled_read',coverage:'owned_records_fixture',asOf:'2026-10-03T01:00:00Z'}}};
     await page.evaluate(value=>window.privateTimeQA.set(value),value);const original=JSON.stringify(value);
+    await page.locator('#support-message').fill('Current owner unsubmitted draft');
     for(const language of locales){
       await page.locator('#exchange-language').selectOption(language);
       const expected=await page.evaluate(()=>new Date('2026-10-03T01:00:00Z').toLocaleString(document.documentElement.lang));
       assert.equal(await page.locator('#private-expiry').textContent(),expected);
       assert.equal(await page.locator('#private-source').textContent(),`controlled_read · owned_records_fixture · ${expected}`);
+      assert.ok((await page.locator('#security-read-state').textContent()).includes(` · ${expected}`),'security observation time must follow the currently selected language');
+      assert.equal(await page.locator('#owned-support-cases article p').first().textContent(),`existing-case · ${expected}`);
+      assert.equal(await page.locator('#support-message').inputValue(),'Current owner unsubmitted draft');
       assert.equal(await page.evaluate(()=>window.privateTimeQA.source()),original);
     }
     for(const invalid of [null,'0','2026-02-30T00:00:00Z']){
