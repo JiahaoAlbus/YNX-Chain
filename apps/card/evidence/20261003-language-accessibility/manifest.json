@@ -1,0 +1,66 @@
+{
+  "schema": "ynx.card.language-accessibility.v1",
+  "sourceCommit": "629e1f1358060b83602efb1889ca941d8c4c0717",
+  "sourceTree": "d2a28bf67e35d1df1e3b550eb95b3819c4beb5bd",
+  "parentCompleteTypography": "6204439909d598c5f64ef68d8d2825680c93f1ff",
+  "files": [
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/browser.json",
+      "bytes": 5331,
+      "sha256": "0e1f71d86b8a91729fc4536c606c0e250312a21d014fb72ea82da269586fee42"
+    },
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/console.json",
+      "bytes": 672,
+      "sha256": "5b989d483838f18cce831bdf0525fdc530d3d2d3e00bfa7152331cdf1e3319e9"
+    },
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/english-selected.jpg",
+      "bytes": 23364,
+      "sha256": "5b6d936002d3d4432947523d7bfcff22cd26a566165915faa8719e72301c7f04"
+    },
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/preview.log",
+      "bytes": 1238,
+      "sha256": "e1be781e5c1b8d2ed5180edc035e42a25e156a4dc5e4906ba570c9fcf1487bc4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/tests.log",
+      "bytes": 377,
+      "sha256": "7595aeb9b1e28df9f0f2c6460028b0754fbe9e9adf2f423e6ad3d773c0f57ca6"
+    },
+    {
+      "path": "apps/card/evidence/20261003-language-accessibility/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    }
+  ],
+  "tests": {
+    "sourceContract": 3,
+    "failed": 0,
+    "typecheck": true
+  },
+  "browser": {
+    "localPreview": true,
+    "englishDefaultChecked": true,
+    "chineseSelectionChecked": true,
+    "arabicSelectionChecked": true,
+    "arabicReloadRestored": true,
+    "returnedToEnglish": true,
+    "nativeScreenReaderSpeech": false
+  },
+  "truth": {
+    "formalBuild": false,
+    "publicDeployment": false,
+    "actualWalletApproval": false,
+    "signature": false,
+    "activeCard": false,
+    "ynxtTopup": false,
+    "realPayment": false
+  },
+  "notes": [
+    "Static contract tests cover all 12 locale values; actual browser covers English, zh-CN and Arabic, not 12 installed screen-reader flows.",
+    "Only Web aria-checked added; Native state and actual locale handlers unchanged.",
+    "No account/sign/transaction requests. Shared Hosted/backend/release continues under A."
+  ]
+}

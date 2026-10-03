@@ -1,0 +1,11 @@
+✔ language options expose explicit Web checked state for all twelve locale choices (26.7735ms)
+✔ native language choices do not receive Web-only aria attributes (0.448042ms)
+✔ radio labels and explicit locale selection handler remain unchanged (0.07625ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 197.977792

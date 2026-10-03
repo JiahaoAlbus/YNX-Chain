@@ -1,0 +1,269 @@
+{
+  "url": "http://localhost:19092/",
+  "checks": [
+    {
+      "step": "english-default",
+      "states": [
+        {
+          "checked": "false",
+          "name": "Compact"
+        },
+        {
+          "checked": "true",
+          "name": "Standard"
+        },
+        {
+          "checked": "false",
+          "name": "Larger"
+        },
+        {
+          "checked": "true",
+          "name": "English"
+        },
+        {
+          "checked": "false",
+          "name": "简体中文"
+        },
+        {
+          "checked": "false",
+          "name": "繁體中文"
+        },
+        {
+          "checked": "false",
+          "name": "日本語"
+        },
+        {
+          "checked": "false",
+          "name": "한국어"
+        },
+        {
+          "checked": "false",
+          "name": "Español"
+        },
+        {
+          "checked": "false",
+          "name": "Français"
+        },
+        {
+          "checked": "false",
+          "name": "Deutsch"
+        },
+        {
+          "checked": "false",
+          "name": "Português"
+        },
+        {
+          "checked": "false",
+          "name": "Русский"
+        },
+        {
+          "checked": "false",
+          "name": "العربية"
+        },
+        {
+          "checked": "false",
+          "name": "Bahasa Indonesia"
+        }
+      ]
+    },
+    {
+      "step": "chinese",
+      "states": [
+        {
+          "checked": "false",
+          "name": "紧凑"
+        },
+        {
+          "checked": "true",
+          "name": "标准"
+        },
+        {
+          "checked": "false",
+          "name": "较大"
+        },
+        {
+          "checked": "false",
+          "name": "English"
+        },
+        {
+          "checked": "true",
+          "name": "简体中文"
+        },
+        {
+          "checked": "false",
+          "name": "繁體中文"
+        },
+        {
+          "checked": "false",
+          "name": "日本語"
+        },
+        {
+          "checked": "false",
+          "name": "한국어"
+        },
+        {
+          "checked": "false",
+          "name": "Español"
+        },
+        {
+          "checked": "false",
+          "name": "Français"
+        },
+        {
+          "checked": "false",
+          "name": "Deutsch"
+        },
+        {
+          "checked": "false",
+          "name": "Português"
+        },
+        {
+          "checked": "false",
+          "name": "Русский"
+        },
+        {
+          "checked": "false",
+          "name": "العربية"
+        },
+        {
+          "checked": "false",
+          "name": "Bahasa Indonesia"
+        }
+      ]
+    },
+    {
+      "step": "arabic",
+      "states": [
+        {
+          "checked": "false",
+          "name": "مضغوط"
+        },
+        {
+          "checked": "true",
+          "name": "قياسي"
+        },
+        {
+          "checked": "false",
+          "name": "أكبر"
+        },
+        {
+          "checked": "false",
+          "name": "English"
+        },
+        {
+          "checked": "false",
+          "name": "简体中文"
+        },
+        {
+          "checked": "false",
+          "name": "繁體中文"
+        },
+        {
+          "checked": "false",
+          "name": "日本語"
+        },
+        {
+          "checked": "false",
+          "name": "한국어"
+        },
+        {
+          "checked": "false",
+          "name": "Español"
+        },
+        {
+          "checked": "false",
+          "name": "Français"
+        },
+        {
+          "checked": "false",
+          "name": "Deutsch"
+        },
+        {
+          "checked": "false",
+          "name": "Português"
+        },
+        {
+          "checked": "false",
+          "name": "Русский"
+        },
+        {
+          "checked": "true",
+          "name": "العربية"
+        },
+        {
+          "checked": "false",
+          "name": "Bahasa Indonesia"
+        }
+      ]
+    },
+    {
+      "step": "arabic-after-reload",
+      "states": [
+        {
+          "checked": "false",
+          "name": "مضغوط"
+        },
+        {
+          "checked": "true",
+          "name": "قياسي"
+        },
+        {
+          "checked": "false",
+          "name": "أكبر"
+        },
+        {
+          "checked": "false",
+          "name": "English"
+        },
+        {
+          "checked": "false",
+          "name": "简体中文"
+        },
+        {
+          "checked": "false",
+          "name": "繁體中文"
+        },
+        {
+          "checked": "false",
+          "name": "日本語"
+        },
+        {
+          "checked": "false",
+          "name": "한국어"
+        },
+        {
+          "checked": "false",
+          "name": "Español"
+        },
+        {
+          "checked": "false",
+          "name": "Français"
+        },
+        {
+          "checked": "false",
+          "name": "Deutsch"
+        },
+        {
+          "checked": "false",
+          "name": "Português"
+        },
+        {
+          "checked": "false",
+          "name": "Русский"
+        },
+        {
+          "checked": "true",
+          "name": "العربية"
+        },
+        {
+          "checked": "false",
+          "name": "Bahasa Indonesia"
+        }
+      ]
+    }
+  ],
+  "localOnly": true,
+  "accountRequest": false,
+  "sign": false,
+  "transaction": false
+}
