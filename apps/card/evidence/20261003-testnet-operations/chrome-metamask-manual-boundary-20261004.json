@@ -1,0 +1,46 @@
+{
+  "kind": "CARD_REAL_CHROME_METAMASK_ACTION_TIME_BOUNDARY",
+  "observedAt": "2026-10-03T16:32:14.094Z",
+  "sourceLastIndependentlyVerified": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "publicURL": "https://card.ynxweb4.com/?verify=card-test-account-20261004",
+  "cardTabId": "694448569",
+  "iABAttempt": {
+    "humanConfirmed": true,
+    "outcome": "NO_ANNOUNCED_OR_INJECTED_METAMASK_PROVIDER",
+    "accountApproval": false
+  },
+  "chromeObserved": {
+    "existingYNXConnectionRestored": true,
+    "displayedYNXChain": "0x1917",
+    "newYNXApprovalExecuted": false,
+    "testAccountConfirmedByHuman": true,
+    "cardSiteDisconnectRevokeClickedAfterConfirmation": true,
+    "localDisconnectedUIObserved": true,
+    "remoteRevokeVerified": false,
+    "metaMaskConnectClickedAfterConfirmation": true,
+    "metaMaskTopLevelPromptObserved": true,
+    "newPromptId": "694448571",
+    "newPromptTitle": "MetaMask",
+    "newPromptBlank": false,
+    "cardURLUnchanged": true,
+    "newAccountApprovalVerified": false,
+    "connectedMetaMaskChainVerified": false
+  },
+  "toolBoundary": {
+    "reason": "Browser URL security policy allows http/https only and rejects extension approval page",
+    "policyBypassAttempted": false,
+    "requiredAction": "Human manually approve or reject the already-open MetaMask prompt for card.ynxweb4.com using the dedicated Testnet account. Do not approve signing, transactions or extra permissions."
+  },
+  "screenshot": {
+    "file": "chrome-metamask-manual-boundary-20261004.jpg",
+    "bytes": 141717,
+    "sha256": "33d259982acac38627ca50f8e39fb7b3372d71d451cdd0077cc34b75a3f87a16"
+  },
+  "accountAddressPublished": false,
+  "sign": false,
+  "send": false,
+  "privateSession": false,
+  "backendActive": false,
+  "realTopup": false,
+  "fullJourneyComplete": false
+}
