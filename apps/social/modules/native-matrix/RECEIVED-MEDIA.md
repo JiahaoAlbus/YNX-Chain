@@ -34,3 +34,30 @@ mount an accessible viewer, enforce canonical peer/room invalidation, real
 encrypted image/file download and SDK hash rejection, unreadable file/size/error
 recovery, process restart cache cleanup, Apple SDK typing/linking, ordinary-user
 ABC journey and true dot MONSTER. No successful received-media E2E is claimed.
+
+## Explicit viewer and installed UI fixture checkpoint
+
+NativeMatrixMediaViewer implements explicit open/retry/close, raster display,
+unsupported-file and decode errors, background locking and a retained cleanup
+lease when release fails. No render/effect requests an account or opens a file.
+Translation/notification callback rerenders do not retire the private preview.
+The root now uses the locked safe-area-context provider for all native edges.
+
+The installed UI harness is explicitly synthetic: a public original-logo PNG
+was staged in this debug app's private fixture cache. Its port acknowledges
+releases but does not delete that public asset, download a Matrix attachment,
+check canonical authority or perform cryptography. Those UI acknowledgements
+must never be reported as actual SDK file deletion or successful encrypted media.
+The actual native SDK descriptor probe remains separate evidence.
+
+The first debug run loaded a different Metro script through an existing test
+port forward. Standalone installed QA must set useDevSupport=false in its
+temporary ExpoReactHostFactory caller and bind the embedded script's SHA.
+This QA-only native caller is not an owner product change or a formal release.
+Do not assume a debug APK identifies the executing script if Metro is enabled.
+
+Main App mounting and native Expo media registration remain open. Production
+must supply the real current-handle media port, canonical accepted-peer checks,
+authority invalidation, and cleanup failure reporting. Do not use the fixture
+port or its permissive callback. Device/process cleanup, real encrypted download,
+hash failures, Apple native compilation and full product acceptance stay unproven.

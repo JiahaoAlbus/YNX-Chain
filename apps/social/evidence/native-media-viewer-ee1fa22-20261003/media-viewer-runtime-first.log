@@ -1,0 +1,129 @@
+--------- beginning of main
+10-03 11:29:08.722  4628  4628 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:29:08.748  4628  4628 I AndroidRuntime: Using default boot image
+10-03 11:29:08.748  4628  4628 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:29:08.953  4628  4628 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:29:10.033  4628  4628 D AndroidRuntime: Shutting down VM
+10-03 11:30:13.721  6012  6232 I ReactNativeJS: Running "main"
+10-03 11:30:13.722  6012  6232 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:30:29.080  6380  6380 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:30:29.087  6380  6380 I AndroidRuntime: Using default boot image
+10-03 11:30:29.087  6380  6380 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:30:29.187  6380  6380 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:30:30.241  6380  6380 D AndroidRuntime: Shutting down VM
+10-03 11:30:43.259  6472  6472 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:30:43.260  6472  6472 I AndroidRuntime: Using default boot image
+10-03 11:30:43.260  6472  6472 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:30:43.311  6472  6472 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:30:44.325  6472  6472 D AndroidRuntime: Shutting down VM
+10-03 11:31:01.864  6504  6504 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:31:01.866  6504  6504 I AndroidRuntime: Using default boot image
+10-03 11:31:01.866  6504  6504 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:31:01.939  6504  6504 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:31:02.952  6504  6504 D AndroidRuntime: Shutting down VM
+10-03 11:31:18.531  6530  6530 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:31:18.533  6530  6530 I AndroidRuntime: Using default boot image
+10-03 11:31:18.533  6530  6530 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:31:18.578  6530  6530 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:31:19.594  6530  6530 D AndroidRuntime: Shutting down VM
+10-03 11:36:40.481  7050  7128 I ReactNativeJS: Running "main"
+10-03 11:36:40.482  7050  7128 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:37:52.034  7153  7153 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:37:52.037  7153  7153 I AndroidRuntime: Using default boot image
+10-03 11:37:52.037  7153  7153 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:37:52.141  7153  7153 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:37:53.185  7153  7153 D AndroidRuntime: Shutting down VM
+10-03 11:39:17.459  7252  7313 I ReactNativeJS: Running "main"
+10-03 11:39:17.487  7252  7313 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:39:34.752  7332  7332 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:39:34.758  7332  7332 I AndroidRuntime: Using default boot image
+10-03 11:39:34.758  7332  7332 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:39:34.818  7332  7332 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:39:35.868  7332  7332 D AndroidRuntime: Shutting down VM
+10-03 11:41:44.953  7404  7470 I ReactNativeJS: Running "main"
+10-03 11:41:44.981  7404  7470 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:42:21.705  7494  7494 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:42:21.709  7494  7494 I AndroidRuntime: Using default boot image
+10-03 11:42:21.709  7494  7494 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:42:21.770  7494  7494 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:42:22.801  7494  7494 D AndroidRuntime: Shutting down VM
+10-03 11:45:18.178  7594  7659 I ReactNativeJS: Running "main"
+10-03 11:45:18.205  7594  7659 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:46:03.315  7684  7684 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 11:46:03.318  7684  7684 I AndroidRuntime: Using default boot image
+10-03 11:46:03.318  7684  7684 I AndroidRuntime: Leaving lock profiling enabled
+10-03 11:46:03.399  7684  7684 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 11:46:04.451  7684  7684 D AndroidRuntime: Shutting down VM
+10-03 12:34:56.004  8192  8192 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:34:56.018  8192  8192 I AndroidRuntime: Using default boot image
+10-03 12:34:56.018  8192  8192 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:34:56.778  8192  8192 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:34:58.002  8192  8192 D AndroidRuntime: Shutting down VM
+10-03 12:34:58.083  8153  8213 I ReactNativeJS: Running "main"
+10-03 12:34:58.180  8153  8213 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 12:35:09.551  8248  8248 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:35:09.567  8248  8248 I AndroidRuntime: Using default boot image
+10-03 12:35:09.567  8248  8248 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:35:09.774  8248  8248 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:35:10.855  8248  8248 D AndroidRuntime: Shutting down VM
+10-03 12:35:28.235  8282  8282 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:35:28.239  8282  8282 I AndroidRuntime: Using default boot image
+10-03 12:35:28.239  8282  8282 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:35:28.330  8282  8282 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:35:29.359  8282  8282 D AndroidRuntime: Shutting down VM
+10-03 12:35:31.384  8308  8308 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:35:31.387  8308  8308 I AndroidRuntime: Using default boot image
+10-03 12:35:31.387  8308  8308 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:35:31.440  8308  8308 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:35:32.457  8308  8308 D AndroidRuntime: Shutting down VM
+10-03 12:36:15.854  8342  8342 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:36:15.857  8342  8342 I AndroidRuntime: Using default boot image
+10-03 12:36:15.857  8342  8342 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:36:15.928  8342  8342 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:36:16.952  8342  8342 D AndroidRuntime: Shutting down VM
+10-03 12:38:46.137  8476  8476 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:38:46.673  8476  8476 I AndroidRuntime: Using default boot image
+10-03 12:38:46.673  8476  8476 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:38:46.993  8476  8476 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:38:48.271  8476  8476 D AndroidRuntime: Shutting down VM
+10-03 12:38:48.852  8443  8509 I ReactNativeJS: Running "main"
+10-03 12:38:48.974  8443  8509 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 12:39:28.322  8547  8547 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:39:28.335  8547  8547 I AndroidRuntime: Using default boot image
+10-03 12:39:28.335  8547  8547 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:39:29.749  8547  8547 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:39:31.079  8547  8547 D AndroidRuntime: Shutting down VM
+10-03 12:40:21.871  8572  8572 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:40:21.875  8572  8572 I AndroidRuntime: Using default boot image
+10-03 12:40:21.875  8572  8572 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:40:21.940  8572  8572 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:40:22.976  8572  8572 D AndroidRuntime: Shutting down VM
+10-03 12:40:23.945  8598  8598 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:40:23.947  8598  8598 I AndroidRuntime: Using default boot image
+10-03 12:40:23.947  8598  8598 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:40:23.992  8598  8598 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:40:25.016  8598  8598 D AndroidRuntime: Shutting down VM
+10-03 12:40:26.004  8621  8621 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:40:26.006  8621  8621 I AndroidRuntime: Using default boot image
+10-03 12:40:26.006  8621  8621 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:40:26.048  8621  8621 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:40:27.072  8621  8621 D AndroidRuntime: Shutting down VM
+10-03 12:52:04.591  8806  8806 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:52:04.593  8806  8806 I AndroidRuntime: Using default boot image
+10-03 12:52:04.593  8806  8806 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:52:04.661  8806  8806 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:52:05.692  8806  8806 D AndroidRuntime: Shutting down VM
+10-03 12:55:07.650  8938  8938 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 12:55:07.652  8938  8938 I AndroidRuntime: Using default boot image
+10-03 12:55:07.652  8938  8938 I AndroidRuntime: Leaving lock profiling enabled
+10-03 12:55:07.722  8938  8938 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 12:55:08.747  8938  8938 D AndroidRuntime: Shutting down VM
+10-03 13:04:42.062  9027  9092 E ReactNativeJS: react-native-compat: @react-native-community/netinfo is not available
+10-03 13:04:42.218  9027  9092 E ReactNativeJS: react-native-compat: Application module is not available
+10-03 13:04:42.241  9027  9092 E ReactNativeJS: [runtime not ready]: Error: Cannot find native module 'ExpoClipboard'
+10-03 13:04:42.248  9027  9092 I ReactNativeJS: Running "main" with {"rootTag":1,"initialProps":{},"fabric":true}
+10-03 13:04:43.406  9129  9129 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 13:04:43.411  9129  9129 I AndroidRuntime: Using default boot image
+10-03 13:04:43.411  9129  9129 I AndroidRuntime: Leaving lock profiling enabled
+10-03 13:04:43.497  9129  9129 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 13:04:44.534  9129  9129 D AndroidRuntime: Shutting down VM

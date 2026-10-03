@@ -1,0 +1,21 @@
+--------- beginning of main
+10-03 11:30:13.721  6012  6232 I ReactNativeJS: Running "main"
+10-03 11:30:13.722  6012  6232 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:36:40.481  7050  7128 I ReactNativeJS: Running "main"
+10-03 11:36:40.482  7050  7128 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:39:17.459  7252  7313 I ReactNativeJS: Running "main"
+10-03 11:39:17.487  7252  7313 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:41:44.953  7404  7470 I ReactNativeJS: Running "main"
+10-03 11:41:44.981  7404  7470 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 11:45:18.178  7594  7659 I ReactNativeJS: Running "main"
+10-03 11:45:18.205  7594  7659 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 12:34:58.083  8153  8213 I ReactNativeJS: Running "main"
+10-03 12:34:58.180  8153  8213 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 12:38:48.852  8443  8509 I ReactNativeJS: Running "main"
+10-03 12:38:48.974  8443  8509 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context
+10-03 13:04:42.062  9027  9092 E ReactNativeJS: react-native-compat: @react-native-community/netinfo is not available
+10-03 13:04:42.218  9027  9092 E ReactNativeJS: react-native-compat: Application module is not available
+10-03 13:04:42.241  9027  9092 E ReactNativeJS: [runtime not ready]: Error: Cannot find native module 'ExpoClipboard'
+10-03 13:04:42.248  9027  9092 I ReactNativeJS: Running "main" with {"rootTag":1,"initialProps":{},"fabric":true}
+10-03 13:09:33.736  9224  9274 I ReactNativeJS: Running "main"
+10-03 13:09:33.759  9224  9274 W ReactNativeJS: SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead. See https://github.com/AppAndFlow/react-native-safe-area-context

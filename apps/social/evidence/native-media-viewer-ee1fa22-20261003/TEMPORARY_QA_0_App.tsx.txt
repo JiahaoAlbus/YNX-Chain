@@ -1,0 +1,41 @@
+import React, { useMemo, useRef, useState } from 'react';
+import { SafeAreaView, Text, Pressable, View, ScrollView } from 'react-native';
+import { NativeMatrixMediaViewer } from './src/NativeMatrixMediaViewer';
+import { MatrixMediaPreview } from './src/nativeMatrixMedia';
+
+// TEMPORARY SYNTHETIC UI FIXTURE. Not a native media port, canonical authority,
+// encrypted download, production routing, account grant or product acceptance.
+export default function App() {
+  const [opened, setOpened] = useState(true);
+  const [released, setReleased] = useState(0);
+  const [failures, setFailures] = useState(0);
+  const [mode, setMode] = useState('normal');
+  const readFails = useRef(false), releaseFails = useRef(false);
+  const serial = useRef(0);
+  const preview = useMemo(() => new MatrixMediaPreview({
+    open: async (roomId, eventId) => {
+      if (readFails.current) throw new Error('SYNTHETIC_READ_FAILURE');
+      const uri = 'file:///data/user/0/com.ynx.social/cache/media-viewer-ui-fixture/original.png';
+      const leaseId = '12345678-1234-1234-1234-' + (++serial.current).toString(16).padStart(12, '0');
+      return { leaseId, roomId, eventId, filename: 'Public original logo PNG fixture.png', mimeType: 'image/png',
+        bytes: 104171, uri, imagePreview: true };
+    },
+    release: async () => {
+      if (releaseFails.current) { releaseFails.current = false; throw new Error('SYNTHETIC_RELEASE_FAILURE'); }
+      setReleased(count => count + 1);
+    }
+  }, async () => {}), []);
+  const fixtureButton = { minHeight: 48, padding: 12, justifyContent: 'center' as const, backgroundColor: '#edf2ff', borderRadius: 10 };
+  return <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <Text style={{ fontSize: 14, padding: 10 }}>SYNTHETIC MEDIA VIEWER UI ONLY. Public PNG fixture, no account/network/encrypted download.</Text>
+    <Text style={{ paddingHorizontal: 10 }}>Mode: {mode}. Released: {released}. Cleanup failures: {failures}.</Text>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 10 }}>
+      <Pressable accessibilityRole="button" style={fixtureButton} onPress={() => { readFails.current = true; setMode('read failure'); }}><Text>Fail next read</Text></Pressable>
+      <Pressable accessibilityRole="button" style={fixtureButton} onPress={() => { readFails.current = false; setMode('normal'); }}><Text>Normal fixture</Text></Pressable>
+      <Pressable accessibilityRole="button" style={fixtureButton} onPress={() => { releaseFails.current = true; setMode('cleanup failure once'); }}><Text>Fail next cleanup</Text></Pressable>
+    </View>
+    {opened ? <NativeMatrixMediaViewer preview={preview} roomId="!ui-fixture:example.org" eventId="$ui-fixture"
+      onClose={() => setOpened(false)} onCleanupFailure={() => setFailures(count => count + 1)} /> :
+      <Pressable accessibilityRole="button" style={fixtureButton} onPress={() => setOpened(true)}><Text>Reopen media viewer</Text></Pressable>}
+  </SafeAreaView>;
+}

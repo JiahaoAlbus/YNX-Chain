@@ -1,0 +1,13 @@
+/sdcard/media-viewer-final-open.xml: 1 file pulled, 0 skipped. 8.7 MB/s (10997 bytes in 0.001s)
+/sdcard/media-viewer-final-image.xml: 1 file pulled, 0 skipped. 7.2 MB/s (11736 bytes in 0.002s)
+/sdcard/media-viewer-final-parent-rerender.xml: 1 file pulled, 0 skipped. 3.1 MB/s (11750 bytes in 0.004s)
+/sdcard/media-viewer-final-cleanup-error.xml: 1 file pulled, 0 skipped. 9.6 MB/s (11060 bytes in 0.001s)
+/sdcard/media-viewer-final-close-recovered.xml: 1 file pulled, 0 skipped. 7.4 MB/s (8043 bytes in 0.001s)
+/sdcard/media-viewer-final-reopened.xml: 1 file pulled, 0 skipped. 8.7 MB/s (10639 bytes in 0.001s)
+/sdcard/media-viewer-final-read-mode.xml: 1 file pulled, 0 skipped. 7.6 MB/s (10631 bytes in 0.001s)
+/sdcard/media-viewer-final-read-error.xml: 1 file pulled, 0 skipped. 7.5 MB/s (11060 bytes in 0.001s)
+/sdcard/media-viewer-final-read-retry-ready.xml: 1 file pulled, 0 skipped. 5.4 MB/s (11054 bytes in 0.002s)
+/sdcard/media-viewer-final-read-recovered.xml: 1 file pulled, 0 skipped. 4.4 MB/s (10997 bytes in 0.002s)
+Warning: Activity not started, its current task has been brought to the front
+/sdcard/media-viewer-final-background-locked.xml: 1 file pulled, 0 skipped. 3.9 MB/s (11013 bytes in 0.003s)
+Installed synthetic UI normal/read recovery/cleanup recovery/background PASS, not actual Matrix media E2E

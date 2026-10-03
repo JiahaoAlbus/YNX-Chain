@@ -1,0 +1,359 @@
+{
+  "schema": 1,
+  "kind": "SOURCE_AND_SYNTHETIC_INSTALLED_VIEWER_UI_NOT_MATRIX_E2E",
+  "source": "ee1fa2204050314dff586c6b3b918049bd1968b7",
+  "tree": "65104372e84b0486d2a0720025db90ebe09dadd6",
+  "parent": "d4d74a41480e1d8665b9183be1888e185f5673d0",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sourcePins": [
+    {
+      "path": "apps/social/src/BrandRoot.tsx",
+      "bytes": 1408,
+      "sha256": "9e75174810ba6edb5ee9062661a49feb03b8047eff5c97b9dc732f994ac7668c",
+      "blob": "79c3e47ea5e0b83148320f89cf3796ed1904b0e5"
+    },
+    {
+      "path": "apps/social/src/NativeMatrixMediaViewer.tsx",
+      "bytes": 6084,
+      "sha256": "6f7b870c5afa36bf7114334a9e7478d85c87a4223bb93f1ca512d97a6f53ac2e",
+      "blob": "ad8e7b995604fce26347b5d7d53c8f042607925d"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixMedia.ts",
+      "bytes": 2929,
+      "sha256": "ab093ad1cc8ea232b4922bdf102f12c10dbef3f4a4894c043b4f1a60c92d0953",
+      "blob": "89f8df34aac70d8cd9875cde5ac40caeff5c8c68"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixMediaCleanup.test.ts",
+      "bytes": 2552,
+      "sha256": "41519df37910af6a592095cfd7ecd223bb4dc116a9285454b7c3057b25d6a006",
+      "blob": "221fc4e2cea2d5974f0a7bcc9bcba26067683312"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "media-viewer-typecheck-first.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "media-viewer-tests-first.log",
+      "bytes": 20706,
+      "sha256": "691fea998333c9fe1afd85d903657f16118ae9ea1e79fd9acb6b7549cc963a1c"
+    },
+    {
+      "path": "media-viewer-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "media-viewer-tests-final.log",
+      "bytes": 20738,
+      "sha256": "28553d8fcc98882c717bb2c0b9c10e8e3a6a6cd6b5b8885e70f6276223fa5ea3"
+    },
+    {
+      "path": "media-viewer-ui-embed.log",
+      "bytes": 529,
+      "sha256": "ac1b8b588c469e2fde2621c0f288c8bc622f295ff296a829186fa5a16ee9c192"
+    },
+    {
+      "path": "media-viewer-ui-build.log",
+      "bytes": 21852,
+      "sha256": "4541fbcc5b5a65ad97d3ad9a2e32f501605400674c5450826f44b6e254ef0d9a"
+    },
+    {
+      "path": "media-viewer-ui-build-embedded-final.log",
+      "bytes": 21842,
+      "sha256": "311f337ccceecc718ba1cabe73177d32fe642ece8329b36de6225149178b4fe0"
+    },
+    {
+      "path": "media-viewer-ui-embed-final.log",
+      "bytes": 361,
+      "sha256": "3703327d1dd0201a5296b38f2d014034b453edeaceeeb7115184469026ccb954"
+    },
+    {
+      "path": "media-viewer-ui-build-final.log",
+      "bytes": 21852,
+      "sha256": "2f3fe7739b366794ca5e68ff2c4fbf84da369106540a39c65cbabfa154c23c85"
+    },
+    {
+      "path": "media-viewer-ui-embed-safearea.log",
+      "bytes": 360,
+      "sha256": "c1a068ff739db0552de00813459eabb7e8335037595f7c137e30b52fb06b0476"
+    },
+    {
+      "path": "media-viewer-ui-build-safearea.log",
+      "bytes": 21852,
+      "sha256": "6c9ef65682356738a796bcbcedf313065c937df7b8e5a972442d9159ce642107"
+    },
+    {
+      "path": "media-viewer-ui-embed-frozen.log",
+      "bytes": 361,
+      "sha256": "e92cb92e94b5aafa7d499910fd4bfde388dec5ee17a0edd67a69594d631fbb70"
+    },
+    {
+      "path": "media-viewer-ui-build-frozen.log",
+      "bytes": 21852,
+      "sha256": "9939ffee0b2bf3d17008c418886c3f5acfed6c7a586d3f7865e0f1f68d0bc9d0"
+    },
+    {
+      "path": "media-viewer-fixture-js-export-frozen.log",
+      "bytes": 1581,
+      "sha256": "d285c2f5c1d06a82fae3121fb20596bbc04ddd8d7d8c3ed5a57581bf09c9e799"
+    },
+    {
+      "path": "media-viewer-runtime-first.log",
+      "bytes": 12372,
+      "sha256": "86f273f3b60f636e7dd0b8785ae2471ac8209e47fb5a167dee8245d1f5bccd3f"
+    },
+    {
+      "path": "media-viewer-runtime-open.log",
+      "bytes": 2907,
+      "sha256": "ea4a66471de248182d7e771f5271913b8851de46456d4f4b2cd7977724403c75"
+    },
+    {
+      "path": "media-viewer-ui-initial.xml",
+      "bytes": 4350,
+      "sha256": "8dbd23c1592635f3403cd9e8b24928cc67dd7db1232daaa741de5c33051f6e55"
+    },
+    {
+      "path": "media-viewer-ui-initial.png",
+      "bytes": 48550,
+      "sha256": "f100bea46f2d6d09adb0852e0ac09cbdf53f3ee998b4e340de647572c5431cda"
+    },
+    {
+      "path": "media-viewer-ui-open.xml",
+      "bytes": 10706,
+      "sha256": "b48133bc86ea8b6167e533ed8fd5ceba9b82f1043205c8d76926bd275605d9bd"
+    },
+    {
+      "path": "media-viewer-ui-open.png",
+      "bytes": 41408,
+      "sha256": "9959f0fa4c8edcd279c6976df689b1dcc6a39aed414bfcb25b8da5b4584fea68"
+    },
+    {
+      "path": "media-viewer-ui-check.log",
+      "bytes": 870,
+      "sha256": "d557b31e4b55c56ab42253aecac23fd69bee0714a0d212c6f0b36a3ee6d21561"
+    },
+    {
+      "path": "media-viewer-ui-check-final.log",
+      "bytes": 1064,
+      "sha256": "b20491d0702e6f15294e35566eccf2fb27e6638eaaa8aa291315346bec1c21e2"
+    },
+    {
+      "path": "media-viewer-ui-check-safearea.log",
+      "bytes": 1321,
+      "sha256": "8e4624b1d464c20e158134afb6be958c1f0e7333ba7701215ec7985464d3a007"
+    },
+    {
+      "path": "media-viewer-ui-check-frozen.log",
+      "bytes": 1321,
+      "sha256": "973673ef72399aeac83ed7bfd6ae92501d2aba82bcf04cc000dbc3edabf37fdb"
+    },
+    {
+      "path": "media-viewer-final-result.json",
+      "bytes": 350,
+      "sha256": "0e12c48fde5577c4d32accd04fb7f9ae72de85bdc2049b5b3788580526e4ea7f"
+    },
+    {
+      "path": "media-viewer-crash-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "media-viewer-ui-check.mjs",
+      "bytes": 3449,
+      "sha256": "28b43ef7df6ee245acd2c8704e72222c489f9f2d9296c02c0cb209cab718ecdf"
+    },
+    {
+      "path": "media-viewer-final-open.xml",
+      "bytes": 10997,
+      "sha256": "3945833a3bbb7e29c2f0dbfaba243ffc81d52101ac362cae76984fc2465e7ef4"
+    },
+    {
+      "path": "media-viewer-final-open.png",
+      "bytes": 51706,
+      "sha256": "7effa43f4f599cf2cbb018b84858137307c4053a525e735767acc380d7082d15"
+    },
+    {
+      "path": "media-viewer-final-image.xml",
+      "bytes": 11736,
+      "sha256": "2ac93ed6bf4000040b26a55bc30bf32644747cf6f370618d5080b7bfa21e68c7"
+    },
+    {
+      "path": "media-viewer-final-image.png",
+      "bytes": 56909,
+      "sha256": "416cc76b510d3285e76c17f3e90d9c8b65032f363fae2428d8e4c22eb209fe9b"
+    },
+    {
+      "path": "media-viewer-final-parent-rerender.xml",
+      "bytes": 11750,
+      "sha256": "0e03f00cd828cd52c14c8895321b2b0c4be00a8d8ee46e2fe7e4be0f5bb98cb4"
+    },
+    {
+      "path": "media-viewer-final-parent-rerender.png",
+      "bytes": 57410,
+      "sha256": "156adff6e652ed586a1c5548143feb9a74c781bd2bb6276d9768ec46d3940ac3"
+    },
+    {
+      "path": "media-viewer-final-cleanup-error.xml",
+      "bytes": 11060,
+      "sha256": "f1f8fa47d1796aae2252b8fd3abfdd7aa9c1472783f24e585c9c70dca1cb4b1d"
+    },
+    {
+      "path": "media-viewer-final-cleanup-error.png",
+      "bytes": 41859,
+      "sha256": "aebbb4944855a5fc6e4e198acb6c7c0cf6e138bac0163b7e0fdc06c2e389cec2"
+    },
+    {
+      "path": "media-viewer-final-close-recovered.xml",
+      "bytes": 8043,
+      "sha256": "6490be3cdc91585f67e836d687d497b50a12c75a8d6da5dbfe13c31675592f29"
+    },
+    {
+      "path": "media-viewer-final-close-recovered.png",
+      "bytes": 24207,
+      "sha256": "c8415d778be123df7e8c9f3eae8350a5a6c502ccfc99400413c03fe543532e82"
+    },
+    {
+      "path": "media-viewer-final-reopened.xml",
+      "bytes": 10639,
+      "sha256": "0bfb5dd6b375a0fc40097194d784f16a110a2c769d8b61de08658e6cb7751c57"
+    },
+    {
+      "path": "media-viewer-final-reopened.png",
+      "bytes": 37084,
+      "sha256": "2640be269394dfd53d4115f678a5e3089bfe323980b2b1762224b6670fd5730e"
+    },
+    {
+      "path": "media-viewer-final-read-mode.xml",
+      "bytes": 10631,
+      "sha256": "9d7d24858b18d655666e18b5aeb07979953168cb87bde67b889da6c6ce66127c"
+    },
+    {
+      "path": "media-viewer-final-read-mode.png",
+      "bytes": 36471,
+      "sha256": "25ec4862592d6e8fb814f0924d840fe7401675c94a49e446b2d6931ef860f1b7"
+    },
+    {
+      "path": "media-viewer-final-read-error.xml",
+      "bytes": 11060,
+      "sha256": "393aede43d2e8d3424b84f2b4ff03f6c14449b387e4430ae133c08c51e272d90"
+    },
+    {
+      "path": "media-viewer-final-read-error.png",
+      "bytes": 41172,
+      "sha256": "76516af2c99d217ae8dab6c95876c4db93d8634da566ef351000980037b2943f"
+    },
+    {
+      "path": "media-viewer-final-read-retry-ready.xml",
+      "bytes": 11054,
+      "sha256": "45da3fad9e6345ffb6e491b5b68329b575128b4a89955942982254f342366dc1"
+    },
+    {
+      "path": "media-viewer-final-read-retry-ready.png",
+      "bytes": 41201,
+      "sha256": "699842416a62fb117bfea7dd76999668091eb34a72e30ece04fd8d75b6946963"
+    },
+    {
+      "path": "media-viewer-final-read-recovered.xml",
+      "bytes": 10997,
+      "sha256": "9cf543cb79e4ef6ba6b2c61164fc8803f0f70aacb2fe192cb37af5e83aca41fc"
+    },
+    {
+      "path": "media-viewer-final-read-recovered.png",
+      "bytes": 51541,
+      "sha256": "70dd3d911b690bda92e519d4ea6d50815fc4eb924084696e02f19aab27b7d45e"
+    },
+    {
+      "path": "media-viewer-final-background-locked.xml",
+      "bytes": 11013,
+      "sha256": "8d9c3d5eb235c97a40cfe58d15b7f5963c0d36f2b18ef0d3a391845fab091da2"
+    },
+    {
+      "path": "media-viewer-final-background-locked.png",
+      "bytes": 40340,
+      "sha256": "bebb86ed61cb308082784675a5c5a01f74e4a97c1626d49ccffc60722de620d4"
+    }
+  ],
+  "harness": [
+    {
+      "path": "TEMPORARY_QA_0_App.tsx.txt",
+      "bytes": 2979,
+      "sha256": "ec6340cd89035549c62621095e5991b754c58521881ee5b9a3471418c2d9d072"
+    },
+    {
+      "path": "TEMPORARY_QA_1_index.ts.txt",
+      "bytes": 167,
+      "sha256": "24eedcad5ddb428bea3189c0376694d740120f9807254e5b595efbf74bf06200"
+    },
+    {
+      "path": "TEMPORARY_QA_2_MainApplication.kt.txt",
+      "bytes": 1576,
+      "sha256": "432aba8e7bfd4402a6aab7fb4c5db32b70c00aa88c17faae3df9028e0bd35720"
+    }
+  ],
+  "embeddedScript": {
+    "bytes": 929179,
+    "sha256": "8d93b557f4818f10ff33cdb67e618949c1ac7e958505fec656aa3d241e76e764",
+    "useDevSupport": false,
+    "ownedAdbReverse8081Removed": true
+  },
+  "apk": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/media-viewer-ee1fa22-isolated-debug.apk",
+    "bytes": 130152277,
+    "sha256": "c1a588d42cf56dbe26019b3486e9dceb1cff777be3a2cf59eb6e8146f8c1e31f",
+    "temporaryFixtureApp": true,
+    "notFormalProduct": true
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "sourceTests": "211/211 PASS",
+    "androidModuleAndIsolatedApkBuild": "PASS",
+    "androidIosFixtureJSExports": "PASS_NOT_APPLE_NATIVE_COMPILE",
+    "actualInstalledSyntheticUI": {
+      "kind": "SYNTHETIC_INSTALLED_UI_NOT_MATRIX_E2E",
+      "normalImage": true,
+      "parentRerenderRetains": true,
+      "cleanupFailureHides": true,
+      "originalCleanupRetry": true,
+      "readError": true,
+      "readRecovery": true,
+      "backgroundLocks": true,
+      "acknowledgedFixtureReleases": 2,
+      "realEncryptedDownload": false,
+      "realNativeFileDeletion": false
+    }
+  },
+  "fixture": {
+    "publicPngSHA": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "path": "debug app cache/media-viewer-ui-fixture/original.png",
+    "nativeSDKMediaPort": false,
+    "canonicalAuthority": false,
+    "encryptedDownload": false,
+    "physicalFileDeletion": false
+  },
+  "observedFailures": [
+    "first debug APK ran another Metro script and ExpoClipboard was unavailable",
+    "Expo bundled asset URI was refused by strict private file lease validation",
+    "first scroll gesture hit Android system navigation; root now observes safe-area-context edges and QA gesture avoids navigation"
+  ],
+  "notVerified": [
+    "Expo media registration against real native handle",
+    "product App media viewer mounting",
+    "canonical original enrollment and accepted-peer integration",
+    "real encrypted image/file, SDK hash rejection and native handle deletion",
+    "process restart cleanup",
+    "Apple native compile/link/install",
+    "all locales and OS large-font acceptance",
+    "fresh server and original business-index delivery settlement",
+    "full C01-C07 V01-V17 ABC ordinary-user journey",
+    "source-bound compatible public/product release",
+    "true dot MONSTER invocation"
+  ],
+  "deployments": [],
+  "accountSignTransactionRequests": [],
+  "coordinator": "01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}

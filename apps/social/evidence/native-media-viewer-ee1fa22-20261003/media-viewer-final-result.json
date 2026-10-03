@@ -1,0 +1,13 @@
+{
+  "kind": "SYNTHETIC_INSTALLED_UI_NOT_MATRIX_E2E",
+  "normalImage": true,
+  "parentRerenderRetains": true,
+  "cleanupFailureHides": true,
+  "originalCleanupRetry": true,
+  "readError": true,
+  "readRecovery": true,
+  "backgroundLocks": true,
+  "acknowledgedFixtureReleases": 2,
+  "realEncryptedDownload": false,
+  "realNativeFileDeletion": false
+}

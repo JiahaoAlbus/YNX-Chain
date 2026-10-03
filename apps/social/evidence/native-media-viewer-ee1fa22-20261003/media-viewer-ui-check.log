@@ -1,0 +1,13 @@
+file:///private/tmp/ynx-social-native-matrix-qa.aZcKcz/media-viewer-ui-check.mjs:4
+function bounds(tag){const b=tag?.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);if(!b)throw Error('Missing bounds');return b.slice(1).map(Number);}
+                                                                                               ^
+
+Error: Missing bounds
+    at bounds (file:///private/tmp/ynx-social-native-matrix-qa.aZcKcz/media-viewer-ui-check.mjs:4:96)
+    at tap (file:///private/tmp/ynx-social-native-matrix-qa.aZcKcz/media-viewer-ui-check.mjs:5:118)
+    at file:///private/tmp/ynx-social-native-matrix-qa.aZcKcz/media-viewer-ui-check.mjs:7:67
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0
