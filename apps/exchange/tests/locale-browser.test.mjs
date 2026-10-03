@@ -21,6 +21,59 @@ const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('f
 const walletRender=app.slice(app.indexOf('function renderStandardWallet('),app.indexOf('function disconnectWallet('));
 const walletChooser=app.slice(app.indexOf('function openWalletChooser('),app.indexOf('async function restoreStandardWallet('));
 const walletConnect=app.slice(app.indexOf('async function connectWallet('),app.indexOf('function showView('));
+const identitySource=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+const revokeSource=app.slice(app.indexOf('async function revokeWalletPermission('),app.indexOf('function openWalletChooser('));
+const privateRevokeBinding=app.split('\n').find(line=>line.includes("$('#private-disconnect').addEventListener"));
+
+test('actual revoke confirmations use the selected locale and cancellation invokes neither private nor standard revocation',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    assert.ok(privateRevokeBinding,'execute the actual private confirmation listener');
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);let decision=false,privateCalls=0,walletCalls=0;const confirmations=[];window.confirm=text=>{confirmations.push(text);return decision};const toast=()=>{};const privateAccount={disconnect:()=>{privateCalls++}};window.YNXExchangeWebWallet={revoke:async()=>{walletCalls++;return {permissionRevoked:false,status:'unsupported'}}};${revokeSource}\n${privateRevokeBinding}\nwindow.revokeLocaleQA={revoke:revokeWalletPermission,confirmations,counts:()=>({privateCalls,walletCalls}),approve:()=>decision=true};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);await page.locator('#private-disconnect').click();await page.evaluate(()=>window.revokeLocaleQA.revoke());
+      const prompts=await page.evaluate(()=>window.revokeLocaleQA.confirmations.slice(-2));assert.deepEqual(prompts,[catalogs[locale]['confirm-private-revoke'],catalogs[locale]['confirm-wallet-revoke']]);
+      assert.deepEqual(await page.evaluate(()=>window.revokeLocaleQA.counts()),{privateCalls:0,walletCalls:0});
+    }
+    await page.evaluate(()=>window.revokeLocaleQA.approve());await page.locator('#private-disconnect').click();await page.evaluate(()=>window.revokeLocaleQA.revoke());
+    assert.deepEqual(await page.evaluate(()=>window.revokeLocaleQA.counts()),{privateCalls:1,walletCalls:1},'controlled acceptance retains one call to its respective existing adapter');
+    assert.equal(await page.locator('#wallet-revoke').isEnabled(),true);assert.equal(requests,0,'controlled confirmation test is not real Wallet approval or revocation evidence');
+  }finally{await browser.close()}
+});
+
+test('actual browser identity displays late results in the current locale without expanding permission or retrying on language change',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,standardWallet:{status:'standard-connected',account:'standard-A'}};let mode='read',calls=0,cleanupFails=false,pending=null;const privateAccount={state:()=>({phase:'guest'}),guest:async()=>{},disconnect:async()=>{if(cleanupFails)throw new Error('controlled-private-cleanup')}};${identitySource}\nbrowserIdentityRequest=async path=>{calls++;if(path==='config')return {response:{ok:true},data:{enabled:true,silentRestoreAllowed:false}};if(path==='logout')return {response:{ok:mode!=='logout-failed'},data:{revoked:mode!=='logout-failed'}};if(mode==='pending')await new Promise(resolve=>pending=resolve);return mode==='guest'?{response:{ok:false,status:401},data:{}}:mode==='unavailable'?{response:{ok:false,status:503},data:{}}:{response:{ok:true},data:{account:'native-A',scopes:['identity:read'],privateWorkspaceAuthorized:false,csrfToken:'isolated-fixture-only'}}};window.identityLocaleQA={set(value){mode=value},calls:()=>calls,restore:restoreBrowserIdentity,init:initializeBrowserIdentity,cleanupFail(value){cleanupFails=value},pending:()=>!!pending,resume(){mode='read';pending()},identity:()=>browserIdentity,standard:()=>state.standardWallet};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    await page.evaluate(()=>window.identityLocaleQA.init());
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      assert.equal(await page.locator('#browser-identity-start').innerText(),catalogs[locale]['Sign in across YNX products']);assert.equal(await page.locator('#browser-identity-logout').innerText(),catalogs[locale]['Sign out of Exchange']);
+      const count=await page.evaluate(()=>window.identityLocaleQA.calls());await page.evaluate(locale=>window.YNXExchangeLocale.set(locale),locale);assert.equal(await page.evaluate(()=>window.identityLocaleQA.calls()),count);
+      await page.evaluate(async()=>{window.identityLocaleQA.set('read');await window.identityLocaleQA.restore()});
+      assert.equal(await page.locator('#browser-identity-status').innerText(),catalogs[locale]['identity-read']+' (native-A)');
+      await page.evaluate(async()=>{window.identityLocaleQA.set('unavailable');await window.identityLocaleQA.restore()});assert.equal(await page.locator('#browser-identity-status').innerText(),catalogs[locale]['identity-unavailable']);
+      await page.evaluate(async()=>{window.identityLocaleQA.set('read');await window.identityLocaleQA.restore();window.identityLocaleQA.set('logout-failed')});await page.locator('#browser-identity-logout').click();
+      await page.waitForFunction(text=>document.querySelector('#browser-identity-status').textContent===text,catalogs[locale]['identity-signout-unconfirmed']);assert.equal(await page.locator('#browser-identity-logout').isEnabled(),true);
+      await page.evaluate(async()=>{window.identityLocaleQA.set('read');await window.identityLocaleQA.restore();window.identityLocaleQA.cleanupFail(true)});await page.locator('#browser-identity-logout').click();
+      await page.waitForFunction(text=>document.querySelector('#browser-identity-status').textContent===text,catalogs[locale]['identity-private-cleanup-unconfirmed']);assert.equal(await page.evaluate(()=>window.identityLocaleQA.identity()),null);
+      await page.evaluate(async()=>{window.identityLocaleQA.cleanupFail(false);window.identityLocaleQA.set('read');await window.identityLocaleQA.restore()});await page.locator('#browser-identity-logout').click();
+      await page.waitForFunction(text=>document.querySelector('#browser-identity-status').textContent===text,catalogs[locale]['identity-signed-out']);
+      await page.evaluate(async()=>{window.identityLocaleQA.set('read');await window.identityLocaleQA.restore();window.identityLocaleQA.set('guest');await window.identityLocaleQA.restore()});assert.equal(await page.locator('#browser-identity-status').innerText(),catalogs[locale]['identity-guest']);
+    }
+    await page.evaluate(()=>{window.identityLocaleQA.set('pending');void window.identityLocaleQA.restore()});await page.waitForFunction(()=>window.identityLocaleQA.pending());
+    await page.locator('#exchange-language').selectOption('ar');await page.evaluate(()=>window.identityLocaleQA.resume());
+    await page.waitForFunction(text=>document.querySelector('#browser-identity-status').textContent===text,catalogs.ar['identity-read']+' (native-A)');
+    assert.deepEqual(await page.evaluate(()=>window.identityLocaleQA.identity().scopes),['identity:read']);assert.equal(await page.evaluate(()=>window.identityLocaleQA.identity().privateWorkspaceAuthorized),false);assert.equal(await page.evaluate(()=>window.identityLocaleQA.standard().account),'standard-A');
+    assert.equal(requests,0,'controlled identity fixture never proves or invokes real SSO/Wallet authorization');
+  }finally{await browser.close()}
+});
 
 test('actual Wallet display keeps selected identity and fallback destinations while late states use the current locale',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
