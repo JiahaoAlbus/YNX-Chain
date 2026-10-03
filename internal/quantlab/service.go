@@ -1581,6 +1581,12 @@ func (s *Service) paperSubmissionLocked(strategyHash, side string, amount int64,
 			return order, true, nil
 		}
 	}
+	// An exact receipt remains readable after Kill, but a fresh intent must be
+	// refused before network/market work. Offline feeds cannot disguise a
+	// persisted emergency stop as a retryable market-unavailable result.
+	if s.state.Paper.KillSwitch {
+		return PaperOrder{}, false, ErrForbidden
+	}
 	for _, strategy := range s.state.Strategies {
 		if strategy.StrategyHash == strategyHash {
 			return PaperOrder{}, false, nil

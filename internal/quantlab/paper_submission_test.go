@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -105,6 +106,50 @@ type submissionMarket struct {
 	calls  atomic.Int64
 	enter  chan struct{}
 	resume chan struct{}
+}
+
+func TestPaperPersistedKillRejectsFreshIntentBeforeMarketButKeepsExactReplay(t *testing.T) {
+	market := &submissionMarket{}
+	path := filepath.Join(t.TempDir(), "state.json")
+	service, err := New(Config{StatePath: path, MarketData: market})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer service.Close()
+	experiment, err := service.RunBacktest(request())
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := experiment.Strategy.StrategyHash
+	committed, err := service.SubmitPaperSignalFromMarket(hash, "buy", 1_000_000, "before-kill-exact-key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Kill("controlled admission fence"); err != nil {
+		t.Fatal(err)
+	}
+	beforeCalls := market.calls.Load()
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitPaperSignalFromMarket(hash, "buy", 1_000_000, "after-kill-fresh-key"); err != ErrForbidden {
+		t.Fatalf("fresh kill rejection=%v", err)
+	}
+	if market.calls.Load() != beforeCalls {
+		t.Fatal("persisted kill unnecessarily reached market adapter")
+	}
+	replayed, err := service.SubmitPaperSignalFromMarket(hash, "buy", 1_000_000, "before-kill-exact-key")
+	if err != nil || !reflect.DeepEqual(committed, replayed) {
+		t.Fatal("kill changed committed exact-key receipt")
+	}
+	if _, err := service.SubmitPaperSignalFromMarket(hash, "sell", 1_000_000, "before-kill-exact-key"); err != ErrConflict {
+		t.Fatalf("changed replay lost exact-key conflict: %v", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("kill admission/replay mutated durable state")
+	}
 }
 
 func (m *submissionMarket) History(string, int) ([]Bar, string, error) {
