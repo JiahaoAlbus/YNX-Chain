@@ -21,11 +21,26 @@ async function browserIdentityRequest(path,options={}){
     const response=await fetch(`/api/v1/sso/${path}`,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});
     const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase(),length=response.headers.get('content-length');
     if(!/^application\/(?:json|[a-z0-9.+-]+\+json)$/.test(mime)||(length!==null&&(!/^\d+$/.test(length)||Number(length)>262144)))throw invalid();
-    const text=await response.text();if(new TextEncoder().encode(text).byteLength>262144)throw invalid();
+    if(controller.signal.aborted)throw invalid();
+    const reader=response.body?.getReader();if(!reader)throw invalid();
+    const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+    const decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='',complete=false;
+    controller.signal.addEventListener('abort',cancel,{once:true});
+    try{
+      while(true){
+        const part=await reader.read();if(controller.signal.aborted)throw invalid();
+        if(part.done){text+=decoder.decode();complete=true;break;}
+        if(!(part.value instanceof Uint8Array)||part.value.byteLength>262144-bytes)throw invalid();
+        bytes+=part.value.byteLength;text+=decoder.decode(part.value,{stream:true});
+      }
+    }catch{throw invalid()}finally{
+      controller.signal.removeEventListener('abort',cancel);
+      if(!complete)cancel();try{reader.releaseLock()}catch{}
+    }
     let data;try{data=JSON.parse(text)}catch{throw invalid()}
     if(!data||typeof data!=='object'||Array.isArray(data))throw invalid();
     return {response,data};
-  })()])}finally{clearTimeout(timer)}
+  })()])}catch(error){controller.abort();throw error}finally{clearTimeout(timer)}
 }
 async function restoreBrowserIdentity(){const epoch=++browserIdentityEpoch;const status=$('#browser-identity-status');if(!status)return;try{const {response,data}=await browserIdentityRequest('account');if(epoch!==browserIdentityEpoch)return;if(response.ok){
   if(data.scopes?.length!==1||data.scopes[0]!=='identity:read'||data.privateWorkspaceAuthorized!==false)throw new Error('IDENTITY_BOUNDARY_INVALID');
