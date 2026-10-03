@@ -50,10 +50,10 @@ function proof(method,path,body,nonce=token()){const now=new Date();return encod
 process.stdout.write(JSON.stringify({url,session,unsupported:false})+'\n');
 for await(const line of createInterface({input:process.stdin,crlfDelay:Infinity})){
  const input=JSON.parse(line);
- if(input.kind==='approve-browser-request'&&browserMode){
+ if(['approve-browser-request','approve-native-request'].includes(input.kind)&&browserMode){
   const {parseProductSessionWalletURL,createProductSessionReturnURL}=await load('src/product-session-router.js');
   const pending=parseProductSessionWalletURL(registry,input.url);
-  if(pending.productId!==productId||pending.platform!=='web')throw Error('INVALID_QA_BROWSER_BINDING');
+  if(pending.productId!==productId||pending.platform!==platform)throw Error('INVALID_QA_BROWSER_BINDING');
   const approval=signProductSessionApproval(registry,pending,{accountSecret:'1'.padStart(64,'0'),scopes:pending.scopes,expiresAt:pending.expiresAt});
   process.stdout.write(JSON.stringify({callback:createProductSessionReturnURL(registry,pending,{result:'approved',approval})})+'\n');
  }else if(input.kind==='proofs'&&!browserMode){

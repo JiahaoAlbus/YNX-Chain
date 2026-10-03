@@ -64,7 +64,7 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                 out.write_bytes(data)
                 pins.append(dict(owner='Media', path=str(relative), bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     if fixture_package_receipt is not None and successor:
-        browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs']
+        browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs']
         for product in ['video', 'creator-studio']:
             for path in (owned / 'apps' / product).rglob('*'):
                 if path.is_file() and str(path.relative_to(owned)) in visible_owned_paths and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] or part.startswith('.') for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
@@ -120,6 +120,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                    actualNodeAuthorityProtocol=fixture_package_receipt is not None and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
                    actualProtectedBrowserOriginalMusicBusiness=protected_browser_pass and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
                    actualProtectedBrowserOriginalVideoCreatorBusiness=protected_video_creator_pass and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
+                   actualNativePortsOriginalVideoCreatorMusicBusiness=all(any(event.get('Test') == name for event in pass_events) for name in ['TestVideoCreatorNativeConsumerAndOriginalBusiness','TestMusicNativeConsumerAndOriginalBusiness']) and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
+                   actualNativeOSStorage=False,
                    actualSDKActionCrypto=all(r['exitCode'] == 0 for r in results) and len(results) == 2, actualWalletConsent=False, productionInstalled=False,
                    note='Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation.')
     (evidence / 'combined-source-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
