@@ -12,7 +12,16 @@ function render(unavailable=false){
 }
 async function request(path,init){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
-  try{const response=await fetch(path,{...init,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});const raw=await response.text();if(raw.length>16384||!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||''))throw new Error('IDENTITY_UNAVAILABLE');return {status:response.status,data:JSON.parse(raw)};}finally{clearTimeout(timer);}
+  try{const response=await fetch(path,{...init,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});return {status:response.status,data:JSON.parse(await readBrowserIdentityResponse(response,controller.signal))};}finally{clearTimeout(timer);}
+}
+export async function readBrowserIdentityResponse(response,signal){
+  const invalid=()=>new Error('IDENTITY_UNAVAILABLE'),length=response.headers.get('content-length');
+  if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>16384))||!response.body?.getReader){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw invalid()}
+  const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='';
+  const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+  signal.addEventListener('abort',cancel,{once:true});
+  try{while(true){if(signal.aborted)throw invalid();const chunk=await reader.read();if(signal.aborted)throw invalid();if(chunk.done)break;if(!(chunk.value instanceof Uint8Array)||(bytes+=chunk.value.byteLength)>16384)throw invalid();text+=decoder.decode(chunk.value,{stream:true});}return text+decoder.decode();}
+  catch{cancel();throw invalid()}finally{signal.removeEventListener('abort',cancel);try{reader.releaseLock()}catch{}}
 }
 export function recheckBrowserIdentity(){
   if(logoutOperation)return logoutOperation.promise;

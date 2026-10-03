@@ -9,6 +9,26 @@ import {privateSessionCopy,privateSessionLocales} from '../web/private-session-c
 // cookie/PKCE/native proof/durable ownership is independently tested in Go.
 const ORIGIN='https://quant.ynxweb4.com',ACCOUNT='ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80';
 const built=await build({stdin:{contents:"import * as identity from './browser-sso.js';window.identityQA=identity;identity.mountBrowserSSO();",resolveDir:fileURLToPath(new URL('../web/',import.meta.url))},bundle:true,write:false,format:'iife',platform:'browser'});
+test('native Chrome identity streams bound bytes, decode split UTF8 and cancel malformed or retired reads',async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}),page=await browser.newPage();
+  try{
+    await page.route('**/*',route=>new URL(route.request().url()).pathname==='/bundle.js'?route.fulfill({contentType:'text/javascript',body:Buffer.from(built.outputFiles[0].contents)}):route.fulfill({contentType:'text/html',body:'<script src="/bundle.js"></script>'}));
+    await page.goto(ORIGIN);
+    const results=await page.evaluate(async()=>{
+      const encode=value=>new TextEncoder().encode(value),read=window.identityQA.readBrowserIdentityResponse;
+      let cancels=0,pulls=0;
+      const over=new Response(new ReadableStream({pull(controller){pulls++;controller.enqueue(encode('中'.repeat(6000)))},cancel(){cancels++}}),{headers:{'content-type':'application/json'}});
+      let overError;try{await read(over,new AbortController().signal)}catch(error){overError=error.message}
+      const bytes=encode('{"text":"中文"}');const split=new Response(new ReadableStream({start(controller){controller.enqueue(bytes.slice(0,10));controller.enqueue(bytes.slice(10));controller.close()}}),{headers:{'content-type':'application/json'}});
+      const splitText=await read(split,new AbortController().signal);
+      const failures=[];for(const bytes of [new Uint8Array([255]),new Uint8Array([228,184])]){try{await read(new Response(bytes,{headers:{'content-type':'application/json'}}),new AbortController().signal)}catch(error){failures.push(error.message)}}
+      for(const length of ['-1','1.5','16385']){try{await read(new Response('{}',{headers:{'content-type':'application/json','content-length':length}}),new AbortController().signal)}catch(error){failures.push(error.message)}}
+      let abortCancels=0;const controller=new AbortController(),stalled=new Response(new ReadableStream({cancel(){abortCancels++}}),{headers:{'content-type':'application/json'}}),pending=read(stalled,controller.signal);controller.abort();let abortError;try{await pending}catch(error){abortError=error.message}
+      return {overError,cancels,pulls,splitText,failures,abortError,abortCancels};
+    });
+    assert.equal(results.overError,'IDENTITY_UNAVAILABLE');assert.equal(results.cancels,1);assert.ok(results.pulls<=2);assert.equal(results.splitText,'{"text":"中文"}');assert.deepEqual(results.failures,Array(5).fill('IDENTITY_UNAVAILABLE'));assert.equal(results.abortError,'IDENTITY_UNAVAILABLE');assert.equal(results.abortCancels,1);
+  }finally{await browser.close()}
+});
 test('real Chrome retires late identity reads at logout, coalesces exit and permits an unconfirmed retry',async()=>{
   const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
   try{for(const oldStatus of [200,401,503]){
