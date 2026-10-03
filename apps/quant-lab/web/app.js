@@ -280,7 +280,40 @@ const runPresentationCopy = {
   id:["Hasil riset terbaru","Biru: ekuitas strategi terukur. Abu-abu: beli dan tahan. Biaya mengikuti model proses ini; imbal hasil tidak dijanjikan."],
 };
 for (const [language, [latestResearchTitle, runChartLead]] of Object.entries(runPresentationCopy)) Object.assign(businessCopy[language], {latestResearchTitle, runChartLead});
+const paperRecordCopy = {
+  en: ["Saved simulated orders", "Service records only. Price, requested quantity and filled quantity are integer micro-units. These are not Exchange orders or chain transfers.", "No recorded simulated orders.", "Records unavailable or unverified", "Order / strategy / time", "Side / status", "Price / requested / filled", "Source"],
+  "zh-CN": ["已保存的模拟订单", "仅展示服务记录。价格、委托量和成交量为整数微单位；不是交易所订单或链上转账。", "暂无模拟订单记录。", "记录不可用或未经验证", "订单 / 策略 / 时间", "方向 / 状态", "价格 / 委托量 / 成交量", "来源"],
+  "zh-TW": ["已儲存的模擬訂單", "僅顯示服務記錄。價格、委託量和成交量為整數微單位；不是交易所訂單或鏈上轉帳。", "尚無模擬訂單記錄。", "記錄不可用或未經驗證", "訂單 / 策略 / 時間", "方向 / 狀態", "價格 / 委託量 / 成交量", "來源"],
+  ja: ["保存済み模擬注文", "サービス記録のみ。価格・注文量・約定量は整数マイクロ単位です。取引所注文や送金ではありません。", "模擬注文の記録はありません。", "記録が利用不可または未検証", "注文 / 戦略 / 時刻", "売買 / 状態", "価格 / 注文量 / 約定量", "提供元"],
+  ko: ["저장된 모의 주문", "서비스 기록만 표시합니다. 가격·주문량·체결량은 정수 마이크로 단위이며 거래소 주문이나 온체인 전송이 아닙니다.", "모의 주문 기록이 없습니다.", "기록 사용 불가 또는 미검증", "주문 / 전략 / 시간", "방향 / 상태", "가격 / 주문량 / 체결량", "출처"],
+  es: ["Órdenes simuladas guardadas", "Solo registros del servicio. Precio, cantidad solicitada y ejecutada en microunidades enteras; no son órdenes de Exchange ni transferencias.", "No hay órdenes simuladas registradas.", "Registros no disponibles o sin verificar", "Orden / estrategia / fecha", "Lado / estado", "Precio / solicitado / ejecutado", "Fuente"],
+  fr: ["Ordres simulés enregistrés", "Registres du service uniquement. Prix, quantité demandée et exécutée en micro-unités entières ; ni ordres Exchange ni transferts blockchain.", "Aucun ordre simulé enregistré.", "Registres indisponibles ou non vérifiés", "Ordre / stratégie / date", "Sens / statut", "Prix / demandé / exécuté", "Source"],
+  de: ["Gespeicherte simulierte Orders", "Nur Servicedaten. Preis, angeforderte und ausgeführte Menge in ganzzahligen Mikroeinheiten; keine Exchange-Orders oder Blockchain-Transfers.", "Keine simulierten Orders gespeichert.", "Datensätze nicht verfügbar oder ungeprüft", "Order / Strategie / Zeit", "Seite / Status", "Preis / angefordert / ausgeführt", "Quelle"],
+  pt: ["Ordens simuladas guardadas", "Apenas registros do serviço. Preço, quantidade solicitada e executada em microunidades inteiras; não são ordens Exchange nem transferências.", "Nenhuma ordem simulada registrada.", "Registros indisponíveis ou não verificados", "Ordem / estratégia / data", "Lado / estado", "Preço / solicitado / executado", "Fonte"],
+  ru: ["Сохранённые симулированные ордера", "Только записи сервиса. Цена, запрошенный и исполненный объём — целые микроединицы; это не биржевые ордера и не переводы.", "Симулированных ордеров нет.", "Записи недоступны или не проверены", "Ордер / стратегия / время", "Сторона / статус", "Цена / запрос / исполнение", "Источник"],
+  ar: ["أوامر المحاكاة المحفوظة", "سجلات الخدمة فقط. السعر والكمية المطلوبة والمنفذة بوحدات ميكرو صحيحة؛ ليست أوامر بورصة أو تحويلات سلسلة.", "لا توجد أوامر محاكاة مسجلة.", "السجلات غير متاحة أو غير متحققة", "الأمر / الاستراتيجية / الوقت", "الاتجاه / الحالة", "السعر / المطلوب / المنفذ", "المصدر"],
+  id: ["Order simulasi tersimpan", "Hanya catatan layanan. Harga, jumlah diminta dan terisi dalam mikrounit bilangan bulat; bukan order Exchange atau transfer blockchain.", "Belum ada catatan order simulasi.", "Catatan tidak tersedia atau belum terverifikasi", "Order / strategi / waktu", "Sisi / status", "Harga / diminta / terisi", "Sumber"],
+};
+for (const [language, values] of Object.entries(paperRecordCopy)) Object.assign(businessCopy[language], Object.fromEntries(["paperRecords", "paperRecordsLead", "paperRecordsEmpty", "paperRecordsUnknown", "paperRecordIdentity", "paperRecordStatus", "paperRecordAmounts", "paperRecordSource"].map((key, index) => [key, values[index]])));
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
+
+function renderPaperRecords(paper) {
+  const records = paper.Orders;
+  const ids = new Set();
+  const duplicates = new Set();
+  if (Array.isArray(records)) for (const record of records) {
+    if (ids.has(record?.ID)) duplicates.add(record?.ID);
+    ids.add(record?.ID);
+  }
+  const valid = record => record && !duplicates.has(record.ID) && /^paper-[0-9]+$/.test(record.ID) && /^[a-f0-9]{64}$/.test(record.StrategyHash) && ["buy", "sell"].includes(record.Side) && Number.isSafeInteger(record.Price) && record.Price > 0 && Number.isSafeInteger(record.Amount) && record.Amount > 0 && Number.isSafeInteger(record.Filled) && record.Filled >= 0 && record.Filled <= record.Amount && record.Source === "authoritative_market_adapter" && typeof record.CreatedAt === "string" && Number.isFinite(Date.parse(record.CreatedAt)) && ({open: record.Filled === 0, partially_filled: record.Filled > 0 && record.Filled < record.Amount, filled: record.Filled === record.Amount})[record.Status] === true;
+  const verified = Array.isArray(records) && records.length <= 100 && records.every(valid);
+  $("#paper-record-status").textContent = !verified ? t("paperRecordsUnknown") : records.length === 0 ? t("paperRecordsEmpty") : "";
+  const value = input => safe(typeof input === "string" || Number.isSafeInteger(input) ? String(input) : "—");
+  $("#paper-record-rows").innerHTML = Array.isArray(records) ? records.map(record => {
+    const row = record && typeof record === "object" ? record : {};
+    return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}</td><td>${value(row.Source)}</td></tr>`;
+  }).join("") : "";
+}
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
 const researchResultStatus = document.createElement("p");
 researchResultStatus.id = "research-result-status";
@@ -454,6 +487,7 @@ function render() {
         .join("")
     : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
+  renderPaperRecords(p);
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
     `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${p.Cash ?? "—"}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${p.Position ?? "—"}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${p.ReconciliationDelta ?? "—"}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;

@@ -2,6 +2,26 @@ import test from 'node:test';import assert from'node:assert/strict';import{spawn
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
+test('actual Chrome reads controlled persisted Paper records without creating orders or horizontal page overflow',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let posts=0;
+    await context.route('**/api/v1/snapshot',async route=>{
+      const response=await route.fetch(),body=await response.json();
+      body.paper.Orders=[{ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'sell',Status:'filled',Price:9007199254740991,Amount:12,Filled:12,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'}];
+      await route.fulfill({response,json:body});
+    });
+    const page=await context.newPage();page.on('request',r=>{if(r.method()==='POST')posts++});
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
+    assert.match(await page.locator('#paper-record-rows').textContent(),/9007199254740991 \/ 12 \/ 12/);
+    assert.equal(await page.locator('#paper-record-status').textContent(),'');
+    await page.locator('#refresh').click();assert.match(await page.locator('#paper-record-rows').textContent(),/paper-000042/);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#locale','ar');
+    assert.match(await page.locator('[data-business-i18n="paperRecordsLead"]').textContent(),/ليست أوامر/);
+    const size=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(size[0]<=size[1],size.join('/'));
+    assert.equal(posts,0);await page.screenshot({path:path.join(evidence,'paper-records-controlled-local.png'),fullPage:true});
+  }finally{await context.close()}
+});
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

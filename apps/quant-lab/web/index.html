@@ -270,6 +270,13 @@
             </div>
             <aside class="inspector" id="paper-state"></aside>
           </div>
+          <h3 data-business-i18n="paperRecords">Saved simulated orders</h3>
+          <p class="lead" data-business-i18n="paperRecordsLead">Service records only. Price, requested quantity and filled quantity are integer micro-units. These are not Exchange orders or chain transfers.</p>
+          <p id="paper-record-status" role="status" aria-live="polite"></p>
+          <div class="table-wrap"><table>
+            <thead><tr><th data-business-i18n="paperRecordIdentity">Order / strategy / time</th><th data-business-i18n="paperRecordStatus">Side / status</th><th data-business-i18n="paperRecordAmounts">Price / requested / filled</th><th data-business-i18n="paperRecordSource">Source</th></tr></thead>
+            <tbody id="paper-record-rows"></tbody>
+          </table></div>
         </section>
         <section id="testnet" class="view">
           <h2 data-i18n="mandate">Bounded testnet mandate</h2>

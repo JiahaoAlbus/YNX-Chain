@@ -12,6 +12,24 @@ const deferred = () => {let resolve, reject; const promise = new Promise((done, 
 const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
 const researchFixture = (id, name = id) => ({id, createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name, StrategyHash:'e'.repeat(64)}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
+const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
+
+test('Paper records preserve exact service quantities and do not depend on the selected wallet',async()=>{
+  const records=[paperRecord()];const app=harness({snapshot:{paper:{Orders:records}}});await settle();
+  const rendered=app.ids.get('paper-record-rows').innerHTML;
+  assert.match(rendered,/9007199254740991 \/ 2000000 \/ 1000000/);assert.match(rendered,/authoritative_market_adapter/);assert.match(rendered,/partially_filled/);assert.equal(app.ids.get('paper-record-status').textContent,'');
+  app.wallet(connected(accountA));app.wallet(connected(accountB));await settle();assert.equal(app.ids.get('paper-record-rows').innerHTML,rendered);assert.equal(records[0].ID,'paper-000042');
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+});
+
+test('Paper record missing, empty, duplicate and malformed receipts cannot become confirmed fills',async()=>{
+  for(const Orders of [undefined,[],[paperRecord({Filled:2000001})],[paperRecord({Status:'filled'})],[paperRecord({Source:'<script>fabricated</script>'})],[paperRecord(),paperRecord()],Array.from({length:101},(_,i)=>paperRecord({ID:`paper-${i}`})),[null], [paperRecord({Price:9007199254740992})]]){
+    const app=harness({snapshot:{paper:{Orders}}});await settle();
+    assert.match(app.ids.get('paper-record-status').textContent,Array.isArray(Orders)&&Orders.length===0?/No recorded/:/unavailable or unverified/);
+    assert.doesNotMatch(app.ids.get('paper-record-rows').innerHTML,/<script>/);
+    app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.ids.get('paper-record-status').textContent,vm.runInContext(`businessCopy.ar.${Array.isArray(Orders)&&Orders.length===0?'paperRecordsEmpty':'paperRecordsUnknown'}`,app.context));
+  }
+});
 
 // Execute the shipped app with a small DOM/HTTP boundary. Provider lifecycles are
 // independently exercised in the actual-browser suite; these are local fixtures.
