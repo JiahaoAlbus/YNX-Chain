@@ -1,0 +1,7 @@
+=== RUN   TestMerchantActualSDKExactProofAndOriginalStore
+    merchant_v2_test.go:142: actual session proofs 403 {"code":"ACCOUNT_BINDING_MISMATCH","error":"ACCOUNT_BINDING_MISMATCH","errorId":"7b5a2e90e1ccfcb7fd3e454dbfb8f9f3","requestId":"5abfad6bb0b82f407ff08db2c4f12a34","traceId":"5badea0ee61b99e04f5323dc21ea01df"}
+         
+--- FAIL: TestMerchantActualSDKExactProofAndOriginalStore (0.32s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct	0.849s
+FAIL

@@ -1,0 +1,7 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/payproduct
+internal/payproduct/server.go:534:6: err redeclared in this block
+	internal/payproduct/server.go:528:8: other declaration of err
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct [build failed]
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-productd [build failed]
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-store [build failed]
+FAIL

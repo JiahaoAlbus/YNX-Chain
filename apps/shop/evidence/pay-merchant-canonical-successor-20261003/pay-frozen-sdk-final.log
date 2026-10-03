@@ -1,0 +1,4 @@
+=== RUN   TestMerchantActualSDKExactProofAndOriginalStore
+--- PASS: TestMerchantActualSDKExactProofAndOriginalStore (0.60s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct	1.838s

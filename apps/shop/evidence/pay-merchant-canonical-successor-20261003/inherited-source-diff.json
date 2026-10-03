@@ -1,0 +1,242 @@
+[
+  {
+    "path": "internal/payproduct/.env.example",
+    "original": "3e3ddc8ab52e55c81fd15706ec4e60139004cd84f0f32fdc96fab5be08d6a446",
+    "successor": "3e3ddc8ab52e55c81fd15706ec4e60139004cd84f0f32fdc96fab5be08d6a446",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/README.md",
+    "original": "841b2be965ff5f3f4e25bf549d3896e1b24693b49cf7fb903deee213f73260a2",
+    "successor": "841b2be965ff5f3f4e25bf549d3896e1b24693b49cf7fb903deee213f73260a2",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/ai.go",
+    "original": "534e613ba26f22efb2ea1265c1a82f8df8e1a1cd44bbbfcef1ee70d60753b430",
+    "successor": "534e613ba26f22efb2ea1265c1a82f8df8e1a1cd44bbbfcef1ee70d60753b430",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/capacity_test.go",
+    "original": "0b41531cb96a77ca7bbb92bd98c9f2a39d5a0a4bab72101aa3a2b9e38bfba00a",
+    "successor": "0b41531cb96a77ca7bbb92bd98c9f2a39d5a0a4bab72101aa3a2b9e38bfba00a",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/client.go",
+    "original": "01c8f56bf7860357ed3f223fdf65bdcdb14d1943c23e5f09093f4dfb7e658ccf",
+    "successor": "01c8f56bf7860357ed3f223fdf65bdcdb14d1943c23e5f09093f4dfb7e658ccf",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-productd/main.go",
+    "original": "fa7aee30207b6095c11717f86a5a5c6393d587b18d9511a18fae67126d95a533",
+    "successor": "576ddbb78afcf42b3bbc5ef75b3b4cb72596548f5f7e666bf19a375d4aeaf706",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-productd/main_test.go",
+    "original": "076d0c190b976f4fe4a1ee69d47909114ec21f83419eddb92737cd90d7cc51c1",
+    "successor": "076d0c190b976f4fe4a1ee69d47909114ec21f83419eddb92737cd90d7cc51c1",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-store/main.go",
+    "original": "8f3934f76b6ab709828622ab9fd52f40a7872b4ccc19d57fb2c739fdfe26477b",
+    "successor": "8f3934f76b6ab709828622ab9fd52f40a7872b4ccc19d57fb2c739fdfe26477b",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-store/main_test.go",
+    "original": "c88d0744663e9169b0cb65cfcca8278180ca54d88c36ee35e470c50f7e64ebcc",
+    "successor": "c88d0744663e9169b0cb65cfcca8278180ca54d88c36ee35e470c50f7e64ebcc",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/console_auth.go",
+    "original": "8cfb671f4218c8230575075b73cd3d9a1a29a22346e0e8c07d265c2151481fb5",
+    "successor": "8cfb671f4218c8230575075b73cd3d9a1a29a22346e0e8c07d265c2151481fb5",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/live-testnet-proof.mjs",
+    "original": "b8edc68595dc5a14360ed79c6adb8aa7194a8af3fa78b8c6e1d3e30254209ed5",
+    "successor": "b8edc68595dc5a14360ed79c6adb8aa7194a8af3fa78b8c6e1d3e30254209ed5",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/model.go",
+    "original": "71036f997f57f69b75b30c1b5680764fd6841d92600d7150ea2c127278ea573f",
+    "successor": "79e2013bae1c5f8d7dbffa900858c8647220bde90854f7373ba58c5044494936",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/observability.go",
+    "original": "10fb22082543b3438d8913ce3a20bb637d4ecd7bd998857f968cb18c8c5b27d8",
+    "successor": "acde9cd38bc49241a6f6e4ff30f5cab15d5345de7deeb164d6ae694e3dc4c3ba",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/observability_test.go",
+    "original": "08e0155d9fc1ddb3e5df1536190b45074407e623d8ab1f13f152e5c15a57fb79",
+    "successor": "08e0155d9fc1ddb3e5df1536190b45074407e623d8ab1f13f152e5c15a57fb79",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/pay_gateway.go",
+    "original": "ca5e5f81074eaa4f20c12d19c689e8685a8580bc62665e1258bf013f4782c6f0",
+    "successor": "ca5e5f81074eaa4f20c12d19c689e8685a8580bc62665e1258bf013f4782c6f0",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/proof/live-testnet-payment.json",
+    "original": "f1580dd561d535397890e501175edee8bdf206234fbb1f013a212ff2bcfdd559",
+    "successor": "f1580dd561d535397890e501175edee8bdf206234fbb1f013a212ff2bcfdd559",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/prove-testnet-commit.sh",
+    "original": "4f5301467148c8e0eb3a31e3b0c8f58be57b0298e990290cbb675ae6ffcb7ea7",
+    "successor": "4f5301467148c8e0eb3a31e3b0c8f58be57b0298e990290cbb675ae6ffcb7ea7",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/quant_billing.go",
+    "original": "29b6a477dda7e5e752ffa22c0c8a42940bd2177efc5a531911f430b28447c4a8",
+    "successor": "29b6a477dda7e5e752ffa22c0c8a42940bd2177efc5a531911f430b28447c4a8",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/quant_billing_test.go",
+    "original": "193a8a3b0c09c86918eedfb84422a70b7709f507010125dd4ae1b3f254a0f71c",
+    "successor": "193a8a3b0c09c86918eedfb84422a70b7709f507010125dd4ae1b3f254a0f71c",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/recurring.go",
+    "original": "bd6548186948655ff77b2479c288e93620657c3a9b91b7840c4c86e4d65b8bed",
+    "successor": "bd6548186948655ff77b2479c288e93620657c3a9b91b7840c4c86e4d65b8bed",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/recurring_test.go",
+    "original": "e6c2f350c3f2b1c2facc401f11cb506f239eac5b207ae4a74b37c0014e76bdc0",
+    "successor": "e6c2f350c3f2b1c2facc401f11cb506f239eac5b207ae4a74b37c0014e76bdc0",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/refund.go",
+    "original": "917f177ff29f3f668935d67192c7080ad45369a269ff75bc4e506116775c8fee",
+    "successor": "917f177ff29f3f668935d67192c7080ad45369a269ff75bc4e506116775c8fee",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/refund_test.go",
+    "original": "b722c90334a44da76f4ca434ed171901103afc30685484bb4af629dc67a8fed5",
+    "successor": "b722c90334a44da76f4ca434ed171901103afc30685484bb4af629dc67a8fed5",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/route_bridge.go",
+    "original": "4db4a6f5a84312a47f215260a92532f620422e6763419f5b60a8a3e5c2354700",
+    "successor": "4db4a6f5a84312a47f215260a92532f620422e6763419f5b60a8a3e5c2354700",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/route_bridge_test.go",
+    "original": "98f4f51951ead8a4baf5e9b5684fa047c96d9b3a2d06076b6a1bca12d926675f",
+    "successor": "98f4f51951ead8a4baf5e9b5684fa047c96d9b3a2d06076b6a1bca12d926675f",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/server.go",
+    "original": "8b76ee251981a8dc6bb4e18626266f89827508f2a81a52d891760e61619a090d",
+    "successor": "520760719756ecd720deb2ab97b09d775124a606bc129da5de68c1f7d5434c3e",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/service.go",
+    "original": "b79821ac00be186d6b976ad9b74e629abd114415bbef488e0b118787bcd0cec0",
+    "successor": "a76f0095fa5bf346791f63b98f4b119ee6da71170833a829912a7b77a3997420",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/service_test.go",
+    "original": "ed1f257eb070cba0b0ac383b200197e5ce327cd002ef882da6d9978feb64d586",
+    "successor": "ed1f257eb070cba0b0ac383b200197e5ce327cd002ef882da6d9978feb64d586",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/smoke.sh",
+    "original": "bd30745ca0e62645f8ad6ad6a80f7dc317d445c2e59a12444d839fc0a287f976",
+    "successor": "bd30745ca0e62645f8ad6ad6a80f7dc317d445c2e59a12444d839fc0a287f976",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/split.go",
+    "original": "6807ae07c9d491bab50a419c6352a8e4a72cc6ee959db597e6c5ceaca2033b63",
+    "successor": "6807ae07c9d491bab50a419c6352a8e4a72cc6ee959db597e6c5ceaca2033b63",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/split_test.go",
+    "original": "b6fc6b04524ab4a7b42e3fc1d6116251adfe5e5ec3814293c390e211796023ed",
+    "successor": "b6fc6b04524ab4a7b42e3fc1d6116251adfe5e5ec3814293c390e211796023ed",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/sponsorship.go",
+    "original": "9eb26f38e4e07cd4cbf8adf1c994f97694e82361a36d04de4c2aa4d0a2d396e3",
+    "successor": "9eb26f38e4e07cd4cbf8adf1c994f97694e82361a36d04de4c2aa4d0a2d396e3",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/sponsorship_test.go",
+    "original": "f72c59e512fc1b0f96d228d00733a01567cdccec97f86c4bb9068f09fc0f0d9b",
+    "successor": "f72c59e512fc1b0f96d228d00733a01567cdccec97f86c4bb9068f09fc0f0d9b",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/stable_settlement.go",
+    "original": "5d4231829c371882f880a7106cda5a3c253e85bf7a0cfa120db6cfadb07973f1",
+    "successor": "5d4231829c371882f880a7106cda5a3c253e85bf7a0cfa120db6cfadb07973f1",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/stable_settlement_test.go",
+    "original": "92a178b84da9fd696e06d6048196185c9acafda245bb8134d902f0215fcc0602",
+    "successor": "92a178b84da9fd696e06d6048196185c9acafda245bb8134d902f0215fcc0602",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/store.go",
+    "original": "2bc3fea95b69d4e1176408e98a256764a1c914f154e4f027805cdf6bef2c3033",
+    "successor": "3d36a2beea56e43da879bd7bdfb625390100315b9ae93e1bdd036d21dead635c",
+    "unchanged": false
+  },
+  {
+    "path": "internal/payproduct/store_recovery.go",
+    "original": "3f23ad9078f4897f3e4e0f0cf24a0c4937cc9e4d15b71ca577429c2f62c31da9",
+    "successor": "3f23ad9078f4897f3e4e0f0cf24a0c4937cc9e4d15b71ca577429c2f62c31da9",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/store_recovery_test.go",
+    "original": "9c0e962a9ebaebc9f7d2d449635a16c3e52f8d229bb387af0cefcafed2df0af4",
+    "successor": "9c0e962a9ebaebc9f7d2d449635a16c3e52f8d229bb387af0cefcafed2df0af4",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/wallet.go",
+    "original": "5ab1260972a8139537bc31599b2e10613d416517e80ac4132f7caaf79b1f718d",
+    "successor": "5ab1260972a8139537bc31599b2e10613d416517e80ac4132f7caaf79b1f718d",
+    "unchanged": true
+  },
+  {
+    "path": "internal/payproduct/webhook_deadletter_test.go",
+    "original": "d8f941c13d5677526905282c0b9ae9ffbec1f3a71ffc26b5e0f4b0b16d23182f",
+    "successor": "d8f941c13d5677526905282c0b9ae9ffbec1f3a71ffc26b5e0f4b0b16d23182f",
+    "unchanged": true
+  }
+]

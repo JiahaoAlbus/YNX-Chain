@@ -1,0 +1,220 @@
+=== RUN   TestMerchantActualSDKExactProofAndOriginalStore
+==================
+WARNING: DATA RACE
+Read at 0x00c0002cb458 by goroutine 21:
+  bytes.(*Buffer).String()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:77 +0x728
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:80 +0x720
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+
+Previous write at 0x00c0002cb458 by goroutine 22:
+  bytes.(*Buffer).grow()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:160 +0x2e8
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:215 +0x5c
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:415 +0x1bc
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x64
+  os.genericWriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:295 +0x18
+  os.(*File).WriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:273 +0x8c
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:411 +0xa8
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x58
+  os/exec.(*Cmd).writerDescriptor.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:596 +0x34
+  os/exec.(*Cmd).Start.func2()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:749 +0x38
+  os/exec.(*Cmd).Start.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:761 +0x40
+
+Goroutine 21 (running) created at:
+  testing.(*T).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x6e0
+  testing.runTests.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2477 +0x74
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.runTests()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2475 +0x734
+  testing.(*M).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2337 +0xaf4
+  main.main()
+      _testmain.go:135 +0x100
+
+Goroutine 22 (running) created at:
+  os/exec.(*Cmd).Start()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:748 +0xb28
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:72 +0x4e4
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c0002cb440 by goroutine 21:
+  bytes.(*Buffer).String()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:77 +0x738
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:80 +0x720
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+
+Previous write at 0x00c0002cb440 by goroutine 22:
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:222 +0x128
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:415 +0x1bc
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x64
+  os.genericWriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:295 +0x18
+  os.(*File).WriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:273 +0x8c
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:411 +0xa8
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x58
+  os/exec.(*Cmd).writerDescriptor.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:596 +0x34
+  os/exec.(*Cmd).Start.func2()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:749 +0x38
+  os/exec.(*Cmd).Start.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:761 +0x40
+
+Goroutine 21 (running) created at:
+  testing.(*T).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x6e0
+  testing.runTests.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2477 +0x74
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.runTests()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2475 +0x734
+  testing.(*M).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2337 +0xaf4
+  main.main()
+      _testmain.go:135 +0x100
+
+Goroutine 22 (running) created at:
+  os/exec.(*Cmd).Start()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:748 +0xb28
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:72 +0x4e4
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+==================
+==================
+WARNING: DATA RACE
+Read at 0x00c00038d000 by goroutine 21:
+  runtime.slicebytetostring()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/runtime/string.go:133 +0x0
+  bytes.(*Buffer).String()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:77 +0x76c
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:80 +0x720
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+
+Previous write at 0x00c00038d000 by goroutine 22:
+  runtime.slicecopy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/runtime/slice.go:355 +0x0
+  bytes.growSlice()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:256 +0x128
+  bytes.(*Buffer).grow()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:157 +0x214
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:215 +0x5c
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  bytes.(*Buffer).ReadFrom()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/bytes/buffer.go:217 +0xec
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:415 +0x1bc
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x64
+  os.genericWriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:295 +0x18
+  os.(*File).WriteTo()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/file.go:273 +0x8c
+  io.copyBuffer()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:411 +0xa8
+  io.Copy()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/io/io.go:388 +0x58
+  os/exec.(*Cmd).writerDescriptor.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:596 +0x34
+  os/exec.(*Cmd).Start.func2()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:749 +0x38
+  os/exec.(*Cmd).Start.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:761 +0x40
+
+Goroutine 21 (running) created at:
+  testing.(*T).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x6e0
+  testing.runTests.func1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2477 +0x74
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.runTests()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2475 +0x734
+  testing.(*M).Run()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:2337 +0xaf4
+  main.main()
+      _testmain.go:135 +0x100
+
+Goroutine 22 (running) created at:
+  os/exec.(*Cmd).Start()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/os/exec/exec.go:748 +0xb28
+  github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantActualSDKExactProofAndOriginalStore()
+      /private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_v2_test.go:72 +0x4e4
+  testing.tRunner()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x164
+  testing.(*T).Run.gowrap1()
+      /Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x3c
+==================
+    merchant_v2_test.go:80: SDK fixture startup file:///Users/huangjiahao/.codex/worktrees/central-finite-go-family-20261002/YNX%20Chain/packages/wallet-auth/src/product-session-gateway-node-host.js:207
+        function fail(code, message) { throw new WalletAuthError(code, message); }
+                                             ^
+        
+        WalletAuthError: Product Session Gateway state directory must be an owner-bound real mode-0700 directory
+            at fail (file:///Users/huangjiahao/.codex/worktrees/central-finite-go-family-20261002/YNX%20Chain/packages/wallet-auth/src/product-session-gateway-node-host.js:207:38)
+            at #persist (file:///Users/huangjiahao/.codex/worktrees/central-finite-go-family-20261002/YNX%20Chain/packages/wallet-auth/src/product-session-gateway-node-host.js:160:145)
+            at new ProductSessionGatewayNodeHost (file:///Users/huangjiahao/.codex/worktrees/central-finite-go-family-20261002/YNX%20Chain/packages/wallet-auth/src/product-session-gateway-node-host.js:51:39)
+            at file:///private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/testdata/merchant-v2-node.mjs:20:12 {
+          code: 'STATE_PERMISSIONS'
+        }
+        
+        Node.js v26.7.0
+        
+    testing.go:1617: race detected during execution of test
+--- FAIL: TestMerchantActualSDKExactProofAndOriginalStore (0.12s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct	0.833s
+FAIL

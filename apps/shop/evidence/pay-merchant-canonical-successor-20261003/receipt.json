@@ -1,0 +1,42 @@
+{
+  "status": "OWNED_SOURCE_PROGRESS_NOT_FORMAL_RELEASE",
+  "previousCommerceCommit": "49ba9216c1c4f89a2c63e5e4945797dcb3fc523c",
+  "payInputCommit": "53eb677c0e41d1ddf73d7faa105958181dc29236",
+  "sourcePaths": 47,
+  "inheritedOriginalPaths": 40,
+  "originalUnchanged": 34,
+  "sharedGoInputCommit": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sdkSource": "Frozen original16195 isolated complete SDK, not live A modified checkout",
+  "qaStage": "/tmp/ynx-commerce-pay-v2-HpzAYM",
+  "moduleReferenceOnly": true,
+  "ownerModuleChanged": false,
+  "sourceManifestSHA256": "8cb9f0439566c3d50dc3038e82a62416e303b5776e98b5f027284024d2112527",
+  "frozenSDKManifestSHA256": "af0c2121c1db3b887a7054d277fbffa5e1f839a8dc80de6f3c50baa3057c7425",
+  "qa": {
+    "goRace": {
+      "pass": 79,
+      "topLevelPass": 57,
+      "packages": 3,
+      "fail": 0,
+      "skip": 0,
+      "actualSDKTestRan": true
+    },
+    "merchantNodePass": 51,
+    "merchantBuild": "PASS",
+    "currentBrowserPass": 4,
+    "privateBrowserLegacyFixtures": "11 NOT_VERIFIED"
+  },
+  "productionJointSnapshot": "NOT_CONFIGURED_A_OWNED",
+  "payNativeFullBatch": "INCOMPLETE_ACTIVE_GOAL",
+  "formalPrivateDefault": "503_NO_LEGACY_FALLBACK",
+  "publicWalletBusiness": "NOT_VERIFIED",
+  "installedAndroidMacOS": "NOT_VERIFIED",
+  "formalBuildDeployInstall": false,
+  "liveStoreOrKeyTouched": false,
+  "sourceArchive": {
+    "file": "pay-merchant-owner-source.tar",
+    "bytes": 583680,
+    "sha256": "1995743a31adeeba7740a862e875a0b5f12d82c4b9bd4f1b53a73de5a83f2820",
+    "role": "SOURCE_ONLY_INTERIM_CANDIDATE_NOT_INSTALLER"
+  }
+}

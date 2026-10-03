@@ -1,0 +1,3 @@
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct	1.695s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-productd	0.457s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-store	0.458s

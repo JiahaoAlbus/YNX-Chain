@@ -1,0 +1,37 @@
+--- FAIL: TestMerchantCanonicalOriginalCarrierAndLostResponseRecovery (0.10s)
+    merchant_business_test.go:97: session 500 {"error":"internal service error","errorId":"b5bc296b43c3f07072d923efea4b1157","requestId":"9446a42492ebec20f9db7b54beff0506","traceId":"edf289c4204374f70f215cb30a7e2c6a"}
+--- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic (0.10s)
+    --- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic/inactive-member (0.03s)
+        merchant_business_test.go:149: session 500 {"error":"internal service error","errorId":"841c92f8209eaba36664dae4412de73c","requestId":"f7f7629ba92ec51951b137728b7fc766","traceId":"f945a4e099ff28e4e709235fd1f82c3a"}
+    --- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic/wrong-role (0.02s)
+        merchant_business_test.go:149: session 500 {"error":"internal service error","errorId":"1023b333e81e6ab007bae0711709dcc5","requestId":"edd657fb4fed40fd88286249bfb46e3e","traceId":"1be92ee99e7a9945d50dc3da01cfa83e"}
+    --- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic/expired-session (0.02s)
+        merchant_business_test.go:149: session 500 {"error":"internal service error","errorId":"a36f1889b7927cef11e2fd3dd0de1da6","requestId":"93cfaa3b0b4ad988e79580afaf5953d7","traceId":"732187369b6d0006e42940189f60cabc"}
+    --- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic/revoked-actor (0.02s)
+        merchant_business_test.go:149: session 500 {"error":"internal service error","errorId":"19fb8849e8cd64c9cb38e8650fa9a8f8","requestId":"be1e4f1da4a2b4d2c8b58788d3693651","traceId":"d6e14c8d55741e43d206cc26e8687926"}
+    --- FAIL: TestMerchantCanonicalNonceAndBusinessEffectAtomic/persist-failure (0.02s)
+        merchant_business_test.go:149: session 500 {"error":"internal service error","errorId":"cf3a2b486e8d7ba131b4266b068781f5","requestId":"633f8014328f0e26845ee99b3d273049","traceId":"1129aa1121fe8b129a65931acefd6a5d"}
+--- FAIL: TestMerchantCanonicalViewRefreshNeverHoldsStoreLock (0.02s)
+panic: assignment to entry in nil map [recovered, repanicked]
+
+goroutine 3034 [running]:
+testing.tRunner.func1.2({0x1016d2940, 0x101f363c0})
+	/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1872 +0x2b4
+testing.tRunner.func1()
+	/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1875 +0x460
+panic({0x1016d2940?, 0x101f363c0?})
+	/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/runtime/panic.go:783 +0x120
+github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.(*Service).merchantScope.func2(0xc000603440)
+	/private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_business.go:290 +0x55c
+github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.(*Store).Update(0xc0002c2c60, 0x10180ca38)
+	/private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/store.go:189 +0x1e8
+github.com/JiahaoAlbus/YNX-Chain/internal/payproduct.TestMerchantCanonicalViewRefreshNeverHoldsStoreLock(0xc0006f2700)
+	/private/tmp/ynx-commerce-pay-v2-HpzAYM/internal/payproduct/merchant_business_test.go:244 +0x268
+testing.tRunner(0xc0006f2700, 0x10180c8a8)
+	/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1934 +0x168
+created by testing.(*T).Run in goroutine 1
+	/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/src/testing/testing.go:1997 +0x6e4
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct	0.969s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-productd	1.528s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/cmd/ynx-pay-store	1.439s
+FAIL
