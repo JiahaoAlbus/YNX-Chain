@@ -272,6 +272,25 @@ test('HTTP ambiguous or oversized market documents cannot become verified data',
     finally { h.feed.stop(); }
   });
 });
+test('identity-framed market reads reject byte mismatches and recover without forged freshness',async()=>{
+  const body=JSON.stringify(snapshot(2)),size=new TextEncoder().encode(body).byteLength;
+  for(const declared of [size-1,size+1,0]){
+    let reads=0;const h=harness(async()=>++reads===1?Response.json(snapshot()):reads===2?new Response(body,{headers:{'content-type':'application/json','content-length':String(declared)}}):Response.json(snapshot(2)));
+    await h.feed.start();const original=h.feed.snapshot();await h.feed.retry();
+    assert.equal(h.feed.snapshot(),original);assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');assert.equal(h.sources[0].closed,true);
+    await h.feed.retry();assert.equal(h.feed.snapshot().revision,2);assert.equal(h.statuses.at(-1).phase,'live');
+    assert.equal(h.calls.every(([,options])=>options.method==='GET'&&options.credentials==='omit'),true);h.feed.stop();assert.equal(h.timers.size,0);
+  }
+  for(const encoding of ['identity','gzip','br']){
+    const declared=encoding==='identity'?size:27;
+    const h=harness(async()=>new Response(body,{headers:{'content-type':'application/json','content-length':String(declared),'content-encoding':encoding}}));
+    await h.feed.start();assert.equal(h.feed.snapshot().revision,2);h.feed.stop();
+  }
+  let cancellations=0;
+  const overrun=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode(body));},cancel(){cancellations++;}});
+  const h=harness(async()=>new Response(overrun,{headers:{'content-type':'application/json','content-length':'1'}}));
+  await h.feed.start();assert.equal(cancellations,1);assert.equal(h.received.length,0);assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');h.feed.stop();assert.equal(h.timers.size,0);
+});
 
 test('ambiguous stream frame preserves prior verified snapshot and retires the stream',async()=>{
   const h=harness(); await h.feed.start(); const old=h.sources[0];

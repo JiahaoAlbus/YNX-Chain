@@ -82,7 +82,7 @@ test('conflicting revision keeps actual candle view stale until an explicit veri
     const status=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
     await page.addScriptTag({content:`${marketForClassicScript}const $=s=>document.querySelector(s),state={publicTrades:[]},display=v=>formatMicro(v);${render}${status}
       window.marketQA={next:null,reads:0};let transport;class Source{constructor(){transport=this;this.events={}}addEventListener(k,f){this.events[k]=f}close(){} }
-      window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});
+      window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return marketQA.badLength?new Response(JSON.stringify(marketQA.next),{headers:{'content-type':'application/json','content-length':'0'}}):Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});
     const source={authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',asOf:'2026-10-03T00:00:00Z',classification:'testnet',status:'degraded_single_host',coverage:'stream-orderbook-matched-trades',stateBackend:'file_snapshot',multiInstance:false};
     const snapshot={schemaVersion:'exchange-public-market-v1',revision:1,market:'YNXT-YUSD_TEST',sourceMetadata:source,orderBook:{market:'YNXT-YUSD_TEST',bids:[],asks:[]},trades:[{id:'local-match',market:'YNXT-YUSD_TEST',priceMicro:2000000,amountMicro:4000000,createdAt:'2026-08-03T18:41:37.614045168Z',sourceType:'deterministic_price_time_match',sourceDigest:'a'.repeat(64)}]};
     await page.evaluate(async s=>{marketQA.next=s;await feed.start()},snapshot);
@@ -97,9 +97,11 @@ test('conflicting revision keeps actual candle view stale until an explicit veri
     await page.evaluate(s=>emitConflict(s),conflict);
     assert.equal(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),false);assert.equal(await page.locator('#market-source').getAttribute('data-stale'),'true');
     assert.equal(await page.locator('#market-last-match').textContent(),originalMatch);
-    conflict.revision=2;await page.evaluate(async s=>{marketQA.next=s;await feed.retry()},conflict);
+    conflict.revision=2;await page.evaluate(async s=>{marketQA.next=s;marketQA.badLength=true;await feed.retry()},conflict);
+    assert.equal(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),false);assert.equal(await page.locator('#market-source').getAttribute('data-stale'),'true');
+    await page.evaluate(async()=>{marketQA.badLength=false;await feed.retry()});
     assert.notEqual(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),true);
-    assert.equal(await page.evaluate(()=>marketQA.reads),2);assert.equal(page.context().pages().length,1);await page.evaluate(()=>feed.stop());
+    assert.equal(await page.evaluate(()=>marketQA.reads),3);assert.equal(page.context().pages().length,1);await page.evaluate(()=>feed.stop());
   }finally{await browser.close()}
 });
 test('desktop/mobile candle controls and exact trace rows remain read-only, localized and bounded',async t=>{

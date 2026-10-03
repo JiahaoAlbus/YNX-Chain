@@ -73,6 +73,10 @@ export function parseMarketDocument(text) {
 async function readMarketDocument(response, signal) {
   const length = response.headers.get('content-length');
   if (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_MARKET_DOCUMENT_BYTES)) throw invalid();
+  // Browsers expose decoded bytes. Compare exact framing only for identity
+  // bodies; compressed wire lengths are not decoded JSON lengths.
+  const encoding = (response.headers.get('content-encoding') || '').trim().toLowerCase();
+  const expected = length !== null && (!encoding || encoding === 'identity') ? Number(length) : null;
   const reader = response.body?.getReader();
   if (!reader) throw invalid();
   const cancel = () => { void reader.cancel().catch(() => {}); };
@@ -85,9 +89,10 @@ async function readMarketDocument(response, signal) {
       const {done,value} = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_MARKET_DOCUMENT_BYTES) throw invalid();
+      if (size > MAX_MARKET_DOCUMENT_BYTES || expected !== null && size > expected) throw invalid();
       parts.push(decoder.decode(value, {stream:true}));
     }
+    if (expected !== null && size !== expected) throw invalid();
     parts.push(decoder.decode());
     return parseMarketDocument(parts.join(''));
   } catch (error) {
