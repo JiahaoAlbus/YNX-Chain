@@ -13,6 +13,7 @@ import {
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
+import { walletDashboardCopy } from "./src/i18n/dashboardCopy";
 import { walletAppFlowCopy } from "./src/i18n/appFlowCopy";
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry, type NativeTransferHistoryRecord } from "./src/chain/nativeTransferOutbox";
@@ -311,7 +312,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     const sub=AppState.addEventListener("change",state=>{if(state!=="active"){chainRefreshGeneration.current++;chainReadAbort.current?.abort()}else void refreshChain()});
     return()=>{chainMounted.current=false;chainRefreshGeneration.current++;chainReadAbort.current?.abort();sub.remove()};
   },[refreshChain]);
-  const copy=async()=>{if(publicCopyBusy.current)return;publicCopyBusy.current=true;setCopyError(null);let lease:WalletOperationLease|undefined;try{lease=publicCopyScope.begin({account:selected.account});await lease.step(()=>copyPublicValueWithExpiry(Clipboard,selected.account,{guard:lease!.assert}));lease.assert();const revision=++publicCopyNotice.current;setCopied(true);setTimeout(()=>{if(publicCopyNotice.current===revision)setCopied(false)},1500)}catch{if(!lease||lease.isCurrent())setCopyError(locale.startsWith("zh")?"暂时无法复制。请打开收款页面并手动复制地址。":"Clipboard unavailable. Open Receive and copy the address manually.")}finally{if(!lease||lease.ownsScope())publicCopyBusy.current=false;lease?.finish()}};
+  const copy=async()=>{if(publicCopyBusy.current)return;publicCopyBusy.current=true;setCopyError(null);let lease:WalletOperationLease|undefined;try{lease=publicCopyScope.begin({account:selected.account});await lease.step(()=>copyPublicValueWithExpiry(Clipboard,selected.account,{guard:lease!.assert}));lease.assert();const revision=++publicCopyNotice.current;setCopied(true);setTimeout(()=>{if(publicCopyNotice.current===revision)setCopied(false)},1500)}catch{if(!lease||lease.isCurrent())setCopyError(walletDashboardCopy(locale,"clipboardUnavailable"))}finally{if(!lease||lease.ownsScope())publicCopyBusy.current=false;lease?.finish()}};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
   return <ScrollView contentContainerStyle={styles.dashboard}>
     {copyError?<Text accessibilityRole="alert" style={styles.error}>{copyError}</Text>:null}
@@ -322,18 +323,18 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} disabled={chainState.phase==="loading"||chainState.activityPhase==="loading"} onPress={()=>void refreshChain()}/>
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
-    <SecondaryButton label={locale.startsWith("zh")?"扫一扫":"Scan QR code"} onPress={openScan}/>
+    <SecondaryButton label={walletDashboardCopy(locale,"scan")} onPress={openScan}/>
     <WalletConnectButton locale={locale} account={selected} withAccountSecret={walletConnectKeyAccess}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
     <FaucetButton secondary label={walletCopy(locale,copied?"Native ynx1 address copied":"Copy native ynx1 address")} onPress={()=>void copy()}/>
     <FaucetButton secondary label={walletCopy(locale,"Rename account")} onPress={()=>setRename(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
-    <SecondaryButton label={locale.startsWith("zh")?"查询原生合约":"Read native contracts"} onPress={()=>setContracts(true)}/>
+    <SecondaryButton label={walletDashboardCopy(locale,"contracts")} onPress={()=>setContracts(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
-    <SecondaryButton label={locale.startsWith("zh")?"已确认转账记录":"Confirmed transfer history"} onPress={()=>setNativeHistory(true)}/>
-    <SecondaryButton label={locale.startsWith("zh")?"Pay 付款收据":"Pay payment receipts"} onPress={()=>setPayHistory(true)}/>
+    <SecondaryButton label={walletDashboardCopy(locale,"confirmedHistory")} onPress={()=>setNativeHistory(true)}/>
+    <SecondaryButton label={walletDashboardCopy(locale,"payReceipts")} onPress={()=>setPayHistory(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
     <SecondaryButton label={translate(locale,"audit")} onPress={()=>void openAudit()}/>
