@@ -121,6 +121,34 @@ test('second startup uses restore, every account refresh obtains a fresh proof, 
 test('private network loss clears visible private data; Retry resumes without standard Wallet interaction',async()=>{
   const {controller,calls}=setup();await controller.start(origin+'/');controller.offline();assert.equal(controller.state().phase,'degraded');assert.equal(controller.state().snapshot,null);await controller.online();assert.equal(controller.state().phase,'connected');assert.ok(calls.includes('retryDetected'));assert.ok(!calls.some(v=>/eth_|personal_sign|disconnectWallet/.test(JSON.stringify(v))));controller.close();
 });
+test('private response and body cancellation settle callers; retry needs a fresh proof and cannot revive a retired account',async()=>{
+  for(const stalled of ['response','body'])for(const action of ['deadline','guest','offline','close']){
+    const timers=new Map();let next=0,reads=0,release,completed=false;
+    const wait=new Promise(resolve=>release=resolve);
+    const {controller,calls}=setup({controller:{
+      setTimer:(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id},clearTimer:id=>timers.delete(id),
+      fetchImpl:async()=>{reads++;if(reads>1)return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}});
+        if(stalled==='response')return wait;
+        return {ok:true,headers:new Headers({'content-type':'application/json'}),text:()=>wait};},
+    }});
+    const running=controller.start(origin+'/').then(value=>{completed=true;return value});
+    await new Promise(setImmediate);
+    if(action==='deadline'){const deadline=[...timers.values()].find(item=>item.ms===10000);assert.ok(deadline);deadline.fn();}
+    else controller[action]();
+    await new Promise(setImmediate);assert.equal(completed,true,`${stalled}/${action} caller must settle`);
+    const result=await running;assert.equal(result.snapshot,null);
+    if(action==='deadline'){assert.equal(result.phase,'degraded');assert.equal(result.code,'PRIVATE_API_UNAVAILABLE');}
+    assert.equal(timers.size,0,'retired request must leave no deadline/expiry timer');
+    if(action!=='close'){
+      assert.equal((await controller.refresh()).phase,'connected');
+      assert.equal(calls.filter(item=>Array.isArray(item)&&item[0]==='proof').length,2);
+    }
+    release(stalled==='response'?new Response(JSON.stringify(snapshot(other)),{headers:{'content-type':'application/json'}}):JSON.stringify(snapshot(other)));
+    await new Promise(setImmediate);
+    assert.equal(controller.state().account,action==='close'?null:account,'late foreign body must not replace current account');
+    controller.close();assert.equal(timers.size,0);
+  }
+});
 test('Guest hides data without claiming revocation and online does not undo deliberate Guest',async()=>{
   const {controller,calls}=setup();await controller.start(origin+'/');controller.guest();const before=calls.length;controller.offline();await controller.online();assert.equal(controller.state().phase,'guest');assert.equal(controller.state().code,'LOCAL_GUEST_NOT_REVOKED');assert.equal(controller.state().snapshot,null);assert.ok(!calls.slice(before).includes('retryDetected'));assert.ok(!calls.includes('disconnect'));controller.close();
 });

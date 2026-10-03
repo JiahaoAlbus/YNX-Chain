@@ -47,12 +47,12 @@ export function validateAccountSnapshot(value,account){
 
 // The narrow adapter seam permits offline orchestration fixtures. Production
 // passes the exact same-module SDK constructor and authority in the entry file.
-export function createPrivateAccountController({createAdapter,fetchImpl,origin=ORIGIN,onState=()=>{},wallet}){
+export function createPrivateAccountController({createAdapter,fetchImpl,origin=ORIGIN,onState=()=>{},wallet,setTimer=setTimeout,clearTimer=clearTimeout}){
   let adapter,loading,epoch=0,closed=false,guestIntent=false,request,expiry,operation;
   let pendingRetirement=null,selectionBinding=null;
   let current=Object.freeze({phase:'guest',account:null,snapshot:null,route:null,code:null});
   const publish=(value)=>{current=Object.freeze({phase:'guest',account:null,snapshot:null,route:null,code:null,...value});onState(current);return current};
-  const cancel=()=>{request?.abort();request=null;clearTimeout(expiry)};
+  const cancel=()=>{request?.abort();request=null;clearTimer(expiry)};
   const active=token=>!closed&&token===epoch;
   async function getAdapter(){
     if(closed)throw failure('CLIENT_CLOSED');
@@ -71,26 +71,34 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     if(!active(token))return current;
     if(typeof authorization.proofHeader!=='string'||!authorization.proofHeader||authorization.proofHeader.length>16384)throw failure('PROOF_REQUIRED');
     const controller=new AbortController();request=controller;
-    const timeout=setTimeout(()=>controller.abort(),10000);
+    // Bound the full HTTP/body wait even if the transport ignores abort.
+    let rejectAborted;
+    const aborted=new Promise((_,reject)=>{rejectAborted=()=>reject(failure('PRIVATE_API_UNAVAILABLE'))});
+    controller.signal.addEventListener('abort',rejectAborted,{once:true});
+    const timeout=setTimer(()=>controller.abort(),10000);
     try{
       if(origin!==ORIGIN)throw failure('ORIGIN_NOT_ALLOWED');
       // Bind this Web read to its actual host-only browser identity when one
       // exists. Omitting that cookie incorrectly selects the independent native
       // channel and prevents central logout/account isolation from applying.
-      const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
+      const body=await Promise.race([(async()=>{
+        const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
+        if(!active(token))return null;
+        if(!response.ok)throw failure([401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE');
+        if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||Number(response.headers.get('content-length'))>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
+        const body=await response.text();if(body.length>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
+        return body;
+      })(),aborted]);
       if(!active(token))return current;
-      if(!response.ok)throw failure([401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE');
-      if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||Number(response.headers.get('content-length'))>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
-      const body=await response.text();if(body.length>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
       let value;try{value=JSON.parse(body)}catch{throw failure('INVALID_ACCOUNT_RESPONSE')}
       const snapshot=validateAccountSnapshot(value,session.account);
       if(!active(token))return current;
       if(Date.parse(session.expiresAt)<=Date.now())throw failure('SESSION_EXPIRED');
       const observed=wallet?.getPrivateWalletContext?.();
       if(!selectionBinding&&observed?.status==='connected')selectionBinding=observed;
-      expiry=setTimeout(()=>{if(active(token))publish({phase:'authorization-required',code:'SESSION_EXPIRED'})},Math.min(2147483647,Date.parse(session.expiresAt)-Date.now()));
+      expiry=setTimer(()=>{if(active(token))publish({phase:'authorization-required',code:'SESSION_EXPIRED'})},Math.min(2147483647,Date.parse(session.expiresAt)-Date.now()));
       return publish({phase:'connected',account:session.account,snapshot,expiresAt:session.expiresAt});
-    }finally{clearTimeout(timeout);if(request===controller)request=null}
+    }finally{clearTimer(timeout);controller.signal.removeEventListener('abort',rejectAborted);if(request===controller)request=null}
   }
   async function accept(value,token){
     if(!active(token))return current;
@@ -100,7 +108,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       const route=new URL(value.route.url);
       if(route.protocol!=='ynxwallet:'||route.hostname!=='authorize'||!route.searchParams.get('request'))throw failure('INVALID_WALLET_ROUTE');
       if(!Number.isFinite(Date.parse(value.request?.expiresAt))||Date.parse(value.request.expiresAt)<=Date.now())throw failure('SESSION_EXPIRED');
-      expiry=setTimeout(()=>{if(active(token))publish({phase:'authorization-required',code:'SESSION_EXPIRED'})},Math.min(2147483647,Date.parse(value.request.expiresAt)-Date.now()));
+      expiry=setTimer(()=>{if(active(token))publish({phase:'authorization-required',code:'SESSION_EXPIRED'})},Math.min(2147483647,Date.parse(value.request.expiresAt)-Date.now()));
       return publish({phase:'approval-pending',route:value.route.url,installation:'unverified'});
     }
     if(value.status==='guest'||value.status==='disconnected'||value.status==='expired')return publish({phase:'guest',code:value.revocationConfirmed===true?'PRIVATE_REVOCATION_CONFIRMED':value.status==='expired'?'SESSION_EXPIRED':value.status==='disconnected'?'PRIVATE_SESSION_DISCONNECTED':null});
@@ -133,7 +141,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       const url=new URL(value.route.url);if(url.protocol!=='ynxwallet:'||url.hostname!=='authorize'||!url.searchParams.get('request'))throw failure('INVALID_WALLET_ROUTE');
       const remaining=Date.parse(value.request?.expiresAt)-Date.now();if(!Number.isFinite(remaining)||remaining<=0)throw failure('SESSION_EXPIRED');
       publish({phase:'approval-pending',route:null,installation:'selected-provider'});
-      let timer;const response=await Promise.race([wallet.requestProductSessionV2(value.route.url),new Promise((_,reject)=>{timer=setTimeout(()=>reject(failure('SESSION_EXPIRED')),Math.min(remaining,60000))})]).finally(()=>clearTimeout(timer));assert();
+      let timer;const response=await Promise.race([wallet.requestProductSessionV2(value.route.url),new Promise((_,reject)=>{timer=setTimer(()=>reject(failure('SESSION_EXPIRED')),Math.min(remaining,60000))})]).finally(()=>clearTimer(timer));assert();
       if(response?.version!==2||typeof response.returnUrl!=='string'||Object.keys(response).sort().join(',')!=='returnUrl,version')throw failure('PRIVATE_RETURN_INVALID');
       const result=await client.handleReturn(response.returnUrl);assert();return result;
     }catch(error){await retire();throw error}
