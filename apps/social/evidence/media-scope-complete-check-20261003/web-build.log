@@ -1,0 +1,4 @@
+
+> @ynx-chain/social@1.0.0 web:build
+> node web/build.mjs
+

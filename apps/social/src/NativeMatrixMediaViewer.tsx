@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MatrixMediaPreview, type MatrixMediaLease } from './nativeMatrixMedia';
+import { MatrixMediaPreview } from './nativeMatrixMedia';
+import { bindMediaPresentation, visibleMediaPresentation, type BoundMediaPresentation } from './nativeMediaPresentation';
 
 const defaultTranslate = (text: string) => text;
 
@@ -19,7 +20,9 @@ type Props = Readonly<{
  */
 export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onCleanupFailure,
   t = defaultTranslate }: Props) {
-  const [lease, setLease] = useState<MatrixMediaLease>();
+  const [presentation, setPresentation] = useState<BoundMediaPresentation>();
+  const scope = { preview, roomId, eventId };
+  const lease = visibleMediaPresentation(scope, presentation);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [decodeError, setDecodeError] = useState(false);
@@ -32,10 +35,10 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
 
   useEffect(() => {
     mounted.current = true; ++epoch.current;
-    setLease(undefined); setError(''); setDecodeError(false); setBusy(false);
+    setPresentation(undefined); setError(''); setDecodeError(false); setBusy(false);
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') return;
-      ++epoch.current; setLease(undefined); setBusy(false); setDecodeError(false);
+      ++epoch.current; setPresentation(undefined); setBusy(false); setDecodeError(false);
       setError(translation.current('Preview locked while the app is in the background.'));
       void preview.close().catch(() => { cleanupFailure.current(); });
     });
@@ -48,10 +51,10 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
   const open = async () => {
     if (busy) return;
     const attempt = ++epoch.current;
-    setLease(undefined); setError(''); setDecodeError(false); setBusy(true);
+    setPresentation(undefined); setError(''); setDecodeError(false); setBusy(true);
     try {
       const original = await preview.open(roomId, eventId);
-      if (mounted.current && epoch.current === attempt) setLease(original);
+      if (mounted.current && epoch.current === attempt) setPresentation(bindMediaPresentation(scope, original));
     } catch {
       if (mounted.current && epoch.current === attempt) {
         setError(t('This attachment could not be opened. Check your session and contact permission, then retry.'));
@@ -63,7 +66,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
 
   const close = async () => {
     const attempt = ++epoch.current;
-    setLease(undefined); setDecodeError(false); setBusy(true);
+    setPresentation(undefined); setDecodeError(false); setBusy(true);
     try {
       await preview.close();
       if (mounted.current && epoch.current === attempt) onClose();

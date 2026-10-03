@@ -1,0 +1,35 @@
+{
+  "mode": "actual-viewer-public-fixture-only",
+  "files": {
+    "src/NativeMatrixMediaViewer.tsx": {
+      "bytes": 6377,
+      "sha256": "bb6559901730aeba69445ab9c665a66ac2aa1bbbaabd1ca9a4add3a4d61bd067"
+    },
+    "src/nativeMatrixMedia.ts": {
+      "bytes": 2929,
+      "sha256": "ab093ad1cc8ea232b4922bdf102f12c10dbef3f4a4894c043b4f1a60c92d0953"
+    },
+    "src/nativeMediaPresentation.ts": {
+      "bytes": 1173,
+      "sha256": "cc45b5f64591d22b1ae7e92cc0840e06c972436740556e02b5374d5e04308502"
+    },
+    "scripts/native-media-render-qa/main.jsx": {
+      "bytes": 3277,
+      "sha256": "caa905bf593604e287489d6b8ad792bac75f6428c95de4563b0b908254660422"
+    },
+    "scripts/native-media-render-qa/server.mjs": {
+      "bytes": 3302,
+      "sha256": "29b206725bb71b1822aea5dbdc4de7793e584402dd817bd86c8ed36a7fdc165f"
+    }
+  },
+  "bundle": {
+    "bytes": 1449335,
+    "sha256": "e359d08c0b63a153500a63fa1d4b79404ba31ec5351e83cd38f28ca3be3b1848"
+  },
+  "publicLogoSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "react": "19.2.3",
+  "reactDom": "19.2.3",
+  "reactNativeWeb": "0.21.2",
+  "noProductDependencyWrites": true,
+  "nativeOrMatrixAuthorization": false
+}

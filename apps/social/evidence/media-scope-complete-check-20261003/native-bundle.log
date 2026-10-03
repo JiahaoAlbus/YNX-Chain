@@ -1,0 +1,36 @@
+
+> @ynx-chain/social@1.0.0 bundle-check
+> expo export --platform android --platform ios --output-dir dist
+
+Starting Metro Bundler
+
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:55273) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 17277ms index.ts (2743 modules)
+Android Bundled 23374ms index.ts (2759 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-c139cddcb510d55f85e3d60e5840f19b.hbc (5.8MB)
+
+› android bundles (1):
+_expo/static/js/android/index-cd9c53d67c6159b06723c894040d6087.hbc (5.8MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: dist
