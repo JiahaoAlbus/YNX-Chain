@@ -14,16 +14,22 @@ test('Native and Web retain the exact admitted original YNX PNG, not letter subs
   }
 });
 
-test('Native brand is outside the App state boundary and protects the original aspect ratio', () => {
+test('Formal Native entry owns one product chrome and preserves branding across signed-out and restored states', () => {
   const entry = readFileSync(new URL('../index.ts', import.meta.url), 'utf8');
   const brand = readFileSync(new URL('./BrandRoot.tsx', import.meta.url), 'utf8');
-  assert.match(entry, /registerRootComponent\(withSocialBrand\(App\)\)/);
+  assert.match(entry, /registerRootComponent\(App\)/);
+  assert.doesNotMatch(entry, /MediaViewer|fixture|qa\.aZcKcz|withSocialBrand\(App\)/);
   assert.match(brand, /resizeMode="contain"/);
   assert.match(brand, /width: 24 \* 798 \/ 420, height: 24, flexShrink: 0/);
   assert.doesNotMatch(brand, /numberOfLines|allowFontScaling=\{false\}|maxFontSizeMultiplier/);
   assert.match(brand, /<View style=\{styles\.content\}><App \/><\/View>/);
   const app = readFileSync(new URL('../App.tsx', import.meta.url), 'utf8');
   assert.equal((app.match(/source=\{require\("\.\/assets\/ynx-original-logo\.png"\)\}/g) ?? []).length, 2);
+  assert.match(app, /<GuestWorkspace/);
+  const guest = readFileSync(new URL('./GuestWorkspace.tsx', import.meta.url), 'utf8');
+  assert.match(guest, /width: 24 \* 798 \/ 420, height: 24/);
+  assert.match(guest, /resizeMode="contain"/);
+  assert.doesNotMatch(app + guest, /SYNTHETIC MEDIA VIEWER|Fail next cleanup|Fail next read/);
   assert.doesNotMatch(app, /<View style=\{styles\.(?:mark|brandMark)\}>\s*<UsersRound/);
 });
 

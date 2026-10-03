@@ -15,7 +15,7 @@ const social=registry.products?.find(product=>product.productId==='social');
 const scopes=['account:read','profile:link','social.ai','social.contacts','social.feed','social.messaging','social.profile'];
 if(social?.clientId!=='ynx-social-v1'||social.applicationId!=='com.ynx.social'||social.webOrigin!=='https://social.ynxweb4.com'||JSON.stringify(social.scopes)!==JSON.stringify(scopes))throw new Error('SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH: integration owner must supply exact approved Social registry');
 await rm(out,{recursive:true,force:true});await mkdir(out,{recursive:true});
-for(const path of ['index.html','styles.css','workspace.css','app.js','wallet-provider.js','wallet-transports.js','assets','vendor'])await cp(new URL(path,import.meta.url),new URL(path,out),{recursive:true});
+for(const path of ['index.html','styles.css','workspace.css','product-shell.css','product-shell.js','app.js','wallet-provider.js','wallet-transports.js','assets','vendor'])await cp(new URL(path,import.meta.url),new URL(path,out),{recursive:true});
 // Preserve the validated seven-scope registration in the self-contained root.
 // Publishing/media/follows use social.feed; source vendor remains untouched.
 await cp(new URL('../src/vendor/product-session-registry.json',import.meta.url),new URL('vendor/product-session-registry.json',out));

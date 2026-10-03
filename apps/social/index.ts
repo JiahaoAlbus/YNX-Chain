@@ -1,4 +1,4 @@
 import { registerRootComponent } from "expo";
 import App from "./App";
-import { withSocialBrand } from "./src/BrandRoot";
-registerRootComponent(withSocialBrand(App));
+// App owns the product header and safe areas; isolated QA roots are not imported.
+registerRootComponent(App);

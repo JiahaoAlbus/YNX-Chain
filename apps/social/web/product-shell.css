@@ -1,0 +1,52 @@
+/* Conventional chat product chrome, original YNX identity, no fixture content. */
+body[data-social-page]{--blue:#002fa7; background:#edf2f7; padding:0;}
+body[data-social-page] > .topbar{height:64px;min-height:64px;padding:8px 22px;gap:20px;box-shadow:none;backdrop-filter:none;background:#fff;}
+body[data-social-page] .brand{font-size:1.05rem;font-weight:650;}
+body[data-social-page] > main{height:calc(100dvh - 64px);overflow:auto;padding-left:112px;}
+body[data-social-page] .topbar nav{position:fixed;inset:64px auto 0 0;transform:none;width:112px;display:flex;flex-direction:column;justify-content:flex-start;gap:8px;margin:0;padding:20px 8px;background:#fff;border-right:1px solid var(--line);}
+body[data-social-page] .topbar nav a{padding:16px 8px;border-radius:12px;text-align:center;min-height:48px;font-size:.85rem;}
+body[data-social-page] .topbar nav a[aria-current=page]{background:#eaf0ff;color:var(--blue);font-weight:650;}
+body[data-social-page] .hero,body[data-social-page] #experience,body[data-social-page] #privacy,body[data-social-page] #downloads{display:none;}
+body[data-social-page] .section{padding:24px;max-width:none;}
+body[data-social-page] #private-auth-panel{display:none;}
+body[data-social-page] #social-workspace{display:none;background:#fff;}
+body[data-social-page=contacts] #social-workspace,body[data-social-page=settings] #social-workspace{display:block;min-height:100%;}
+body[data-social-page=contacts] #profile-form,body[data-social-page=contacts] #profile-share-panel,body[data-social-page=contacts] #workspace-content > section[aria-label="Discovery privacy"],body[data-social-page=contacts] .social-chat-layout{display:none;}
+body[data-social-page=settings] #people-panel,body[data-social-page=settings] .social-chat-layout{display:none;}
+body[data-social-page] .social-appearance{display:none;border:1px solid var(--line);border-radius:14px;padding:16px;max-width:600px;}
+body[data-social-page=settings] .social-appearance{display:flex;flex-wrap:wrap;gap:16px;}
+.social-appearance label{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;}
+body[data-social-page] #matrix-social-workspace{padding:0;background:#edf2f7;min-height:100%;border:0;}
+body[data-social-page=contacts] #matrix-social-workspace,body[data-social-page=settings] #matrix-social-workspace{display:none;}
+body[data-social-page] #matrix-social-workspace .chat-heading{padding:16px 24px;background:#fff;align-items:center;gap:12px;}
+body[data-social-page] .chat-heading .chat-wordmark,body[data-social-page] .chat-heading [data-chat-copy=intro]{display:none;}
+body[data-social-page] #matrix-social-workspace .chat-heading h2{font-size:1.15rem;font-weight:650;margin:0;}
+body[data-social-page] #matrix-social-workspace [data-status]{margin:0;padding:10px 24px;border:0;border-radius:0;font-size:.85rem;background:#f5f7fa;}
+body[data-social-page] .chat-actions{margin:0;padding:10px 24px;background:#fff;gap:12px;}
+body[data-social-page] .chat-workspace-grid{grid-template-columns:340px minmax(0,1fr);gap:0;min-height:55dvh;}
+body[data-social-page] .chat-sidebar{padding:20px;background:#fff;border-radius:0;border-right:1px solid var(--line);}
+body[data-social-page] .chat-conversation{display:flex;flex-direction:column;border:0;border-radius:0;padding:20px;background:radial-gradient(ellipse at top right,#dde7f3,transparent 70%),#edf2f7;}
+body[data-social-page] #matrix-social-workspace .chat-conversation [data-messages]{flex:1;min-height:240px;max-height:55dvh;}
+body[data-social-page] #matrix-social-workspace [data-messages] li{max-width:85%;align-self:start;background:#fff;border-radius:16px 16px 16px 4px;font-size:.95rem;padding:12px 16px;}
+body[data-social-page] #matrix-social-workspace .chat-conversation [data-send-form]{background:#fff;padding:12px;border-radius:18px;}
+body[data-social-page] #matrix-social-workspace textarea{min-height:48px;font-size:.95rem;}
+body[data-social-page] #matrix-social-workspace .chat-device-section,body[data-social-page] #matrix-social-workspace .chat-connection-details{margin:0;padding:16px 24px;background:#fff;}
+body[data-social-page=chats] #social-moments{display:none;}
+body[data-social-page=moments] #matrix-social-workspace > :not(#social-moments){display:none;}
+body[data-social-page=moments] #social-moments{padding:24px;max-width:780px;margin:auto;background:#fff;min-height:calc(100dvh - 64px);}
+body[data-social-page] button,body[data-social-page] input,body[data-social-page] textarea,body[data-social-page] select{font:inherit;}
+body[data-social-page] [hidden]{display:none!important;}
+@media(max-width:899px){
+ body[data-social-page] > main{padding:0;height:calc(100dvh - 138px - env(safe-area-inset-bottom));}
+ body[data-social-page] > .topbar{height:64px;min-height:64px;flex-wrap:nowrap;padding:8px 14px;gap:8px;}
+ body[data-social-page] .topbar nav{inset:auto 0 0;transform:none;width:100%;height:auto;min-height:74px;flex-direction:row;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));border-right:0;border-top:1px solid var(--line);gap:2px;}
+ body[data-social-page] .topbar nav a{flex:1;padding:12px 4px;font-size:.8rem;min-width:0;}
+ body[data-social-page] #connect-wallet{font-size:.75rem;padding:8px 10px;min-height:44px;}
+ body[data-social-page] .chat-workspace-grid{grid-template-columns:minmax(0,1fr);}
+ body[data-social-page] .chat-sidebar{border:0;border-bottom:1px solid var(--line);}
+ body[data-social-page] .chat-composer-actions{display:flex;}
+ body[data-social-page] .chat-actions{display:flex;}
+ body[data-social-page] .chat-actions a{font-size:.8rem;}
+ body[data-social-page] .brand{min-width:0;font-size:.95rem;}
+ body[data-social-page] .section{padding:18px;}
+}

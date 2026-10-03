@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  useWindowDimensions,
   Alert as NativeAlert,
   AppState,
   FlatList,
@@ -14,6 +18,11 @@ import {
   Text as NativeText,
   TextInput as NativeTextInput,
   View,
+  type TextProps,
+  type TextInputProps,
+  type PressableProps,
+  type AlertButton,
+  type AlertOptions,
 } from "react-native";
 import {
   CryptoDigestAlgorithm,
@@ -37,6 +46,8 @@ import {
   Heart,
   KeyRound,
   MessageCircle,
+  MoreVertical,
+  Settings,
   Paperclip,
   Plus,
   QrCode,
@@ -117,27 +128,39 @@ import {NativeMomentActions} from './src/nativeMomentActions';
 import {NativeDiscoveryIntents,isOriginalDiscoveryReview} from './src/nativeDiscoveryIntent';
 import {NativeContactIntents} from './src/nativeContactIntent';
 import {ContactOperation} from './src/contactOperation';
+import { SocialAppearanceProvider, AppearanceSettings, useSocialAppearance } from './src/SocialAppearance';
+import { GuestWorkspace } from './src/GuestWorkspace';
+import { socialLayout, messageDayBoundary } from './src/socialPresentation';
 
 const BLUE = "#002FA7",
   INK = "#101828",
   MUTED = "#667085",
   LINE = "#E4E7EC",
   SURFACE = "#F7F8FA";
-const localizeNode = (value: unknown, t: (input: string) => string): any =>
+const localizeNode = (value: React.ReactNode, t: (input: string) => string): React.ReactNode =>
   typeof value === "string"
     ? t(value)
     : Array.isArray(value)
       ? value.map((item) => localizeNode(item, t))
       : value;
-function Text({ children, ...props }: any) {
+function Text({ children, ...props }: TextProps) {
   const { t } = useI18n();
-  return <NativeText {...props}>{localizeNode(children, t)}</NativeText>;
+  const { scale } = useSocialAppearance();
+  const original = StyleSheet.flatten(props.style) ?? {};
+  return <NativeText {...props} allowFontScaling style={[props.style, {
+    fontSize: (original.fontSize ?? 14) * scale,
+    ...(typeof original.lineHeight === 'number' ? { lineHeight: original.lineHeight * scale } : {}),
+  }]}>{localizeNode(children, t)}</NativeText>;
 }
-function TextInput(props: any) {
+function TextInput(props: TextInputProps) {
   const { t } = useI18n();
+  const { scale } = useSocialAppearance();
+  const original = StyleSheet.flatten(props.style) ?? {};
   return (
     <NativeTextInput
       {...props}
+      allowFontScaling
+      style={[props.style, { fontSize: (original.fontSize ?? 15) * scale }]}
       placeholder={props.placeholder ? t(props.placeholder) : undefined}
       accessibilityLabel={
         props.accessibilityLabel ? t(props.accessibilityLabel) : undefined
@@ -145,7 +168,7 @@ function TextInput(props: any) {
     />
   );
 }
-function Pressable(props: any) {
+function Pressable(props: PressableProps) {
   const { t } = useI18n();
   return (
     <NativePressable
@@ -157,7 +180,7 @@ function Pressable(props: any) {
   );
 }
 const Alert = {
-  alert(title: string, body?: string, buttons?: any[], options?: any) {
+  alert(title: string, body?: string, buttons?: AlertButton[], options?: AlertOptions) {
     NativeAlert.alert(
       translate(title),
       body ? translate(body) : undefined,
@@ -186,14 +209,17 @@ type Tab = "contacts" | "messages" | "moments" | "alerts" | "profile";
 export default function App() {
   return (
     <I18nProvider>
-      <SafeAreaProvider>
+      <SocialAppearanceProvider><SafeAreaProvider>
         <SocialApp />
-      </SafeAreaProvider>
+      </SafeAreaProvider></SocialAppearanceProvider>
     </I18nProvider>
   );
 }
 function SocialApp() {
   const { t, isRTL } = useI18n();
+  const { width } = useWindowDimensions();
+  const desktop = socialLayout(width).desktop;
+  const [threadOpen, setThreadOpen] = useState(false);
   const [discovery,setDiscovery]=useState<SocialDiscoveryEntry|null>(null);
   const discoveryIntents=useMemo(()=>new NativeDiscoveryIntents({
     read:()=>SecureStore.getItemAsync('ynx.social.discovery.intent.v1'),
@@ -479,6 +505,7 @@ function SocialApp() {
       <SafeAreaView
         style={[styles.center, { direction: isRTL ? "rtl" : "ltr" }]}
       >
+        <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 24 * 798 / 420, height: 24 }} />
         <ActivityIndicator color={BLUE} />
         <Text style={styles.muted}>
           {t("Restoring private Social session…")}
@@ -486,53 +513,31 @@ function SocialApp() {
       </SafeAreaView>
     );
   if (!session || !api)
-    return (
-      <SafeAreaView style={[styles.auth, { direction: isRTL ? "rtl" : "ltr" }]}>
-        <StatusBar style="dark" />
-        <LanguagePicker />
-        <View style={[styles.mark, { backgroundColor: "transparent", width: 48, height: 48 }]}>
-          <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 24 * 798 / 420, height: 24, flexShrink: 0 }} />
-        </View>
-        <Text style={styles.authTitle}>YNX Social</Text>
-        <Text style={styles.authBody}>
-          {t(
-            "Private conversations, thoughtful moments, and people you choose.",
-          )}
-        </Text>
-        {error ? (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {t(error)}
-          </Text>
-        ) : null}
-        <NativeSessionPanel onChatReady={connectScoped} />
-        {discovery?<Text style={styles.securityNote}>A Social discovery link is waiting. Connect explicitly, then review the current profile before requesting contact. The link grants no permission.</Text>:null}
-        <Text style={styles.securityNote}>
-          {t("Social never creates, imports, or receives your recovery key.")}
-        </Text>
-      </SafeAreaView>
-    );
+    return <GuestWorkspace error={error} discoveryPending={Boolean(discovery)}
+      language={<LanguagePicker compact />} signIn={<NativeSessionPanel onChatReady={connectScoped} />} />;
   return (
     <SafeAreaView
       style={[styles.safe, { direction: isRTL ? "rtl" : "ltr" }]}
-      edges={["top", "left", "right"]}
+      edges={["top", "bottom", "left", "right"]}
     >
       <StatusBar style="dark" />
-      <View style={styles.header}>
+      {!(threadOpen && !desktop && tab === "messages") && <View style={styles.header}>
         <View style={[styles.brandMark, { backgroundColor: "transparent", width: 46, height: 46 * 420 / 798 }]}>
           <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 46, height: 46 * 420 / 798, flexShrink: 0 }} />
         </View>
-        <Text style={styles.brand}>Social</Text>
+        <Text style={styles.brand}>YNX Social</Text>
         <View style={styles.privateBadge}>
           <ShieldCheck color="#067647" size={13} />
           <Text style={styles.privateText}>{t("Private")}</Text>
         </View>
         <LanguagePicker compact />
-      </View>
+      </View>}
+      <View style={[styles.appWorkspace, desktop && styles.desktopWorkspace]}>
       <View style={styles.body}>
         {tab === "contacts" ? (
           <Contacts key={api.authorizationGeneration} api={api} account={session.session.account} discovery={discovery} onDiscoveryConsumed={consumeDiscovery} />
         ) : tab === "messages" ? (
-          <Messages api={api} session={session} />
+          <Messages api={api} session={session} onThreadChange={setThreadOpen} />
         ) : tab === "moments" ? (
           <Moments api={api} session={session} />
         ) : tab === "alerts" ? (
@@ -546,18 +551,18 @@ function SocialApp() {
           />
         )}
       </View>
-      <View style={styles.tabBar}>
+      {!(threadOpen && !desktop && tab === "messages") && <View style={[styles.tabBar, desktop && styles.desktopTabs]}>
         {(session.authMode!=="product-session-v2"||session.session.scopes.includes("social.contacts"))?<TabButton
           tab="contacts"
           active={tab === "contacts"}
-          label={t("People")}
+          label={t("Contacts")}
           icon={ContactRound}
           onPress={setTab}
         />:null}
         <TabButton
           tab="messages"
           active={tab === "messages"}
-          label={t("Messages")}
+          label={t("Chats")}
           icon={MessageCircle}
           onPress={setTab}
         />
@@ -578,10 +583,11 @@ function SocialApp() {
         <TabButton
           tab="profile"
           active={tab === "profile"}
-          label={t("Me")}
-          icon={UserRound}
+          label={t("Settings")}
+          icon={Settings}
           onPress={setTab}
         />
+      </View>}
       </View>
     </SafeAreaView>
   );
@@ -1052,7 +1058,9 @@ function QRScanner({
   );
 }
 
-function Messages({ api, session }: { api: SocialAPI; session: Session }) {
+function Messages({ api, session, onThreadChange }: { api: SocialAPI; session: Session; onThreadChange: (open: boolean) => void }) {
+  const { width } = useWindowDimensions();
+  const desktop = socialLayout(width).desktop;
   const [items, setItems] = useState<Conversation[]>([]),
     [query, setQuery] = useState(""),
     [loading, setLoading] = useState(false),
@@ -1063,10 +1071,14 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
     [group, setGroup] = useState(false),
     [title, setTitle] = useState(""),
     [handle, setHandle] = useState("");
+  const loadRevision = useRef(0);
   const load = async () => {
+    const revision = ++loadRevision.current;
     setLoading(true);
     try {
-      setItems((await api.conversations(query)).conversations);
+      const result = await api.conversations(query);
+      if (revision !== loadRevision.current) return;
+      setItems(result.conversations);
       setError(null);
     } catch (caught) {
       setError(message(caught));
@@ -1076,7 +1088,15 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
   };
   useEffect(() => {
     void load();
+    return () => { loadRevision.current++; };
   }, [query]);
+  useEffect(() => { onThreadChange(Boolean(selected)); }, [selected, onThreadChange]);
+  useEffect(() => () => onThreadChange(false), [onThreadChange]);
+  useEffect(() => {
+    if (!selected) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { setSelected(null); return true; });
+    return () => subscription.remove();
+  }, [selected]);
   const start = async () => {
     try {
       const handles = handle
@@ -1111,21 +1131,17 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
       (group
         ? handlesValid.length >= 2 && Boolean(title.trim())
         : handlesValid.length === 1);
-  if (selected)
-    return (
-      <MessageThread
-        api={api}
-        session={session}
-        conversation={selected}
-        close={() => {
-          setSelected(null);
-          void load();
-        }}
-      />
-    );
+  const thread = selected ? <MessageThread key={selected.id} api={api} session={session}
+    conversation={selected} close={() => { setSelected(null); void load(); }} /> :
+    <View style={styles.chatWelcome}><Image source={require('./assets/ynx-original-logo.png')}
+      resizeMode="contain" style={{ width: 76, height: 40 }} /><Text style={styles.emptyTitle}>Your conversations</Text>
+      <Text style={styles.emptyBody}>Select a chat to continue. Your contacts and private messages stay yours.</Text></View>;
+  if (selected && !desktop) return thread;
   return (
+    <View style={styles.chatSplit}>
+    <View style={desktop ? styles.chatSidebar : styles.flex}>
     <Screen
-      title="Messages"
+      title="Chats"
       action={
         <Pressable
           accessibilityLabel="New conversation"
@@ -1167,7 +1183,7 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
           />
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => setSelected(item)} style={styles.row}>
+          <Pressable accessibilityState={{ selected: selected?.id === item.id }} onPress={() => setSelected(item)} style={[styles.row, selected?.id === item.id && styles.selectedChat]}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
                 {item.title.slice(0, 1).toUpperCase()}
@@ -1195,6 +1211,7 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
                 </Text>
               </View>
             </View>
+            {item.unread > 0 && <View style={styles.unreadBadge}><Text style={styles.unreadCount}>{formatNumber(item.unread)}</Text></View>}
             <Pressable
               accessibilityLabel={`AI tools for ${item.title}`}
               onPress={() => setAI(item)}
@@ -1283,6 +1300,9 @@ function Messages({ api, session }: { api: SocialAPI; session: Session }) {
         </View>
       </Modal>
     </Screen>
+    </View>
+    {desktop && <View style={styles.chatDetail}>{thread}</View>}
+    </View>
   );
 }
 
@@ -1342,6 +1362,11 @@ function MessageThread({
     [sending, setSending] = useState(false),
     [pending, setPending] = useState<SendMessageRequest | null>(null),
     [error, setError] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [threadAI, setThreadAI] = useState(false);
   const [attachmentPending, setAttachmentPending] = useState(false);
   const [attachmentProgress, setAttachmentProgress] = useState("");
   const [attachmentPreview, setAttachmentPreview] = useState<{name:string;uri:string}|null>(null);
@@ -1590,7 +1615,26 @@ function MessageThread({
         .includes(query.trim().toLocaleLowerCase()),
   );
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView style={styles.threadScreen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Modal visible={showInfo || showAttachments || showMenu} transparent animationType="slide"
+        onRequestClose={() => { setShowInfo(false); setShowAttachments(false); setShowMenu(false); }}>
+        <View style={styles.backdrop}><View style={styles.sheet}>
+          <SheetTitle title={showInfo ? conversation.title : showAttachments ? 'Attachments' : 'Conversation'}
+            close={() => { setShowInfo(false); setShowAttachments(false); setShowMenu(false); }} />
+          {showInfo ? <>
+            {conversation.handle && <Text style={styles.handle}>@{conversation.handle}</Text>}
+            <Text style={styles.securityNote}>{conversation.e2ee === 'verified' ? 'Verified on this device' : 'Device recovery needed'}</Text>
+            <Text style={styles.securityNote}>Contact acceptance and following are separate. Device trust is not inferred from a profile.</Text>
+          </> : showAttachments ? <Pressable disabled={sending || attachmentPending} style={styles.discovery}
+            onPress={() => { setShowAttachments(false); void pickAttachment(); }}>
+            <Paperclip color={BLUE} size={20} /><Text>Choose encrypted image</Text></Pressable> : <>
+            <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); setShowSearch(value => !value); }}><Search color={BLUE} size={20} /><Text>Search on this device</Text></Pressable>
+            <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); setThreadAI(true); }}><Bot color={BLUE} size={20} /><Text>Optional AI tools</Text></Pressable>
+            <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); void load(); }}><RefreshCw color={BLUE} size={20} /><Text>Refresh conversation</Text></Pressable>
+          </>}
+        </View></View>
+      </Modal>
+      <AIModal conversation={threadAI ? conversation : null} close={() => setThreadAI(false)} api={api} />
       <Modal visible={attachmentPreview !== null} onRequestClose={() => setAttachmentPreview(null)} animationType="fade">
         <View style={{flex:1,backgroundColor:"#101828",padding:24,paddingTop:60}}>
           <Pressable accessibilityLabel="Close decrypted attachment" onPress={() => setAttachmentPreview(null)}><Text style={{color:"#FFFFFF",padding:16}}>Close attachment</Text></Pressable>
@@ -1608,18 +1652,21 @@ function MessageThread({
         >
           <ArrowLeft color={INK} size={20} />
         </Pressable>
-        <View style={styles.flex}>
-          <Text style={styles.name}>{conversation.title}</Text>
+        <Pressable accessibilityLabel="Conversation information" onPress={() => setShowInfo(true)} style={styles.threadIdentity}>
+          <View style={styles.avatar}><Text style={styles.avatarText}>{conversation.title.slice(0, 1).toUpperCase()}</Text></View>
+          <View style={styles.flex}><Text style={styles.name}>{conversation.title}</Text>
           {conversation.handle ? (
             <Text style={styles.handle}>@{conversation.handle}</Text>
           ) : null}
-        </View>
+          </View>
+        </Pressable>
+        <Pressable accessibilityLabel="Conversation menu" onPress={() => setShowMenu(true)} style={styles.iconButton}><MoreVertical color={INK} size={20} /></Pressable>
         <View style={styles.e2ee}>
-          <ShieldCheck color="#067647" size={14} />
+          <ShieldCheck color={conversation.e2ee === 'verified' ? '#067647' : '#B54708'} size={14} />
           <Text style={styles.e2eeText}>E2EE</Text>
         </View>
       </View>
-      <View style={styles.search}>
+      {showSearch && <View style={styles.search}>
         <Search color={MUTED} size={18} />
         <TextInput
           accessibilityLabel="Search decrypted messages on this device"
@@ -1629,7 +1676,7 @@ function MessageThread({
           placeholderTextColor="#98A2B3"
           style={styles.searchInput}
         />
-      </View>
+      </View>}
       {error ? (
         <Text accessibilityRole="alert" style={styles.inlineError}>
           {error}
@@ -1658,9 +1705,13 @@ function MessageThread({
             }
           />
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const mine = item.record.sender === account;
+          const previous = [...filtered].reverse()[index + 1];
+          const day = messageDayBoundary(item.record.createdAt, previous?.record.createdAt);
           return (
+            <View>
+            {day && <View style={styles.dateSeparator}><Text style={styles.dateText}>{formatDate(new Date(item.record.createdAt))}</Text></View>}
             <View style={[styles.bubbleRow, mine && styles.bubbleRowMine]}>
               <View style={[styles.bubble, mine && styles.bubbleMine]}>
                 {item.attachment ? (
@@ -1669,7 +1720,7 @@ function MessageThread({
                     onPress={() => void openAttachment(item.attachment!)}
                     style={styles.attachment}
                   >
-                    <Paperclip color={mine ? "#FFFFFF" : BLUE} size={18} />
+                    <Paperclip color={BLUE} size={18} />
                     <View style={styles.flex}>
                       <Text
                         numberOfLines={1}
@@ -1701,8 +1752,9 @@ function MessageThread({
                   </Text>
                 )}
                 <View style={styles.messageState}>
-                  <ShieldCheck color={mine ? "#DCE6FF" : "#067647"} size={11} />
-                  {mine ? <CheckCheck color="#DCE6FF" size={12} /> : null}
+                  <Text style={[styles.messageStateText, mine && styles.bubbleTextMine]}>{new Date(item.record.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</Text>
+                  <ShieldCheck color={mine ? BLUE : "#067647"} size={11} />
+                  {mine ? <CheckCheck color={BLUE} size={12} /> : null}
                   <Text
                     style={[
                       styles.messageStateText,
@@ -1719,6 +1771,7 @@ function MessageThread({
                   </Text>
                 </View>
               </View>
+            </View>
             </View>
           );
         }}
@@ -1740,7 +1793,7 @@ function MessageThread({
         <Pressable
           accessibilityLabel="Attach encrypted image"
           disabled={sending}
-          onPress={() => void pickAttachment()}
+          onPress={() => setShowAttachments(true)}
           style={styles.iconButton}
         >
           <Paperclip color={BLUE} size={19} />
@@ -1771,7 +1824,7 @@ function MessageThread({
           )}
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -2573,7 +2626,7 @@ function Profile({
   };
   return (
     <Screen
-      title="Me"
+      title="Settings"
       action={
         <Pressable
           accessibilityLabel="Edit Social profile"
@@ -2586,6 +2639,8 @@ function Profile({
       error={error}
     >
       <ScrollView contentContainerStyle={styles.profileScroll}>
+        <AppearanceSettings />
+        <View style={{ paddingHorizontal: 20, alignItems: 'flex-start' }}><LanguagePicker compact /></View>
         <View style={styles.profileCard}>
           <View style={styles.largeAvatar}>
             {person?.avatarUrl ? (
@@ -3773,7 +3828,22 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   privateText: { fontSize: 11, fontWeight: "700", color: "#067647" },
-  body: { flex: 1 },
+  body: { flex: 1, minWidth: 0, minHeight: 0 },
+  appWorkspace: { flex: 1, minHeight: 0 },
+  desktopWorkspace: { flexDirection: 'row-reverse' },
+  desktopTabs: { width: 100, height: '100%', flexDirection: 'column', borderTopWidth: 0,
+    borderEndWidth: StyleSheet.hairlineWidth, borderEndColor: LINE, paddingVertical: 12 },
+  chatSplit: { flex: 1, flexDirection: 'row', minHeight: 0 },
+  chatSidebar: { width: 340, borderEndWidth: StyleSheet.hairlineWidth, borderEndColor: LINE },
+  chatDetail: { flex: 1, minWidth: 0 },
+  chatWelcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#edf2f7' },
+  selectedChat: { backgroundColor: '#eef3ff' },
+  unreadBadge: { minWidth: 24, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 12, backgroundColor: BLUE },
+  unreadCount: { fontSize: 12, color: '#fff', textAlign: 'center' },
+  threadScreen: { flex: 1, backgroundColor: '#e9eff5' },
+  threadIdentity: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
+  dateSeparator: { alignSelf: 'center', backgroundColor: '#d4dfeb', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginVertical: 12 },
+  dateText: { fontSize: 12, color: '#42566e' },
   screen: { flex: 1, backgroundColor: "#FFFFFF" },
   titleRow: {
     minHeight: 64,
@@ -3783,16 +3853,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  title: { fontSize: 24, fontWeight: "700", color: INK },
+  title: { fontSize: 20, fontWeight: "600", color: INK },
   iconButton: {
     minWidth: 48,
     minHeight: 48,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: LINE,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "transparent",
   },
   inlineError: {
     color: "#B42318",
@@ -3802,13 +3870,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   tabBar: {
-    height: 66,
+    minHeight: 66,
     flexDirection: "row",
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: LINE,
     backgroundColor: "#FFFFFF",
   },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
+  tab: { flex: 1, minHeight: 58, alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 7 },
   tabText: { fontSize: 10.5, color: "#7C8491" },
   tabTextActive: { color: BLUE, fontWeight: "700" },
   flex: { flex: 1 },
@@ -3848,12 +3916,12 @@ const styles = StyleSheet.create({
   avatar: {
     width: 46,
     height: 46,
-    borderRadius: 15,
+    borderRadius: 23,
     backgroundColor: "#EAF0FF",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarImage: { width: 46, height: 46, borderRadius: 15 },
+  avatarImage: { width: 46, height: 46, borderRadius: 23 },
   avatarText: { fontSize: 16, fontWeight: "800", color: BLUE },
   name: { fontSize: 15, fontWeight: "700", color: INK },
   handle: { fontSize: 12, color: MUTED, marginTop: 3 },
@@ -4081,7 +4149,8 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.4 },
   threadHeader: {
-    minHeight: 66,
+    minHeight: 64,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -4098,15 +4167,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 17,
     borderBottomLeftRadius: 5,
-    backgroundColor: SURFACE,
+    backgroundColor: "#FFFFFF",
   },
   bubbleMine: {
-    backgroundColor: BLUE,
+    backgroundColor: "#e0eaff",
     borderBottomLeftRadius: 17,
     borderBottomRightRadius: 5,
   },
   bubbleText: { fontSize: 15, lineHeight: 21, color: INK },
-  bubbleTextMine: { color: "#FFFFFF" },
+  bubbleTextMine: { color: INK },
   attachment: {
     minWidth: 210,
     flexDirection: "row",
@@ -4123,6 +4192,7 @@ const styles = StyleSheet.create({
   messageStateText: { fontSize: 9.5, color: MUTED },
   composerRow: {
     minHeight: 66,
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
