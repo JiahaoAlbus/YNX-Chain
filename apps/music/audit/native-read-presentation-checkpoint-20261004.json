@@ -1,0 +1,222 @@
+{
+  "schema": "ynx.music.native.read-presentation.checkpoint.v1",
+  "createdAt": "2026-10-03T23:31:28.419672+00:00",
+  "sourceCommit": "15a42b5c02cacd48b0fb4cc493d474768926af2e",
+  "sourceTree": "7bdb3b9c8a7b9643e08637c082dce19662a0560f",
+  "sourceArchive": {
+    "path": "apps/music/audit/evidence/native-read-presentation-20261004/media-owned-source-15a42b5c.tar.gz",
+    "bytes": 4277778,
+    "sha256": "31b2d00f343a335e5b0e2bb36e2ea3df8234beacb5bcf92ffa844e1e1b2ac003",
+    "fileCount": 626,
+    "everyMemberGitByteExact": true
+  },
+  "appleCandidates": [
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusic-15a42b5c-unsigned.tar.gz",
+      "bytes": 1292065,
+      "sha256": "b93c57faec2bcdc35a86a21a7e9fa04e62ce422684dc48ac826720142bfc3087",
+      "fileCount": 11,
+      "scheme": "YNXMusic",
+      "sdk": "iphonesimulator",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "originalIdentitySDKExact": true,
+      "originalBrandPixelsExact": true
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusicMac-15a42b5c-unsigned.tar.gz",
+      "bytes": 808392,
+      "sha256": "3e8dee845638c4a96be14599f8d4c30267bdd34139436f106f026f84c39ec730",
+      "fileCount": 11,
+      "scheme": "YNXMusicMac",
+      "sdk": "macosx",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "originalIdentitySDKExact": true,
+      "originalBrandPixelsExact": true
+    }
+  ],
+  "androidCandidate": {
+    "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusic-15a42b5c-debug.apk",
+    "bytes": 694225,
+    "sha256": "2579d3ba6bead42724f4c6888c10d35e29c02208b8259ebc8c12da56fd322398",
+    "applicationId": "com.ynxweb4.music",
+    "debugSigned": true,
+    "releaseSigned": false,
+    "installed": false,
+    "launched": false
+  },
+  "compositionInputPins": 674,
+  "ownedCompositionPinsGitExact": true,
+  "checks": {
+    "focusedGoRacePassEvents": 6,
+    "focusedGoRaceFailures": 0,
+    "goVet": "PASS",
+    "fullAppleBuild": "PASS",
+    "fullAndroidBuildAndLint": "PASS",
+    "actualOriginalOrderedSwiftSnapshots": true,
+    "actualJavaBoundaryAndOriginalCachePublication": true,
+    "originalReadSameBinding": true,
+    "olderSuccessErrorRetired": true,
+    "failedCacheCommitNotReady": true,
+    "initialUnreadFailureDistinctFromSuccessfulEmpty": true,
+    "committedSnapshotContextMustRemainCurrent": true,
+    "originalIdentitySDKBrandPreserved": true,
+    "actualInstalledAndroidUILooper": false
+  },
+  "inheritedCreatorReadinessCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-studio-readiness-checkpoint-20261004.json",
+    "bytes": 10072,
+    "sha256": "00f10cf250d8f8390de13d940cf07e3660089cbc35c5efba89ae95cc3d0cb93c"
+  },
+  "inheritedMusic450PassCheckpoint": {
+    "path": "apps/music/audit/native-ordered-snapshot-checkpoint-20261004.json",
+    "bytes": 13399,
+    "sha256": "090735f2c3e0453e8be07753cb98eb835d2d2d56b2dc9ba0b56a5b18b0bc8d88"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified"
+  ],
+  "publicReadback": [
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-0.json",
+      "bytes": 4939,
+      "sha256": "d4ea9478a8f23c9b26c47831b617811ec2a3be1b8730f22941ab5bef3b28141b"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-1.json",
+      "bytes": 4176,
+      "sha256": "297488a2735efd85547f222e6808db66ecf1ce1fdc0ae1b0c5ffb1e4cc7d5d66"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-2.json",
+      "bytes": 530,
+      "sha256": "1a4da544a17033c850f91154354f7219cb0e35b6b371e00d490fb15ef4cbdbf4"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusic-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusic-full-build.txt",
+      "bytes": 133001,
+      "sha256": "2f833443bfc6df3a9db709e59250bc4e223ceff4f83dc96bbbdd8cb5df44867f"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusicMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/YNXMusicMac-full-build.txt",
+      "bytes": 76140,
+      "sha256": "910de1a86b20140fb87606060fc8c3008169fbcb20d7bcf5f48672feaeca1da4"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/android-apk-badging.txt",
+      "bytes": 1605,
+      "sha256": "c82232cee01db96ddba11fecb60fd35ab89a761c9d97f7d150ee8c5f993cb987"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/android-apk-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/android-build-receipt.json",
+      "bytes": 12037,
+      "sha256": "7ba5884e8eeebdd504ec867714d56521851172e9e7bc38ed04895d7ede5d5deb"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/android-gradle-build-lint.txt",
+      "bytes": 3361,
+      "sha256": "c31d8d32048981f670d99d8c33d9d4d61940f89ce22ebde490861887a36289af"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/apple-build-receipt.json",
+      "bytes": 9906,
+      "sha256": "0e1bc0b2d11be6d3f707d5489ad16458a9089b09e6d8980c4ba6438ee7adb726"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/combined-go-race.jsonl",
+      "bytes": 6014,
+      "sha256": "e29e43fcf6ecc8c8f6d8e52f58194f39a7b7ba16922e66f93adb1d93d2ea4730"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/combined-source-receipt.json",
+      "bytes": 182636,
+      "sha256": "81a20dd9c49c9716553362d01674136dbad475a8dff786bc84d36b63af9b6208"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/compiled-java-source.json",
+      "bytes": 6871,
+      "sha256": "f47c0ad44d0eb711d17ddc10501e4aaa4ce1357421faf076e35772751f4c28aa"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/compiled-swift-source.json",
+      "bytes": 2396,
+      "sha256": "fad14532f3c663ebee5a5042486fa423f88bac770d24fda564cd73bc2e6314f6"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/first-SDK-phase-hold-QA-rejected-combined-go-race.jsonl",
+      "bytes": 15001,
+      "sha256": "74f398d2ddaf37b674f671549df93170b6f60126ef5632b65ab2d068c0ef240e"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/first-SDK-phase-hold-QA-rejected-combined-source-receipt.json",
+      "bytes": 182390,
+      "sha256": "e212f91cc26ef331c2dbcc4ff166a7f780532e4ac228395fd169fc5076488f6a"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/first-freeze-inherited-path-error.txt",
+      "bytes": 1108,
+      "sha256": "6515a1064a4fe220ac6cedc202a3588a067e594d1f7e44d35bf8aff64719f204"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/followup.md",
+      "bytes": 2883,
+      "sha256": "d48991e1c5789eecb12d41046bab6530dd27c44dd741bcbfb12e70398a64ae99"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/java-compile.txt",
+      "bytes": 94,
+      "sha256": "49e27daa6a9df07e3fb2237aee46a0d72d98dacb56cfcc710bb7aba650db70a7"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/prepare-checkpoint.py",
+      "bytes": 11214,
+      "sha256": "ff683397b6451ed6c2896bfbe7a71e9208c2951a5ba845469850a3064ea26d58"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/swift-compile.txt",
+      "bytes": 1141,
+      "sha256": "81736fbb9058fbdec5f2ece3843860b7b8cd84fd0872679298cf73c4b26413ce"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-read-presentation-20261004/verify-checkpoint.py",
+      "bytes": 4643,
+      "sha256": "8968cc9640650051eb6634696d447d7b7e41c1c1c47629acdca9869c461d169b"
+    }
+  ]
+}
