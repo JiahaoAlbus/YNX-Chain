@@ -1,0 +1,12 @@
+commit=4ca2d60ab6559a70c4da78baac6d77e46644f7cb
+tree=29ea5b70e64d6be13b933f9a96e55d79deed10f5
+parent=0c498286e3a375b3b1943d481c4314a7d099f7c5
+f7544c178d9dca44213c4c32e7e41cd2bbb038372602d2b44dbf99607a09ea2d  /Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261003/social-0c498-independent-review/adapter-classes/com/ynx/social/matrix/KeylessAdapterProbe.class
+77af330c900f1b620b004356e82c56d480cea994fbecb783b45a73176845867e  /tmp/social-veil-independent-keyless-20261004.PC41jf/classes/com/ynx/social/matrix/VeilSignalProtocolStore.class
+2dbd1be0867639d7cee8b9433b60809a4e0a2e109463021af8fb3cea174bd2ad  /tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+[0.017s][info][class,load] com.ynx.social.matrix.KeylessAdapterProbe source: file:/Users/huangjiahao/Desktop/YNX%20Project%20Audit%202026-09-06/coordination-01a094cc/recovery-20261003/social-0c498-independent-review/adapter-classes/
+[0.021s][info][class,load] com.ynx.social.matrix.VeilRecordTransaction source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar
+[0.043s][info][class,load] com.ynx.social.matrix.VeilNativeAuthority source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar
+[0.048s][info][class,load] com.ynx.social.matrix.VeilSignalProtocolStore source: file:/private/tmp/social-veil-independent-keyless-20261004.PC41jf/classes/
+[1.260s][info][class,load] com.ynx.social.matrix.VeilRecordKind source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar

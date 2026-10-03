@@ -1,0 +1,9 @@
+PUBLIC_NAMES peer.2 peer.branch.3
+PASS live exact callback contains/deleteSession preserves distinct SDK address
+PASS deleteAllSessions exact name cannot delete dotted distinct SDK peer
+PASS getSubDeviceSessions exact name must ignore dotted distinct peer
+PASS legacy SenderKey callback remains refused without record write
+PASS expired/escaped callback refuses before session serialization
+PASS expired read callback refuses before memory record selection
+RESULT 6PASS 0FAIL; keyless native addresses/synthetic lease/memory port, no identity or record crypto/Keystore/device proof
+unchanged_independent_keyless_probe_exit=0
