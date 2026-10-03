@@ -32,7 +32,7 @@ export function feeMicro(notional, basisPoints) {
 export function buildOrderPreview({price, amount, side, rules, source, marketPhase, now = Date.now()}) {
   validateTradingRules(rules);
   const observed = Date.parse(source?.asOf);
-  if (!['live', 'polling'].includes(marketPhase) || source?.authority !== 'YNX-owned deterministic order state' || source.classification !== 'testnet' ||
+  if (!Number.isSafeInteger(now) || now < 0 || !['live', 'polling'].includes(marketPhase) || source?.authority !== 'YNX-owned deterministic order state' || source.classification !== 'testnet' ||
       !['live', 'degraded_single_host'].includes(source.status) || !Number.isFinite(observed) || observed > now + 5000 || now - observed > MAX_RULE_AGE_MS)
     fail('RULES_STALE', 'Reconnect market data to refresh the venue rules before reviewing.');
   if (!['buy', 'sell'].includes(side)) fail('SIDE_INVALID', 'Choose buy or sell.');

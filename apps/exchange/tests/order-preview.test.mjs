@@ -49,6 +49,15 @@ test('preview requires recent verified rules and cannot execute from stale cache
 test('unversioned, unsupported and rounded numeric rule limits are rejected', () => {
   for (const changes of [{schemaVersion:'next'}, {makerFeeBps:44}, {takerFeeBps:1001}, {maxOrderNotionalMicro:100000000000}, {maxOrderNotionalMicro:'1e11'}, {maxOrderNotionalMicro:'9223372036854775808'}, {maxPriceMicro:'1000000000001'}, {feeRounding:'floor'}, {orderTypes:['market']}, {quoteAssetType:'stablecoin'}]) assert.throws(() => validateTradingRules({...rules,...changes}), {code:'RULES_INVALID'});
 });
+test('invalid observation clocks cannot bypass rule freshness comparisons', () => {
+  for (const clock of [NaN, Infinity, -Infinity, undefined, null, '0', -1, now + 0.5, Number.MAX_SAFE_INTEGER + 1]) {
+    // undefined uses the documented real-clock default, not a fixture override.
+    const values = input({now: clock, source: {...source, asOf:'2000-01-01T00:00:00Z'}});
+    assert.throws(() => buildOrderPreview(values), {code:'RULES_STALE'}, String(clock));
+  }
+  assert.equal(buildOrderPreview(input({now:now + MAX_RULE_AGE_MS})).submitted, false);
+  assert.equal(buildOrderPreview(input({source:{...source,asOf:new Date(now+5000).toISOString()}})).submitted, false);
+});
 test('real UI offers a read-only editable preview without posting or Wallet access', () => {
   const app=fs.readFileSync(new URL('../web/app.js',import.meta.url),'utf8'), html=fs.readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   const handler=app.slice(app.indexOf('async function reviewOrder'),app.indexOf('function cancelOrder'));
