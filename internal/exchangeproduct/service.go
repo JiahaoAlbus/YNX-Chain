@@ -987,6 +987,18 @@ func (s *Service) CreateOCO(session WalletSession, req OCORequest) (OCOGroup, er
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact authenticated replay observes a prior effect; admission below is
+	// only for a new creation and may never reopen a settled risk cancellation.
+	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prior.Action != "oco_create" || prior.Digest != d {
+			return OCOGroup{}, ErrConflict
+		}
+		effect, exists := s.state.OCOGroups[prior.ObjectID]
+		if !exists || effect.Account != session.Account {
+			return OCOGroup{}, ErrForbidden
+		}
+		return effect, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return OCOGroup{}, ErrForbidden
 	}
@@ -995,12 +1007,6 @@ func (s *Service) CreateOCO(session WalletSession, req OCORequest) (OCOGroup, er
 	}
 	if !s.quantCapitalAllowsLocked(session.Account, req.QuantNonceDomain, req.QuantCapitalMicro, mulDiv(maxLimit, req.AmountMicro, AmountScale), "") {
 		return OCOGroup{}, ErrForbidden
-	}
-	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prior.Action != "oco_create" || prior.Digest != d {
-			return OCOGroup{}, ErrConflict
-		}
-		return s.state.OCOGroups[prior.ObjectID], nil
 	}
 	reserve := req.AmountMicro
 	asset := NativeAsset
@@ -1069,6 +1075,18 @@ func (s *Service) CreateIceberg(session WalletSession, req IcebergRequest) (Orde
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact authenticated replay observes a prior effect; admission below is
+	// only for a new creation and may never reopen a settled risk cancellation.
+	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prior.Action != "iceberg_place" || prior.Digest != d {
+			return Order{}, ErrConflict
+		}
+		effect, exists := s.state.Orders[prior.ObjectID]
+		if !exists || effect.Account != session.Account {
+			return Order{}, ErrForbidden
+		}
+		return effect, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return Order{}, ErrForbidden
 	}
@@ -1077,12 +1095,6 @@ func (s *Service) CreateIceberg(session WalletSession, req IcebergRequest) (Orde
 	}
 	if !s.quantCapitalAllowsLocked(session.Account, req.QuantNonceDomain, req.QuantCapitalMicro, mulDiv(req.PriceMicro, req.TotalAmountMicro, AmountScale), "") {
 		return Order{}, ErrForbidden
-	}
-	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prior.Action != "iceberg_place" || prior.Digest != d {
-			return Order{}, ErrConflict
-		}
-		return s.state.Orders[prior.ObjectID], nil
 	}
 	before := cloneState(s.state)
 	now := s.cfg.Now().UTC()
@@ -1149,17 +1161,23 @@ func (s *Service) CreateScale(session WalletSession, req ScaleRequest) (ScaleOrd
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact authenticated replay observes a prior effect; admission below is
+	// only for a new creation and may never reopen a settled risk cancellation.
+	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prior.Action != "scale_create" || prior.Digest != d {
+			return ScaleOrder{}, ErrConflict
+		}
+		effect, exists := s.state.ScaleOrders[prior.ObjectID]
+		if !exists || effect.Account != session.Account {
+			return ScaleOrder{}, ErrForbidden
+		}
+		return effect, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return ScaleOrder{}, ErrForbidden
 	}
 	if s.quantStrategyKilledLocked(session.Account, req.QuantNonceDomain) {
 		return ScaleOrder{}, ErrForbidden
-	}
-	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prior.Action != "scale_create" || prior.Digest != d {
-			return ScaleOrder{}, ErrConflict
-		}
-		return s.state.ScaleOrders[prior.ObjectID], nil
 	}
 	type levelSpec struct{ price, amount, reserve int64 }
 	levels := make([]levelSpec, req.Levels)
@@ -1301,6 +1319,18 @@ func (s *Service) CreateTWAP(session WalletSession, req TWAPRequest) (TWAPOrder,
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact authenticated replay observes a prior effect; admission below is
+	// only for a new creation and may never reopen a settled risk cancellation.
+	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prior.Action != "twap_create" || prior.Digest != d {
+			return TWAPOrder{}, ErrConflict
+		}
+		effect, exists := s.state.TWAPOrders[prior.ObjectID]
+		if !exists || effect.Account != session.Account {
+			return TWAPOrder{}, ErrForbidden
+		}
+		return effect, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return TWAPOrder{}, ErrForbidden
 	}
@@ -1309,12 +1339,6 @@ func (s *Service) CreateTWAP(session WalletSession, req TWAPRequest) (TWAPOrder,
 	}
 	if !s.quantCapitalAllowsLocked(session.Account, req.QuantNonceDomain, req.QuantCapitalMicro, mulDiv(req.LimitPriceMicro, req.TotalAmountMicro, AmountScale), "") {
 		return TWAPOrder{}, ErrForbidden
-	}
-	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prior.Action != "twap_create" || prior.Digest != d {
-			return TWAPOrder{}, ErrConflict
-		}
-		return s.state.TWAPOrders[prior.ObjectID], nil
 	}
 	reserve := req.TotalAmountMicro
 	asset := NativeAsset
@@ -1535,6 +1559,18 @@ func (s *Service) CreateConditionalOrder(session WalletSession, req ConditionalO
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact authenticated replay observes a prior effect; admission below is
+	// only for a new creation and may never reopen a settled risk cancellation.
+	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prior.Action != "conditional_create" || prior.Digest != d {
+			return ConditionalOrder{}, ErrConflict
+		}
+		effect, exists := s.state.ConditionalOrders[prior.ObjectID]
+		if !exists || effect.Account != session.Account {
+			return ConditionalOrder{}, ErrForbidden
+		}
+		return effect, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return ConditionalOrder{}, ErrForbidden
 	}
@@ -1543,12 +1579,6 @@ func (s *Service) CreateConditionalOrder(session WalletSession, req ConditionalO
 	}
 	if !s.quantCapitalAllowsLocked(session.Account, req.QuantNonceDomain, req.QuantCapitalMicro, mulDiv(req.LimitPriceMicro, req.AmountMicro, AmountScale), "") {
 		return ConditionalOrder{}, ErrForbidden
-	}
-	if prior, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prior.Action != "conditional_create" || prior.Digest != d {
-			return ConditionalOrder{}, ErrConflict
-		}
-		return s.state.ConditionalOrders[prior.ObjectID], nil
 	}
 	watermark := int64(0)
 	triggerPrice := req.TriggerPriceMicro
