@@ -41,6 +41,72 @@ function controllerFixture({ openExternal, initialized = true } = {}) {
 }
 const boundAction = (review, action) => ({ id: review.id, account: review.account, action });
 
+// Controlled synthetic identities exercise the production controller, not a real session or payment.
+for (const platform of ["linux", "macos", "windows"]) test(`${platform} payer approval preserves the approved three-scope native identity`, async () => {
+  const input = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
+    productId: "pay", platform, deviceId: "desktop-payer-boundary-test",
+    deviceKey: productDevice.getPublicKey(null, "compressed").toString("base64url"),
+    scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+    nonce: "p".repeat(32), state: "t".repeat(32), purpose: "Review native payer access.",
+  }, now);
+  const { controller, state } = controllerFixture();
+  const review = await controller.receive(encodeRequestDeepLink(input));
+  assert.equal(review.acceptedForReview, true);
+  assert.equal(review.request.productId, "pay");
+  assert.equal(review.request.platform, platform);
+  assert.deepEqual(review.scopes, input.scopes);
+  const result = await controller.act(boundAction(review, "approve"));
+  const returned = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, input, state.opened[0], now);
+  assert.equal(returned.status, "ready");
+  assert.deepEqual(returned.approval.scopes, input.scopes);
+  assert.equal(returned.approval.productId, "pay");
+  assert.equal(returned.approval.platform, platform);
+  assert.equal(result.productSessionCreated, false);
+  assert.equal(result.callbackReceivedProved, false);
+  assert.equal(state.signed, 1);
+});
+
+test("merchant approval returns only to its declared merchant callback, not the native payer", async () => {
+  const input = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
+    productId: "pay-merchant", platform: "web", deviceId: "desktop-merchant-boundary-test",
+    deviceKey: productDevice.getPublicKey(null, "compressed").toString("base64url"),
+    scopes: ["account:read", "merchant:session:create"],
+    nonce: "m".repeat(32), state: "u".repeat(32), purpose: "Review merchant session access.",
+  }, now);
+  const { controller, state } = controllerFixture();
+  const review = await controller.receive(encodeRequestDeepLink(input));
+  assert.equal(review.acceptedForReview, true);
+  assert.equal(review.callback, "https://pay.ynxweb4.com/merchant/wallet-auth/callback");
+  const result = await controller.act(boundAction(review, "approve"));
+  const returned = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, input, state.opened[0], now);
+  assert.equal(returned.approval.productId, "pay-merchant");
+  assert.deepEqual(returned.approval.scopes, ["account:read", "merchant:session:create"]);
+  const callback = new URL(state.opened[0]);
+  assert.equal(callback.origin + callback.pathname, input.callback);
+  assert.equal(result.productSessionCreated, false);
+  assert.equal(result.callbackReceivedProved, false);
+  assert.equal(state.signed, 1);
+});
+
+test("unsupported payer Web and widened merchant-to-payer requests fail before signing or callbacks", async () => {
+  const native = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
+    productId: "pay", platform: "macos", deviceId: "desktop-invalid-boundary-test",
+    deviceKey: productDevice.getPublicKey(null, "compressed").toString("base64url"),
+    scopes: ["account:read"], nonce: "r".repeat(32), state: "v".repeat(32), purpose: "Review access.",
+  }, now);
+  for (const change of [
+    { platform: "web" }, { scopes: ["account:read", "pay:route:select", "pay:sponsorship:request"] },
+    { productId: "pay-merchant" }, { scopes: ["account:read", "merchant:session:create"] },
+  ]) {
+    const { controller, state } = controllerFixture();
+    const rejected = await controller.receive(encodeRequestDeepLink({ ...native, ...change }));
+    assert.equal(rejected.acceptedForReview, false);
+    assert.equal(controller.pending, null);
+    assert.equal(state.signed, 0);
+    assert.deepEqual(state.opened, []);
+  }
+});
+
 test("desktop consumes the registered Product Session v2 route and review identity", () => {
   const review = evaluateWalletCallback(deepLink, { now });
   assert.equal(CALLBACK_PROTOCOL_SOURCE.protocol, "product-session-v2");
