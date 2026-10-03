@@ -15,23 +15,31 @@ let portfolioRevision = 0;
 let portfolio = null;
 let portfolioStatus = "connectForPortfolio";
 const tenantKey = "ynx.quant.tenant.v1";
-let tenantId = localStorage.getItem(tenantKey);
-if (!/^[0-9a-f]{64}$/.test(tenantId || "")) {
-  tenantId = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
-  localStorage.setItem(tenantKey, tenantId);
+let workspaceStorageAvailable = true, tenantId = null;
+function readPreference(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function persistWorkspaceValue(key, value) {
+  try { localStorage.setItem(key, value); if (localStorage.getItem(key) !== value) throw new Error('STORAGE_READBACK_MISMATCH'); }
+  catch { workspaceStorageAvailable = false; statefulPreview = false; throw new Error(t('workspaceStorageUnavailable')); }
 }
+try {
+  tenantId = localStorage.getItem(tenantKey);
+  if (!/^[0-9a-f]{64}$/.test(tenantId || "")) tenantId = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
+  localStorage.setItem(tenantKey, tenantId);
+  if (localStorage.getItem(tenantKey) !== tenantId) throw new Error('STORAGE_READBACK_MISMATCH');
+} catch { tenantId = null; workspaceStorageAvailable = false; }
 const paperPendingKey = `ynx.quant.paper.pending.v1:${tenantId}`;
 let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
 function readPendingPaperIntent() {
+  if (!workspaceStorageAvailable) return null;
   try {
     const value = JSON.parse(localStorage.getItem(paperPendingKey) || "null");
     if (value && /^quant-paper-[0-9a-f-]{36}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
   } catch {}
-  localStorage.removeItem(paperPendingKey);
+  try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; }
   return null;
 }
 const supportedLocales = QuantI18n.locales;
-let locale = localStorage.getItem("ynx.quant.locale") || "en";
+let locale = readPreference("ynx.quant.locale") || "en";
 if (!supportedLocales.includes(locale)) locale = "en";
 const businessCopy = {
   en: {
@@ -134,6 +142,21 @@ const paperSafetyCopy = {
   id: ["Masukkan jumlah simulasi berupa bilangan bulat positif.", "Hasil sinyal sebelumnya belum diketahui. Muat ulang untuk memulihkan input tersimpan dan coba lagi sebelum memulai sinyal baru."],
 };
 for (const [language, [paperInvalidAmount, paperPendingMismatch]] of Object.entries(paperSafetyCopy)) Object.assign(businessCopy[language], {paperInvalidAmount, paperPendingMismatch});
+const storageCopy = {
+  en:'Browser storage is unavailable. Public research remains usable; saved workspace and Paper writes require durable local recovery records.',
+  'zh-CN':'浏览器存储不可用。公开研究仍可使用；保存工作区和模拟盘写入需要持久的本地恢复记录。',
+  'zh-TW':'瀏覽器儲存不可用。公開研究仍可使用；儲存工作區與模擬盤寫入需要持久的本機復原記錄。',
+  ja:'ブラウザー保存を利用できません。公開研究は利用できますが、保存ワークスペースとペーパー書き込みには永続的な復旧記録が必要です。',
+  ko:'브라우저 저장소를 사용할 수 없습니다. 공개 연구는 사용 가능하지만 작업 공간 저장과 모의 거래 쓰기에는 지속적인 복구 기록이 필요합니다.',
+  es:'Almacenamiento del navegador no disponible. La investigación pública sigue disponible; guardar y operar en Paper requiere registros duraderos de recuperación.',
+  fr:'Stockage du navigateur indisponible. La recherche publique reste accessible ; les écritures sauvegardées et Paper exigent des données de reprise persistantes.',
+  de:'Browserspeicher nicht verfügbar. Öffentliche Forschung bleibt nutzbar; gespeicherte Arbeitsbereiche und Paper-Schreibzugriffe benötigen dauerhafte Wiederherstellungsdaten.',
+  pt:'Armazenamento do navegador indisponível. A pesquisa pública continua disponível; salvar e operar no Paper exige registros persistentes de recuperação.',
+  ru:'Хранилище браузера недоступно. Публичные исследования доступны; сохранение и Paper-операции требуют постоянных записей восстановления.',
+  ar:'تخزين المتصفح غير متاح. يبقى البحث العام متاحًا؛ تتطلب مساحة العمل المحفوظة وعمليات المحاكاة سجلات استعادة دائمة.',
+  id:'Penyimpanan browser tidak tersedia. Riset publik tetap tersedia; ruang tersimpan dan penulisan Paper memerlukan catatan pemulihan persisten.'
+};
+for (const [language, workspaceStorageUnavailable] of Object.entries(storageCopy)) Object.assign(businessCopy[language], {workspaceStorageUnavailable});
 const researchResultCopy = {
   en: ["Temporary result on this page only — not saved or audited. Reloading the page discards it.", "Experiment saved and audited in this browser's Paper workspace."],
   "zh-CN": ["仅本页临时结果，未保存、未审计；重新加载页面后消失。", "实验已保存并审计于此浏览器的模拟盘工作区。"],
@@ -243,6 +266,9 @@ function applyLocale() {
   renderPortfolio();
   renderResearchStatus();
   renderRunDetails();
+  $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
+  $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
+  for (const id of ['reconcile','kill']) $('#'+id).disabled = !statefulPreview;
   if (lastToastKey) $("#toast").textContent = t(lastToastKey);
 }
 const api = async (path, opt = {}) => {
@@ -250,8 +276,7 @@ const api = async (path, opt = {}) => {
     ...opt,
     headers: {
       "content-type": "application/json",
-      "x-ynx-preview-mode": "local-paper",
-      "x-ynx-tenant-id": tenantId,
+      ...(tenantId && workspaceStorageAvailable ? {"x-ynx-preview-mode": "local-paper", "x-ynx-tenant-id": tenantId} : {}),
       ...(opt.headers || {}),
     },
   });
@@ -271,7 +296,7 @@ async function refresh() {
   const next = await api("/v1/snapshot");
   if (revision !== snapshotRevision) return;
   snapshot = next;
-  statefulPreview = snapshot.access?.statefulPreview === true;
+  statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
   $("#workspace-boundary").hidden = statefulPreview;
   for (const id of ["reconcile", "kill"]) $("#" + id).disabled = !statefulPreview;
   render();
@@ -476,7 +501,7 @@ $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
 $("#paper-strategy").onchange = () => { $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !$("#paper-strategy").value; };
 $("#locale").onchange = (e) => {
   locale = e.target.value;
-  localStorage.setItem("ynx.quant.locale", locale);
+  try { localStorage.setItem("ynx.quant.locale", locale); } catch {}
   applyLocale(); render();
 };
 $("#backtest").onsubmit = async (e) => {
@@ -528,7 +553,7 @@ $("#paper-order").onsubmit = async (e) => {
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
     }
-    localStorage.setItem(paperPendingKey, JSON.stringify(pendingPaperIntent));
+    persistWorkspaceValue(paperPendingKey, JSON.stringify(pendingPaperIntent));
     paperSubmitting = true;
     $("#paper-submit").disabled = true;
     const submitted = pendingPaperIntent;
@@ -538,17 +563,20 @@ $("#paper-order").onsubmit = async (e) => {
     });
     if (!/^paper-[0-9]+$/.test(order?.ID) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
     pendingPaperIntent = null;
-    localStorage.removeItem(paperPendingKey);
+    try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
     toast("Simulated order recorded");
     await refresh();
   } catch (e) {
     if (e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
       pendingPaperIntent = null;
-      localStorage.removeItem(paperPendingKey);
+      try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
     }
     toast(e.message);
   } finally {
     paperSubmitting = false;
+    $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
+    $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
+    for (const id of ['reconcile','kill']) $('#'+id).disabled = !statefulPreview;
     $("#paper-submit").disabled = !statefulPreview || !$("#paper-strategy").value;
   }
 };
@@ -703,6 +731,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
   }
 };
 $("#reconcile").onclick = async () => {
+  if (!statefulPreview) return;
   try {
     await api("/v1/paper/reconcile", {
       method: "POST",
@@ -718,6 +747,7 @@ $("#reconcile").onclick = async () => {
   }
 };
 $("#kill").onclick = async () => {
+  if (!statefulPreview) return;
   if (!confirm(t("confirmKill"))) return;
   try {
     await api("/v1/risk/kill", {

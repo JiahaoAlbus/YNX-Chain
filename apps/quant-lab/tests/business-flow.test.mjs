@@ -32,7 +32,7 @@ class Element {
   append(...elements) {this.children.push(...elements);}
   replaceChildren(...elements) {this.children = elements;}
 }
-function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {}) {
+function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, storageBoundary} = {}) {
   snapshot = {access: {statefulPreview: true}, ...snapshot};
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
@@ -56,7 +56,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {})
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: () => false,
-    localStorage: {getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+    localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
     fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
   vm.runInContext(i18n, context);
@@ -67,6 +67,26 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {})
     submit: id => ids.get(id).onsubmit({preventDefault() {}}),
   };
 }
+
+test('blocked or silent storage cannot crash public research or grant Paper authority', async () => {
+  for(const mode of ['get','set','remove','silent']){
+    const app=harness({storageBoundary(operation){if(operation===mode)throw Error('Storage unavailable');if(mode==='silent'&&operation==='set')return false},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},strategies:{},experiments:{},paper:{},audit:[]}:researchFixture('storage-public')});await settle();
+    assert.equal(app.ids.get('workspace-storage-boundary').hidden,false,mode);
+    assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('reconcile').disabled,true);assert.equal(app.ids.get('paper-submit').disabled,true);
+    await app.submit('backtest');assert.equal(app.calls.at(-1).url,'/api/v1/public/research/backtests/from-market');assert.equal(app.calls.at(-1).options.headers['x-ynx-tenant-id'],undefined);assert.equal(app.calls.at(-1).options.headers['x-ynx-preview-mode'],undefined);
+    const before=app.calls.length;await app.submit('paper-order');await app.ids.get('kill').onclick();await app.ids.get('reconcile').onclick();assert.equal(app.calls.length,before);
+    app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.context.document.documentElement.lang,'ar');assert.match(app.ids.get('workspace-storage-boundary').textContent,/تخزين/);
+    assert.equal(app.proofs(),0);
+  }
+});
+
+test('Paper intent persistence failure sends no order and disables durable workspace actions', async()=>{
+  let denied=false;const hash='d'.repeat(64),app=harness({snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},storageBoundary(operation,key){if(denied&&operation==='set'&&key.startsWith('ynx.quant.paper.pending'))throw Error('Quota exceeded')}});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='10';denied=true;
+  await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.url.endsWith('/paper/orders')).length,0);
+  assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('workspace-storage-boundary').hidden,false);
+  await app.submit('backtest');assert.equal(app.calls.at(-1).url,'/api/v1/public/research/backtests/from-market');
+});
 
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
   const experiment = {id:'public-test-result',createdAt:'2026-09-12T00:00:00Z',strategy:{Name:'Explicit synthetic UI fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2};
