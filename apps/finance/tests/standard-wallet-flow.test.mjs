@@ -203,6 +203,28 @@ test('local Chrome refuses imprecise or missing chain-unit amounts',async()=>{
   }finally{await page.close()}
 });
 
+test('local Chrome preserves valid activity beside malformed rows without invented incoming credit or AI selection',async()=>{
+  const page=await fixture();try{
+    await page.evaluate(()=>{window.activityFixture=[null,{id:73,type:'broken'}, {id:'unknown-direction',type:'Observed record',direction:'unknown',timestamp:'2026-10-03T00:00:00Z',amountYnxt:25,feeYnxt:0},{id:'valid-outgoing',type:'Valid transfer',direction:'outgoing',timestamp:'2026-10-03T00:00:00Z',amountYnxt:12,feeYnxt:1}];renderActivity(activityFixture);renderAIRecords(activityFixture)});
+    assert.match(await page.locator('#activity-body').innerText(),/Valid transfer/);
+    assert.match(await page.locator('#recent-activity').innerText(),/-12 YNXT/);
+    assert.doesNotMatch(await page.locator('#recent-activity').innerText(),/\+25 YNXT/);
+    assert.equal(await page.locator('#ai-records input').count(),1);
+    assert.equal(await page.locator('#ai-records input').getAttribute('value'),'valid-outgoing');
+    const original=await page.evaluate(()=>JSON.stringify(activityFixture));
+    // Read-only renderer fixture does not authorize or reveal the private panel.
+    await page.locator('#ai-records input').evaluate(input=>{input.checked=true});
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(language=>{YNXFinanceLocale.set(language);renderActivity(activityFixture);renderAIRecords(activityFixture)},language);
+      assert.equal(await page.locator('#ai-records input').isChecked(),true);
+      assert.equal(await page.evaluate(()=>JSON.stringify(activityFixture)),original);
+      await page.evaluate(()=>{renderActivity(null)});
+      assert.equal(await page.locator('#activity-body').innerText(),await page.evaluate(()=>financeText('unavailable')));
+    }
+    await page.evaluate(()=>renderAIRecords(null));assert.equal(await page.locator('#ai-records input').count(),0);
+    assert.deepEqual(await calls(page),[]);assert.deepEqual(page.financeErrors,[]);
+  }finally{await page.close()}
+});
 test('SDK artifact is exact, and Finance source no longer creates or transports a legacy device secret',async()=>{
   const sdk=await readFile(new URL('vendor/standard-wallet-browser-c97f85e9.mjs',web));
   assert.equal(sdk.length,24624);assert.equal(createHash('sha256').update(sdk).digest('hex'),'9bab403c5515c65562f2bb3a77e0c28978b64e56983158a1e9b23e77d0ecf365');
