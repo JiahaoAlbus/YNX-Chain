@@ -5,6 +5,7 @@ import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
+import { createNativeContractUI } from "./native-contract-ui.mjs";
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -20,6 +21,42 @@ const receiveShareUI=createReceiveShareUI({
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
+const contractSheet = document.querySelector("#contract-sheet");
+const contractUI = createNativeContractUI({
+  getContext: () => ({open: contractSheet.open, account: accountState?.account ?? null, keyRevision: keyState.revision}),
+  request: input => window.ynxWallet.nativeContract(input),
+  render: ({busy, result, error}) => {
+    document.querySelector("#lookup-contract").disabled = busy;
+    document.querySelector("#read-contract").disabled = busy;
+    document.querySelector("#contract-status").textContent = busy ? "Reading from YNX Testnet…" : error ?? (result ? "Read-only response verified. No transaction was signed or submitted." : "");
+    const facts = document.querySelector("#contract-facts"), methods = document.querySelector("#contract-methods"), output = document.querySelector("#contract-result");
+    facts.replaceChildren(); methods.replaceChildren(); output.textContent = ""; output.hidden = true;
+    if (!result) return;
+    const artifact = result.artifact ?? result.read.artifact;
+    const rows = [["Contract", artifact.name], ["Address", artifact.address], ["Runtime", artifact.runtimeMode], ["Source hash", artifact.sourceHash], ["Bytecode hash", artifact.deployedBytecodeHash]];
+    if (artifact.auditHash) rows.push(["Record audit hash", artifact.auditHash], ["Last updated height", String(artifact.lastUpdatedHeight)]);
+    if (result.read) rows.push(["As of", result.read.asOf], ["Endpoint", result.read.origin], ["Opcode steps", String(result.read.opcodeStepCount ?? "Not applicable")]);
+    for (const [label, value] of rows) { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; facts.append(dt, dd); }
+    for (const method of result.methods ?? []) {
+      const button = document.createElement("button"); button.type = "button";
+      button.textContent = `${method.signature}${method.inputCount ? " — encoded arguments required" : ""}`;
+      button.addEventListener("click", () => { contractUI.clear(); document.querySelector("#contract-function").value = method.selector; document.querySelector("#contract-function").focus(); });
+      methods.append(button);
+    }
+    if (result.read) { output.hidden = false; output.textContent = `Result: ${result.read.returnValue ?? "No known ABI decoder; encoded result below"}\nEncoded result: ${result.read.encodedResult}\n${(result.read.limitations ?? artifact.limitations ?? []).join("\n")}`; }
+  },
+});
+function contractInput(action) { return {mode: document.querySelector("#contract-mode").value, address: document.querySelector("#contract-address").value.trim(), action, ...(action === "read" ? {function: document.querySelector("#contract-function").value.trim()} : {})}; }
+document.querySelector("#open-contracts").addEventListener("click", () => { contractUI.clear(); contractSheet.showModal(); document.querySelector("#contract-address").focus(); });
+document.querySelector("#lookup-contract").addEventListener("click", () => void contractUI.run(contractInput("lookup")));
+document.querySelector("#contract-form").addEventListener("submit", event => { event.preventDefault(); void contractUI.run(contractInput("read")); });
+for (const id of ["contract-address", "contract-function", "contract-mode"]) {
+  document.getElementById(id).addEventListener("input", () => contractUI.clear());
+  document.getElementById(id).addEventListener("change", () => contractUI.clear());
+}
+for (const id of ["contract-address", "contract-mode"]) document.getElementById(id).addEventListener("change", () => { document.querySelector("#contract-function").value = ""; });
+contractSheet.addEventListener("close", () => contractUI.clear());
+contractSheet.addEventListener("cancel", () => contractUI.clear());
 let paymentDraftRevision = 0;
 const paymentRecipientUI = createPaymentRecipientUI({
   getContext: () => ({ open: document.querySelector("#send-sheet").open, account: accountState?.account, locked: keyState.locked, keyRevision: keyState.revision }),
@@ -180,6 +217,7 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
+  contractUI.clear();
   invalidatePaymentInput();
   receiveShareUI.invalidate();
   if (payload?.ok === false) {
@@ -638,6 +676,7 @@ function renderKeyDetail() {
   detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
 }
 function renderKeyState(state) {
+  if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;

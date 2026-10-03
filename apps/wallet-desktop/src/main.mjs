@@ -17,6 +17,8 @@ import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-se
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { createReceiveCode } from "./receive-code.mjs";
+import { NativeContractClient } from "./native-contract.mjs";
+import { createNativeContractService } from "./native-contract-service.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
@@ -63,6 +65,10 @@ keyAccess.subscribe(state => {
   mainWindow?.webContents.send("wallet:security-state", state);
 });
 const sensitiveIPC = action => safeIPC(() => keyAccess.run(action));
+const readNativeContract = createNativeContractService({
+  client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
+  getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
+});
 const walletConnectRequests = new Map();
 const walletConnectProposalAccounts = new Map();
 const walletConnectProposalActions = new Set();
@@ -164,6 +170,7 @@ async function authorizationFailure(stageCode, action, error) {
 handleWalletIPC("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
 handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
 handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
+handleWalletIPC("wallet:native-contract", (_event, input) => safeIPC(() => readNativeContract(input)));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;
