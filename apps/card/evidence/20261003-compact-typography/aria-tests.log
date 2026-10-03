@@ -1,0 +1,26 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web radios expose exactly one explicit aria-checked value and update on selection (42.808375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Native radios preserve accessibilityState without injecting Web-only aria props (10.143ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ standard is default and system font scaling remains enabled for labels and inputs (9.444625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ larger text scales declared font and line height and saves only its owned preference (5.394791ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late native preference read cannot undo an explicit new choice (5.665833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ native writes are serialized so an old save cannot overwrite the newest size (6.037291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ invalid saved values fail to standard without a storage write (4.420417ms)
+✔ blocked storage keeps chosen size in memory and exposes truthful save failure (5.404833ms)
+✔ text size settings have explicit six-key copy in all twelve Card locales (1.885833ms)
+✔ all five product text surfaces consume scalable typography; root and settings connect it (3.959666ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 240.752417
