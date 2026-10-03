@@ -824,7 +824,7 @@ $('#export-json').addEventListener('click',()=>download('/api/export?format=json
 
 let ownedAIGeneration=0,ownedAIStart=null,ownedAIAction=null;
 function restoreOwnedAIAction(operation){if(!operation)return;for(const {button,disabled} of operation.buttons||[])button.disabled=disabled;$('#ai-actions').removeAttribute('aria-busy')}
-function retireOwnedAIView(){ownedAIGeneration++;ownedAIStart=null;restoreOwnedAIAction(ownedAIAction);ownedAIAction=null;clearInterval(state.aiTimer);state.aiTimer=null;const button=$('#ai-start');if(button){button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
+function retireOwnedAIView(){ownedAIGeneration++;ownedAIStart=null;restoreOwnedAIAction(ownedAIAction);ownedAIAction=null;clearInterval(state.aiTimer);state.aiTimer=null;state.aiJob=null;for(const input of $$('#ai-records input:checked'))input.checked=false;const consent=$('#ai-consent');if(consent)consent.checked=false;const status=$('#ai-status');if(status)status.textContent='—';$('#ai-actions')?.classList.add('hidden');const button=$('#ai-start');if(button){button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
 function ownedAIContext(){const context=state.context,identityRevision=browserSSOIntentGeneration,generation=ownedAIGeneration;return()=>context===state.context&&identityRevision===browserSSOIntentGeneration&&generation===ownedAIGeneration}
 function ownedAIReceipt(value,kind,id=null){return value&&typeof value==='object'&&!Array.isArray(value)&&typeof value.id==='string'&&!!value.id.trim()&&(id===null||value.id===id)&&value.kind===kind&&['running','ready','failed','cancelled','applied','rejected'].includes(value.status)}
 async function startAI(){

@@ -61,6 +61,34 @@ async function fillIntent(page,{symbol='ACME',qty='2',price='10.25'}={}){
   await page.locator('#ai-order-intent [name=limitPrice]').fill(price);
 }
 
+test('AI context selections and consent cannot migrate to another account with the same record ID',async()=>{
+  const {page,errors}=await fixture();
+  try{
+    await page.evaluate(()=>{
+      window.originalAIAccount=structuredClone(state.overview);
+      state.aiJob={id:'old-account-draft',kind:'summarize',status:'ready',result:{summary:'Old account private draft'}};
+      renderAIJob();
+      render(structuredClone(originalAIAccount));
+    });
+    assert.equal(await page.locator('#ai-records input').isChecked(),true);
+    assert.equal(await page.locator('#ai-consent').isChecked(),true);
+    await page.evaluate(()=>{
+      const next=structuredClone(originalAIAccount);next.portfolio.account='isolated-native-B';next.portfolio.activity[0].type='B owned transfer';render(next);
+    });
+    assert.equal(await page.locator('#ai-records input').inputValue(),'owned-ai-record');
+    assert.equal(await page.locator('#ai-records input').isChecked(),false,'matching record ID is not fresh consent for another account');
+    assert.equal(await page.locator('#ai-consent').isChecked(),false);
+    assert.equal(await page.evaluate(()=>state.aiJob),null);
+    assert.doesNotMatch(await page.locator('#ai-status').textContent(),/Old account private draft/);
+    assert.equal(await page.locator('#ai-actions').isVisible(),false);
+    await page.locator('#ai-records input').check();await page.locator('#ai-consent').check();
+    await page.evaluate(()=>render(structuredClone(originalAIAccount)));
+    assert.equal(await page.locator('#ai-records input').isChecked(),false,'returning to a prior account does not restore consent');
+    assert.equal(await page.locator('#ai-consent').isChecked(),false);
+    assert.equal(aiRequests.length,0);assert.deepEqual(errors,[]);
+  }finally{await page.close()}
+});
+
 test('actual Finance Chrome discards an old poll after a newer draft and keeps its exact ready result',async()=>{
   const {page,errors}=await fixture();let releaseOld;
   try{

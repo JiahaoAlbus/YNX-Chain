@@ -21,7 +21,10 @@ function fixture(){
 test('AI start coalesces and a retired account cannot publish result, error or unlock a newer start',async()=>{
   for(const reject of [false,true]){
     const f=fixture(),old=f.start();await f.start();assert.equal(f.calls.length,1);
-    f.scope.state.context++;f.scope.retireOwned();const next=f.start();assert.equal(f.calls.length,2);
+    f.scope.state.context++;f.scope.retireOwned();
+    assert.equal(f.elements.get('ai-consent').checked,false);await f.start();assert.equal(f.calls.length,1);
+    assert.deepEqual(f.notices,['failed']);f.notices.length=0;
+    f.elements.get('ai-consent').checked=true;const next=f.start();assert.equal(f.calls.length,2);
     if(reject)f.calls[0].reject(Error('old account'));else f.calls[0].resolve(job('old'));
     await old;assert.equal(f.scope.state.aiJob,null);assert.equal(f.elements.get('ai-start').disabled,true);assert.deepEqual(f.notices,[]);
     f.calls[1].resolve(job('current','ready'));await next;assert.equal(f.scope.state.aiJob.id,'current');assert.equal(f.elements.get('ai-start').disabled,false);assert.equal(f.timers.size,0);
