@@ -250,6 +250,21 @@ test("password failure and cancellation preserve locked Send and do not prepare 
   assert.equal(h.get("#open-send").textContent, "Unlock to send");
   assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
 });
+test("actual password form localizes only the owned permission refusal in all twelve languages and retains the locked journey", async () => {
+  const {initWalletLocale,WALLET_LOCALES,WALLET_COPY}=await import("../src/wallet-locale.mjs");
+  const {PERMISSION_STORE_NOTICE}=await import("../src/wallet-locale-permissions.mjs");
+  const h=await sendEntryHarness();
+  const doc={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]};
+  for(const key of ["#password-result","#unlock-result"])h.get(key).ownerDocument=doc;
+  const locale=initWalletLocale({document:doc});
+  h.api.unlock=async()=>({ok:false,error:{code:"PERMISSION_STORE_INVALID",message:PERMISSION_STORE_NOTICE}});
+  await h.get("#open-send").click();await h.get("#password-form").emit("submit");
+  for(const language of WALLET_LOCALES){locale.select(language);for(const key of ["#password-result","#unlock-result"])assert.equal(h.get(key).textContent,WALLET_COPY[language][PERMISSION_STORE_NOTICE]);}
+  assert.equal(h.context.keyState.locked,true);assert.equal(h.get("#send-sheet").open,false);assert.deepEqual(h.calls,[]);
+  h.api.unlock=async()=>({ok:false,error:{code:"REMOTE_ERROR",message:"Raw original <diagnostic> العربية"}});
+  await h.get("#password-form").emit("submit");locale.select("zh-Hans");
+  assert.equal(h.get("#password-result").textContent,"Raw original <diagnostic> العربية");
+});
 
 test("a successful explicit unlock still needs a new Send click and subsequent lock closes the draft", async () => {
   const h = await sendEntryHarness();

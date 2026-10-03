@@ -11,9 +11,11 @@ import {mountDesktopPayUI} from "./wallet-pay-ui.mjs";
 import { setWalletCopy } from "./wallet-locale.mjs";
 import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
 import {createQRFileInput} from "./qr-file-input.mjs";
+import {renderPermissionError} from "./permission-error-ui.mjs";
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
+function showAccountError(node,error){if(!renderPermissionError(node,error))node.textContent=`${error.code}: ${error.message}`}
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -266,7 +268,7 @@ function renderAccount(payload) {
     document.querySelector("#receive-evm-address").value = "";
     document.querySelector("#copy-address").disabled = true;
     document.querySelector("#copy-receiving-link").disabled = true;
-    passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return;
+    passwordUI?.render(); renderKeyDetail(); showAccountError(accountDetail,payload.error); return;
   }
   const status = payload?.ok === true ? payload.value : payload;
   accountState = status;
@@ -325,7 +327,7 @@ function renderAccount(payload) {
     button.addEventListener("click", async () => {
       button.disabled = true;
       const result = await window.ynxWallet.selectAccount(item.account);
-      if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
+      if (!result.ok) showAccountError(accountDetail,result.error);
       else renderAccount(result);
     });
     accountList.append(button);
@@ -335,14 +337,14 @@ createAccount.addEventListener("click", async () => {
   createAccount.disabled = true;
   const result = await window.ynxWallet.createAccount();
   createAccount.disabled = keyState.locked;
-  if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
+  if (!result.ok) showAccountError(accountDetail,result.error);
   else renderAccount(result);
 });
 addAccount.addEventListener("click", async () => {
   addAccount.disabled = true;
   const result = await window.ynxWallet.addAccount();
   addAccount.disabled = keyState.locked;
-  if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
+  if (!result.ok) showAccountError(accountDetail,result.error);
   else renderAccount(result);
 });
 window.ynxWallet.onAccountStatus(renderAccount);
@@ -398,7 +400,7 @@ async function refreshWalletConnectSessions() {
     disconnect.addEventListener("click", async () => {
       disconnect.disabled = true;
       const result = await window.ynxWallet.walletConnectDisconnect(session.topic);
-      walletConnectDetail.textContent = result.ok ? "Session disconnected and local account permission revoked." : `${result.error.code}: ${result.error.message}`;
+      if(result.ok)walletConnectDetail.textContent="Session disconnected and local account permission revoked.";else showAccountError(walletConnectDetail,result.error);
       await refreshWalletConnectSessions();
     });
     row.append(label, disconnect);
@@ -621,7 +623,7 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
     }
     if (keyState.locked || keyState.revision !== revision) return;
     const result = await window.ynxWallet.importAccount({ kind, value, password });
-    if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else output.textContent=errorText(result);
+    if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else if(!renderPermissionError(output,result.error))output.textContent=errorText(result);
     if (result.ok) renderAccount(result);
   } catch (error) { copyUI(output,error.message ?? "Unable to import the account."); }
   finally { value = null; password = null; if (keyState.revision === revision) document.querySelector("#import-file").value = ""; button.disabled = keyState.locked; }

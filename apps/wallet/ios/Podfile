@@ -2,6 +2,7 @@ require File.join(File.dirname(`node --print "require.resolve('expo/package.json
 require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
 
 require 'json'
+require_relative 'deployment-target-floor'
 podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
 
 def ccache_enabled?(podfile_properties)
@@ -18,9 +19,10 @@ ENV['RCT_USE_PREBUILT_RNCORE'] ||= podfile_properties['ios.buildReactNativeFromS
 ENV['RCT_HERMES_V1_ENABLED'] ||= '0' if podfile_properties['expo.useHermesV1'] == 'false'
 # An explicit `ios.usePrecompiledModules: false` must win even when the env var is already set
 # (e.g. EXPO_USE_PRECOMPILED_MODULES exported by EAS Build), so force-disable here before the default.
-ENV['EXPO_USE_PRECOMPILED_MODULES'] = '0' if podfile_properties['EXPO_USE_PRECOMPILED_MODULES'] == 'false'
+ENV['EXPO_USE_PRECOMPILED_MODULES'] = '0' if podfile_properties['ios.usePrecompiledModules'] == 'false' || podfile_properties['EXPO_USE_PRECOMPILED_MODULES'] == 'false'
 ENV['EXPO_USE_PRECOMPILED_MODULES'] ||= '1'
-platform :ios, podfile_properties['ios.deploymentTarget'] || '16.4'
+wallet_ios_deployment_target = podfile_properties['ios.deploymentTarget'] || '16.4'
+platform :ios, wallet_ios_deployment_target
 
 prepare_react_native_project!
 
@@ -63,5 +65,8 @@ target 'YNXWallet' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+    # Resource bundles can retain older podspec minima that current Xcode rejects.
+    # Match this app's existing minimum without lowering a newer dependency target.
+    ynx_wallet_raise_pod_deployment_targets(installer, wallet_ios_deployment_target)
   end
 end
