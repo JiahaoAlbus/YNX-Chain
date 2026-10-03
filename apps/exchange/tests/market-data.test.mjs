@@ -9,7 +9,7 @@ function snapshot(revision = 1) {
     orderBook: {market: MARKET, sourceMetadata: source, bids: [], asks: [{id: 'order-fixture', market: MARKET, side: 'sell', priceMicro: 2_000_000, amountMicro: 10_000_000, filledMicro: 4_000_000, createdAt: source.asOf}]},
     trades: [{id: 'trade-fixture', market: MARKET, priceMicro: 2_000_000, amountMicro: 4_000_000, createdAt: source.asOf, sourceType: 'deterministic_price_time_match', sourceDigest: 'a'.repeat(64)}]};
 }
-function harness(fetcher = async () => Response.json(snapshot()), noStream = false) {
+function harness(fetcher = async () => Response.json(snapshot()), noStream = false, now = () => Date.now()) {
   const calls = [], sources = [], received = [], statuses = [], timers = new Map();
   let timerID = 0;
   class Source {
@@ -19,6 +19,7 @@ function harness(fetcher = async () => Response.json(snapshot()), noStream = fal
     emit(name, value) { this.events[name]?.({data: JSON.stringify(value)}); }
   }
   const feed = createMarketFeed({fetchImpl: async (...args) => {calls.push(args); return fetcher(...args);}, EventSourceImpl: noStream ? null : Source,
+    now,
     onSnapshot: value => received.push(value), onStatus: value => statuses.push(value),
     setTimer(fn, ms) { timers.set(++timerID, {fn, ms}); return timerID; }, clearTimer(id) { timers.delete(id); }});
   const timer = ms => { const entry = [...timers].find(([, value]) => value.ms === ms); assert.ok(entry, `timer ${ms}`); timers.delete(entry[0]); return entry[1].fn(); };
@@ -32,6 +33,16 @@ test('guest snapshot and stream use only same-origin GET without account credent
   assert.equal(h.sources[0].url, STREAM_PATH); assert.deepEqual(h.sources[0].options, {withCredentials: false});
   assert.equal(h.received[0].trades[0].sourceDigest, 'a'.repeat(64));
   assert.equal(h.statuses.at(-1).source.status, 'degraded_single_host'); h.feed.stop();
+});
+test('rate-limited public reads honor bounded Retry-After without replacing cached data or sending writes',async()=>{
+  for(const [header,delay] of [['45',45000],['999999',300000],['Sat, 03 Oct 2026 12:00:45 GMT',45000],['-1',1000],['bad',1000],['0',1000]]){
+    let reads=0;const h=harness(async()=>++reads===1?Response.json(snapshot()):reads===2?new Response('',{status:429,headers:{'retry-after':header}}):Response.json(snapshot(2)),false,()=>Date.UTC(2026,9,3,12));
+    await h.feed.start();const original=h.feed.snapshot();await h.feed.retry();
+    assert.equal(h.feed.snapshot(),original);assert.equal(h.statuses.at(-1).code,'MARKET_RATE_LIMITED');assert.equal(h.sources[0].closed,true);
+    assert.equal(h.timers.size,1);await h.timer(delay);assert.equal(h.feed.snapshot().revision,2);assert.equal(h.statuses.at(-1).phase,'live');
+    h.sources.at(-1).onerror();assert.ok([...h.timers.values()].some(value=>value.ms===1000),'successful snapshot resets backoff');
+    assert.equal(h.calls.every(([,o])=>o.method==='GET'&&o.credentials==='omit'),true);h.feed.stop();assert.equal(h.timers.size,0);
+  }
 });
 test('reconciled snapshots replace depth and tape without duplicate trades; empty snapshots clear them', async () => {
   const h = harness(); await h.feed.start();

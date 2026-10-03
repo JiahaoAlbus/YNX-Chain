@@ -169,7 +169,7 @@ export function formatMicro(value, locale = 'en') {
 }
 
 export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl = globalThis.EventSource, onSnapshot, onStatus,
-  setTimer = globalThis.setTimeout, clearTimer = globalThis.clearTimeout} = {}) {
+  setTimer = globalThis.setTimeout, clearTimer = globalThis.clearTimeout, now = () => Date.now()} = {}) {
   let epoch = 0, stopped = true, snapshot = null, revisionContents = null, stream = null, abort = null, requestTimer = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
   const report = (phase, code = null) => onStatus?.({phase, code, source: snapshot?.sourceMetadata ?? null});
   function cancel() {
@@ -195,11 +195,22 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
     snapshot = next;
     onSnapshot?.(snapshot);
   }
-  function reconnect(code) {
+  function rateLimitDelay(value) {
+    if (typeof value !== 'string') return 0;
+    let seconds;
+    if (/^\d{1,6}$/.test(value)) seconds = Number(value);
+    else if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)) {
+      const timestamp = Date.parse(value), clock = now();
+      if (!Number.isFinite(timestamp) || !Number.isFinite(clock)) return 0;
+      seconds = Math.ceil((timestamp - clock) / 1000);
+    } else return 0;
+    return seconds > 0 ? Math.min(seconds, 300) * 1000 : 0;
+  }
+  function reconnect(code, minimumDelay = 0) {
     if (stopped) return;
     ++epoch; cancel();
     report(snapshot ? 'reconnecting' : 'unavailable', code);
-    retryTimer = setTimer(() => refresh(), Math.min(30_000, 1000 * 2 ** Math.min(attempts++, 5)));
+    retryTimer = setTimer(() => refresh(), Math.max(minimumDelay, Math.min(30_000, 1000 * 2 ** Math.min(attempts++, 5))));
   }
   function armWatchdog(token) {
     clearTimer(watchdog);
@@ -257,14 +268,14 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       // delayed body settles. Bound callers too, without accepting late data.
       const body = await Promise.race([(async () => {
         const response = await fetchImpl(SNAPSHOT_PATH, {method: 'GET', credentials: 'omit', redirect: 'error', cache: 'no-store', headers: {Accept: 'application/json'}, signal: controller.signal});
-        if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE'});
+        if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE', retryAfterMs: response.status === 429 ? rateLimitDelay(response.headers.get('retry-after')) : 0});
         if (!/^application\/json\b/i.test(response.headers.get('content-type') || '')) throw invalid();
         return readMarketDocument(response, controller.signal);
       })(),aborted]);
       if (token !== epoch || stopped) return;
-      apply(body); report('live'); subscribe(token);
+      apply(body); attempts = 0; report('live'); subscribe(token);
     } catch (error) {
-      if (token === epoch && !stopped) reconnect(error?.code === 'MARKET_DATA_INVALID' ? error.code : error?.code === 'MARKET_RATE_LIMITED' ? error.code : 'MARKET_SOURCE_UNAVAILABLE');
+      if (token === epoch && !stopped) reconnect(error?.code === 'MARKET_DATA_INVALID' ? error.code : error?.code === 'MARKET_RATE_LIMITED' ? error.code : 'MARKET_SOURCE_UNAVAILABLE', error?.code === 'MARKET_RATE_LIMITED' ? error.retryAfterMs : 0);
     } finally { clearTimer(timeout); if (requestTimer === timeout) requestTimer = null; controller.signal.removeEventListener('abort',rejectAborted); }
   }
   return Object.freeze({start: refresh, retry: refresh,
