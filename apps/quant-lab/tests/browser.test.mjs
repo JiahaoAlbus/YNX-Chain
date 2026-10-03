@@ -17,6 +17,9 @@ test('actual Chrome translates research fields and experiment columns in every l
       for(const label of result.labels){assert.ok(label.expected,label.key);assert.ok(label.actual.length,label.key);assert.ok(label.actual.every(value=>value===label.expected),label.key)}
       assert.equal(await page.locator('#strategy').inputValue(),'Preserved research draft');assert.equal(await page.locator('#fee').inputValue(),'34');
       assert.equal(await page.locator('#backtest input').count(),6);
+      assert.equal(await page.locator('#research-configured-training').textContent(),'24');
+      assert.equal(await page.locator('#research-held-out').textContent(),await page.evaluate(()=>t('runEvaluationRemainder')));
+      assert.doesNotMatch(await page.locator('.inspector').first().textContent(),/First 50%|Held-out 50%/);
       assert.equal(await page.evaluate(()=>JSON.stringify(snapshot)),sourceSnapshot);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }

@@ -8,6 +8,7 @@ let publicExperiments = {};
 let latestResearchMode = null;
 let latestResearchResult = null;
 let researchSubmitting = false;
+const RESEARCH_TRAIN_END = 24;
 let lastToastKey = null;
 let lastToastSuffix = '';
 const riskWrites = new Set();
@@ -276,6 +277,8 @@ const runDetailsCopy = {
   id: ["Detail proses dan rumus", "Digest data", "Digest strategi", "Model biaya (bps)", "Model slippage (bps)", "Latensi (candle)", "Partisipasi volume (bps)", "Batas pelatihan (candle)", "Jendela walk-forward", "Seed acak", "Rumus yang dikembalikan layanan riset untuk hasil ini."],
 };
 for (const [language, [runDetails, runDataHash, runStrategyHash, runFee, runSlippage, runLatency, runParticipation, runTraining, runWindows, runSeed, runFormulaLead]] of Object.entries(runDetailsCopy)) Object.assign(businessCopy[language], {runDetails, runDataHash, runStrategyHash, runFee, runSlippage, runLatency, runParticipation, runTraining, runWindows, runSeed, runFormulaLead});
+const researchEvaluationCopy={en:'Remaining observations, not a fixed percentage','zh-CN':'剩余观测记录，不是固定百分比','zh-TW':'剩餘觀測紀錄，不是固定百分比',ja:'残りの観測値（固定割合ではありません）',ko:'남은 관측값이며 고정 비율이 아닙니다',es:'Observaciones restantes, no un porcentaje fijo',fr:'Observations restantes, pas un pourcentage fixe',de:'Verbleibende Beobachtungen, kein fester Prozentsatz',pt:'Observações restantes, não uma percentagem fixa',ru:'Оставшиеся наблюдения, не фиксированный процент',ar:'المشاهدات المتبقية، وليست نسبة ثابتة',id:'Observasi tersisa, bukan persentase tetap'};
+for(const [language,runEvaluationRemainder] of Object.entries(researchEvaluationCopy))Object.assign(businessCopy[language],{runEvaluationRemainder});
 const runMetricLabels = {
   en:["OOS return","Buy/hold","Maximum drawdown","Sharpe × 1,000","Volatility (bps)"],
   "zh-CN":["样本外收益","买入持有","最大回撤","Sharpe × 1,000","波动率（基点）"],
@@ -585,6 +588,7 @@ const workspaceReadCopy={
 for(const [language,workspaceReadUnavailable] of Object.entries(workspaceReadCopy))Object.assign(businessCopy[language],{workspaceReadUnavailable});
 function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable;element.textContent=workspaceReadUnavailable?t('workspaceReadUnavailable'):'';if(workspaceReadUnavailable)$$('.schedule-toggle[data-enabled="true"]').forEach(button=>{button.disabled=true});}
 function applyLocale() {
+  $('#research-configured-training').textContent=String(RESEARCH_TRAIN_END);
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   $("#locale").value = locale;
@@ -913,7 +917,7 @@ $("#strategy-rows").addEventListener("click", async event => {
   if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
   let sent = false;
   try {
-    const assumptions = enabled ? {feeBPS:researchIntegerInput("fee"), slippageBPS:researchIntegerInput("slippage"), latencyBars:1, participationBPS:1000, seed:researchIntegerInput("seed"), trainEnd:24, walkForwardWindows:3} : {};
+    const assumptions = enabled ? {feeBPS:researchIntegerInput("fee"), slippageBPS:researchIntegerInput("slippage"), latencyBars:1, participationBPS:1000, seed:researchIntegerInput("seed"), trainEnd:RESEARCH_TRAIN_END, walkForwardWindows:3} : {};
     if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
     if (!confirm(`${t(enabled ? "scheduleConfirmStart" : "scheduleConfirmStop")}\n${id}\n${strategy.StrategyHash}${enabled ? `\n${t("runFee")}: ${assumptions.feeBPS}\n${t("runSlippage")}: ${assumptions.slippageBPS}\n${t("runSeed")}: ${assumptions.seed}` : ""}`)) return;
     const current = Object.values(snapshot.strategies || {}).find(value => value?.ID === id);
@@ -1124,7 +1128,7 @@ $("#backtest").onsubmit = async (e) => {
         latencyBars: 1,
         participationBPS: 1000,
         seed: draft.seed,
-        trainEnd: 24,
+        trainEnd: RESEARCH_TRAIN_END,
         walkForwardWindows: 3,
       },
     };

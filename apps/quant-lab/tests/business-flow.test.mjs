@@ -15,6 +15,21 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('configured research split never claims a fixed 50 percent and follows every selected language',async()=>{
+  assert.doesNotMatch(html,/First 50%|Held-out 50%/);
+  const app=harness();await settle();
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('research-configured-training').textContent,'24');
+    const copy=vm.runInContext('t("runEvaluationRemainder")',app.context);
+    assert.ok(copy&&copy!=='runEvaluationRemainder');
+    assert.equal(app.ids.get('research-held-out').textContent,copy);
+  }
+  await app.submit('backtest');
+  const post=app.calls.find(call=>call.url.endsWith('/backtests/from-market'));
+  assert.ok(post);assert.equal(JSON.parse(post.options.body).assumptions.trainEnd,24);
+});
+
 test('service failures localize in every language without exposing arbitrary error payloads or retrying',async()=>{
   for(const [status,error,key] of [[400,'invalid_json','apiInputsRejected'],[401,'unrecognized-secret-message','apiAccessRejected'],[403,'forbidden','apiAccessRejected'],[409,'conflict','apiStateConflict'],[429,'busy','apiServiceUnavailable'],[503,'unavailable','apiServiceUnavailable'],[404,{secret:'not-for-ui'},'apiFailureUnknown']]){
     const app=harness({apiStatus:url=>url.endsWith('/snapshot')?200:status,apiResponse:url=>url.endsWith('/snapshot')?{}:{error}});await settle();
