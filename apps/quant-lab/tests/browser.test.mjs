@@ -554,6 +554,21 @@ test('actual Chrome localizes service errors without exposing server payload or 
     assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
   }finally{await context.close()}
 });
+test('actual Chrome native response stream preserves split UTF8 and cancels at the byte limit',async()=>{
+  const context=await browser.newContext();
+  try{
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const result=await page.evaluate(async()=>{
+      const raw=new TextEncoder().encode(JSON.stringify({label:'日本語 العربية 😀',amount:0}));let index=0;
+      const valid=await quantHTTP('/v1/snapshot',{}, {fetchImpl:async()=>new Response(new ReadableStream({pull(controller){if(index===raw.length)controller.close();else controller.enqueue(raw.slice(index,index+=1));}},{highWaterMark:0}),{headers:{'content-type':'application/json'}})});
+      let pulls=0,cancels=0,calls=0,code;
+      const stream=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(1024*1024).fill(32));},cancel(){cancels++;}},{highWaterMark:0});
+      try{await quantHTTP('/v1/backtests/from-market',{method:'POST',body:'{}'},{fetchImpl:async()=>{calls++;return new Response(stream,{headers:{'content-type':'application/json'}})}})}catch(error){code=error.code}
+      return {label:valid.body.label,amount:valid.body.amount,pulls,cancels,calls,code};
+    });
+    assert.deepEqual(result,{label:'日本語 العربية 😀',amount:0,pulls:9,cancels:1,calls:1,code:'QUANT_API_RESPONSE_INVALID'});assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome reconciliation preview cancels in twelve locales without any write',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

@@ -347,7 +347,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, rawSnapshot = false
     readPortfolio: () => {reads++; return portfolioRead ? portfolioRead(current) : Promise.resolve(receipt(current.account));},
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
-  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
+  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, TextDecoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
 fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)};
     if (url.endsWith('/backtests/from-market') && body?.strategy) {
@@ -629,6 +629,29 @@ test('real shipped Quant HTTP deadline covers non-cooperative response and body 
   for(const response of [new Response('<html>fallback</html>',{headers:{'content-type':'text/html'}}),new Response('{invalid',{headers:{'content-type':'application/json'}}),new Response('{}',{headers:{'content-type':'application/json','content-length':'999999999'}})]){
     await assert.rejects(transport('/v1/snapshot',{}, {fetchImpl:async()=>response}),{code:'QUANT_API_RESPONSE_INVALID'});
   }
+});
+
+test('shipped Quant HTTP streams fragmented UTF8 and cancels oversized bodies before reading the remainder',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context),limit=8*1024*1024;
+  const raw=new TextEncoder().encode(JSON.stringify({label:'日本語 العربية 😀',amount:0}));let index=0;
+  const response=new Response(new ReadableStream({pull(controller){if(index===raw.length)controller.close();else controller.enqueue(raw.slice(index,index+=1));}},{highWaterMark:0}),{headers:{'content-type':'application/json'}});
+  const valid=await transport('/v1/snapshot',{}, {fetchImpl:async()=>response});assert.equal(valid.body.label,'日本語 العربية 😀');assert.equal(valid.body.amount,0);
+  let pulls=0,cancels=0,calls=0;
+  const oversized=new Response(new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(1024*1024).fill(32));},cancel(){cancels++;}},{highWaterMark:0}),{headers:{'content-type':'application/json'}});
+  await assert.rejects(transport('/v1/backtests/from-market',{method:'POST',body:'{}'},{fetchImpl:async()=>{calls++;return oversized}}),{code:'QUANT_API_RESPONSE_INVALID'});
+  assert.equal(pulls,9);assert.equal(cancels,1);assert.equal(calls,1);
+  const exact=await transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response('"'+'a'.repeat(limit-2)+'"',{headers:{'content-type':'application/json'}})});
+  assert.equal(exact.body.length,limit-2);
+  await assert.rejects(transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response(new Uint8Array([123,34,120,34,58,34,255,34,125]),{headers:{'content-type':'application/json'}})}),{code:'QUANT_API_RESPONSE_INVALID'});
+});
+
+test('actual stream stalled body is cancelled at deadline with one request and no unbounded read',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context),timers=new Map();let calls=0,cancels=0;
+  const body=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{'));},cancel(){cancels++;}});
+  const response=new Response(body,{headers:{'content-type':'application/json'}});
+  const result=transport('/v1/backtests/from-market',{method:'POST',body:'{}'},{fetchImpl:async()=>{calls++;return response},setTimer:fn=>{timers.set(1,fn);return 1},clearTimer:id=>timers.delete(id)}).catch(error=>error);
+  await settle();timers.get(1)();assert.equal((await result).code,'QUANT_API_TIMEOUT');await settle();
+  assert.equal(calls,1);assert.equal(cancels,1);assert.equal(timers.size,0);
 });
 
 test('reconciliation previews exact amounts in every language and cancellation writes nothing',async()=>{

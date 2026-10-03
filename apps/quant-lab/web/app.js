@@ -620,6 +620,27 @@ const quantAPIErrorCopy={
 };
 for(const [language,values] of Object.entries(quantAPIErrorCopy))Object.assign(businessCopy[language],Object.fromEntries(['apiInputsRejected','apiAccessRejected','apiStateConflict','apiServiceUnavailable','apiFailureUnknown'].map((key,index)=>[key,values[index]])));
 function quantAPIErrorKey(status){return status===400||status===422?'apiInputsRejected':status===401||status===403?'apiAccessRejected':status===409?'apiStateConflict':status===408||status===429||status>=500?'apiServiceUnavailable':'apiFailureUnknown';}
+async function quantResponseText(response,signal){
+  const limit=8*1024*1024,invalid=()=>Object.assign(new Error('Invalid product API response'),{code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+  if(typeof response.body?.getReader!=='function'){
+    // Legacy host/test adapters without a ReadableStream retain their bounded
+    // text contract. Browser fetch Responses always take the streaming branch.
+    const text=await response.text();if(new TextEncoder().encode(text).byteLength>limit)throw invalid();return text;
+  }
+  const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true}),parts=[];let bytes=0;
+  const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+  signal.addEventListener('abort',cancel,{once:true});
+  try{
+    while(true){
+      if(signal.aborted)throw invalid();
+      const {done,value}=await reader.read();if(done)break;
+      if(!Number.isSafeInteger(value?.byteLength)||value.byteLength<0||value.byteLength>limit-bytes)throw invalid();
+      bytes+=value.byteLength;parts.push(decoder.decode(value,{stream:true}));
+    }
+    parts.push(decoder.decode());return parts.join('');
+  }catch{cancel();throw invalid();}
+  finally{signal.removeEventListener('abort',cancel);try{reader.releaseLock()}catch{}}
+}
 async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   const controller = new AbortController();
   let rejectDeadline;
@@ -632,12 +653,11 @@ async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeou
     return await Promise.race([(async () => {
       const response = await fetchImpl('/api' + path, {...options, signal:controller.signal, credentials:'same-origin', redirect:'error', cache:'no-store'});
       if (!/^application\/json(?:;|$)/i.test(response.headers.get('content-type') || '') || Number(response.headers.get('content-length')) > 8 * 1024 * 1024) throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
-      const text = await response.text();
-      if (new TextEncoder().encode(text).byteLength > 8 * 1024 * 1024) throw Object.assign(new Error('Oversized product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+      const text = await quantResponseText(response,controller.signal);
       let body;try { body = JSON.parse(text); } catch { throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'}); }
       return {response,body};
     })(),deadline]);
-  } finally { clearTimer(timeout); }
+  } finally { clearTimer(timeout);controller.abort(); }
 }
 const api = async (path, opt = {}) => {
   let result;
