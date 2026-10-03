@@ -1,0 +1,406 @@
+{
+  "schemaVersion": "ynx.card.a-integration-input.v1",
+  "date": "2026-10-03",
+  "owner": "card",
+  "status": "READY_FOR_INTEGRATION_NOT_PRODUCT_COMPLETE",
+  "source": {
+    "branch": "codex/card-test-service-recovery-20261002",
+    "productFreeze": "c2bb9a9a437481a58573efd840f3081da4d4a11a",
+    "productTree": "578264870ed699a1122e3b03a88f1ac0e949a82c",
+    "durableEvidenceCommit": "40a9cd97723b0dbe2ecb3081648cbbce84b759da",
+    "durableEvidenceTree": "e4c2d7158e0845af8915bd1dd523d1e2527ef14a",
+    "docsOnlyFollowup": true
+  },
+  "authority": {
+    "sharedSdkRegistryHostedTransportHostFormalBuildRelease": "A wallet_release_owner",
+    "ownedClient": "apps/card",
+    "noUserInputNeededForIntegration": true,
+    "noDuplicateDispatch": true
+  },
+  "endpoints": {
+    "cardOrigin": "https://card.ynxweb4.com",
+    "version": "/api/card/v1/version",
+    "runtimeIdentity": "/runtime-identity.json",
+    "walletAuthOrigin": "https://wallet-auth.ynxweb4.com",
+    "webCallback": "https://card.ynxweb4.com/wallet-auth/callback",
+    "nativeCallback": "ynxcard://wallet-auth/callback",
+    "webCustomSchemeNavigationForbidden": true
+  },
+  "sourceCompatibility": {
+    "schemaVersion": "ynx.card.source-compatibility.v1",
+    "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+    "backendSourceCommit": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+    "backendService": "ynx-card-business-backend",
+    "backendVersionSchema": 1,
+    "apiResponseSchemas": [
+      1,
+      2
+    ],
+    "environment": "YNX_TESTNET_CARD_PAYMENT_SIMULATION",
+    "productionRealPayments": false
+  },
+  "compiledRuntimeRequirements": {
+    "bindToASelectedFinalExactSourceAndTree": true,
+    "compileVariables": [
+      "EXPO_PUBLIC_CARD_SOURCE_COMMIT",
+      "EXPO_PUBLIC_CARD_SOURCE_TREE"
+    ],
+    "runtimeSchema": "ynx.card.runtime-identity.v1",
+    "productId": "ynx-card",
+    "environment": "testnet",
+    "paymentNetwork": "simulation",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "productionRealPayments": false,
+    "pairFields": [
+      "schemaVersion",
+      "frontendSourceBase",
+      "frontendSourceCommit",
+      "frontendSourceTree",
+      "backendSourceCommit",
+      "backendVersionSchema"
+    ],
+    "publishJsAndIdentityTogether": true,
+    "jsonOnlyReplacementInsufficient": true,
+    "noRequirementThatFrontendCommitEqualsBackendCommit": true
+  },
+  "identity": {
+    "registryProductId": "card",
+    "clientId": "ynx-card-v1",
+    "standardEvmAccountIndependent": true,
+    "privatePrincipalMustComeFromAcceptedSession": true,
+    "noInferenceOfPrivatePermissionFromEvmAccount": true,
+    "ownerSessionBindingExpiryCheckedAcrossEveryAwait": true
+  },
+  "sessionScopes": {
+    "currentProviderRequest": [
+      "account:read",
+      "card:application:write",
+      "card:controls:write"
+    ],
+    "additionalCoreScopesRequiringAcceptedFreshSession": [
+      "card:topup:write",
+      "card:simulation:write",
+      "card:dispute:write"
+    ],
+    "financeShare": "card:finance:share",
+    "financeShareCurrentlyDisabled": true,
+    "doNotExpandRegistryLocally": true
+  },
+  "proof": {
+    "eachApiRequestFreshAcceptedSdkProof": true,
+    "serverBinding": [
+      "owner",
+      "product",
+      "platform",
+      "origin",
+      "sessionBinding",
+      "scopes",
+      "method",
+      "path",
+      "canonicalBodyDigest",
+      "nonce",
+      "expiry"
+    ],
+    "noProductDeviceProofImplementation": true,
+    "noSocialOnlyAudienceVerifierReuse": true,
+    "noFinanceSigningKeyReuse": true
+  },
+  "coreRail": {
+    "name": "YNXT_TESTNET_CORE",
+    "asset": "YNXT_TESTNET",
+    "routes": [
+      {
+        "method": "GET",
+        "path": "/api/card/v1/state",
+        "scope": "account:read"
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/applications",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "nickname",
+          "useCase",
+          "limitWei",
+          "riskAccepted",
+          "termsVersion"
+        ]
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/card/v1/applications/:id",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "nickname",
+          "useCase",
+          "limitWei",
+          "riskAccepted",
+          "termsVersion"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/applications/:id/approval-request",
+        "scope": "card:application:write",
+        "body": {}
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/applications/:id/submit",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "proof"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/applications/:id/cancel",
+        "scope": "card:application:write",
+        "body": {}
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/cards/:id/topup-intents",
+        "scope": "card:topup:write",
+        "bodyFields": [
+          "amountWei"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v1/topups",
+        "scope": "card:topup:write",
+        "bodyFields": [
+          "intentId",
+          "txHash"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v1/cards/:id/statement",
+        "scope": "account:read"
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v1/cards/:id/reconciliation",
+        "scope": "account:read"
+      }
+    ],
+    "writesNeedIdempotencyKey": true,
+    "approvalChallenge": {
+      "purpose": "create-testnet-card",
+      "bindings": [
+        "applicationId",
+        "owner",
+        "chainId",
+        "payloadHash",
+        "nonce",
+        "issuedAt",
+        "expiresAt"
+      ]
+    },
+    "fundingCreditRequires": [
+      "ACTIVE accepted Card account",
+      "chain 6423/0x1917",
+      "approved sender",
+      "exact recipient",
+      "amountWei",
+      "transaction hash",
+      "successful canonical receipt",
+      "block number/hash",
+      "required confirmations",
+      "replay/duplicate rejection"
+    ],
+    "noBalanceCreditFromWalletCallback": true,
+    "fundingNotDirectlyVerified": true
+  },
+  "providerRail": {
+    "name": "OPTIONAL_PROVIDER_TEST_RECORDS",
+    "separateFromYnxtSpendableLedger": true,
+    "sourceBalanceNeverCardSpendableBalance": true,
+    "routes": [
+      {
+        "method": "GET",
+        "path": "/api/card/v2/provider-programs",
+        "scope": "account:read"
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v2/provider-applications",
+        "scope": "account:read"
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "provider",
+          "programId",
+          "nickname",
+          "useCase",
+          "testSpendingLimitMinor",
+          "cardAccountCurrency",
+          "minorUnitDigits",
+          "termsVersion",
+          "termsHash",
+          "feeDisclosureHash",
+          "riskAccepted"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/terms",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "termsVersion",
+          "termsHash",
+          "feeDisclosureHash",
+          "riskAccepted"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/approval-request",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "platform",
+          "fundingSourceId",
+          "idempotencyKey"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/approval-result",
+        "scope": "card:application:write",
+        "bodyFields": [
+          "resultURL"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/submit",
+        "scope": "card:application:write",
+        "body": {},
+        "idempotencyKeyMustEqualApprovedOperation": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/cancel",
+        "scope": "card:application:write",
+        "body": {},
+        "successRequires": {
+          "status": "CANCELLED",
+          "upstreamCancellationConfirmed": false
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v2/provider-applications/:id/status",
+        "scope": "account:read"
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v2/provider-applications/:id/funding",
+        "scope": "account:read"
+      },
+      {
+        "method": "GET",
+        "path": "/api/card/v2/provider-applications/:id/history",
+        "scope": "account:read"
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/freeze",
+        "scope": "card:controls:write",
+        "body": {}
+      },
+      {
+        "method": "POST",
+        "path": "/api/card/v2/provider-applications/:id/unfreeze",
+        "scope": "card:controls:write",
+        "body": {}
+      }
+    ],
+    "hostedReview": {
+      "acceptedSdkEncoder": "encodeCardApplicationApprovalWalletURL",
+      "transportMethodMustBeSuppliedByAcceptedAContract": true,
+      "noInventedRpcMethodOrSignature": true,
+      "requestPurpose": "create-provider-test-card",
+      "fullRequestAndExactCallbackBinding": true,
+      "callbackQuery": "cardApplicationApprovalResult",
+      "persistBeforeReview": [
+        "owner",
+        "applicationId",
+        "operationId",
+        "resultOperationId"
+      ],
+      "handleApproveRejectTimeoutColdReturn": true,
+      "rejectionNeverApproval": true,
+      "noSilentSubmit": true,
+      "currentWebSeamFailsBeforePreparation": true
+    },
+    "operatorPrerequisites": [
+      "verified TEST owner/account binding",
+      "enabled exact TEST program and immutable disclosure hashes",
+      "verified funding source",
+      "accepted hosted verification adapter if this optional rail is enabled"
+    ],
+    "doNotEnableProviderWritesForThisHandoff": true
+  },
+  "recovery": {
+    "standardWalletFailureIndependentFromPrivateService": true,
+    "legacyPrivateRecordsPreserved": true,
+    "currentTabMarkerRequiredForAutoRestore": true,
+    "ownerChangeInvalidatesStaleDisplayAndApiFlights": true,
+    "localHideIsNotBackendRevoke": true,
+    "explicitRevokeRequiresSdkBackendConfirmedReceipt": true,
+    "revokeFailureReportedNotSuccess": true,
+    "bothStorageUnwritableColdIsolation": "UNVERIFIED"
+  },
+  "evidence": {
+    "manifest": "../evidence/20261003-record-localization/manifest.json",
+    "manifestSha256": "dbbe065766c25029a781c9e157160e91bc21d4ccb364e0b7480981b9e9ad50b3",
+    "typecheck": "PASS",
+    "localeStatus": "4/4",
+    "providerUI": "19/19",
+    "testsRerun": false,
+    "historicalFailRawReconstructed": false
+  },
+  "nextOwnerAcceptance": {
+    "requiresFinalReleaseReceipt": [
+      "exact compiled source/tree",
+      "deployment identifier and canonical URL",
+      "runtime identity and backend version",
+      "public JS/asset hashes",
+      "accepted Hosted review and revoke capability"
+    ],
+    "rootTriggersNormalEntryFlow": true,
+    "flows": [
+      "Guest",
+      "select distinct YNX/MetaMask",
+      "explicit account approval/rejection",
+      "provider chain 0x1917",
+      "chooser closes",
+      "private review/callback",
+      "current-owner application/records/cancel",
+      "refresh/cold restore",
+      "account/chain changes",
+      "standard disconnect vs private revoke",
+      "private service degradation independence",
+      "real YNXT funding and simulation ledger E2E"
+    ],
+    "sensitiveAccountSignSendRequiresImmediateUserConfirmation": true,
+    "doNotReprobeUnchangedOldPublicRuntime": true
+  },
+  "truth": {
+    "fullProductComplete": false,
+    "publicCandidateVerified": false,
+    "installedPlatformVerified": false,
+    "realApplicationApprovalVerified": false,
+    "backendRevokeVerified": false,
+    "realYnxtFundingVerified": false,
+    "realCardOrFiatOrPanCvv": false,
+    "productionRealPayments": false
+  }
+}
