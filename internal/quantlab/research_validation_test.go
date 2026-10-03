@@ -44,6 +44,8 @@ func TestResearchHTTPRejectsExplicitInvalidAndNullWithoutMarketOrStateMutation(t
 		strings.Replace(valid, `"Name":"Research"`, `"Name":null`, 1),
 		strings.Replace(valid, `"fast":3`, `"fast":3,"fast":4`, 1),
 		strings.Replace(valid, `"Seed":0`, `"Seed":0,"seed":7`, 1),
+		strings.Replace(valid, `"Seed":0`, `"Seed":0,"ſeed":7`, 1),
+		strings.Replace(valid, `"SlippageBPS":0`, `"SlippageBPS":0,"ſlippageBPS":25`, 1),
 	}
 	for i, payload := range cases {
 		r := httptest.NewRequest(http.MethodPost, "/v1/public/research/backtests/from-market", strings.NewReader(payload))

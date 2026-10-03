@@ -131,7 +131,7 @@ func unambiguousMarketTapeDocument(payload []byte) bool {
 				if err != nil || !ok {
 					return false
 				}
-				key = canonicalMarketJSONKey(key)
+				key = canonicalJSONKey(key)
 				if seen[key] {
 					return false
 				}
@@ -174,7 +174,7 @@ func unambiguousMarketTapeDocument(payload []byte) bool {
 
 // encoding/json also accepts Unicode simple-fold aliases (for example ſ/S),
 // so ASCII lowercasing alone cannot fence duplicate consumed field names.
-func canonicalMarketJSONKey(key string) string {
+func canonicalJSONKey(key string) string {
 	var result strings.Builder
 	for _, r := range key {
 		canonical := r

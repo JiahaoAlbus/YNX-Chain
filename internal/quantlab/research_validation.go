@@ -75,7 +75,7 @@ func decodeResearch(w http.ResponseWriter, r *http.Request, v any) bool {
 					if !ok {
 						return fmt.Errorf("object key")
 					}
-					canonical := strings.ToLower(name)
+					canonical := canonicalJSONKey(name)
 					if seen[canonical] {
 						return researchInvalid("duplicate")
 					}
