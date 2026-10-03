@@ -33,6 +33,9 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 	if os.Getenv("YNX_QA_APPLE_VIDEO_ENGINE_BIN") != "" {
 		targets = append(targets, "video:ios")
 	}
+	if os.Getenv("YNX_QA_APPLE_CREATOR_ENGINE_BIN") != "" {
+		targets = append(targets, "creator-studio:ios")
+	}
 	for _, target := range targets {
 		t.Run(target, func(t *testing.T) {
 			parts := strings.Split(target, ":")
@@ -162,6 +165,10 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if apple {
 				script = "../../apps/video/scripts/media-apple-authority-check.mjs"
 			}
+			creatorApple := product == "creator-studio" && (platform == "ios" || platform == "macos") && os.Getenv("YNX_QA_APPLE_CREATOR_ENGINE_BIN") != ""
+			if creatorApple {
+				script = "../../apps/creator-studio/scripts/apple-native-authority-check.mjs"
+			}
 			cmd := exec.CommandContext(ctx, "node", script, source, product, platform)
 			cmd.Env = append(os.Environ(), "YNX_QA_NATIVE_MEDIA_KEY="+nativeMediaKey, "YNX_QA_NATIVE_VIDEO_ID="+nativeVideoID, "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
 			var output, diagnostic bytes.Buffer
@@ -178,7 +185,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualWalletConsent          bool   `json:"actualWalletConsent"`
 				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
-			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
+			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
 			mu.Lock()
@@ -214,6 +221,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				})
 				if e != nil || !found {
 					t.Fatal("missing original Creator owned channel readback")
+				}
+				if creatorApple {
+					studio, err := owned.Studio(actor.Account)
+					if err != nil || len(studio.Videos) != 1 || studio.Videos[0].Owner != actor.Account || studio.Videos[0].WorkflowState != WorkflowInReview || studio.Videos[0].Visibility != VisibilityPrivate {
+						t.Fatal("missing exact original Creator upload and independent-review readback")
+					}
 				}
 			}
 			t.Log("actual NativeSDK + owned native consumer + original business + context/cold/revoke; software QA ports, no installed OS or real Wallet claim")
