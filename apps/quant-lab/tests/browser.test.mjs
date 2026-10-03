@@ -243,6 +243,27 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
     assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
   }finally{await context.close()}
 });
+test('actual Chrome keeps impossible schedule timestamps unavailable across locales and reload without writes',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let writes=0;const errors=[];
+    const strategy={ID:'invalid-time',Name:'Controlled invalid timestamp',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:true,running:false,intervalSeconds:60,lastRunStatus:'scheduled',nextRunAt:'2026-02-30T00:00:00Z',lastRunAt:'0'}};
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    context.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes++});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    for(const language of await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value))){
+      await page.selectOption('#locale',language);
+      assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);
+      assert.ok((await page.locator('#strategy-rows').textContent()).includes(await page.evaluate(()=>t('scheduleUnknown'))));
+      assert.ok((await page.locator('#strategy-rows').textContent()).includes('— / —'));
+    }
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);
+    assert.equal(await page.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime.nextRunAt),strategy.Runtime.nextRunAt);
+    assert.equal(writes,0);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenced until readback',async t=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

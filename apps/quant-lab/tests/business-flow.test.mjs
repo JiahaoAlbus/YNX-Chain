@@ -15,6 +15,26 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('schedule observations reject normalized invalid dates without inventing a runnable schedule',async()=>{
+  const app=harness();await settle();
+  for(const value of ['2026-02-30T00:00:00Z','0','2026-10-03','0001-01-01T00:00:00Z',null,undefined]){
+    app.context.scheduleFixture=savedResearchStrategy({Runtime:{enabled:true,running:false,intervalSeconds:60,lastRunStatus:'scheduled',nextRunAt:value}});
+    assert.equal(vm.runInContext('observedSchedule(scheduleFixture)',app.context),null);
+    assert.equal(vm.runInContext('scheduleTime(scheduleFixture.Runtime.nextRunAt)',app.context),'—');
+    vm.runInContext('snapshot.strategies={saved:scheduleFixture};render()',app.context);
+    assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);
+  }
+  for(const value of ['2024-02-29T00:00:00Z','2026-10-03T09:00:00+09:00']){
+    app.context.scheduleFixture=savedResearchStrategy({Runtime:{enabled:true,running:false,intervalSeconds:60,lastRunStatus:'scheduled',nextRunAt:value}});
+    assert.ok(vm.runInContext('observedSchedule(scheduleFixture)',app.context));
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.notEqual(vm.runInContext('scheduleTime(scheduleFixture.Runtime.nextRunAt)',app.context),'—');
+    }
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='PUT'||call.options.method==='POST').length,0);
+});
+
 test('idle cash amount stays source-bound and only known sampling policy receives localized explanation',async()=>{
   const result=researchFixture('idle-cash-receipt');result.attribution={currency:'YUSD_TEST_MICRO',averageIdleCapital:99998989487,idleCapitalSamplingPolicy:'observed_bar_cash_mean_truncate_micro_v1'};
   const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{}:result});await settle();await app.submit('backtest');

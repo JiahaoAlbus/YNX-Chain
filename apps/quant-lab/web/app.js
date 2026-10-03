@@ -451,11 +451,11 @@ function observedSchedule(strategy) {
   const runtime = strategy?.Runtime;
   if (!runtime || typeof runtime.enabled !== "boolean" || typeof runtime.running !== "boolean" || !Number.isSafeInteger(runtime.intervalSeconds) || runtime.intervalSeconds < 0) return null;
   if (runtime.lastRunStatus && !Object.hasOwn(scheduleStatusKeys,runtime.lastRunStatus)) return null;
-  if (runtime.enabled && (runtime.intervalSeconds < 60 || runtime.intervalSeconds > 86400 || typeof runtime.lastRunStatus !== "string" || !runtime.lastRunStatus || typeof runtime.nextRunAt !== "string" || !Number.isFinite(Date.parse(runtime.nextRunAt)) || runtime.nextRunAt.startsWith("0001-"))) return null;
+  if (runtime.enabled && (runtime.intervalSeconds < 60 || runtime.intervalSeconds > 86400 || typeof runtime.lastRunStatus !== "string" || !runtime.lastRunStatus || !auditTimeValid(runtime.nextRunAt) || runtime.nextRunAt.startsWith("0001-"))) return null;
   if (!runtime.enabled && runtime.running) return null;
   return runtime;
 }
-function scheduleTime(value) { return typeof value === "string" && !value.startsWith("0001-") && Number.isFinite(Date.parse(value)) ? localDate(value) : "—"; }
+function scheduleTime(value) { return auditTimeValid(value) && !value.startsWith("0001-") ? localDate(value) : "—"; }
 
 function verifiedPaperRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return false;
