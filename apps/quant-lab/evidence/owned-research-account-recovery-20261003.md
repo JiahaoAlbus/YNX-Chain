@@ -10,6 +10,29 @@ No Wallet/SDK/authority/Host/DEX/Pay/Card source or production state was changed
 The existing bundled Wallet runtime was exercised, not rebuilt. A's coordinated
 compatible bundle/cache graph and release remain required.
 
+## Research result acknowledgement and curve integrity
+
+Inherited schedule checkpoint: `c57773e401cc58550104b7a3ece59bf0d6c870b3`.
+An empty/malformed 200 response previously could produce a saved/temporary
+success toast even though no result was rendered. The UI now requires a real
+result ID, named strategy and all eight finite safe-integer service metrics;
+nonnegative count/risk quantities are checked before altering the previous
+verified result or recording public history. An unconfirmed response gives a
+localized error in every supported language and unlocks a new explicit request,
+never an automatic replay. Curves must be arrays of bounded nonnegative integer
+equity/benchmark values; missing, null, unsafe or malformed curves are omitted
+without inventing values or losing independently valid metric receipts.
+
+Final business/browser/tenant suite: **50/50 PASS**, no skips, 46.957s.
+The existing real local Chrome/Go flows and two-process tenant/restart isolation
+remained green. Additional negative fixture cases cover empty responses, missing
+identity/name/metrics, unsafe integers, negative counts, all 12 error locales,
+null/non-array/negative/unsafe curves and previous-result preservation. These
+remain controlled local tests, not public market, Wallet or trading evidence.
+New exact delta: `owned-research-result-integrity-inventory-20261003.json`.
+Unchanged assets remain bound to the preceding schedule inventory. Release
+requires A's compatible complete asset/runtime graph; no production was changed.
+
 ## Research schedule confirmation and observation recovery
 
 Inherited predecessor: `feddff486c1826bcc05dcaafee24bb3268c5adf3`.

@@ -209,6 +209,23 @@ test('public stateless research renders measured equity without granting Paper o
   assert.match(app.ids.get('strategy-rows').innerHTML,/No strategies/);
 });
 
+test('invalid research acknowledgements cannot replace a verified result or report completion', async () => {
+  let response=researchFixture('verified-before');
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:response});await settle();await app.submit('backtest');
+  for(const invalid of [null,{}, {...response,id:''},{...response,strategy:{Name:''}},{...response,metrics:{}},{...response,metrics:{...response.metrics,ReturnBPS:Number.MAX_SAFE_INTEGER+1}},{...response,metrics:{...response.metrics,Trades:-1}}]){
+    response=invalid;await app.submit('backtest');assert.match(app.ids.get('toast').textContent,/unconfirmed/);assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-submit').disabled,false);
+  }
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});await app.submit('backtest');assert.notEqual(app.ids.get('toast').textContent,'researchInvalid');assert.ok(app.ids.get('toast').textContent.length>20);
+  }
+});
+
+test('malformed research curves are omitted without fabricating equity or losing valid metrics', async () => {
+  for(const curve of [{length:2},[null,{}],[{equity:1,benchmarkEquity:1},{equity:Number.MAX_SAFE_INTEGER+1,benchmarkEquity:2}],[{equity:1,benchmarkEquity:1},{equity:-1,benchmarkEquity:2}],[]]){
+    const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:{...researchFixture('valid-metrics'),equityCurve:curve}});await settle();await app.submit('backtest');assert.equal(app.ids.get('equity-figure').hidden,true);assert.equal(app.ids.get('equity-chart').innerHTML,'');assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-submit').disabled,false);
+  }
+});
+
 test('research amounts preserve measured zero, currency and unavailable attribution without inventing costs', async () => {
   const valid={currency:'YUSD_TEST_MICRO',userNetPnl:-10,userRealizedPnl:0,userUnrealizedPnl:-10,tradingFee:2,slippage:1};
   for(const [attribution,expected] of [

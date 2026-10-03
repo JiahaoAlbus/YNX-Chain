@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "product": "quant-lab",
+  "predecessor": "c57773e401cc58550104b7a3ece59bf0d6c870b3",
+  "predecessorTree": "25e3244d00ada711ef3db80f988a07556724a65b",
+  "unchangedAssetsInventory": "apps/quant-lab/evidence/owned-research-schedule-inventory-20261003.json",
+  "unchangedAssetsInventorySha256": "ac261f0ff47eb650630f740666a476d8f94fb96e45ede6d95e875f1e5a22ce97",
+  "sourceIdentity": "immutable commit containing this inventory",
+  "delta": [
+    {"path":"apps/quant-lab/web/app.js","blob":"7f421f017889c2e2a0eeb800ffabbe2eb0be8929","bytes":106587,"sha256":"2e4061e07a2399bbec0f352d4519cd65b305a2016e8a6b5e84af367be04cfdf3"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"5406af24a85a5732a16b289bd0e0778ba9b08678","bytes":49398,"sha256":"f52d292ba59bac9a1cbae0cc3348f83e44027500e5c7e43d11ae8d3b00149ff2"}
+  ],
+  "tests": {
+    "command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs",
+    "passed":50,"failed":0,"skipped":0,"durationMs":46956.584875,
+    "scope":"Actual local Chrome/Go plus controlled synthetic results/browser tenants; not Wallet-authenticated users, live market, public runtime or multi-host database proof."
+  },
+  "publicationOwner":"A wallet_release_owner; complete compatible final assets/runtime/package graph",
+  "reportTo":"01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "truth":{"localTests":true,"currentSourcePublic":false,"installed":false,"realWalletApproval":false,"productSession":false,"liveResearch":false,"capitalExecution":false,"computerControl":false,"complete":false}
+}

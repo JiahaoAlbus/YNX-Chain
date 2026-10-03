@@ -597,9 +597,24 @@ function renderRunDetails() {
     row.append(term, description); definitions.append(row);
   }
 }
+const researchInvalidCopy = {
+  en:"Research result is unconfirmed. No completed result was recorded in this view.",
+  "zh-CN":"研究结果尚未确认，本页面未记录新的已完成结果。",
+  "zh-TW":"研究結果尚未確認，本頁面未記錄新的已完成結果。",
+  ja:"研究結果は未確認です。この画面に新しい完了結果は記録されていません。",
+  ko:"연구 결과가 확인되지 않았습니다. 이 화면에 새 완료 결과가 기록되지 않았습니다.",
+  es:"Resultado no confirmado. Esta vista no registró un nuevo resultado completado.",
+  fr:"Résultat non confirmé. Aucun nouveau résultat terminé n’a été enregistré dans cette vue.",
+  de:"Forschungsergebnis unbestätigt. In dieser Ansicht wurde kein neues abgeschlossenes Ergebnis erfasst.",
+  pt:"Resultado não confirmado. Nenhum novo resultado concluído foi registrado nesta visualização.",
+  ru:"Результат исследования не подтверждён. В этом представлении новый завершённый результат не записан.",
+  ar:"نتيجة البحث غير مؤكدة. لم تُسجَّل نتيجة مكتملة جديدة في هذه الصفحة.",
+  id:"Hasil riset belum terkonfirmasi. Tidak ada hasil selesai baru yang dicatat dalam tampilan ini."
+};
+for (const [language, researchInvalid] of Object.entries(researchInvalidCopy)) Object.assign(businessCopy[language], {researchInvalid});
 function renderResult(result, savedWorkspace) {
+  if (typeof result?.id !== "string" || !result.id.trim() || typeof result?.strategy?.Name !== "string" || !result.strategy.Name.trim() || !["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) || ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].some(key => result.metrics[key] < 0)) throw Error(t("researchInvalid"));
   const metrics = result.metrics;
-  if (!metrics) return;
   latestResearchMode = savedWorkspace;
   latestResearchResult = result;
   renderResearchStatus();
@@ -608,7 +623,7 @@ function renderResult(result, savedWorkspace) {
   for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
   const points = result.equityCurve || [];
-  const valid = points.length > 1 && points.length <= 10000 && points.every(point => Number.isFinite(point.equity) && Number.isFinite(point.benchmarkEquity));
+  const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every(point => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.equity >= 0 && point.benchmarkEquity >= 0);
   $("#equity-figure").hidden = !valid;
   if (!valid) { $("#equity-chart").innerHTML = ""; return; }
   const values = points.flatMap(point => [point.equity, point.benchmarkEquity]);
