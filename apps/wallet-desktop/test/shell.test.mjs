@@ -137,7 +137,8 @@ test("security invalidation clears old unlock success while an unchanged locked 
     let invalidatedInputs = 0, invalidatedContracts = 0, invalidatedInvoices = 0;
     const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
     const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
-    runInNewContext(`${copyHelper}\n${invoiceClear}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
+    const owners=renderer.slice(renderer.indexOf("let accountSecurityIntent="),renderer.indexOf('createAccount.addEventListener("click"'));
+    runInNewContext(`${copyHelper}\n${invoiceClear}\n${owners}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
@@ -201,6 +202,7 @@ async function sendEntryHarness() {
   runInNewContext([
     source.match(/^function copyUI\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual copy helper missing")})(),
     source.match(/^function clearInvoiceInput\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual invoice clear missing")})(),
+    extract("let accountSecurityIntent=",'createAccount.addEventListener("click"'),
     extract("function renderKeyDetail()", "\npasswordUI = createPasswordVaultUI"),
     extract('document.querySelector("#open-send").addEventListener', '\ndocument.querySelector("#send-sheet").addEventListener'),
     extract('document.querySelector("#transfer-form").addEventListener', "\nfunction setView(name)"),
