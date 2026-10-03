@@ -1,0 +1,827 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj -scheme YNXShop -configuration Debug -destination "generic/platform=iOS Simulator" -derivedDataPath /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXShop' in project 'YNXShop' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --dry-run --output-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Localizable.xcstrings
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 9a3c399ebefa5b6481c11ac0b823bd96
+Build description path: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/XCBuildData/9a3c399ebefa5b6481c11ac0b823bd96.xcbuilddata
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/CompilationCache.noindex
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/CompilationCache.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop-adb9d9fb44c78fd7c963227a569a11e3-VFS-iphonesimulator/all-product-headers.yaml
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop.xcodeproj
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop-adb9d9fb44c78fd7c963227a569a11e3-VFS-iphonesimulator/all-product-headers.yaml
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyStaticMetadataFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyMetadataFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-non-framework-target-headers.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_const_extract_protocols.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.LinkFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-OutputFileMap.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-OutputFileMap.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftConstValuesFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_const_extract_protocols.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.LinkFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftConstValuesFileList (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-OutputFileMap.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-OutputFileMap.json
+
+MkDir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /bin/mkdir -p /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app
+
+MkDir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/unthinned (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /bin/mkdir -p /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/unthinned
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/PrivacyInfo.xcprivacy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/PrivacyInfo.xcprivacy (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/PrivacyInfo.xcprivacy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/native-session /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/native-session (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/native-session /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app
+
+MkDir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /bin/mkdir -p /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned
+
+GenerateAssetSymbols /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets --compile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app --output-format human-readable-text --notices --warnings --export-dependency-info /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_dependencies --output-partial-info-plist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 17.0 --platform iphonesimulator --bundle-identifier com.ynxweb4.shop --generate-swift-asset-symbol-extensions NO --generate-swift-asset-symbols /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.h
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CompileXCStrings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Localizable.xcstrings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --output-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Localizable.xcstrings
+
+CompileAssetCatalogVariant thinned /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets --compile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_dependencies_thinned --output-partial-info-plist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 17.0 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist_thinned
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned/Assets.car
+
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ja.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ja.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ja.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ja.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ja.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ru.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ru.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ru.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ru.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ru.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/fr.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/fr.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/fr.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/fr.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/fr.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/pt.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/pt.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/pt.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/pt.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/pt.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/zh-Hans.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hans.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/zh-Hans.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hans.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hans.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ko.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ko.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ko.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ko.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ko.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/zh-Hant.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hant.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/zh-Hant.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hant.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/zh-Hant.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/id.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/id.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/id.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/id.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/id.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/en.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/en.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/en.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/en.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/en.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/es.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/es.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/es.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/es.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/es.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/de.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/de.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/de.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/de.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/de.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+CopyStringsFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ar.lproj/Localizable.strings /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ar.lproj/Localizable.strings (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/ar.lproj -- /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ar.lproj/Localizable.strings
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ar.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriver YNXShop normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver YNXShop normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+LinkAssetCatalog /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Assets.xcassets (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-linkAssetCatalog --thinned /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/thinned --thinned-dependencies /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist_thinned --unthinned /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_output/unthinned --unthinned-dependencies /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist_unthinned --output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app --plist-output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist
+note: Emplaced /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Assets.car (in target 'YNXShop' from project 'YNXShop')
+note: Emplaced /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/AppIcon76x76@2x~ipad.png (in target 'YNXShop' from project 'YNXShop')
+note: Emplaced /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/AppIcon60x60@2x.png (in target 'YNXShop' from project 'YNXShop')
+
+ProcessInfoPlistFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Info.plist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Info.plist (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-infoPlistUtility /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Info.plist -producttype com.apple.product-type.application -genpkginfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/assetcatalog_generated_info.plist -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Info.plist
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ptrauth-1O64BBSVVI5K9WOU25WFP8Y2M.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ptrauth-BM23O4VNIB4S49LCH49MSO21J.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-7E1S89YS7DDKQD8PYB5Q72FKO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftShims-6W4FZ451Z6ULFSM94MIG1FMYK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_float-82D4GTAGEHGNOMDO3WJB4YBZB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_AvailabilityInternal-5A82FAY2JHDHUQCE8TD3C3PNU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdarg-24NEWDWKLHYW9NF7IDU9GXZIW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdbool-6PC40N9U9KIZNN3L61NUHIYGY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ptrcheck-BAVAVUQ3U3EQKHHSS4RQ5VIX7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stddef-5L6M752P4IEIGOQ334U8BJVK0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_float-5LM0PB0CLDPJC2BPLXEBYXVAE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdbool-8SL9COSQKWRAVQ34PCP59ZQUE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/DeveloperToolsSupport-4EME83J7ASVL0XQ0ERV82KZ47.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stddef-789M1FZDO24XOL2HQ234UNGGD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-7HLEAP86EKN1XLFMJ2D362YSJ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_AvailabilityInternal-54YUY3WLCF6YFU28LWAW0BZSF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ptrcheck-EXALB18VH40WOVMKL8IG6L1OA.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdarg-17PHL7YB03U41JRPYTI0N8JBL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftShims-3I2GKKDOM9SFMO2BSKNSFUD6O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/DeveloperToolsSupport-AF94YDZYOCMBZW48FZPEUYAO1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation1-7I0SJI191K5SMKH5RVTT5NGBT.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation1-CNRWMN5SB45GC1PK9MMTCE69.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_limits-EMOH4CYHH5WRZJQ2HC02R3M75.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation2-5XO6IK9I420J6SIQK41N7IXRM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation2-7SOJOLXHNBBWNUFLOQCB3YOQ1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_limits-6TI01ER1ALZG37436ZEK7DVS7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/string_h-9ZUJQFG9DM4QR6IIGPHV24G36.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/sys_types-8BOGUUC3137OWQ74Q4ZABP3C1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_tgmath-36BADUPLCV13TVFO043VKXXTM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdint-7YUIK3C8HSFMFEEXUGQ3Y0Y95.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/sys_types-4AL374THX00N4YAQGYH3GNREE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_tgmath-6KT0KAEUE6RJH29U78V2VMPNE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/string_h-BWGUCDI4FKQ7YIOANNGNPZUUJ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdint-7QQMXD83S967PEXTXCX2MJRUQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation3-3FL9E3XURUOA1WX6K1REAMPSL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_intrinsics-7Z4Y0EZLWAABU4XDKRADZT8CV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdatomic-B8J7Z5RLCNXXS7GQSAA1E8OM6.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_DarwinFoundation3-VV17U9EK7S7CWTTUH17BNJ3E.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_stdatomic-2R1LSD03B52MBOW0NEZQC0NJW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_inttypes-1JQ5QNU1YZG6CZBO3PVOOXJ7M.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_intrinsics-64C9XUO1QO5IWD28Y0LTYABBE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_Builtin_inttypes-439QAUT9VFU3LQUP21B3TKFJT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Darwin-8Y2TOV1NNO0C6CT1P24E43XLN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Darwin-6RFPKSF4WPDD6WRMJKPZMOL86.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/simd-8UYU472UH3OEN3O8ZWME749TK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ObjectiveC-C0UFGJDVYGPJM1SL8001MDZNM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/MachO-38Y5C6B3QEO0FBUJQ203RMJOE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/MachO-L4YMP0TMVLN8QC0GCMHRMDDS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ObjectiveC-CNM16KPFM9U2DNGOVW9N47VMO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/simd-6X31HX65PGQ9XBCW11QV89UU4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os_object-CJE0QQYRHOHCOTVK0YY4XP02M.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os_object-6Z37R5ZNY35QUHS9K8RNFDDM6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os_workgroup-EM4X0GSBLLYCN3M7O6PJJXDAO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Spatial-CBGHSDRUCU3KZOTLGAT6R6121.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os_workgroup-2WMRWLPW1FPL49H46WRS3IU84.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Dispatch-EEHC6CWTFRJZYQVZLY0ATP4R4.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Dispatch-760TMEML90B0PHSLOG5UFBJHX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreFoundation-5XCL3QKTETAEFC7IVKV5L1BT5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/dnssd-3V6BVUTS1GA69G0EM7PM2OCZN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/XPC-CRUQI561XUTY0RY5BCURNINWM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/dnssd-5KR53IIHXOGSDQQQXJUGE028K.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/XPC-ECEXYGEUTLKQRYC8AZZLLBZOR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreFoundation-57B620L386O9YPAML0QVK4OAK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os-80JI0DQBO82L5G5ULMCSST2Y0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/os-CSRJA7EYPZUMGCU1JQF1HWKSS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreAudioTypes-EJ5S10NPLEV690YOPRTRUR74T.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreGraphics-8ZD85Z3QEB47AA1QDA8QD956O.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CFNetwork-AUHQA9QK119I9GKI00EAH6W0V.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Security-3XLGASLNRI76JR0XLDGK1F1C6.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Spatial-8JSS4SXOUW4KKQVOW8J2RXBKJ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Security-E4RL7ZJNPQ06PSIGQA015QLMS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreGraphics-2Z4J4HODX53C57BC32CHKXUXK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreAudioTypes-3DWB6I1PD69Y50JXK56IWO2U7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CFNetwork-ANWS1PAESUH7ZM76LDPGPPAIT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreAudio-EJ6DHYB26RDJ4MNK7N1743TQK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreAudio-BCYWH2T4LONDZ9NW7GYHQ6QU6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Foundation-7P82IBDJOSIXWERLT7DG42TKS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ImageIO-8HCB56ARN893OVH9OYQSH7Z9L.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreText-C45RIY6S47FDLRGYOFN0K5309.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Foundation-9KNU0X4GDPYCZQ5P8Y7IZ8UUR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreText-DN9KZYGPPQWQ2YFDZTVT2I2CG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/ImageIO-BXCGGUJ4LDJJ8GHXHCKS3S3SW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/DataDetection-5X98YPFGTIMIUVKF2ITE7QCO7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Network-5J59DJDAVQPDRWO15SZ3ARQBY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-2FSGECJENER2PWPDW4FFVEKC1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Symbols-CY9MYA591QFDT0M2MZAJY7LDH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/LocalAuthentication-8N8Q1EAI60CYBZFRHCO4VOSQH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreData-8KIJO1DI2LTOATTGMIY8Q1M3S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/FileProvider-6ARXTEMTLHJ8HKHPI7ORZSSGB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UserNotifications-4MGR7760IMYNP9IKHUJWIVF6Q.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UIUtilities-665QHJ7S0T8KTN1EF9BVQNN9E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/OpenGLES-83AZ7VW0DRV6O3CRYMBN9CLFZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Accessibility-5QF4BIN9AF2A6MAFDZVYHXJJ8.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/LocalAuthentication-72MC4FUN1JNR6E3VLL5SV1CBV.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-28FQSH24JSBZB8PUAK9MBKJT7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/DataDetection-CF40PXDVSA9PN68Z30PTI6NFK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UserNotifications-1YGZTLITUT5XRGLI6VPPL29SU.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UIUtilities-38382BO2TJIGDWOLYTW7O49C2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreTransferable-E2C5HYL8BELLU3KXUR8K2M581.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/FileProvider-78ECERQSO4NA9UKL5QKK77W7Z.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreTransferable-87Z592FBGSEC2W0MTS9D1IJ5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/IOSurface-4P5Q6BZ0OK9CB925WNC7N877I.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreData-A2OQNCTDN8IL5CXF2JWNDV396.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/OSLog-69LAI8S1T5TTWXFZDL0VFGTJC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Accessibility-4X2MJC5HMPKDWAWZLYELW0BN6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/OSLog-CONWCK6OSQX5BZ79KFVHWASQK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_LocationEssentials-ACUVKHZ6PRE7MB2BFD52JLOGX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/OpenGLES-31L22AJTMQ3RILO6W5W4N5G69.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Symbols-CAY9B48TKVGDTFFIEGY09DRJA.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/IOSurface-EBJ2OYJONG2APBV74KRSU4525.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Network-1SF3HG95QXWPRF2ABF6RHWU3S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Metal-4P5HL0CVERKJZ8SR6VNZ33ZO7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/_LocationEssentials-2MK12YMRMKCLT374KPW2TTXVE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreLocation-7KYV184LOU2AZHBE7MCJC72DF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/Metal-8NEMEGR9PCC73JGH94QCZ7UAX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreLocation-D2N7NFX0LPZA0P7SALW0RYWCW.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreMotion-74UVFZBK0YGNQEK2LZ5WKDDDW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreVideo-COGPRRF9NXSX53Y5A4CM41K4A.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreMotion-20Z4Y0L0NSA01AKLP78CB70IF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreVideo-EGI8B5T2A5H815JHY7T5XNFLN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/QuartzCore-C8678ADIK8YZC1SSW08VJ63Y3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreImage-25ZNH654PHZZLTO40D7HD1VVW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreMedia-ERYX399GHYD8CI6J4JWVWDYGX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/QuartzCore-6WRAPACQ0GI71YC0ZI39UOQA8.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreMedia-DB220ZHTGJ2TB0SBXSP60X7EQ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/CoreImage-6PHEGMI648MBXPYQ9MUHI6CBE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftUICore-IRIDL2KTWS3IN0WO9VFR8QBV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UIKit-A4FZF09GUNYU6E6QWBRU0YQRC.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftUICore-C7TA56JVCSTENPN0378KUK0AZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/UIKit-5ULJX0EEMB9QH5DYLWI9974IB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftUI-DQFARD23ADZC93EPK6CJS4ZFV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/WebKit-7YDWMTFX5SUIM73QFTHPJUQH4.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/WebKit-8X6ZSVHQR5KLUIO9YVG1JXW2Q.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules/SwiftUI-9MZWMEVJTPR7GITO0FMV7WZVL.pcm
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ YNXShop (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    
+
+SwiftCompile normal arm64 Compiling\ Security.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Security.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Security.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile Security.swift
+
+SwiftCompile normal arm64 Compiling\ GeneratedAssetSymbols.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile GeneratedAssetSymbols.swift
+
+SwiftCompile normal arm64 Compiling\ API.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/API.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/API.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile API.swift
+
+SwiftCompile normal arm64 Compiling\ NativeProtectedRuntime.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeProtectedRuntime.swift
+
+SwiftCompile normal arm64 Compiling\ NativeSessionBridge.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeSessionBridge.swift
+
+SwiftCompile normal arm64 Compiling\ WalletAuth.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile WalletAuth.swift
+
+SwiftCompile normal arm64 Compiling\ NativeProductState.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeProductState.swift
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftCompile normal arm64 Compiling\ YNXShopApp.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile YNXShopApp.swift
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ YNXShop (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ NativeSessionBridge.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeSessionBridge.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ YNXShopApp.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile YNXShopApp.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ NativeProductState.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeProductState.swift
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for YNXShop (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriver\ Compilation\ Requirements YNXShop normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal x86_64 Compiling YNXShopApp.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ ShopModel.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile ShopModel.swift
+
+SwiftCompile normal x86_64 Compiling\ ContentView.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for YNXShop (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriver\ Compilation\ Requirements YNXShop normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Compiling NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+SwiftMergeGeneratedHeaders /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/YNXShop-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-Swift.h (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-swiftHeaderTool -arch arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-Swift.h -arch x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-Swift.h -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/YNXShop-Swift.h
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftdoc (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.abi.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftdoc (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.abi.json (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftsourceinfo (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftsourceinfo (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal x86_64 Compiling\ Security.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Security.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/Security.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile Security.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling API.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ NativeProtectedRuntime.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile NativeProtectedRuntime.swift
+
+SwiftCompile normal x86_64 Compiling\ GeneratedAssetSymbols.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile GeneratedAssetSymbols.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling NativeProtectedRuntime.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ WalletAuth.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile WalletAuth.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling GeneratedAssetSymbols.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 Compiling\ ShopModel.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile ShopModel.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling WalletAuth.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 Compiling\ API.swift /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/API.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftCompile normal x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios/YNXShop/API.swift (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-SwiftPerFileCompile API.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling NativeSessionBridge.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal arm64 Compiling NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling ContentView.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling NativeProductState.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling API.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal arm64 Compiling Security.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling Security.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriver\ Compilation YNXShop normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/Binary/YNXShop normal x86_64 (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/Binary/YNXShop
+
+SwiftDriverJobDiscovery normal arm64 Compiling ShopModel.swift (in target 'YNXShop' from project 'YNXShop')
+
+SwiftDriver\ Compilation YNXShop normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXShop -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList -strict-concurrency\=targeted -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop-Swift.h -working-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/Binary/YNXShop normal arm64 (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/Binary/YNXShop
+
+CreateUniversalBinary /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/YNXShop normal arm64\ x86_64 (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/Binary/YNXShop /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/Binary/YNXShop -output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/YNXShop
+
+CopySwiftLibs /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/YNXShop --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Frameworks --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/PlugIns --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/SystemExtensions --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name YNXShop --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 17.0 --bundle-identifier com.ynxweb4.shop --output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app --target-triple arm64-apple-ios17.0-simulator --target-triple x86_64-apple-ios17.0-simulator --binary-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/YNXShop --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop_dependency_info.dat --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop_dependency_info.dat --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftFileList --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftFileList --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyMetadataFileList --static-metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyStaticMetadataFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/arm64/YNXShop.SwiftConstValuesFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/Objects-normal/x86_64/YNXShop.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-04 04:28:24.825 appintentsmetadataprocessor[58237:5534140] Starting appintentsmetadataprocessor export
+2026-10-04 04:28:24.827 appintentsmetadataprocessor[58237:5534140] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+AppIntentsSSUTraining (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Info.plist --temp-dir-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/ssu --bundle-id com.ynxweb4.shop --product-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app --extracted-metadata-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Metadata.appintents --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/YNXShop.build/Debug-iphonesimulator/YNXShop.build/YNXShop.DependencyMetadataFileList --source-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app/Info.plist --archive-ssu-assets
+2026-10-04 04:28:24.857 appintentsnltrainingprocessor[58238:5534141] Parsing options for appintentsnltrainingprocessor
+2026-10-04 04:28:24.859 appintentsnltrainingprocessor[58238:5534141] Starting AppIntents SSU YAML Generation
+2026-10-04 04:28:24.860 appintentsnltrainingprocessor[58238:5534141] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app
+
+Validate /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    builtin-validationUtility /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app (in target 'YNXShop' from project 'YNXShop')
+    cd /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/ios
+    /usr/bin/touch -c /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Products/Debug-iphonesimulator/YNXShop.app
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-pz9FcC/derived-YNXShop/SDKExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

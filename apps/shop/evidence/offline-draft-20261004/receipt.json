@@ -1,0 +1,209 @@
+{
+  "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+  "sourceTree": "e49238e1655bc4b9490d13f0a673fc75aa0c2e3d",
+  "base": {
+    "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+    "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+    "members": 427,
+    "bytes": 15055872,
+    "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+  },
+  "delta": {
+    "path": "commerce-owned-delta-609c981bb.tar",
+    "members": 12,
+    "bytes": 204288,
+    "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+  },
+  "composedOwnedMembers": 430,
+  "composition": "PASS all current owned source hashes equal immutable base plus delta",
+  "testedSourcePins": 164,
+  "validation": {
+    "androidJVM": 46,
+    "androidDebug": "PASS",
+    "appleModel": 61,
+    "macOSDebug": "PASS matching production source",
+    "iOSSimulatorDebug": "PASS matching production source",
+    "webKnownUnsentBrowser": 1
+  },
+  "rawRecords": [
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerJourneyTest.xml",
+      "bytes": 1909,
+      "sha256": "7d7f4736ee92b48feb1d5e501fab524fed9d40bd763e5ba278f2a518c2e5dda2"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerOrderActionInputTest.xml",
+      "bytes": 890,
+      "sha256": "59791bfd5afe48ccd5c18f6e23e6a151602cbb2ae27abae7cdac269fa9ed6baa"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerTransitionRecoveryTest.xml",
+      "bytes": 1229,
+      "sha256": "3224a8fdd18c4c9705f297f9ad39db8dc4b224a99acb1d9af3b5a4275b0a8024"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.OfflineDraftRetryTest.xml",
+      "bytes": 1206,
+      "sha256": "e8da1ef41a0c5dea0424806f35f8af2f72d78bedd6c3f1976eaafb7935d9535f"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.OfflineMutationQueueTest.xml",
+      "bytes": 1604,
+      "sha256": "e1b47d89583cac9b3bca2e927726f6aa9a3007f806ef483433ece2d8ff33e249"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.PrivacyLifecycleTest.xml",
+      "bytes": 1807,
+      "sha256": "009caaaaf8a9cf4a5ef514444c676b98e29bcbed80e7a6aec6fe9e5964517016"
+    },
+    {
+      "path": "raw/android-accepted-android-build-and-order-checks.log",
+      "bytes": 2855,
+      "sha256": "f7e6047fb4b161aeb6f237c66af3527529f4cd03ae086913068e0f38cacf6a20"
+    },
+    {
+      "path": "raw/android-accepted-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/android-accepted.log",
+      "bytes": 311,
+      "sha256": "27600a33780443546c3229699aeeea9002cefed20d05d4d0f174bb68996188c4"
+    },
+    {
+      "path": "raw/android-final.log",
+      "bytes": 311,
+      "sha256": "d1dee174a9a3fb1cf55261fd44438ab53538ad1fa144e425211028a485e2a7a1"
+    },
+    {
+      "path": "raw/android-first-android-build-and-order-checks.log",
+      "bytes": 4195,
+      "sha256": "86f35ee5b6101a8d9e3254504a11a65463e125d8e11aac042bf37fbaf6321cb6"
+    },
+    {
+      "path": "raw/android-first-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/android-first.log",
+      "bytes": 1138,
+      "sha256": "962faf591de3eb7ac8221d8d150e1868b2f21ec6ed22ff828de91cbe2e61b196"
+    },
+    {
+      "path": "raw/android-second.log",
+      "bytes": 311,
+      "sha256": "5cddb0d435216b02094b6b72d854074832e4fd45e7dd6e8978fad3a2aa340e44"
+    },
+    {
+      "path": "raw/android-third.log",
+      "bytes": 1138,
+      "sha256": "c37262f3edfc316f12d00ea0836263919eaba9630891c4bf23424ef57f5d928f"
+    },
+    {
+      "path": "raw/android-view-fail-android-build-and-order-checks.log",
+      "bytes": 3390,
+      "sha256": "9841f48696006bf568f1fa192bd9658f90bbbcfc8e1a6fe30e8e419a4eda1b23"
+    },
+    {
+      "path": "raw/android-view-fail-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/apple-accepted-YNXShop-debug-build.log",
+      "bytes": 154807,
+      "sha256": "cb497eca6a2823a62f5df6e79d1124eb14258da1c1394613c0bf3911c9fa222f"
+    },
+    {
+      "path": "raw/apple-accepted-YNXShopMac-debug-build.log",
+      "bytes": 153486,
+      "sha256": "7fef937de7a0ad2789b110301f9e863b1382848ad997cdad1f3aa8044b2147d9"
+    },
+    {
+      "path": "raw/apple-accepted-apple-model-checks-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-accepted-apple-model-checks.log",
+      "bytes": 3676,
+      "sha256": "5a89aa072da5a817a14d98d2ec284af60730a8ef94eb57d2b915a199df12dd30"
+    },
+    {
+      "path": "raw/apple-accepted-apple-source-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-accepted-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/apple-accepted-xcode-first-launch.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-final-model-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-final-model.log",
+      "bytes": 3818,
+      "sha256": "eac9dd2309ef4846f645ad5176ccd76775c6abc494a73437a10da5e75638441d"
+    },
+    {
+      "path": "raw/apple-first.log",
+      "bytes": 430,
+      "sha256": "82b816c2b2b4a6f1bd983b955f647df845b2b746e6541461d247875a85acf736"
+    },
+    {
+      "path": "raw/apple-fixture-fail-apple-model-checks-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-fixture-fail-apple-model-checks.log",
+      "bytes": 141,
+      "sha256": "e0b6dec659488a7756c058f827938aa2f6c1ed87993badb8e2b9a6806d269190"
+    },
+    {
+      "path": "raw/apple-fixture-fail-apple-source-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-fixture-fail-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/apple-fixture-fail-xcode-first-launch.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-second.log",
+      "bytes": 1197,
+      "sha256": "91dd756b9ac7174abdd6de56613736fdff044b0a7771f00522b7732faed1f46e"
+    },
+    {
+      "path": "raw/apple-third.log",
+      "bytes": 430,
+      "sha256": "49a7f24604d40a88373db5399970be5e3555a64898baebbb0068b68867f3717d"
+    },
+    {
+      "path": "raw/web-explicit-draft.log",
+      "bytes": 396,
+      "sha256": "88369b9d7b9d2f1b882df53efe9f472439617f5b3c968a5bc550c8521ac21db9"
+    }
+  ],
+  "wholeGoal": "NOT_COMPLETE",
+  "publicDelivery": "NOT_VERIFIED",
+  "formalSigning": "NOT_VERIFIED",
+  "installedWalletJourney": "NOT_VERIFIED"
+}

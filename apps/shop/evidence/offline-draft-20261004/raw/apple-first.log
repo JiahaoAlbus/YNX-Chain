@@ -1,0 +1,9 @@
+Preserved isolated verification stage: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-zvSGsq
+PASS native-contract-locales
+PASS xcode-first-launch
+PASS apple-source-parse
+PASS apple-model-checks-build
+PASS apple-model-checks
+PASS YNXShopMac-debug-build
+PASS YNXShop-debug-build
+Source verification only; installed app, real Wallet approval, public operation, signing and TestFlight are separate gates.

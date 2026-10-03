@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.PrivacyLifecycleTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-03T20:33:03.412Z" hostname="HuangJiahaoMacmini" time="0.123">
+  <properties/>
+  <testcase name="dispatchWithoutAReceiptBecomesUnknownAfterProcessRestart" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.0"/>
+  <testcase name="incompatibleReceiptPreservesEvidenceAndDoesNotUnlockTheAccount" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.001"/>
+  <testcase name="queueAcknowledgementAndDeletionCleanupCannotOverwriteEachOthersQueueSnapshot" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.112"/>
+  <testcase name="validReceiptSurvivesCleanupCommitFailureWithoutDowngradingToUnknown" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.001"/>
+  <testcase name="threeLiveWorkersRecordOutcomesBeforeOldContextIsSuppressed" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.002"/>
+  <testcase name="oldQueueWorkerCannotAdmitUnderTheNewShoppingGeneration" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.002"/>
+  <testcase name="lostDeletionReceiptRetriesTheFrozenIdAndListWithoutOpeningWrites" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.001"/>
+  <testcase name="admittedButNotDispatchedWriteCannotPassDeletionBarrier" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.0"/>
+  <testcase name="confirmedDeletionPreservesOriginalEvidenceAndOtherAccountsAndTwoRoundsStaySeparate" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.002"/>
+  <testcase name="delayedRestoreClickCannotTakeANewGenerationQueueSnapshot" classname="com.ynxweb4.shop.PrivacyLifecycleTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

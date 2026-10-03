@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:60017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/order-action-recovery.spec.mjs:6:1 › known unsent proof failure survives cold reload and explicit Submit reuses original input and key (3.8s)
+
+  1 passed (4.4s)

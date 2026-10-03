@@ -1,0 +1,17 @@
+Preserved isolated verification stage: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-DspHu0
+PASS native-contract-locales
+PASS xcode-first-launch
+PASS apple-source-parse
+PASS apple-model-checks-build
+file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/native/scripts/verify-order-actions.mjs:14
+ if(result.error||result.status!==0)throw new Error(name+' failed ('+result.status+'); inspect '+stage+'/'+name+'.log');
+                                          ^
+
+Error: apple-model-checks failed (null); inspect /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-DspHu0/apple-model-checks.log
+    at run (file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/native/scripts/verify-order-actions.mjs:14:43)
+    at file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/native/scripts/verify-order-actions.mjs:31:188
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0

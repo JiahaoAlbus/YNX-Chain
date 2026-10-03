@@ -1,0 +1,12 @@
+apps/shop/BUYER_TRANSITION_RECOVERY_20261004.md
+apps/shop/OFFLINE_DRAFT_RETRY_20261004.md
+apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerTransitionRecovery.java
+apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/MainActivity.java
+apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/OfflineDraftPhase.java
+apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/OfflineMutationQueue.java
+apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/OfflineDraftRetryTest.java
+apps/shop/native/ios/YNXShop/Security.swift
+apps/shop/native/ios/YNXShop/ShopModel.swift
+apps/shop/native/ios/tests/BuyerJourneyChecks.swift
+apps/shop/native/scripts/verify-order-actions.mjs
+apps/shop/test/browser/order-action-recovery.spec.mjs

@@ -1,0 +1,4 @@
+Preserved isolated verification stage: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-order-actions-ZF1fI8
+PASS native-contract-locales
+PASS android-build-and-order-checks
+Source verification only; installed app, real Wallet approval, public operation, signing and TestFlight are separate gates.
