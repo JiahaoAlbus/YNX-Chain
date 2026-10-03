@@ -607,7 +607,11 @@ function submitForm(form,path,body,event,{method='POST',reset=true,successKey='p
 }
 $('#category-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/categories',{name:f.get('name'),color:f.get('color')},e)});
 $('#budget-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/budgets',{name:f.get('name'),categoryId:f.get('categoryId'),limitYnxt:Number(f.get('limitYnxt')),period:f.get('period'),startsAt:new Date().toISOString()},e)});
-$('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);const raw=f.get('amountYnxt');submitForm(e.currentTarget,'/api/reminders',{title:f.get('title'),amountYnxt:raw===''?null:Number(raw),schedule:f.get('schedule'),nextDueAt:new Date(f.get('nextDueAt')).toISOString(),sourceRef:''},e)});
+$('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);const raw=f.get('amountYnxt'),due=new Date(f.get('nextDueAt'));
+  // Invalid/restored drafts must reach the guarded save controller, not throw
+  // before it can preserve the draft and display the localized recovery state.
+  const nextDueAt=Number.isFinite(due.getTime())?due.toISOString():'';
+  submitForm(e.currentTarget,'/api/reminders',{title:f.get('title'),amountYnxt:raw===''?null:Number(raw),schedule:f.get('schedule'),nextDueAt,sourceRef:''},e)});
 $('#privacy-form').addEventListener('input',e=>{if(state.connected)formUncommittedDrafts.set(e.currentTarget,{context:state.context})});
 $('#privacy-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submitForm(f,'/api/privacy',{includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked},e,{method:'PUT',reset:false,successKey:'privacySaved'})});
 function renderStatement(s){

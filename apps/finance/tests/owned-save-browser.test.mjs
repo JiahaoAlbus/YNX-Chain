@@ -13,6 +13,30 @@ const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function rend
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
 const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
+test('invalid reminder date remains a recoverable localized draft rather than an uncaught submit error',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>route.abort());
+    await page.route('https://finance-draft.test/',route=>route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}));
+    await page.goto('https://finance-draft.test/');await page.addScriptTag({content:locale});
+    await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];const financeText=k=>YNXFinanceLocale.text(k),notify=()=>{},notifyFailure=()=>{},attestBrowserIdentityActivity=async()=>{},load=async()=>{};const api=(path,options)=>new Promise(resolve=>calls.push({path,body:JSON.parse(options.body),resolve}));${saves}`});
+    await page.locator('#reminder-form input[name=title]').fill('Keep my draft');
+    await page.evaluate(()=>document.querySelector('#reminder-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>calls.length),0);
+    assert.equal(await page.locator('#reminder-form input[name=title]').inputValue(),'Keep my draft');
+    for(const language of ['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(language=>YNXFinanceLocale.set(language),language);
+      assert.equal(await page.locator('#reminder-form [data-save-state]').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('ownedSaveUnconfirmed')));
+    }
+    await page.locator('#reminder-form input[name=nextDueAt]').fill('2030-10-03T10:30');
+    await page.evaluate(()=>document.querySelector('#reminder-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    assert.equal(await page.evaluate(()=>calls.length),1);
+    await page.evaluate(()=>calls[0].resolve({...calls[0].body,id:'real-fixture-receipt',source:'user',enabled:true,createdAt:'2026-10-03T00:00:00Z',updatedAt:'2026-10-03T00:00:00Z'}));
+    await page.waitForFunction(()=>!document.querySelector('#reminder-form').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#reminder-form input[name=title]').inputValue(),'');assert.deepEqual(errors,[]);
+  }finally{await browser.close();}
+});
 test('all twelve locales keep reminder protocol values independent from translated option labels',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
