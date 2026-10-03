@@ -19,7 +19,7 @@
     <string name="payment_boundary">只有中央支付返回完全匹配且已提交的 YNXT 证据后，订单才会标记为已支付。</string>
     <string name="add_cart">加入购物车</string><string name="inventory">件可售</string><string name="cart_empty">购物车为空。</string><string name="order_review">订单确认</string>
     <string name="recipient">收件人</string><string name="address">地址</string><string name="city">城市</string><string name="country">国家或地区</string>
-    <string name="checkout">预留库存并创建待支付订单</string><string name="payment_pending">等待支付</string><string name="pay_handoff">前往 YNX Pay</string><string name="check_payment">检查结算</string>
+    <string name="checkout">预留库存并创建待支付订单</string><string name="payment_pending">等待支付</string><string name="pay_handoff">在 YNX Wallet 审核发票</string><string name="check_payment">检查结算</string>
     <string name="cancel_order">取消订单</string><string name="confirm_delivery">确认收货</string><string name="write_review">撰写评价</string><string name="return_request">申请退货</string><string name="refund_request">申请退款</string><string name="dispute">发起争议</string>
     <string name="trust_unavailable">Trust 案件服务不可用；证据仍会保留。</string><string name="tax_unavailable">税务服务不可用</string><string name="logistics_unavailable">外部物流服务不可用</string>
     <string name="ai_compare">AI 辅助比较</string><string name="ai_language">AI 输出语言</string><string name="ai_privacy">AI 仅查看所选公开商品或本人订单摘要，不能购买、退款、发布商品、改价或修改政策。</string>
@@ -36,4 +36,5 @@
     <string name="commerce_services">Commerce 服务</string>
     <string name="seller_console">卖家控制台</string>
     <string name="merchant_invoices">商户发票</string>
+    <string name="invoice_reference_unconfirmed">原发票尚未确认。请刷新此订单，不会创建新的发票。</string>
 </resources>

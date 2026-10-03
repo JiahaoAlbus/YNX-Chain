@@ -65,11 +65,16 @@ final class ApiClient {
         if(!businessMutation(method,path))return executeTracked(privacy(),null,()->current(expected)&&privacy().current(expected.account,generation),networkCall(method,path,frozen,expected),response->observeResponse(method,path,expected,response));
         PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);return execute(method,path,frozen,expected,ticket);
     }
+    JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation,BeforeDispatch admission)throws Exception{
+      if(expected==null||!expected.nativeV2)throw new SecurityException("Canonical Native session required");JSONObject frozen=new JSONObject(body.toString());PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);NetworkCall network=networkCall(method,path,frozen,expected);
+      return executeTracked(privacy(),ticket,()->current(expected)&&privacy().current(expected.account,generation),new NetworkCall(){public void prepare()throws Exception{network.prepare();}public void admitDispatch()throws Exception{admission.admit();}public Response send()throws Exception{return network.send();}},response->observeResponse(method,path,expected,response));
+    }
     private JSONObject execute(String method,String path,JSONObject body,ProductSession expected,PrivacyLifecycle.Ticket ticket)throws Exception{
         return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),networkCall(method,path,body,expected),response->observeResponse(method,path,expected,response));
     }
     interface ContextCheck { boolean current() throws Exception; }
-    interface NetworkCall { default void prepare() throws Exception {} Response send() throws Exception; }
+    interface BeforeDispatch {void admit()throws Exception;}
+    interface NetworkCall { default void prepare() throws Exception {} default void admitDispatch()throws Exception {} Response send() throws Exception; }
     // The production network path uses this seam; JVM tests can drive genuine
     // admission/dispatch/result ordering without pretending to exercise Android.
     interface ResponseObserver { void received(Response response)throws Exception; }
@@ -80,6 +85,8 @@ final class ApiClient {
             if(!context.current()){lifecycle.notSent(ticket);throw new SecurityException("Product session changed");}
             network.prepare();
             if(!context.current())throw new SecurityException("Product session changed during authorization preparation");
+            network.admitDispatch();
+            if(!context.current())throw new SecurityException("Product session changed before dispatch");
             if(ticket!=null){lifecycle.dispatch(ticket);dispatched=true;}
             Response response=network.send();
             // Record the authoritative response even when the Activity was

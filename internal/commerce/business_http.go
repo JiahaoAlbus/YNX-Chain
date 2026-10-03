@@ -3,6 +3,7 @@ package commerce
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -193,6 +194,15 @@ func (s *Server) handleFunc(pattern string, handler http.HandlerFunc) {
 				failBusiness(w, err)
 			}
 			return
+		}
+		if capture.status < 400 {
+			var value any
+			decoder := json.NewDecoder(bytes.NewReader(capture.body.Bytes()))
+			decoder.UseNumber()
+			if decoder.Decode(&value) == nil {
+				capture.body.Reset()
+				_ = json.NewEncoder(&capture.body).Encode(buyerWalletWire(value, verified))
+			}
 		}
 		capture.publish(w)
 	})

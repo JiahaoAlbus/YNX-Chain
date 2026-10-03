@@ -28,7 +28,7 @@
     <string name="country">Country</string>
     <string name="checkout">Reserve inventory and create payment-pending order</string>
     <string name="payment_pending">Payment pending</string>
-    <string name="pay_handoff">Continue in YNX Pay</string>
+    <string name="pay_handoff">Review invoice in YNX Wallet</string>
     <string name="check_payment">Check settlement</string>
     <string name="cancel_order">Cancel order</string>
     <string name="confirm_delivery">Confirm delivery</string>
@@ -68,4 +68,5 @@
     <string name="commerce_services">Commerce services</string>
     <string name="seller_console">Seller Console</string>
     <string name="merchant_invoices">Merchant invoices</string>
+    <string name="invoice_reference_unconfirmed">The original invoice is not confirmed yet. Refresh this order; a new invoice will not be created.</string>
 </resources>

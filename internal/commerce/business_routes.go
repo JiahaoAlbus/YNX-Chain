@@ -23,6 +23,7 @@ var commerceBusinessRoutes = map[string]businessRoutePolicy{
 	"POST /api/orders":                                             {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/intent-lookup":                               {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"GET /api/orders/{id}":                                         {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write", "shop:profile:write"}, "seller": {"account:read", "shop:seller:operate"}}},
+	"GET /api/orders/{id}/pay-handoff":                             {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/{id}/pay-handoff":                            {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/{id}/confirm-payment":                        {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/{id}/transition":                             {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write", "shop:profile:write"}, "seller": {"account:read", "shop:seller:operate"}}},

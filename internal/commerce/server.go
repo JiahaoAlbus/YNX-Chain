@@ -76,6 +76,7 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/orders/intent-lookup", s.orderIntentLookup)
 	s.handleFunc("GET /api/orders/{id}", s.order)
 	s.handleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
+	s.handleFunc("GET /api/orders/{id}/pay-handoff", s.invoiceReference)
 	s.handleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
 	s.handleFunc("POST /api/orders/{id}/transition", s.orderTransition)
 	s.handleFunc("POST /api/seller/stores", s.createStore)

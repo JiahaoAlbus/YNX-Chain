@@ -18,18 +18,25 @@ final class CheckoutIntent {
     static final class EmptyCartException extends IllegalStateException {}
     static final class UnresolvedException extends IllegalStateException { UnresolvedException(){super("CHECKOUT_UNRESOLVED");} }
     static Prepared prepareSyncedCart(NativeCart.Storage store,JSONObject address,StoreResolver catalog)throws Exception{
+ return prepareSyncedCartInternal(store,ProductSession.parse(store.get("commerce_session"),Instant.now()),address,catalog,false);
+ }
+ static Prepared prepareSyncedCart(NativeCart.Storage store,ProductSession session,JSONObject address,StoreResolver catalog)throws Exception{
+ if(session==null||!session.nativeV2||!session.expiresAt.isAfter(Instant.now()))throw new SecurityException("Current verified Native session required");
+ return prepareSyncedCartInternal(store,session,address,catalog,true);
+ }
+ private static Prepared prepareSyncedCartInternal(NativeCart.Storage store,ProductSession session,JSONObject address,StoreResolver catalog,boolean nativeOnly)throws Exception{
       synchronized(store){
-        ProductSession session=ProductSession.parse(store.get("commerce_session"),Instant.now());if(session==null)throw new SecurityException("Active Shop account required");PrivacyLifecycle.requireWritable(store,session.account);
+        if(session==null)throw new SecurityException("Active Shop account required");PrivacyLifecycle.requireWritable(store,session.account);
         JSONArray items=new JSONArray(store.get("cart:"+session.account));if(items.length()==0)throw new EmptyCartException();
         String key="checkout:"+session.account,previous=store.get(key);JSONObject body=new JSONObject().put("StoreID",catalog.storeFor(items.getJSONObject(0).getString("ProductID"))).put("Items",items).put("Address",new JSONObject(address.toString()));
         if(previous.isEmpty())body.put("CartRevision",NativeCart.checkoutRevision(store,session.account));
-        else{JSONObject saved=new JSONObject(previous),original=new JSONObject(saved.getString("fingerprint"));if(!original.has("CartRevision"))throw new UnresolvedException();body.put("CartRevision",original.getString("CartRevision"));if(!WalletAuth.canonical(body).equals(saved.getString("fingerprint")))throw new UnresolvedException();}
+        else{JSONObject saved=new JSONObject(previous);if(nativeOnly&&!"prepared".equals(saved.optString("phase")))throw new UnresolvedException();JSONObject original=new JSONObject(saved.getString("fingerprint"));if(!original.has("CartRevision"))throw new UnresolvedException();body.put("CartRevision",original.getString("CartRevision"));if(!WalletAuth.canonical(body).equals(saved.getString("fingerprint")))throw new UnresolvedException();}
         CheckoutIntent intent=prepare(session.account,body,previous);JSONObject saved=new JSONObject(intent.serialized);if(previous.isEmpty())saved.put("cartStamp",new JSONObject(store.get(NativeCart.key(session.account))).getString("stamp"));else if(new JSONObject(previous).has("cartStamp"))saved.put("cartStamp",new JSONObject(previous).getString("cartStamp"));
-        store.put(key,saved.toString());body.put("IdempotencyKey",intent.key);return new Prepared(session,body);
+        if(nativeOnly)saved.put("phase","prepared");store.put(key,saved.toString());if(!saved.toString().equals(store.get(key)))throw new SecurityException("Checkout intent write/readback failed");body.put("IdempotencyKey",intent.key);return new Prepared(session,body);
       }
     }
     static boolean confirmedReceipt(NativeCart.Storage store,String account,JSONObject request,JSONObject order)throws Exception{
-      if(!account.equals(order.optString("Buyer"))||order.optString("ID").isEmpty())throw new SecurityException("Invalid order receipt");
+      if(!BuyerReceipt.owned(order,account)||order.optString("ID").isEmpty())throw new SecurityException("Invalid order receipt");
       if(request.has("CartRevision")){JSONObject consumed=order.optJSONObject("CartConsumption");if(consumed==null||!request.getString("CartRevision").equals(consumed.optString("PreviousRevision"))||consumed.optString("Revision").isEmpty())throw new SecurityException("Mismatched cart consumption receipt");}
       synchronized(store){
         String intentKey="checkout:"+account,raw=store.get(intentKey);if(raw.isEmpty())return false;
@@ -43,6 +50,9 @@ final class CheckoutIntent {
         // One durable commit keeps acknowledgement and recovery state consistent.
         store.putAll(updates);return cleared;
       }
+    }
+    static void markDispatched(NativeCart.Storage store,ProductSession session,JSONObject request)throws Exception{
+      synchronized(store){PrivacyLifecycle.requireWritable(store,session.account);String key="checkout:"+session.account,raw=store.get(key);JSONObject saved=new JSONObject(raw),body=new JSONObject(request.toString());String id=body.getString("IdempotencyKey");body.remove("IdempotencyKey");if(!session.nativeV2||!session.expiresAt.isAfter(Instant.now())||!session.account.equals(saved.getString("account"))||!id.equals(saved.getString("key"))||!WalletAuth.canonical(body).equals(saved.getString("fingerprint"))||!"prepared".equals(saved.optString("phase")))throw new SecurityException("Original unsent checkout required");saved.put("phase","unknown");store.put(key,saved.toString());if(!saved.toString().equals(store.get(key)))throw new SecurityException("Original checkout dispatch could not be saved");}
     }
     final String key, serialized;
     private CheckoutIntent(String key, String serialized) { this.key=key;this.serialized=serialized; }

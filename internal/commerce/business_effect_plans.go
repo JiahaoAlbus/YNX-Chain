@@ -227,7 +227,7 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 				failBusiness(w, err)
 				return
 			}
-			write(w, 201, response)
+			writeBuyerBusiness(w, 201, response, verified)
 			return
 		}
 		if !errors.Is(recoveryErr, errInvoiceNotBound) {
@@ -260,7 +260,7 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 			failBusiness(w, err)
 			return
 		}
-		write(w, 200, response)
+		writeBuyerBusiness(w, 200, response, verified)
 		return
 	case "POST /api/ai/jobs/{id}/run":
 		plan, err = s.aiGenerationEffect(r.PathValue("id"), body)
@@ -281,5 +281,5 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 		failBusiness(w, err)
 		return
 	}
-	write(w, code, response)
+	writeBuyerBusiness(w, code, response, verified)
 }

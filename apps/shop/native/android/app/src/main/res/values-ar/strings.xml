@@ -27,7 +27,7 @@
     <string name="country">البلد</string>
     <string name="checkout">حجز المخزون وإنشاء طلب بانتظار الدفع</string>
     <string name="payment_pending">الدفع معلّق</string>
-    <string name="pay_handoff">المتابعة في YNX Pay</string>
+    <string name="pay_handoff">مراجعة الفاتورة في YNX Wallet</string>
     <string name="check_payment">التحقق من التسوية</string>
     <string name="cancel_order">إلغاء الطلب</string>
     <string name="confirm_delivery">تأكيد التسليم</string>
@@ -67,4 +67,5 @@
     <string name="commerce_services">خدمات Commerce</string>
     <string name="seller_console">لوحة البائع</string>
     <string name="merchant_invoices">فواتير التاجر</string>
+    <string name="invoice_reference_unconfirmed">لم يتم تأكيد الفاتورة الأصلية بعد. حدّث هذا الطلب؛ لن يتم إنشاء فاتورة جديدة.</string>
 </resources>

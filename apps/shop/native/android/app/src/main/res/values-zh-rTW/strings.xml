@@ -19,7 +19,7 @@
     <string name="payment_boundary">只有中央支付回傳完全相符且已提交的 YNXT 證據後，訂單才會標為已付款。</string>
     <string name="add_cart">加入購物車</string><string name="inventory">件可售</string><string name="cart_empty">購物車是空的。</string><string name="order_review">訂單確認</string>
     <string name="recipient">收件人</string><string name="address">地址</string><string name="city">城市</string><string name="country">國家或地區</string><string name="checkout">預留庫存並建立待付款訂單</string>
-    <string name="payment_pending">等待付款</string><string name="pay_handoff">前往 YNX Pay</string><string name="check_payment">檢查結算</string><string name="cancel_order">取消訂單</string><string name="confirm_delivery">確認收貨</string><string name="write_review">撰寫評價</string><string name="return_request">申請退貨</string><string name="refund_request">申請退款</string><string name="dispute">提出爭議</string>
+    <string name="payment_pending">等待付款</string><string name="pay_handoff">在 YNX Wallet 審核發票</string><string name="check_payment">檢查結算</string><string name="cancel_order">取消訂單</string><string name="confirm_delivery">確認收貨</string><string name="write_review">撰寫評價</string><string name="return_request">申請退貨</string><string name="refund_request">申請退款</string><string name="dispute">提出爭議</string>
     <string name="trust_unavailable">Trust 案件服務無法使用；證據仍會保留。</string><string name="tax_unavailable">稅務服務無法使用</string><string name="logistics_unavailable">外部物流服務無法使用</string>
     <string name="ai_compare">AI 輔助比較</string><string name="ai_language">AI 輸出語言</string><string name="ai_privacy">AI 僅查看所選公開商品或本人訂單摘要，不能購買、退款、發布商品、改價或修改政策。</string><string name="grant_permission">僅授權本次</string><string name="apply_draft">採用草稿</string><string name="reject_draft">拒絕</string><string name="cancel">取消</string><string name="settings_language">App 語言</string>
     <string name="security_error">安全驗證失敗。</string><string name="session_expired">錢包工作階段已過期或撤銷。</string><string name="queued_offline">操作已連同冪等鍵排隊；伺服器確認前不會宣稱訂單或付款成功。</string><string name="restore_pending">重試待處理操作</string><string name="save_profile">儲存資料與地址</string><string name="profile_saved">資料已儲存。</string><string name="no_orders">尚無訂單。</string>
@@ -33,4 +33,5 @@
     <string name="commerce_services">Commerce 服務</string>
     <string name="seller_console">賣家控制台</string>
     <string name="merchant_invoices">商戶發票</string>
+    <string name="invoice_reference_unconfirmed">原發票尚未確認。請重新整理此訂單，不會建立新發票。</string>
 </resources>

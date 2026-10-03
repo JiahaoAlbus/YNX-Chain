@@ -39,9 +39,12 @@ final class OfflineMutationQueue {
                 if(!account.equals(expected.account)||!PrivacyLifecycle.queueExecutable(secure,account,item))continue;
                 try{
                     JSONObject body=item.getJSONObject("body");String path=item.getString("path");
-                    JSONObject response=api.requestForSession(item.getString("method"),path,body,expected,generation);
+                    JSONObject response;
+                    if(expected.nativeV2){if(!path.equals("/orders"))continue;response=api.requestForSession("POST","/orders/intent-lookup",new JSONObject().put("IdempotencyKey",body.getString("IdempotencyKey")),expected,generation);}
+                    else response=api.requestForSession(item.getString("method"),path,body,expected,generation);
                     synchronized(this){
                         synchronized(secure){
+                        if(expected.nativeV2&&(!expected.same(api.session())||!PrivacyLifecycle.writableGeneration(secure,expected.account,generation)))throw new SecurityException("Original Native queue recovery context changed");
                         if(path.equals("/orders")){if(body.has("CartRevision")){if(!(secure instanceof NativeCart.Storage))throw new SecurityException("Atomic cart storage required");CheckoutIntent.confirmedReceipt((NativeCart.Storage)secure,account,body,response);}else CheckoutIntent.confirmed(secure,account,body);}
                         // Read again so requests added during the network call
                         // remain queued. No UI enqueue waits for the network.

@@ -43,3 +43,31 @@ func NewCommerceCombinedWebV2Server(store *Store, cfg ServerConfig, backendKeyID
 	cfg.browserSSO = browser
 	return NewServer(store, cfg), nil
 }
+
+// Native Buyer uses the matching protected private backend role and the original
+// authenticated native actor fence. It does not borrow a Web Browser identity.
+func NewCommerceNativeBuyerV2Server(store *Store, cfg ServerConfig, platform, backendKeyID string, backendKey ed25519.PrivateKey, transport http.RoundTripper, bind CommerceV2ActorBinder) (*Server, error) {
+	if store == nil || bind == nil || !slices.Contains([]string{"android", "macos"}, platform) {
+		return nil, errors.New("original registered Native Buyer composition required")
+	}
+	if err := validateCommerceBusinessRoutes(); err != nil {
+		return nil, err
+	}
+	policy := v2.Policy{ProductID: "shop", ClientID: ShopClientID, ApplicationID: ShopBundleID, Platform: platform, Origin: "app://" + platform + "/" + ShopBundleID, Callback: ShopCallback, AllowedScopes: slices.Clone(ShopScopes)}
+	identifier := ShopBundleID
+	if platform == "android" {
+		policy.PackageID = &identifier
+	} else {
+		policy.BundleID = &identifier
+	}
+	client, err := v2.NewClient("https://wallet-auth.ynxweb4.com", policy, transport)
+	if err != nil {
+		return nil, err
+	}
+	live, err := v2.NewPrivateBusinessRevalidator(client, ShopClientID+"-business-"+platform+"-v1", backendKeyID, backendKey)
+	if err != nil {
+		return nil, err
+	}
+	cfg.businessV2 = &commerceV2Verifier{consumers: []commerceV2Consumer{{policy, client, live}}, bind: bind}
+	return NewServer(store, cfg), nil
+}

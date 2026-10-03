@@ -26,7 +26,7 @@ final class NativeCart {
         if(expected==null||!expected.same(sender.session())||!PrivacyLifecycle.writableGeneration(store,expected.account,generation))throw new SecurityException("Cart session or privacy generation changed");
     }
     private static void receipt(JSONObject value,String account)throws Exception{
-        if(!account.equals(value.optString("Buyer"))||!value.has("Revision")||value.isNull("Revision")||!(value.get("Revision") instanceof String))throw new SecurityException("Invalid cart receipt");
+        if(!BuyerReceipt.owned(value,account)||!value.has("Revision")||value.isNull("Revision")||!(value.get("Revision") instanceof String))throw new SecurityException("Invalid cart receipt");
         if(value.optJSONArray("Items")==null)value.put("Items",new JSONArray());
     }
     static void edit(Storage store,String account,JSONArray next)throws Exception{
