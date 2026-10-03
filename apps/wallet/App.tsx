@@ -13,6 +13,7 @@ import {
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
+import { walletAppFlowCopy } from "./src/i18n/appFlowCopy";
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry, type NativeTransferHistoryRecord } from "./src/chain/nativeTransferOutbox";
 import { WalletPayInvoiceClient, type WalletPayInvoice } from "./src/chain/walletPayInvoice";
@@ -462,7 +463,7 @@ function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];valu
 function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
   const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const uri=createPaymentURI(account.account);
   const dismiss=()=>{scope.cancel();close()};
   const copy=async(link:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
@@ -557,7 +558,7 @@ function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
   const gate=useModalActionGate(account.account);
   const [records,setRecords]=useState<readonly NativeTransferHistoryRecord[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const load=async(more:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{
     lease=scope.begin({account:account.account});const page=await nativeOutbox.history(account.account,lease.assert,more?cursor:null,10);lease.assert();
@@ -580,7 +581,7 @@ function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>
   const [receipts,setReceipts]=useState<readonly WalletPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [recovery,setRecovery]=useState<WalletPayReview|null>(null);
   const [signedHistory,setSignedHistory]=useState(false);
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const load=async(more:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});const retained=await walletPayFlow.recovery(account.account,lease.assert);lease.assert();setRecovery(retained);const page=await walletPayFlow.history(account.account,lease.assert,more?cursor:null,10);lease.assert();if(more&&page.receipts.some(item=>receipts.some(prior=>prior.binding.hash===item.binding.hash)))throw new Error("Repeated receipt page");setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true)}catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Saved receipts could not be verified. Original records are kept; this does not permit paying again.","暂时无法核对已保存收据。原记录仍被保留，不代表可以重新付款。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   useEffect(()=>{setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false);void load(false);return()=>scope.cancel()},[account.account,scope]);
@@ -612,7 +613,7 @@ function WalletLegacyInvoiceReferenceModal({account,invoiceID,close}:{account:Wa
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
   const gate=useModalActionGate(account.account);
   const [invoice,setInvoice]=useState<WalletPayInvoice|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const load=async()=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);setInvoice(null);try{lease=scope.begin({account:account.account});const result=await new WalletPayInvoiceClient().invoice(invoiceID,lease.assert);lease.assert();setInvoice(result)}catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("The invoice could not be verified at the configured Pay service. Nothing was signed. Try again or cancel.","无法在指定 Pay 服务核对发票，未签署任何付款。请重试或取消。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Review invoice reference","核对发票编号")} close={dismiss}>
@@ -630,7 +631,7 @@ function WalletSignedPayModal({account,invoiceID,integration,close}:{account:Wal
   const [quote,setQuote]=useState<SignedPayQuoteReview|null>(null),[recovery,setRecovery]=useState<SignedPayRecovery|null>(null);
   const [receipts,setReceipts]=useState<readonly WalletSignedPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[time,setTime]=useState(Date.now());
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const current=(lease:WalletOperationLease)=>{lease.assert();if(integrationRef.current!==integration)throw Error("PAY_PROTECTED_INTEGRATION_CHANGED")};
   const refreshSaved=async(lease:WalletOperationLease,more=false)=>{
@@ -747,7 +748,7 @@ function NativeContractModal({visible,account,close}:{visible:boolean;account:Wa
   const [target,setTarget]=useState(""),[method,setMethod]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [legacy,setLegacy]=useState(false);
   const [artifact,setArtifact]=useState<NativeContractArtifact|BFTNativeContract|null>(null),[result,setResult]=useState<NativeContractRead|BFTNativeContractRead|null>(null);
-  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const dismiss=()=>{scope.cancel();close()};
   useEffect(()=>{scope.cancel();setTarget("");setMethod("");setArtifact(null);setResult(null);setError(null);setBusy(false);setLegacy(false)},[visible,account.account,scope]);
   const run=async(read:boolean)=>{

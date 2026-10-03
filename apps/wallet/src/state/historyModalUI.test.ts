@@ -4,10 +4,12 @@ import {readFileSync} from "node:fs";
 import ts from "typescript";
 import {WalletOperationLifecycle} from "../security/operationLifecycle";
 import {ModalActionGate} from "./modalActionGate";
+import {walletAppFlowCopy} from "../i18n/appFlowCopy";
+import {SUPPORTED_LOCALES,type WalletLocale} from "../i18n/i18n";
 const source=readFileSync(new URL("../../App.tsx",import.meta.url),"utf8");
 const hooks=["useOperationScope","useModalActionGate"].map(name=>source.match(new RegExp(`function ${name}\\([^\\n]+`))![0]).join("\n");
 const names=["NativeTransferHistoryModal","WalletPayHistoryModal","WalletLegacyInvoiceReferenceModal"] as const;
-function harness(name:typeof names[number],retained:any=null,initialRecords:any[]=[]){
+function harness(name:typeof names[number],retained:any=null,initialRecords:any[]=[],locale:WalletLocale="en"){
   const start=source.indexOf(`function ${name}(`),end=source.indexOf("return <Modal",start);
   const body=source.slice(start,end)+`return {load,dismiss${name==="WalletPayHistoryModal"?",recover":""}};}\nreturn ${name}({account:{account:'original-account'},invoiceID:'controlled-invoice',close:closeHandler});`;
   const operations=new WalletOperationLifecycle();operations.setAccount("original-account");
@@ -17,7 +19,7 @@ function harness(name:typeof names[number],retained:any=null,initialRecords:any[
   const calls:Array<{kind:string;args:any[];resolve:(value:any)=>void;reject:(error:Error)=>void}>=[];let index=0;
   const read=(kind:string)=>(...args:any[])=>new Promise((resolve,reject)=>calls.push({kind,args,resolve,reject}));
   const localeContext={},integrationContext={};
-  const context={ModalActionGate,useWalletOperations:()=>operations,useContext:(value:unknown)=>value===localeContext?"en":null,WalletLocaleContext:localeContext,WalletSignedPayIntegrationContext:integrationContext,
+  const context={ModalActionGate,walletAppFlowCopy,useWalletOperations:()=>operations,useContext:(value:unknown)=>value===localeContext?locale:null,WalletLocaleContext:localeContext,WalletSignedPayIntegrationContext:integrationContext,
     useMemo:(factory:()=>unknown)=>factory(),useEffect:(effect:()=>void|(()=>void))=>effects.push(effect),
     useState:(initial:any)=>{const position=index++;state[position]=name==="WalletPayHistoryModal"&&position===5?retained:position===0&&name!=="WalletLegacyInvoiceReferenceModal"?initialRecords:initial;return[state[position],(value:any)=>{state[position]=typeof value==="function"?value(state[position]):value}]},
     nativeOutbox:{history:read("history")},walletPayFlow:{recovery:read("recovery"),history:read("receipts"),checkOriginal:read("check"),acknowledgeSettled:read("done")},
@@ -76,4 +78,18 @@ test("repeated Pay receipt page is rejected without duplicating the original rec
 for(const name of names)test(`${name} releases a failed action for an explicit retry`,async()=>{
   const h=harness(name),first=h.handlers.load(false);h.calls[0]!.reject(Error("read unavailable"));await first;
   const next=h.handlers.load(false);assert.equal(h.calls.length,2);h.handlers.dismiss();h.calls[1]!.resolve(null);await next;h.unmount();
+});
+
+test("actual composed history and invoice error handlers use the selected locale in all twelve languages",async()=>{
+  const messages={
+    NativeTransferHistoryModal:"Saved transfers could not be verified. Existing records and the original transfer remain protected. Try again; no replacement is permitted.",
+    WalletPayHistoryModal:"Saved receipts could not be verified. Original records are kept; this does not permit paying again.",
+    WalletLegacyInvoiceReferenceModal:"The invoice could not be verified at the configured Pay service. Nothing was signed. Try again or cancel.",
+  };
+  for(const name of names)for(const locale of SUPPORTED_LOCALES){
+    const h=harness(name,null,[],locale),pending=h.handlers.load(false);
+    h.calls[0]!.reject(Error("controlled unavailable"));await pending;
+    assert.equal(h.state[name==="WalletLegacyInvoiceReferenceModal"?2:4],walletAppFlowCopy(locale,messages[name]),name+": "+locale);
+    h.unmount();
+  }
 });

@@ -7,6 +7,7 @@ import {signedPayFixture} from "../security/signedPayTestFixture";
 import {assertSignedPaySessionBinding,assertSignedPayExpectedPayer} from "../security/prepareSignedPayTransfer";
 import {verifyWalletPayQuote} from "../chain/walletPayQuote";
 import {ModalActionGate} from "./modalActionGate";
+import {walletAppFlowCopy} from "../i18n/appFlowCopy";
 const source=readFileSync(new URL("../../App.tsx",import.meta.url),"utf8");
 const hooks=["useOperationScope","useModalActionGate"].map(name=>source.match(new RegExp(`function ${name}\\([^\\n]+`))![0]).join("\n");
 function harness(invoiceID?:string){
@@ -15,7 +16,7 @@ function harness(invoiceID?:string){
   const integration={policy:f.input.policy,getQuote:async()=>{calls.push("quote");return new Promise((resolve,reject)=>pending.push({resolve,reject}))},getSettlementTransport:async()=>{calls.push("transport");return {}}};
   let activeIntegration=integration;
   const same=(a:any[],b:any[])=>a&&a.length===b.length&&a.every((value,i)=>value===b[i]);
-  const context={ModalActionGate,useWalletOperations:()=>f.operations,useContext:()=>"en",WalletLocaleContext:{},
+  const context={ModalActionGate,walletAppFlowCopy,useWalletOperations:()=>f.operations,useContext:()=>"en",WalletLocaleContext:{},
     useMemo:(factory:()=>any,deps:any[])=>{const i=index++;if(!slots[i]||!same(slots[i].deps,deps))slots[i]={deps,value:factory()};return slots[i].value},
     useRef:(initial:any)=>{const i=index++;return slots[i]??(slots[i]={current:initial})},
     useState:(initial:any)=>{const i=index++;if(!slots[i]){slots[i]={value:initial};states.push(i)}return [slots[i].value,(value:any)=>slots[i].value=typeof value==="function"?value(slots[i].value):value]},

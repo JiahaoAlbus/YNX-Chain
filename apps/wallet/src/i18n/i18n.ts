@@ -1,4 +1,5 @@
 import type { SecureStorageAdapter } from "../storage/walletRepository";
+import {extraWalletDetailCopy} from "./detailLocale";
 
 export const SUPPORTED_LOCALES=["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"] as const;
 export type WalletLocale=typeof SUPPORTED_LOCALES[number];
@@ -293,7 +294,7 @@ const DETAIL_MESSAGES={
 } as const;
 export type WalletDetailMessage=keyof typeof DETAIL_MESSAGES;
 export function walletCopy(locale:WalletLocale,text:WalletDetailMessage,values:Readonly<Record<string,string|number>>={}):string{
-  const template=locale==="zh-Hans"?DETAIL_MESSAGES[text][0]:locale==="ar"?DETAIL_MESSAGES[text][1]:text;
+  const template=locale==="en"?text:locale==="zh-Hans"?DETAIL_MESSAGES[text][0]:locale==="ar"?DETAIL_MESSAGES[text][1]:extraWalletDetailCopy(locale,text);
   return template.replace(/\{([a-zA-Z]+)\}/g,(token,key:string)=>Object.prototype.hasOwnProperty.call(values,key)?String(values[key]):token);
 }
 export function walletDetailError(locale:WalletLocale,error:string):string{
