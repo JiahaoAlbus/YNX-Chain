@@ -7,7 +7,11 @@ const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule(bind => {
   bind(KeybindingContribution).toConstantValue({
     registerKeybindings(registry) {
-      registry.registerKeybinding({ command: CommonCommands.CLOSE_MAIN_TAB.id, keybinding: 'ctrlcmd+w', when: 'editorTextFocus' });
+      // Close the active main tab after a modal cancellation as well. Requiring
+      // text focus made a repeated close silently fail when the dialog retired.
+      registry.registerKeybinding({ command: CommonCommands.CLOSE_MAIN_TAB.id, keybinding: 'ctrlcmd+w' });
+      registry.registerKeybinding({ command: 'editor.action.rename', keybinding: 'f2', when: 'editorTextFocus' });
+      registry.registerKeybinding({ command: 'editor.action.revealDefinition', keybinding: 'f12', when: 'editorTextFocus' });
     },
   });
   bind(FrontendApplicationContribution).toConstantValue({

@@ -74,7 +74,8 @@ for (const path of Object.keys(lock.packages).filter(path => path.startsWith('no
 }
 await writeFile(join(destination, 'component-notices/index.json'), JSON.stringify(notices, null, 2));
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
-  nodeVersion: process.version, entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html',
+  nodeVersion: process.version, nodeOptions: ['--no-experimental-global-navigator', '--max-old-space-size=1024'],
+  entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html',
   lockSha256: createHash('sha256').update(await readFile(join(destination, 'package-lock.json'))).digest('hex'),
   activitySourceSha256: createHash('sha256').update(helper).digest('hex'),
   ynxToolsVersion: JSON.parse(await readFile(join(tools, 'package.json'), 'utf8')).version,

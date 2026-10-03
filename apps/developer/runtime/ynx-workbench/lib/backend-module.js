@@ -3,6 +3,7 @@ const { ProcessUtils } = require('@theia/core/lib/node/process-utils');
 const { spawnSync, spawn } = require('node:child_process');
 const { BackendApplicationContribution } = require('@theia/core/lib/node');
 const { join } = require('node:path');
+const { PluginHostEnvironmentVariable } = require('@theia/plugin-ext/lib/common/plugin-protocol');
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged
 // native helper which accepts only descendants of this backend, verifies PID
@@ -20,6 +21,17 @@ class YnxProcessUtils extends ProcessUtils {
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   if (process.platform === 'darwin') rebind(ProcessUtils).to(YnxProcessUtils).inSingletonScope();
+  bind(PluginHostEnvironmentVariable).toConstantValue({
+    process(env) {
+      // The framework's legacy navigator getter returns undefined but leaves
+      // `'navigator' in globalThis` true. Older real VS Code language extensions
+      // then select browser-only capabilities inside this Node host. Skip that
+      // getter while disabling Node's experimental browser global at startup.
+      env.THEIA_SUPPORT_NODE_GLOBAL_NAVIGATOR = 'true';
+      if (Number(process.versions.node.split('.')[0]) >= 21)
+        env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
+    },
+  });
   let adapter;
   bind(BackendApplicationContribution).toConstantValue({
     configure(app) {

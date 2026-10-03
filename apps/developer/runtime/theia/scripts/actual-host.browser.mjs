@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdtemp, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, realpath, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 const { chromium } = await import(process.env.YNX_QA_PLAYWRIGHT_MODULE || 'playwright');
 const receiptPath = process.argv[2];
 const runtime = JSON.parse(await readFile(receiptPath, 'utf8'));
 assert.match(runtime.qa, /\/ynx-theia-extension-qa-[A-Za-z0-9]+$/);
 assert.equal(runtime.workspace, `${runtime.qa}/project`);
+const runnerBytes = await readFile(fileURLToPath(import.meta.url));
+const runnerSha256 = createHash('sha256').update(runnerBytes).digest('hex');
+await writeFile(`${runtime.qa}/actual-host-runner.mjs`, runnerBytes, { flag: 'wx', mode: 0o600 });
 const browser = await chromium.launch({ headless: true });
 const checks = [], errors = [];
 let page;
@@ -28,20 +33,28 @@ try {
   await page.keyboard.press('Meta+p');
   const input = page.locator('input[placeholder^="Search files by name"]');
   await input.fill('main.js');
-  await page.getByText('main.js', { exact: true }).first().waitFor();
+  await page.locator('.quick-input-list .monaco-list-row.focused').getByText('main.js', { exact: true }).first().waitFor();
   await input.press('Enter');
   await page.locator('.monaco-editor .view-lines').first().waitFor();
   console.log('real disk file opened');
   await page.locator('.monaco-editor .view-lines').first().click();
   await page.keyboard.press('Meta+a');
-  await page.keyboard.insertText('const wallet = { address: "ynx-public-test", balance: 42 };\nwallet.');
-  await page.keyboard.press('Control+Space');
-  await page.locator('.suggest-widget.visible').waitFor({ timeout: 30000 });
-  await page.waitForFunction(() => { const text = document.querySelector('.suggest-widget.visible')?.textContent || ''; return text.includes('address') && text.includes('balance'); });
-  const suggestions = await page.locator('.suggest-widget.visible').innerText();
+  await page.keyboard.insertText('import { wallet } from "./wallet-model.js";\nwallet.');
+  // First-file language activation is asynchronous. An existing word list does
+  // not refresh when the semantic provider arrives; re-request via the keyboard.
+  let suggestions = '';
+  const semanticDeadline = Date.now() + 30000;
+  while (Date.now() < semanticDeadline) {
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Control+Space');
+    await page.waitForTimeout(500);
+    const widget = page.locator('.suggest-widget.visible');
+    suggestions = await widget.count() ? await widget.innerText() : '';
+    if (suggestions.includes('address') && suggestions.includes('balance')) break;
+  }
   assert.match(suggestions, /address/);
   assert.match(suggestions, /balance/);
-  checks.push('actual TypeScript VS Code extension provides wallet property IntelliSense in the real framework editor');
+  checks.push('actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor');
   await page.keyboard.press('Escape');
   async function savedText(expected) {
     await page.keyboard.press('Meta+s');
@@ -88,10 +101,89 @@ try {
   await page.keyboard.press('Meta+w');
   await page.locator('.monaco-editor').waitFor({ state: 'hidden' });
   await page.keyboard.press('Meta+p');
-  await input.fill('main.js'); await page.getByText('main.js', { exact: true }).first().waitFor(); await input.press('Enter');
+  await input.fill('main.js'); await page.locator('.quick-input-list .monaco-list-row.focused').getByText('main.js', { exact: true }).first().waitFor(); await input.press('Enter');
   await page.locator('.monaco-editor .view-lines').first().waitFor();
   assert.match(await page.locator('.monaco-editor .view-lines').first().innerText(), /YNX\sactual\sextension\shost/);
   checks.push('closing and reopening the actual file restores saved disk content');
+  const mainLines = page.locator('.monaco-editor .view-lines').filter({ hasText: /YNX\sactual\sextension\shost/ });
+  await mainLines.click(); await page.keyboard.press('Meta+a');
+  await page.keyboard.insertText('const preservedDraft = "YNX dirty close";\n');
+  await page.locator('.lm-TabBar-tab.theia-mod-dirty').waitFor();
+  await page.keyboard.press('Meta+w');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.locator('.monaco-editor .view-lines').filter({ hasText: /YNX\sdirty\sclose/ }).waitFor();
+  assert.match(await readFile(`${runtime.workspace}/main.js`, 'utf8'), /YNX actual extension host/);
+  await page.keyboard.press('Meta+w');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.locator('.monaco-editor').waitFor({ state: 'hidden' });
+  assert.equal(await readFile(`${runtime.workspace}/main.js`, 'utf8'), 'const preservedDraft = "YNX dirty close";\n');
+  await page.keyboard.press('Meta+p'); await input.fill('main.js');
+  await page.locator('.quick-input-list .monaco-list-row.focused').getByText('main.js', { exact: true }).first().waitFor(); await input.press('Enter');
+  const preservedLines = page.locator('.monaco-editor .view-lines').filter({ hasText: /YNX\sdirty\sclose/ });
+  await preservedLines.waitFor(); await preservedLines.click(); await page.keyboard.press('Meta+a');
+  await page.keyboard.insertText('const savedMarker = "YNX actual extension host";\n'); await page.keyboard.press('Meta+s');
+  checks.push('real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft');
+  await mkdir(`${runtime.workspace}/contracts`, { mode: 0o700 });
+  const arbitraryPath = `${runtime.workspace}/contracts/合约.ynxnotes`;
+  await writeFile(arbitraryPath, 'YNX arbitrary file\n', { mode: 0o600 });
+  await page.keyboard.press('Meta+p'); await input.fill('合约.ynxnotes');
+  await page.locator('.quick-input-list .monaco-list-row.focused').getByText('合约.ynxnotes', { exact: true }).first().waitFor(); await input.press('Enter');
+  const arbitraryLines = page.locator('.monaco-editor .view-lines').filter({ hasText: /YNX\sarbitrary\sfile/ });
+  await arbitraryLines.waitFor(); await arbitraryLines.click(); await page.keyboard.press('Meta+a');
+  await page.keyboard.insertText('用户自己的文件与后缀\n'); await page.keyboard.press('Meta+s');
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (await readFile(arbitraryPath, 'utf8') === '用户自己的文件与后缀\n') break;
+    await page.waitForTimeout(25);
+  }
+  assert.equal(await readFile(arbitraryPath, 'utf8'), '用户自己的文件与后缀\n');
+  checks.push('real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents');
+  const symbolsPath = `${runtime.workspace}/symbols.js`;
+  await writeFile(symbolsPath, 'function balanceFor(wallet){return wallet.balance;}\nconst wallet={balance:42};\nconsole.log(balanceFor(wallet));\n', { mode: 0o600 });
+  await page.keyboard.press('Meta+p'); await input.fill('symbols.js');
+  await page.locator('.quick-input-list .monaco-list-row.focused').getByText('symbols.js', { exact: true }).first().waitFor(); await input.press('Enter');
+  const symbolLines = page.locator('.monaco-editor .view-lines').filter({ hasText: 'balanceFor' });
+  await symbolLines.waitFor(); await symbolLines.locator('.view-line').nth(2).click();
+  await page.keyboard.press('Meta+ArrowLeft');
+  for (let index = 0; index < 14; index++) await page.keyboard.press('ArrowRight');
+  await page.locator('#theia-statusBar').filter({ hasText: /Ln 3, Col/ }).waitFor();
+  await page.keyboard.press('F12');
+  await page.locator('#theia-statusBar').filter({ hasText: /Ln 1, Col/ }).waitFor();
+  await symbolLines.locator('.view-line').nth(0).click();
+  await page.keyboard.press('Meta+ArrowLeft');
+  for (let index = 0; index < 11; index++) await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('F2');
+  const rename = page.locator('.rename-box input'); await rename.waitFor();
+  await rename.fill('readBalance'); await rename.press('Enter'); await page.keyboard.press('Meta+s');
+  let renamed;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    renamed = await readFile(symbolsPath, 'utf8');
+    if (renamed.includes('readBalance') && !renamed.includes('balanceFor')) break;
+    await page.waitForTimeout(25);
+  }
+  assert.equal((renamed.match(/readBalance/g) || []).length, 2); assert.ok(!renamed.includes('balanceFor'));
+  await page.keyboard.press('Shift+Alt+f');
+  // Formatting comes back asynchronously from the language server. Save the
+  // completed edit, rather than saving the previous buffer before it arrives.
+  await page.locator('.monaco-editor .view-lines').filter({ hasText: /function\sreadBalance\(wallet\)\s\{/ }).waitFor();
+  await page.keyboard.press('Meta+s');
+  let formatted;
+  for (let attempt = 0; attempt < 100; attempt++) {
+    formatted = await readFile(symbolsPath, 'utf8');
+    if (/function readBalance\(wallet\) \{/.test(formatted)) break;
+    await page.waitForTimeout(25);
+  }
+  assert.match(formatted, /function readBalance\(wallet\) \{/);
+  checks.push('actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file');
+  await page.locator('.monaco-editor .view-lines').filter({ hasText: 'readBalance' }).click();
+  await page.keyboard.press('Meta+a'); await page.keyboard.insertText('const invalid = ;\n');
+  await page.keyboard.press('Meta+s');
+  await page.locator('.monaco-editor .squiggly-error').first().waitFor();
+  checks.push('actual JavaScript language extension reports a syntax diagnostic in the real editor');
+  await page.keyboard.press('Meta+p'); await input.fill('main.js');
+  // Select the requested visible result, rather than accepting the previously
+  // focused recent file while the asynchronous search results update.
+  await page.locator('.quick-input-list').getByText('main.js', { exact: true }).first().click();
+  await page.locator('.monaco-editor .view-lines').filter({ hasText: /YNX\sactual\sextension\shost/ }).waitFor();
   await page.keyboard.press('F1');
   const command = page.locator('.quick-input-box input');
   await command.fill('>Terminal: Create New Terminal (In Active Workspace)');
@@ -165,7 +257,7 @@ try {
   checks.push('OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect');
   if (runtime.dapRoot) {
     await page.keyboard.press('Meta+p'); await input.fill('debug.js');
-    await page.getByText('debug.js', { exact: true }).first().waitFor(); await input.press('Enter');
+    await page.locator('.quick-input-list .monaco-list-row.focused').getByText('debug.js', { exact: true }).first().waitFor(); await input.press('Enter');
     const debugLines = page.locator('.monaco-editor .view-lines').filter({ hasText: 'console.log(marker);' });
     await debugLines.waitFor();
     // Click the rendered executable line. Ctrl+Home is not the macOS editor
@@ -209,12 +301,20 @@ try {
     checks.push('inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files');
   }
   await page.screenshot({ path: `${runtime.qa}/actual-language-editor.png` });
-  await writeFile(`${runtime.qa}/actual-host-browser.json`, JSON.stringify({ runtime, checks, errors, boundary, outside }, null, 2));
+  await writeFile(`${runtime.qa}/actual-host-browser.json`, JSON.stringify({ runtime, runnerSha256, checks, errors, boundary, outside }, null, 2));
   assert.deepEqual(errors, []);
   console.log(JSON.stringify({ checks, errors }));
 } catch (error) {
   const text = page && !page.isClosed() ? await page.locator('body').innerText() : '';
-  await writeFile(`${runtime.qa}/actual-host-browser-failure.json`, JSON.stringify({ checks, errors, message: String(error), text }, null, 2));
+  const editorDiagnostics = page && !page.isClosed() ? await page.evaluate(() => ({
+    focusedElement: document.activeElement?.outerHTML.slice(0, 600),
+    renameWidgets: [...document.querySelectorAll('.rename-box')].map(node => ({ className: node.className, text: node.textContent })),
+    editors: (window.monaco?.editor?.getEditors?.() || []).map(editor => ({
+      language: editor.getModel()?.getLanguageId(), position: editor.getPosition(), hasTextFocus: editor.hasTextFocus(),
+      renameSupported: editor.getAction('editor.action.rename')?.isSupported(),
+    })),
+  })) : undefined;
+  await writeFile(`${runtime.qa}/actual-host-browser-failure.json`, JSON.stringify({ runnerSha256, checks, errors, message: String(error), text, editorDiagnostics }, null, 2));
   if (page && !page.isClosed()) await page.screenshot({ path: `${runtime.qa}/actual-host-browser-failure.png` });
   console.error(JSON.stringify({ checks, errors, failure: String(error), text: text.slice(-6000) }));
   throw error;

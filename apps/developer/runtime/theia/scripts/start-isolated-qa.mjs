@@ -28,7 +28,8 @@ if (dapRoot && JSON.parse(await readFile(join(dapRoot, 'receipt.json'), 'utf8'))
 const qa = await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
 const workspace = join(qa, 'project'), profile = join(qa, 'profile'), temporary = join(qa, 'tmp');
 for (const path of [workspace, profile, temporary]) await mkdir(path, { mode: 0o700 });
-await writeFile(join(workspace, 'main.js'), 'const wallet = { address: "ynx-public-test", balance: 42 };\nwallet.\n', { mode: 0o600 });
+await writeFile(join(workspace, 'main.js'), 'import { wallet } from "./wallet-model.js";\nwallet.\n', { mode: 0o600 });
+await writeFile(join(workspace, 'wallet-model.js'), 'export const wallet = { address: "ynx-public-test", balance: 42 };\n', { mode: 0o600 });
 await writeFile(join(workspace, 'debug.js'), 'const marker = "YNX debugger reference";\nconsole.log(marker);\nrequire("node:fs").writeFileSync("debug-proof.txt", marker);\n', { mode: 0o600 });
 await writeFile(join(workspace, 'package.json'), JSON.stringify({ name: 'ynx-public-runtime-reference', private: true }), { mode: 0o600 });
 const reservations = [];
@@ -73,11 +74,12 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
   '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   env: { PATH: `${dirname(node)}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
-    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, NODE_OPTIONS: '--max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
 const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, url: `http://127.0.0.1:${port}`, pid: child.pid,
+  nodeOptions: '--no-experimental-global-navigator --max-old-space-size=1024',
   isolation: 'macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener',
   acceptance: 'single-session controlled QA, not public or multi-owner production admission' };
 await writeFile(join(qa, 'runtime.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 });

@@ -7,12 +7,24 @@ Chain/Wallet/AI tools. A complete Code OSS fork is optional.
 
 `theia/package-lock.json` pins the runtime dependencies. `ynx-workbench` is
 the YNX frontend/backend contribution: inherited logo, product name, editor
-close shortcut and an unprivileged macOS descendant-process cleanup helper.
+close/definition/rename shortcuts and an unprivileged macOS descendant-process
+cleanup helper. Outline, call hierarchy and type hierarchy are explicitly
+included in the composition; their presence is not full feature acceptance.
 The browser target has a real Node backend; it is not a standalone frontend.
 Official framework documentation:
 [composition](https://theia-ide.org/docs/composing_applications/) and
 [VS Code extensions](https://theia-ide.org/docs/authoring_vscode_extensions/).
 Extension API coverage and platform binaries must be checked per extension.
+
+The Node plugin host disables Node's browser `navigator` global and skips the
+framework's compatibility getter through `PluginHostEnvironmentVariable`.
+The getter returned `undefined` while still satisfying `'navigator' in globalThis`,
+which caused the pinned TypeScript extension to select browser capabilities.
+The candidate records the Node version/options used for its build and QA.
+First-file extension activation remains asynchronous: the semantic test issues
+real completion requests until imported properties appear within 30 seconds.
+It does not count a word-only list as semantic IntelliSense or prove that the
+first completion request during a cold startup is already ready.
 
 ## Reproduce the macOS controlled runtime
 
@@ -60,7 +72,10 @@ browser journey against that receipt:
 YNX_QA_PLAYWRIGHT_MODULE=/absolute/playwright/index.mjs node scripts/actual-host.browser.mjs /absolute/qa/runtime.json
 ```
 
-The test verifies extension-provided IntelliSense, pairs/selection wrapping,
+The test requires properties from an unopened imported file, beyond words in
+the active buffer. It also verifies definition navigation, symbol/reference
+rename, formatting saved to disk, syntax diagnostics, dirty-close Cancel/Save,
+nested Unicode filenames and arbitrary text suffixes, pairs/selection wrapping,
 save/readback, visible YNX branding, close/reopen, real terminal execution and
 OS-enforced cross-project/network denial. With the debugger it also verifies
 an executable-line breakpoint, actual variables, stepping to the next source
@@ -81,9 +96,14 @@ node scripts/start-isolated-qa.mjs /absolute/new-runtime-candidate/plugins /abso
 The adjacent `.pin.json` records manifest/tree/lock hashes and the actual native
 architecture. Build each platform's native dependencies on that platform;
 this macOS arm64 candidate is not a Linux artifact. The latest standalone
-candidate passes 12 real runtime journeys, including actual Git extension
+candidate passes 16 real runtime journeys, including unopened-file semantic
+completion, rename/format/diagnostic and dirty-close preservation, actual Git extension
 staging and PTY commit/readback, inherited YNX theme colors and YNX Tools
-activation with unbound-session refusal. Source contract tests pass 36 cases.
+activation with unbound-session refusal. See
+`docs/integration/COMPOSED_WORKBENCH_SEMANTIC_PATHS_20261004.json` for its exact
+artifact pins and evidence. The earlier 12-path receipt is retained; its first
+completion assertion alone did not exclude word fallback. The unchanged
+normal-entry source contract has the earlier 36 passing cases.
 See `docs/integration/COMPOSED_WORKBENCH_ADMISSION_20261004.md` for the exact
 normal-entry consumer contract and remaining A-owned integration.
 
