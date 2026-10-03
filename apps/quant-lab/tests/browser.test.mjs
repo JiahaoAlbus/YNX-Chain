@@ -2,6 +2,27 @@ import test from 'node:test';import assert from'node:assert/strict';import{spawn
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
+test('actual Chrome rejects ambiguous research costs/windows without HTTP and preserves explicit zero input on source failure',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const bodies=[];
+    await context.route('**/api/v1/**/backtests/from-market',async route=>{bodies.push(route.request().postDataJSON());await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled source unavailable; no backtest result"}'})});
+    // The actual tenant route has no intervening public/research path segments.
+    await context.route('**/api/v1/backtests/from-market',async route=>{bodies.push(route.request().postDataJSON());await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled source unavailable; no backtest result"}'})});
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    await page.locator('#fee').fill('');await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'safe whole-number'}).waitFor();assert.equal(bodies.length,0);
+    await page.locator('#fee').fill('0');await page.locator('#fast').fill('8');await page.locator('#slow').fill('8');
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);await page.locator('#research-submit').click();
+      assert.ok((await page.locator('#toast').textContent()).length>30);assert.equal(bodies.length,0);assert.equal(await page.locator('#research-submit').isEnabled(),true);
+    }
+    await page.selectOption('#locale','en');await page.locator('#fast').fill('3');await page.locator('#slow').fill('8');await page.locator('#seed').fill('0');await page.locator('#slippage').fill('0');await page.locator('#research-submit').click();
+    await page.locator('#toast').filter({hasText:'Controlled source unavailable'}).waitFor();assert.equal(bodies.length,1);
+    assert.equal(bodies[0].assumptions.feeBPS,0);assert.equal(bodies[0].assumptions.slippageBPS,0);assert.equal(bodies[0].strategy.seed,0);assert.deepEqual(bodies[0].strategy.params,{fast:3,slow:8});
+    assert.equal(await page.locator('#fee').inputValue(),'0');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(context.pages().length,1);
+    await page.screenshot({path:path.join(evidence,'research-input-guard-source-unavailable.png'),fullPage:true});
+  }finally{await context.close()}
+});
 test('actual Chrome reuses saved MA parameters only as a draft, preserves costs and resets stale selection on refresh',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

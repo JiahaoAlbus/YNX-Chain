@@ -1,0 +1,30 @@
+{
+  "kind": "QUANT_OWNED_RESEARCH_INPUT_INTEGRITY_NOT_RELEASE",
+  "predecessorCommit": "fc6afaaea95becc13d6bf00cf904acc1421daa83",
+  "predecessorTree": "ad446a16b879f58441bb728000aea117d2d5f59e",
+  "scope": "Existing ordinary public/saved research draft, saved parameter reuse and research-only schedule cost inputs. No new strategy engine, real execution, Wallet/Auth/SDK or release-control changes.",
+  "defect": "Unary numeric conversion treated blank seed/fee/slippage as zero and accepted unsafe/fractional windows. Existing engine simulateDetailed substitutes defaults when fast<2 or slow<=fast. Such a run could silently differ from the user's intended parameters. Added real shipped-app regression first failed because an empty strategy name still emitted POST.",
+  "fix": [
+    "Reject blank numeric inputs and values that are not exactly representable safe integers before HTTP; reject blank or over80-character name, negative costs, fast<2 and slow<=fast.",
+    "Allow explicit zero fees/slippage/seed, preserving exact requested values and valid drafts after errors.",
+    "Exclude saved reuse entries with reversed/equal windows rather than copying a draft the engine would reinterpret.",
+    "Validate schedule seed/fee/slippage both before and after confirmation; changing explicit zero to blank during confirmation makes no write.",
+    "Provide precise input-error copy in all12 existing supported languages. No silent replay or fake successful result."
+  ],
+  "files": [
+    {"path":"apps/quant-lab/web/app.js","blob":"5c9f771ce6b64c807ef85d2cc79b08f0c3ebb227","bytes":115725,"sha256":"5412575d55b185d9cf2051ee2373b46eb9011f972c5bf731e1f680ec647a3c63"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"459b28e451677e536383133c29b65d1a7e80de11","bytes":56993,"sha256":"4822838f85d825b483ec0daf6d82eea55c5cbc1ab0a5a59584132eb36f83c6cc"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"0002e82d5f0ec0b3b1b58c15e5067f8234998d9e","bytes":41429,"sha256":"54dcf11ce47c43cb274ade15f1ffee5d164374af1661f3d0ca68c8da6526d3a1"}
+  ],
+  "tests": {
+    "initialRegression": "FAIL: empty strategy still produced one HTTP POST; preserved as actual pre-fix source counterexample.",
+    "quantCombined": {"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":61,"fail":0,"skip":0,"durationMs":47130.526125},
+    "serviceRace": {"command":"go test -race ./internal/quantlab -count=1","result":"PASS","seconds":2.582},
+    "syntaxDiff": "node --check app.js and browser.test.mjs, git diff --check PASS",
+    "isolationBoundary": "Actual isolated local Go HTTP: 2 tenants/2 processes, concurrent Paper idempotency/races and restart. Synthetic prices/browser-local tenant capabilities; not Wallet authentication, public trading or PostgreSQL acceptance."
+  },
+  "screenshot": {"path":"research-input-guard-source-unavailable.png","bytes":88380,"sha256":"cb23c9b50af97bc50400df4dd8631fc9a0ee9dcbb6667880ff845d8e37e84a48","boundary":"Actual local Chrome 390px; valid explicit zero request receives deliberately unavailable source, no result or account fabricated"},
+  "integration": "A integrates only the reviewed ordinary research functions and localization additions, preserving final authority sections in app.js; refreeze final Quant asset pins. Owner requires exact compatible official version and rollback before real-public acceptance.",
+  "remaining": "Existing backend defaulting and wider engine overflow/API validation were inspected but not changed under this UI-only owner scope; UI guards do not replace server validation. Official publication/install/real Wallet/Session/testnet transaction gates remain unverified.",
+  "truth": {"localInputIntegrity":true,"localRegression":true,"publicCurrentSource":false,"installed":false,"walletApproval":false,"productSession":false,"signatures":false,"realTransactions":false,"computerControl":false,"complete":false}
+}

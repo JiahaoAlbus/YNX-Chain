@@ -480,7 +480,7 @@ async function refreshPortfolio() {
   renderPortfolio();
 }
 function reusableResearchStrategy(strategy) {
-  return typeof strategy?.ID === "string" && !!strategy.ID && strategy.Family === "transparent" && typeof strategy.Name === "string" && !!strategy.Name.trim() && strategy.Name.length <= 80 && /^[a-f0-9]{64}$/.test(strategy.StrategyHash || "") && Number.isSafeInteger(strategy.Seed) && Number.isSafeInteger(strategy.Params?.fast) && strategy.Params.fast >= 2 && Number.isSafeInteger(strategy.Params?.slow) && strategy.Params.slow >= 3 && Object.keys(strategy.Params).sort().join(",") === "fast,slow";
+  return typeof strategy?.ID === "string" && !!strategy.ID && strategy.Family === "transparent" && typeof strategy.Name === "string" && !!strategy.Name.trim() && strategy.Name.length <= 80 && /^[a-f0-9]{64}$/.test(strategy.StrategyHash || "") && Number.isSafeInteger(strategy.Seed) && Number.isSafeInteger(strategy.Params?.fast) && strategy.Params.fast >= 2 && Number.isSafeInteger(strategy.Params?.slow) && strategy.Params.slow > strategy.Params.fast && Object.keys(strategy.Params).sort().join(",") === "fast,slow";
 }
 function researchSelectionKey(strategy) { return encodeURIComponent(strategy.ID) + ":" + strategy.StrategyHash; }
 function renderResearchChoices(strategies) {
@@ -588,11 +588,11 @@ $("#strategy-rows").addEventListener("click", async event => {
   if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
   let sent = false;
   try {
-    const assumptions = enabled ? {feeBPS:+$("#fee").value, slippageBPS:+$("#slippage").value, latencyBars:1, participationBPS:1000, seed:+$("#seed").value, trainEnd:24, walkForwardWindows:3} : {};
+    const assumptions = enabled ? {feeBPS:researchIntegerInput("fee"), slippageBPS:researchIntegerInput("slippage"), latencyBars:1, participationBPS:1000, seed:researchIntegerInput("seed"), trainEnd:24, walkForwardWindows:3} : {};
     if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
     if (!confirm(`${t(enabled ? "scheduleConfirmStart" : "scheduleConfirmStop")}\n${id}\n${strategy.StrategyHash}${enabled ? `\n${t("runFee")}: ${assumptions.feeBPS}\n${t("runSlippage")}: ${assumptions.slippageBPS}\n${t("runSeed")}: ${assumptions.seed}` : ""}`)) return;
     const current = Object.values(snapshot.strategies || {}).find(value => value.ID === id);
-    if (!statefulPreview || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || +$("#fee").value !== assumptions.feeBPS || +$("#slippage").value !== assumptions.slippageBPS || +$("#seed").value !== assumptions.seed)) throw Error(t("scheduleInvalid"));
+    if (!statefulPreview || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || researchIntegerInput("fee") !== assumptions.feeBPS || researchIntegerInput("slippage") !== assumptions.slippageBPS || researchIntegerInput("seed") !== assumptions.seed)) throw Error(t("scheduleInvalid"));
     scheduleWrites.add(id); snapshotRevision++; render(); sent = true;
     const receipt = await api(`/v1/strategies/${encodeURIComponent(id)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions})});
     const confirmed = observedSchedule(receipt);
@@ -705,6 +705,35 @@ $("#locale").onchange = (e) => {
   try { localStorage.setItem("ynx.quant.locale", locale); } catch {}
   applyLocale(); render();
 };
+const researchInputCopy = {
+  en:"Enter a strategy name (1–80 characters) and safe whole-number parameters. Fast window must be at least 2 and smaller than slow; fees and slippage must be explicit and nonnegative.",
+  "zh-CN":"请输入 1–80 字符的策略名称和可精确表示的整数参数。快窗口至少为 2 且小于慢窗口；费用与滑点须明确填写非负值。",
+  "zh-TW":"請輸入 1–80 字元的策略名稱及可精確表示的整數參數。快視窗至少為 2 且小於慢視窗；費用與滑點須明確填寫非負值。",
+  ja:"戦略名（1～80文字）と正確に表せる整数を入力してください。短期窓は2以上で長期窓未満、手数料とスリッページは明示的な非負値が必要です。",
+  ko:"전략 이름(1~80자)과 정확히 표현 가능한 정수를 입력하세요. 빠른 구간은 2 이상이며 느린 구간보다 작아야 하고, 수수료와 슬리피지는 명시적 음이 아닌 값이어야 합니다.",
+  es:"Introduzca un nombre de estrategia (1–80 caracteres) y enteros seguros. La ventana rápida debe ser al menos 2 y menor que la lenta; comisiones y deslizamiento deben ser explícitos y no negativos.",
+  fr:"Saisissez un nom de stratégie (1–80 caractères) et des entiers exacts. La fenêtre rapide doit être au moins 2 et inférieure à la lente ; frais et glissement doivent être explicites et positifs ou nuls.",
+  de:"Strategiename (1–80 Zeichen) und sichere Ganzzahlen eingeben. Das schnelle Fenster muss mindestens 2 und kleiner als das langsame sein; Gebühren und Slippage müssen ausdrücklich nichtnegativ sein.",
+  pt:"Insira um nome de estratégia (1–80 caracteres) e inteiros seguros. A janela rápida deve ser pelo menos 2 e menor que a lenta; taxas e slippage devem ser explícitos e não negativos.",
+  ru:"Введите название стратегии (1–80 символов) и точно представимые целые параметры. Быстрое окно — от 2 и меньше медленного; комиссии и проскальзывание задаются явно и неотрицательно.",
+  ar:"أدخل اسم استراتيجية من 1 إلى 80 حرفًا ومعلمات صحيحة قابلة للتمثيل بدقة. النافذة السريعة لا تقل عن 2 وأصغر من البطيئة؛ يجب إدخال الرسوم والانزلاق صراحة بقيم غير سالبة.",
+  id:"Masukkan nama strategi (1–80 karakter) dan bilangan bulat aman. Jendela cepat minimal 2 dan lebih kecil dari jendela lambat; biaya dan slippage harus diisi eksplisit dengan nilai nonnegatif."
+};
+for (const [language,researchInputInvalid] of Object.entries(researchInputCopy)) Object.assign(businessCopy[language],{researchInputInvalid});
+function researchIntegerInput(id) {
+  const raw = $("#" + id).value;
+  if (typeof raw !== "string" || !raw.trim() || !Number.isSafeInteger(Number(raw))) throw Error(t("researchInputInvalid"));
+  return Number(raw);
+}
+function researchDraftInputs() {
+  const name = $("#strategy").value;
+  const values = {};
+  for (const id of ["seed","fast","slow","fee","slippage"]) {
+    values[id] = researchIntegerInput(id);
+  }
+  if (!name.trim() || name.length > 80 || values.fast < 2 || values.slow <= values.fast || values.fee < 0 || values.slippage < 0) throw Error(t("researchInputInvalid"));
+  return {name,...values};
+}
 $("#backtest").onsubmit = async (e) => {
   e.preventDefault();
   if (researchSubmitting) return;
@@ -713,24 +742,25 @@ $("#backtest").onsubmit = async (e) => {
   renderResearchRequestState();
   const savedWorkspace = statefulPreview;
   try {
+    const draft = researchDraftInputs();
     const body = {
       strategy: {
         id: "ma-" + crypto.randomUUID(),
-        name: $("#strategy").value,
+        name: draft.name,
         family: "transparent",
         source: "quant://user/ma",
         sourceCommit: "local",
         license: "Apache-2.0",
-        seed: +$("#seed").value,
-        params: { fast: +$("#fast").value, slow: +$("#slow").value },
+        seed: draft.seed,
+        params: { fast: draft.fast, slow: draft.slow },
         limitations: t("historyWarning"),
       },
       assumptions: {
-        feeBPS: +$("#fee").value,
-        slippageBPS: +$("#slippage").value,
+        feeBPS: draft.fee,
+        slippageBPS: draft.slippage,
         latencyBars: 1,
         participationBPS: 1000,
-        seed: +$("#seed").value,
+        seed: draft.seed,
         trainEnd: 24,
         walkForwardWindows: 3,
       },

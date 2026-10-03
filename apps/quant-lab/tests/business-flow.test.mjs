@@ -15,6 +15,37 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('research rejects empty, unsafe, fractional and reordered parameters before HTTP without silently using zero or engine defaults',async()=>{
+  for(const [id,value] of [['strategy',''],['strategy','   '],['strategy','x'.repeat(81)],['seed',''],['seed','1.5'],['seed','9007199254740992'],['fee',''],['fee','-1'],['fee','1.5'],['fee','9007199254740992'],['slippage',''],['slippage','-1'],['fast',''],['fast','1'],['fast','8'],['slow',''],['slow','3'],['slow','3.5']]){
+    const app=harness();await settle();app.ids.get(id).value=value;await app.submit('backtest');
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0,`${id}=${value}`);
+    assert.equal(app.ids.get('research-submit').disabled,false);
+    assert.equal(app.ids.get('backtest').ariaBusy,'false');
+  }
+});
+
+test('research input errors follow all 12 languages and explicit zero costs and zero seed remain exact',async()=>{
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:researchFixture('zero-cost')});await settle();
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});app.ids.get('fee').value='';await app.submit('backtest');
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchInputInvalid`,app.context));
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  for(const id of ['fee','slippage','seed'])app.ids.get(id).value='0';await app.submit('backtest');
+  const request=JSON.parse(app.calls.find(call=>call.options.method==='POST').options.body);
+  assert.equal(request.assumptions.feeBPS,0);assert.equal(request.assumptions.slippageBPS,0);assert.equal(request.strategy.seed,0);assert.equal(request.assumptions.seed,0);
+});
+
+test('research schedule never treats blank costs as zero, including changes during explicit confirmation',async()=>{
+  const strategy=savedResearchStrategy();
+  for(const id of ['fee','slippage','seed']){
+    const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:()=>true});await settle();app.ids.get(id).value='';await app.schedule(strategy,true);
+    assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+  }
+  const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:()=>{app.ids.get('fee').value='';return true}});await settle();app.ids.get('fee').value='0';await app.schedule(strategy,true);
+  assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+});
+
 test('Paper records preserve exact service quantities and do not depend on the selected wallet',async()=>{
   const records=[paperRecord()];const app=harness({snapshot:{paper:{Orders:records}}});await settle();
   const rendered=app.ids.get('paper-record-rows').innerHTML;
