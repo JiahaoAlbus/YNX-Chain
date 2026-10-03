@@ -9,11 +9,11 @@ import Foundation
         NSApplication.shared.setActivationPolicy(.prohibited)
         do {
             let args=CommandLine.arguments;guard args.count==5,let gateway=URL(string:args[2]),let backend=URL(string:args[3]),[gateway,backend].allSatisfy({$0.scheme=="http" && $0.host=="127.0.0.1" && $0.path.isEmpty}),["ios","macos"].contains(args[4]) else { throw CreatorNativeEngine.Failure.invalidSource }
-            let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey()
+            let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey(),isolatedDevice="qa-creator-"+UUID().uuidString
             let root=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-creator-qa-"+UUID().uuidString,isDirectory:true)
             try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
             defer {try? FileManager.default.removeItem(at:root)}
-            var persisted: Data?,opened="",mismatch=false,dropMutation=false,hold=false,held: CheckedContinuation<Void,Never>?
+            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",hold=false,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=CreatorNativeTransport()
             let sender: CreatorNativeEngine.Sender = { request,limit in
@@ -27,11 +27,12 @@ import Foundation
                 var redirected=request;redirected.url=target
                 let (bytes,response)=try await network.send(redirected,limit)
                 if dropMutation,url.host=="creator.ynxweb4.com",url.path=="/video/api/v1/uploads",["POST","DELETE"].contains(request.httpMethod ?? "") { dropMutation=false;throw CreatorHTTP.Failure.unexpectedResponse }
+                if !dropOperation.isEmpty,url.path=="/video/api"+dropOperation,(200..<300).contains(response.statusCode),request.httpMethod=="POST" {dropOperation="";throw CreatorHTTP.Failure.unexpectedResponse}
                 var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
                 return (bytes,HTTPURLResponse(url:url,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!)
             }
             func create() throws -> CreatorNativeEngine {
-                let state=try CreatorNativeState(platform:platform,deviceId:"qa-original-apple-creator-device",deviceKey:CreatorNativeState.encode(original.publicKey.compressedRepresentation),read:{persisted},write:{persisted=$0})
+                let state=try CreatorNativeState(platform:platform,deviceId:isolatedDevice,deviceKey:CreatorNativeState.encode(original.publicKey.compressedRepresentation),read:{persisted},write:{persisted=$0})
                 return try CreatorNativeEngine(state:state,key:key,assets:assets,send:sender,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
             }
             var engine=try create()
@@ -57,10 +58,18 @@ import Foundation
                             let deadline=Date().addingTimeInterval(35)
                             while model.busy && Date()<deadline {try await Task.sleep(nanoseconds:10_000_000)}
                         case "callback":_ = try await engine.dispatch("handleReturn",["url":command["url"]!])
-                        case "uiPerform":await model.perform(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:])
+                        case "uiPerform":await model.perform(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:],method:command["method"] as? String ?? "POST")
                         case "uiRetryOperation":await model.retryOperation()
                         case "uiCancelOperation":model.cancelOperation()
                         case "dropNextUpload":dropMutation=true
+                        case "dropNextOperation":dropOperation=command["path"] as! String
+                        case "legacyPendingOperation":
+                            guard let account=engine.identity?.account else {throw CreatorNativeEngine.Failure.retired}
+                            let file=root.appendingPathComponent(CreatorNativeState.hash(Data(account.utf8))).appendingPathComponent("drafts.json")
+                            var saved=try CreatorNativeState.object(String(decoding:Data(contentsOf:file),as:UTF8.self))
+                            guard var operation=saved["operation"] as? [String:Any],operation["method"] as? String=="POST" else {throw CreatorDraftState.Failure.invalid}
+                            operation.removeValue(forKey:"method");saved["operation"]=operation
+                            try JSONSerialization.data(withJSONObject:saved,options:[.sortedKeys]).write(to:file,options:.atomic)
                         case "uiUpload":
                             let file=root.appendingPathComponent("generated-original.mp4")
                             try Data([0,0,0,24,102,116,121,112,105,115,111,109,0,0,0,0,116,101,115,116]).write(to:file)
@@ -85,8 +94,11 @@ import Foundation
                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
                         value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message
                         value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
-                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility] as [String:Any]}
-                        if let identity=engine.identity {value["account"]=identity.account;value["binding"]=identity.binding}
+                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? ""] as [String:Any]}
+                        value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
+                        value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state]}] as [String:Any]}
+                        value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? ""]}
+                        if let identity=engine.identity {value["account"]=identity.account;value["binding"]=identity.binding;value["deviceId"]=identity.context.deviceId;value["deviceKey"]=identity.context.deviceKey}
                         reply(id,["ok":true,"result":value])
                     }catch {reply(id,["ok":false,"code":String(describing:error),"businessVerified":engine.identity != nil])}
                 }

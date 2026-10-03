@@ -74,6 +74,15 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			var mu sync.Mutex
 			var handler http.Handler
 			var actor productsessionv2.Session
+			// Only two known disposable sample Wallet accounts are admitted by
+			// this QA host. Each exact original SDK session remains independently
+			// bound; this is not a deployed Host/currentActor receipt.
+			creatorReview := product == "creator-studio" && (platform == "ios" || platform == "macos") && os.Getenv("YNX_QA_APPLE_CREATOR_ENGINE_BIN") != ""
+			actors := map[string]productsessionv2.Session{}
+			// Original SDK5c walletIdentity for disposable secp256k1 samples 1 and 5;
+			// these are not the address-only unit fixtures in service_test.go.
+			creatorOwner := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+			creatorModerator := "ynx1ux4cz30hu4wujv74rgvv0yleqx36pvnk4v9qf4"
 			bound := false
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				mu.Lock()
@@ -134,6 +143,17 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 							actor = session
 							actor.Scopes = append([]string(nil), session.Scopes...)
 						}
+						if creatorReview {
+							if session.Account != creatorOwner && session.Account != creatorModerator {
+								return nil, ErrUnauthorized
+							}
+							previous, found := actors[session.Account]
+							if found && !reflect.DeepEqual(previous, session) {
+								return nil, ErrUnauthorized
+							}
+							actors[session.Account] = session
+							return func(ctx context.Context) error { return ctx.Err() }, nil
+						}
 						if !reflect.DeepEqual(actor, session) {
 							return nil, ErrUnauthorized
 						}
@@ -144,7 +164,13 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 						return
 					}
 					owned.cfg.BusinessAuthority = authority
-					handler = NewServer(owned, StaticTokenAuth{}).Handler()
+					moderators := map[string]bool{}
+					if creatorReview {
+						moderators[creatorModerator] = true
+					}
+					// Original server-owned moderator admission is separate from
+					// channel team acceptance and original SDK account authority.
+					handler = NewServer(owned, StaticTokenAuth{Moderators: moderators}).Handler()
 					bound = true
 					w.WriteHeader(204)
 					return
@@ -182,11 +208,18 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualBusinessServerReadback bool   `json:"actualBusinessServerReadback"`
 				ActualAppleSwiftWebKitEngine bool   `json:"actualAppleSwiftWebKitEngine"`
 				ActualOriginalAppleModelFlow bool   `json:"actualOriginalAppleModelFlow"`
+				ActualTwoOriginalSwiftActors bool   `json:"actualTwoOriginalSwiftActors"`
+				ActualIndependentReview      bool   `json:"actualIndependentRightsAndPublication"`
+				ActualPublicationRecovery    bool   `json:"actualScheduledPublicationRecovery"`
+				ActualRevokedTeamDenied      bool   `json:"actualRevokedTeamMutationDenied"`
 				ActualWalletConsent          bool   `json:"actualWalletConsent"`
 				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
+			}
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied) {
+				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()
 			defer mu.Unlock()
@@ -224,8 +257,24 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				}
 				if creatorApple {
 					studio, err := owned.Studio(actor.Account)
-					if err != nil || len(studio.Videos) != 1 || studio.Videos[0].Owner != actor.Account || studio.Videos[0].WorkflowState != WorkflowInReview || studio.Videos[0].Visibility != VisibilityPrivate {
+					if err != nil || len(studio.Videos) != 1 || studio.Videos[0].Owner != actor.Account || studio.Videos[0].WorkflowState != WorkflowPublished || studio.Videos[0].Visibility != VisibilityPublic {
 						t.Fatal("missing exact original Creator upload and independent-review readback")
+					}
+					original := studio.Videos[0]
+					if original.ReviewedBy != creatorModerator || original.SubmittedBy == original.ReviewedBy || len(actors) != 2 {
+						t.Fatal("missing two exact original SDK actors and independent publication reviewer")
+					}
+					if len(studio.Rights) != 1 || studio.Rights[0].State != "verified" || studio.Rights[0].Reviewer != creatorModerator {
+						t.Fatal("missing independently reviewed original rights")
+					}
+					team, err := owned.Team(actor.Account, original.ChannelID)
+					if err != nil {
+						t.Fatal(err)
+					}
+					for _, member := range team.Members {
+						if member.Account == creatorModerator && member.State != "revoked" {
+							t.Fatal("original moderator access was not revoked")
+						}
 					}
 				}
 			}

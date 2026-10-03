@@ -62,7 +62,11 @@ for await(const line of createInterface({input:process.stdin,crlfDelay:Infinity}
   const {parseProductSessionWalletURL,createProductSessionReturnURL}=await load('src/product-session-router.js');
   const pending=parseProductSessionWalletURL(registry,input.url);
   if(pending.productId!==productId||pending.platform!==platform)throw Error('INVALID_QA_BROWSER_BINDING');
-  const approval=signProductSessionApproval(registry,pending,{accountSecret:'1'.padStart(64,'0'),scopes:pending.scopes,expiresAt:pending.expiresAt});
+  if(input.sampleWallet!==undefined&&!(productId==='creator-studio'&&input.kind==='approve-native-request'&&input.sampleWallet==='independent-moderator'))throw Error('INVALID_QA_SAMPLE_WALLET');
+  // Two disposable sample Wallet signatures exercise real original SDK
+  // authority and independent review. No production Wallet/key is loaded.
+  const accountSecret=(input.sampleWallet==='independent-moderator'?'5':'1').padStart(64,'0');
+  const approval=signProductSessionApproval(registry,pending,{accountSecret,scopes:pending.scopes,expiresAt:pending.expiresAt});
   process.stdout.write(JSON.stringify({callback:createProductSessionReturnURL(registry,pending,{result:'approved',approval})})+'\n');
  }else if(input.kind==='proofs'&&!browserMode){
   if(typeof input.bodyBase64!=='string'||input.bodyBase64.length>2*1024*1024)throw Error('INVALID_QA_WIRE');

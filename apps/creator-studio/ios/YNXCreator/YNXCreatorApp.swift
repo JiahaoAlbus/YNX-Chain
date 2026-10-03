@@ -34,8 +34,8 @@ struct CreatorView: View {
                 VStack(alignment:.leading,spacing:20) {
                     header
                     Picker(model.text("overview"),selection:$section) {
-                        ForEach(["overview","channel","content","upload","earn"],id:\.self) {Text(model.text($0)).tag($0)}
-                    }.pickerStyle(.segmented)
+                        ForEach(["overview","channel","team","content","upload","moderation","earn"],id:\.self) {Text(model.text($0)).tag($0)}
+                    }.pickerStyle(.menu)
                     if !model.message.isEmpty {Text(model.message).foregroundStyle(.secondary).textSelection(.enabled)}
                     if !model.connected {
                         ContentUnavailableView(model.text("signIn"),systemImage:"person.crop.circle",description:Text(model.text("walletAccess")))
@@ -43,6 +43,8 @@ struct CreatorView: View {
                         recovery
                         switch section {
                         case "channel": channel
+                        case "team": CreatorTeamView()
+                        case "moderation": CreatorReviewView()
                         case "content": content
                         case "upload": upload
                         case "earn": earnings
@@ -146,6 +148,7 @@ struct CreatorView: View {
                         HStack {videoActions(video)}
                         VStack(alignment:.leading) {videoActions(video)}
                     }.disabled(model.busy || model.pendingOperation)
+                    CreatorPublicationControls(video:video).disabled(model.busy || model.pendingOperation)
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
         }
@@ -183,5 +186,119 @@ struct CreatorView: View {
             Text(model.text("payoutConsent")).font(.caption).foregroundStyle(.secondary)
             Button(model.text("createPayout")) {if let amount=Int(payout),amount>0 {Task {await model.perform("/v1/studio/payout-intents",body:["amount_ynxt":amount])}}}.disabled(model.busy || model.pendingOperation || (Int(payout) ?? 0)<=0)
         }
+    }
+}
+
+struct CreatorTeamView: View {
+    @EnvironmentObject private var model:CreatorModel
+    @State private var inviteAccount=""
+    @State private var inviteID=""
+    @State private var role="moderator"
+    @State private var revoking: String?
+    private let roles=["editor","uploader","analyst","finance","moderator","viewer"]
+    var body: some View {
+        VStack(alignment:.leading,spacing:16) {
+            Text(model.text("team")).font(.title2)
+            TextField(model.text("channelID"),text:$model.channelID).textFieldStyle(.roundedBorder)
+            Text(model.text("inviteHelp")).foregroundStyle(.secondary)
+            TextField(model.text("inviteAccount"),text:$inviteAccount).textFieldStyle(.roundedBorder)
+            Picker(model.text("teamRole"),selection:$role) {ForEach(roles,id:\.self) {Text(model.text($0)).tag($0)}}
+            Button(model.text("invite")) {Task {await model.perform("/v1/channels/"+model.channelID+"/team/invites",body:["account":inviteAccount,"role":role])}}.disabled(model.role(model.channelID) != "owner" || inviteAccount.isEmpty)
+            Divider()
+            TextField(model.text("inviteID"),text:$inviteID).textFieldStyle(.roundedBorder)
+            Button(model.text("acceptInvite")) {Task {await model.perform("/v1/team/invites/"+inviteID+"/accept")}}.disabled(!CreatorDraftState.validID(inviteID))
+            ForEach(model.snapshot?.team ?? []) {team in
+                VStack(alignment:.leading,spacing:12) {
+                    Text(team.channel_id).font(.headline).textSelection(.enabled)
+                    ForEach(team.members ?? [],id:\.account) {member in
+                        VStack(alignment:.leading,spacing:6) {
+                            Text(member.account).font(.caption).textSelection(.enabled)
+                            Text(model.text(member.role)+" · "+model.text(member.state)).foregroundStyle(.secondary)
+                            if model.role(team.channel_id)=="owner",member.account != model.account,member.state=="active" {
+                                HStack {
+                                    Menu(model.text("changeRole")) {ForEach(roles,id:\.self) {chosen in Button(model.text(chosen)) {Task {await model.perform("/v1/channels/"+team.channel_id+"/team/"+member.account+"/role",body:["role":chosen])}}}}
+                                    Button(model.text("revoke"),role:.destructive) {revoking=team.channel_id+"/team/"+member.account}
+                                }
+                            }
+                        }
+                    }
+                    ForEach(team.invites ?? []) {invite in
+                        VStack(alignment:.leading) {Text(invite.id).textSelection(.enabled);Text(invite.account+" · "+model.text(invite.role)+" · "+model.text(invite.state)).font(.caption).foregroundStyle(.secondary)}
+                    }
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+        }.disabled(model.busy || model.pendingOperation)
+            .confirmationDialog(model.text("revokeQuestion"),isPresented:Binding(get:{revoking != nil},set:{if !$0 {revoking=nil}}),titleVisibility:.visible) {
+                Button(model.text("revoke"),role:.destructive) {if let path=revoking {Task {await model.perform("/v1/channels/"+path,method:"DELETE")}};revoking=nil}
+            }
+            .onChange(of:model.account) {_,_ in inviteAccount="";inviteID="";revoking=nil}
+    }
+}
+
+struct CreatorReviewView: View {
+    @EnvironmentObject private var model:CreatorModel
+    @State private var reason=""
+    var body: some View {
+        VStack(alignment:.leading,spacing:16) {
+            Text(model.text("moderation")).font(.title2)
+            Text(model.text("independentReview")).foregroundStyle(.secondary)
+            TextField(model.text("reviewReason"),text:$reason,axis:.vertical).textFieldStyle(.roundedBorder)
+            ForEach((model.snapshot?.videos ?? []).filter{model.canReview($0)}) {video in
+                VStack(alignment:.leading,spacing:12) {
+                    Text(video.title).font(.headline)
+                    Text(video.owner).font(.caption).textSelection(.enabled)
+                    if let rights=model.snapshot?.rights?.first(where:{$0.id==video.rights_declaration_id}),rights.state=="declared",rights.declared_by != model.account {
+                        Text(model.text("rights")+" · "+model.text(rights.basis))
+                        Text(rights.evidence_sha256).font(.caption2).textSelection(.enabled)
+                        HStack {
+                            Button(model.text("approveRights")) {Task {await model.perform("/v1/rights/"+rights.id+"/review",body:["accepted":true,"reason":reason])}}
+                            Button(model.text("rejectRights"),role:.destructive) {Task {await model.perform("/v1/rights/"+rights.id+"/review",body:["accepted":false,"reason":reason])}}
+                        }.disabled(reason.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                    }
+                    if video.workflow_state=="in_review" {
+                        HStack {
+                            Button(model.text("approvePublication")) {Task {await model.perform("/v1/videos/"+video.id+"/review-publication",body:["approved":true,"reason":reason])}}
+                            Button(model.text("rejectPublication"),role:.destructive) {Task {await model.perform("/v1/videos/"+video.id+"/review-publication",body:["approved":false,"reason":reason])}}
+                        }.disabled(reason.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty)
+                    }
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+        }.disabled(model.busy || model.pendingOperation)
+            .onChange(of:model.account) {_,_ in reason=""}
+    }
+}
+
+struct CreatorPublicationControls: View {
+    @EnvironmentObject private var model:CreatorModel
+    let video:CreatorVideo
+    @State private var editing=false
+    @State private var title=""
+    @State private var description=""
+    @State private var scheduling=false
+    @State private var when=Date().addingTimeInterval(3600)
+    @State private var visibility="public"
+    var body: some View {
+        HStack {
+            if ["owner","editor"].contains(model.role(video.channel_id) ?? "") {
+                Button(model.text("edit")) {title=video.title;description=video.description;editing=true}
+                if video.workflow_state=="approved" {Button(model.text("schedule")) {scheduling=true}}
+                if video.workflow_state=="scheduled" {Button(model.text("publishDue")) {Task {await model.perform("/v1/videos/"+video.id+"/publish-due")}}}
+            }
+        }
+        .sheet(isPresented:$editing) {
+            NavigationStack {Form {
+                TextField(model.text("title"),text:$title)
+                TextField(model.text("description"),text:$description,axis:.vertical)
+                Button(model.text("save")) {Task {await model.perform("/v1/videos/"+video.id+"/metadata",body:["title":title,"description":description]);if !model.pendingOperation {editing=false}}}.disabled(model.busy || model.pendingOperation || title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || title.count>140 || description.utf8.count>5000)
+            }.navigationTitle(model.text("edit")).toolbar {Button(model.text("close")) {editing=false}}}.frame(minWidth:320,minHeight:300)
+        }
+        .sheet(isPresented:$scheduling) {
+            NavigationStack {Form {
+                DatePicker(model.text("publicationTime"),selection:$when,in:Date()...)
+                Picker(model.text("publish"),selection:$visibility) {ForEach(["public","unlisted"],id:\.self) {Text(model.text($0)).tag($0)}}
+                Button(model.text("schedule")) {Task {await model.perform("/v1/videos/"+video.id+"/schedule",body:["visibility":visibility,"scheduled_at":ISO8601DateFormatter().string(from:when)]);if !model.pendingOperation {scheduling=false}}}.disabled(model.busy || model.pendingOperation || when<=Date())
+            }.navigationTitle(model.text("schedule")).toolbar {Button(model.text("close")) {scheduling=false}}}.frame(minWidth:320,minHeight:300)
+        }
+        .onChange(of:model.account) {_,_ in editing=false;scheduling=false;title="";description=""}
     }
 }

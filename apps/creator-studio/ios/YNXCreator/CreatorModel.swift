@@ -5,10 +5,20 @@ struct CreatorVideo: Decodable, Identifiable {
     let id, owner, channel_id, title, description, status, visibility, workflow_state, sha256: String
     let bytes: Int
     let rights_declaration_id: String?
+    let version: UInt64?
+    let reviewed_by: String?
 }
 struct CreatorSnapshot: Decodable {
     struct Analytics: Decodable { let views, watch_seconds, subscribers, revenue_ynxt: Int; let source: String }
-    struct Team: Decodable { let channel_id: String }
+    struct Team: Decodable, Identifiable {
+        struct Member: Decodable {let account,role,state: String}
+        struct Invite: Decodable,Identifiable {let id,channel_id,account,role,state: String}
+        let channel_id: String
+        let members: [Member]?
+        let invites: [Invite]?
+        var id:String {channel_id}
+    }
+    struct Rights: Decodable,Identifiable {let id,video_id,declared_by,basis,state,evidence_sha256,source_sha256: String;let reviewer: String?}
     struct Revenue: Decodable,Identifiable { let recordID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {recordID};enum CodingKeys:String,CodingKey {case recordID="ID",Owner,PayReceiptID,AmountYNXT} }
     struct Payout: Decodable,Identifiable { let intentID,Owner,State: String;let AmountYNXT: Int;var id:String {intentID};enum CodingKeys:String,CodingKey {case intentID="ID",Owner,State,AmountYNXT} }
     let videos: [CreatorVideo]?
@@ -16,6 +26,7 @@ struct CreatorSnapshot: Decodable {
     let team: [Team]?
     let revenue: [Revenue]?
     let payout_intents: [Payout]?
+    let rights: [Rights]?
 }
 
 @MainActor final class CreatorModel: ObservableObject {
@@ -132,9 +143,9 @@ struct CreatorSnapshot: Decodable {
         } catch {if captured==revision {message=text("uploadUnconfirmed");try? await refreshCaptured(active,captured)}}
     }
     func cancelUpload() {guard !busy else {return};do {try drafts?.cancelUpload();pendingUploadTitle="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
-    func perform(_ path: String,body: [String:Any]=[:]) async {
+    func perform(_ path: String,body: [String:Any]=[:],method:String="POST") async {
         guard !busy,let store=drafts else {return}
-        do {_ = try store.reserve(path:path,body:body);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}
+        do {_ = try store.reserve(path:path,body:body,method:method);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}
         await retryOperation()
     }
     func retryOperation() async {
@@ -142,11 +153,13 @@ struct CreatorSnapshot: Decodable {
         defer {if captured==revision {busy=false}}
         do {
             guard let operation=try store.pendingOperation() else {return}
-            let data=try await CreatorHTTP.shared.accountData(operation.path,method:"POST",body:Data(operation.body.utf8),engine:active,requestKey:operation.key,guardRequest:{try self.require(active,captured)})
+            let data=try await CreatorHTTP.shared.accountData(operation.path,method:operation.method,body:Data(operation.body.utf8),engine:active,requestKey:operation.key,guardRequest:{try self.require(active,captured)})
             try require(active,captured)
             if operation.path=="/v1/channels",let channel=try JSONSerialization.jsonObject(with:data) as? [String:Any],let id=channel["ID"] as? String,CreatorDraftState.validID(id),channel["Owner"] as? String==account {channelID=id}
             try await refreshCaptured(active,captured);try store.acknowledge(operation);pendingOperation=false;message=""
         } catch {if captured==revision {lastFailure=String(describing:error);message=text("operationPending");try? await refreshCaptured(active,captured)}}
     }
     func cancelOperation() {guard !busy else {return};do {try drafts?.cancelOperation();pendingOperation=false;message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
+    func role(_ channel: String) -> String? {snapshot?.team?.first(where:{$0.channel_id==channel})?.members?.first(where:{$0.account==account && $0.state=="active"})?.role}
+    func canReview(_ video: CreatorVideo) -> Bool {connected && video.owner != account && role(video.channel_id)=="moderator"}
 }

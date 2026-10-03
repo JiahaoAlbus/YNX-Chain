@@ -11,6 +11,15 @@ import Foundation
     }
     struct Operation: Codable, Equatable {
         let key, path, body: String
+        let method: String
+        enum CodingKeys: String,CodingKey {case key,path,body,method}
+        init(key:String,path:String,body:String,method:String) {self.key=key;self.path=path;self.body=body;self.method=method}
+        init(from decoder: Decoder) throws {
+            let box=try decoder.container(keyedBy:CodingKeys.self)
+            key=try box.decode(String.self,forKey:.key);path=try box.decode(String.self,forKey:.path);body=try box.decode(String.self,forKey:.body)
+            // Existing saved POST operations retain their exact key/body.
+            method=try box.decodeIfPresent(String.self,forKey:.method) ?? "POST"
+        }
     }
     private struct Saved: Codable { let version: Int; let account: String; var upload: Upload?; var operation: Operation? }
     let account: String
@@ -87,10 +96,10 @@ import Foundation
     }
     func acknowledge(_ upload: Upload) throws { try require();guard saved.upload==upload else { throw Failure.changed };var next=saved;next.upload=nil;try persist(next) }
     func cancelUpload() throws { try require();var next=saved;next.upload=nil;try persist(next) }
-    func reserve(path: String,body: [String:Any]) throws -> Operation {
-        try require();guard saved.operation==nil,try CreatorHTTP.url(path).path.hasPrefix("/video/api/v1/"),path != "/v1/uploads" else { throw Failure.pending }
+    func reserve(path: String,body: [String:Any],method: String="POST") throws -> Operation {
+        try require();guard saved.operation==nil,["POST","DELETE"].contains(method),try CreatorHTTP.url(path).path.hasPrefix("/video/api/v1/"),path != "/v1/uploads" else { throw Failure.pending }
         let raw=try CreatorNativeState.canonical(body);guard raw.utf8.count<=1_048_576 else { throw Failure.invalid }
-        let operation=Operation(key:"creator-op-"+UUID().uuidString,path:path,body:raw);var next=saved;next.operation=operation;try persist(next);return operation
+        let operation=Operation(key:"creator-op-"+UUID().uuidString,path:path,body:raw,method:method);var next=saved;next.operation=operation;try persist(next);return operation
     }
     func acknowledge(_ operation: Operation) throws { try require();guard saved.operation==operation else { throw Failure.changed };var next=saved;next.operation=nil;try persist(next) }
     func cancelOperation() throws { try require();var next=saved;next.operation=nil;try persist(next) }
@@ -98,7 +107,7 @@ import Foundation
         guard upload.account==account,CreatorNativeState.matches(upload.key,"^creator-upload-[A-Fa-f0-9-]{36}$"),Self.validID(upload.channelID),CreatorNativeState.matches(upload.contentSHA,"^[a-f0-9]{64}$"),CreatorNativeState.matches(upload.wireSHA,"^[a-f0-9]{64}$"),upload.mediaBytes>0,upload.mediaBytes<=511*1024*1024,upload.wireBytes>upload.mediaBytes,upload.wireBytes<=512*1024*1024,upload.contentType=="multipart/form-data; boundary=ynx-"+upload.key else { throw Failure.damaged }
     }
     private func validate(_ operation: Operation) throws {
-        guard CreatorNativeState.matches(operation.key,"^creator-op-[A-Fa-f0-9-]{36}$"),operation.path != "/v1/uploads",operation.body.utf8.count<=1_048_576 else { throw Failure.damaged }
+        guard CreatorNativeState.matches(operation.key,"^creator-op-[A-Fa-f0-9-]{36}$"),["POST","DELETE"].contains(operation.method),operation.path != "/v1/uploads",operation.body.utf8.count<=1_048_576 else { throw Failure.damaged }
         _ = try CreatorHTTP.url(operation.path);_ = try CreatorNativeState.object(operation.body)
     }
     private func persist(_ next: Saved) throws {
