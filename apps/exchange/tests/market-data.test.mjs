@@ -62,6 +62,26 @@ test('newer manual refresh wins over delayed earlier HTTP result', async () => {
   pending[1](Response.json(snapshot(2))); await second; pending[0](Response.json(snapshot(1))); await first;
   assert.deepEqual(h.received.map(value => value.revision), [2]); assert.equal(h.sources.length, 1); h.feed.stop();
 });
+test('snapshot timeout retires a stalled read immediately and fences its late body', async () => {
+  const pending=[]; const h=harness(()=>new Promise(resolve=>pending.push(resolve)));
+  const first=h.feed.start(); h.timer(10_000);
+  assert.equal(h.statuses.at(-1).phase,'unavailable');
+  assert.equal(h.statuses.at(-1).code,'MARKET_SOURCE_UNAVAILABLE');
+  assert.equal(h.calls[0][1].signal.aborted,true);
+  const recovery=h.timer(1000); pending[1](Response.json(snapshot(2))); await recovery;
+  pending[0](Response.json(snapshot(1))); await first;
+  assert.deepEqual(h.received.map(value=>value.revision),[2]);
+  assert.equal(h.sources.length,1); assert.equal(h.statuses.at(-1).phase,'live');
+  h.feed.stop(); assert.equal(h.timers.size,0);
+});
+test('offline and stop clear the read deadline before an unresolved request returns', async () => {
+  for(const method of ['offline','stop']){
+    let resolve; const h=harness(()=>new Promise(done=>resolve=done)); const running=h.feed.start();
+    h.feed[method](); assert.equal(h.timers.size,0); assert.equal(h.calls[0][1].signal.aborted,true);
+    resolve(Response.json(snapshot())); await running;
+    assert.equal(h.received.length,0);assert.equal(h.sources.length,0);
+  }
+});
 test('HTML fallback, HTTP failure and malformed source never become empty-market success', async () => {
   for (const response of [new Response('<html>fallback</html>', {headers: {'content-type': 'text/html'}}), Response.json({}, {status: 503}), Response.json({...snapshot(), market: 'BTC-USD'})]) {
     const h = harness(async () => response); await h.feed.start();

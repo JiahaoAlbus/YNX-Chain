@@ -78,10 +78,11 @@ export function formatMicro(value, locale = 'en') {
 
 export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl = globalThis.EventSource, onSnapshot, onStatus,
   setTimer = globalThis.setTimeout, clearTimer = globalThis.clearTimeout} = {}) {
-  let epoch = 0, stopped = true, snapshot = null, revisionContents = null, stream = null, abort = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
+  let epoch = 0, stopped = true, snapshot = null, revisionContents = null, stream = null, abort = null, requestTimer = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
   const report = (phase, code = null) => onStatus?.({phase, code, source: snapshot?.sourceMetadata ?? null});
   function cancel() {
     abort?.abort(); abort = null;
+    clearTimer(requestTimer); requestTimer = null;
     stream?.close(); stream = null;
     clearTimer(retryTimer); retryTimer = null;
     clearTimer(watchdog); watchdog = null;
@@ -152,7 +153,10 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
     const token = ++epoch;
     cancel(); report(snapshot ? 'reconnecting' : 'loading');
     const controller = new AbortController(); abort = controller;
-    const timeout = setTimer(() => controller.abort(), 10_000);
+    // Retire the epoch at the deadline, not just the fetch signal. A stalled
+    // transport/body must not keep loading alive or apply a late response.
+    const timeout = setTimer(() => { if (token === epoch && !stopped) reconnect('MARKET_SOURCE_UNAVAILABLE'); }, 10_000);
+    requestTimer = timeout;
     try {
       const response = await fetchImpl(SNAPSHOT_PATH, {method: 'GET', credentials: 'omit', redirect: 'error', cache: 'no-store', headers: {Accept: 'application/json'}, signal: controller.signal});
       if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE'});
@@ -162,7 +166,7 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       apply(body); report('live'); subscribe(token);
     } catch (error) {
       if (token === epoch && !stopped) reconnect(error?.code === 'MARKET_DATA_INVALID' ? error.code : error?.code === 'MARKET_RATE_LIMITED' ? error.code : 'MARKET_SOURCE_UNAVAILABLE');
-    } finally { clearTimer(timeout); }
+    } finally { clearTimer(timeout); if (requestTimer === timeout) requestTimer = null; }
   }
   return Object.freeze({start: refresh, retry: refresh,
     offline() { stopped = true; ++epoch; cancel(); report('offline'); },
