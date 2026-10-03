@@ -24,6 +24,36 @@ const walletConnect=app.slice(app.indexOf('async function connectWallet('),app.i
 const identitySource=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
 const revokeSource=app.slice(app.indexOf('async function revokeWalletPermission('),app.indexOf('function openWalletChooser('));
 const privateRevokeBinding=app.split('\n').find(line=>line.includes("$('#private-disconnect').addEventListener"));
+const openOrdersRender=app.slice(app.indexOf('function renderOrders('),app.indexOf('function renderBalances('));
+const balancesRender=app.slice(app.indexOf('function renderBalances('),app.indexOf('function renderActivity('));
+
+test('actual record renderers translate only authoritative domain states and retain codes without promoting unknown or reviewed withdrawals',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',activity:'orders',snapshot:null};const display=${formatMicro.toString()};const cancelOrder=()=>{throw new Error('unexpected write action')};${openOrdersRender}\n${balancesRender}\n${activityRender}\nwindow.recordLocaleQA={set(data){state.snapshot=data},render(domain){state.activity=domain;renderOrders();renderBalances();renderActivity()},snapshot:()=>JSON.stringify(state.snapshot)};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    const createdAt='2026-10-03T00:00:00Z';
+    const orders=['open','partially_filled','filled','cancelled','rejected'].map((status,i)=>({account:'A',id:`order-${i}`,market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:1234567,amountMicro:2000000,filledMicro:status==='partially_filled'?1000000:status==='filled'?2000000:0,status,createdAt}));
+    const deposits=['confirming','confirmed','future_unknown','__proto__'].map((status,i)=>({account:'A',id:`deposit-${i}`,asset:'YNXT',network:'YNX Testnet',amountMicro:1000001,confirmations:status==='confirmed'?12:2,required:12,status,txHash:`returned-${i}`,sourceDigest:'a'.repeat(64),createdAt}));
+    const withdrawals=['reviewed_pending_operator_broadcast','future_unknown'].map((status,i)=>({account:'A',id:`withdrawal-${i}`,asset:'YNXT',network:'YNX Testnet',amountMicro:2000000,feeMicro:1,receiveMicro:1999999,status,destination:'ynx1-fixture',sourceDigest:'b'.repeat(64),createdAt}));
+    const data={orders,deposits,withdrawals,balances:[{asset:'YNXT',availableMicro:9007199254740991,reservedMicro:1}]};await page.evaluate(data=>window.recordLocaleQA.set(data),data);
+    for(const locale of locales){
+      await page.evaluate(locale=>window.YNXExchangeLocale.set(locale),locale);
+      await page.evaluate(()=>window.recordLocaleQA.render('orders'));
+      const states=await page.locator('#activity-body tr td:nth-child(7)').allTextContents();assert.deepEqual(states,['open','partial','filled','cancelled','rejected'].map((key,i)=>catalogs[locale][`record-order-${key}`]+` (${orders[i].status})`));
+      assert.equal(await page.locator('#orders tr').count(),2);assert.equal(await page.locator('#orders tr').first().locator('td').nth(4).getAttribute('class'),'status-open');
+      assert.deepEqual(await page.locator('#orders button').allTextContents(),[catalogs[locale].Cancel,catalogs[locale].Cancel]);
+      assert.deepEqual(await page.locator('#balances dt').allTextContents(),[catalogs[locale].Available,catalogs[locale].Reserved]);assert.deepEqual(await page.locator('#balances dd').allTextContents(),[formatMicro(9007199254740991),formatMicro(1)]);
+      await page.evaluate(()=>window.recordLocaleQA.render('deposits'));assert.deepEqual(await page.locator('#activity-body tr td:nth-child(6)').allTextContents(),[catalogs[locale]['record-deposit-confirming']+' (confirming)',catalogs[locale]['record-deposit-confirmed']+' (confirmed)','future_unknown','__proto__']);
+      await page.evaluate(()=>window.recordLocaleQA.render('withdrawals'));assert.deepEqual(await page.locator('#activity-body tr td:nth-child(7)').allTextContents(),[catalogs[locale]['record-withdrawal-reviewed']+' (reviewed_pending_operator_broadcast)','future_unknown']);
+      assert.equal(await page.evaluate(()=>window.YNXExchangeLocale.record('order','confirmed')),'confirmed','deposit confirmation must not be promoted to an order state');
+      assert.equal(await page.evaluate(()=>window.YNXExchangeLocale.record('constructor','open')),'open');assert.equal(await page.evaluate(()=>window.recordLocaleQA.snapshot()),JSON.stringify(data));
+      await page.evaluate(()=>{window.recordLocaleQA.set({orders:[],balances:[]});window.recordLocaleQA.render('orders')});assert.equal(await page.locator('#orders').innerText(),catalogs[locale]['orders-empty']);assert.equal(await page.locator('#balances').innerText(),'');await page.evaluate(data=>window.recordLocaleQA.set(data),data);
+    }
+    assert.equal(requests,0,'displaying a venue report does not verify or cause a chain transaction');
+  }finally{await browser.close()}
+});
 
 test('actual revoke confirmations use the selected locale and cancellation invokes neither private nor standard revocation',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
@@ -177,8 +207,8 @@ test('actual activity tabs and all headers use 12 locales without mutating owned
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,locale);
     }
     await page.evaluate(()=>{window.activityLocaleQA.state.activity='orders';window.activityLocaleQA.state.snapshot={orders:[{account:'A',id:'exact-A',market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:1234567,amountMicro:2000000,filledMicro:0,status:'rejected',rejectReason:'EXACT_ENGINE_CODE',createdAt:'2026-10-03T00:00:00Z'},{account:'B',id:'foreign-B',createdAt:'2026-10-03T00:00:00Z'}]};window.activityLocaleQA.renderActivity()});
-    const before=await page.locator('#activity-body').innerText();
-    for(const locale of locales){await page.locator('#exchange-language').selectOption(locale);assert.equal(await page.locator('#activity-body').innerText(),before)}
+    const before=await page.locator('#activity-body').innerText(),cells=await page.locator('#activity-body td').allTextContents();
+    for(const locale of locales){await page.locator('#exchange-language').selectOption(locale);const current=await page.locator('#activity-body td').allTextContents();assert.deepEqual(current.filter((_,i)=>i!==6),cells.filter((_,i)=>i!==6));assert.equal(current[6],catalogs[locale]['record-order-rejected']+' (rejected)')}
     assert.match(before,/exact-A/u);assert.match(before,/EXACT_ENGINE_CODE/u);assert.doesNotMatch(before,/foreign-B/u);assert.equal(requests,0);
   }finally{await browser.close()}
 });

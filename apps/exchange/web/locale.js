@@ -120,8 +120,26 @@ const confirmRows={
  ar:['هل تلغي جلسة منتج Exchange للقراءة فقط؟ لا يقطع ذلك اتصال Wallet القياسي أو يلغي الأوامر.','هل تطلب من Wallet هذه إلغاء وصول حساب Exchange؟ لا يلغي ذلك أذونات الرموز أو الأوامر.'],
  id:['Cabut sesi produk Exchange hanya-baca ini? Ini tidak memutuskan Wallet standar atau membatalkan order.','Minta Wallet ini mencabut akses akun Exchange? Ini tidak mencabut izin token atau membatalkan order.']
 };
+const recordKeys=['record-order-open','record-order-partial','record-order-filled','record-order-cancelled','record-order-rejected','record-deposit-confirming','record-deposit-confirmed','record-withdrawal-reviewed'];
+const recordRows={
+ en:['Open at venue','Partially filled in venue ledger','Filled in venue ledger','Cancelled at venue','Rejected at venue','Awaiting required confirmations','Confirmation reported by venue','Reviewed · awaiting operator broadcast'],
+ 'zh-Hans':['场所中开放','场所账本部分成交','场所账本已成交','场所已取消','场所已拒绝','等待所需确认数','场所报告已确认','已审核 · 等待操作方广播'],
+ 'zh-Hant':['場所中開放','場所帳本部分成交','場所帳本已成交','場所已取消','場所已拒絕','等待所需確認數','場所報告已確認','已審核 · 等待操作方廣播'],
+ ja:['取引所で受付中','取引所台帳で部分約定','取引所台帳で約定済','取引所で取消済','取引所で拒否','必要確認数を待機','取引所が確認を報告','確認済 · 運営者のブロードキャスト待機'],
+ ko:['거래소 주문 대기','거래소 원장 일부 체결','거래소 원장 체결 완료','거래소 취소','거래소 거절','필요 확인 수 대기','거래소가 확인 보고','검토됨 · 운영자 브로드캐스트 대기'],
+ es:['Abierta en el mercado','Parcialmente ejecutada en el libro','Ejecutada en el libro','Cancelada en el mercado','Rechazada en el mercado','Esperando confirmaciones requeridas','Confirmación reportada por el mercado','Revisada · pendiente de difusión del operador'],
+ fr:['Ouvert sur le marché','Partiellement exécuté dans le grand livre','Exécuté dans le grand livre','Annulé sur le marché','Refusé sur le marché','En attente des confirmations requises','Confirmation rapportée par le marché','Vérifié · diffusion de l’opérateur attendue'],
+ de:['Am Handelsplatz offen','Im Handelsplatzbuch teilweise ausgeführt','Im Handelsplatzbuch ausgeführt','Am Handelsplatz storniert','Am Handelsplatz abgelehnt','Erforderliche Bestätigungen ausstehend','Bestätigung vom Handelsplatz gemeldet','Geprüft · Betreiberübertragung ausstehend'],
+ pt:['Aberta no mercado','Parcialmente executada no livro','Executada no livro','Cancelada no mercado','Rejeitada no mercado','Aguardando confirmações exigidas','Confirmação reportada pelo mercado','Revisada · aguardando transmissão do operador'],
+ ru:['Открыт на площадке','Частично исполнен в журнале площадки','Исполнен в журнале площадки','Отменён на площадке','Отклонён на площадке','Ожидание нужных подтверждений','Подтверждение сообщено площадкой','Проверен · ожидается отправка оператором'],
+ ar:['مفتوح في السوق','منفذ جزئيًا في دفتر السوق','منفذ في دفتر السوق','ملغى في السوق','مرفوض في السوق','بانتظار التأكيدات المطلوبة','تأكيد أبلغ عنه السوق','تمت المراجعة · بانتظار بث المشغل'],
+ id:['Terbuka di pasar','Terisi sebagian di buku pasar','Terisi di buku pasar','Dibatalkan di pasar','Ditolak di pasar','Menunggu konfirmasi yang diperlukan','Konfirmasi dilaporkan pasar','Ditinjau · menunggu siaran operator']
+};
+const recordLabels={order:{open:'record-order-open',partially_filled:'record-order-partial',filled:'record-order-filled',cancelled:'record-order-cancelled',rejected:'record-order-rejected'},deposit:{confirming:'record-deposit-confirming',confirmed:'record-deposit-confirmed'},withdrawal:{reviewed_pending_operator_broadcast:'record-withdrawal-reviewed'}};
+const balanceKeys=['Available','Reserved','Cancel','orders-empty'];
+const balanceRows={en:['Available','Reserved','Cancel','No open orders. The venue does not seed fake depth.'],'zh-Hans':['可用','预留','取消','没有开放订单。场所不会填充虚假深度。'],'zh-Hant':['可用','預留','取消','沒有開放訂單。場所不會填充虛假深度。'],ja:['利用可能','予約済','取消','未約定注文はありません。取引所は架空の板を生成しません。'],ko:['사용 가능','예약됨','취소','대기 주문이 없습니다. 거래소는 가짜 호가를 생성하지 않습니다.'],es:['Disponible','Reservado','Cancelar','Sin órdenes abiertas. El mercado no crea profundidad falsa.'],fr:['Disponible','Réservé','Annuler','Aucun ordre ouvert. Le marché ne crée pas de profondeur fictive.'],de:['Verfügbar','Reserviert','Stornieren','Keine offenen Aufträge. Der Handelsplatz erzeugt keine künstliche Tiefe.'],pt:['Disponível','Reservado','Cancelar','Sem ordens abertas. O mercado não cria profundidade falsa.'],ru:['Доступно','Зарезервировано','Отменить','Открытых ордеров нет. Площадка не создаёт фиктивную глубину.'],ar:['متاح','محجوز','إلغاء','لا توجد أوامر مفتوحة. لا ينشئ السوق عمقًا وهميًا.'],id:['Tersedia','Dicadangkan','Batalkan','Tidak ada order terbuka. Pasar tidak membuat kedalaman palsu.']};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
-  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale]];
+  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale]];
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
   if(activityRows[locale].length!==activityKeys.length)throw new Error('EXCHANGE_ACTIVITY_CATALOG_INCOMPLETE');
   if(formRows[locale].length!==formKeys.length)throw new Error('EXCHANGE_FORM_CATALOG_INCOMPLETE');
@@ -129,6 +147,8 @@ export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   if(walletRows[locale].length!==walletKeys.length)throw new Error('EXCHANGE_WALLET_UI_CATALOG_INCOMPLETE');
   if(identityRows[locale].length!==identityKeys.length)throw new Error('EXCHANGE_IDENTITY_UI_CATALOG_INCOMPLETE');
   if(confirmRows[locale].length!==confirmKeys.length)throw new Error('EXCHANGE_CONFIRM_UI_CATALOG_INCOMPLETE');
+  if(recordRows[locale].length!==recordKeys.length)throw new Error('EXCHANGE_RECORD_UI_CATALOG_INCOMPLETE');
+  if(balanceRows[locale].length!==balanceKeys.length)throw new Error('EXCHANGE_BALANCE_UI_CATALOG_INCOMPLETE');
   return [locale,Object.freeze(Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])))];
 })));
 export const normalizeLocale=value=>locales.includes(value)?value:'en';
@@ -140,6 +160,7 @@ export function installExchangeLocale({document,storage,onChange=()=>{}}){
   const api={
     locale:()=>locale,
     text:key=>translate(locale,key),
+    record(domain,code){const table=Object.hasOwn(recordLabels,domain)?recordLabels[domain]:null;const key=table&&Object.hasOwn(table,code)?table[code]:null;return key?`${translate(locale,key)} (${code})`:code},
     write(element,key,suffix=''){if(!element)return;messages.set(element,{key,suffix});element.textContent=translate(locale,key)+suffix},
     forget(element){messages.delete(element)},
     error(element,error){if(!element||!errorCodes.includes(error?.code))return false;api.write(element,error.code,` (${error.code})`);return true},
