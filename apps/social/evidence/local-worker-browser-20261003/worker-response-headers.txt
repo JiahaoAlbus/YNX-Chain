@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'none'; worker-src 'none'
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Resource-Policy: same-origin
+X-Content-Type-Options: nosniff
+Cache-Control: no-store
+Content-Type: text/javascript
+Date: Sat, 03 Oct 2026 12:11:33 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Content-Length: 2376
+

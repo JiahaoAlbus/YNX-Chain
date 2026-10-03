@@ -1,0 +1,181 @@
+{
+  "observedAt": "2026-10-03T12:11:41.728Z",
+  "url": "http://127.0.0.1:60572/",
+  "first": {
+    "status": "SYNTHETIC_WORKER_GRAPH_PASS_ONLY",
+    "fetchBlocked": true,
+    "loadMs": 199.86500000208616,
+    "results": [
+      {
+        "run": 0,
+        "elapsedMs": 775.234999999404,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      },
+      {
+        "run": 1,
+        "elapsedMs": 742.929999999702,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      }
+    ],
+    "sessionReleased": true,
+    "privateContentProcessed": false,
+    "classifierAccuracy": "NOT_VERIFIED",
+    "serverProbeRequests": 0
+  },
+  "cancelStatus": "Cancelled. Worker terminated; no result is accepted.",
+  "afterCancel": {
+    "runEnabled": true,
+    "cancelEnabled": false,
+    "result": ""
+  },
+  "workerStageCancel": {
+    "status": "Cancelled. Worker terminated; no result is accepted.",
+    "runEnabled": true,
+    "result": ""
+  },
+  "recovered": {
+    "status": "SYNTHETIC_WORKER_GRAPH_PASS_ONLY",
+    "fetchBlocked": true,
+    "loadMs": 85.39000000059605,
+    "results": [
+      {
+        "run": 0,
+        "elapsedMs": 793.2600000053644,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      },
+      {
+        "run": 1,
+        "elapsedMs": 761.5649999976158,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      }
+    ],
+    "sessionReleased": true,
+    "privateContentProcessed": false,
+    "classifierAccuracy": "NOT_VERIFIED",
+    "serverProbeRequests": 0
+  },
+  "invalidArtifact": {
+    "url": "http://127.0.0.1:62640/",
+    "status": "Local asset load failed. Nothing was classified. Retry is available.",
+    "result": "",
+    "runEnabled": true
+  },
+  "afterInvalidRecovery": {
+    "status": "SYNTHETIC_WORKER_GRAPH_PASS_ONLY",
+    "fetchBlocked": true,
+    "loadMs": 175.67500000447035,
+    "results": [
+      {
+        "run": 0,
+        "elapsedMs": 760.9900000020862,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      },
+      {
+        "run": 1,
+        "elapsedMs": 746.1049999967217,
+        "shapes": [
+          {
+            "name": "last_hidden_state",
+            "dimensions": [
+              1,
+              196,
+              768
+            ]
+          },
+          {
+            "name": "pooler_output",
+            "dimensions": [
+              1,
+              768
+            ]
+          }
+        ]
+      }
+    ],
+    "sessionReleased": true,
+    "privateContentProcessed": false,
+    "classifierAccuracy": "NOT_VERIFIED",
+    "serverProbeRequests": 0
+  },
+  "parentConsole": []
+}
