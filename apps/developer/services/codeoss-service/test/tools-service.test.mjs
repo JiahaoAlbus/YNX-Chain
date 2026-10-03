@@ -13,8 +13,8 @@ import { prepareCoreProject } from '../src/runtime-files.mjs';
 const require = createRequire(import.meta.url), { digest, validateChanges, assertWorkspacePath } = require('../../../native/ynx-tools/src/guards.cjs');
 const sessionId = '12345678-1234-1234-1234-123456789012', origin = 'https://developer.ynxweb4.com';
 async function harness(t, { realChain = false, generationHook, modelWork } = {}) {
-  let now = 100, generation = 1, revoked = false, admissions = 0, projectId = 'project-A'; const calls = [], admittedOwners = new WeakMap();
-  const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId, runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation }, expiresAt: 100000 }; } };
+  let now = 100, generation = 1, revoked = false, admissions = 0, projectId = 'project-A', identityReference = 'reference-A'; const calls = [], admittedOwners = new WeakMap();
+  const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId, runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation, identityReference }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
   const chain = createChainService({ ownerForRequest: req => admittedOwners.get(req), fetcher: async (url, options) => {
     calls.push({ upstream: String(url), body: options?.body });
@@ -30,7 +30,7 @@ async function harness(t, { realChain = false, generationHook, modelWork } = {})
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + '?sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
   });
-  return { send, calls, server, admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
+  return { send, calls, server, aiStore, changeReference: () => identityReference += '-new', admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
 }
 
 test('approved AI request is saved under the actual owner/project; reopening sends no model request', async t => {
@@ -209,3 +209,42 @@ test('native text apply rejects cross-session bundles and real symlink escape', 
   await writeFile(join(root, 'inside.txt'), 'safe'); await writeFile(join(outside, 'outside.txt'), 'other'); await symlink(outside, join(root, 'escape'));
   await assertWorkspacePath(join(root, 'inside.txt'), root); await assert.rejects(assertWorkspacePath(join(root, 'escape', 'outside.txt'), root), /outside/);
 });
+
+
+for (const transition of ['changeAccount','changeProject','changeReference','revoke','expire','unchanged']) {
+  test('actual queued Tools request rechecks ' + transition + ' before sending private context', async t => {
+    let release, started;
+    const held=new Promise(resolve=>release=resolve), ready=new Promise(resolve=>started=resolve), seen=[];
+    const upstream=createServer(async (req,res)=>{
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=JSON.parse(Buffer.concat(chunks));seen.push(body);
+      if(seen.length===1){started();await held;}
+      res.writeHead(200,{'content-type':'text/event-stream'});
+      res.end('event: metadata\ndata: '+JSON.stringify({requestId:'controlled-queue',sessionId:body.session})+'\n\nevent: token\ndata: {"text":"controlled answer"}\n\nevent: done\ndata: {"requestId":"controlled-queue"}\n\n');
+    });
+    await new Promise(resolve=>upstream.listen(0,'127.0.0.1',resolve));
+    t.after(()=>{release();upstream.closeAllConnections();upstream.close();});
+    const router=createModelRouter({hostedBaseURL:'http://127.0.0.1:'+upstream.address().port,maxConcurrent:1,maxHostedConcurrent:1,maxPerOwner:1});
+    const blocker=router.generate({ownerId:'other-owner',hostedSession:'00000000-0000-4000-8000-000000000001',prompt:'Controlled blocker'});
+    await ready;
+    const h=await harness(t,{modelWork:input=>router.generate(input)}), c=await h.send('context');
+    const p=await h.send('proposals',{csrf:c.value.csrf,prompt:'Review this private selection',context:'PRIVATE_QUEUE_CONTEXT'});
+    const body={csrf:p.value.csrf,proposalId:p.value.proposalId,approval:'send-reviewed-context-once'};
+    const pending=h.send('approve',body);
+    const deadline=Date.now()+2000;while(router.catalog().queued!==1&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
+    assert.equal(router.catalog().queued,1);
+    if(transition==='expire')h.setTime(100001);else if(transition==='changeProject')h.changeProject('project-B');else if(transition!=='unchanged')h[transition]();
+    release();await blocker;const result=await pending;
+    if(transition==='unchanged'){
+      assert.equal(result.status,200,JSON.stringify(result.value));assert.equal(result.value.text,'controlled answer');assert.equal(seen.length,2);
+      const saved=h.aiStore.get('verified-A','project-A',result.value.conversationId);assert.equal(saved.status,'completed');assert.equal(saved.context,'PRIVATE_QUEUE_CONTEXT');
+      assert.equal((await h.send('approve',body)).status,403);assert.equal(seen.length,2);return;
+    }
+    assert.equal(result.status,401,JSON.stringify(result.value));assert.equal(result.value.text,undefined);
+    assert.equal(seen.length,1,'retired queued context must not reach the upstream HTTP service');
+    assert.equal(JSON.stringify(seen).includes('PRIVATE_QUEUE_CONTEXT'),false);
+    const saved=h.aiStore.list('verified-A','project-A');assert.equal(saved.length,1);assert.equal(saved[0].status,'failed');
+    assert.equal(h.aiStore.get('verified-A','project-A',saved[0].id).text,undefined);
+    assert.equal((await h.send('approve',body)).status>=400,true);assert.equal(seen.length,1);
+    assert.equal(router.catalog().active,0);assert.equal(router.catalog().queued,0);
+  });
+}

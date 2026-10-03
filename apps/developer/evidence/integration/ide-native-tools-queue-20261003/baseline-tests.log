@@ -1,0 +1,122 @@
+✔ approved AI request is saved under the actual owner/project; reopening sends no model request (30.652375ms)
+✔ actual UTF-8 Gateway prompt limit rejects preview without truncation or model dispatch (14.20775ms)
+✔ actual Tools HTTP reaches the existing Gateway wire contract and saves only its completed response (21.957291ms)
+✔ AI approval rechecks changeAccount after a delayed HTTP body before model dispatch (18.721291ms)
+✔ AI approval rechecks revoke after a delayed HTTP body before model dispatch (16.023958ms)
+✔ AI approval rechecks expire after a delayed HTTP body before model dispatch (16.493584ms)
+✔ actual HTTP requires explicit preview and one-use approval; model uses verified owner, selected text only (11.540042ms)
+✔ hostile extension origins, forged owners, cross-account and stale generations never call the model (11.808708ms)
+✔ expired proposals/revoked sessions preserve context without generation or hidden retry (10.277959ms)
+✔ read-only chain and readiness reuse handlers with verified native owner; no signing route (10.032542ms)
+✔ reviewed document changes reject concurrent edits, digest mismatch and duplicate paths (0.367208ms)
+✔ pinned tools install survives reopen and never overwrites tampered extension or symlink (17.671875ms)
+✔ actual read-only Chain handler accepts chain query and rejects transaction/signing before upstream (13.366708ms)
+✔ normal Tools HTTP consumes exact contract inspector/call under current native owner with one-use review (16.730041ms)
+✔ revocation during generation suppresses model result and never reapplies or retries (17.514375ms)
+✔ closing the actual HTTP approval aborts its model signal and never makes the consumed review reusable (23.969ms)
+✔ native text apply rejects cross-session bundles and real symlink escape (0.823917ms)
+✖ actual queued Tools request rechecks changeAccount before sending private context (20.331208ms)
+✖ actual queued Tools request rechecks changeProject before sending private context (28.245083ms)
+✖ actual queued Tools request rechecks changeReference before sending private context (20.181333ms)
+✖ actual queued Tools request rechecks revoke before sending private context (20.126584ms)
+✖ actual queued Tools request rechecks expire before sending private context (19.65275ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 17
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 418.85925
+
+✖ failing tests:
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeAccount before sending private context (20.331208ms)
+  AssertionError [ERR_ASSERTION]: retired queued context must not reach the upstream HTTP service
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-service.test.mjs:238:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeProject before sending private context (28.245083ms)
+  AssertionError [ERR_ASSERTION]: retired queued context must not reach the upstream HTTP service
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-service.test.mjs:238:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeReference before sending private context (20.181333ms)
+  AssertionError [ERR_ASSERTION]: {"text":"controlled answer","model":"qwen3:4b","conversationId":"96ce6598-5068-4549-a4df-3b00e511db54","saved":true,"applied":false,"signed":false}
+  
+  200 !== 401
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-service.test.mjs:237:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks revoke before sending private context (20.126584ms)
+  AssertionError [ERR_ASSERTION]: retired queued context must not reach the upstream HTTP service
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-service.test.mjs:238:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks expire before sending private context (19.65275ms)
+  AssertionError [ERR_ASSERTION]: {"text":"controlled answer","model":"qwen3:4b","conversationId":"a59bb341-702e-4d94-b595-5f20e1e9d063","saved":true,"applied":false,"signed":false}
+  
+  200 !== 401
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-service.test.mjs:237:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

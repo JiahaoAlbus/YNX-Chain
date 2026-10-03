@@ -1,0 +1,30 @@
+✔ approved AI request is saved under the actual owner/project; reopening sends no model request (27.998ms)
+✔ actual UTF-8 Gateway prompt limit rejects preview without truncation or model dispatch (14.213125ms)
+✔ actual Tools HTTP reaches the existing Gateway wire contract and saves only its completed response (20.389125ms)
+✔ AI approval rechecks changeAccount after a delayed HTTP body before model dispatch (18.532291ms)
+✔ AI approval rechecks revoke after a delayed HTTP body before model dispatch (23.782333ms)
+✔ AI approval rechecks expire after a delayed HTTP body before model dispatch (17.188833ms)
+✔ actual HTTP requires explicit preview and one-use approval; model uses verified owner, selected text only (11.741541ms)
+✔ hostile extension origins, forged owners, cross-account and stale generations never call the model (10.982917ms)
+✔ expired proposals/revoked sessions preserve context without generation or hidden retry (11.070166ms)
+✔ read-only chain and readiness reuse handlers with verified native owner; no signing route (10.529625ms)
+✔ reviewed document changes reject concurrent edits, digest mismatch and duplicate paths (0.382334ms)
+✔ pinned tools install survives reopen and never overwrites tampered extension or symlink (15.754708ms)
+✔ actual read-only Chain handler accepts chain query and rejects transaction/signing before upstream (12.766792ms)
+✔ normal Tools HTTP consumes exact contract inspector/call under current native owner with one-use review (11.993542ms)
+✔ revocation during generation suppresses model result and never reapplies or retries (12.43025ms)
+✔ closing the actual HTTP approval aborts its model signal and never makes the consumed review reusable (22.478625ms)
+✔ native text apply rejects cross-session bundles and real symlink escape (0.823833ms)
+✔ actual queued Tools request rechecks changeAccount before sending private context (24.644333ms)
+✔ actual queued Tools request rechecks changeProject before sending private context (18.118458ms)
+✔ actual queued Tools request rechecks changeReference before sending private context (18.62775ms)
+✔ actual queued Tools request rechecks revoke before sending private context (17.872166ms)
+✔ actual queued Tools request rechecks expire before sending private context (19.104916ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 395.97775

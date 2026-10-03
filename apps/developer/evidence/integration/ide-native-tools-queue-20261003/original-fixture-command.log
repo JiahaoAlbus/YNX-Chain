@@ -1,0 +1,82 @@
+✔ approved AI request is saved under the actual owner/project; reopening sends no model request (31.428125ms)
+✔ actual UTF-8 Gateway prompt limit rejects preview without truncation or model dispatch (14.051917ms)
+✔ actual Tools HTTP reaches the existing Gateway wire contract and saves only its completed response (21.2785ms)
+✔ AI approval rechecks changeAccount after a delayed HTTP body before model dispatch (18.858541ms)
+✔ AI approval rechecks revoke after a delayed HTTP body before model dispatch (17.103375ms)
+✔ AI approval rechecks expire after a delayed HTTP body before model dispatch (17.078333ms)
+✔ actual HTTP requires explicit preview and one-use approval; model uses verified owner, selected text only (10.992667ms)
+✔ hostile extension origins, forged owners, cross-account and stale generations never call the model (11.839333ms)
+✔ expired proposals/revoked sessions preserve context without generation or hidden retry (10.586791ms)
+✔ read-only chain and readiness reuse handlers with verified native owner; no signing route (10.22625ms)
+✔ reviewed document changes reject concurrent edits, digest mismatch and duplicate paths (0.363583ms)
+✔ pinned tools install survives reopen and never overwrites tampered extension or symlink (18.275041ms)
+✔ actual read-only Chain handler accepts chain query and rejects transaction/signing before upstream (14.08675ms)
+✔ normal Tools HTTP consumes exact contract inspector/call under current native owner with one-use review (17.399291ms)
+✔ revocation during generation suppresses model result and never reapplies or retries (14.202291ms)
+✔ closing the actual HTTP approval aborts its model signal and never makes the consumed review reusable (23.849167ms)
+✔ native text apply rejects cross-session bundles and real symlink escape (0.847417ms)
+✖ actual queued Tools request rechecks changeAccount before sending private context (13.323542ms)
+✖ actual queued Tools request rechecks changeProject before sending private context (13.887875ms)
+✖ actual queued Tools request rechecks changeReference before sending private context (13.015708ms)
+✖ actual queued Tools request rechecks revoke before sending private context (15.220334ms)
+✖ actual queued Tools request rechecks expire before sending private context (11.257125ms)
+ℹ Error: Test "actual queued Tools request rechecks changeAccount before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks changeAccount before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: YNX hosted model connection failed." and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks changeProject before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks changeProject before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: YNX hosted model connection failed." and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks changeReference before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks changeReference before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: YNX hosted model connection failed." and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks revoke before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks revoke before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: YNX hosted model connection failed." and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks expire before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: read ECONNRESET" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ Error: Test "actual queued Tools request rechecks expire before sending private context" at services/codeoss-service/test/tools-service.test.mjs:215:3 generated asynchronous activity after the test ended. This activity created the error "Error: YNX hosted model connection failed." and would have caused the test to fail, but instead triggered an unhandledRejection event.
+ℹ tests 22
+ℹ suites 0
+ℹ pass 17
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 377.915791
+
+✖ failing tests:
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeAccount before sending private context (13.323542ms)
+  TypeError: router.status is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/tools-service.test.mjs:233:49)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeProject before sending private context (13.887875ms)
+  TypeError: router.status is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/tools-service.test.mjs:233:49)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks changeReference before sending private context (13.015708ms)
+  TypeError: router.status is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/tools-service.test.mjs:233:49)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks revoke before sending private context (15.220334ms)
+  TypeError: router.status is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/tools-service.test.mjs:233:49)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/codeoss-service/test/tools-service.test.mjs:215:3
+✖ actual queued Tools request rechecks expire before sending private context (11.257125ms)
+  TypeError: router.status is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/tools-service.test.mjs:233:49)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)

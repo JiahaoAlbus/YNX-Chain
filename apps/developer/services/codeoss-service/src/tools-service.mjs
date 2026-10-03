@@ -13,7 +13,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
   const approved = new URL(origin); if (approved.origin !== origin || approved.pathname !== '/' || approved.protocol !== 'https:') throw new Error('Tools require an exact trusted HTTPS origin.');
   const tickets = new Map(), proposals = new Map();
   function prune() { for (const map of [tickets, proposals]) for (const [key, value] of map) if (value.expires <= now()) map.delete(key); }
-  function binding(admission) { return JSON.stringify([admission.context.owner, admission.context.projectId, admission.context.runtimeId, admission.context.sessionId, admission.identity.account, admission.identity.generation]); }
+  function binding(admission) { return JSON.stringify([admission.context.owner, admission.context.projectId, admission.context.runtimeId, admission.context.sessionId, admission.identity.account, admission.identity.generation, admission.identity.identityReference || null]); }
   function token(map, value) { prune(); if (map.size >= 128 || [...map.values()].filter(item => item.bound === value.bound).length >= 8) throw fault('Tools review is full. Retry shortly.', 'tools_capacity', 429); const id = randomBytes(32).toString('base64url'); map.set(id, value); return id; }
   async function handler(request, response) {
     const url = new URL(request.url, origin); if (!url.pathname.startsWith('/runtime/native-tools/')) return false;
@@ -85,16 +85,27 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         proposals.delete(body.proposalId); // One-use, including failures. Never auto-retry a model request.
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
         const conversation = aiStore.create({ owner: admission.context.owner, projectId: admission.context.projectId, prompt: proposal.prompt, context: proposal.context, model: 'qwen3:4b' });
-        const controller = new AbortController(), timer = setTimeout(() => controller.abort(), Math.max(1, admission.expiresAt - now()));
+        const controller = new AbortController(), timer = setTimeout(() => controller.abort(fault('Wallet session expired during generation.', 'tools_identity_changed', 401)), Math.max(1, admission.expiresAt - now()));
+        const assertCurrent = async () => {
+          const current = await coreService.authorizeConnection(request, sessionId);
+          if (binding(current) !== bound || current.expiresAt <= now() || admission.expiresAt <= now())
+            throw fault('Wallet session changed during generation.', 'tools_identity_changed', 401);
+          if (controller.signal.aborted) throw controller.signal.reason;
+        };
         const disconnect = () => { if (!response.writableEnded) controller.abort(fault('The client stopped waiting for this request.', 'tools_request_cancelled', 499)); };
         response.once('close', disconnect);
         if (response.destroyed) disconnect();
-        const check = setInterval(() => { void coreService.authorizeConnection(request, sessionId).then(value => { if (binding(value) !== bound) controller.abort(); }).catch(() => controller.abort()); }, 5000);
+        let checking = false;
+        const check = setInterval(() => {
+          if (checking || controller.signal.aborted) return;
+          checking = true;
+          void assertCurrent().catch(error => controller.abort(error)).finally(() => { checking = false; });
+        }, 5000);
         try {
           const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: 'qwen3:4b',
             hostedSession: conversation.id, prompt: selectedPrompt(proposal),
-            system: AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal }), controller.signal);
-          if (binding(await coreService.authorizeConnection(request, sessionId)) !== bound || controller.signal.aborted) throw fault('Wallet session changed during generation.', 'tools_identity_changed', 401);
+            system: AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal, assertCurrent }), controller.signal);
+          await assertCurrent();
           aiStore.complete(admission.context.owner, admission.context.projectId, conversation.id, { text: result.text, model: result.model });
           json(response, 200, { text: result.text, model: result.model, conversationId: conversation.id, saved: true, applied: false, signed: false });
         } catch (error) {
