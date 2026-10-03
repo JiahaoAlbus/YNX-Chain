@@ -234,6 +234,7 @@ export class CentralBrowserSessionAuthority {
   revalidateProductBrowser(input,proof){
     exactFields(input,['clientId','session','requiredScopes','browser'],'Combined confidential authority read');
     if(!this.#productRevalidator||!this.#businessRevalidation&&!this.#privateBackends.length)fail('SSO_BACKEND_NOT_CONFIGURED');
+    if(!Array.isArray(input.requiredScopes)||input.requiredScopes.length===0||input.requiredScopes.some(scope=>typeof scope!=='string')||new Set(input.requiredScopes).size!==input.requiredScopes.length||canonicalJSON([...input.requiredScopes].sort())!==canonicalJSON(input.requiredScopes))fail('SSO_CLIENT_MISMATCH');
     exactFields(input.browser,['clientId','origin','grant'],'Original browser binding');
     const browserClient=this.#registry.find(c=>c.clientId===input.browser.clientId);
     if(!browserClient||browserClient.productId!==input.session?.productId||browserClient.origin!==input.browser.origin)fail('SSO_CLIENT_MISMATCH');
