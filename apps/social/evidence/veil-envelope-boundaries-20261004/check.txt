@@ -1,0 +1,5 @@
+PASS every incomplete byte prefix refuses
+PASS all tested trailing lengths refuse
+PASS byte caps, control characters, surrogate and device limits
+PASS structured single-byte mutations canonical=473 refused=259
+PASS codec-only boundary assertions=1059; no provider/OS/activation proof
