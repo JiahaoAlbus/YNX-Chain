@@ -1,0 +1,180 @@
+{
+  "schema": "ynx.media.apple-native-playlist.freeze.v1",
+  "createdAt": "2026-10-03T17:19:11.588840+00:00",
+  "sourceCommit": "79b73218f99ce4dc841db746a76834df3baa5e84",
+  "sourceTree": "4cf8e51f4b7d0938701cc0855879b4e57d095ca8",
+  "previousCheckpoint": {
+    "path": "apps/video/audit/media-apple-native-playback-checkpoint-20261004.json",
+    "bytes": 8053,
+    "sha256": "b25ba82503f79eee974cbfc8b3ca147a07637e277db2556df015efb773232fd5"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/media-owned-source-79b73218.tar.gz",
+    "bytes": 3850344,
+    "sha256": "198300f82ac61a7454a85a30b3221a34abaf715804ddfcecee567f7b1b5f97a3",
+    "fileCount": 572,
+    "everyArchiveMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "videoWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/video-web-79b73218.tar.gz",
+    "bytes": 632108,
+    "sha256": "94dad756139e71ed4f027545d17a2137063ec9ded711e826ab2552259dff85aa"
+  },
+  "creatorWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/creator-web-79b73218.tar.gz",
+    "bytes": 638060,
+    "sha256": "a1e2d7534b9524bc38fc2aa56259d6dbf2e25b0665a0097c3110101db50ffb9e",
+    "fileCount": 28,
+    "everyArchiveMemberVerified": true
+  },
+  "appleUnsignedCandidates": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/video-ios-simulator-unsigned-79b73218.tar.gz",
+      "bytes": 1043869,
+      "sha256": "2681aa09eb281f89480d545c7bdcc7e96511293cae571af7f188921aea731ab5",
+      "fileCount": 11,
+      "everyArchiveMemberVerified": true,
+      "target": "ios-simulator",
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/video-macos-unsigned-79b73218.tar.gz",
+      "bytes": 661751,
+      "sha256": "4a3f99d5c68ff09b04de5768110999f1d2a5cb62cd909ac278a93e8dc0abdac7",
+      "fileCount": 11,
+      "everyArchiveMemberVerified": true,
+      "target": "macos",
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    }
+  ],
+  "checks": {
+    "race": "PASS",
+    "vet": "PASS",
+    "GoPassEvents": 5,
+    "GoFailEvents": 0,
+    "inputCount": 465,
+    "MediaInputPinsGitExact": 421,
+    "AppleCompiledSourcePinsGitExact": 10,
+    "iOSSimulatorCompile": "PASS generic unsigned",
+    "macOSCompile": "PASS unsigned",
+    "actualAppleSwiftWebKitAndModelFlow": true,
+    "actualOSStorage": false,
+    "actualRenderedNativeUI": false,
+    "actualWalletConsent": false,
+    "originalUserKeychainAccessed": false
+  },
+  "previousFullRegression": {
+    "sourceCommit": "31e86f3d4cdbb3a11a0503a4ae320867b1f2f595",
+    "checkpoint": "apps/video/audit/media-apple-native-playback-checkpoint-20261004.json",
+    "GoPassEvents": 444,
+    "unchangedGoBackendAndSDK": true
+  },
+  "capabilities": [
+    "Original account playlist add/remove/delete through shipped model; exact membership mutation persisted before wire and original signed list readback before ACK",
+    "Lost delete reply after original server committed; cold original operation recovers via same-account signed readback",
+    "Native add menu, membership remove and explicit playlist delete confirmation compile on both platforms; rendered interaction remains unverified",
+    "AVPlayer bounded private Range resource loader using original SDK fresh proof and identity/epoch/navigation guards; actual Swift range tested against original business server",
+    "Separate account-owned protected viewer state preserves original resume UUID/position, exact pending watch bodies/keys and playlist drafts",
+    "Original SDK normal model playlist creation with original owner readback and durable draft ACK",
+    "Cold original viewer watch then normal model restore flush; Go original account history proves exact persisted playback ID and seven seconds",
+    "Seek-ready fence protects existing resume position; monotonic watch clock excludes pauses, seeks and background gaps",
+    "Explicit discard and original draft retry; original identity/account/body ACK and poisoned write guards"
+  ],
+  "remaining": [
+    "AVPlayer actual OS decoding/rendered playback and real iOS/macOS protected Keychain lifecycle",
+    "Physical/simulator runtime and real Wallet approval callbacks",
+    "Full native creator/upload draft journeys",
+    "Formal signing original entitlement and TestFlight upload by unique release owner",
+    "Formal public Host/client pair deployment and same-own business",
+    "Music Apple native playback continuation remains separate pending work"
+  ],
+  "temporaryLaunchServices": {
+    "ownTemporaryCandidateUnregisteredAfterBuild": true,
+    "noExistingAppUnregistered": true,
+    "appLaunched": false
+  },
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/apple-compiled-source-receipt.json",
+      "bytes": 2154,
+      "sha256": "4c1c3ada46839cdb5238944d47b36bd2b6003a193cd7197c9007fef0f230628a"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/apple-state.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/combined-go-race.jsonl",
+      "bytes": 4942,
+      "sha256": "c78e9e99ffa36e14e044015f640e32f0dad6348b744318e3b2b6d1bf5b7be47b"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/combined-source-receipt.json",
+      "bytes": 119636,
+      "sha256": "9f466a35c75311a6cf4a4d56e52037d06a9bce512fa984b514f44bbc59ce4754"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/creator-web-build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/first-fixture-compile-failed.txt",
+      "bytes": 3747,
+      "sha256": "be27b7f08e09a8876c3ed6eac498c66ede34936eec9d3f786685edbce0a81538"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/fixture-compile.txt",
+      "bytes": 1778,
+      "sha256": "3483dedae6912579cd8d6a5ba76ef86c58f1e8140daa34e2e1210b049d21cd53"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/ios-build.txt",
+      "bytes": 111806,
+      "sha256": "19807eb27d9397f7a9c52ecc473fe23543eb23a1afffb178ee1c93cec84b6572"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/key-preservation.txt",
+      "bytes": 151,
+      "sha256": "979e78dabfa5dc9b042582a3cf3148b7f34b2db7673e24374d63e1c36e3aad60"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/macos-build.txt",
+      "bytes": 63390,
+      "sha256": "a12c8b869eabb5b535697637053aa6794a4e6139d72d9023c11d53d1eff03bc6"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/model-boundary.txt",
+      "bytes": 274,
+      "sha256": "a113278612e4619ac52b8bb224478bf3753c073f8c8de80604e5020a799de21f"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/public-readback.json",
+      "bytes": 10419,
+      "sha256": "0d440c42da48dfdf88ce3b812fefe0e0fe66611afcb135a0dfa876b75ba0565b"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/video-web-build.txt",
+      "bytes": 210,
+      "sha256": "49a8c028f2f62500dc2013a4f9f4aa68012ba761adcc81066449e99e163b0c8d"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playlist-20261004/viewer-state.txt",
+      "bytes": 104,
+      "sha256": "51f7773d1875e16ef1ae36865a57f309c15bbaa6d08e81ccc0e77fa0b5e3aeda"
+    }
+  ]
+}

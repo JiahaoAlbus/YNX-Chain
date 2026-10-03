@@ -1,0 +1,794 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/video/ios/YNXVideo.xcodeproj -scheme YNXVideo -configuration Debug -sdk iphonesimulator -destination "generic/platform=iOS Simulator" -derivedDataPath /tmp/ynx-video-apple-playlist-ios-20261004 CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+    SDKROOT = iphonesimulator27.0
+
+2026-10-04 01:16:15.940 xcodebuild[25993:4793498] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXVideo' in project 'YNXVideo' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 2e8a02870ea44e1d5a432fabb148740b
+Build description path: /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/XCBuildData/2e8a02870ea44e1d5a432fabb148740b.xcbuilddata
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/CompilationCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/CompilationCache.noindex
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo-00cff81b642b8169b61909bf2a9ca0df-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo-00cff81b642b8169b61909bf2a9ca0df-VFS-iphonesimulator/all-product-headers.yaml
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyStaticMetadataFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyMetadataFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-non-framework-target-headers.hmap (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_const_extract_protocols.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_const_extract_protocols.json
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftConstValuesFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.LinkFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.LinkFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-OutputFileMap.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-OutputFileMap.json
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_const_extract_protocols.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_const_extract_protocols.json
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftConstValuesFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.LinkFileList (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.LinkFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-OutputFileMap.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-OutputFileMap.json
+
+MkDir /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /bin/mkdir -p /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app
+
+CpResource /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/catalog.json /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/i18n/catalog.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/i18n/catalog.json /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app
+
+CpResource /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/native-session /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/native-session (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/native-session /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app
+
+CopyPNGFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/ynx-brand-original.png /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ynx-brand-original.png (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng -compress -strip-PNG-text /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ynx-brand-original.png /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/ynx-brand-original.png
+
+ProcessInfoPlistFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Info.plist /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/Info.plist (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-infoPlistUtility /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/Info.plist -producttype com.apple.product-type.application -genpkginfo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -o /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Info.plist
+
+SwiftDriver YNXVideo normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver YNXVideo normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ptrauth-BW847X5MFHW7KARMB661S5TB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdarg-85ATF41RR62SHPLIBQFPREGFP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdarg-5974SAYG27RILMN91Q5UG8ZB0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-3JC46KJV32BQZA50F0XLUNRK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_AvailabilityInternal-6UIS3J4COORV2LYPXKBOUCD8K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ptrcheck-7JSBCHVRCCQTZSN1463P03NTF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/DeveloperToolsSupport-4MCK29BAGXZM7OZXXGK3RDX2Q.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdbool-9FLA2RDYYBD1MQT6D9AT0EDF1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftShims-886PM4SBTFO37DB8K9OT7578P.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ptrauth-D0XBDZZQ3BK18H5XSXOI3JPYR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ptrcheck-E6LIIEJFGNGVI1KTJHENB2FGO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stddef-AN9SZH19YT8YAHIDD00ZOXXO5.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_float-AP5X6PHAMV9MOO5302HKEGUDZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdbool-2DBFCTO0I0HM8LGL1PSKV9XJJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/DeveloperToolsSupport-2FLF9LJILD533X8O1IOXDH60S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stddef-1CIZVW9QOAB5YSSNQTMUMT34G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_float-F4UFF9802B71KB5TQT93GFWH2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-DBJ0I4RHYTXF4BCGTOT1SKAT5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_AvailabilityInternal-C798L74FY9Q41V6QYUU2RBY7G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftShims-DSKU4RD0WIIYMARAL7VPMRQ6C.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation1-9T3KR3ITVNFN8NID4XXWKAXKD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation1-4PV9FLT7E1ZDFWSCDBHTSQWYB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_limits-7EA4I5K6D6XOFXUITVBDXDRLE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation2-3RP9ZEGGSN4BS2WGOS5GE2TKA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation2-6CECGOIR6ON1N2UU6X6YYXKK3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_limits-16VO8S68C5TAC4QQTO63SRTON.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdint-F00G1TT2V8LRJZY6RZB1WGA3T.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_tgmath-359FJMXV0NOZOGWYGBH8PEFP.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/sys_types-7JXD5GOM4KK761B9TNTKUXMK0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/string_h-EAZLGUAU41ZI1JP7SN4FIFPMT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/sys_types-ULHDYYPS6EODDVRO8UD98A88.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/string_h-AR5H088N7HQFV4UPCJ3JI1GIM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_tgmath-EBU8U62YF4BUMLD28VG96HKZK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdint-E8XGYZ00PN74TO6Y6T4Z66FSX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdatomic-9K4FRKTEEHZGCA0HGIV5NTNRY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation3-7DMN0L0NQVTKVMGABHED6N4ZS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_stdatomic-3OGWRFMOYFL1LKZT2A0TUTSAK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_intrinsics-91A6DEDGUDKDOWS53S48R6C1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation3-5PHZ8BK7L7JLGILOEPGRORYXZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_inttypes-5ADP6VL95PGU2055WCICVJKNT.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_intrinsics-9BMSN77K6SVQZVH55SLMW0ZSU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_Builtin_inttypes-D8YNFLUF77ISJ5EZ4GGVAB9U7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Darwin-64I8UY800GNGRQ6IN02AQBCLU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Darwin-9GWEE77G3O2MX7GSMNPFVVURP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/simd-DXSRZ8LNB8D0MFTCQT2S1Y97W.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/MachO-8PNF3II1TXILDE29650S6CMXP.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ObjectiveC-1VVJASGCZBE14BY0M958UPA64.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/simd-1O13Y4GET6MO7DD2OY7FRY4F2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os_object-6KN3WHW3URKSMRK9DSRAEKM2H.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/MachO-86XMO7QQGE55KLJIZ530QOB50.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ObjectiveC-BNKQMQRWO2RRJ64USTTQQQ323.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os_workgroup-CHLQWAYUOGBPQNT94JBNX8CVL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os_object-AGR7RZI7AC87AVV7RRJXSWHCQ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Dispatch-9RMX4NKTVKABCHNB7IZMZUWY5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os_workgroup-96Z93GF8V5D54H9C47KNTTYH7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/XPC-99PLR8A721R0PFZXWHMPI1L8A.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/dnssd-7I10OA4H69C0U1L281SZ6U30R.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreFoundation-CM4TIEUDRPK9296M953EZDK7X.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Spatial-3KPDC6IYZAOE8Y7TMKQJXF4IO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Dispatch-DB0L94NIF9E9JEMZHQB607VLM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os-1HKXNZ2JZSS0UZ0OHNZN6UBDZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/XPC-C3IBR2T1MU8DYTZ79K9Q79ATC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/dnssd-EC28TVM3BEHUCTZRP9DA4H445.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreFoundation-AWHV5D8A0IGP5TQZWNBFOTU3I.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreGraphics-BMCPXHBNV57VB5ELSAACR1MD.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CFNetwork-4TPCFDXQWL5CABNKW8E0ZPAD6.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreAudioTypes-F3KD57Y4785LP4W4RU9RLCG9O.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Security-28IKLV4GA6JK8QNL49GPN1OA1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Spatial-DQT75UAHWOE45YFNWQ5B3GMVN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreAudio-5ZLVUKDKF3TMRRYUPMTDNIWU4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/os-1E9URI5HUL581JS9TQ15VKSJL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Foundation-7C16S91BFID8QAM0E3FBUEINW.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreText-7ZNAMKLBUGAUD12HGOTZWN2N4.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ImageIO-3MC5BWW7AUCE5VFGMWW9MP66M.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreAudioTypes-4EW3I1FDMWKG6E4XTNLLFLYTU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CFNetwork-AEMRA60AEFG27S653954TGE12.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Security-869OLSIAEMJYKE1K5ZXR9XDF4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreGraphics-2VKN72VAYXQM6IN2H74ORLZFB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreAudio-DTZJKGTNQK4M3QL0S3RNR3YK3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Foundation-6NXD3N319ZF5QFKD97K0BLF0F.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/ImageIO-3BMLBPLCIJOXXNMFOD835F1AS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreText-2FZNX9GXFIFER7GC9DAZKXXTW.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreData-1RPP7Z7NSEO6YP8W6FWVVUDIE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/IOSurface-R1BBZIY54WS7A0EFZJ6YUPSV.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/LocalAuthentication-FLF3AAFMHDACSZY76LO8HYOH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreTransferable-CCNAFXBLL8Z7C3D05PWFAHIQH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/DataDetection-CERRING1SQS2X5MTXBQKRY6WQ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMIDI-RWD85IZUWN09YZTJN8FYW0S.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/OSLog-6LJ1Z2MAWMRENKM17XP1PL7V8.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-BWIFGR28TVORQ6AAT15SE0PMO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_LocationEssentials-C987O9TDQB4JYO65TKK9REJBM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Accessibility-ARHEIYSEMA69U7MS4XL7ZQ6VN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UserNotifications-49NQ3FYF9UOAPB98YB2KAM3U0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Metal-1P0IIS0L4CVSRAISROCDPGP7G.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UIUtilities-GAJ4XMWO13J53B3TAZZMGMJ0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/FileProvider-2O7S6QDYN478ZVK6JJ0ZP29T4.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Network-6Y76JHKM08LAC1QD2QHMI5BLR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreLocation-90R9P30PCRAVVET2M01HYIM5.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Symbols-44RFD5X8VS4ZFCBWHWYPFVZPK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AudioToolbox-V77X2V276GDXY4UAMOMXJ74N.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/OpenGLES-BGVUTNWIA0LWT75USJQCSYFC9.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMotion-9A1W5HJMKEZIM7C8S6YD03GAG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVRouting-ARXST5K2I0MAAFZQ4VV10ZSQ1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/OpenGLES-BZECEZRTJZVF34SL4DJZP0WWJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/OSLog-A1L2MUGA39XVJUPEI1I6VEWZ1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreTransferable-79Y8124OSD7UEE3OYXXLI1QBG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Accessibility-33KRPBKY9D3VDC676NV9S62MS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/IOSurface-4K3N5SLCS0L3CHVVXY46DDI66.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/_LocationEssentials-7IKBLRHZAJLBW6CM27DHUWSVA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/LocalAuthentication-2FN3QFV9S0AUJZE7LN2KNI7SR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/DataDetection-4VQE2BHCNRYLOGZ3DF8D4JGRH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UIUtilities-F4WBOE2QSWFLT0FZPKUHZ8W0H.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreVideo-6XACKJQYAP5BXU7WNLZ3GQBRX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UserNotifications-7J4DVVKQNWN9OZGEDOJ5TYNSU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMIDI-CXBD6FGLVA5V698M97HLQBPS9.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-CU6OX4XE6NSPOWZYLV4U0CUKH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Metal-CYU4LQ3Z76AD0GYPEPV3XZFWS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Symbols-SCGLH807P7HNKJ44XJMOHJM1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/FileProvider-8Q33I3PXEE9WXY5Z5ZTX7FARL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/Network-3VV9DEKKACMLXWN2F401HCLVF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreData-5XCUE1QIV3V0KDG96KTP670NO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreLocation-F3CQ8U5LGVAQKUY6NL4JOBJOU.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMedia-ALYAUXDGSZ32N4FKHWRHDGYOX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreImage-72B8BKJ79T9FOE0JNIAJ1W01T.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/QuartzCore-9JXNXD2RURDXO33MQSKKN6OPS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AudioToolbox-9F2AXTD2DRWS3F1E93YEB40CN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVRouting-C98P0VF0E38TVHTQSSPUN3AX5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMotion-AO0QHCVGV2OXL725ETTN7W009.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftUICore-HCHDSFDGMYYP7SGFQAJWL2ER.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/VideoToolbox-2X4K10HP7F6ABMBSCDZ4G98SQ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVFAudio-BV1S6S7C68CTUYPXRI5WVQBYU.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/MediaToolbox-79ZJ2H9OYO2WFHBP6RMAE6XHI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreVideo-21VHBWAZ07U1GERI6OOXRFWU4.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UIKit-D1K1CHUJBGZU6K7D791K8KROD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreImage-EHEK7K8JINSWOUKB33VA4AF2V.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/QuartzCore-8DBZH6LOKUKZDZKKQYIPQHVUU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/CoreMedia-65H3LYE5X6LK9SS662W79CA9S.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVFoundation-4M5URLQ20FDRLO6KM9M14CC9H.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftUICore-8LBUI1Y1AD4LD91W5MC20CPVT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/UIKit-CRPOVOU024OUK5S4HOV7CH1QE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVFAudio-2L091JAF2WVIQBCI4IVGBVOOB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/VideoToolbox-9WRZNPYQBCR9L4WPCLQYC4PZM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/MediaToolbox-ALT7RJANW1WMCDG964C1L17HZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVFoundation-C9IEPKR92GA9K3LANOWHVEGDS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftUI-6OFS20JPGH3HXZKZSWKZNUP0P.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/WebKit-9INP8RQAO81P329W2B6BFIK9O.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVKit-CSZFEYP1SHNZVKUK1E4S7BY5J.pcm
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ YNXVideo (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    
+
+SwiftCompile normal x86_64 Compiling\ VideoViewerState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoViewerState.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeEngine.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeState.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoNativeCore.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCore.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeTransport.swift
+
+SwiftCompile normal x86_64 Compiling\ ProductDeviceKey.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ProductDeviceKey.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoPrivateMedia.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoPrivateMedia.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoModel.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoModel.swift
+
+SwiftCompile normal x86_64 Compiling\ VideoNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCustody.swift
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/AVKit-CGIRU1865V0T3HO5TSVVGYP9V.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/SwiftUI-1F10XLXUBI0R59SGR8778EIEH.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules/WebKit-87Y3HE5I2D0XMU3PI1FCCX9HC.pcm
+
+SwiftCompile normal x86_64 Compiling\ YNXVideoApp.swift,\ ContentView.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift:92:32: warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+ 90 | 
+ 91 | private func videoDisplayLabels(_ tag:String)->[String] {
+ 92 |  switch Locale(identifier:tag).languageCode ?? "en" {
+    |                                |- warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+    |                                `- note: use 'language.languageCode.identifier' instead
+ 93 |  case "zh":return tag.contains("Hant") || tag.contains("TW") ? ["顯示與字級","緊湊","標準","較大"]:["显示与字号","紧凑","标准","较大"]
+ 94 |  case "ja":return ["表示と文字サイズ","小さめ","標準","大きめ"]
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile YNXVideoApp.swift
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ YNXVideo (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    
+
+SwiftCompile normal arm64 Compiling\ YNXVideoApp.swift,\ ContentView.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift:92:32: warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+ 90 | 
+ 91 | private func videoDisplayLabels(_ tag:String)->[String] {
+ 92 |  switch Locale(identifier:tag).languageCode ?? "en" {
+    |                                |- warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+    |                                `- note: use 'language.languageCode.identifier' instead
+ 93 |  case "zh":return tag.contains("Hant") || tag.contains("TW") ? ["顯示與字級","緊湊","標準","較大"]:["显示与字号","紧凑","标准","较大"]
+ 94 |  case "ja":return ["表示と文字サイズ","小さめ","標準","大きめ"]
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile YNXVideoApp.swift
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for YNXVideo (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriver\ Compilation\ Requirements YNXVideo normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 Compiling\ VideoModel.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoModel.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftdoc (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftdoc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.abi.json /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.abi.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.abi.json /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftsourceinfo (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftsourceinfo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ VideoPrivateMedia.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoPrivateMedia.swift
+
+SwiftCompile normal arm64 Compiling\ VideoNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeEngine.swift
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for YNXVideo (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriver\ Compilation\ Requirements YNXVideo normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 Compiling\ VideoNativeCore.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCore.swift
+
+SwiftMergeGeneratedHeaders /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/YNXVideo-Swift.h /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-Swift.h /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-Swift.h (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-swiftHeaderTool -arch arm64 /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-Swift.h -arch x86_64 /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-Swift.h -o /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/YNXVideo-Swift.h
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.swiftmodule /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.swiftdoc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftdoc (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftdoc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.abi.json /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.abi.json (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.abi.json /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftsourceinfo (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftsourceinfo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ VideoNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCustody.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoPrivateMedia.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 Compiling\ VideoNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeState.swift
+
+SwiftCompile normal arm64 Compiling\ ProductDeviceKey.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ProductDeviceKey.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeCore.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 Compiling\ VideoNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeTransport.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeCustody.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 Compiling\ VideoViewerState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoViewerState.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling ProductDeviceKey.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeTransport.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling YNXVideoApp.swift, ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling YNXVideoApp.swift, ContentView.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriver\ Compilation YNXVideo normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/x86_64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/Binary/YNXVideo normal x86_64 (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -filelist /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.swiftmodule -o /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/Binary/YNXVideo
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoViewerState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoModel.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeEngine.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeState.swift (in target 'YNXVideo' from project 'YNXVideo')
+
+SwiftDriver\ Compilation YNXVideo normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideo -O @/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-apple-playlist-ios-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-generated-files.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-own-target-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo-project-headers.hmap -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/include -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/Binary/YNXVideo normal arm64 (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -F/tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator -filelist /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.swiftmodule -o /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/Binary/YNXVideo
+
+CreateUniversalBinary /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo normal arm64\ x86_64 (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/Binary/YNXVideo /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/Binary/YNXVideo -output /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo
+
+CopySwiftLibs /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo --scan-folder /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Frameworks --scan-folder /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/PlugIns --scan-folder /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/SystemExtensions --scan-folder /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name YNXVideo --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 17.0 --bundle-identifier com.ynxweb4.video --output /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app --target-triple arm64-apple-ios17.0-simulator --target-triple x86_64-apple-ios17.0-simulator --binary-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo --dependency-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo_dependency_info.dat --dependency-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo_dependency_info.dat --stringsdata-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftFileList --source-file-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftFileList --metadata-file-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyMetadataFileList --static-metadata-file-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyStaticMetadataFileList --swift-const-vals-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/arm64/YNXVideo.SwiftConstValuesFileList --swift-const-vals-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/Objects-normal/x86_64/YNXVideo.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-04 01:16:27.177 appintentsmetadataprocessor[26462:4794961] Starting appintentsmetadataprocessor export
+2026-10-04 01:16:27.179 appintentsmetadataprocessor[26462:4794961] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+GenerateDSYMFile /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app.dSYM /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    export PATH\=/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Resources:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware\ Fusion.app/Contents/Public:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/huangjiahao/.codex/tmp/arg0/codex-arg0qOFuoN:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/huangjiahao/.local/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.Y0lvlfLNGh/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.3asHvwPZcx/bin:/tmp/ynx-cli-bin-27120:/tmp/ynx-cli-bin-7036:/Users/huangjiahao/google-cloud-sdk/bin:/opt/homebrew/opt/openjdk@17/bin:/opt/homebrew/opt/openjdk@21/bin:/Applications/Webots.app/Contents/MacOS:/Applications/Blender.app/Contents/MacOS:/opt/homebrew/anaconda3/condabin:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/YNXVideo -o /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app.dSYM
+
+AppIntentsSSUTraining (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Info.plist --temp-dir-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/ssu --bundle-id com.ynxweb4.video --product-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app --extracted-metadata-path /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Metadata.appintents --metadata-file-list /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug-iphonesimulator/YNXVideo.build/YNXVideo.DependencyMetadataFileList --source-file /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app/Info.plist --archive-ssu-assets
+2026-10-04 01:16:27.205 appintentsnltrainingprocessor[26464:4794967] Parsing options for appintentsnltrainingprocessor
+2026-10-04 01:16:27.206 appintentsnltrainingprocessor[26464:4794967] Starting AppIntents SSU YAML Generation
+2026-10-04 01:16:27.206 appintentsnltrainingprocessor[26464:4794967] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-RegisterExecutionPolicyException /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app
+
+Validate /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-validationUtility /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app (in target 'YNXVideo' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /usr/bin/touch -c /tmp/ynx-video-apple-playlist-ios-20261004/Build/Products/Debug-iphonesimulator/YNXVideo.app
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-apple-playlist-ios-20261004/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-apple-playlist-ios-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

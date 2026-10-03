@@ -1,0 +1,1 @@
+PASS: Video device key preservation, first use, unlock recovery, creation races, failed writes, and canonical 33-byte encoding (injected storage only)

@@ -1,0 +1,2 @@
+PASS: Android Video official endpoint, guest routes, late-request isolation and real HTTP redirect rejection
+PASS: Apple Video actual model stale responses/failures, playback clear, unverified callback isolation, official paths and redirect rejection (no external requests)
