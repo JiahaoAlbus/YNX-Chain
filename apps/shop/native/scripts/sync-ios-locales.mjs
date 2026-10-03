@@ -52,6 +52,8 @@ for (const [key, values] of Object.entries(extra)) {
     languages.map((language, index) => [language, { stringUnit: { state: 'translated', value: values[index] } }]),
   );
 }
+// The YNX brand name is identical in every supported language.
+if (catalog.strings.ynx_logo) for (const language of languages) catalog.strings.ynx_logo.localizations[language] = { stringUnit: { state: 'translated', value: 'YNX' } };
 catalog.sourceLanguage = 'en';
 catalog.version = '1.0';
 await writeFile(catalogURL, `${JSON.stringify(catalog, null, 2)}\n`);

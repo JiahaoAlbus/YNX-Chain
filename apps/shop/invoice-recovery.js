@@ -1,0 +1,30 @@
+const id=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
+const canonical=value=>JSON.stringify(value);
+const digest=async value=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,'0')).join('');
+export function ownedBuyer(order,account){return order?.Buyer===account||(order?.WalletBuyer===account&&/^0x[a-fA-F0-9]{40}$/.test(order?.Buyer||''))}
+export function validateBuyerOrder(order,account){
+ if(!ownedBuyer(order,account)||!id(order.ID)||order.Currency!=='YNXT'||!Number.isSafeInteger(order.TotalYNXT)||order.TotalYNXT<=0)throw Error('The current owned order receipt is invalid.');
+ if(['paid','shipped','delivered','reviewed','return_requested','return_approved','refund_requested','refunded'].includes(order.Status)){
+  const r=order.Settlement;
+  if(!r||r.Status!=='paid'||!id(order.InvoiceID)||!id(order.PayIntentID)||r.InvoiceID!==order.InvoiceID||r.IntentID!==order.PayIntentID||!order.PayMerchant||r.Merchant!==order.PayMerchant||!order.PayPayoutAddress||r.PayoutAddress!==order.PayPayoutAddress||r.Payer!==account||r.Currency!=='YNXT'||r.AmountYNXT!==order.TotalYNXT||!Number.isSafeInteger(r.BlockHeight)||r.BlockHeight<=0||!/^0x[a-fA-F0-9]{64}$/.test(r.TransactionHash||''))throw Error('A matching backend settlement receipt is required.');
+ }
+ return order;
+}
+// Only opaque order/invoice identifiers and a digest are durable. Never store
+// addresses, private sessions, order bodies or Wallet authority in localStorage.
+export function createInvoiceRecovery({storage=globalThis.localStorage,hash=digest,newKey=()=>crypto.randomUUID(),withLock=(key,work)=>{if(!globalThis.navigator?.locks)throw Error('Web Locks are required for invoice recovery.');return navigator.locks.request(key,work)}}={}){
+ const accountKey=async account=>{if(!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(account||''))throw Error('Current Shop buyer required.');return 'ynx-shop-invoice-v1:'+await hash(account)};
+ const fingerprint=order=>hash(canonical([order.ID,order.Buyer,order.StoreID,order.TotalYNXT,order.Currency]));
+ const read=key=>{const raw=storage.getItem(key);if(!raw)return null;const r=JSON.parse(raw);if(Object.keys(r).some(k=>!['orderId','key','digest','phase','invoiceId','intentId'].includes(k))||!id(r.orderId)||typeof r.key!=='string'||!/^[A-Za-z0-9._:-]{8,128}$/.test(r.key)||!/^[a-f0-9]{64}$/.test(r.digest)||!['prepared','unknown','invoice_ready','wallet_requested'].includes(r.phase)||(r.invoiceId!==undefined&&!id(r.invoiceId))||(r.intentId!==undefined&&!id(r.intentId)))throw Error('Preserve invalid original invoice recovery evidence.');return r};
+ const save=(key,value)=>{const text=JSON.stringify(value);storage.setItem(key,text);if(storage.getItem(key)!==text)throw Error('Original invoice recovery could not be saved.');return value};
+ const target=(base,orderId)=>base+':'+orderId;
+ const same=(a,b)=>a?.key===b.key&&a?.digest===b.digest&&a?.orderId===b.orderId;
+ return Object.freeze({
+  async prepare(account,order,assertCurrent=()=>{}){validateBuyerOrder(order,account);const base=await accountKey(account),finger=await fingerprint(order);assertCurrent();return withLock(base,()=>{assertCurrent();const key=target(base,order.ID),old=read(key);if(old&&old.digest!==finger)throw Error('Original invoice order changed.');const r=old||save(key,{orderId:order.ID,key:newKey(),digest:finger,phase:order.InvoiceID?'unknown':'prepared'});storage.setItem(base+':current',order.ID);if(storage.getItem(base+':current')!==order.ID)throw Error('Original order pointer could not be saved.');return r})},
+  async pending(account,assertCurrent=()=>{}){const base=await accountKey(account);assertCurrent();const pointer=storage.getItem(base+':current');if(!pointer)return null;if(!id(pointer))throw Error('Original order pointer is invalid.');const r=read(target(base,pointer));if(!r)throw Error('Original invoice evidence is missing.');return r},
+  async dispatched(account,original,assertCurrent=()=>{}){const base=await accountKey(account);assertCurrent();return withLock(base,()=>{assertCurrent();const key=target(base,original.orderId),r=read(key);if(!same(r,original)||r.phase!=='prepared')throw Error('Unknown invoice can only be read back.');return save(key,{...r,phase:'unknown'})})},
+  async received(account,original,response,assertCurrent=()=>{}){const order=validateBuyerOrder(response?.order,account),finger=await fingerprint(order);if(order.ID!==original.orderId||finger!==original.digest||!id(response.invoiceId)||!id(response.intentId)||order.InvoiceID!==response.invoiceId||order.PayIntentID!==response.intentId||response.deepLink!=='ynxpay://invoice/'+response.invoiceId)throw Error('The original invoice reference does not match.');const base=await accountKey(account);assertCurrent();return withLock(base,()=>{assertCurrent();const key=target(base,original.orderId),r=read(key);if(!same(r,original)||(r.invoiceId&&(r.invoiceId!==response.invoiceId||r.intentId!==response.intentId)))throw Error('Original invoice recovery changed.');return save(key,{...r,phase:'invoice_ready',invoiceId:response.invoiceId,intentId:response.intentId})})},
+  async requested(account,original,assertCurrent=()=>{}){const base=await accountKey(account);assertCurrent();return withLock(base,()=>{assertCurrent();const key=target(base,original.orderId),r=read(key);if(!same(r,original)||r.phase!=='invoice_ready')throw Error('Review the current original invoice first.');return save(key,{...r,phase:'wallet_requested'})})},
+  async observed(account,original,order,assertCurrent=()=>{}){validateBuyerOrder(order,account);const finger=await fingerprint(order),base=await accountKey(account);assertCurrent();const r=read(target(base,original.orderId));if(!same(r,original)||order.ID!==original.orderId||finger!==original.digest||(r.invoiceId&&(r.invoiceId!==order.InvoiceID||r.intentId!==order.PayIntentID)))throw Error('Readback differs from the original invoice.');return order},
+ });
+}

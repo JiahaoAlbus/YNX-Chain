@@ -40,6 +40,16 @@ enum AppleNativeVault {
     func readContext()throws->[String:Any] {try state.context()}
     func randomBytes(_ length:Int)throws->Data {guard length==32 else{throw ShopError.security};var data=Data(count:32);let status=data.withUnsafeMutableBytes{SecRandomCopyBytes(kSecRandomDefault,32,$0.baseAddress!)};guard status==errSecSuccess else{throw ShopError.security};return data}
     func sign(_ input:[String:Any],expected:[String:Any],revokeOnly:Bool)throws->String {try state.sign(input,expected,revokeOnly:revokeOnly){NativeWire.base64(try key.signature(for:$0).derRepresentation)}}
+    func openInvoice(_ url:URL,expected:[String:Any])throws->Bool {
+        try state.permitOpen(expected)
+        guard let parts=URLComponents(url:url,resolvingAgainstBaseURL:false),parts.scheme=="ynxpay",parts.host=="invoice",parts.query==nil,parts.fragment==nil,parts.user==nil,parts.password==nil,parts.port==nil,NativeWire.matches(parts.path,"^/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),url.absoluteString=="ynxpay://invoice"+parts.path else{throw ShopError.security}
+        try state.permitOpen(expected)
+#if canImport(AppKit)
+        return NSWorkspace.shared.open(url)
+#else
+        throw ShopError.unavailable
+#endif
+    }
     func openWallet(_ input:[String:Any],expected:[String:Any])throws->Bool {
         try state.permitOpen(expected)
         guard input.count==2,let raw=input["url"] as? String,let request=input["request"] as? [String:Any],let components=URLComponents(string:raw),components.scheme=="ynxwallet",components.host=="authorize",components.path.isEmpty,components.user==nil,components.password==nil,components.port==nil,components.fragment==nil,let items=components.queryItems,items.count==1,items[0].name=="request",let encoded=items[0].value,raw=="ynxwallet://authorize?request="+encoded else{throw ShopError.security}

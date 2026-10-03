@@ -61,6 +61,9 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         authority.current=ShopSession.parse(try metadata(account));for path in ["orders?alias=1","orders/../profile"]{do{_ = try await api.data(path);throw NSError(domain:"private alias",code:1)}catch ShopError.security{print("PASS exact private route rejects "+path)}}
         for pair in [("PUT","/api/orders"),("GET","/api/seller/products"),("POST","/api/profile"),("GET","/api/orders/../profile")]{do{_ = try AppleNativeBusinessPolicy.scopes(pair.0,pair.1);throw NSError(domain:"scope broadened",code:1)}catch ShopError.security{print("PASS fixed Buyer scope route refuses "+pair.1)}}
         try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/pay-handoff")==["account:read","shop:orders:write"],"payment preparation uses original Buyer scopes")
+        authority.current=ShopSession.parse(try metadata(account));let dispatchBaseline=dispatched
+        do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{throw ShopError.security});throw NSError(domain:"admission dispatched",code:1)}catch ShopError.security{try check(dispatched==dispatchBaseline,"durable dispatch admission failure cannot send HTTP")}
+        do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{api.invalidate()});throw NSError(domain:"late admission dispatched",code:1)}catch ShopError.contextChanged{try check(dispatched==dispatchBaseline,"context change in dispatch admission prevents HTTP")}
         urlSession.invalidateAndCancel();print("Controlled actual API source checks PASS; no real Native approval/device/public business")
     }
 }

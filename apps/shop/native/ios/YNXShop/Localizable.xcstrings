@@ -2231,73 +2231,73 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continue in YNX Pay"
+            "value": "Review invoice in YNX Wallet"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "前往 YNX Pay"
+            "value": "在 YNX Wallet 审核发票"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "前往 YNX Pay"
+            "value": "在 YNX Wallet 審核發票"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "YNX Payで続ける"
+            "value": "YNX Walletで請求書を確認"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "YNX Pay에서 계속"
+            "value": "YNX Wallet에서 청구서 검토"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continuar en YNX Pay"
+            "value": "Revisar factura en YNX Wallet"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continuer dans YNX Pay"
+            "value": "Vérifier la facture dans YNX Wallet"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In YNX Pay fortfahren"
+            "value": "Rechnung in YNX Wallet prüfen"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Continuar no YNX Pay"
+            "value": "Revisar fatura no YNX Wallet"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Продолжить в YNX Pay"
+            "value": "Проверить счёт в YNX Wallet"
           }
         },
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "المتابعة في YNX Pay"
+            "value": "مراجعة الفاتورة في YNX Wallet"
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lanjutkan di YNX Pay"
+            "value": "Tinjau faktur di YNX Wallet"
           }
         }
       }
@@ -6425,6 +6425,2210 @@
           "stringUnit": {
             "state": "translated",
             "value": "Faktur merchant"
+          }
+        }
+      }
+    },
+    "cart_sync_button": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync cart"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步购物车"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步購物車"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カートを同期"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장바구니 동기화"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar carrito"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniser le panier"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warenkorb synchronisieren"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar carrinho"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизировать корзину"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مزامنة السلة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinkronkan keranjang"
+          }
+        }
+      }
+    },
+    "cart_sync_working": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing your cart…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在同步购物车…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在同步購物車…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カートを同期中…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장바구니 동기화 중…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando carrito…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisation du panier…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warenkorb wird synchronisiert…"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando carrinho…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация корзины…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ مزامنة السلة…"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyinkronkan keranjang…"
+          }
+        }
+      }
+    },
+    "cart_sync_conflict": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cart changed on another device"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他设备修改了购物车"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他裝置修改了購物車"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別の端末でカートが変更されました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다른 기기에서 장바구니가 변경됨"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El carrito cambió en otro dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Panier modifié sur un autre appareil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warenkorb auf anderem Gerät geändert"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carrinho alterado em outro dispositivo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Корзина изменена на другом устройстве"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تغيرت السلة على جهاز آخر"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keranjang berubah di perangkat lain"
+          }
+        }
+      }
+    },
+    "cart_sync_review": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which cart to use. Both versions remain encrypted in recovery history. Keeping this device’s draft requires a new version-checked save."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择使用哪份购物车。两份数据均保留在加密恢复历史中。保留本机草稿需要重新校验版本并保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇使用哪份購物車。兩份資料均保留在加密復原歷史中。保留本機草稿需要重新驗證版本並儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用するカートを選択してください。両方の内容は暗号化された復元履歴に残ります。この端末の下書きを保存する際は、再度バージョンを確認します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "사용할 장바구니를 선택하세요. 두 버전 모두 암호화된 복구 기록에 보관됩니다. 이 기기의 초안을 저장하려면 버전을 다시 확인합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elija un carrito. Ambas versiones se conservan en el historial cifrado. Guardar el borrador local requiere comprobar de nuevo la versión."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez un panier. Les deux versions restent dans le journal chiffré. Le brouillon local sera enregistré après une nouvelle vérification de version."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie einen Warenkorb. Beide Versionen bleiben im verschlüsselten Wiederherstellungsverlauf. Der lokale Entwurf wird erst nach erneuter Versionsprüfung gespeichert."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha um carrinho. Ambas as versões ficam no histórico criptografado. Salvar o rascunho local exige nova verificação da versão."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите корзину. Обе версии сохраняются в зашифрованной истории. Перед сохранением локального черновика версия будет проверена повторно."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر السلة التي تريد استخدامها. تُحفظ النسختان في سجل استرداد مشفر. يتطلب حفظ مسودة هذا الجهاز التحقق من الإصدار مجددًا."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilih keranjang. Kedua versi disimpan dalam riwayat pemulihan terenkripsi. Draf lokal disimpan setelah versi diperiksa kembali."
+          }
+        }
+      }
+    },
+    "cart_use_remote": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use synced cart"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已同步购物车"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已同步購物車"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期済みカートを使用"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화된 장바구니 사용"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar carrito sincronizado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le panier synchronisé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierten Warenkorb verwenden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar carrinho sincronizado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать синхронизированную корзину"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استخدام السلة المتزامنة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gunakan keranjang tersinkron"
+          }
+        }
+      }
+    },
+    "cart_use_local": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep this draft"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留本机草稿"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留本機草稿"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この下書きを保持"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 초안 유지"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conservar este borrador"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garder ce brouillon"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Entwurf behalten"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manter este rascunho"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить этот черновик"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاحتفاظ بهذه المسودة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simpan draf ini"
+          }
+        }
+      }
+    },
+    "cart_sync_unconfirmed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cart sync is unconfirmed. The original request and key are preserved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "购物车同步尚未确认，原请求和键已保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購物車同步尚未確認，原請求與金鑰已保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同期結果は未確認です。元のリクエストとキーは保持されています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "동기화 결과가 확인되지 않았습니다. 원래 요청과 키를 보관합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronización sin confirmar. Se conservan la solicitud y clave originales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisation non confirmée. La requête et la clé originales sont conservées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierung unbestätigt. Ursprüngliche Anfrage und Schlüssel bleiben erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronização não confirmada. A solicitação e a chave originais foram preservadas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация не подтверждена. Исходный запрос и ключ сохранены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم تُؤكد المزامنة. تم الاحتفاظ بالطلب والمفتاح الأصليين."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinkronisasi belum dikonfirmasi. Permintaan dan kunci asli tetap disimpan."
+          }
+        }
+      }
+    },
+    "cart_sync_local": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved on this device. Sync before checkout."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存到本机，请先同步再结账。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存至本機，請先同步再結帳。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末に保存しました。購入前に同期してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기기에 저장했습니다. 결제 전에 동기화하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado en este dispositivo. Sincronice antes de comprar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistré sur cet appareil. Synchronisez avant de commander."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Gerät gespeichert. Vor dem Kauf synchronisieren."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvo neste dispositivo. Sincronize antes da compra."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено на этом устройстве. Синхронизируйте перед покупкой."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حُفظت على هذا الجهاز. زامن السلة قبل الشراء."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disimpan di perangkat ini. Sinkronkan sebelum membeli."
+          }
+        }
+      }
+    },
+    "cart_recover_checkout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover checkout"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复结账结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復原結帳結果"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文結果を復元"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주문 결과 복구"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperar pedido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupérer la commande"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestellung wiederherstellen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperar pedido"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить заказ"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استرداد الطلب"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulihkan pesanan"
+          }
+        }
+      }
+    },
+    "cart_sync_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync your cart before checkout."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先同步购物车再结账。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先同步購物車再結帳。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購入前にカートを同期してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제 전에 장바구니를 동기화하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronice el carrito antes de comprar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisez le panier avant de commander."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisieren Sie vor dem Kauf den Warenkorb."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronize o carrinho antes da compra."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизируйте корзину перед покупкой."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زامن السلة قبل الشراء."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sinkronkan keranjang sebelum membeli."
+          }
+        }
+      }
+    },
+    "cart_checkout_unconfirmed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover the earlier checkout before changing its contents."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先恢复之前的结账结果，再修改内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先復原之前的結帳結果，再修改內容。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容を変更する前に、以前の注文結果を復元してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내용을 변경하기 전에 이전 주문 결과를 복구하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupere el pedido anterior antes de cambiar su contenido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupérez la commande précédente avant de la modifier."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stellen Sie zuerst die vorherige Bestellung wieder her."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupere o pedido anterior antes de alterar seu conteúdo."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановите предыдущий заказ перед изменением его содержимого."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استرد الطلب السابق قبل تغيير محتواه."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulihkan pesanan sebelumnya sebelum mengubah isinya."
+          }
+        }
+      }
+    },
+    "cart_no_checkout": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No saved checkout is awaiting recovery."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有等待恢复的结账记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有等待復原的結帳記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元待ちの注文はありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복구 대기 중인 주문이 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay pedidos pendientes de recuperación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune commande à récupérer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Bestellung wartet auf Wiederherstellung."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum pedido aguarda recuperação."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет заказов, ожидающих восстановления."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد طلب ينتظر الاسترداد."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidak ada pesanan yang menunggu pemulihan."
+          }
+        }
+      }
+    },
+    "cart_remove": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remover"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إزالة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus"
+          }
+        }
+      }
+    },
+    "privacy_draining": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finishing submitted requests. New changes and pending retries are paused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待已提交请求的结果。新修改和待处理重试已暂停。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待已提交請求的結果。新修改和待處理重試已暫停。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信済みリクエストの結果を待っています。新しい変更と再試行は停止中です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제출된 요청의 결과를 기다리는 중입니다. 새 변경과 재시도는 일시 중지되었습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando el resultado de las solicitudes enviadas. Los cambios nuevos y los reintentos están pausados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente du résultat des demandes envoyées. Les nouvelles modifications et les nouvelles tentatives sont suspendues."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Ergebnisse gesendeter Anfragen werden abgewartet. Neue Änderungen und Wiederholungen sind angehalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A aguardar os resultados dos pedidos enviados. Novas alterações e tentativas estão suspensas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидаются результаты отправленных запросов. Новые изменения и повторные попытки приостановлены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ انتظار نتائج الطلبات المرسلة. تم إيقاف التغييرات الجديدة وإعادة المحاولات مؤقتًا."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menunggu hasil permintaan yang telah dikirim. Perubahan baru dan percobaan ulang dijeda."
+          }
+        }
+      }
+    },
+    "privacy_blocked_unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A previous request has an unconfirmed result. Deletion has not been sent. Recovery records remain encrypted and changes remain paused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先前请求的结果尚未确认，删除尚未发送。恢复记录继续加密保存，修改保持暂停。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先前請求的結果尚未確認，刪除尚未送出。復原記錄繼續加密保存，修改保持暫停。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前のリクエスト結果が未確認のため、削除は送信されていません。復旧記録は暗号化して保持され、変更は停止したままです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 요청의 결과가 확인되지 않아 삭제를 보내지 않았습니다. 복구 기록은 암호화해 보관하며 변경은 계속 중지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una solicitud anterior tiene un resultado sin confirmar. No se ha enviado la eliminación. Los registros siguen cifrados y los cambios permanecen pausados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résultat d’une demande précédente est inconnu. La suppression n’a pas été envoyée. Les données de récupération restent chiffrées et les modifications suspendues."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Ergebnis einer früheren Anfrage ist unbestätigt. Die Löschung wurde nicht gesendet. Wiederherstellungsdaten bleiben verschlüsselt und Änderungen angehalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resultado de um pedido anterior não está confirmado. A eliminação não foi enviada. Os registos permanecem cifrados e as alterações suspensas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат предыдущего запроса не подтверждён. Запрос на удаление не отправлен. Данные восстановления сохранены в зашифрованном виде, изменения приостановлены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نتيجة طلب سابق غير مؤكدة. لم يُرسل طلب الحذف. تبقى سجلات الاسترداد مشفرة والتغييرات متوقفة مؤقتًا."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasil permintaan sebelumnya belum terkonfirmasi. Penghapusan belum dikirim. Catatan pemulihan tetap terenkripsi dan perubahan tetap dijeda."
+          }
+        }
+      }
+    },
+    "privacy_deletion_unknown": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The deletion result is unconfirmed. Changes and old requests remain paused. Retrying sends the same deletion request."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除结果尚未确认。修改和旧请求保持暂停；重试只发送原删除请求。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除結果尚未確認。修改和舊請求保持暫停；重試只送出原刪除請求。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除結果は未確認です。変更と以前のリクエストは停止中です。再試行では同じ削除リクエストを送信します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 결과가 확인되지 않았습니다. 변경과 이전 요청은 중지된 상태이며 재시도는 동일한 삭제 요청만 보냅니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resultado de la eliminación no está confirmado. Los cambios y las solicitudes anteriores siguen pausados. El reintento envía la misma solicitud de eliminación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résultat de la suppression est inconnu. Les modifications et les anciennes demandes restent suspendues. Une nouvelle tentative renvoie la même demande de suppression."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Ergebnis der Löschung ist unbestätigt. Änderungen und frühere Anfragen bleiben angehalten. Ein erneuter Versuch sendet dieselbe Löschanfrage."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resultado da eliminação não está confirmado. As alterações e os pedidos anteriores continuam suspensos. Tentar novamente envia o mesmo pedido de eliminação."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат удаления не подтверждён. Изменения и старые запросы остаются приостановленными. Повторная попытка отправит тот же запрос на удаление."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نتيجة الحذف غير مؤكدة. تبقى التغييرات والطلبات السابقة متوقفة. تعيد المحاولة إرسال طلب الحذف نفسه."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasil penghapusan belum terkonfirmasi. Perubahan dan permintaan lama tetap dijeda. Percobaan ulang mengirim permintaan penghapusan yang sama."
+          }
+        }
+      }
+    },
+    "privacy_cleanup_pending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server deletion is confirmed. Encrypted evidence is saved; local cleanup still needs to finish. Changes remain paused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端删除已确认，加密证据已保存，本地清理尚待完成。修改保持暂停。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器刪除已確認，加密證據已保存，本機清理尚待完成。修改保持暫停。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバーでの削除は確認済みです。暗号化された証拠は保存済みですが、端末内の整理が未完了です。変更は停止中です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서버 삭제가 확인되었습니다. 암호화된 증거는 저장되었지만 기기 내 정리가 남아 있습니다. 변경은 중지 상태입니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La eliminación del servidor está confirmada. Las pruebas cifradas están guardadas; falta finalizar la limpieza local. Los cambios siguen pausados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suppression sur le serveur est confirmée. Les preuves chiffrées sont enregistrées ; le nettoyage local reste à terminer. Les modifications restent suspendues."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Löschung auf dem Server ist bestätigt. Verschlüsselte Nachweise sind gespeichert; die lokale Bereinigung steht noch aus. Änderungen bleiben angehalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A eliminação no servidor está confirmada. As provas cifradas foram guardadas; falta concluir a limpeza local. As alterações continuam suspensas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаление на сервере подтверждено. Зашифрованные подтверждения сохранены, но локальная очистка ещё не завершена. Изменения приостановлены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تأكيد الحذف على الخادم. حُفظت الأدلة المشفرة، لكن التنظيف المحلي لم يكتمل. تبقى التغييرات متوقفة مؤقتًا."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penghapusan di server telah dikonfirmasi. Bukti terenkripsi telah disimpan, tetapi pembersihan lokal belum selesai. Perubahan tetap dijeda."
+          }
+        }
+      }
+    },
+    "privacy_confirmed_evidence": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server deletion is confirmed. Earlier requests remain as encrypted evidence and will not run again. Public-chain and financial records remain verifiable."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端删除已确认。此前请求作为加密证据保留，不会再次执行。公链及财务记录仍可核验。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器刪除已確認。先前請求作為加密證據保留，不會再次執行。公鏈及財務記錄仍可核驗。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバーでの削除は確認済みです。以前のリクエストは暗号化された証拠として保持され、再実行されません。公開チェーンと会計記録は引き続き検証できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서버 삭제가 확인되었습니다. 이전 요청은 암호화된 증거로 보관되며 다시 실행되지 않습니다. 공개 체인과 재무 기록은 계속 검증할 수 있습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La eliminación del servidor está confirmada. Las solicitudes anteriores se conservan como pruebas cifradas y no volverán a ejecutarse. Los registros financieros y de la cadena pública siguen siendo verificables."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suppression sur le serveur est confirmée. Les anciennes demandes sont conservées comme preuves chiffrées et ne seront plus exécutées. Les données financières et de la chaîne publique restent vérifiables."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Löschung auf dem Server ist bestätigt. Frühere Anfragen bleiben als verschlüsselte Nachweise erhalten und werden nicht erneut ausgeführt. Finanzdaten und öffentliche Blockchain-Daten bleiben überprüfbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A eliminação no servidor está confirmada. Os pedidos anteriores ficam guardados como provas cifradas e não serão executados novamente. Os registos financeiros e da cadeia pública continuam verificáveis."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаление на сервере подтверждено. Старые запросы сохранены как зашифрованные свидетельства и больше не выполнятся. Финансовые данные и записи публичной цепочки доступны для проверки."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم تأكيد الحذف على الخادم. تُحفظ الطلبات السابقة كأدلة مشفرة ولن تُنفذ مجددًا. تبقى السجلات المالية وسجلات السلسلة العامة قابلة للتحقق."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penghapusan di server telah dikonfirmasi. Permintaan lama disimpan sebagai bukti terenkripsi dan tidak akan dijalankan lagi. Catatan keuangan dan rantai publik tetap dapat diverifikasi."
+          }
+        }
+      }
+    },
+    "privacy_too_many_records": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many pending requests to include in this deletion. Deletion was not sent; your records are preserved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待处理记录过多，暂时无法安全删除。删除请求尚未发送，记录已保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待處理記錄過多，暫時無法安全刪除。刪除請求尚未送出，記錄已保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留中のリクエストが多すぎるため、安全に削除できません。削除は送信されておらず、記録は保持されています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "대기 요청이 너무 많아 안전하게 삭제할 수 없습니다. 삭제 요청은 전송되지 않았으며 기록은 보관됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay demasiadas solicitudes pendientes para incluirlas en esta eliminación. No se envió la eliminación y sus registros se conservan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trop de demandes en attente pour les inclure dans cette suppression. La suppression n’a pas été envoyée et vos données sont conservées."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zu viele ausstehende Anfragen für diese Löschung. Die Löschung wurde nicht gesendet; Ihre Daten bleiben erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Existem demasiados pedidos pendentes para incluir nesta eliminação. A eliminação não foi enviada e os seus registos foram preservados."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Слишком много ожидающих запросов для этого удаления. Запрос на удаление не отправлен, ваши записи сохранены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هناك طلبات معلقة كثيرة لا يمكن تضمينها بأمان في هذا الحذف. لم يُرسل طلب الحذف وبقيت سجلاتك محفوظة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terlalu banyak permintaan tertunda untuk disertakan dalam penghapusan ini. Penghapusan belum dikirim dan catatan Anda tetap disimpan."
+          }
+        }
+      }
+    },
+    "privacy_invalid_receipt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not confirm the required deletion receipt. The result remains unconfirmed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务端未确认所需的删除回执，结果仍未确认。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器未確認所需的刪除回執，結果仍未確認。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバーから必要な削除確認を取得できませんでした。結果は未確認のままです。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "서버가 필요한 삭제 영수증을 확인하지 않았습니다. 결과는 아직 확인되지 않았습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El servidor no confirmó el recibo de eliminación requerido. El resultado sigue sin confirmarse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur n’a pas confirmé le reçu de suppression requis. Le résultat reste inconnu."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Server hat den erforderlichen Löschbeleg nicht bestätigt. Das Ergebnis bleibt unbestätigt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O servidor não confirmou o comprovativo de eliminação necessário. O resultado continua por confirmar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер не подтвердил требуемую квитанцию удаления. Результат остаётся неподтверждённым."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يؤكد الخادم إيصال الحذف المطلوب. لا تزال النتيجة غير مؤكدة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server belum mengonfirmasi tanda terima penghapusan yang diperlukan. Hasilnya masih belum terkonfirmasi."
+          }
+        }
+      }
+    },
+    "privacy_recovery_export": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export recovery records"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出恢复记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯出復原記錄"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復旧記録を書き出す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "복구 기록 내보내기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar registros de recuperación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter les données de récupération"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiederherstellungsdaten exportieren"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar registos de recuperação"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспорт данных восстановления"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصدير سجلات الاسترداد"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekspor catatan pemulihan"
+          }
+        }
+      }
+    },
+    "privacy_retry_deletion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry deletion confirmation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试确认删除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重試確認刪除"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除確認を再試行"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 확인 재시도"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar confirmar eliminación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer de confirmer la suppression"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschbestätigung erneut versuchen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar confirmar a eliminação"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить подтверждение удаления"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة محاولة تأكيد الحذف"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coba konfirmasi penghapusan lagi"
+          }
+        }
+      }
+    },
+    "privacy_continue_deletion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue deletion"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续删除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續刪除"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除を続ける"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 계속"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar eliminación"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poursuivre la suppression"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschung fortsetzen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar eliminação"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить удаление"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متابعة الحذف"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanjutkan penghapusan"
+          }
+        }
+      }
+    },
+    "privacy_finish_cleanup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish local cleanup"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成本地清理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成本機清理"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末内の整理を完了"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기기 내 정리 완료"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finalizar limpieza local"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminer le nettoyage local"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lokale Bereinigung abschließen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Concluir limpeza local"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершить локальную очистку"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إكمال التنظيف المحلي"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selesaikan pembersihan lokal"
+          }
+        }
+      }
+    },
+    "privacy_new_shopping": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start new shopping"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始新的购物"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開始新的購物"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい買い物を始める"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 쇼핑 시작"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar nuevas compras"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commencer de nouveaux achats"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neuen Einkauf beginnen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar novas compras"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Начать новые покупки"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بدء تسوق جديد"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mulai belanja baru"
+          }
+        }
+      }
+    },
+    "privacy_recovery_notice": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletion pauses earlier requests. Their original contents may remain as encrypted recovery evidence, including addresses. They will not run again after confirmed deletion."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除会暂停此前请求。其原始内容可能作为加密恢复证据保留，包括地址；删除确认后不会再次执行。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除會暫停先前請求。其原始內容可能作為加密復原證據保留，包括地址；刪除確認後不會再次執行。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除中は以前のリクエストを停止します。住所を含む元の内容が暗号化された復旧証拠として残る場合があります。削除確認後に再実行されることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 중에는 이전 요청이 중지됩니다. 주소를 포함한 원본 내용이 암호화된 복구 증거로 남을 수 있으며 삭제 확인 후에는 다시 실행되지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La eliminación pausa las solicitudes anteriores. Su contenido original, incluidas las direcciones, puede conservarse como prueba cifrada de recuperación. No se ejecutarán después de confirmar la eliminación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La suppression suspend les anciennes demandes. Leur contenu original, y compris les adresses, peut être conservé comme preuve chiffrée de récupération. Elles ne seront plus exécutées après confirmation de la suppression."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Löschung hält frühere Anfragen an. Ihr ursprünglicher Inhalt, einschließlich Adressen, kann als verschlüsselter Wiederherstellungsnachweis erhalten bleiben. Nach bestätigter Löschung werden sie nicht erneut ausgeführt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A eliminação suspende os pedidos anteriores. O conteúdo original, incluindo moradas, pode permanecer como prova cifrada de recuperação. Os pedidos não serão executados após a confirmação da eliminação."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаление приостанавливает старые запросы. Их исходное содержимое, включая адреса, может сохраняться как зашифрованные данные восстановления. После подтверждения удаления они больше не выполнятся."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يوقف الحذف الطلبات السابقة مؤقتًا. قد يبقى محتواها الأصلي، بما فيه العناوين، كأدلة استرداد مشفرة. ولن تُنفذ مجددًا بعد تأكيد الحذف."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penghapusan menjeda permintaan lama. Isi aslinya, termasuk alamat, dapat disimpan sebagai bukti pemulihan terenkripsi. Permintaan tersebut tidak akan dijalankan lagi setelah penghapusan dikonfirmasi."
+          }
+        }
+      }
+    },
+    "shop_name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ショップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "쇼핑"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tienda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Boutique"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loja"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Магазин"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المتجر"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toko"
+          }
+        }
+      }
+    },
+    "ynx_logo": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YNX"
+          }
+        }
+      }
+    },
+    "invoice_reference_unconfirmed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original invoice is not confirmed yet. Refresh this order; a new invoice will not be created."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原发票尚未确认。请刷新此订单，不会创建新的发票。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原發票尚未確認。請重新整理此訂單，不會建立新發票。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の請求書はまだ確認されていません。この注文を更新してください。新しい請求書は作成しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 청구서는 아직 확인되지 않았습니다. 이 주문을 새로고침하세요. 새 청구서는 생성되지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La factura original aún no está confirmada. Actualiza este pedido; no se creará otra factura."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La facture initiale reste à confirmer. Actualisez cette commande ; aucune nouvelle facture ne sera créée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ursprüngliche Rechnung ist noch nicht bestätigt. Aktualisiere diese Bestellung; es wird keine neue Rechnung erstellt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A fatura original ainda não foi confirmada. Atualize este pedido; nenhuma nova fatura será criada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходный счёт ещё не подтверждён. Обновите этот заказ; новый счёт не будет создан."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم تأكيد الفاتورة الأصلية بعد. حدّث هذا الطلب؛ لن يتم إنشاء فاتورة جديدة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Faktur asli belum dikonfirmasi. Segarkan pesanan ini; faktur baru tidak akan dibuat."
           }
         }
       }

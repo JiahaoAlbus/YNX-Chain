@@ -52,6 +52,8 @@ export async function installPrivateShop(page,{cart=[],orders=[],profile={Displa
     else if(path==='/api/cart')body={Items:state.cart,Revision:state.cartRevision};
     else if(path==='/api/profile')body={profile:state.profile};
     else if(path==='/api/orders')body={orders:state.orders};
+    else if(/^\/api\/orders\/[^/]+\/pay-handoff$/.test(path)){const id=path.split('/')[3],order=state.orders.find(o=>o.ID===id);if(!order){await route.fulfill({status:404,json:{error:'unknown original order'}});return}if(request.method()==='POST'){order.InvoiceID='inv_original';order.PayIntentID='intent_original'}if(!order.InvoiceID){await route.fulfill({status:409,json:{error:'INVOICE_REFERENCE_NOT_READY'}});return}body={order,invoiceId:order.InvoiceID,intentId:order.PayIntentID,deepLink:'ynxpay://invoice/'+order.InvoiceID};}
+    else if(/^\/api\/orders\/[^/]+$/.test(path)){body=state.orders.find(o=>o.ID===path.split('/')[3]);if(!body){await route.fulfill({status:404,json:{error:'unknown original order'}});return}}
     else if(path==='/api/stores/qa-store')body={Name:'QA store',Policy:'Controlled QA policy'};
     else{await route.fulfill({status:404,contentType:'application/json',body:'{"error":"Unconfigured controlled fixture"}'});return}
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
@@ -62,4 +64,4 @@ export async function installPrivateShop(page,{cart=[],orders=[],profile={Displa
   return {state,requests,account,registry,gatewayRequests};
 }
 
-export function orderFixture(overrides={}){return{ID:'qa-order',Status:'delivered',CreatedAt:new Date().toISOString(),TotalYNXT:8,Lines:[{Title:'QA product',VariantName:'QA variant',Quantity:1}],Timeline:[],...overrides}}
+export function orderFixture(overrides={}){return{Buyer:fixtureAccount,StoreID:'qa-store',Currency:'YNXT',InvoiceID:'qa-invoice',PayIntentID:'qa-intent',PayMerchant:'qa-merchant',PayPayoutAddress:fixtureAccount,Settlement:{Status:'paid',InvoiceID:'qa-invoice',IntentID:'qa-intent',Merchant:'qa-merchant',PayoutAddress:fixtureAccount,Payer:fixtureAccount,Currency:'YNXT',AmountYNXT:8,BlockHeight:1,TransactionHash:'0x'+'a'.repeat(64)},ID:'qa-order',Status:'delivered',CreatedAt:new Date().toISOString(),TotalYNXT:8,Lines:[{Title:'QA product',VariantName:'QA variant',Quantity:1}],Timeline:[],...overrides}}
