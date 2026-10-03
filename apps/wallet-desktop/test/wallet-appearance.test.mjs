@@ -6,7 +6,7 @@ import {initWalletAppearance,parseWalletAppearance,WALLET_APPEARANCE_KEY,WALLET_
 function mounted(storage){
   const element=()=>({listeners:{},addEventListener(name,fn){this.listeners[name]=fn}});
   const inputs=WALLET_UI_SIZES.map(value=>({...element(),value,checked:false}));
-  const sheet={...element(),open:false,showModal(){this.open=true},close(){this.open=false}},open=element(),close=element(),status={textContent:""};
+  const sheet={...element(),open:false,showModal(){this.open=true},close(){this.open=false;this.listeners.close?.()}},open={...element(),focused:false,focus(){this.focused=true}},close=element(),status={textContent:""};
   const document={documentElement:{dataset:{}},querySelector:selector=>({"#appearance-sheet":sheet,"#open-appearance":open,"#close-appearance":close,"#appearance-status":status})[selector],querySelectorAll:()=>inputs};
   const control=initWalletAppearance({document,getStorage:()=>storage});
   return {control,inputs,sheet,open,close,status};
@@ -19,7 +19,7 @@ test("mounted settings open, switch and persist without custody calls",()=>{
   const data=new Map(),storage={getItem:key=>data.get(key),setItem(key,value){assert.equal(key,WALLET_APPEARANCE_KEY);data.set(key,value)}};
   const ui=mounted(storage);ui.open.listeners.click();assert.equal(ui.sheet.open,true);
   ui.inputs[2].checked=true;ui.inputs[2].listeners.change();assert.equal(ui.control.size(),"larger");assert.deepEqual(ui.inputs.map(input=>input.checked),[false,false,true]);assert.match(ui.status.textContent,/saved/);
-  ui.close.listeners.click();assert.equal(ui.sheet.open,false);assert.equal(mounted(storage).control.size(),"larger");
+  ui.close.listeners.click();assert.equal(ui.sheet.open,false);assert.equal(ui.open.focused,true);assert.equal(mounted(storage).control.size(),"larger");
 });
 test("failed storage remains usable and never claims persistence",()=>{
   const ui=mounted({getItem(){throw Error("blocked")},setItem(){throw Error("blocked")}});assert.equal(ui.control.size(),"standard");ui.inputs[0].checked=true;ui.inputs[0].listeners.change();assert.equal(ui.control.size(),"compact");assert.match(ui.status.textContent,/could not be saved/);

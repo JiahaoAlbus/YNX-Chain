@@ -1,5 +1,6 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
+import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -412,12 +413,14 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     projectId: process.env.YNX_WALLETCONNECT_PROJECT_ID,
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });
+  const branding=configureWalletRuntimeBranding({app,Menu,nativeImage,directory});
   const window = new BrowserWindow({
     width: 1080,
     height: 780,
     minWidth: 760,
     minHeight: 560,
-    title: "YNX Wallet",
+    title: branding.title,
+    icon: branding.icon,
     backgroundColor: "#ffffff",
     ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 20, y: 18 } } : {}),
     webPreferences: {
@@ -441,6 +444,8 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   });
   window.removeMenu();
   await window.loadFile(path.join(directory, "index.html"));
+  window.setTitle(branding.title);
+  window.webContents.on("page-title-updated",event=>{event.preventDefault();window.setTitle(branding.title)});
   const status = await rpcStatus();
   await recordEvidence(status, window, { launch: true });
   window.webContents.send("wallet:status-result", status);

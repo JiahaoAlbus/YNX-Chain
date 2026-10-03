@@ -21,7 +21,11 @@ export function initWalletAppearance({ document, getStorage = () => null }) {
   try { initial = parseWalletAppearance(getStorage()?.getItem(WALLET_APPEARANCE_KEY)); } catch {}
   apply(initial);
   document.querySelector("#open-appearance").addEventListener("click", () => { if (!sheet.open) sheet.showModal(); });
+  const opener=document.querySelector("#open-appearance");
   document.querySelector("#close-appearance").addEventListener("click", () => sheet.close());
+  // Explicit restoration also covers browser versions whose native dialog
+  // close does not return focus after an RTL/locale display change.
+  sheet.addEventListener("close",()=>opener.focus?.());
   for (const input of inputs) input.addEventListener("change", () => {
     if (!input.checked || !WALLET_UI_SIZES.includes(input.value)) return;
     apply(input.value);

@@ -53,8 +53,16 @@ h3,.key-security h2{font-size:1.066667rem}
 :root[dir="rtl"] .sidebar{left:auto;right:0;border-right:0;border-left:1px solid var(--line)}
 .nav-item,#account-list button{text-align:start}
 .asset-row .asset-value{margin-left:0;margin-inline-start:auto;text-align:end}
-#wallet-language{max-width:100%;min-height:44px}
-#appearance-sheet{overflow-wrap:anywhere}
+#wallet-language{width:min(100%,18rem);max-width:100%;min-height:44px;display:block;text-align:start}
+#appearance-sheet{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;overflow:auto;overflow-wrap:anywhere}
+#appearance-sheet .appearance-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#appearance-sheet .appearance-options legend{margin-bottom:10px}
+#appearance-sheet .appearance-options label{gap:8px;margin:0;padding:8px;min-height:48px;flex-wrap:wrap;font-weight:500}
+#appearance-sheet .dialog-heading{gap:12px;align-items:center}
+#appearance-sheet .dialog-heading h2{font-size:1.2rem}
+#appearance-sheet .dialog-heading button{flex-shrink:0;color:var(--ink)}
+#wallet-language-status:empty,#appearance-status:empty{display:none}
+@media(max-width:420px){#appearance-sheet{padding:18px}#appearance-sheet .appearance-options{grid-template-columns:1fr}#appearance-sheet .appearance-options label{flex-wrap:nowrap}}
 #receive-address,#receive-evm-address,#transfer-to,#transfer-amount,#walletconnect-uri,#invoice-reference,#contract-address,#contract-function,
 #auth-origin,#auth-account,#proposal-origin,#proposal-account,#provider-origin,#provider-detail,#transfer-transaction,#contract-result,
 #balance-value,#asset-balance{direction:ltr;unicode-bidi:isolate;text-align:start}

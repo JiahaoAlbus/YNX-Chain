@@ -75,3 +75,16 @@ export function parseDurabilityErrorData(error) {
   try { const proof = parseDurabilityProof(data.ynxDurability, data.transactionHash); if (proof.status !== status) invalid(); return Object.freeze({ durabilityVersion: DURABILITY_MODEL.version, ynxDurability: proof }); }
   catch { return null; }
 }
+
+/** Native JSON proof shares the original checkpoint contract, not Ethereum
+ * gas/wei or its adapter nonce offset. Native nonce is the signed nonce itself.
+ * Local durable evidence is never consensus finality. */
+export function validateNativeJSONReceipt(expected,expectedHash,receipt,capability){
+  parseDurabilityModel(capability);
+  if(!object(receipt)||!expected||expected.type!=="transfer"||expected.chainId!==6423||!Number.isSafeInteger(expected.amount)||expected.amount<=0||expected.fee!==1||!Number.isSafeInteger(expected.nonce)||expected.nonce<1||
+    receipt.transactionHash!==expectedHash||receipt.from!==expected.from||receipt.to!==expected.to||receipt.status!=="0x1"||receipt.contractAddress!==null)invalid();
+  const proof=parseDurabilityProof(receipt.ynxDurability,expectedHash),native=parseNativeTransaction(receipt.ynxNativeTransaction,{from:expected.from,to:expected.to});
+  if(proof.status!=="durable"||receipt.blockNumber!==proof.blockNumber||receipt.blockHash!==proof.blockHash||native.type!=="transfer"||native.amountYNXT!==String(expected.amount)||native.feeYNXT!=="1"||uint64(native.nonce,{positive:true})!==BigInt(expected.nonce))invalid();
+  uint64(receipt.transactionIndex);
+  return Object.freeze({transactionHash:expectedHash,from:expected.from,to:expected.to,status:"0x1",contractAddress:null,transactionIndex:receipt.transactionIndex,blockNumber:proof.blockNumber,blockHash:proof.blockHash,ynxDurability:proof,ynxNativeTransaction:native});
+}
