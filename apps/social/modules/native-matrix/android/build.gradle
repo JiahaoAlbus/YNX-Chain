@@ -1,0 +1,53 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.ynx.social'
+version = '0.1.0'
+android {
+  namespace 'com.ynx.social.matrix'
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+def matrixRelease = configurations.create('matrixAdmittedRelease') {
+  canBeConsumed = false
+  canBeResolved = true
+  transitive = false
+}
+
+dependencies {
+  implementation 'org.matrix.rustcomponents:sdk-android:26.09.28'
+  matrixAdmittedRelease 'org.matrix.rustcomponents:sdk-android:26.09.28@aar'
+  implementation 'net.java.dev.jna:jna:5.18.1@aar'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+}
+
+// A version string alone is not the admitted release bytes. Fail closed if the
+// resolved Maven AAR differs from the official release asset. No TLS bypass.
+def verifyMatrixRelease = tasks.register('verifyMatrixReleaseBytes') {
+  doLast {
+    def release = matrixRelease.singleFile
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        release.withInputStream { stream ->
+          byte[] buffer = new byte[65536]
+          int count
+          while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+        }
+        if (digest.digest().encodeHex().toString() != '5aa337869a5df71d05e907902d93b4953ed986495c61728728a251077c61f793') {
+          throw new GradleException('MATRIX_ANDROID_RELEASE_BYTES_MISMATCH')
+        }
+  }
+}
+
+// Resolve only the admitted AAR, not every Expo Android variant. This is an
+// uncached verification prerequisite of each native compile/build entry point.
+tasks.configureEach {
+  if (name == 'preBuild' || name.matches('compile.*Kotlin') || name.matches('compile.*JavaWithJavac')) {
+    dependsOn verifyMatrixRelease
+  }
+}

@@ -30,7 +30,7 @@ module.exports = {
         "android.permission.WRITE_CONTACTS"
       ]
     },
-    plugins: ["expo-secure-store", ["expo-camera", { cameraPermission: "Scan a YNX Social profile QR only when you choose QR discovery." }], ["expo-image-picker", { photosPermission: "Choose images you explicitly share in YNX Social." }], ["expo-contacts", { contactsPermission: "Match contacts only after you explicitly allow YNX Social." }]],
+    plugins: ["./plugins/with-native-matrix", "expo-secure-store", ["expo-camera", { cameraPermission: "Scan a YNX Social profile QR only when you choose QR discovery." }], ["expo-image-picker", { photosPermission: "Choose images you explicitly share in YNX Social." }], ["expo-contacts", { contactsPermission: "Match contacts only after you explicitly allow YNX Social." }]],
     extra: { product: "social", chainId: "ynx_6423-1", evmChainId: 6423, asset: "YNXT" }
   }
 };

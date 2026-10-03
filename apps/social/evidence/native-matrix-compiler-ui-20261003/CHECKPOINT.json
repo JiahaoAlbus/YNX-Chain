@@ -1,0 +1,268 @@
+{
+  "schemaVersion": "ynx-social-native-matrix-compiler-ui/v1",
+  "status": "PARTIAL_ENGINEERING_CHECKPOINT_NOT_PRODUCT_COMPLETION",
+  "sourceParent": "7ba2fb4fdfe9e4d404a05003e3c39a59207aea63",
+  "sourcePins": [
+    {
+      "path": "apps/social/package.json",
+      "bytes": 1462,
+      "sha256": "4b0b1fc36e9100b7657614fbc3f04c905fee7b9829fb1ff15a5fec83c24b3c53",
+      "gitBlob": "0993225bf90e3017751342c51e1e530c481c1afc"
+    },
+    {
+      "path": "apps/social/app.config.js",
+      "bytes": 1751,
+      "sha256": "468a4a08b502b7af4ed72c9435632b0fd9ae2ed3b3762ac383fc5e5914d51a38",
+      "gitBlob": "6278184935e5e278f4aa0e89974111cb97a90eaa"
+    },
+    {
+      "path": "apps/social/plugins/with-native-matrix.js",
+      "bytes": 632,
+      "sha256": "f17cb8a18f04f22fc20087c1568f4316c429dd0ca23af328ba38b9b6f1aa5132",
+      "gitBlob": "258c501f9d3aa3268f278afc5a076ecee1bbaed2"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/.gitignore",
+      "bytes": 46,
+      "sha256": "bda1eb91ae5cbb95e2934a8ff38199fa7faf624b2b91ba3462e7ce54da2e839c",
+      "gitBlob": "059d8d5aeab38b7a0494bdd112ea9aaf3aa3b591"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/package.json",
+      "bytes": 175,
+      "sha256": "1f401d23c4dc6fd3f4177edbd64cb7df9b6db2f65225ee95646c133ff9756d8f",
+      "gitBlob": "a7ada4ef3354a4a6a9b5aedf25879900b3fe2d7b"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/expo-module.config.json",
+      "bytes": 218,
+      "sha256": "80cf0aaefeeefe31d03066462bb9294eef53e6424afbd0639084a43b0fbced15",
+      "gitBlob": "546595444d2f629b671743dd98e7281e7fbc81d2"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/IMPLEMENTATION.md",
+      "bytes": 6177,
+      "sha256": "e7dc9cdd2013cf9ad902d16f0eedb3fd049c26d5165d4cc056088049fd825f53",
+      "gitBlob": "44f2d80622760bd8ee31b56978f0852c30906fdb"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/build.gradle",
+      "bytes": 1772,
+      "sha256": "474a4657d677a9a5669668236bef9cb23f4abd7f50808b4b07024ad40dd9bce1",
+      "gitBlob": "74568cf2b87bbd281c1d87613d368449386afac2"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixVault.kt",
+      "bytes": 7758,
+      "sha256": "a147572bfb8a7186e6d5d396e7570988a130a8d5550665865432976f3de0206d",
+      "gitBlob": "821046fab648fd311dde55361c86165c59692244"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt",
+      "bytes": 16959,
+      "sha256": "5fd86caa155270ddbe1533203945afd8350089943b5f3a1dc1735411912894d2",
+      "gitBlob": "424b74ff15a6c471e680202f16cecdd3cca58256"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixRustSDK.podspec",
+      "bytes": 1225,
+      "sha256": "00c271b3de04a539780c5b68b1040f7f8203fd37dc62d995352ef5e96c6e723e",
+      "gitBlob": "19b74dcc5684505415e41ded975e935f3ca36781"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/YNXSocialMatrix.podspec",
+      "bytes": 533,
+      "sha256": "32f84e32e8e1c8c442be229b33df607096b390d9682de2c0a20ccdb54e17fbbd",
+      "gitBlob": "b371f918f76e3bdf52a1bde72699a0e5c4e6444e"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixVault.swift",
+      "bytes": 8961,
+      "sha256": "5990515f16c6a89cdf47de8e768b1f6a4eca3a7f6f9a7b23cf57d8b5dd7ed612",
+      "gitBlob": "ad775ba502ad3561236f77fd99471bc58bc9f4e7"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/YNXSocialMatrixModule.swift",
+      "bytes": 20161,
+      "sha256": "3b43bab9a7619f89ddb72b33e505f28b19e198383e984f428136fbf319296ed2",
+      "gitBlob": "6c24c74b665690e87e4fbb40d6dfbfc4c352ff76"
+    },
+    {
+      "path": "apps/social/src/nativeMatrix.ts",
+      "bytes": 10833,
+      "sha256": "512e7a59adbebf692461daf4bea383d97202e51e9284392d5292a20be9e51de3",
+      "gitBlob": "3191ef3ff76c86834f18b24c1adc089b594bfd23"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixInstalled.ts",
+      "bytes": 550,
+      "sha256": "6920b972e470cba4fbab9fb7eebfcc556a8bc64a785f3bba21f0111ef9a83a44",
+      "gitBlob": "8d2baaecd35bfb5c7be2275fd4c32a62871ec062"
+    },
+    {
+      "path": "apps/social/src/nativeMatrix.test.ts",
+      "bytes": 4844,
+      "sha256": "fc3df66c9c0b532cb9a906c2a8d4bc1201f9f101979c8c751802d5005933613e",
+      "gitBlob": "f77fddfa5b80127d3cd1ec9f1e1a21d21796ca5a"
+    },
+    {
+      "path": "apps/social/src/NativeMatrixWorkspace.tsx",
+      "bytes": 7942,
+      "sha256": "0c887cfab29ad7af633ab16f03f78464c5de68f8b6bdf1b110773b7d9cb60fa8",
+      "gitBlob": "8e4f8d4da521e6136120eae36fd75db28db9cf9f"
+    }
+  ],
+  "evidencePins": [
+    {
+      "path": "ISOLATED_QA_APP.tsx.txt",
+      "bytes": 1167,
+      "sha256": "bbabd707b1b423823e5f2f5e81d8b77170f76fe0700cafc98931224a166c18f7"
+    },
+    {
+      "path": "native-apk-embedded-qa-build.log",
+      "bytes": 21852,
+      "sha256": "f8f856ef27766b1aab3ef5dfdad07275d668ae82c289ab21814137fa7169c80a"
+    },
+    {
+      "path": "native-apk-qa-build.log",
+      "bytes": 28223,
+      "sha256": "66da2cac75deb57b0b2534e33bbf6f2e563d7d50256d86473f131ff87419c7d6"
+    },
+    {
+      "path": "native-compile-fourth.log",
+      "bytes": 8008,
+      "sha256": "681689cb8f8ec4fa7cac4ff34a1797a3fa041c4c81e1a4aab82af9341ae0fb45"
+    },
+    {
+      "path": "native-compile-second.log",
+      "bytes": 13968,
+      "sha256": "bc119c13b3b1598a5f3c05f0c9e0dd84eabf78d85984838d90a4d4639bd4f36f"
+    },
+    {
+      "path": "native-compile-third.log",
+      "bytes": 32627,
+      "sha256": "1511d3e9d1b3225c807f7a8c3d26fa4babd5ebe9480793254ef995dfc54934f0"
+    },
+    {
+      "path": "native-compile.log",
+      "bytes": 7083,
+      "sha256": "a1235268fc9e596ff5c50cd9b8132c9f57a4f2b41bab8653e728ced7b0d278df"
+    },
+    {
+      "path": "native-crash-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "native-ui-authority-error.png",
+      "bytes": 20368,
+      "sha256": "a735b6b9b22253d28b6fb67c6b3d2e32b765b4ff7ea6e141c42e25829799e921"
+    },
+    {
+      "path": "native-ui-authority-error.xml",
+      "bytes": 6292,
+      "sha256": "3687c1363543dfe87156a35ef86c10c6fd4b30ee5e9e2867587e4a7f568fe7ee"
+    },
+    {
+      "path": "native-ui-closed.png",
+      "bytes": 12070,
+      "sha256": "7b596df8d4bb9528bb1ad4a779c416d8ced46fe328a0032d3e8b7e5fbd2c51b5"
+    },
+    {
+      "path": "native-ui-closed.xml",
+      "bytes": 4125,
+      "sha256": "e71078c69a260a631585af3aa85cb15bcbc2333fc0a1b286c03bfafb1439dc6a"
+    },
+    {
+      "path": "native-ui-first.png",
+      "bytes": 47714,
+      "sha256": "51855120c50a67cb13b06f7d885529c4212c96e19c376b8a7a2067d38f742eed"
+    },
+    {
+      "path": "native-ui-first.xml",
+      "bytes": 8460,
+      "sha256": "62bef0fab51f566647189352ef54aeb08474b2a3e874a009e6b603271384c49b"
+    },
+    {
+      "path": "native-ui-reopened.png",
+      "bytes": 20182,
+      "sha256": "85a8fe4b3c1c8dc07162202b403fb7d179c86c069760cb9ecf9e4107538a25d7"
+    },
+    {
+      "path": "native-ui-reopened.xml",
+      "bytes": 6292,
+      "sha256": "3687c1363543dfe87156a35ef86c10c6fd4b30ee5e9e2867587e4a7f568fe7ee"
+    },
+    {
+      "path": "native-ui-restore-rejected.png",
+      "bytes": 20493,
+      "sha256": "43bd7b7004df475f6fe8a2166e2c8ce6705404cc577b36e3a00dcd6bc0d65abc"
+    },
+    {
+      "path": "native-ui-restore-rejected.xml",
+      "bytes": 6280,
+      "sha256": "729fb7a65e40d5771f48bc7d40964749da1fe534b0aa1340de8c30948d5fbe44"
+    },
+    {
+      "path": "product-bundle.log",
+      "bytes": 1590,
+      "sha256": "2829fe21270a708b2db70a5a99b1a9a0f29a8e21006e5e80f3d15909353fc2b1"
+    },
+    {
+      "path": "qa-ui-bundle.log",
+      "bytes": 1544,
+      "sha256": "6bd36f41f49e7746a8b731d3e57e4815e55246e20acc2e043c6bb898adc25f25"
+    },
+    {
+      "path": "source-tests-current.log",
+      "bytes": 19005,
+      "sha256": "9ea0cfe4aafa49bcce5d3a98dbcf909c123b02f78946d0e85ebf3bb3ec910aca"
+    },
+    {
+      "path": "web-build-failure.log",
+      "bytes": 903,
+      "sha256": "fc1b930b2ee4b2537d2ffbf32b6ad017003e9fe7c994c235651a27ac794c08c5"
+    }
+  ],
+  "checks": {
+    "typecheck": "PASS",
+    "sourceTests": {
+      "pass": 193,
+      "fail": 0
+    },
+    "androidOfficialAarSha": "PASS",
+    "androidModuleCompile": "PASS",
+    "isolatedAndroidApk": "PASS",
+    "productAndroidIosJsExport": "PASS",
+    "isolatedUiRestoreRejected": "PASS",
+    "isolatedUiClose": "PASS",
+    "isolatedUiReopen": "PASS",
+    "crashBufferEntries": 0,
+    "webBuild": "FAIL_SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH",
+    "appleNativeCompile": "NOT_RUN_XCODE_UNAVAILABLE"
+  },
+  "qaApk": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/app-debug.apk",
+    "bytes": 130137309,
+    "sha256": "87ff88680dacc38cb64b81c79df4c85fc03c6be3a9e9556b4828b75a9f508387",
+    "isProductRelease": false,
+    "embeddedApp": "ISOLATED_QA_APP.tsx.txt",
+    "authority": "deliberately unavailable; no fixture account or credentials"
+  },
+  "notVerified": [
+    "canonical native enrollment",
+    "product App mount",
+    "normal authenticated messaging",
+    "cross-node identity continuity",
+    "full native recovery and readback settlement",
+    "formal installed and public E2E",
+    "dot MONSTER acceptance"
+  ],
+  "sensitiveWalletCalls": false,
+  "deployed": false
+}

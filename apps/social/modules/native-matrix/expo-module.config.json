@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["YNXSocialMatrixModule"], "podspecPath": ["ios/YNXSocialMatrix.podspec"] },
+  "android": { "modules": ["com.ynx.social.matrix.YNXSocialMatrixModule"] }
+}
