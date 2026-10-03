@@ -2,7 +2,9 @@ package video
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync/atomic"
@@ -19,6 +21,7 @@ type VideoBusinessGrant struct {
 	Revalidate                               func(context.Context) error
 }
 type VideoBusinessNonce struct {
+	Nonce          string    `json:"nonce,omitempty"`
 	Actor          string    `json:"actor"`
 	BodyDigest     string    `json:"body_digest"`
 	SessionBinding string    `json:"session_binding"`
@@ -77,8 +80,8 @@ func (b *videoBusinessLease) checkState(st State) error {
 	if b.now().UTC().Before(st.BusinessClockFloor) {
 		return ErrUnauthorized
 	}
-	if n, exists := st.BusinessNonces[b.grant.Nonce]; exists {
-		if !b.consumed.Load() || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) {
+	if n, exists := st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)]; exists {
+		if !b.consumed.Load() || n.Nonce != b.grant.Nonce || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) {
 			return ErrUnauthorized
 		}
 	} else if b.consumed.Load() {
@@ -98,15 +101,15 @@ func (b *videoBusinessLease) admit(st *State) error {
 		st.BusinessNonces = map[string]VideoBusinessNonce{}
 	}
 	for nonce, n := range st.BusinessNonces {
-		if nonce != b.grant.Nonce && !n.ExpiresAt.After(now) {
+		if nonce != videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce) && !n.ExpiresAt.After(now) {
 			delete(st.BusinessNonces, nonce)
 		}
 	}
-	if _, exists := st.BusinessNonces[b.grant.Nonce]; !exists {
+	if _, exists := st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)]; !exists {
 		if len(st.BusinessNonces) >= 4096 {
 			return errors.New("Video business replay protection is full")
 		}
-		st.BusinessNonces[b.grant.Nonce] = VideoBusinessNonce{Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now}
+		st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)] = VideoBusinessNonce{Nonce: b.grant.Nonce, Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now}
 	}
 	st.BusinessClockFloor = now
 	return nil
@@ -117,12 +120,48 @@ func validateVideoBusinessState(st State) error {
 		return ErrUnauthorized
 	}
 	for nonce, n := range st.BusinessNonces {
-		if len(nonce) < 16 || len(nonce) > 256 || n.Actor == "" || n.Actor != strings.TrimSpace(n.Actor) || n.SessionBinding == "" || len(n.SessionBinding) > 256 || len(n.BodyDigest) != 64 || n.BodyDigest != strings.ToLower(n.BodyDigest) || n.ConsumedAt.IsZero() || !n.ExpiresAt.After(n.ConsumedAt) || st.BusinessClockFloor.Before(n.ConsumedAt) {
+		if st.SchemaVersion >= 5 && n.Nonce == "" || !validVideoBusinessNonceKey(nonce, n) || n.Actor == "" || n.Actor != strings.TrimSpace(n.Actor) || n.SessionBinding == "" || len(n.SessionBinding) > 256 || len(n.BodyDigest) != 64 || n.BodyDigest != strings.ToLower(n.BodyDigest) || n.ConsumedAt.IsZero() || !n.ExpiresAt.After(n.ConsumedAt) || st.BusinessClockFloor.Before(n.ConsumedAt) {
 			return ErrUnauthorized
 		}
 		if _, err := hex.DecodeString(n.BodyDigest); err != nil {
 			return ErrUnauthorized
 		}
 	}
+	return nil
+}
+
+func videoBusinessNonceKey(binding, nonce string) string {
+	raw, _ := json.Marshal([2]string{binding, nonce})
+	digest := sha256.Sum256(append([]byte("YNX_VIDEO_BUSINESS_NONCE_V2\n"), raw...))
+	return hex.EncodeToString(digest[:])
+}
+func validVideoBusinessNonceKey(key string, n VideoBusinessNonce) bool {
+	// Before migration, historical schema4 records retain their original shape
+	// for signature verification. Schema5 records carry the original nonce and
+	// index its exact session pair. No new format field enters old HMAC bytes.
+	if n.Nonce == "" {
+		return len(key) >= 16 && len(key) <= 256
+	}
+	return len(n.Nonce) >= 16 && len(n.Nonce) <= 256 && key == videoBusinessNonceKey(n.SessionBinding, n.Nonce)
+}
+func migrateVideoBusinessNoncePairs(st *State) error {
+	if st.BusinessNonces == nil {
+		return nil
+	}
+	pairs := make(map[string]VideoBusinessNonce, len(st.BusinessNonces))
+	for old, n := range st.BusinessNonces {
+		if !validVideoBusinessNonceKey(old, n) {
+			return ErrUnauthorized
+		}
+		if n.Nonce == "" {
+			n.Nonce = old
+		}
+		key := videoBusinessNonceKey(n.SessionBinding, n.Nonce)
+		if _, exists := pairs[key]; exists {
+			return errors.New("duplicate Video session nonce pair")
+		}
+		pairs[key] = n
+	}
+	st.BusinessNonces = pairs
 	return nil
 }

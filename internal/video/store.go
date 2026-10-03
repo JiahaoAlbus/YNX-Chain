@@ -24,7 +24,7 @@ type videoStateStore struct {
 	state           State
 }
 
-const currentStateSchemaVersion = 4
+const currentStateSchemaVersion = 5
 
 type stateMigration struct {
 	from int
@@ -34,6 +34,19 @@ type stateMigration struct {
 }
 
 var stateMigrations = []stateMigration{
+	{from: 4, to: 5, up: func(state *State) error {
+		if err := migrateVideoBusinessNoncePairs(state); err != nil {
+			return err
+		}
+		state.SchemaVersion = 5
+		return nil
+	}, down: func(state *State) error {
+		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+			return errors.New("cannot discard Video session-bound replay protection")
+		}
+		state.SchemaVersion = 4
+		return nil
+	}},
 	{from: 3, to: 4, up: func(state *State) error { state.SchemaVersion = 4; return nil }, down: func(state *State) error {
 		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
 			return errors.New("cannot discard Video business replay protection")

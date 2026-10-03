@@ -1,6 +1,7 @@
 package video
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,7 @@ func TestLegacyStateMigratesAndPersistsSchemaVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schema_version": 4`) {
+	if !strings.Contains(string(persisted), fmt.Sprintf(`"schema_version": %d`, currentStateSchemaVersion)) {
 		t.Fatalf("migrated state did not persist schema version: %s", persisted)
 	}
 	if _, err = OpenStore(root, key); err != nil {

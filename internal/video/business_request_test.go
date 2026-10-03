@@ -273,6 +273,7 @@ func TestVideoMatureProofMetadataHasNoPlatformAndSeparateSessionExpiry(t *testin
 				t.Fatal(e)
 			}
 			delete(original, "platform")
+			delete(original, "chainId")
 			raw, _ = json.Marshal(original)
 			r.Header.Set(productSessionProofV2Header, base64.RawURLEncoding.EncodeToString(raw))
 			routed, scope, e := videoBusinessRequestScope(r)

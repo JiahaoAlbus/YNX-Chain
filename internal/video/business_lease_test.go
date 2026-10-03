@@ -211,3 +211,123 @@ func TestHistoricalVideoBackupDoesNotRewriteSource(t *testing.T) {
 		t.Fatal("restore rewrote source")
 	}
 }
+
+func TestVideoSessionNoncePairIndependentSessionsAndDurableReplay(t *testing.T) {
+	s, _ := fixture(t, nil)
+	g := videoTestGrant(s, "ynx1owner", "same_original_nonce_00001", nil)
+	first := videoLease(t, s, context.Background(), g, false)
+	if _, e := first.CreatePlaylist(g.Actor, "Original first session"); e != nil {
+		t.Fatal(e)
+	}
+	secondGrant := g
+	secondGrant.SessionBinding = "original-independent-session-binding"
+	second := videoLease(t, s, context.Background(), secondGrant, false)
+	if _, e := second.CreatePlaylist(g.Actor, "Independent second session"); e != nil {
+		t.Fatal("one session blocked another session's nonce", e)
+	}
+	if len(s.store.state.BusinessNonces) != 2 {
+		t.Fatal("nonce pair records collapsed")
+	}
+	for _, grant := range []VideoBusinessGrant{g, secondGrant} {
+		record, ok := s.store.state.BusinessNonces[videoBusinessNonceKey(grant.SessionBinding, grant.Nonce)]
+		if !ok || record.Nonce != grant.Nonce || record.SessionBinding != grant.SessionBinding {
+			t.Fatal("original pair not persisted")
+		}
+	}
+	restarted, e := NewService(s.cfg)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, grant := range []VideoBusinessGrant{g, secondGrant} {
+		scoped := videoLease(t, restarted, context.Background(), grant, false)
+		if _, e = scoped.CreatePlaylist(grant.Actor, "Replay must not appear"); e == nil {
+			t.Fatal("same session nonce replay accepted after restart")
+		}
+	}
+	lists, e := restarted.Playlists(g.Actor)
+	if e != nil || len(lists) != 2 {
+		t.Fatal("replay changed original business records")
+	}
+}
+func TestVideoHistoricalSchema4NonceBackupAndMigrationPreserveReplay(t *testing.T) {
+	s, _ := fixture(t, nil)
+	g := videoTestGrant(s, "ynx1owner", "retained_schema4_nonce_001", nil)
+	legacy := emptyState()
+	legacy.SchemaVersion = 4
+	legacy.BusinessClockFloor = s.cfg.Now().UTC()
+	legacy.BusinessNonces = map[string]VideoBusinessNonce{g.Nonce: {Actor: g.Actor, BodyDigest: g.BodyDigest, SessionBinding: g.SessionBinding, ExpiresAt: g.ExpiresAt, ConsumedAt: s.cfg.Now().UTC()}}
+	legacy.Playlists["pl_original"] = &Playlist{ID: "pl_original", Owner: g.Actor, Name: "Original schema4 playlist"}
+	persistStateFixture(t, s.store.root, s.cfg.IntegrityKey, legacy)
+	before, e := os.ReadFile(s.store.statePath)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if bytes.Contains(before, []byte(`"nonce":`)) {
+		t.Fatal("historical fixture contains new nonce format field")
+	}
+	var backup bytes.Buffer
+	if e = CreateBackup(s.store.root, s.cfg.IntegrityKey, &backup, s.cfg.Now()); e != nil {
+		t.Fatal(e)
+	}
+	after, _ := os.ReadFile(s.store.statePath)
+	if !bytes.Equal(before, after) {
+		t.Fatal("backup migrated original schema4 source")
+	}
+	target := filepath.Join(t.TempDir(), "restored")
+	if e = RestoreBackup(target, s.cfg.IntegrityKey, bytes.NewReader(backup.Bytes())); e != nil {
+		t.Fatal(e)
+	}
+	cfg := s.cfg
+	cfg.Root = target
+	restored, e := NewService(cfg)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if restored.store.state.SchemaVersion != 5 || len(restored.store.state.BusinessNonces) != 1 || restored.store.state.Playlists["pl_original"].Name != "Original schema4 playlist" {
+		t.Fatal("schema4 restore lost original business or nonce")
+	}
+	if _, e = videoLease(t, restored, context.Background(), g, false).CreatePlaylist(g.Actor, "Historical replay"); e == nil {
+		t.Fatal("migration discarded original replay fence")
+	}
+	fresh := g
+	fresh.SessionBinding = "another-original-session-binding"
+	if _, e = videoLease(t, restored, context.Background(), fresh, false).CreatePlaylist(g.Actor, "New independent session"); e != nil {
+		t.Fatal(e)
+	}
+	final, _ := os.ReadFile(s.store.statePath)
+	if !bytes.Equal(before, final) {
+		t.Fatal("restoring target touched old signed source")
+	}
+	if _, e = migrateState(&restored.store.state, 4); e == nil {
+		t.Fatal("downgrade discarded nonce pairs")
+	}
+}
+func TestVideoSchema5RejectsLegacyAndTamperedPairIndex(t *testing.T) {
+	s, _ := fixture(t, nil)
+	g := videoTestGrant(s, "ynx1owner", "valid_nonce_pair_0000001", nil)
+	if _, e := videoLease(t, s, context.Background(), g, false).CreatePlaylist(g.Actor, "Original"); e != nil {
+		t.Fatal(e)
+	}
+	key := videoBusinessNonceKey(g.SessionBinding, g.Nonce)
+	record := s.store.state.BusinessNonces[key]
+	for _, kind := range []string{"legacy-key", "wrong-session", "missing-nonce"} {
+		t.Run(kind, func(t *testing.T) {
+			st := s.store.state
+			st.BusinessNonces = map[string]VideoBusinessNonce{}
+			changed := record
+			index := key
+			switch kind {
+			case "legacy-key":
+				index = g.Nonce
+			case "wrong-session":
+				changed.SessionBinding = "different-session"
+			case "missing-nonce":
+				changed.Nonce = ""
+			}
+			st.BusinessNonces[index] = changed
+			if e := validateVideoBusinessState(st); e == nil {
+				t.Fatal("invalid schema5 pair accepted")
+			}
+		})
+	}
+}

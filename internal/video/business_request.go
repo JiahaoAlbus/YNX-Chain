@@ -170,6 +170,11 @@ func copyVideoBusinessBody(ctx context.Context, file *os.File, digest hash.Hash,
 // bundle/package tuple. The trusted SDK still verifies the original raw header;
 // this metadata routing never modifies signed bytes or creates a session.
 func videoClaimedProofBinding(claimed *videoSessionV2) bool {
+	// The mature proof also omits chainId. This is metadata routing only;
+	// the SDK verifies the fixed chain on the actual authority Session.
+	if claimed.ChainID == "" {
+		claimed.ChainID = "ynx_6423-1"
+	}
 	if claimed.Platform != "" {
 		return validVideoV2Binding(*claimed)
 	}
