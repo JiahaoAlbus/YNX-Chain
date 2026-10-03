@@ -23,7 +23,10 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
       throw fault("YNX branding changed. Review it before replacing user files.", "core_brand_review_required", 409);
   }
   const toolsRoot = fileURLToPath(new URL("../../../native/ynx-tools", import.meta.url));
-  const toolsTarget = join(context.projectDirectory, "extensions", "ynx.ynx-tools-0.2.0");
+  const tools = JSON.parse(await readFile(join(toolsRoot, 'package.json'), 'utf8'));
+  if (tools.publisher !== 'ynx' || tools.name !== 'ynx-tools' || !/^(?:0|[1-9][0-9]{0,3})\.(?:0|[1-9][0-9]{0,3})\.(?:0|[1-9][0-9]{0,3})$/.test(tools.version || ''))
+    throw fault('The bundled YNX Tools manifest is invalid.', 'core_tools_manifest_invalid', 503);
+  const toolsTarget = join(context.projectDirectory, "extensions", `ynx.ynx-tools-${tools.version}`);
   try { const stat = await lstat(toolsTarget); if (!stat.isDirectory() || stat.isSymbolicLink()) throw fault("YNX Tools directory changed.", "core_tools_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(toolsRoot, toolsTarget, { recursive: true, errorOnExist: true, force: false }); }
   for (const file of ["package.json", "activity.svg", "ynx-logo.png", "LICENSE.txt", "src/extension.cjs", "src/guards.cjs", "src/template.cjs"]) {

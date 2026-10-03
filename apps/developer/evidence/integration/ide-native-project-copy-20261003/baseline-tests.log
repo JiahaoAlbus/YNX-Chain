@@ -1,0 +1,50 @@
+✔ actual extension command opens only fixed trusted host locator; canceled context stays local (1.79225ms)
+✔ actual template command never overwrites existing file; creation uses atomic no-overwrite edit (0.887084ms)
+✔ actual diff command previews then rejects edit made during approval; no changes applied (0.47075ms)
+✔ actual extension previews a selected replacement and applies only after explicit unchanged-document approval (0.643208ms)
+✖ copy command uses real filesystem project containment before and after approval (3.945459ms)
+✖ copy approval rejects missing runtime, changed session and document mutation during final path check (0.562416ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 4
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52.375292
+
+✖ failing tests:
+
+test at services/codeoss-service/test/tools-extension.test.mjs:47:1
+✖ copy command uses real filesystem project containment before and after approval (3.945459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-extension.test.mjs:53:166)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-extension.test.mjs:56:1
+✖ copy approval rejects missing runtime, changed session and document mutation during final path check (0.562416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-extension.test.mjs:57:119)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
