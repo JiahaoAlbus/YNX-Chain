@@ -1,0 +1,63 @@
+
+> test
+> node --test test/*.test.mjs
+
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (76.930958ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (2.078209ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (16.3635ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (21.924667ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (17.103833ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (7.393042ms)
+✔ privacy lock checks durable intent after a competing preparation (4.747958ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (52.546458ms)
+✖ activation only removes old Shop shells, preserving other products (1.378584ms)
+✔ privacy copy covers all twelve product locales (1.343125ms)
+✔ non-English privacy controls do not silently use English copy (0.141208ms)
+✔ late success and failure cannot cross a buyer, store or view change (18.092125ms)
+✔ signout during response body decoding rejects before any private result is returned (0.121875ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (0.543ms)
+✔ requests are bounded and cancellation does not publish private data (16.834208ms)
+✔ buyer web bearer is memory-only and Gateway-bound (4.944917ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (1.446875ms)
+✔ marketplace promise strip is localized in all twelve locales (1.408459ms)
+✔ buyer UI wires full order lifecycle (5.899083ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (1.68925ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (6.888167ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.482458ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.252ms)
+✔ refresh restores an already-approved account without prompting again (0.202417ms)
+✔ account and chain events update or invalidate the standard connection (0.211083ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.135542ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.128625ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 26
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 272.232958
+
+✖ failing tests:
+
+test at test/offline-boundary.test.mjs:4:1
+✖ activation only removes old Shop shells, preserving other products (1.378584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'ynx-shop-shell-v4',
+      'ynx-shop-shell-v5',
+  +   'ynx-shop-shell-v7'
+    ]
+  
+      at TestContext.<anonymous> (file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-original-brand-VhPEbz/apps/shop/test/offline-boundary.test.mjs:4:549)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'ynx-shop-shell-v4', 'ynx-shop-shell-v5', 'ynx-shop-shell-v7' ],
+    expected: [ 'ynx-shop-shell-v4', 'ynx-shop-shell-v5' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

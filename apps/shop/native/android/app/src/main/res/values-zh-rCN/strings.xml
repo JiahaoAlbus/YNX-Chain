@@ -29,4 +29,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">按所示精确权限授权 YNX 商城访问 ynx_6423-1；四分钟后过期。</string><string name="accessibility_status">商城状态</string><string name="accessibility_language">语言选择器</string><string name="accessibility_ai_language">AI 输出语言选择器</string><plurals name="orders_count"><item quantity="other">%d 个订单</item></plurals>
 <string name="sign_out">退出登录</string>
+    <string name="text_size">字号</string>
+    <string name="text_compact">紧凑</string>
+    <string name="text_standard">标准</string>
+    <string name="text_larger">较大</string>
 </resources>

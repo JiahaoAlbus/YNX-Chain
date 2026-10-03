@@ -1,0 +1,9 @@
+file:///private/tmp/ynx-commerce-type-debug.mjs:45
+     if(overflow)throw Error('horizontal overflow '+app+' '+width+' '+state);
+                       ^
+
+Error: horizontal overflow shop 320 signed-out
+    at capture (file:///private/tmp/ynx-commerce-type-debug.mjs:45:24)
+    at async file:///private/tmp/ynx-commerce-type-debug.mjs:51:5
+
+Node.js v26.7.0

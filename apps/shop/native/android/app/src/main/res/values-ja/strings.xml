@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">表示された正確な権限でYNX Shopのynx_6423-1利用を承認します。4分で失効します。</string><string name="accessibility_status">マーケットプレイスの状態</string><string name="accessibility_language">言語選択</string><string name="accessibility_ai_language">AI出力言語選択</string><plurals name="orders_count"><item quantity="other">%d件の注文</item></plurals>
 <string name="sign_out">サインアウト</string>
+    <string name="text_size">文字サイズ</string>
+    <string name="text_compact">コンパクト</string>
+    <string name="text_standard">標準</string>
+    <string name="text_larger">大きめ</string>
 </resources>

@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">Izinkan YNX Shop di ynx_6423-1 dengan cakupan tepat yang ditampilkan. Kedaluwarsa dalam empat menit.</string><string name="accessibility_status">Status marketplace</string><string name="accessibility_language">Pemilih bahasa</string><string name="accessibility_ai_language">Pemilih bahasa keluaran AI</string><plurals name="orders_count"><item quantity="other">%d pesanan</item></plurals>
 <string name="sign_out">Keluar</string>
+    <string name="text_size">Ukuran teks</string>
+    <string name="text_compact">Ringkas</string>
+    <string name="text_standard">Standar</string>
+    <string name="text_larger">Lebih besar</string>
 </resources>

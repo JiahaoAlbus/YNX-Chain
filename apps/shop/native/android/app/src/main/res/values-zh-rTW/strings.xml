@@ -26,4 +26,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">依顯示的精確權限授權 YNX 商城存取 ynx_6423-1；四分鐘後到期。</string><string name="accessibility_status">商城狀態</string><string name="accessibility_language">語言選擇器</string><string name="accessibility_ai_language">AI 輸出語言選擇器</string><plurals name="orders_count"><item quantity="other">%d 筆訂單</item></plurals>
 <string name="sign_out">登出</string>
+    <string name="text_size">字級</string>
+    <string name="text_compact">緊湊</string>
+    <string name="text_standard">標準</string>
+    <string name="text_larger">較大</string>
 </resources>

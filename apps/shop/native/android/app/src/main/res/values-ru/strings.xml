@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">Разрешить YNX Shop работу в ynx_6423-1 с указанными точными правами. Срок — четыре минуты.</string><string name="accessibility_status">Состояние маркетплейса</string><string name="accessibility_language">Выбор языка</string><string name="accessibility_ai_language">Выбор языка ответа ИИ</string><plurals name="orders_count"><item quantity="one">%d заказ</item><item quantity="few">%d заказа</item><item quantity="many">%d заказов</item><item quantity="other">%d заказа</item></plurals>
 <string name="sign_out">Выйти</string>
+    <string name="text_size">Размер текста</string>
+    <string name="text_compact">Компактный</string>
+    <string name="text_standard">Стандартный</string>
+    <string name="text_larger">Крупный</string>
 </resources>

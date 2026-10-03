@@ -1,0 +1,11 @@
+file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:42
+     if(!images.length||!images.some(image=>(image.x<100||image.x+image.width>width-100)&&image.y<100))throw Error('missing upper-left brand '+app+' '+state);
+                                                                                                             ^
+
+Error: missing upper-left brand shop signed-out
+    at capture (file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:42:110)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:541:9)
+    at async file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:51:5
+
+Node.js v26.7.0

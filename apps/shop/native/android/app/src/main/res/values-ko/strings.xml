@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">표시된 정확한 범위로 YNX Shop의 ynx_6423-1 사용을 승인합니다. 4분 후 만료됩니다.</string><string name="accessibility_status">마켓플레이스 상태</string><string name="accessibility_language">언어 선택기</string><string name="accessibility_ai_language">AI 출력 언어 선택기</string><plurals name="orders_count"><item quantity="other">주문 %d개</item></plurals>
 <string name="sign_out">로그아웃</string>
+    <string name="text_size">글자 크기</string>
+    <string name="text_compact">작게</string>
+    <string name="text_standard">표준</string>
+    <string name="text_larger">크게</string>
 </resources>

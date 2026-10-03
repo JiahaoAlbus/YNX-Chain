@@ -1,0 +1,9 @@
+file:///private/tmp/ynx-commerce-type-debug.mjs:42
+     if(!images.length||!images.some(image=>(image.x<100||image.x+image.width>width-100)&&image.y<100)){await page.screenshot({path:require('node:path').join(evidence,'first-failure.png'),fullPage:true});throw Error('missing upper-left brand '+app+' '+state+' '+JSON.stringify({scenario,images}));}
+                                                                                                                                                                                                                  ^
+
+Error: missing upper-left brand shop signed-out {"scenario":{"name":"ar-200-mobile","width":320,"lang":"ar","size":"larger","zoom":2},"images":[{"naturalWidth":798,"naturalHeight":420,"x":110.359375,"y":23.59375,"width":45.59375,"height":24,"objectFit":"contain","source":"assets/brand/ynx-logo.png"}]}
+    at capture (file:///private/tmp/ynx-commerce-type-debug.mjs:42:211)
+    at async file:///private/tmp/ynx-commerce-type-debug.mjs:51:5
+
+Node.js v26.7.0

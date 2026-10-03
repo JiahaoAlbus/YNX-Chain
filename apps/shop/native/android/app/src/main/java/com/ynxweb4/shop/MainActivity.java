@@ -89,11 +89,11 @@ public final class MainActivity extends Activity {
         LinearLayout header=row();header.setPadding(dp(18),dp(16),dp(18),dp(10));
         boolean compactBrandHeader=getResources().getConfiguration().screenWidthDp<480;
         if(compactBrandHeader)header.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout brand=row();
+        LinearLayout brand=row();brand.setMinimumHeight(dp(48));
         ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ynx_logo);logo.setAdjustViewBounds(true);logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);logo.setContentDescription(getString(R.string.ynx_logo));
-        brand.addView(logo,new LinearLayout.LayoutParams(dp(76),dp(44)));
-        TextView brandName=text(getString(R.string.shop_name),19,true);brandName.setTextColor(INK);brandName.setPadding(dp(8),0,0,0);brand.addView(brandName);
-        header.addView(brand,new LinearLayout.LayoutParams(compactBrandHeader?LinearLayout.LayoutParams.MATCH_PARENT:0,dp(52),compactBrandHeader?0:1));
+        brand.addView(logo,new LinearLayout.LayoutParams(dp(46),dp(24)));
+        TextView brandName=text(getString(R.string.shop_name),16,true);brandName.setTextColor(INK);brandName.setPadding(dp(8),0,0,0);brand.addView(brandName);
+        header.addView(brand,new LinearLayout.LayoutParams(compactBrandHeader?LinearLayout.LayoutParams.MATCH_PARENT:0,LinearLayout.LayoutParams.WRAP_CONTENT,compactBrandHeader?0:1));
         Button walletButton=button(getString(R.string.wallet_sign_in));walletButton.setContentDescription(getString(R.string.wallet_sign_in));walletButton.setOnClickListener(v->signIn());header.addView(walletButton);
         root.addView(header);
         status=text(getString(R.string.loading),13,false);status.setContentDescription(getString(R.string.accessibility_status));status.setPadding(dp(18),dp(8),dp(18),dp(8));status.setTextColor(Color.DKGRAY);root.addView(status);
@@ -106,7 +106,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showCatalog(){clearAI();
-        content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),30,true);content.addView(heading);
+        content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),24,true);content.addView(heading);
         TextView boundary=text(getString(R.string.payment_boundary),14,false);boundary.setTextColor(BLUE);boundary.setPadding(0,dp(8),0,dp(14));content.addView(boundary);
         LinearLayout search=row();EditText query=input(getString(R.string.search_hint));search.addView(query,new LinearLayout.LayoutParams(0,dp(52),1));Button run=primary(getString(R.string.search));search.addView(run);content.addView(search);
         Button ai=button(getString(R.string.ai_compare));ai.setOnClickListener(v->runAI("search_comparison","public_catalog","Current public catalog query: "+query.getText(),12));content.addView(ai);
@@ -149,7 +149,7 @@ public final class MainActivity extends Activity {
 
     private void showCart(){clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
-        content.removeAllViews();content.addView(text(getString(R.string.order_review),30,true));
+        content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
         if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
         if(cart.length()==0){content.addView(text(getString(R.string.cart_empty),15,false));return;}
         long total=0;for(int i=0;i<cart.length();i++){
@@ -158,7 +158,7 @@ public final class MainActivity extends Activity {
             catch(Exception error){content.addView(text(getString(R.string.unavailable),14,false));}
             String productID=item.optString("ProductID"),variantID=item.optString("VariantID");content.addView(action(getString(R.string.cart_remove),()->removeCart(productID,variantID)));
         }
-        content.addView(text(formatYNXT(total),26,true));
+        content.addView(text(formatYNXT(total),24,true));
         recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));
         for(EditText field:List.of(recipient,address,city,country))content.addView(field);
         TextView unavailable=text(getString(R.string.tax_unavailable)+" · "+getString(R.string.logistics_unavailable),13,false);unavailable.setTextColor(Color.DKGRAY);content.addView(unavailable);
@@ -194,7 +194,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showOrders(){clearAI();
-        content.removeAllViews();content.addView(text(getString(R.string.nav_orders),30,true));if(!hasSession()){content.addView(primaryWallet());return;}
+        content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));if(!hasSession()){content.addView(primaryWallet());return;}
         LinearLayout list=column();content.addView(list);status.setText(getString(R.string.loading));api.request("GET","/orders",null,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(message(error));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->showOrders());list.addView(retry);return;}
             JSONArray orders=value.optJSONArray("orders");if(orders==null||orders.length()==0){status.setText(getString(R.string.no_orders));return;}status.setText(getResources().getQuantityString(R.plurals.orders_count,orders.length(),orders.length()));
@@ -221,9 +221,10 @@ public final class MainActivity extends Activity {
     private void transition(JSONObject order,String action,String explanation){JSONObject body=new JSONObject();try{body.put("Action",action).put("Reason",explanation).put("Explanation",explanation).put("Body",explanation).put("Rating",action.equals("reviewed")?5:0).put("IdempotencyKey",UUID.randomUUID().toString());if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));return;}postOrder(order,"transition",body);}catch(Exception e){status.setText(message(e));}}
 
     private void showAccount(){clearAI();
-        content.removeAllViews();content.addView(text(getString(R.string.nav_account),30,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
+        content.removeAllViews();content.addView(text(getString(R.string.nav_account),24,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);
+        content.addView(text(getString(R.string.text_size),15,true));content.addView(textSizeSpinner());
         Button retry=button(getString(R.string.restore_pending));retry.setOnClickListener(v->restorePending(retry));content.addView(retry);
         if(hasSession()){Button logout=button(getString(R.string.sign_out));logout.setOnClickListener(v->{try{wallet.signOut();}catch(Exception error){status.setText(getString(R.string.security_error));return;}reconcileSession();status.setText(getString(R.string.wallet_sign_in));});content.addView(logout);recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));for(EditText f:List.of(recipient,address,city,country))content.addView(f);Button save=primary(getString(R.string.save_profile));save.setOnClickListener(v->saveProfile());content.addView(save);content.addView(text(getString(R.string.privacy_data_title),18,true));content.addView(text(getString(R.string.privacy_data_description),13,false));Button export=button(getString(R.string.privacy_export_button));export.setOnClickListener(v->exportPrivacyData());content.addView(export);renderPrivacyControls();}
     }
@@ -341,9 +342,18 @@ public final class MainActivity extends Activity {
     private JSONObject findVariant(JSONObject p,String id)throws Exception{JSONArray vs=p.getJSONArray("Variants");for(int i=0;i<vs.length();i++){JSONObject v=vs.getJSONObject(i);if(v.getString("ID").equals(id))return v;}throw new JSONException("variant unavailable");}
     private String formatYNXT(long amount){return getString(R.string.ynxt_amount,NumberFormat.getNumberInstance(getResources().getConfiguration().getLocales().get(0)).format(amount));}
     private JSONObject json(String key,Object value){try{return new JSONObject().put(key,value);}catch(Exception e){return new JSONObject();}}
-    private TextView text(String value,int size,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(INK);t.setPadding(dp(4),dp(7),dp(4),dp(7));if(bold)t.setTypeface(null,1);return t;}
-    private EditText input(String hint){EditText e=new EditText(this);e.setHint(hint);e.setContentDescription(hint);e.setMinHeight(dp(52));return e;}
-    private Button button(String label){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setMinHeight(dp(48));b.setContentDescription(label);return b;}
+    private float textScale(){String size=getSharedPreferences("settings",MODE_PRIVATE).getString("text_size","standard");return "compact".equals(size)?.925f:"larger".equals(size)?1.15f:1f;}
+    private Spinner textSizeSpinner(){
+        String[] values={"compact","standard","larger"};String[] labels={getString(R.string.text_compact),getString(R.string.text_standard),getString(R.string.text_larger)};
+        Spinner spinner=new Spinner(this);spinner.setMinimumHeight(dp(48));spinner.setContentDescription(getString(R.string.text_size));
+        spinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));
+        String current=getSharedPreferences("settings",MODE_PRIVATE).getString("text_size","standard");spinner.setSelection(Math.max(0,Arrays.asList(values).indexOf(current)));
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> parent,View view,int position,long id){String selected=values[position];if(!selected.equals(getSharedPreferences("settings",MODE_PRIVATE).getString("text_size","standard"))){getSharedPreferences("settings",MODE_PRIVATE).edit().putString("text_size",selected).apply();recreate();}}public void onNothingSelected(AdapterView<?> parent){}});
+        return spinner;
+    }
+    private TextView text(String value,int size,boolean bold){TextView t=new TextView(this);t.setText(value);t.setTextSize(size*textScale());t.setTextColor(INK);t.setPadding(dp(4),dp(7),dp(4),dp(7));if(bold)t.setTypeface(null,1);return t;}
+    private EditText input(String hint){EditText e=new EditText(this);e.setHint(hint);e.setContentDescription(hint);e.setMinHeight(dp(52));e.setTextSize(16*textScale());return e;}
+    private Button button(String label){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextSize(15*textScale());b.setMinHeight(dp(48));b.setContentDescription(label);return b;}
     private Button primary(String label){Button b=button(label);b.setTextColor(Color.WHITE);b.setBackgroundColor(BLUE);return b;}
     private Button primaryWallet(){Button b=primary(hasSession()?getString(R.string.wallet_active):getString(R.string.wallet_sign_in));b.setOnClickListener(v->signIn());return b;}
     private Button nav(String label,View.OnClickListener l){Button b=button(label);b.setOnClickListener(l);return b;}

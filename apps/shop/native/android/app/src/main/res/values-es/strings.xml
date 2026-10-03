@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">Autoriza YNX Shop en ynx_6423-1 con los permisos exactos mostrados. Caduca en cuatro minutos.</string><string name="accessibility_status">Estado del marketplace</string><string name="accessibility_language">Selector de idioma</string><string name="accessibility_ai_language">Selector de idioma de salida de IA</string><plurals name="orders_count"><item quantity="one">%d pedido</item><item quantity="other">%d pedidos</item></plurals>
 <string name="sign_out">Cerrar sesión</string>
+    <string name="text_size">Tamaño del texto</string>
+    <string name="text_compact">Compacto</string>
+    <string name="text_standard">Estándar</string>
+    <string name="text_larger">Grande</string>
 </resources>

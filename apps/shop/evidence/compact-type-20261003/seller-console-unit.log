@@ -1,0 +1,30 @@
+
+> test
+> node --test test/*.test.mjs
+
+✔ a late stream chunk cannot update a different account or selected store (58.562542ms)
+✔ split CRLF events render once and service failures remain visible (2.2625ms)
+✔ unconfirmed writes keep their key after account reauthentication but cannot cross accounts (21.022458ms)
+✔ a changed decision or target gets a new key without mutating the pending request body (4.446666ms)
+✔ release consumes the accepted endpoint manifest without claiming unavailable services (27.051792ms)
+✔ UI separates Standard Wallet, private degradation and honest guest preview (15.545417ms)
+✔ English is the first-run interface while the existing language chooser remains available (9.033041ms)
+✔ private authorization uses the canonical controlled launcher and never replaces the Seller page (7.036042ms)
+✔ late success and failure cannot cross a buyer, store or view change (51.150458ms)
+✔ signout during response body decoding rejects before any private result is returned (0.1455ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (3.713458ms)
+✔ requests are bounded and cancellation does not publish private data (20.43975ms)
+✔ seller bearer is memory-only and central product-bound (3.920083ms)
+✔ seller console persists only locale preferences and supports RTL (1.383333ms)
+✔ prefers YNX EIP-6963 provider and switches to YNX Testnet (2.857ms)
+✔ missing provider exposes official YNX Wallet and MetaMask choices (1.748916ms)
+✔ private service degradation preserves standard account and chain (0.318625ms)
+✔ seller UI wires operations instead of navigation shells (12.311042ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 240.30075

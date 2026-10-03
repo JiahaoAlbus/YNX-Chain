@@ -5,6 +5,7 @@ await mkdir('dist');
 for (const file of [
   'index.html',
   'styles.css',
+  'display-settings.js',
   'workflow.css',
   'wallet-auth.js',
   'wallet-provider-discovery.js',

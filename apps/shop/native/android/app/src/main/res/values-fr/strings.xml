@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">Autorisez YNX Shop sur ynx_6423-1 avec les portées exactes affichées. Expire dans quatre minutes.</string><string name="accessibility_status">État du marché</string><string name="accessibility_language">Sélecteur de langue</string><string name="accessibility_ai_language">Sélecteur de langue de sortie IA</string><plurals name="orders_count"><item quantity="one">%d commande</item><item quantity="other">%d commandes</item></plurals>
 <string name="sign_out">Se déconnecter</string>
+    <string name="text_size">Taille du texte</string>
+    <string name="text_compact">Compact</string>
+    <string name="text_standard">Standard</string>
+    <string name="text_larger">Plus grand</string>
 </resources>

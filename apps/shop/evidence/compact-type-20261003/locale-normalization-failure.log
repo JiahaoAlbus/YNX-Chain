@@ -1,0 +1,9 @@
+file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:45
+if(typography.lang!==scenario.lang||typography.preference!==scenario.size)throw Error('locale or persisted type mismatch '+JSON.stringify({scenario,typography}));
+                                                                                ^
+
+Error: locale or persisted type mismatch {"scenario":{"name":"zh-standard-mobile","width":390,"lang":"zh-Hans","size":"standard","zoom":1},"typography":{"lang":"zh-CN","dir":"ltr","preference":"standard","rootSize":16,"bodySize":15}}
+    at capture (file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:45:81)
+    at async file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:55:5
+
+Node.js v26.7.0

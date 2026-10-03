@@ -1,0 +1,12 @@
+{
+  "nativeStaticVerifier": "PASS",
+  "swiftSourceParse": "PASS",
+  "typeSettingCatalogs": 12,
+  "typeSettingKeys": 4,
+  "androidSPRespectsSystemScale": true,
+  "swiftScaledMetricRespectsDynamicType": true,
+  "headerUsesWrapContent": true,
+  "installedAndroidVerified": false,
+  "installedMacOSVerified": false,
+  "installedIOSVerified": false
+}

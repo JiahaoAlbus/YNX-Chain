@@ -22,4 +22,8 @@
     <string name="ynxt_amount">%1$s YNXT</string>
     <string name="signing_text">YNX Shop für ynx_6423-1 mit den exakt angezeigten Bereichen autorisieren. Läuft in vier Minuten ab.</string><string name="accessibility_status">Marktplatzstatus</string><string name="accessibility_language">Sprachauswahl</string><string name="accessibility_ai_language">Auswahl der KI-Ausgabesprache</string><plurals name="orders_count"><item quantity="one">%d Bestellung</item><item quantity="other">%d Bestellungen</item></plurals>
 <string name="sign_out">Abmelden</string>
+    <string name="text_size">Textgröße</string>
+    <string name="text_compact">Kompakt</string>
+    <string name="text_standard">Standard</string>
+    <string name="text_larger">Größer</string>
 </resources>

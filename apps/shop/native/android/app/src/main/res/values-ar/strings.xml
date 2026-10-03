@@ -60,4 +60,8 @@
     <string name="accessibility_ai_language">محدد لغة مخرجات الذكاء الاصطناعي</string>
     <plurals name="orders_count"><item quantity="zero">لا طلبات</item><item quantity="one">طلب واحد</item><item quantity="two">طلبان</item><item quantity="few">%d طلبات</item><item quantity="many">%d طلبًا</item><item quantity="other">%d طلب</item></plurals>
 <string name="sign_out">تسجيل الخروج</string>
+    <string name="text_size">حجم النص</string>
+    <string name="text_compact">صغير</string>
+    <string name="text_standard">قياسي</string>
+    <string name="text_larger">أكبر</string>
 </resources>

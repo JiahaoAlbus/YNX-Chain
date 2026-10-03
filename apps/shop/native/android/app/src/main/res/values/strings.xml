@@ -61,4 +61,8 @@
     <string name="accessibility_ai_language">AI output language selector</string>
     <plurals name="orders_count"><item quantity="one">%d order</item><item quantity="other">%d orders</item></plurals>
 <string name="sign_out">Sign out</string>
+    <string name="text_size">Text size</string>
+    <string name="text_compact">Compact</string>
+    <string name="text_standard">Standard</string>
+    <string name="text_larger">Larger</string>
 </resources>

@@ -1,0 +1,662 @@
+{
+  "sourceBasis": "be2280869895bc4ee5895b31b66b90a17a732b6f",
+  "backendCommit": "be2280869895bc4ee5895b31b66b90a17a732b6f",
+  "classification": "LOCAL_SOURCE_QA_ONLY",
+  "originalLogo": {
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "width": 798,
+    "height": 420,
+    "blueVisibleBounds": [
+      1,
+      2,
+      796,
+      417
+    ],
+    "visibleAlphaHeight": 416,
+    "defaultFrameHeight": 24,
+    "defaultVisibleGraphicHeight": 23.77
+  },
+  "typography": {
+    "defaultBodyPx": 15,
+    "brandNamePx": 16,
+    "pageTitlePx": 24,
+    "presets": [
+      "compact",
+      "standard",
+      "larger"
+    ],
+    "browserRelativeRootPercent": [
+      92.5,
+      100,
+      115
+    ],
+    "browserTextEnlargement": [
+      1,
+      2
+    ],
+    "browserOrOSScaleDisabled": false,
+    "localizedSettingCatalogs": 12,
+    "launcherAssetsResized": false
+  },
+  "sourcePins": {
+    "apps/merchant-console/scripts/build.mjs": {
+      "bytes": 1074,
+      "sha256": "d148cbbc4fc66adc14902391964bce3403d0119a29d505feac698883e440e1c4"
+    },
+    "apps/merchant-console/src/index.html": {
+      "bytes": 1209,
+      "sha256": "7623c6ef0892b8bcf18e2108282de222fc09b62fc87d75153c0e51f9eacee81e"
+    },
+    "apps/merchant-console/src/styles.css": {
+      "bytes": 10269,
+      "sha256": "1d882280e5614369fbf409d3445fd9be8485c2a1c275b633c7f42b2090001aba"
+    },
+    "apps/seller-console/index.html": {
+      "bytes": 9870,
+      "sha256": "9ee314e1aa49fb399925c2d38535f7bff7330d9656985ade59ea2850e6e90daa"
+    },
+    "apps/seller-console/scripts/build.mjs": {
+      "bytes": 790,
+      "sha256": "93e5a0f22df4ebdd3645ace50898d5b7ed9d9352be7270a0a8a437b16062e197"
+    },
+    "apps/seller-console/styles.css": {
+      "bytes": 7308,
+      "sha256": "63a3512c4bf2aa4c145352d7e4df66d76b3441183146e7720df9440517fbd097"
+    },
+    "apps/seller-console/workflow.css": {
+      "bytes": 2321,
+      "sha256": "8b8e605645a5d44a91101e1f8d5772e8cca75d0113211d82c763eb1c3f741372"
+    },
+    "apps/shop/index.html": {
+      "bytes": 8211,
+      "sha256": "6008de71fbc97b2365cc53c47b2ec7f463237ac1c9c4d2e453ba4051f3bb9759"
+    },
+    "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/MainActivity.java": {
+      "bytes": 45594,
+      "sha256": "2c2fb22ea965abc794d0f913a92d97d598b48e728d5fdefabc79526ce841cd36"
+    },
+    "apps/shop/native/android/app/src/main/res/values-ar/strings.xml": {
+      "bytes": 5610,
+      "sha256": "60d39b2465db43bf6e523e89b3945b3a659750c70d34b62493ae8018a3f88aa0"
+    },
+    "apps/shop/native/android/app/src/main/res/values-de/strings.xml": {
+      "bytes": 4482,
+      "sha256": "6f0f0ff409fc5d03d196b7184850102c16fad557dfa8893fed812a00a00616cb"
+    },
+    "apps/shop/native/android/app/src/main/res/values-es/strings.xml": {
+      "bytes": 4410,
+      "sha256": "271b1802fe4c8b05a73f1e23ebd4bff5ad3bd3d3f12c147b9d245411e7518eef"
+    },
+    "apps/shop/native/android/app/src/main/res/values-fr/strings.xml": {
+      "bytes": 4554,
+      "sha256": "02e7f20c084009f44f127f9ae7cd1526bcbe5b867037880f5d6a4039b9fc70d0"
+    },
+    "apps/shop/native/android/app/src/main/res/values-in/strings.xml": {
+      "bytes": 4289,
+      "sha256": "146751d8a035f38d909216fba3664286011ab53c4329101e2df1338a438227e2"
+    },
+    "apps/shop/native/android/app/src/main/res/values-ja/strings.xml": {
+      "bytes": 4722,
+      "sha256": "263b05717deb2a29b2696feab80abf9944276a34146ffd2a6473d53b288528e9"
+    },
+    "apps/shop/native/android/app/src/main/res/values-ko/strings.xml": {
+      "bytes": 4524,
+      "sha256": "9030b9a1bb53e1bb3c7b563e290d0ac0883579d85a154b9bd2db460acf677691"
+    },
+    "apps/shop/native/android/app/src/main/res/values-pt/strings.xml": {
+      "bytes": 4374,
+      "sha256": "587d631c81a5071f182cb07369b6eab0ecc16b81d47180336034d9daa6197fd1"
+    },
+    "apps/shop/native/android/app/src/main/res/values-ru/strings.xml": {
+      "bytes": 5708,
+      "sha256": "8f126cb07fc1d04c1431d21d687cb0ba2db7803602daceeccb8da82c589830eb"
+    },
+    "apps/shop/native/android/app/src/main/res/values-zh-rCN/strings.xml": {
+      "bytes": 4082,
+      "sha256": "1f613f03776ac9ba77e4bae9f664d31f3ad528c9d6c11adb89672bd249915588"
+    },
+    "apps/shop/native/android/app/src/main/res/values-zh-rTW/strings.xml": {
+      "bytes": 4082,
+      "sha256": "40afbd96493c81eb91afe7b38180eec8bd9184c268992db083e2346e4afad143"
+    },
+    "apps/shop/native/android/app/src/main/res/values/strings.xml": {
+      "bytes": 4367,
+      "sha256": "adef5fba2d8eefde01bb3dbf290bbd0633232be1e0a2a1c715c0109350a6b050"
+    },
+    "apps/shop/native/ios/YNXShop/ContentView.swift": {
+      "bytes": 6563,
+      "sha256": "092238f6c73eccef75c47f6f610f0c5478c3b41747bac0bb50c8870ac2b6e61d"
+    },
+    "apps/shop/native/ios/YNXShop/Localizable.xcstrings": {
+      "bytes": 164551,
+      "sha256": "b02ed10e47cfebc761be57fb831b6154d682afab62e1f35f94d94a22ce6d9f14"
+    },
+    "apps/shop/scripts/build.mjs": {
+      "bytes": 619,
+      "sha256": "5e9af58858cffbbb7d82eb193ef53024ddaa123c9f79594f5a0996e1d61bb29d"
+    },
+    "apps/shop/styles.css": {
+      "bytes": 11731,
+      "sha256": "a23504a49e74c004be7e0a96a31c07d7e41470dbe9b9af5787295f4d92539dba"
+    },
+    "apps/shop/sw.js": {
+      "bytes": 1293,
+      "sha256": "b2497b80105aa59419f5532e50dcc387b10b84ce66b4b01f1b80ef6d8bcc0f0b"
+    },
+    "apps/shop/test/offline-boundary.test.mjs": {
+      "bytes": 1546,
+      "sha256": "0a9833a4a574c4a6a46757817b8b14df0bc5ccc120e9f6f10f9a868f8b8b40b9"
+    },
+    "apps/shop/workflow.css": {
+      "bytes": 1484,
+      "sha256": "2b1c75ae4fc736115d674fc3f3a9f1412e5d2a9068061da27f1ee153f4f375e5"
+    },
+    "apps/shop/display-settings.js": {
+      "bytes": 2359,
+      "sha256": "c2894be391220ef70765a02a6f2b57131a6028baef146740ca3a916bd905a4ba"
+    },
+    "apps/seller-console/display-settings.js": {
+      "bytes": 2369,
+      "sha256": "e5a67d767b85cd5a7f5a92ab234fb4e33856fe561bf23cdd46bbaa5b55b2f5ec"
+    },
+    "apps/merchant-console/src/display-settings.js": {
+      "bytes": 2371,
+      "sha256": "51f8e8ca6ec3e25b87718a64a21bae81b57078a293718ffd4d6f4650911abc48"
+    },
+    "apps/shop/assets/brand/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/seller-console/assets/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/merchant-console/src/assets/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/shop/native/android/app/src/main/res/drawable-nodpi/ynx_logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    "apps/shop/native/ios/YNXShop/Assets.xcassets/YNXLogo.imageset/ynx-logo.png": {
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    }
+  },
+  "evidencePins": {
+    "auth-mark-frame-failure.log": {
+      "bytes": 1283,
+      "sha256": "10f6b5d279307be6b809d9eecb24eab60a5b3a864a8824d94bdb902a12b1b2ce"
+    },
+    "capture-preview.mjs": {
+      "bytes": 10843,
+      "sha256": "f521ce008f5b3cf262c797f81ef89b988b21716bcaa51fefb4baab800fcece78"
+    },
+    "fifth-large-rtl.log": {
+      "bytes": 104,
+      "sha256": "0d8ef3f6bcae71d4d13d59be21b88b38523d0f84ed26dc60232e2b7e43c94da8"
+    },
+    "final-preview.log": {
+      "bytes": 104,
+      "sha256": "6f2ff06137344f489c0bf0515e7d35c4ac876aed449598a7fb9e0da1055c9fc3"
+    },
+    "first-complete-preview.log": {
+      "bytes": 104,
+      "sha256": "399c42847be1a31734e09c7bbae19c520dd48b5689fc1bafd5f1085b278f9b5f"
+    },
+    "first-failure.png": {
+      "bytes": 204613,
+      "sha256": "aca1601e487f436750a6ada4f30372dd84211cff75ebc7ae8f9b059d44ae276f"
+    },
+    "first-large-rtl.log": {
+      "bytes": 1021,
+      "sha256": "fc9194c2f6db9fab7c4e608969f93c3858d6dea7a116dbe3e8b705e37691e722"
+    },
+    "first-preview.log": {
+      "bytes": 926,
+      "sha256": "d9a28726e8f8a0dbe0f86b83841e46a7f619e658803205dd948c3c222acf4965"
+    },
+    "fourth-large-rtl.log": {
+      "bytes": 2266,
+      "sha256": "718e089e52cee42bb0c7c642275f07b2e766c1e4517e2ace98fc7d2685f1fe88"
+    },
+    "locale-normalization-failure.log": {
+      "bytes": 964,
+      "sha256": "f64f3e39735c835f1e783ea87484bab7b2e40bc836542b43cf68ddd6f0977cce"
+    },
+    "merchant-console-appearance-settings-en-standard-mobile.png": {
+      "bytes": 67926,
+      "sha256": "fa44cd967e2939ae4fb789e7d7a98edaebef7c77531b9b89f01e6537d0384e1f"
+    },
+    "merchant-console-controlled-private-ar-200-mobile.png": {
+      "bytes": 157159,
+      "sha256": "07aaf662cd3736e600318c66a071097b85f807e60ef71ff82841c5951efca1b0"
+    },
+    "merchant-console-controlled-private-ar-standard-mobile.png": {
+      "bytes": 63052,
+      "sha256": "5ed2b6d6a4c08bbaa819227646ea57ddd07539dcb13688f8cba4c29ebe2ebe6c"
+    },
+    "merchant-console-controlled-private-en-larger-mobile.png": {
+      "bytes": 84220,
+      "sha256": "44d170ab4b1cc3c0a89bd3216ba8587e890d9845313187e1b83b590691e216c1"
+    },
+    "merchant-console-controlled-private-en-standard-desktop.png": {
+      "bytes": 94684,
+      "sha256": "71d7095ca4c0cbc011ca23fd5275d3970999a92abf609dae638aa1e5e59de19d"
+    },
+    "merchant-console-controlled-private-en-standard-mobile.png": {
+      "bytes": 71001,
+      "sha256": "a807cc369f73cb7d76b2ddbe6991715d5fbbf6d4c5aa1edf9531b92084949ded"
+    },
+    "merchant-console-controlled-private-zh-200-desktop.png": {
+      "bytes": 173644,
+      "sha256": "7062b7d4236c4809e194716c024e33344890dd671ffd26450ac0dbad112698eb"
+    },
+    "merchant-console-controlled-private-zh-standard-mobile.png": {
+      "bytes": 61365,
+      "sha256": "f329acdec98631733c267664000c52e33d0adc223909dc389b195478b367a798"
+    },
+    "merchant-console-private-cleared-ar-200-mobile.png": {
+      "bytes": 177589,
+      "sha256": "a6db270ef8356d61599f045ee7bbd6878a2d0ed01cfd2c06dc7162e45ed10a83"
+    },
+    "merchant-console-private-cleared-ar-standard-mobile.png": {
+      "bytes": 66502,
+      "sha256": "6d1711a7277a19e30ec3e1dea9445a0a364f33b3210934b8be15062120cbd8f4"
+    },
+    "merchant-console-private-cleared-en-larger-mobile.png": {
+      "bytes": 81423,
+      "sha256": "57fd3d819fc416bc40372645d7bef35d08b7303e31cd60c30642931fab34546f"
+    },
+    "merchant-console-private-cleared-en-standard-desktop.png": {
+      "bytes": 108373,
+      "sha256": "182a1ba2f58511b0a581c0a6edb4e41db2608af891f6991e0a1ea9f6147676c2"
+    },
+    "merchant-console-private-cleared-en-standard-mobile.png": {
+      "bytes": 70383,
+      "sha256": "d8fa84d9d6f10fd0cd083d956e0620d8d86781a5e9ec72e63b4adc5bb875ebc3"
+    },
+    "merchant-console-private-cleared-zh-200-desktop.png": {
+      "bytes": 229579,
+      "sha256": "7285cf7635dec5c60be0ea941bbe886be4f8e7c56d5105d5e46a717f37d6cec8"
+    },
+    "merchant-console-private-cleared-zh-standard-mobile.png": {
+      "bytes": 68219,
+      "sha256": "03528769e25905f3f0064109b244ffe276f070d4459a527984335689afa5baee"
+    },
+    "merchant-console-private-degraded-ar-200-mobile.png": {
+      "bytes": 43690,
+      "sha256": "17f8df2a9568ae5efc4592297a603c17e77761df97c0ee1a51698f66e5bfe49a"
+    },
+    "merchant-console-private-degraded-ar-standard-mobile.png": {
+      "bytes": 21341,
+      "sha256": "f14b8bdba905a9bda3cf3a0e9c90e47da1b929439d03130d04653095a16a371a"
+    },
+    "merchant-console-private-degraded-en-larger-mobile.png": {
+      "bytes": 27010,
+      "sha256": "7abf14c1e650013f3baefdc5d16ec162f877ed6969e64da1befd939aea551f24"
+    },
+    "merchant-console-private-degraded-en-standard-desktop.png": {
+      "bytes": 28332,
+      "sha256": "551f0491175c61ccca3af1e38ea255bf7a416038f36c465e1b06ca8f9a5c1261"
+    },
+    "merchant-console-private-degraded-en-standard-mobile.png": {
+      "bytes": 23212,
+      "sha256": "b3934e4dc4b7e7e05e54a9a89610cebd988d5e20f67e58c25da49f8248e5f69f"
+    },
+    "merchant-console-private-degraded-zh-200-desktop.png": {
+      "bytes": 43858,
+      "sha256": "05e62692112f4d87def3a6ecfce0950fd04e53500e509811855524717fad7a0a"
+    },
+    "merchant-console-private-degraded-zh-standard-mobile.png": {
+      "bytes": 22303,
+      "sha256": "913fe6a8e5b9576e9a66ace3ee7bc8010683332e43bf1d2675aaa67fafad5a1b"
+    },
+    "merchant-console-signed-out-ar-200-mobile.png": {
+      "bytes": 160116,
+      "sha256": "df7bdea6c7c3496e7d53739f3b9d4e3ef1a4b204449808cc8f2e6870976a0f23"
+    },
+    "merchant-console-signed-out-ar-standard-mobile.png": {
+      "bytes": 61396,
+      "sha256": "cef1facbc242191ad0d3da72c91a4f432dc23b7b8881ac67359e9ef5474f3673"
+    },
+    "merchant-console-signed-out-en-larger-mobile.png": {
+      "bytes": 74933,
+      "sha256": "b94082d2e44d4795a2bad60982d20c0d7990cc4d17a80f31bd87c922c02e1777"
+    },
+    "merchant-console-signed-out-en-standard-desktop.png": {
+      "bytes": 102664,
+      "sha256": "f4f5ca4b928d55bba860cbcad2688e9bb6c9e2d88fa4d2dcd20b87b804e1fe31"
+    },
+    "merchant-console-signed-out-en-standard-mobile.png": {
+      "bytes": 65182,
+      "sha256": "b06565bb00c14f5eb6f903311952bcaae84b6c05fe4af51713d41f487dd6b24a"
+    },
+    "merchant-console-signed-out-zh-200-desktop.png": {
+      "bytes": 214581,
+      "sha256": "b5be8e41f3cd0abfb5e29942011d6e8dde054bd481affcb77789cad8ee22c69a"
+    },
+    "merchant-console-signed-out-zh-standard-mobile.png": {
+      "bytes": 63222,
+      "sha256": "3d64a48f3e1e21a1abaa0369c10695b9d53548845b80ff8413e4913af36a5d19"
+    },
+    "merchant-console-unit.log": {
+      "bytes": 2540,
+      "sha256": "50cf6d00d2624fdfbcfe4aba57e706dd948dc37746e0bc6b2bee9348af856b4c"
+    },
+    "native-checks.json": {
+      "bytes": 346,
+      "sha256": "45386c436462f7dec8f10788620e9bf8bab4e3c0603143316c756f03e2edfb35"
+    },
+    "native-source.log": {
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    "overflow-diagnostic.log": {
+      "bytes": 1365,
+      "sha256": "826b019b70d4b56eafabcf9b65cc195307149de7ec5ae118b7d14bc7d2c208a5"
+    },
+    "overflow-merchant-console.png": {
+      "bytes": 157964,
+      "sha256": "275fc3b9ae4603a4e97391130c2f7fff1ca58c32bb19043bdfcab33a91af968a"
+    },
+    "overflow-seller-console.png": {
+      "bytes": 242567,
+      "sha256": "15dc794d25582a02ecbceeeae651aca5745df5bebbcf374986d26c75fce088d2"
+    },
+    "overflow-shop.png": {
+      "bytes": 204604,
+      "sha256": "2a8a306771205a86ca152b9941e9ac472f0968d696126db07b3c02ba0b0c6a2e"
+    },
+    "record-receipt.mjs": {
+      "bytes": 4420,
+      "sha256": "30ad0e8e8f87127d872cb64583e11d9b0e89ee884356bb3576cd396a2998c88f"
+    },
+    "screenshots.json": {
+      "bytes": 76104,
+      "sha256": "97ddb93b3b4f7b8bf3b54b9e0928f27e7e5d0dcd880fecc0db2427013c6d2328"
+    },
+    "second-large-rtl.log": {
+      "bytes": 356,
+      "sha256": "acfaac7239d63bd04b6cd306ef25a85aecabd0a440d22defe7b2d4e167f149b7"
+    },
+    "seller-console-appearance-settings-en-standard-mobile.png": {
+      "bytes": 78379,
+      "sha256": "fd324490268857b85a028439cec26352823163e743f0d2c9dbb4d44dbd5dde69"
+    },
+    "seller-console-controlled-private-ar-200-mobile.png": {
+      "bytes": 236068,
+      "sha256": "2d3609a6b5f46695b0737f90fc1231e41026086196c37ae6645b56d28d011e60"
+    },
+    "seller-console-controlled-private-ar-standard-mobile.png": {
+      "bytes": 93646,
+      "sha256": "13484f387d13b7c4ab96ee3b810107c1a97b8a129d85fe624cc1660e59d20c67"
+    },
+    "seller-console-controlled-private-en-larger-mobile.png": {
+      "bytes": 113403,
+      "sha256": "0565cf651ea557504e21ef40462441c04d6ebf3691bf60bfbbc30d50c67b5233"
+    },
+    "seller-console-controlled-private-en-standard-desktop.png": {
+      "bytes": 121567,
+      "sha256": "dca0a94fea17752444096ee4b07aa98a0a7f75f4b3a5be21be7397ab48086b7d"
+    },
+    "seller-console-controlled-private-en-standard-mobile.png": {
+      "bytes": 96782,
+      "sha256": "21944c5bb2a39d2e8e25f6bacd0049d6ba9403dfb334e4958122c2443dcb99b9"
+    },
+    "seller-console-controlled-private-zh-200-desktop.png": {
+      "bytes": 232916,
+      "sha256": "cef20ef8d0c122135b73253a9f65ea2bac619bc2f0442d8c7dec052cd12ad7b8"
+    },
+    "seller-console-controlled-private-zh-standard-mobile.png": {
+      "bytes": 95738,
+      "sha256": "73b64ad61c22fcb1b6e636a50fee009b4ffa6cc8b05b98a090ad2625dfd4bf7a"
+    },
+    "seller-console-private-cleared-ar-200-mobile.png": {
+      "bytes": 176903,
+      "sha256": "4260b06c240eb24d23e30c52811176d90fec389496afe1e85b4c395f120daba0"
+    },
+    "seller-console-private-cleared-ar-standard-mobile.png": {
+      "bytes": 69300,
+      "sha256": "bdc5a3d8fb9f215727f084ad7209d0b27b3e6404651d83781d15c696a12a08c1"
+    },
+    "seller-console-private-cleared-en-larger-mobile.png": {
+      "bytes": 84779,
+      "sha256": "e62f5e2cc9d466d95ff1fe9b6d68b69b3fdf2f93eb3601705c66a2ec7496c57c"
+    },
+    "seller-console-private-cleared-en-standard-desktop.png": {
+      "bytes": 94049,
+      "sha256": "bcca6142aff2fcf52130d89b06cb5a931a60424e0261118bca90ee121ad627dc"
+    },
+    "seller-console-private-cleared-en-standard-mobile.png": {
+      "bytes": 72082,
+      "sha256": "517fcd81275ea4830b8c4eb26bb7ef7bd0a20780c549f8365aa834f1e8827bea"
+    },
+    "seller-console-private-cleared-zh-200-desktop.png": {
+      "bytes": 176897,
+      "sha256": "cdc4990b4b9c9d22821fe4a761ec5207609d2f17ed32d4d1945e50ed3ccac62b"
+    },
+    "seller-console-private-cleared-zh-standard-mobile.png": {
+      "bytes": 70578,
+      "sha256": "e54602a70711e180a4b1b59a161c7d83442728add5c25f426d9819f0245aec09"
+    },
+    "seller-console-signed-out-ar-200-mobile.png": {
+      "bytes": 188780,
+      "sha256": "8e0dbb5029120a5ba2e09719119618dd42c792f1e61279fcc0fe6d27624c4045"
+    },
+    "seller-console-signed-out-ar-standard-mobile.png": {
+      "bytes": 71680,
+      "sha256": "69e31bcaad92147c16fea5715e59fae759bbe44a37fb346908c4b1875752f082"
+    },
+    "seller-console-signed-out-en-larger-mobile.png": {
+      "bytes": 88875,
+      "sha256": "aaf14f445617c6c2833e67a098f344d1001be94a87ee54782fa6750f37d3234b"
+    },
+    "seller-console-signed-out-en-standard-desktop.png": {
+      "bytes": 96336,
+      "sha256": "ded8094cf3caa2d167af83e01577768433379275924ebc1f202c468522cf8b0e"
+    },
+    "seller-console-signed-out-en-standard-mobile.png": {
+      "bytes": 75423,
+      "sha256": "1560ff4e8da258ec554571831a8b4f9c2069b2a01800841f6999f10b018a35e9"
+    },
+    "seller-console-signed-out-zh-200-desktop.png": {
+      "bytes": 183394,
+      "sha256": "5103c9df08ae310d7ffd469a2117deb1b05c5cf7a0272df5ed4ff1c25e209a47"
+    },
+    "seller-console-signed-out-zh-standard-mobile.png": {
+      "bytes": 73593,
+      "sha256": "7878b0263b27db391375a6aa41c1d0c574f7c5ec92cbf1b625ddcfa3e9270b0b"
+    },
+    "seller-console-unit.log": {
+      "bytes": 1785,
+      "sha256": "df1c9d8d138b6d914734cec4986c3280993d66735af44a6a6766a768070f8b4e"
+    },
+    "shop-appearance-settings-en-standard-mobile.png": {
+      "bytes": 89812,
+      "sha256": "a912de4b9d9a247bbf46b45002a568d21976043d0846923738d7e68fd776c4bb"
+    },
+    "shop-controlled-private-ar-200-mobile.png": {
+      "bytes": 213133,
+      "sha256": "fb00cd38a27efe44882f38173b3108076eae54d5c03a07b607913140f04d2696"
+    },
+    "shop-controlled-private-ar-standard-mobile.png": {
+      "bytes": 85191,
+      "sha256": "3ee88e447342f32fecec1c23198a12d2bf72ccf50f8f0a6f8e50e92a766a27d2"
+    },
+    "shop-controlled-private-en-larger-mobile.png": {
+      "bytes": 115817,
+      "sha256": "ff0012c14df641941c9055fc5672137cc1829b32874af8bc717bd5fa3564522f"
+    },
+    "shop-controlled-private-en-standard-desktop.png": {
+      "bytes": 110411,
+      "sha256": "4c55af7f317a48940e7c5161a3f68481b5857260fc51ef73ef6ae1da51f8b4d3"
+    },
+    "shop-controlled-private-en-standard-mobile.png": {
+      "bytes": 95876,
+      "sha256": "6cf3a59412bee30ff7f30e4f631e9bd33fe1bc8d7c39aad14b5af0690b04996e"
+    },
+    "shop-controlled-private-zh-200-desktop.png": {
+      "bytes": 218354,
+      "sha256": "31385df6c3a386feb8c002cd6f3cf4cc8a2ff3600ec2364a70d8a3ba837041f6"
+    },
+    "shop-controlled-private-zh-standard-mobile.png": {
+      "bytes": 101748,
+      "sha256": "f05693eb1f4868055070402391002358a5eead7db19d2fda1101a1d443c05dc5"
+    },
+    "shop-private-cleared-ar-200-mobile.png": {
+      "bytes": 219619,
+      "sha256": "ef8e91829138a8c3cad4686b63dd3b2be6a6bf47eede70a8e087d71411cba152"
+    },
+    "shop-private-cleared-ar-standard-mobile.png": {
+      "bytes": 86444,
+      "sha256": "79a0605dc35639f35064bc4282405de9ba7f687c378dd463caa6cdbb06db52e5"
+    },
+    "shop-private-cleared-en-larger-mobile.png": {
+      "bytes": 118026,
+      "sha256": "46f29730c5e6eac60db559edd999c5fc3352a7d08309fd2363db62e8bf0c9415"
+    },
+    "shop-private-cleared-en-standard-desktop.png": {
+      "bytes": 112294,
+      "sha256": "6b5e131028d9532610e1a21804118ac2c18db420ab8f1c4a0463d20eb7b0f834"
+    },
+    "shop-private-cleared-en-standard-mobile.png": {
+      "bytes": 97487,
+      "sha256": "236d92a82ed4957beedc596985a9f8c8eb9bad935e06cebc85d1ca082a2ea393"
+    },
+    "shop-private-cleared-zh-200-desktop.png": {
+      "bytes": 221216,
+      "sha256": "6bffc833441af2f905bd3c465ebc9eb97e5c98b4c03286ea927353b598e4b407"
+    },
+    "shop-private-cleared-zh-standard-mobile.png": {
+      "bytes": 103103,
+      "sha256": "18f1026964fefc6a740a362da6cc19c0c66ee8de0960a520be914b2dc91a67a1"
+    },
+    "shop-signed-out-ar-200-mobile.png": {
+      "bytes": 201890,
+      "sha256": "83202a45d703dcdb06f494f5f2145b26fda509508eaf5294b00a2ecf3de942b6"
+    },
+    "shop-signed-out-ar-standard-mobile.png": {
+      "bytes": 82466,
+      "sha256": "a7fbcc3c93e2f67366218c95fc4665d51516ccd8c42fad8ec0568b3e22dcdc2d"
+    },
+    "shop-signed-out-en-larger-mobile.png": {
+      "bytes": 108936,
+      "sha256": "a690caf799da0c84d186fc9286de7b98393c964731c47848bf946a236f471b5b"
+    },
+    "shop-signed-out-en-standard-desktop.png": {
+      "bytes": 95639,
+      "sha256": "0bcaebf977b76d21b70fd17988c2ceddab7c1c62cca75aead8b3653cc63ae16f"
+    },
+    "shop-signed-out-en-standard-mobile.png": {
+      "bytes": 90083,
+      "sha256": "36f2d3605f12da5919bd859418527ccddcc5c4416ebac272f01316792961998d"
+    },
+    "shop-signed-out-zh-200-desktop.png": {
+      "bytes": 193336,
+      "sha256": "dfda8c4687d3442556b94a78f439d2115d9dfe6d814dfbef0753a782c235a092"
+    },
+    "shop-signed-out-zh-standard-mobile.png": {
+      "bytes": 95959,
+      "sha256": "89c9f8fca713f72d57d3767ddd5fc51913c03e97eb2aacb823726a49aa76229c"
+    },
+    "shop-unit-final.log": {
+      "bytes": 2502,
+      "sha256": "5896f84fd760d3949c9406fd7bcd5ec140993591f0ca67e07277817bf47a1f61"
+    },
+    "shop-unit.log": {
+      "bytes": 3429,
+      "sha256": "96e1937a0be0e4af42dcd87b281c443600aa0c94e64d895d7cc339dad699d002"
+    },
+    "source-files.json": {
+      "bytes": 1912,
+      "sha256": "6b6839aec7623f9b388941a36747f696051383b59847d42f3f5397bd7abf1cc3"
+    },
+    "third-large-rtl.log": {
+      "bytes": 2220,
+      "sha256": "0fde2566d34622e4d02062c7d506421611c82ae7cbd5e867aaceec7e47b8d0cf"
+    }
+  },
+  "units": {
+    "shop": {
+      "pass": 27,
+      "fail": 0,
+      "skip": 0
+    },
+    "seller-console": {
+      "pass": 18,
+      "fail": 0,
+      "skip": 0
+    },
+    "merchant-console": {
+      "pass": 26,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "native": {
+    "nativeStaticVerifier": "PASS",
+    "swiftSourceParse": "PASS",
+    "typeSettingCatalogs": 12,
+    "typeSettingKeys": 4,
+    "androidSPRespectsSystemScale": true,
+    "swiftScaledMetricRespectsDynamicType": true,
+    "headerUsesWrapContent": true,
+    "installedAndroidVerified": false,
+    "installedMacOSVerified": false,
+    "installedIOSVerified": false
+  },
+  "visual": {
+    "count": 73,
+    "scenarioCount": 7,
+    "viewports": [
+      1440,
+      320,
+      390
+    ],
+    "languages": [
+      "en",
+      "zh-Hans with inherited zh-CN tag equivalent",
+      "ar"
+    ],
+    "states": [
+      "signed-out",
+      "controlled-private",
+      "private-cleared",
+      "merchant private-degraded",
+      "appearance-settings"
+    ],
+    "logoVisibleGraphicHeightRange": [
+      23.768,
+      23.772
+    ],
+    "minimumBrandTouchHeight": 44,
+    "noDocumentHorizontalOverflow": true,
+    "noMobileMerchantNavTextClip": true,
+    "compactShopNavigationAtViewportBottom": true
+  },
+  "composition": {
+    "temporaryOnly": true,
+    "dependenciesInstalled": false,
+    "inheritedStandardSDKCommit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+    "canonicalSDKConsumerAcceptance": false,
+    "admittedSuccessorPointerVerified": {
+      "commit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+      "sourcePins": 8,
+      "artifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+      "consumedInThisBatch": false
+    }
+  },
+  "failuresRetained": [
+    "First old-version service-worker test expected v7 to survive v8 activation; current v8 remains while original v7 and older Shop caches retire, other product caches stay untouched.",
+    "First large RTL probe exposed physical right margin, intrinsic filter input/store selector widths and Merchant grid minimums; original failure logs/screens retained and actual layouts repaired.",
+    "Inherited zh-CN tag is the equivalent of requested zh-Hans; both actual tag and requested language are recorded.",
+    "Merchant auth-mark inherited a column flex-basis as height; now auto basis retains the compact original graph frame.",
+    "Two temporary relative-path copy attempts failed before any source copy; absolute paths used for the subsequent verified temporary build."
+  ],
+  "publicRuntimeVerified": false,
+  "actualWalletApprovalVerified": false,
+  "formalPackageBuilt": false,
+  "fullGoalComplete": false
+}

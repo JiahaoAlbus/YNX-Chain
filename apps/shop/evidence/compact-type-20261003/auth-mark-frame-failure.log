@@ -1,0 +1,11 @@
+file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:43
+     for(const image of images)if(image.naturalWidth!==798||image.naturalHeight!==420||image.objectFit!=='contain'||image.width<40||image.height<20||image.height>24.1||image.x<0||image.x+image.width>width+1)throw Error('clipped or unavailable logo '+JSON.stringify(image));
+                                                                                                                                                                                                                     ^
+
+Error: clipped or unavailable logo {"naturalWidth":798,"naturalHeight":420,"x":48,"y":156.859375,"width":45.59375,"height":45.59375,"objectFit":"contain","source":"assets/ynx-logo.png"}
+    at capture (file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:43:214)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:541:9)
+    at async file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/compact-type-20261003/capture-preview.mjs:55:5
+
+Node.js v26.7.0

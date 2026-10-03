@@ -1,0 +1,9 @@
+file:///private/tmp/ynx-commerce-type-debug.mjs:45
+     if(overflow){const nodes=await page.evaluate(()=>[...document.querySelectorAll('*')].map(e=>({tag:e.tagName,id:e.id,class:e.className,x:e.getBoundingClientRect().x,width:e.getBoundingClientRect().width})).filter(e=>e.x<-.5||e.x+e.width>innerWidth+.5).slice(0,15));await page.screenshot({path:path.join(evidence,'overflow-'+app+'.png'),fullPage:true});throw Error('horizontal overflow '+app+' '+width+' '+state+' '+JSON.stringify({scenario,nodes}));}
+                                                                                                                                                                                                                                                                                                                                                                          ^
+
+Error: horizontal overflow shop 320 signed-out {"scenario":{"name":"ar-200-mobile","width":320,"lang":"ar","size":"larger","zoom":2},"nodes":[{"tag":"BUTTON","id":"","class":"","x":-114.140625,"width":121.328125},{"tag":"BUTTON","id":"","class":"","x":-393.0625,"width":274.921875},{"tag":"INPUT","id":"","class":"","x":-25,"width":316}]}
+    at capture (file:///private/tmp/ynx-commerce-type-debug.mjs:45:363)
+    at async file:///private/tmp/ynx-commerce-type-debug.mjs:51:5
+
+Node.js v26.7.0
