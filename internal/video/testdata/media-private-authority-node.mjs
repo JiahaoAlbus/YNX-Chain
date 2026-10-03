@@ -34,7 +34,8 @@ const {createCentralBrowserSessionRegistry}=await load('src/central-browser-sess
 const statePath=process.env.YNX_QA_STATE_PATH;
 initializeProductSessionControlState(statePath,migrateProductSessionControlSnapshotV2(new ProductSessionGatewayKernel(registry,token).snapshot()));
 const host=new ProductSessionControlNodeHost(registry,{statePath,now:()=>new Date(),tokenFactory:token});
-const central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(registry),new CentralBrowserSessionStore(statePath+'.browser'),{tokenFactory:token,privateBusinessRevalidation:true,privateProductRegistry:registry,privateBackendRegistrations:[{productId,platform,keyId:'media-qa',allowedScopes:scopes}],backendClients:[{clientId:product.clientId+'-business-'+platform+'-v1',keyId:'media-qa',publicKey:process.env.YNX_QA_PUBLIC_KEY}],familySealKey:randomBytes(32),productRevalidator:(session,scopes,productId,at)=>host.revalidate(session,scopes,productId,at,true)}));
+const browserAuthority=new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(registry,browserMode&&productId!=='music'?{ecosystem:true}:{}),new CentralBrowserSessionStore(statePath+'.browser'),{tokenFactory:token,privateBusinessRevalidation:true,privateProductRegistry:registry,privateBackendRegistrations:[{productId,platform,keyId:'media-qa',allowedScopes:scopes}],backendClients:[{clientId:product.clientId+'-business-'+platform+'-v1',keyId:'media-qa',publicKey:process.env.YNX_QA_PUBLIC_KEY}],familySealKey:randomBytes(32),productRevalidator:(session,scopes,productId,at)=>host.revalidate(session,scopes,productId,at,true)});
+const central=new CentralBrowserSessionNodeRoutes(browserAuthority);
 const productHandler=host.handler();
 const server=createServer(async(r,w)=>{if(central.handles(new URL(r.url,'http://localhost').pathname)){let body='';for await(const chunk of r)body+=chunk;const result=central.handle({method:r.method,url:r.url,headers:r.headers,body});w.writeHead(result.status,result.headers);w.end(result.body);}else await productHandler(r,w);});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -50,7 +51,14 @@ function proof(method,path,body,nonce=token()){const now=new Date();return encod
 process.stdout.write(JSON.stringify({url,session,unsupported:false})+'\n');
 for await(const line of createInterface({input:process.stdin,crlfDelay:Infinity})){
  const input=JSON.parse(line);
- if(['approve-browser-request','approve-native-request'].includes(input.kind)&&browserMode){
+ if(input.kind==='approve-sso'&&browserMode&&productId!=='music'){
+  const link=new URL(input.url);if(link.origin!=='https://wallet-auth.ynxweb4.com'||link.pathname!=='/v2/browser-sessions/authorize')throw Error('Original SSO approval URL required');
+  const initiator=Object.fromEntries(link.searchParams);delete initiator.prompt;
+  const {walletIdentity}=await load('src/crypto.js'),{centralBrowserConsentSignBytes}=await load('src/central-browser-session.js'),{secp256k1}=await load('node_modules/@noble/curves/secp256k1.js'),{sha256}=await load('node_modules/@noble/hashes/sha2.js'),{hexToBytes,bytesToHex,utf8ToBytes}=await load('node_modules/@noble/hashes/utils.js');
+  const binding=token(),{challenge}=browserAuthority.challenge(initiator,binding),accountSecret='1'.padStart(64,'0'),identity=walletIdentity(accountSecret);
+  const approval={challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(accountSecret),{prehash:false,format:'compact',lowS:true}))};
+  const tokenResult=browserAuthority.complete(approval,binding);process.stdout.write(JSON.stringify({callback:browserAuthority.authorize(initiator,tokenResult.sessionToken).redirectUri})+'\n');
+ }else if(['approve-browser-request','approve-native-request'].includes(input.kind)&&browserMode){
   const {parseProductSessionWalletURL,createProductSessionReturnURL}=await load('src/product-session-router.js');
   const pending=parseProductSessionWalletURL(registry,input.url);
   if(pending.productId!==productId||pending.platform!==platform)throw Error('INVALID_QA_BROWSER_BINDING');

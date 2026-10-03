@@ -1,4 +1,4 @@
-//go:build ynx_canonical_media
+//go:build ynx_canonical_media && ynx_media_combined_authority
 
 package video
 
@@ -25,7 +25,7 @@ import (
 
 func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 	source := os.Getenv("YNX_QA_CENTRAL_SOURCE")
-	if source == "" || os.Getenv("YNX_QA_MEDIA_MUSIC_EXTENDED") != "1" {
+	if source == "" || os.Getenv("YNX_QA_MEDIA_MUSIC_EXTENDED") != "1" || os.Getenv("YNX_QA_MEDIA_APPROVED_BROWSER_ROSTER") != "1" {
 		t.Skip("requires independently verified matching successor")
 	}
 	for _, product := range []string{"video", "creator-studio"} {
@@ -49,6 +49,7 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 			owned, _ := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
 			var mu sync.Mutex
 			var handler http.Handler
+			var browser *productsessionv2.BrowserSSO
 			var actor productsessionv2.Session
 			bound := false
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +98,24 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 						http.Error(w, "QA set denied", 500)
 						return
 					}
-					authority, e := NewVideoSDKAuthority(set, set, func(ctx context.Context, _ *http.Request, session productsessionv2.Session) (func(context.Context) error, error) {
+					cookieKey := make([]byte, 32)
+					if _, e = rand.Read(cookieKey); e != nil {
+						http.Error(w, "QA cookie key denied", 500)
+						return
+					}
+					targets := []string{"settings", "playlists", "discover"}
+					if product == "creator-studio" {
+						targets = []string{"overview", "channel", "content"}
+					}
+					browser, e = productsessionv2.NewBrowserSSO(product, "https://wallet-auth.ynxweb4.com", cookieKey, targets, transport)
+					if e != nil {
+						http.Error(w, "QA browser binding denied", 500)
+						return
+					}
+					authority, e := NewVideoCombinedSDKAuthority(set, set, browser, browser, func(ctx context.Context, _ *http.Request, session productsessionv2.Session, grant productsessionv2.BrowserGrant) (func(context.Context) error, error) {
+						if grant.Identity.Account != session.Account {
+							return nil, ErrUnauthorized
+						}
 						mu.Lock()
 						defer mu.Unlock()
 						if actor.Account == "" {
@@ -121,6 +139,22 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				}
 				h := handler
 				mu.Unlock()
+				if browser != nil {
+					switch r.URL.Path {
+					case "/sso/start":
+						browser.Start(w, r)
+						return
+					case "/sso/callback":
+						browser.Callback(w, r)
+						return
+					case "/api/sso/account":
+						browser.Account(w, r)
+						return
+					case "/api/sso/logout":
+						browser.Logout(w, r)
+						return
+					}
+				}
 				if h == nil {
 					http.Error(w, "QA not bound", 503)
 					return
@@ -139,11 +173,16 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual protected browser/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
-				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
-				ActualWalletConsent          bool `json:"actualWalletConsent"`
-				LegacySDK529Preserved        bool `json:"legacySDK529Preserved"`
+				ActualBusinessServerReadback      bool `json:"actualBusinessServerReadback"`
+				ActualOriginalBrowserIdentity     bool `json:"actualOriginalBrowserIdentity"`
+				ActualCombinedDecision            bool `json:"actualCombinedDecision"`
+				ActualSiteLogout                  bool `json:"actualSiteLogout"`
+				ActualGoStartAndCallback303       bool `json:"actualGoStartAndCallback303"`
+				RedirectNavigationSoftwareAdapter bool `json:"redirectNavigationSoftwareAdapter"`
+				ActualWalletConsent               bool `json:"actualWalletConsent"`
+				LegacySDK529Preserved             bool `json:"legacySDK529Preserved"`
 			}
-			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved {
+			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved || !receipt.ActualOriginalBrowserIdentity || !receipt.ActualCombinedDecision || !receipt.ActualSiteLogout || !receipt.ActualGoStartAndCallback303 || !receipt.RedirectNavigationSoftwareAdapter {
 				t.Fatal("browser receipt gates invalid")
 			}
 			mu.Lock()
