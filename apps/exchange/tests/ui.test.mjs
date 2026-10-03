@@ -13,9 +13,9 @@ function assertQuietIdentityNavigation(source){
   const start=source.indexOf('async function restoreBrowserIdentityQuietly(){'),end=source.indexOf('\nfunction resumeDeferredBrowserIdentity()',start);
   assert.ok(start>=0&&end>start,'complete ordinary identity recovery function must be present');
   const quiet=source.slice(start,end);
-  assert.equal((source.match(/location\.assign\(/gu)||[]).length,1);
-  for(const marker of ['browserIdentitySilentAttempted','data.silentRestoreAllowed!==true','epoch!==browserIdentityEpoch','privateAccount.state()!==privateState','state.standardWallet!==walletState','/sso/start?prompt=none&target='])assert.ok(quiet.includes(marker),marker);
-  assert.doesNotMatch(quiet,/personal_sign|ynx_request|beginExplicit|\.connect\(|window\.open|iframe|ynxwallet:/u);
+  assert.equal((source.match(/location\.assign\(/gu)||[]).length,0);
+  for(const marker of ['browserIdentityRestoreDeferred=false','browserIdentitySilentAttempted=true'])assert.ok(quiet.includes(marker),marker);
+  assert.doesNotMatch(quiet,/personal_sign|ynx_request|beginExplicit|\.connect\(|window\.open|iframe|ynxwallet:|location\.(assign|replace)|browserIdentityRequest\(/u);
   for(const forbidden of ['ynxwallet:','iframe','window.open','location.assign','location.href='])assert.equal(source.replace(quiet,'').includes(forbidden),false,forbidden);
   return quiet;
 }
@@ -27,13 +27,13 @@ test('AI is bounded and cannot execute an order',()=>{assert.match(html,/AI can 
 test('legacy browser sessions are absent and record rendering avoids unsafe HTML',()=>{assertNoCredentialStorage(js);assert.match(js,/requireProductSession/);assert.match(js,/textContent=v/) });
 test('Web Wallet exposes distinct YNX Wallet and MetaMask choices while keeping guest data available',()=>{for(const marker of ['connect-ynx-wallet','connect-metamask','wallet-retry','YNXExchangeWebWallet.connectYNX','YNXExchangeWebWallet.connectMetaMask','showWalletFallback','Download YNX Wallet','Use MetaMask'])assert.ok((html+js).includes(marker),marker);assertQuietIdentityNavigation(js)});
 test('MetaMask route selects only the discovered MetaMask provider',()=>{for(const marker of ['WALLET_PROVIDER_KIND.METAMASK','discovery.metamask','connectMetaMask'])assert.ok(walletEntry.includes(marker),marker);assert.match(walletEntry,/kind===WALLET_PROVIDER_KIND\.METAMASK\?discovery\.metamask:discovery\.ynx/)});
-test('the sole automatic navigation is bounded identity-only top-level PKCE recovery, never a Wallet approval',()=>{
+test('guest identity recheck never starts automatic top-level SSO navigation',()=>{
   assertQuietIdentityNavigation(js);
 });
 test('precise source checks still reject credential persistence and extra or permission-seeking navigation',()=>{
   for(const bad of [js+"\nlocalStorage.setItem('token',secret)",js+"\nsessionStorage.setItem('session',secret)",js+"\nconst session_token='bad'"])assert.throws(()=>assertNoCredentialStorage(bad));
   const quiet=assertQuietIdentityNavigation(js);
-  const mutations=[quiet.replace('browserIdentitySilentAttempted=true;',"browserIdentitySilentAttempted=true;window.open('ynxwallet://authorize');"),quiet.replace('data.silentRestoreAllowed!==true','data.enabled!==true'),quiet.replace('epoch!==browserIdentityEpoch','epoch===browserIdentityEpoch')];
+  const mutations=[quiet.replace('browserIdentitySilentAttempted=true;',"browserIdentitySilentAttempted=true;window.open('ynxwallet://authorize');"),quiet.replace('browserIdentitySilentAttempted=true;',"browserIdentitySilentAttempted=true;location.assign('/sso/start?prompt=none');")];
   assert.throws(()=>assertQuietIdentityNavigation(js+"\nlocation.assign('https://attacker.invalid')"));
   for(const mutated of mutations){assert.notEqual(mutated,quiet,'negative case must change the inspected function');assert.throws(()=>assertQuietIdentityNavigation(js.replace(quiet,mutated)))}
 });

@@ -47,14 +47,12 @@ async function restoreBrowserIdentity(){const epoch=++browserIdentityEpoch;const
   if(state.account&&state.account!==data.account)await privateAccount.disconnect();if(epoch!==browserIdentityEpoch)return;browserIdentity=data;writeBrowserIdentity(status,'identity-read',`${data.account} · Browser identity only; approve private Exchange read access separately.`,` (${data.account})`);$('#browser-identity-logout').hidden=false;$('#browser-identity-logout').disabled=false;
 }else if(response.status===401||response.status===403){const wasSignedIn=!!browserIdentity;if(browserIdentity)await privateAccount.guest();if(epoch!==browserIdentityEpoch)return;browserIdentity=null;writeBrowserIdentity(status,'identity-guest','Browser sign-in is separate from Wallet connection and private Exchange permission.');$('#browser-identity-logout').hidden=true;$('#browser-identity-logout').disabled=false;if(!wasSignedIn)await restoreBrowserIdentityQuietly();}else{writeBrowserIdentity(status,'identity-unavailable','Identity recheck unavailable. Retry without creating another Wallet request.');$('#browser-identity-logout').disabled=false;}}catch{if(epoch===browserIdentityEpoch){writeBrowserIdentity(status,'identity-unavailable','Identity recheck unavailable. Retry without creating another Wallet request.');$('#browser-identity-logout').disabled=false;}}}
 async function restoreBrowserIdentityQuietly(){
-  const epoch=browserIdentityEpoch,privateState=privateAccount.state(),walletState=state.standardWallet;
-  if(browserIdentityExplicitIntent||browserIdentitySilentAttempted){browserIdentityRestoreDeferred=false;return;}
-  if(['loading','approval-pending'].includes(privateState.phase)){browserIdentityRestoreDeferred=true;return;}
-  const {response,data}=await browserIdentityRequest('config');
-  if(browserIdentityExplicitIntent||!response.ok||data.enabled!==true||data.silentRestoreAllowed!==true||browserIdentity){browserIdentityRestoreDeferred=false;return;}
-  if(epoch!==browserIdentityEpoch)return; // A newer identity recheck owns its result.
-  if(privateAccount.state()!==privateState||state.standardWallet!==walletState){browserIdentityRestoreDeferred=true;resumeDeferredBrowserIdentity();return;}
-  browserIdentityRestoreDeferred=false;browserIdentitySilentAttempted=true;const target=['market','assets','activity','controls'].includes(location.hash.slice(1))?location.hash.slice(1):'assets';location.assign(`/sso/start?prompt=none&target=${encodeURIComponent(target)}`);
+  // SilentAllowed permits an identity-only attempt; it is not evidence that
+  // this guest has a restorable family/grant. The same-origin account GET has
+  // already returned no identity. Do not interrupt public browsing or drafts.
+  // A verified identity cookie still restores via account=200 above; only the
+  // explicit fixed sign-in anchor starts an SSO navigation.
+  browserIdentityRestoreDeferred=false;browserIdentitySilentAttempted=true;
 }
 function resumeDeferredBrowserIdentity(){if(!browserIdentityRestoreDeferred||browserIdentity||browserIdentityExplicitIntent||browserIdentitySilentAttempted||!$('#browser-identity-status')||['loading','approval-pending'].includes(privateAccount.state().phase))return;browserIdentityRestoreDeferred=false;queueMicrotask(()=>void restoreBrowserIdentity());}
 async function initializeBrowserIdentity(){try{const {response,data}=await browserIdentityRequest('config');if(!response.ok||data.enabled!==true)return;

@@ -16,6 +16,35 @@ const identity=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\ncons
 const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
+test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; only explicit login navigates',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),requests=[],errors=[];let accountStatus=401;
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      const request=route.request(),url=new URL(request.url());requests.push({path:url.pathname,search:url.search,method:request.method()});
+      if(url.origin!=='https://exchange.ynxweb4.com')return route.abort();
+      if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});
+      if(url.pathname==='/api/v1/sso/config')return route.fulfill({json:{enabled:true,silentRestoreAllowed:true}});
+      if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?{account:'native-owned-cookie',scopes:['identity:read'],privateWorkspaceAuthorized:false}:{code:'SSO_LOGIN_REQUIRED'}});
+      if(url.pathname==='/sso/start')return route.fulfill({contentType:'text/html',body:'Explicit fixed SSO fixture; no account request.'});
+      return route.abort();
+    });
+    await page.goto('https://exchange.ynxweb4.com/#market');await page.addStyleTag({content:css});
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,standardWallet:{status:'standard-connected'}};const privateAccount={state:()=>({phase:'guest'}),guest:async()=>{},disconnect:async()=>{}};${identity}\nwindow.guestIdentityQA={init:initializeBrowserIdentity,recheck:restoreBrowserIdentity,identity:()=>browserIdentity};`});
+    await page.evaluate(()=>guestIdentityQA.init());
+    await page.evaluate(()=>{document.getElementById('chart-interval').value='3600000';document.getElementById('support-message').value='Unsubmitted guest draft';});
+    for(const status of [401,503,401]){
+      accountStatus=status;await page.evaluate(()=>guestIdentityQA.recheck());
+      assert.equal(page.url(),'https://exchange.ynxweb4.com/#market');assert.equal(await page.locator('#chart-interval').inputValue(),'3600000');assert.equal(await page.locator('#support-message').inputValue(),'Unsubmitted guest draft');assert.equal(context.pages().length,1);
+    }
+    assert.equal(requests.filter(row=>row.path==='/sso/start').length,0);assert.equal(requests.filter(row=>row.method!=='GET').length,0);
+    accountStatus=200;await page.evaluate(()=>guestIdentityQA.recheck());assert.equal((await page.evaluate(()=>guestIdentityQA.identity())).account,'native-owned-cookie');assert.equal(page.url(),'https://exchange.ynxweb4.com/#market');
+    accountStatus=401;await page.evaluate(()=>guestIdentityQA.recheck());assert.equal(await page.evaluate(()=>guestIdentityQA.identity()),null);
+    await page.locator('#browser-identity-start').click();await page.waitForURL('**/sso/start?target=market');
+    assert.equal(requests.filter(row=>row.path==='/sso/start').length,1);assert.equal(requests.find(row=>row.path==='/sso/start').search,'?target=market');assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
+});
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
 const localeSetup=app.split('\n').find(line=>line.includes('window.YNXExchangeLocale=installExchangeLocale({document'));

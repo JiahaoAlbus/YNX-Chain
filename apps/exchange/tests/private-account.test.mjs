@@ -203,7 +203,7 @@ test('entry and UI separate standard connection from private read-only scopes an
   assert.doesNotMatch(render,/disconnectWallet\(|YNXExchangeWebWallet\./);
   const quietStart=app.indexOf('async function restoreBrowserIdentityQuietly()'),quietEnd=app.indexOf('function resumeDeferredBrowserIdentity()',quietStart);
   assert.ok(quietStart>=0&&quietEnd>quietStart);const quiet=app.slice(quietStart,quietEnd);
-  assert.match(quiet,/browserIdentityExplicitIntent/);assert.match(quiet,/silentRestoreAllowed!==true/);assert.match(quiet,/prompt=none&target=/);assert.equal((quiet.match(/location\.assign\(/g)||[]).length,1);
+  assert.match(quiet,/browserIdentitySilentAttempted=true/);assert.doesNotMatch(quiet,/browserIdentityRequest\(|location\.(assign|replace)\(/);assert.equal((app.match(/location\.assign\(/g)||[]).length,0);
   for(const forbidden of [/window\.open\(/,/<iframe/i,/location\.(assign|replace)\(/,/location\.href\s*=/])assert.doesNotMatch(app.slice(0,quietStart)+app.slice(quietEnd)+html,forbidden);
   assert.match(html,/id="private-open" hidden rel="noreferrer"/);assert.match(app,/open.href=value.route/);assert.match(app,/handleReturn|privateAccount.start\(location.href\)/);
 });
