@@ -2,13 +2,104 @@ package quantlab
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 )
+
+func TestPaperCapacityKeepsEarliestReceiptAcrossRestartKillAndTwoInstances(t *testing.T) {
+	market := &submissionMarket{}
+	path := filepath.Join(t.TempDir(), "state.json")
+	s, err := New(Config{StatePath: path, MarketData: market})
+	if err != nil {
+		t.Fatal(err)
+	}
+	experiment, err := s.RunBacktest(request())
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := experiment.Strategy.StrategyHash
+	var first PaperOrder
+	for i := 0; i < 100; i++ {
+		side := "buy"
+		if i%2 == 1 {
+			side = "sell"
+		}
+		order, err := s.SubmitPaperSignalFromMarket(digest, side, 1_000, fmt.Sprintf("capacity-key-%03d", i))
+		if err != nil {
+			t.Fatalf("order %d: %v", i, err)
+		}
+		if i == 0 {
+			first = order
+		}
+	}
+	if _, err := s.SubmitPaperSignalFromMarket(digest, "buy", 1_000, "capacity-new-order"); err != ErrForbidden {
+		t.Fatalf("capacity: %v", err)
+	}
+	if _, err := s.Kill("controlled capacity recovery test"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Two restarted service instances share the durable file. Neither has a feed.
+	instances := make([]*Service, 2)
+	for i := range instances {
+		instances[i], err = New(Config{StatePath: path})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer instances[i].Close()
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			order, err := instances[i%2].SubmitPaperSignalFromMarket(digest, "buy", 1_000, "capacity-key-000")
+			if err != nil || !reflect.DeepEqual(order, first) {
+				t.Errorf("replay %d: %+v %v", i, order, err)
+			}
+		}(i)
+	}
+	wg.Wait()
+	if _, err := instances[0].SubmitPaperSignalFromMarket(digest, "sell", 1_000, "capacity-key-000"); err != ErrConflict {
+		t.Fatalf("changed replay: %v", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(before) {
+		t.Fatalf("receipt replay changed durable bytes: %v", err)
+	}
+	paper := instances[1].Snapshot()["paper"].(PaperState)
+	if len(paper.Orders) != 100 || !paper.KillSwitch || paper.Position != 0 {
+		t.Fatalf("recovery lost state: %+v", paper)
+	}
+	// An independent workspace may use the same key without borrowing a receipt.
+	other, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), MarketData: market})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	requestB := request()
+	requestB.Strategy.Seed++
+	experimentB, err := other.RunBacktest(requestB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orderB, err := other.SubmitPaperSignalFromMarket(experimentB.Strategy.StrategyHash, "sell", 2_000, "capacity-key-000")
+	if err != nil || orderB.StrategyHash == first.StrategyHash || orderB.Amount != 2_000 {
+		t.Fatalf("workspace isolation: %+v %v", orderB, err)
+	}
+}
 
 type submissionMarket struct {
 	calls  atomic.Int64
