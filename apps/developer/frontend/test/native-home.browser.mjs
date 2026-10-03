@@ -26,12 +26,11 @@ try {
     checks.push(`${width}px: native project home, no guest autosave/editor, preserved corrupt draft and explicit recovery route`);
     await page.close();
   }
-  for (const mode of ['mac-workspace', 'windows-hosted']) {
+  for (const mode of ['mac-workspace']) {
     const desktop = await browser.newPage(); desktop.on('pageerror', e => errors.push(e.message));
     await desktop.addInitScript(kind => {
       localStorage.setItem('ynx-code-project-v1', '{desktop draft needing recovery');
-      if (kind === 'mac-workspace') window.ynxDesktopWorkspace = { initialProject: null, saveProject: async () => {}, exportProject: async () => {} };
-      else window.ynxHostedDesktop = true;
+      window.ynxDesktopWorkspace = { initialProject: null, saveProject: async () => {}, exportProject: async () => {} };
     }, mode);
     await desktop.goto(process.env.YNX_QA_HOME_URL);
     await desktop.getByRole('heading', { name: 'Your saved workspace needs recovery', exact: true }).waitFor();

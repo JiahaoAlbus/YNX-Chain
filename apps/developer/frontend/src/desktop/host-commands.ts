@@ -11,6 +11,20 @@ export type HostActions = {
 type HostWindow = Pick<Window, "location" | "top" | "self">;
 declare global { interface Window { __ynxDesktopHost?: (input: unknown) => Promise<unknown> } }
 const trusted = (window: HostWindow) => window.top === window.self && window.location.origin === "https://developer.ynxweb4.com" && ["/", "/wallet-auth/callback"].includes(window.location.pathname);
+// Older installed clients already poll this exact state command at startup.
+// Route that existing handshake to the retained workbench without adding a
+// native message bridge, trusting a user-agent, or replaying a file command.
+export function createHostEntry(window: HostWindow, openWorkbench: () => void) {
+  return async (input: unknown) => {
+    const reply = (status: string, reason?: string) => ({ schema: DESKTOP_HOST_SCHEMA, status, ...(reason ? { reason } : {}) });
+    if (!trusted(window)) return reply('blocked', 'untrusted-document');
+    if (!input || typeof input !== 'object' || Array.isArray(input) ||
+      Object.keys(input).length !== 1 || (input as Record<string, unknown>).command !== 'state')
+      return reply('blocked', 'workbench-not-ready');
+    openWorkbench();
+    return reply('not-ready');
+  };
+}
 export function createHostCommands(window: HostWindow, actions: HostActions) {
   let busy = false;
   return async (input: unknown) => {
