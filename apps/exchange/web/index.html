@@ -44,9 +44,9 @@
           <header><h2 id="order-title">Limit order</h2><span>Guest preview · no submission</span></header>
           <div class="segmented" role="tablist" aria-label="Order side"><button id="buy-tab" role="tab" aria-selected="true">Buy</button><button id="sell-tab" role="tab" aria-selected="false">Sell</button></div>
           <form id="order-form">
-            <label>Limit price <span>YUSD_TEST</span><input id="price" name="price" inputmode="decimal" autocomplete="off" maxlength="26" required aria-describedby="order-limits order-error"></label>
-            <label>Amount <span>YNXT</span><input id="amount" name="amount" inputmode="decimal" autocomplete="off" maxlength="26" required aria-describedby="order-limits order-error"></label>
-            <dl class="review"><div><dt>Maker / taker fee</dt><dd id="order-fees">Unavailable</dd></div><div><dt>Initial reservation</dt><dd id="reservation">—</dd></div></dl>
+            <label><span data-exchange-locale="Limit price">Limit price</span> <span>YUSD_TEST</span><input id="price" name="price" inputmode="decimal" autocomplete="off" maxlength="26" required aria-describedby="order-limits order-error"></label>
+            <label><span data-exchange-locale="Amount">Amount</span> <span>YNXT</span><input id="amount" name="amount" inputmode="decimal" autocomplete="off" maxlength="26" required aria-describedby="order-limits order-error"></label>
+            <dl class="review"><div><dt data-exchange-locale="Maker / taker fee">Maker / taker fee</dt><dd id="order-fees">Unavailable</dd></div><div><dt data-exchange-locale="Initial reservation">Initial reservation</dt><dd id="reservation">—</dd></div></dl>
             <p id="order-limits" class="source-note">Waiting for verified venue rules. Market/stop orders are not supported.</p><p id="order-error" class="source-note" role="status" aria-live="polite"></p>
             <button type="button" id="draft-order" class="secondary">Ask AI to draft fields</button><button class="primary wide" id="review-order">Preview order · no submission</button>
             <p class="form-help">AI can draft values only. It cannot place, cancel, sign, or change risk controls.</p>

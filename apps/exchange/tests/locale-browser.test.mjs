@@ -17,6 +17,40 @@ const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showW
 const previewSource=await readFile(new URL('../web/order-preview.js',import.meta.url),'utf8');
 const activityRender=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
+const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
+
+test('real order preview preserves exact financial values while form and dialog labels change languages',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${previewSource}\nwindow.previewTest={buildOrderPreview,validateTradingRules};`});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.previewTest&&window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const {buildOrderPreview,validateTradingRules}=window.previewTest;const state={side:'buy',marketPhase:'live',privatePhase:'guest',standardWallet:null};const display=${formatMicro.toString()};let reads=0;const marketFeed={retry:async()=>{reads++}};${estimate}\n${toast}\n${review}\nwindow.formQA={state,review:()=>reviewOrder({preventDefault(){}}),reads:()=>reads};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document,onChange:estimate});`});
+    await page.evaluate(()=>Object.assign(window.formQA.state,{rules:{schemaVersion:'exchange-limit-rules-v2',market:'YNXT-YUSD_TEST',orderTypes:['limit'],scale:'1000000',minPriceMicro:'1',maxPriceMicro:'1000000000000',minAmountMicro:'1',maxAmountMicro:'1000000000000',maxOrderNotionalMicro:'100000000000',makerFeeBps:17,takerFeeBps:43,notionalRounding:'floor_micro',feeRounding:'ceil_micro_per_fill',quoteAssetType:'venue_only_test_credit_not_token',admissionMinimumQuote:'one_micro_credit',reservationShortfall:'atomic_order_request_rejection'},source:{asOf:new Date().toISOString(),authority:'YNX-owned deterministic order state',classification:'testnet',status:'degraded_single_host'}}));
+    await page.locator('#price').fill('2.000001');await page.locator('#amount').fill('3.000001');
+    const keys=['Side / type','Limit price','Amount','Notional at limit','Single-fill maker fee','Single-fill taker fee','Initial reservation','Available venue balance','Wallet state','Rule source'];
+    let financial;
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      assert.equal(await page.locator('#buy-tab').innerText(),catalogs[locale].Buy);
+      assert.equal(await page.locator('#review-order').innerText(),catalogs[locale]['Preview order · no submission']);
+      await page.evaluate(()=>window.formQA.review());
+      assert.deepEqual(await page.locator('#order-preview-values dt').allTextContents(),keys.map(key=>catalogs[locale][key]));
+      const values=await page.locator('#order-preview-values dd').allTextContents();
+      if(!financial)financial=values.slice(0,7);assert.deepEqual(values.slice(0,7),financial);
+      assert.equal(values[7],catalogs[locale]['Unknown — Exchange account proof required']);
+      assert.equal(values[8],catalogs[locale]['Not connected; guest preview remains available']);
+      assert.equal(await page.locator('#order-preview-title').innerText(),catalogs[locale]['Review a limit order']);
+      assert.equal(await page.locator('#order-preview-dialog .wide').innerText(),catalogs[locale]['Return to edit']);
+      await page.locator('#order-preview-dialog .wide').click();
+    }
+    assert.equal(await page.evaluate(()=>window.formQA.reads()),12,'each explicit review has only its existing single public refresh');
+    assert.equal(requests,0,'controlled preview test never accesses a Wallet or submits an order');
+    assert.equal(await page.locator('#price').inputValue(),'2.000001');assert.equal(await page.locator('#amount').inputValue(),'3.000001');
+  }finally{await browser.close()}
+});
 
 test('actual activity tabs and all headers use 12 locales without mutating owned records or making requests',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
