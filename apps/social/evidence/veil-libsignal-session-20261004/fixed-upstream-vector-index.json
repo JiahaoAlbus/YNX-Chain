@@ -1,0 +1,135 @@
+{
+  "observed_at": "2026-10-03T17:09:33.731Z",
+  "source_commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "truncated": false,
+  "selected": [
+    {
+      "path": "node/ts/test/protocol/AddressTest.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f6c3a1815e9bd902db55dd05ffe95872f58fb61e",
+      "size": 4796,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/f6c3a1815e9bd902db55dd05ffe95872f58fb61e"
+    },
+    {
+      "path": "node/ts/test/protocol/ProtocolTest.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "70abe6ee537b701b7b4b35d02d5e95b68373ec89",
+      "size": 31191,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/70abe6ee537b701b7b4b35d02d5e95b68373ec89"
+    },
+    {
+      "path": "node/ts/test/protocol/SealedSenderTest.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c608893e16305e7fcab9e44751cbba03b078a053",
+      "size": 22942,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/c608893e16305e7fcab9e44751cbba03b078a053"
+    },
+    {
+      "path": "node/ts/test/protocol/TestStores.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3d40089c453c0126b2023a1f5c2cc9f649d059dd",
+      "size": 6710,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/3d40089c453c0126b2023a1f5c2cc9f649d059dd"
+    },
+    {
+      "path": "rust/bridge/shared/src/protocol.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c968b77892967629c57fb21647b16b7ea76de218",
+      "size": 38740,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/c968b77892967629c57fb21647b16b7ea76de218"
+    },
+    {
+      "path": "rust/bridge/shared/testing/src/protocol.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e387272ee4dfdf2ee7c3051969c3d87ce336f604",
+      "size": 807,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/e387272ee4dfdf2ee7c3051969c3d87ce336f604"
+    },
+    {
+      "path": "rust/bridge/shared/types/src/protocol.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2b1eaff6a558b2aa6b3c5151a99364c49d0a9179",
+      "size": 4211,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/2b1eaff6a558b2aa6b3c5151a99364c49d0a9179"
+    },
+    {
+      "path": "rust/bridge/shared/types/src/protocol/storage.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "943db69c4d263ea18a44ef628e32ab4771a7cf3f",
+      "size": 10372,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/943db69c4d263ea18a44ef628e32ab4771a7cf3f"
+    },
+    {
+      "path": "rust/protocol/benches/kem.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "256850a7c3ed2039bac4e71a4acaef336cf7118c",
+      "size": 1834,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/256850a7c3ed2039bac4e71a4acaef336cf7118c"
+    },
+    {
+      "path": "rust/protocol/benches/ratchet.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a3678a8d4781447f22c482bf55fa30e706061212",
+      "size": 2817,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/a3678a8d4781447f22c482bf55fa30e706061212"
+    },
+    {
+      "path": "rust/protocol/examples/kem.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c2a840a28d1ff96396b2df0c480efbc4ead632b1",
+      "size": 3218,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/c2a840a28d1ff96396b2df0c480efbc4ead632b1"
+    },
+    {
+      "path": "rust/protocol/src/double_ratchet.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "aa49bfe10e45f4cc8ec0dc23deb9dd37c83c7e3c",
+      "size": 14872,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/aa49bfe10e45f4cc8ec0dc23deb9dd37c83c7e3c"
+    },
+    {
+      "path": "rust/protocol/src/kem.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "19d192dbdcfe43fb2c511e7d4a6c5cd24294088e",
+      "size": 23004,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/19d192dbdcfe43fb2c511e7d4a6c5cd24294088e"
+    },
+    {
+      "path": "rust/protocol/src/ratchet.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "b1fcd469087f2d57d7c327bbfc9660beaad27a61",
+      "size": 5921,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/b1fcd469087f2d57d7c327bbfc9660beaad27a61"
+    },
+    {
+      "path": "rust/protocol/src/triple_ratchet.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "54a140257b57bb7032b449e9e850f0f4a4b6c894",
+      "size": 10923,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/54a140257b57bb7032b449e9e850f0f4a4b6c894"
+    },
+    {
+      "path": "rust/protocol/tests/ratchet.rs",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8aaae7d81f6a79bb79dac344e254a4e8d2ee543e",
+      "size": 6870,
+      "url": "https://api.github.com/repos/signalapp/libsignal/git/blobs/8aaae7d81f6a79bb79dac344e254a4e8d2ee543e"
+    }
+  ]
+}

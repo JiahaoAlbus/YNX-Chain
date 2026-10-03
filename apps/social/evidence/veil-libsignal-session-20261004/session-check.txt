@@ -1,0 +1,14 @@
+PASS official signed KEM prekey bundle establishes sender session
+PASS initial native encryption and recipient decryption
+PASS one-time fixture curve and KEM prekeys consumed
+PASS reply establishes ordinary native message exchange
+PASS replay rejected without committed state mutation
+PASS tampered ciphertext rejected without committed state mutation
+PASS out-of-order native messages recover through SDK skipped-key handling
+PASS abort after native encryption does not commit ratchet or outbox
+PASS subsequent committed encryption remains decryptable after abort
+PASS retry returns identical ciphertext and does not re-encrypt
+PASS same local message ID cannot encrypt different plaintext
+PASS wrong device address rejected without committed state mutation
+PASS bounded repeated bidirectional synthetic control exchange
+RESULT 13/13 actual-native-addon checks passed

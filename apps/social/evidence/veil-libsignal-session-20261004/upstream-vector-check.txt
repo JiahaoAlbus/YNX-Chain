@@ -1,0 +1,10 @@
+PASS original public fixture exact upstream Git blob and byte count
+PASS upstream Kyber1024 public fixture native deserialize/serialize
+PASS native KEM rejects truncated public key
+PASS native KEM rejects unknown type rather than falling back
+PASS original fixed ACI identity encoding vector
+PASS original fixed PNI identity encoding vector
+PASS ACI and PNI remain distinct device address namespaces
+PASS native device address rejects out-of-range ID
+PASS native service identity rejects empty wire and string inputs
+PASS 9 bounded upstream fixture/encoding checks

@@ -1,0 +1,64 @@
+{
+  "schema": "ynx-social-upstream-native-vector-qa-v1",
+  "package": "@signalapp/libsignal-client",
+  "version": "0.104.0",
+  "upstream_commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "runtime": {
+    "node": "v26.7.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "fixture": {
+    "path": "rust/protocol/src/kem/test-data/pk.dat",
+    "git_blob": "5b230f1e46c0ca850e420bf902a7e3236d7d3333",
+    "bytes": 1568,
+    "sha256": "3c78727462f5ab3dbf9ff8caf38171ebfec3f017bcfb39cc030d252d4d7ca98f",
+    "classification": "upstream public test key, not user data or a secret key"
+  },
+  "address_vectors_source": "node/ts/test/protocol/AddressTest.ts",
+  "address_vectors_git_blob": "f6c3a1815e9bd902db55dd05ffe95872f58fb61e",
+  "checks": [
+    {
+      "name": "original public fixture exact upstream Git blob and byte count",
+      "result": "PASS"
+    },
+    {
+      "name": "upstream Kyber1024 public fixture native deserialize/serialize",
+      "result": "PASS"
+    },
+    {
+      "name": "native KEM rejects truncated public key",
+      "result": "PASS"
+    },
+    {
+      "name": "native KEM rejects unknown type rather than falling back",
+      "result": "PASS"
+    },
+    {
+      "name": "original fixed ACI identity encoding vector",
+      "result": "PASS"
+    },
+    {
+      "name": "original fixed PNI identity encoding vector",
+      "result": "PASS"
+    },
+    {
+      "name": "ACI and PNI remain distinct device address namespaces",
+      "result": "PASS"
+    },
+    {
+      "name": "native device address rejects out-of-range ID",
+      "result": "PASS"
+    },
+    {
+      "name": "native service identity rejects empty wire and string inputs",
+      "result": "PASS"
+    }
+  ],
+  "not_proven": [
+    "KEM encapsulation known-answer vectors",
+    "PQXDH transcript and independent SPQR actual key contribution",
+    "persistent crash/restart atomicity or multi-node prekey consumption",
+    "native mobile/browser integration, migration, activation, security review or user acceptance"
+  ]
+}

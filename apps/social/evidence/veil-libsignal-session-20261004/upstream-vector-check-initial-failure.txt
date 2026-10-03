@@ -1,0 +1,2 @@
+PASS original public fixture exact upstream Git blob and byte count
+FAIL AssertionError

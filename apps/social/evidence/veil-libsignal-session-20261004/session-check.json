@@ -1,0 +1,76 @@
+{
+  "observed_at": "2026-10-03T17:07:17.292Z",
+  "sdk": "0.104.0",
+  "sdk_source_commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "runtime": {
+    "node": "v26.7.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "input": "Two in-memory dedicated synthetic identities and synthetic control strings only",
+  "results": [
+    {
+      "name": "official signed KEM prekey bundle establishes sender session",
+      "status": "PASS"
+    },
+    {
+      "name": "initial native encryption and recipient decryption",
+      "status": "PASS"
+    },
+    {
+      "name": "one-time fixture curve and KEM prekeys consumed",
+      "status": "PASS"
+    },
+    {
+      "name": "reply establishes ordinary native message exchange",
+      "status": "PASS"
+    },
+    {
+      "name": "replay rejected without committed state mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "tampered ciphertext rejected without committed state mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "out-of-order native messages recover through SDK skipped-key handling",
+      "status": "PASS"
+    },
+    {
+      "name": "abort after native encryption does not commit ratchet or outbox",
+      "status": "PASS"
+    },
+    {
+      "name": "subsequent committed encryption remains decryptable after abort",
+      "status": "PASS"
+    },
+    {
+      "name": "retry returns identical ciphertext and does not re-encrypt",
+      "status": "PASS"
+    },
+    {
+      "name": "same local message ID cannot encrypt different plaintext",
+      "status": "PASS"
+    },
+    {
+      "name": "wrong device address rejected without committed state mutation",
+      "status": "PASS"
+    },
+    {
+      "name": "bounded repeated bidirectional synthetic control exchange",
+      "status": "PASS"
+    }
+  ],
+  "passed": 13,
+  "public_kem_bundle_encoded_bytes": 1569,
+  "scope": "Actual official native addon crypto with cloned in-memory transactional QA callbacks, not a production store",
+  "limits": [
+    "No original fixed vectors executed",
+    "No persistent crash/restart or multi-node prekey serving",
+    "No independently observed SPQR key-mixture status",
+    "No native mobile/browser bridge",
+    "No AGPL release disposition, independent review, migration, production activation or user acceptance",
+    "No wallet/account/private message access or network relay"
+  ]
+}
