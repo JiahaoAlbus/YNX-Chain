@@ -38,6 +38,7 @@ type MerchantMember struct {
 }
 
 type MerchantConsoleSession struct {
+	BrowserBindingDigest string `json:"browserBindingDigest,omitempty"`
 	// Canonical metadata augments the original carrier; a bearer is never v2 authority.
 	SessionBinding   string     `json:"sessionBinding,omitempty"`
 	PrivateExpiresAt time.Time  `json:"privateExpiresAt,omitempty"`

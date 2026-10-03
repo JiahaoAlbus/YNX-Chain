@@ -1,0 +1,32 @@
+{
+  "status": "OWNED_ADAPTER_AND_MATCHING_SOURCE_COMPATIBILITY_ONLY",
+  "priorOwnerCommit": "754cb2f5cdebd98bbfcf5b197d464746259680c5",
+  "sharedCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+  "sharedTree": "f70c782e828b81b5aea955c6481edd079176e88c",
+  "sharedExact152InputsVerified": true,
+  "sharedCompleteArchiveSHA256": "848e72b75837e7566a0392e85bfb570035f98113e295a4821ac1d733e01f596e",
+  "isolatedStage": "/tmp/ynx-commerce-combined641-L7E2Mp",
+  "ownerSourcePaths": 49,
+  "ownerManifestSHA256": "906de0f8f08e50d33b97029af3766eb383a8899f69e07ebb1e1778164f8e3d82",
+  "ownerModuleUnchanged": true,
+  "sharedSDKGoRegistryWritten": false,
+  "goRace": {
+    "pass": 296,
+    "topLevel": 178,
+    "packages": 4,
+    "fail": 0,
+    "skip": 0
+  },
+  "actualSharedCombinedAPIBridge": "Revalidator.RevalidateBrowser",
+  "qualifications": {
+    "shopBrowser": "UNREGISTERED_IN_EXACT641",
+    "merchantBrowser": "UNREGISTERED_IN_EXACT641",
+    "borrowAIIdentity": "REJECTED_ZERO_AUTHORITY_HTTP"
+  },
+  "formalPrivateFactory": "503_HOLD",
+  "positiveQualifiedMerchantCombined": "NOT_VERIFIED",
+  "realWalletPublicBusiness": "NOT_VERIFIED",
+  "formalDeployBuildInstall": false,
+  "remainingGoal": "PAY_NATIVE_FULL_BATCH_AND_FINAL_ENTRANCE_ACCEPTANCE_INCOMPLETE",
+  "originalCallerCancellationFence": "entry_and_inside_original_Store_explicit_deadline_and_context_503_zero_nonce_effect"
+}

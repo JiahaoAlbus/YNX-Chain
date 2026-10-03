@@ -410,3 +410,33 @@ func TestMerchantCanonicalInvoiceKeepsOriginalSigningAndIdempotency(t *testing.T
 		t.Fatal(err)
 	}
 }
+
+func TestMerchantOriginalCancellationOrDeadlineCommitsZeroEffects(t *testing.T) {
+	for _, kind := range []string{"cancelled", "elapsed-deadline"} {
+		t.Run(kind, func(t *testing.T) {
+			s, m, v, _ := merchantBusinessQA(t)
+			var ctx context.Context
+			var cancel context.CancelFunc
+			if kind == "cancelled" {
+				ctx, cancel = context.WithCancel(context.Background())
+				cancel()
+			} else {
+				ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+				defer cancel()
+			}
+			r := httptest.NewRequest("POST", "/v1/merchant/catalog", bytes.NewBufferString(`{}`))
+			a, _ := v.verify(r, []byte(`{}`))
+			a.merchantID = m.ID
+			child := s.merchantScope(ctx, a, "invoice")
+			err := child.store.Update(func(d *Snapshot) error { d.Catalog["cancelled-original"] = CatalogItem{}; return nil })
+			var boundary *merchantBusinessError
+			if !errors.As(err, &boundary) || boundary.status != 503 {
+				t.Fatal("cancelled original request status", err)
+			}
+			actions, _, catalog := merchantCounts(t, s)
+			if actions != 0 || catalog != 0 {
+				t.Fatal("cancelled original nonce/effect", actions, catalog)
+			}
+		})
+	}
+}

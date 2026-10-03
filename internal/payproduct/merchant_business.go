@@ -25,6 +25,8 @@ type merchantAdmission struct {
 	refresh                    func(context.Context) (func() error, time.Time, error)
 	merchantID, role, domainID string
 	merchantIdentity           *Merchant
+	browserBindingDigest       string
+	browserBindingCaptured     bool
 	domainToken                string
 	admitted                   atomic.Bool
 }
@@ -240,11 +242,21 @@ func merchantBusinessRoute(method, path string) (permission string, creation, re
 	return "", false, false
 }
 
+func merchantOriginalContext(ctx context.Context) error {
+	if ctx == nil || ctx.Err() != nil {
+		return merchantDenied("AUTHORITY_UNAVAILABLE", 503)
+	}
+	if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		return merchantDenied("AUTHORITY_UNAVAILABLE", 503)
+	}
+	return nil
+}
+
 func (s *Service) merchantScope(ctx context.Context, a *merchantAdmission, permission string) *Service {
 	child := *s // shared mutex pointers and original maps; NEVER copy mutex values.
 	child.store = &Store{parent: s.store, authorize: func() (func(*Snapshot) error, error) {
-		if ctx.Err() != nil {
-			return nil, merchantDenied("REQUEST_CANCELLED", 401)
+		if err := merchantOriginalContext(ctx); err != nil {
+			return nil, err
 		}
 		fence, until, err := a.refresh(ctx)
 		if err != nil {
@@ -255,7 +267,10 @@ func (s *Service) merchantScope(ctx context.Context, a *merchantAdmission, permi
 		}
 		return func(data *Snapshot) error {
 			now := s.now().UTC()
-			if ctx.Err() != nil || !now.Before(a.expires) || !now.Before(a.proofExpires) || !now.Before(until) {
+			if err := merchantOriginalContext(ctx); err != nil {
+				return err
+			}
+			if !now.Before(a.expires) || !now.Before(a.proofExpires) || !now.Before(until) {
 				return merchantDenied("MERCHANT_SESSION_EXPIRED", 401)
 			}
 			if err := fence(); err != nil {
@@ -282,7 +297,7 @@ func (s *Service) merchantScope(ctx context.Context, a *merchantAdmission, permi
 			}
 			if a.domainID != "" {
 				carrier, ok := data.ConsoleSessions[a.domainID]
-				if !ok || carrier.SessionBinding != a.binding || carrier.Account != a.account || carrier.MerchantID != a.merchantID || carrier.Role != member.Role || carrier.RevokedAt != nil || !now.Before(carrier.ExpiresAt) || !carrier.PrivateExpiresAt.Equal(a.expires) {
+				if !ok || carrier.SessionBinding != a.binding || carrier.BrowserBindingDigest != a.browserBindingDigest || carrier.Account != a.account || carrier.MerchantID != a.merchantID || carrier.Role != member.Role || carrier.RevokedAt != nil || !now.Before(carrier.ExpiresAt) || !carrier.PrivateExpiresAt.Equal(a.expires) {
 					return merchantDenied("MERCHANT_CARRIER_BINDING_MISMATCH", 401)
 				}
 				if a.domainToken != "" && !hmac.Equal([]byte(carrier.TokenHash), []byte(hashString(a.domainToken))) {
@@ -320,7 +335,10 @@ func (s *Service) completeCanonicalMerchantSession(a *merchantAdmission) (Mercha
 		now := s.now().UTC()
 		var carrier MerchantConsoleSession
 		for _, existing := range data.ConsoleSessions {
-			if existing.SessionBinding == a.binding && existing.MerchantID == a.merchantID && existing.Account == a.account && existing.Role == member.Role && existing.RevokedAt == nil && now.Before(existing.ExpiresAt) && existing.PrivateExpiresAt.Equal(a.expires) {
+			if existing.SessionBinding == a.binding && existing.MerchantID == a.merchantID && existing.Account == a.account && (existing.BrowserBindingDigest != a.browserBindingDigest || existing.Role != member.Role || existing.RevokedAt != nil) {
+				return merchantDenied("ORIGINAL_MERCHANT_ASSOCIATION_CHANGED", 401)
+			}
+			if existing.SessionBinding == a.binding && existing.BrowserBindingDigest == a.browserBindingDigest && existing.MerchantID == a.merchantID && existing.Account == a.account && existing.Role == member.Role && existing.RevokedAt == nil && now.Before(existing.ExpiresAt) && existing.PrivateExpiresAt.Equal(a.expires) {
 				carrier = existing
 				break
 			}
@@ -338,7 +356,7 @@ func (s *Service) completeCanonicalMerchantSession(a *merchantAdmission) (Mercha
 			if a.expires.Before(expiry) {
 				expiry = a.expires
 			}
-			carrier = MerchantConsoleSession{ID: "mcs_" + randomToken(16), MerchantID: a.merchantID, Account: a.account, Role: member.Role, TokenHash: hashString(token), TokenCipher: s.seal(token), SessionBinding: a.binding, PrivateExpiresAt: a.expires, ExpiresAt: expiry, CreatedAt: now}
+			carrier = MerchantConsoleSession{ID: "mcs_" + randomToken(16), MerchantID: a.merchantID, Account: a.account, Role: member.Role, TokenHash: hashString(token), TokenCipher: s.seal(token), SessionBinding: a.binding, BrowserBindingDigest: a.browserBindingDigest, PrivateExpiresAt: a.expires, ExpiresAt: expiry, CreatedAt: now}
 			data.ConsoleSessions[carrier.ID] = carrier
 			appendAudit(data, a.merchantID, a.account, "merchant.session.create", carrier.ID, "committed", "role="+member.Role, now)
 		}

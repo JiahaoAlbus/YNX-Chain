@@ -24,9 +24,10 @@ import (
 // Session is the exact original complete verified private Session; scopes never
 // replace MerchantMembers. No product factory fabricates an epoch or verifier.
 type MerchantV2AuthoritySnapshot struct {
-	Session    v2.Session
-	ValidUntil time.Time
-	Current    func() error
+	Session              v2.Session
+	BrowserBindingDigest string
+	ValidUntil           time.Time
+	Current              func() error
 }
 type MerchantV2AuthorityReader interface {
 	ReadMerchantAuthority(context.Context, v2.Session, []string) (MerchantV2AuthoritySnapshot, error)
@@ -54,6 +55,10 @@ func NewMerchantV2Server(service *Service, transport http.RoundTripper, authorit
 	return newMerchantBusinessServer(service, &merchantSDKVerifier{client, authority, service.now}), nil
 }
 func merchantSharedError(err error) error {
+	var owned *merchantBusinessError
+	if errors.As(err, &owned) {
+		return owned
+	}
 	var shared *v2.Error
 	if errors.As(err, &shared) {
 		return merchantDenied(shared.Code, shared.Status)
@@ -87,6 +92,17 @@ func (g *merchantSDKVerifier) verify(r *http.Request, body []byte) (*merchantAdm
 	if err != nil || !g.now().Before(expiry) {
 		return nil, merchantDenied("SESSION_EXPIRED", 401)
 	}
+	authority := g.authority
+	if capture, ok := authority.(merchantRequestAuthority); ok {
+		var err error
+		authority, err = capture.captureMerchantRequest(r, original)
+		if err != nil {
+			return nil, merchantSharedError(err)
+		}
+		if authority == nil {
+			return nil, merchantDenied("ORIGINAL_AUTHORITY_REQUIRED", 503)
+		}
+	}
 	// Freeze full Session including device/consent data, not proof expiry or a
 	// mutable caller slice. Reader sees a fresh copy for each access.
 	frozen, err := json.Marshal(original)
@@ -99,7 +115,7 @@ func (g *merchantSDKVerifier) verify(r *http.Request, body []byte) (*merchantAdm
 		if json.Unmarshal(frozen, &input) != nil {
 			return nil, time.Time{}, merchantDenied("INVALID_SESSION", 403)
 		}
-		snapshot, err := g.authority.ReadMerchantAuthority(ctx, input, slices.Clone(merchantConsoleScopes))
+		snapshot, err := authority.ReadMerchantAuthority(ctx, input, slices.Clone(merchantConsoleScopes))
 		if err != nil {
 			return nil, time.Time{}, merchantSharedError(err)
 		}
@@ -107,6 +123,12 @@ func (g *merchantSDKVerifier) verify(r *http.Request, body []byte) (*merchantAdm
 		_ = json.Unmarshal(frozen, &expected)
 		if snapshot.Current == nil || !reflect.DeepEqual(snapshot.Session, expected) || snapshot.ValidUntil.IsZero() || snapshot.ValidUntil.After(expiry) || !g.now().Before(snapshot.ValidUntil) {
 			return nil, time.Time{}, merchantDenied("AUTHORITY_SNAPSHOT_MISMATCH", 503)
+		}
+		if !admission.browserBindingCaptured {
+			admission.browserBindingDigest = snapshot.BrowserBindingDigest
+			admission.browserBindingCaptured = true
+		} else if snapshot.BrowserBindingDigest != admission.browserBindingDigest {
+			return nil, time.Time{}, merchantDenied("ORIGINAL_BROWSER_BINDING_CHANGED", 401)
 		}
 		return snapshot.Current, snapshot.ValidUntil, nil
 	}
