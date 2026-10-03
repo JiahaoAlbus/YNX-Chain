@@ -1,0 +1,18 @@
+✔ received media is pinned to original room, event, peer and native generation (1.919834ms)
+✔ missing native media exports never use a synthetic port (0.240334ms)
+✔ revoke during native download hides the returned file and releases original generation (0.328ms)
+✔ late download cleanup cannot release or invalidate a newer restored generation (2.756833ms)
+✔ failed cleanup retains original generation for explicit retry (0.352042ms)
+✔ accepted profile cannot substitute its Matrix identity during download even in a self-only room (0.242875ms)
+✔ native failure without a returned lease retires only the original Matrix scope (0.197875ms)
+✔ captured original attachment is visible only in its exact client and event scope (0.400458ms)
+✔ old modal close never clears a newer selection of the same event (0.0585ms)
+✔ client replacement and error recovery preserve the newly chosen original target (0.045916ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 107.37775

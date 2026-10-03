@@ -1,22 +1,35 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeMatrixConsumer } from './nativeMatrix';
 import { NativeMatrixMediaViewer } from './NativeMatrixMediaViewer';
 import { useI18n } from './i18nProvider';
+import { captureReceivedAttachment, completeReceivedAttachment, receivedAttachmentInScope,
+  type ReceivedAttachment } from './receivedAttachmentState';
+
+type AttachmentTarget = ReturnType<NativeMatrixConsumer['receivedMedia']>;
 
 // Only the actual SDK event row supplies an original remote event ID. Creating
 // this view never grants a session or downloads; the viewer requires a tap.
 export function NativeMatrixReceivedAttachment({ client, eventId }: { client: NativeMatrixConsumer; eventId: string }) {
   const { t } = useI18n();
-  const [target, setTarget] = useState<ReturnType<NativeMatrixConsumer['receivedMedia']>>();
+  const [selection, setSelection] = useState<ReceivedAttachment<NativeMatrixConsumer, AttachmentTarget>>();
+  const originalSelection = receivedAttachmentInScope(selection, client, eventId);
+  const target = originalSelection?.target;
   const [pendingCleanup, setPendingCleanup] = useState<ReturnType<NativeMatrixConsumer['receivedMedia']>>();
   const [error, setError] = useState('');
+  useEffect(() => {
+    if (selection && !originalSelection) {
+      // Rendering has already hidden/unmounted the stale viewer; its existing
+      // cleanup owns the original lease. Do not close a replacement generation.
+      setSelection(current => completeReceivedAttachment(current, selection));
+    }
+  }, [selection, originalSelection]);
   return <View>
     <Pressable accessibilityRole="button" disabled={Boolean(pendingCleanup)} accessibilityLabel={t('Review received attachment')} style={styles.open}
       onPress={() => {
         setError('');
-        try { setTarget(client.receivedMedia(eventId)); }
+        try { setSelection(captureReceivedAttachment(client, eventId, client.receivedMedia(eventId))); }
         catch { setError(t('This attachment needs a current native session and supported build.')); }
       }}><Text style={styles.link}>{t('Review received attachment')}</Text></Pressable>
     {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -27,9 +40,10 @@ export function NativeMatrixReceivedAttachment({ client, eventId }: { client: Na
       }).catch(() => setError(t('Cleanup is pending. Retry closing the preview.')));
     }}><Text style={styles.link}>{t('Retry preview cleanup')}</Text></Pressable>}
     <Modal visible={Boolean(target)} animationType="slide" onRequestClose={() => {
-      if (!target) return;
-      const original = target;
-      setTarget(undefined); setPendingCleanup(original); // Hide before cleanup awaits.
+      if (!originalSelection) return;
+      const original = originalSelection.target;
+      setSelection(current => completeReceivedAttachment(current, originalSelection));
+      setPendingCleanup(original); // Hide before cleanup awaits.
       void original.preview.close().then(() => {
         setPendingCleanup(current => current === original ? undefined : current);
       }).catch(() => setError(t('Cleanup is pending. Retry closing the preview.')));
@@ -37,9 +51,13 @@ export function NativeMatrixReceivedAttachment({ client, eventId }: { client: Na
       <SafeAreaView style={styles.root}>
         <View style={styles.header}><Image source={require('../assets/ynx-original-logo.png')}
           resizeMode="contain" accessibilityLabel="Original YNX logo" style={styles.logo} /><Text style={styles.title}>YNX Social</Text></View>
-        {target && <NativeMatrixMediaViewer preview={target.preview} roomId={target.roomId} eventId={eventId} t={t}
-          onClose={() => { setTarget(undefined); setPendingCleanup(undefined); }} onCleanupFailure={() => {
-            setPendingCleanup(target); setError(t('Cleanup is pending. Retry closing the preview.'));
+        {originalSelection && <NativeMatrixMediaViewer preview={originalSelection.target.preview}
+          roomId={originalSelection.target.roomId} eventId={originalSelection.eventId} t={t}
+          onClose={() => {
+            setSelection(current => completeReceivedAttachment(current, originalSelection));
+            setPendingCleanup(current => current === originalSelection.target ? undefined : current);
+          }} onCleanupFailure={() => {
+            setPendingCleanup(originalSelection.target); setError(t('Cleanup is pending. Retry closing the preview.'));
           }} />}
       </SafeAreaView>
     </Modal>

@@ -1,0 +1,5 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+src/nativeMediaPresentation.test.ts(38,45): error TS2540: Cannot assign to 'uri' because it is a read-only property.
