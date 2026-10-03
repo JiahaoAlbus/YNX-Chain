@@ -1,0 +1,1 @@
+{"error":"unauthorized: canonical Product Session proof required"}

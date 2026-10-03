@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "ynx-media-formal-video-return-retest/v1",
+  "candidateSourceCommit": "50bb3b3535f68aa1c76d59adb1caa10f1aa281ea",
+  "candidateSourceTree": "e7d944a0b2d474fd64eaf0cc2e6fa5f9e2518530",
+  "sourceComparison": {
+    "localSourceCommit": "50bb3b3535f68aa1c76d59adb1caa10f1aa281ea",
+    "localAppBytes": 55963,
+    "localAppSHA256": "403d3509b884248d01879392846ea0f7f5b585755cb38a399a0bab3335cce494",
+    "publicAppBytes": 51178,
+    "publicAppSHA256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+    "byteEqual": false,
+    "publicBusinessIdentityImport": false,
+    "publicBusinessWireImport": false,
+    "publicAccountReadbackPath": false,
+    "sdkDeclaredSource": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "backendReportedBuild": {
+      "commit": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+      "release": "audit-library-v2-20260906",
+      "buildTime": "2026-09-06T05:17:06Z"
+    },
+    "backendBinaryVerified": false,
+    "unsignedAccount401IsNotRouteExistenceProof": true
+  },
+  "actualUI": {
+    "observedAt": "2026-10-03T05:47:56.817880+00:00",
+    "source": "actual CUA In-app Browser tab 2, https://video.ynxweb4.com/; normal UI actions only",
+    "actions": [
+      "Opened formal Video; existing Arabic locale retained",
+      "Clicked Sign in with YNX Wallet",
+      "Observed four normal choices; extension not detected in this browser",
+      "Clicked YNX Web Wallet",
+      "Observed connecting prompt: YNX Web Wallet: connect your Wallet, then review the Video request.",
+      "Listed same-browser tabs: only Video tab; no operable Wallet approval tab observed",
+      "Observed continued prompt and no selected account or private library; captured screenshot",
+      "Used original Cancel button; guest published QA catalog remained available",
+      "Captured original after-cancel AX and screenshot; closed only agent-created tab"
+    ],
+    "privateSessionApproval": false,
+    "originalBusinessReadback": false,
+    "nativeWalletAppTested": false,
+    "providerInstalledOnOtherBrowsers": "NOT_VERIFIED",
+    "walletPopupCause": "NOT_VERIFIED: this browser did not expose an operable Wallet page; no rejection of installed native app or public adapter inferred",
+    "didNotAccess": [
+      "PIN",
+      "secret/vault/raw private keys"
+    ],
+    "remoteCancellationRevocation": "NOT_VERIFIED; original UI Cancel and guest state observed, no claim of server-side revocation without authority readback",
+    "publicUserAcceptance": "FAIL_NOT_COMPLETED"
+  },
+  "evidencePins": [
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/actual-ui-workflow.json",
+      "bytes": 1431,
+      "sha256": "c3cfd47be36d6f19189a1b93e7ece189d80da8ebbb47b2d1f75dfbb96504b15c"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/cancelled-ax.txt",
+      "bytes": 203,
+      "sha256": "9a3877ded43639d4a61bdb9610cf496627adf4d09c644ec84dd07ab9f42e285b"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/guest-after-cancel.png",
+      "bytes": 46835,
+      "sha256": "19683a105e8473857d1a7c0911b9a3e8a9118c32e3ad473132031d99f0689cf5"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/public-account-unsigned.txt",
+      "bytes": 67,
+      "sha256": "f8d9f03ca1df849c0f612dbc48445e8f86ab81739eed6556ac49dec581c72613"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/public-app.txt",
+      "bytes": 51178,
+      "sha256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/public-backend-version.txt",
+      "bytes": 159,
+      "sha256": "5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/public-http-probe.json",
+      "bytes": 1706,
+      "sha256": "0b1473f205ad428c8f43eade8b171bbad3e33b0ac25d728d1cea6b9fa3f5540f"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/public-sdk-source.txt",
+      "bytes": 997,
+      "sha256": "b2712d290bc57cd208cddd339d6e368c2f75077d2c715de95b945372f274d456"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/source-comparison.json",
+      "bytes": 768,
+      "sha256": "8d235b086faa89974754b88ccc63eb2d2ba7d427d9daf5c0b4d9f36601c452c0"
+    },
+    {
+      "path": "apps/video/audit/evidence/formal-return-20261003/web-wallet-pending.png",
+      "bytes": 48189,
+      "sha256": "8dedfa0b06672843b2f7a32824aa5f7fab79f02d694b555ccc0001a8eeb5e56f"
+    }
+  ],
+  "verdict": "NOT_COMPLETED: current formal entry is not the delivered complete Media source; actual Web Wallet path never reached account business readback",
+  "nextOwner": "Root unique issuer/A protected shared SDK and Host owner",
+  "next": [
+    "Issue and mount admitted complete SDK/action verifier/liveActor and exact Media tuples",
+    "Deploy matching complete Go/Video/Creator/Music frozen lineage; not client-only new/account route",
+    "Rerun actual Wallet approval -> original Video actor account GET -> original library mutation/readback -> restart and A/B isolation",
+    "Provide explicit isolated Android QA target lease; debug candidates already built/frozen",
+    "Preserve all existing native/browser keys, store and owner locks"
+  ],
+  "goalComplete": false,
+  "formalDeployExecutedByMedia": false,
+  "sourceChangedThisProbe": false
+}

@@ -1,0 +1,19 @@
+{
+  "localSourceCommit": "50bb3b3535f68aa1c76d59adb1caa10f1aa281ea",
+  "localAppBytes": 55963,
+  "localAppSHA256": "403d3509b884248d01879392846ea0f7f5b585755cb38a399a0bab3335cce494",
+  "publicAppBytes": 51178,
+  "publicAppSHA256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+  "byteEqual": false,
+  "publicBusinessIdentityImport": false,
+  "publicBusinessWireImport": false,
+  "publicAccountReadbackPath": false,
+  "sdkDeclaredSource": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "backendReportedBuild": {
+    "commit": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "release": "audit-library-v2-20260906",
+    "buildTime": "2026-09-06T05:17:06Z"
+  },
+  "backendBinaryVerified": false,
+  "unsignedAccount401IsNotRouteExistenceProof": true
+}

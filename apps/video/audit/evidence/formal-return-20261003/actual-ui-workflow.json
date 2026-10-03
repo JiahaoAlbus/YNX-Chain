@@ -1,0 +1,26 @@
+{
+  "observedAt": "2026-10-03T05:47:56.817880+00:00",
+  "source": "actual CUA In-app Browser tab 2, https://video.ynxweb4.com/; normal UI actions only",
+  "actions": [
+    "Opened formal Video; existing Arabic locale retained",
+    "Clicked Sign in with YNX Wallet",
+    "Observed four normal choices; extension not detected in this browser",
+    "Clicked YNX Web Wallet",
+    "Observed connecting prompt: YNX Web Wallet: connect your Wallet, then review the Video request.",
+    "Listed same-browser tabs: only Video tab; no operable Wallet approval tab observed",
+    "Observed continued prompt and no selected account or private library; captured screenshot",
+    "Used original Cancel button; guest published QA catalog remained available",
+    "Captured original after-cancel AX and screenshot; closed only agent-created tab"
+  ],
+  "privateSessionApproval": false,
+  "originalBusinessReadback": false,
+  "nativeWalletAppTested": false,
+  "providerInstalledOnOtherBrowsers": "NOT_VERIFIED",
+  "walletPopupCause": "NOT_VERIFIED: this browser did not expose an operable Wallet page; no rejection of installed native app or public adapter inferred",
+  "didNotAccess": [
+    "PIN",
+    "secret/vault/raw private keys"
+  ],
+  "remoteCancellationRevocation": "NOT_VERIFIED; original UI Cancel and guest state observed, no claim of server-side revocation without authority readback",
+  "publicUserAcceptance": "FAIL_NOT_COMPLETED"
+}

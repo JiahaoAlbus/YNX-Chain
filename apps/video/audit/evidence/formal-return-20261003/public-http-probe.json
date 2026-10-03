@@ -1,0 +1,49 @@
+{
+  "observedAt": "2026-10-03T05:46:18.054199+00:00",
+  "results": [
+    {
+      "url": "https://video.ynxweb4.com/app.js",
+      "status": 200,
+      "bytes": 51178,
+      "sha256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+      "headers": {
+        "Cache-Control": "no-store",
+        "Content-Type": "text/javascript; charset=utf-8"
+      },
+      "localFile": "apps/video/audit/evidence/formal-return-20261003/public-app.txt"
+    },
+    {
+      "url": "https://video.ynxweb4.com/product-session-sdk-source.json",
+      "status": 200,
+      "bytes": 997,
+      "sha256": "b2712d290bc57cd208cddd339d6e368c2f75077d2c715de95b945372f274d456",
+      "headers": {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      "localFile": "apps/video/audit/evidence/formal-return-20261003/public-sdk-source.txt"
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/version",
+      "status": 200,
+      "bytes": 159,
+      "sha256": "5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0",
+      "headers": {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json"
+      },
+      "localFile": "apps/video/audit/evidence/formal-return-20261003/public-backend-version.txt"
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/v1/account",
+      "status": 401,
+      "bytes": 67,
+      "sha256": "f8d9f03ca1df849c0f612dbc48445e8f86ab81739eed6556ac49dec581c72613",
+      "headers": {
+        "Cache-Control": "no-store",
+        "Content-Type": "application/json"
+      },
+      "localFile": "apps/video/audit/evidence/formal-return-20261003/public-account-unsigned.txt"
+    }
+  ]
+}

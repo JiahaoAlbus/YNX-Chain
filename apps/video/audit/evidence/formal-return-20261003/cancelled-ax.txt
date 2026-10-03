@@ -1,0 +1,3 @@
+Browser tab: 2, Title: "YNX Video", URL: "https://video.ynxweb4.com/".
+There has been no change in the accessibility tree.
+The focused UI element is 39 button Sign in with YNX Wallet, ID: product-connect
