@@ -44,3 +44,27 @@ test('cross-tab hints deduplicate the two browser transports and contain no acco
  const changed={event:'changed',id:randomUUID()};channel.onmessage({data:changed});handlers.get('storage')({key:storage[0].key,newValue:JSON.stringify(changed)});assert.equal(restores,1);
  channel.onmessage({data:{event:'changed',id:'forged',account:'owner'}});assert.equal(restores,1);events.close();
 });
+
+test('cancellation settles an uncooperative private authorization without emitting a request',async()=>{
+ const controller=new AbortController();let calls=0;
+ const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:()=>new Promise(()=>{}),fetch:async()=>{calls++}});
+ const pending=api('/v1/history',{private:true,signal:controller.signal});controller.abort();
+ const result=await Promise.race([pending.then(()=> 'accepted',e=>e.name),new Promise(r=>setTimeout(()=>r('hung'),80))]);
+ assert.equal(result,'AbortError');assert.equal(calls,0);
+});
+
+for(const stage of ['network','body'])test('cancellation settles an uncooperative '+stage+' without invalidating another account',async()=>{
+ const controller=new AbortController();let unauthorized=0,started;const ready=new Promise(r=>started=r);
+ const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:async()=>({}),onUnauthorized:()=>unauthorized++,fetch:()=>{if(stage==='network'){started();return new Promise(()=>{})}return {ok:true,status:200,json:()=>{started();return new Promise(()=>{})}}}});
+ const pending=api('/v1/history',{private:true,signal:controller.signal});await ready;controller.abort();await assert.rejects(pending,{name:'AbortError'});assert.equal(unauthorized,0);
+});
+test('the complete Video request has the real 15 second authority deadline',async()=>{
+ let calls=0;const start=Date.now();const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:()=>new Promise(()=>{}),fetch:async()=>{calls++}});
+ await assert.rejects(api('/v1/history',{private:true}),{name:'TimeoutError'});assert.ok(Date.now()-start>=14900);assert.equal(calls,0);
+});
+test('unbounded responses and foreign response locations are rejected before use',async()=>{
+ for(const response of [new Response('{}',{headers:{'Content-Length':String(16*1024*1024+1)}}),{ok:true,status:200,redirected:true,json:async()=>({private:'foreign'})}]){
+ const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:async()=>({}),fetch:async()=>response});await assert.rejects(api('/v1/history',{private:true}),/supported limit|Unexpected/);
+ }
+ for(const route of ['/v1/%2e%2e/history','/v1/history#other','/v1/history\\other','/v1//history']){let calls=0;const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',fetch:()=>{calls++}});await assert.rejects(api(route),/Invalid/);assert.equal(calls,0)}
+});

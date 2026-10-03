@@ -45,11 +45,7 @@ func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-YNX-Product-Session-Proof", proof)
-	client := a.Client
-	if client == nil {
-		client = &http.Client{Timeout: 5 * time.Second}
-	}
-	response, err := client.Do(request)
+	response, err := a.gatewayClient().Do(request)
 	if err != nil {
 		return "", fmt.Errorf("%w: central Wallet Gateway unavailable", ErrUnauthorized)
 	}

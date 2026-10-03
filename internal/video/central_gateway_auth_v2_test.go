@@ -257,3 +257,31 @@ func TestMediaV2ExactNativeBindingsAndCrossPlatformReturnedAuthority(t *testing.
 		}
 	}
 }
+
+func TestGatewayNeverForwardsProductProofThroughRedirect(t *testing.T) {
+	for _, version := range []string{"v1", "v2"} {
+		t.Run(version, func(t *testing.T) {
+			forwarded := 0
+			sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { forwarded++; w.WriteHeader(401) }))
+			defer sink.Close()
+			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, sink.URL+"/captured", http.StatusTemporaryRedirect)
+			}))
+			defer gateway.Close()
+			request := httptest.NewRequest("GET", "/v1/history", nil)
+			if version == "v2" {
+				session := creatorV2Fixture()
+				request.Header.Set(productSessionProofV2Header, encodedV2Fixture(session))
+			} else {
+				request.Header.Set("X-YNX-Product-Session-Proof", "synthetic-old-proof")
+			}
+			_, err := (CentralProductSessionAuth{GatewayURL: gateway.URL, Client: gateway.Client()}).Account(request)
+			if err == nil {
+				t.Fatal("redirect accepted")
+			}
+			if forwarded != 0 {
+				t.Fatalf("product proof forwarded to redirected service %d times", forwarded)
+			}
+		})
+	}
+}

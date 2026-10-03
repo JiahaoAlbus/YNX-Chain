@@ -18,6 +18,12 @@ let subscriptionRevision = 0;
 let productState = {status: "guest"};
 let productExpiryTimer;
 let productRevision = 0;
+let productRequestAbort = new AbortController();
+function invalidateProductRequests() {
+  productRevision++;
+  productRequestAbort.abort(new DOMException("Video account changed.", "AbortError"));
+  productRequestAbort = new AbortController();
+}
 let productSignOutPending = false;
 let currentView = "discover";
 let currentPlaylist = null;
@@ -143,7 +149,8 @@ const privateAPI = async (path, options = {}) => {
   const revision = productRevision;
   if (!productConnected() || productSignOutPending) throw new Error("Sign in to use your Video library.");
   const assertCurrent = () => {if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This operation was discarded.");};
-  const result = await api(path, {...options, private: true, assertCurrent});
+  const signal = options.signal ? AbortSignal.any([productRequestAbort.signal, options.signal]) : productRequestAbort.signal;
+  const result = await api(path, {...options, signal, private: true, assertCurrent});
   if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This response was discarded.");
   return result;
 };
@@ -188,7 +195,7 @@ function renderProductState(state) {
   $("#comment textarea").disabled = !connected;
   $("#comment-account-hint").hidden = connected;
   if (!connected || previousAccount && previousAccount !== state.session?.account) {
-    productRevision++;
+    invalidateProductRequests();
     currentPlaylist = null;
     playlistTarget = null;
     $("#playlist-choice").replaceChildren();
@@ -310,7 +317,7 @@ async function prepareVideoSignIn() {
  videoSignInAbort?.abort();
  if (productSignOutPending) return;
  if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}
- productRevision++;
+ invalidateProductRequests();
  const intent = ++videoSignInIntent, choices = $("#product-wallet-choices");
  choices.replaceChildren(); choices.hidden = false; clearProductPair(); clearNativeStep();
  $("#product-wallet-back").hidden = true;
