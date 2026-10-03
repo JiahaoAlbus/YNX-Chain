@@ -15,6 +15,18 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('completed research must bind the exact submitted strategy ID, not another run with identical parameters',async()=>{
+  const app=harness();await settle();
+  const submitted={strategy:{id:'ma-current-request',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};
+  const result=researchFixture('run-receipt');result.strategy.ID=submitted.strategy.id;
+  app.context.matchResult=result;app.context.matchSubmitted=submitted;
+  assert.equal(vm.runInContext('researchRequestMatches(matchResult,matchSubmitted)',app.context),true);
+  for(const id of [undefined,null,'','ma-other-request']){
+    result.strategy.ID=id;
+    assert.equal(vm.runInContext('researchRequestMatches(matchResult,matchSubmitted)',app.context),false);
+  }
+});
+
 test('typed research HTTP rejection preserves prior results and localizes through all 12 languages without retry',async()=>{
   let rejected=false;
   const app=harness({apiStatus:url=>rejected&&!url.endsWith('/snapshot')?400:200,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:rejected?{error:'invalid_research_parameters',errorId:'fixture-error-id'}:researchFixture('confirmed')});
@@ -129,7 +141,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, apiStatus = () => 2
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-    fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
+fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy && body.strategy.ID === undefined) body = {...body, strategy:{...body.strategy, ID:JSON.parse(options.body).strategy.id}}; const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;

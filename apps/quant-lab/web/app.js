@@ -661,6 +661,7 @@ function researchRequestMatches(result, submitted) {
   // Source/data hashes are computed by the existing market-backed engine; this
   // check is a response consistency fence, not proof of engine/data authenticity.
   return verifiedResearchResult(result) && result.status === "completed_oos" &&
+    result.strategy.ID === submitted.strategy.id &&
     result.strategy.Family === submitted.strategy.family && result.strategy.Seed === submitted.strategy.seed &&
     result.strategy.Params && Object.keys(result.strategy.Params).sort().join(",") === "fast,slow" &&
     ["fast","slow"].every(key => result.strategy.Params[key] === submitted.strategy.params[key]) &&

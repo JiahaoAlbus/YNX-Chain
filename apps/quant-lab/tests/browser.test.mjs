@@ -9,15 +9,18 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
     const respond=async route=>{
       posts++;const submitted=route.request().postDataJSON();
       const assumptions=Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]));
-      if(posts>1)assumptions.FeeBPS++;
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,status:'completed_oos',strategy:{Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
+      if(posts===2)assumptions.FeeBPS++;
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-return').getByText('120 bps',{exact:true}).waitFor();assert.equal(posts,1);
     await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'Research result is unconfirmed'}).waitFor();
     assert.equal(posts,2);assert.equal(await page.locator('#result-return').textContent(),'120 bps');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');
-    await page.waitForTimeout(150);assert.equal(posts,2);assert.equal(context.pages().length,1);
+    await page.waitForTimeout(150);assert.equal(posts,2);
+    const thirdResponse=page.waitForResponse(response=>response.url().endsWith('/backtests/from-market')&&response.request().method()==='POST');
+    await page.locator('#research-submit').click();await thirdResponse;await page.waitForFunction(()=>document.querySelector('#backtest').getAttribute('aria-busy')==='false');
+    assert.equal(posts,3);assert.match(await page.locator('#toast').textContent(),/Research result is unconfirmed/);assert.equal(await page.locator('#result-return').textContent(),'120 bps');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(context.pages().length,1);
     await page.screenshot({path:path.join(evidence,'research-declared-receipt-mismatch.png'),fullPage:true});
   }finally{await context.close()}
 });
@@ -261,7 +264,7 @@ test('early public research retains temporary provenance in the real page throug
     await context.route('**/api/v1/public/research/backtests/from-market',async route=>{
       assert.equal(route.request().method(),'POST');researchStarted();await heldResearch;
       const request=route.request().postDataJSON();
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:1},equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1010,benchmarkEquity:1004},{time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{ID:request.strategy.id,Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:1},equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1010,benchmarkEquity:1004},{time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
