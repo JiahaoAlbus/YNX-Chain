@@ -8,7 +8,8 @@ export default defineConfig({
   timeout: 30_000,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:4315",
+    baseURL: "https://pay.ynxweb4.com",
+    serviceWorkers: "block",
     screenshot: "only-on-failure",
     trace: "retain-on-failure"
   },

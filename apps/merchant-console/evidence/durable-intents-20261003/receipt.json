@@ -1,0 +1,211 @@
+{
+  "schema": "ynx-commerce-merchant-durable-intents/v1",
+  "baseCommit": "387455df0272c0cc74ced8e778676b0d595c800b",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "changes": [
+    "Invoice/catalog/recurring draft/manual webhook retry persist opaque original key and input digest before dispatch. Journal is scoped by account, selected merchant and operation through a hashed namespace.",
+    "An unknown result survives page reload, logout and new authenticated session. Changed inputs cannot issue a replacement request; restoring original inputs retries the exact original key.",
+    "Web Locks serialize admission and bounded dispatch; synchronous approved SDK hashing preserves the pre-await observed intent, so a waiting old attempt cannot create a replacement after confirmation.",
+    "Original request contents are copied in memory before any await. Late account or merchant changes cannot adopt the result or clear its original journal.",
+    "Successful bounded API response clears only its original key; cleanup failure preserves recovery. Private drafts still clear at logout and are never written to the journal.",
+    "Browser tests now run on the registered HTTPS merchant origin intercepted to owned dist, with valid SDK provider announcements and the existing original /merchant/ asset base."
+  ],
+  "verification": {
+    "unit": {
+      "tests": 32,
+      "pass": 32,
+      "fail": 0,
+      "skip": 0
+    },
+    "build": "PASS",
+    "chromium": {
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "scope": "Standard connection uses the actual approved SDK and a software EIP1193 provider. Private business cases use explicitly controlled legacy API/session fixtures; these tests exercise original page behavior and real Web Locks/localStorage, not canonical Merchant membership or public authority."
+    },
+    "initialFailures": "Retained concurrency failure summary, syntax failure log, invalid old controlled merchant ID and omitted display-settings fixture asset failures, screenshots and traces. No production validator or SDK requirement was relaxed."
+  },
+  "acceptance": {
+    "canonicalMerchantMembership": false,
+    "realWallet": false,
+    "publicMerchantBusiness": false,
+    "finalAndroid": false,
+    "finalMacOS": false,
+    "goalComplete": false
+  },
+  "sourcePins": [
+    {
+      "path": "apps/merchant-console/src/app.js",
+      "bytes": 34160,
+      "sha256": "8f11782527cdc603beb62db16f16ac27dbf956c5ba75fb94f9bebab6a47edd9c"
+    },
+    {
+      "path": "apps/merchant-console/src/form-state.js",
+      "bytes": 1288,
+      "sha256": "e2a9e029edc28d1765d169553afc68158683e1a689f016c7a17a25730e2233da"
+    },
+    {
+      "path": "apps/merchant-console/src/mutation-recovery.js",
+      "bytes": 3653,
+      "sha256": "c300365c76e7a2f937af477259d1509c9ec3b7d3aecca21ebdd9c12757dea8c6"
+    },
+    {
+      "path": "apps/merchant-console/test/form-state.test.js",
+      "bytes": 1308,
+      "sha256": "1329bfb3e1e0bf027f39405818e33133cc484e2fe6cab24b6c948e3a84cef6ea"
+    },
+    {
+      "path": "apps/merchant-console/test/mutation-recovery.test.js",
+      "bytes": 5257,
+      "sha256": "76ed4a8dd510c1c7a3f032be480b98d864abc04ade1ebf1511784eec34bcd758"
+    },
+    {
+      "path": "apps/merchant-console/test/browser/wallet-visible.spec.mjs",
+      "bytes": 13911,
+      "sha256": "c583ae1c4c38bdb958dadd6c6c61c94c5a320e9e7d8a7f3dfafda937eb1834a9"
+    },
+    {
+      "path": "apps/merchant-console/playwright.config.mjs",
+      "bytes": 458,
+      "sha256": "094a20c5897eb8307a403645927b50d9e4d95bdfa7d64f98b7d13e52a3dad98a"
+    }
+  ],
+  "ownedSDKArtifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+  "qaBuiltBundle": {
+    "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/dist/app.js",
+    "sha256": "f0c62e984b25dbc6074ba3de676392e0f492c44b4374f8010cc3a4e01137a764"
+  },
+  "evidence": [
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/browser.log",
+      "bytes": 1620,
+      "sha256": "516f12cd9df90f04a669d85ccfc2f03b6b122ab82335a385c6ada3b20cb44596"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/build.log",
+      "bytes": 59,
+      "sha256": "455639f8d6e90adcbea9cb29b3cd58a2baa31385e22479946ff167e6a01ccbd4"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/.last-run.json",
+      "bytes": 292,
+      "sha256": "186d2a9f3d8e76920350668feb9dafc8899d06a394ab0b46303729679aa30baf"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/error-context.md",
+      "bytes": 18687,
+      "sha256": "b10c2b45fc19bb85e7716404c2eb4c4fc9455abd3e1e1db70cf4f0a2f78166ad"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/test-failed-1.png",
+      "bytes": 57661,
+      "sha256": "b662aa582bb6557893508b093e4e43d4eb13a600c7fc8dc904d59b3dd8dd9c86"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/trace.zip",
+      "bytes": 1474053,
+      "sha256": "e98777171c83806e026060032d9b37ec220e6a1c18d81472d26437dcb0f740a4"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/error-context.md",
+      "bytes": 20657,
+      "sha256": "f9d9d7da4aeeb2b9599444aaa77a47af27b505e9b3cb21c9be09a45e81d9e4a7"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/test-failed-1.png",
+      "bytes": 89904,
+      "sha256": "6e3f74289060b35c76ef2e07be01f66eaaf98ea07a64e6dc6406aac9809bb2d1"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/trace.zip",
+      "bytes": 1907031,
+      "sha256": "765dd65b0451392e13a65acef8eec55d4b8428d9ea970fecc5a25cbc36d43f5e"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/error-context.md",
+      "bytes": 5427,
+      "sha256": "7bf367a128032af2b15ade594d462b2ac3bf9aa553ee4a1c63fcf994d1b18a44"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/test-failed-1.png",
+      "bytes": 87591,
+      "sha256": "cad7b947f54584a566ac4a3e72e85448c235a6048a9962ace637a22b76ef0655"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/trace.zip",
+      "bytes": 1561471,
+      "sha256": "5b5ddb73fd293372e399497d756cae4b35e56b288cd64a15b067c93cc31427cc"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/error-context.md",
+      "bytes": 18652,
+      "sha256": "d972950bc0926f9083d0973f8759f0bf43456279eac94ffdd403b09736a8d756"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/test-failed-1.png",
+      "bytes": 67081,
+      "sha256": "a3250fb34a83d0e4d62025a99c6c971e4feffd84bc491d2690c56e40f22beb79"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/trace.zip",
+      "bytes": 1470229,
+      "sha256": "82cc3ab536711bacf55176964610d842e07781de869a9554c75208f76a1b2b22"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/error-context.md",
+      "bytes": 18055,
+      "sha256": "49230485eae33cec571ecf99b129f54dadf81ebf9980992ce37463f0276ce773"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/test-failed-1.png",
+      "bytes": 88023,
+      "sha256": "d5b67234708306f7684bb21923bd0976640ca2a6400969e51104c42be4d24a49"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-artifacts/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/trace.zip",
+      "bytes": 1533822,
+      "sha256": "10c430acda6734ad5f726c07f36b9c82b8ca1f6338a4d7e6684f4603b7d87537"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-fixtures.log",
+      "bytes": 17211,
+      "sha256": "8faa4fb479072fe743ca8296aae95a731ceb3c2c556871facab850d574769487"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-browser-syntax.log",
+      "bytes": 1139,
+      "sha256": "f1f63ef49548971ddabfbeba79735591cec8882b77933e1723769f518fa5d58e"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/initial-concurrency-failure.json",
+      "bytes": 907,
+      "sha256": "3f605e89896cb51a35610b0ce1893923c14cb124c129b2e8b688cf89deaa21f0"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/screenshots/merchant-commerce-mobile-390x844.png",
+      "bytes": 64240,
+      "sha256": "8f7dfc831245526354426facd701a744356144c3cd8f5aa2db03c9e9de021cc8"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/screenshots/merchant-private-controlled-mobile-390x844.png",
+      "bytes": 71626,
+      "sha256": "9ffdf8af6d505337fc7fc14126ef8e1f0c9d7cd38e6bd86febb5f974ef1c234d"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/screenshots/merchant-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 126178,
+      "sha256": "ef0d5168ba73c09b6312db17c98ec4d36b71e7b5bda1f670e37b6c3a188bc9a7"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/screenshots/merchant-wallet-rejected-public-preview-1440x900.png",
+      "bytes": 123348,
+      "sha256": "3b28550a26027be172dca919823dd52e705d1ccc36b66a21a37b895637828478"
+    },
+    {
+      "path": "apps/merchant-console/evidence/durable-intents-20261003/unit.log",
+      "bytes": 3132,
+      "sha256": "a601115f0ccecddd2c6ea28afe1f96ab9bf494cef9dd6edf7f4b326f966475f5"
+    }
+  ]
+}

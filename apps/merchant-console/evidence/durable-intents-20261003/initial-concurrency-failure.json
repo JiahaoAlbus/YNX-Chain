@@ -1,0 +1,22 @@
+{
+  "schema": "ynx-commerce-retained-qa-failure/v1",
+  "attempts": [
+    {
+      "session": 33760,
+      "pid": 58841,
+      "pass": 2,
+      "cancelled": 1,
+      "explicitlyTerminated": true
+    },
+    {
+      "session": 79750,
+      "pid": 59164,
+      "pass": 2,
+      "cancelled": 1,
+      "explicitlyTerminated": true
+    }
+  ],
+  "failure": "Concurrent second execute yielded while asynchronously hashing its namespace. The first confirmation removed the journal before the second admission snapshot; the old attempt could create a replacement key and its controlled response stayed pending.",
+  "correction": "Use the exact approved SDK synchronous httpBodyDigest for namespace and input digests. Read the original admission snapshot before any await, then revalidate under the same Web Lock. A completed or replaced observed intent cannot create a new request.",
+  "finalConcurrencyTest": "PASS"
+}

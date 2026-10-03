@@ -1,38 +1,29 @@
 import {test, expect} from "@playwright/test";
-import {createServer} from "node:http";
 import {mkdir, readFile} from "node:fs/promises";
 import {resolve} from "node:path";
 
-const origin="http://127.0.0.1:4315";
+const origin="https://pay.ynxweb4.com";
 const evidence=resolve("evidence/visible");
 const assets=new Map([
   ["/",["index.html","text/html; charset=utf-8"]],
   ["/index.html",["index.html","text/html; charset=utf-8"]],
   ["/app.js",["app.js","text/javascript; charset=utf-8"]],
+  ["/display-settings.js",["display-settings.js","text/javascript; charset=utf-8"]],
   ["/runtime-config.js",["runtime-config.js","text/javascript; charset=utf-8"]],
   ["/styles.css",["styles.css","text/css; charset=utf-8"]],
   ["/manifest.webmanifest",["manifest.webmanifest","application/manifest+json"]],
   ["/assets/ynx-logo.png",["assets/ynx-logo.png","image/png"]]
 ]);
-let server;
-
-test.beforeAll(async()=>{
-  await mkdir(evidence,{recursive:true});
-  server=createServer(async(req,res)=>{
-    const asset=assets.get(new URL(req.url,origin).pathname);
-    if(!asset){res.writeHead(404,{"content-type":"text/plain"});res.end("not found");return}
-    res.writeHead(200,{"content-type":asset[1],"cache-control":"no-store"});
-    res.end(await readFile(resolve("dist",asset[0])));
-  });
-  await new Promise((resolveListen,reject)=>{server.once("error",reject);server.listen(4315,"127.0.0.1",resolveListen)});
-});
-test.afterAll(async()=>{if(server)await new Promise(resolveClose=>server.close(resolveClose))});
+test.beforeAll(async()=>{await mkdir(evidence,{recursive:true})});
+// Registered HTTPS origin intercepted to owned dist; no live product traffic.
+test.beforeEach(async({page})=>{await page.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!==origin){await route.abort();return}const path=url.pathname.startsWith('/merchant/')?'/'+url.pathname.slice('/merchant/'.length):url.pathname;const asset=assets.get(path);if(!asset){await route.fulfill({status:404,body:'not found'});return}await route.fulfill({contentType:asset[1],body:await readFile(resolve('dist',asset[0]))})})});
 
 async function installProvider(page,{reject=false}={}){
   await page.addInitScript(({reject})=>{
     const provider={
+      isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"},
       async request({method}){
-        if(method==="eth_requestAccounts"){
+        if(method==="eth_requestAccounts"||method==="eth_accounts"){
           if(reject)throw Object.assign(new Error("User rejected the request."),{code:4001});
           return ["0x1111111111111111111111111111111111111111"];
         }
@@ -42,7 +33,7 @@ async function installProvider(page,{reject=false}={}){
       on(){},
       removeListener(){}
     };
-    const detail=Object.freeze({info:Object.freeze({uuid:reject?"merchant-reject":"merchant-approve",name:"YNX Test Wallet",icon:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>",rdns:"com.ynxweb4.wallet.test"}),provider});
+    const detail=Object.freeze({info:Object.freeze({uuid:"11111111-1111-4111-8111-111111111111",name:"YNX Test Wallet",icon:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>",rdns:"com.ynx.wallet"}),provider});
     addEventListener("eip6963:requestProvider",()=>dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail})));
   },{reject});
 }
@@ -85,10 +76,10 @@ test("Commerce roles and original logo remain usable on mobile",async({page})=>{
 // installed Wallet, canonical v2 approval, public service, or true SSO receipt.
 async function installPrivateFixture(page,{role='owner',invoice}={}){
   await page.addInitScript(({role})=>{
-    sessionStorage.setItem('ynx-merchant-id','mrc_qa');sessionStorage.setItem('ynx-merchant-session','controlled-qa-session');sessionStorage.setItem('ynx-merchant-role',role);sessionStorage.setItem('ynx-merchant-account','ynx1'+'q'.repeat(38));
+    sessionStorage.setItem('ynx-merchant-id','mrc_qa_original');sessionStorage.setItem('ynx-merchant-session','controlled-qa-session');sessionStorage.setItem('ynx-merchant-role',role);sessionStorage.setItem('ynx-merchant-account','ynx1'+'q'.repeat(38));
   },{role});
   await page.route('**/runtime-config.js',route=>route.fulfill({contentType:'text/javascript',body:'globalThis.YNX_PAY_API_URL=location.origin;globalThis.YNX_APP_GATEWAY_URL="";'}));
-  const state={merchants:{mrc_qa:{id:'mrc_qa',displayName:'Controlled Merchant',payoutAddress:'ynx1'+'q'.repeat(38)}},invoices:{},audit:[]};
+  const state={merchants:{mrc_qa_original:{id:'mrc_qa_original',displayName:'Controlled Merchant',payoutAddress:'ynx1'+'q'.repeat(38)}},invoices:{},audit:[]};
   await page.route('**/v1/merchant/**',async route=>{
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/invoices')&&invoice){await invoice(route);return}
@@ -108,8 +99,10 @@ test('failed invoice retains input and retry identity; successful invoice keeps 
   await page.getByRole('button',{name:'Create through central Pay API'}).click();
   await expect.poll(()=>requests.length).toBe(2);await expect(page.getByRole('alert')).toBeVisible();expect(requests[1]).toEqual(requests[0]);
   await page.locator('#description').fill('Order 42 revised');await page.getByRole('button',{name:'Create through central Pay API'}).click();
+  await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(requests).toHaveLength(2);
+  await page.locator('#description').fill('Order 42');await page.getByRole('button',{name:'Create through central Pay API'}).click();
   await expect.poll(()=>requests.length).toBe(3);await expect(page.locator('#description')).toHaveValue('');await expect(page.locator('#itemName')).toHaveValue('Keep this catalog draft');
-  expect(requests[2].idempotencyKey).not.toBe(requests[1].idempotencyKey);expect(requests[2].amount).toBe(8);expect(requests[2].tipAmount).toBe(1);expect(requests[2].expiresInMinutes).toBe(30);
+  expect(requests[2]).toEqual(requests[1]);expect(requests[2].amount).toBe(8);expect(requests[2].tipAmount).toBe(1);expect(requests[2].expiresInMinutes).toBe(30);
   await page.getByRole('button',{name:'Overview',exact:true}).first().click();await page.getByRole('button',{name:'Create invoice',exact:true}).click();await expect(page.locator('#itemName')).toHaveValue('Keep this catalog draft');
   await page.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText('Keep this catalog draft')).toHaveCount(0);
   expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();expect(errors).toEqual([]);
@@ -137,4 +130,13 @@ test('authoritative session rejection clears private records and requires new ap
   await installPrivateFixture(page);await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();
   await page.route('**/v1/merchant/state',route=>route.fulfill({status:401,contentType:'application/json',body:'{"error":"Session expired"}'}));
   await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/Your merchant session expired/)).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+});
+
+
+test('reload retains opaque original invoice key and blocks replacement until exact retry',async({page})=>{
+ const sent=[];await installPrivateFixture(page,{invoice:async route=>{sent.push(route.request().postDataJSON());await route.fulfill({status:sent.length===1?503:201,contentType:'application/json',body:sent.length===1?'{"error":"response unknown"}':'{"id":"original-recovered"}'})}});
+ await page.goto('/');await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toBeVisible();
+ const journal=await page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('ynx-merchant-mutation-v1:')));expect(journal).toHaveLength(1);expect(JSON.stringify(journal)).not.toContain('Original invoice');
+ await page.reload();await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Different invoice');await page.locator('#amount').fill('9');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(sent).toHaveLength(1);
+ await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
 });

@@ -2,15 +2,6 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createFormState,localDateTime} from '../src/form-state.js';
 
-test('lost-response retries keep the exact invoice intent; edits and account reset replace it',()=>{
-  const forms=createFormState();const body={description:'Order 42',amount:8,tipAmount:1,expiresInMinutes:30};
-  const first=forms.intent('invoice-form',body);
-  assert.deepEqual(forms.intent('invoice-form',{...body}),first);
-  assert.notEqual(forms.intent('invoice-form',{...body,amount:9}).idempotencyKey,first.idempotencyKey);
-  forms.clear();assert.notEqual(forms.intent('invoice-form',body).idempotencyKey,first.idempotencyKey);
-  assert.deepEqual(body,{description:'Order 42',amount:8,tipAmount:1,expiresInMinutes:30});
-});
-
 test('form drafts survive replacement while acknowledgement resets only its form',()=>{
   const forms=createFormState();
   const form=(id,name,value)=>{const field={name,value};const elements=[field];elements.namedItem=key=>key===name?field:null;return{id,elements,reset(){field.value=''}}};

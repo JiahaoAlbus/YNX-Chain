@@ -1,0 +1,15 @@
+SyntaxError: /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/browser/wallet-visible.spec.mjs: Unexpected token (142:0)
+
+  140 |  await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
+  141 | });
+> 142 |
+      | ^
+
+   at wallet-visible.spec.mjs:142
+
+  140 |  await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
+  141 | });
+> 142 |
+    at eval (<anonymous>:1:1)
+Error: No tests found
+

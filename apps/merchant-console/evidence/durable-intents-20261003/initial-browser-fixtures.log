@@ -1,0 +1,183 @@
+
+Running 9 tests using 1 worker
+
+(node:61728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/wallet-visible.spec.mjs:40:1 › approved deterministic YNX Wallet keeps public preview and private service separated (811ms)
+(node:61735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › test/browser/wallet-visible.spec.mjs:57:1 › rejected deterministic Wallet creates no account and public preview remains available (595ms)
+(node:61740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › test/browser/wallet-visible.spec.mjs:72:1 › Commerce roles and original logo remain usable on mobile (213ms)
+  ✘  4 [chromium] › test/browser/wallet-visible.spec.mjs:90:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft (5.2s)
+(node:61763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › test/browser/wallet-visible.spec.mjs:110:1 › logout during a mutation never restores private workspace from its late response (30.1s)
+(node:61936) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 [chromium] › test/browser/wallet-visible.spec.mjs:118:1 › viewer overview hides invoice creation and merchant forms (164ms)
+  ✓  7 [chromium] › test/browser/wallet-visible.spec.mjs:122:1 › authenticated mobile navigation reaches settings without document overflow (286ms)
+  ✓  8 [chromium] › test/browser/wallet-visible.spec.mjs:128:1 › authoritative session rejection clears private records and requires new approval (424ms)
+  ✘  9 [chromium] › test/browser/wallet-visible.spec.mjs:135:1 › reload retains opaque original invoice key and blocks replacement until exact retry (386ms)
+
+
+  1) [chromium] › test/browser/wallet-visible.spec.mjs:40:1 › approved deterministic YNX Wallet keeps public preview and private service separated 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    + ]
+
+      52 |   await expect(page.getByText("Public capability preview")).toBeVisible();
+      53 |   await page.screenshot({path:resolve(evidence,"merchant-wallet-approved-private-degraded-1440x900.png"),fullPage:true});
+    > 54 |   expect(errors).toEqual([]);
+         |                  ^
+      55 | });
+      56 |
+      57 | test("rejected deterministic Wallet creates no account and public preview remains available",async({page})=>{
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/browser/wallet-visible.spec.mjs:54:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/wallet-visible.spec.mjs:57:1 › rejected deterministic Wallet creates no account and public preview remains available 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    + ]
+
+      67 |   await expect(page.getByText("Public capability preview")).toBeVisible();
+      68 |   await page.screenshot({path:resolve(evidence,"merchant-wallet-rejected-public-preview-1440x900.png"),fullPage:true});
+    > 69 |   expect(errors).toEqual([]);
+         |                  ^
+      70 | });
+      71 |
+      72 | test("Commerce roles and original logo remain usable on mobile",async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('navigation',{name:'Commerce'})).toBeVisible();await expect(page.getByRole('link',{name:'Merchant invoices'})).toHaveAttribute('aria-current','page');await expect(page.locator('.auth-mark img')).toBeVisible();expect(await page.locator('.auth-mark img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:resolve(evidence,'merchant-commerce-mobile-390x844.png'),fullPage:true})});
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/browser/wallet-visible.spec.mjs:69:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/wallet-visible.spec.mjs:90:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 0
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+       97 |   await expect(page.getByRole('alert')).toBeVisible();await expect(page.locator('#description')).toHaveValue('Order 42');await expect(page.locator('#amount')).toHaveValue('8');await expect(page.locator('#tipAmount')).toHaveValue('1');
+       98 |   await page.getByRole('button',{name:'Create through central Pay API'}).click();
+    >  99 |   await expect.poll(()=>requests.length).toBe(2);await expect(page.getByRole('alert')).toBeVisible();expect(requests[1]).toEqual(requests[0]);
+          |                                          ^
+      100 |   await page.locator('#description').fill('Order 42 revised');await page.getByRole('button',{name:'Create through central Pay API'}).click();
+      101 |   await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(requests).toHaveLength(2);
+      102 |   await page.locator('#description').fill('Order 42');await page.getByRole('button',{name:'Create through central Pay API'}).click();
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/browser/wallet-visible.spec.mjs:99:42
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/wallet-visible.spec.mjs:110:1 › logout during a mutation never restores private workspace from its late response 
+
+    Test timeout of 30000ms exceeded.
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › test/browser/wallet-visible.spec.mjs:135:1 › reload retains opaque original invoice key and blocks replacement until exact retry 
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      136 |  const sent=[];await installPrivateFixture(page,{invoice:async route=>{sent.push(route.request().postDataJSON());await route.fulfill({status:sent.length===1?503:201,contentType:'application/json',body:sent.length===1?'{"error":"response unknown"}':'{"id":"original-recovered"}'})}});
+      137 |  await page.goto('/');await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toBeVisible();
+    > 138 |  const journal=await page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('ynx-merchant-mutation-v1:')));expect(journal).toHaveLength(1);expect(JSON.stringify(journal)).not.toContain('Original invoice');
+          |                                                                                                                                                   ^
+      139 |  await page.reload();await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Different invoice');await page.locator('#amount').fill('9');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(sent).toHaveLength(1);
+      140 |  await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
+      141 | });
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/browser/wallet-visible.spec.mjs:138:147
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › test/browser/wallet-visible.spec.mjs:40:1 › approved deterministic YNX Wallet keeps public preview and private service separated 
+    [chromium] › test/browser/wallet-visible.spec.mjs:57:1 › rejected deterministic Wallet creates no account and public preview remains available 
+    [chromium] › test/browser/wallet-visible.spec.mjs:90:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft 
+    [chromium] › test/browser/wallet-visible.spec.mjs:110:1 › logout during a mutation never restores private workspace from its late response 
+    [chromium] › test/browser/wallet-visible.spec.mjs:135:1 › reload retains opaque original invoice key and blocks replacement until exact retry 
+  4 passed (41.4s)

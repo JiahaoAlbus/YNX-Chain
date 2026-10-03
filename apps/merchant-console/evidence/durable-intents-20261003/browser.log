@@ -1,0 +1,16 @@
+
+Running 9 tests using 1 worker
+
+(node:64804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated (636ms)
+  ✓  2 [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available (492ms)
+  ✓  3 [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile (156ms)
+  ✓  4 [chromium] › test/browser/wallet-visible.spec.mjs:91:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft (719ms)
+  ✓  5 [chromium] › test/browser/wallet-visible.spec.mjs:111:1 › logout during a mutation never restores private workspace from its late response (260ms)
+  ✓  6 [chromium] › test/browser/wallet-visible.spec.mjs:119:1 › viewer overview hides invoice creation and merchant forms (108ms)
+  ✓  7 [chromium] › test/browser/wallet-visible.spec.mjs:123:1 › authenticated mobile navigation reaches settings without document overflow (257ms)
+  ✓  8 [chromium] › test/browser/wallet-visible.spec.mjs:129:1 › authoritative session rejection clears private records and requires new approval (218ms)
+  ✓  9 [chromium] › test/browser/wallet-visible.spec.mjs:136:1 › reload retains opaque original invoice key and blocks replacement until exact retry (496ms)
+
+  9 passed (3.8s)
