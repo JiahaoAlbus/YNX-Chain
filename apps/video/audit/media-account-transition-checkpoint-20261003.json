@@ -1,0 +1,99 @@
+{
+  "schema": "ynx.media.account-transition.freeze.v1",
+  "createdAt": "2026-10-03T15:33:59.750644+00:00",
+  "sourceCommit": "85c0fe553be4b91e0b693f6fadac7d87e9f92f1d",
+  "sourceTree": "9d1d1662df218a2c6d66ef5c423e8bdedfb35994",
+  "previousFreeze": {
+    "path": "apps/video/audit/media-web-browser-identity-checkpoint-20261003.json",
+    "bytes": 116644,
+    "sha256": "aa0f1eed58f57eebd41e9bc87928c1fafeb41aec68a123581ca1ee3cbbe402cb"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/media-account-transition-20261003/media-owned-source-85c0fe55.tar.gz",
+    "bytes": 3701826,
+    "sha256": "92539cc4cf9eca2e60c1c27dc73a54db1c8580daabe9001a18a68030f14483f7",
+    "fileCount": 551,
+    "everyMemberGitByteExact": true
+  },
+  "videoWeb": {
+    "path": "apps/video/audit/evidence/media-account-transition-20261003/video-web-85c0fe55.tar.gz",
+    "bytes": 632106,
+    "sha256": "938cfbda05eaeca173f9047f3bc41cae13aeb4d62d144a6104da6251d3b574d0"
+  },
+  "creatorWeb": {
+    "path": "apps/video/audit/evidence/media-account-transition-20261003/creator-web-85c0fe55.tar.gz",
+    "bytes": 638048,
+    "sha256": "b94994e976d232807b9384579dafb442ea171938e1ed50ffe797ae90e5a5be68"
+  },
+  "checks": {
+    "video": {
+      "passed": 171,
+      "failed": 0
+    },
+    "creator": {
+      "passed": 75,
+      "failed": 0
+    },
+    "originalProtectedBrowserAndCombinedBusiness": {
+      "race": "PASS",
+      "vet": "PASS",
+      "scope": "TestVideoCreatorProtectedBrowserAndOriginalBusiness only",
+      "inputPins": 451,
+      "mediaPinsVerifiedAgainstSourceCommit": 407,
+      "oldPrivateAuthorizationRetiredBeforeSiteSignIn": true,
+      "freshApprovalKeepsOriginalDeviceAndKey": true,
+      "newSessionBinding": true,
+      "sameAccountOnly": true
+    }
+  },
+  "notVerified": [
+    "actual two-person account switch",
+    "real Wallet consent",
+    "production Host mounting",
+    "production same-own business",
+    "iOS Xcode build and signing",
+    "macOS native product"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/combined-go-race.jsonl",
+      "bytes": 5038,
+      "sha256": "2934b518cf79b52d6781de95d11d8a58488e3071d86938bcb07467a438b40200"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/combined-source-receipt.json",
+      "bytes": 113877,
+      "sha256": "b06e54f8de0155924488d22eb364c33ee0964585d447bfae4fad6e570745532e"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/creator-check-final.txt",
+      "bytes": 7055,
+      "sha256": "ad45df6a5ee030ce1db82a58876b63c7364ebe0c4248d53fbe645d87f9938f11"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/qa-creator-studio-normal-product-390.png",
+      "bytes": 80708,
+      "sha256": "314f8c648807c5fa0a1f01b5e42102675541557d102f1ffaa9ceb5c7092c14d7"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/qa-video-normal-product-390.png",
+      "bytes": 67213,
+      "sha256": "74d1692f8d674749cbba36a56f08362ab96aa971d60520ed1ceb80e7364979ee"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/video-check-failed-fixture.txt",
+      "bytes": 29481,
+      "sha256": "43fa07336d211b3f2de8c950b25dd3856e4e2ad05ab606a3ed4f97280881e565"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-account-transition-20261003/video-check-final.txt",
+      "bytes": 18753,
+      "sha256": "2037c5c46c12ba19ae6b4f8e948b35a610dda5f834bcd846c3ec2c7fe17cced7"
+    }
+  ]
+}

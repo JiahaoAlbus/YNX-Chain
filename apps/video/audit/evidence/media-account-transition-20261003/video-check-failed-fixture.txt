@@ -1,0 +1,317 @@
+
+> check
+> node --check display-settings.js && node --check browser-identity.js && node --check app.js && node --check business-identity.js && node --check business-wire.js && node --check product-session.js && node --check video-api.js && node --check watch-progress.js && node --check wallet-callback.js && node --check i18n.js && node --check wallet-connection.js && node --check ynx-dapp-connect-sdk/provider.js && node --check scripts/verify-public-browser.mjs && node --check scripts/video-retained-evidence-guard.mjs && node --check scripts/video-retained-takeover-transport.mjs && bash -n scripts/video-retained-takeover-preflight.sh scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh && node --test browser-identity.test.mjs business-identity.test.mjs business-wire.test.mjs connection-attempt.test.mjs watch-progress.test.mjs guest-navigation.test.mjs i18n-navigation.test.mjs product-session.test.mjs provider-signin.test.mjs session-boundaries.test.mjs app.test.mjs runtime.test.mjs controlled-takeover.test.mjs retained-evidence-guard.test.mjs retained-takeover-transport.test.mjs retained-takeover-preflight.test.mjs emergency-recovery.test.mjs browser-acceptance.test.mjs && node i18n-check.mjs
+
+✔ removed or absent Wallet cannot reject guest startup (4.576167ms)
+✔ restore binds provider method receiver and performs read-only calls (1.313417ms)
+✔ same-label replacement provider is not silently restored (1.656ms)
+✔ locked, switched-account and wrong-chain providers leave restore disconnected (4.217417ms)
+✔ stalled and rejected provider reads cannot indefinitely block guest startup (7.532208ms)
+✔ viewer exposes complete truthful interaction paths (3.120708ms)
+✔ accepted browser-safe SDK modules remain byte exact (6.151708ms)
+✔ Video has one strict 6423 Testnet configuration and excludes legacy ingress (2.820667ms)
+✔ YNX EIP-6963 provider is preferred and switches to 0x1917 (3.24975ms)
+✔ missing Wallet fails with exact official installation choices (1.511ms)
+✔ late YNX and MetaMask providers remain distinct without requesting accounts (21.162125ms)
+✔ late root injection and no-provider state are classified without navigation (22.735958ms)
+✔ public browser acceptance is source-bound and non-sensitive (62.381667ms)
+✔ video original browser csrf accompanies independent private SDK proof (24.432458ms)
+✔ creator-studio original browser csrf accompanies independent private SDK proof (1.274541ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (0.565625ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":true} (0.342ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (0.700042ms)
+✔ unmatched or invalid browser identity cannot initiate private signing ],"csrfToken":"bad","privateWorkspaceAuthorized":false} (0.944709ms)
+✔ unmatched or invalid browser identity cannot initiate private signing paceAuthorized":false,"grantToken":"must-never-return"} (1.948791ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (0.305416ms)
+✔ browser status alone never returns a private proof or csrf to UI (1.247083ms)
+✔ late browser status and late private signing are fenced by original identity revision (1.212542ms)
+✔ authority outage and declined identity preserve private signing capability without calling it (0.500333ms)
+✔ explicit browser sign in uses exact product target and never an external return URL (0.195833ms)
+✔ site logout reads original csrf then requires actual server revocation acknowledgement (0.61625ms)
+✔ foreign origin and redirected status never attach browser csrf or invoke signing (0.273125ms)
+✔ browser expiry withdraws original private UI authority without renewing either session (101.267917ms)
+✔ Video private identity requires original account readback, not approved session alone (1.001041ms)
+✔ mismatched business account and unsupported response cannot enable private identity (0.56875ms)
+✔ late A readback after B verification or disconnect cannot publish A identity (0.139708ms)
+✔ concurrent replacement retains B identity when A returns last (0.130834ms)
+✔ expiry during await or changed session binding invalidates business confirmation (0.12875ms)
+✔ actual upload multipart serialization signs exact final bytes and preserves its boundary (24.529917ms)
+✔ large complete multipart uses digest commitment, never expanded JSON (29.627459ms)
+✔ asset route caps, invalid body and abort fail before sign (1.677291ms)
+✔ legacy SDK cannot silently substitute introspection for body proof (0.076709ms)
+✔ Video immutable byte snapshot and stable idempotency survive retry with fresh action proofs (1.31125ms)
+✔ Video transport invokes synchronously, releases cancelled and late connections, and rejects late identity (3.344292ms)
+✔ Video real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15000.259709ms)
+✔ Creator Studio transport invokes synchronously, releases cancelled and late connections, and rejects late identity (0.530292ms)
+✔ Creator Studio real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15007.776834ms)
+✔ controlled takeover freezes predecessor, switches once, and restores a verified legacy successor (3076.25275ms)
+✔ controlled takeover failure at stop preserves or restores exact legacy service (1668.650583ms)
+✔ controlled takeover failure at port preserves or restores exact legacy service (2189.837125ms)
+✔ controlled takeover failure at bootstrap preserves or restores exact legacy service (2473.920625ms)
+✔ controlled takeover failure at post preserves or restores exact legacy service (2604.048209ms)
+✔ controlled takeover lock rejects a concurrent executor before service mutation (615.946ms)
+✔ controlled takeover rejects retained evidence foreign sibling before lifecycle or deletion (535.589584ms)
+✔ controlled takeover rejects retained evidence same-byte replacement before lifecycle or deletion (548.7125ms)
+✔ controlled takeover rejects retained evidence symlink replacement before lifecycle or deletion (536.2785ms)
+✔ controlled takeover rejects retained evidence hardlink replacement before lifecycle or deletion (552.732083ms)
+✔ controlled takeover rejects retained evidence directory-only sibling before lifecycle or deletion (530.57225ms)
+✔ controlled takeover rejects a post-validation retained evidence race before lifecycle or receipt creation (856.245292ms)
+✔ emergency recovery atomically restores only legacy apps/video (1618.09875ms)
+✔ failed emergency recovery removes only the exact new subtree (1625.380708ms)
+✔ failed emergency recovery refuses to delete a same-byte replacement inode (1451.234ms)
+✔ actual shell transport preserves a link tuple containing spaces (1468.720667ms)
+✔ opening a video deep link also loads the catalog so closing returns to usable content (8.07675ms)
+✔ a late translation apply cannot replace the actual channel heading with Discover (1.313917ms)
+✔ deep-link playback starts while the catalog is pending and closing recovers when it arrives (0.941917ms)
+✔ channel navigation ends its own loading state and ignores an older catalog response (0.897792ms)
+✔ a failed channel request clears loading without letting a late error replace a newer view (1.526333ms)
+✔ two tabs showing Subscribe both set the desired state instead of undoing each other (2.356625ms)
+✔ an older subscription read cannot replace the result of a newer explicit action (0.596ms)
+✔ sign-out immediately hides private library while revoke is pending, and a late restore cannot reconnect (2.69825ms)
+✔ a late private playlist response cannot reopen its picker after sign-out (2.607958ms)
+✔ restored pending logout has only explicit retry and never starts new approval (1.252459ms)
+✔ a sign-in racing initial restore still exposes SDK pending logout retry (1.036958ms)
+✔ a browser launch route is an unsigned guest request, not proof that the native Wallet is absent (1.519ms)
+✔ a confirmed sign-out and subsequent browser restore keep retry and sign-out controls hidden (0.568416ms)
+✔ actual network failures and revocation intents retain explicit retry even beside a native detection route (0.906166ms)
+✔ a recoverable sign-in error opens the chooser and the selected native request has its own launch link (0.826834ms)
+✔ original BrowserSSO hash landing resumes only an existing Video page (0.466667ms)
+✔ site account login waits for original private retirement and rejects duplicate account actions (0.544375ms)
+✔ unconfirmed original Video retirement blocks site login and site logout (1.735833ms)
+✔ language selection updates an existing URL override to en without losing the video deep link (0.827042ms)
+✔ language selection updates an existing URL override to zh-CN without losing the video deep link (0.411667ms)
+✔ language selection updates an existing URL override to zh-TW without losing the video deep link (0.2995ms)
+✔ language selection updates an existing URL override to ja without losing the video deep link (0.115708ms)
+✔ language selection updates an existing URL override to ko without losing the video deep link (0.116875ms)
+✔ language selection updates an existing URL override to es without losing the video deep link (1.017709ms)
+✔ language selection updates an existing URL override to fr without losing the video deep link (0.276792ms)
+✔ language selection updates an existing URL override to de without losing the video deep link (0.177292ms)
+✔ language selection updates an existing URL override to pt without losing the video deep link (0.240416ms)
+✔ language selection updates an existing URL override to ru without losing the video deep link (0.7265ms)
+✔ language selection updates an existing URL override to ar without losing the video deep link (0.163125ms)
+✔ language selection updates an existing URL override to id without losing the video deep link (0.103916ms)
+✔ Video uses the frozen browser SDK with exact Video registration and honest browser storage (6.256542ms)
+✔ product preparation protects pending request before explicit link and never asserts installation (1.6265ms)
+✔ wrong web origin stops before registry, SDK initialization and Gateway requests (0.356167ms)
+✔ callback, restore and disconnect use SDK authority while private scopes remain route specific (0.58575ms)
+✔ Video scope allowlist rejects Creator reads, moderation and unknown mutation paths (0.828666ms)
+✔ public API starts without awaiting or attaching a Product Session (24.040542ms)
+✔ network retry generates fresh device proof with stable idempotency key and immutable body (0.455875ms)
+✔ private credentials never go to an overridden origin and rejected authority clears private UI (0.276541ms)
+✔ watch progress excludes guest playback and seeking; failed persistence retains real elapsed time (0.512042ms)
+✔ preparation retains the SDK pending logout state so the UI can expose explicit retry (0.318667ms)
+✔ native resume never re-prepares before callback storage exists; matched state still requires SDK restore (0.462417ms)
+✔ Video dispatches exact V2 URL and accepts only SDK-verified product return (0.758791ms)
+✔ Video cancelled preparation never opens approval; late approval cannot consume callback (1.54175ms)
+✔ Video rejects malformed return and allows explicit retry after rejection (0.182041ms)
+✔ Creator dispatches exact V2 URL and accepts only SDK-verified product return (0.124709ms)
+✔ Creator cancelled preparation never opens approval; late approval cannot consume callback (0.409542ms)
+✔ Creator rejects malformed return and allows explicit retry after rejection (0.097459ms)
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (0.80275ms)
+✖ Video choose-another and account-change discard a late approval without private activation (0.108375ms)
+✔ Video cancellation during SDK completion revokes the persisted late session before flight release (2.511167ms)
+✔ Video failed cancellation keeps revocation pending, never reports a connected return (0.718541ms)
+✔ Creator cancellation during SDK completion revokes the persisted late session before flight release (1.029458ms)
+✔ Creator failed cancellation keeps revocation pending, never reports a connected return (0.422667ms)
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.604208ms)
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.338ms)
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.450916ms)
+✖ Video without an injected extension still offers Web, phone and native choices (0.211458ms)
+✖ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (0.645833ms)
+✖ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.266458ms)
+✖ Video unknown wallet failures do not expose internal exception text (0.091833ms)
+✖ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.106125ms)
+✖ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.100333ms)
+✖ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.089ms)
+✖ Video focus before native callback completion stays waiting, not a network error (0.065375ms)
+✖ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (1.922959ms)
+✖ Video empty library Go to sign in opens chooser in one click and closes player overlays (1.034333ms)
+✔ Video top connected account entry retains account focus without opening a new sign-in (0.1005ms)
+ℹ Error: Test "Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent" at provider-signin.test.mjs:146:1 generated asynchronous activity after the test ended. This activity created the error "ReferenceError: siteAccountBusy is not defined" and would have caused the test to fail, but instead triggered an unhandledRejection event.
+✔ retained evidence exact inventory is readable (13.4095ms)
+▶ foreign sibling, replacement, symlink, hardlink and directory-only mutations preserve all retained entries
+  ✔ foreign sibling (4.426708ms)
+  ✔ same-byte replacement inode (11.867083ms)
+  ✔ symlink replacement (5.433917ms)
+  ✔ hardlink replacement (3.759333ms)
+  ✔ directory-only sibling (3.842625ms)
+✔ foreign sibling, replacement, symlink, hardlink and directory-only mutations preserve all retained entries (30.293666ms)
+✔ preflight captures one byte-preserving HTTP response for bytes, SHA and base64 (272.546291ms)
+✔ preflight canonical base64 preserves an embedded NUL byte (262.977833ms)
+✔ transport places exact three-object carrier, observes it and cleans only its root (21.724625ms)
+✔ transport placement failure removes only its exact stage and preserves parent siblings (6.501875ms)
+✔ transport prewrite failure removes only its exact stage and preserves parent siblings (8.535583ms)
+✔ transport refuses cleanup before deleting owned bytes when a foreign stage child appears (8.645333ms)
+✔ transport refuses cleanup before deleting anything after a same-byte inode replacement (6.594084ms)
+✔ runtime topology isolates Viewer 6494 from API 6493 and Creator 6495 (0.640875ms)
+✔ post-P0-239 recovery baseline freezes exact legacy rollback and isolated successor topology (0.653375ms)
+✔ self-contained server serves the public /video path without a shared release symlink (82.109208ms)
+✔ same-origin API proxy preserves queries, media ranges and unavailable state (66.765458ms)
+✔ API proxy refuses a non-loopback upstream (51.775375ms)
+✔ runtime carrier rebuild is byte-identical and normalized (1069.886625ms)
+✔ actual shell deploy and rollback touch only isolated Viewer binding (1674.8165ms)
+✔ post-switch Viewer failure automatically restores the exact predecessor and preserves API and Creator (1613.705167ms)
+✔ executor refuses the shared Video current path (3.361792ms)
+✔ actual shell bootstrap creates an absent dedicated predecessor, supports switch rollback, and removes only its own state (2478.996167ms)
+✔ failed first bootstrap returns dedicated root and unit to exact absence (1050.381375ms)
+✔ account changes during proof generation prevent a private mutation from reaching the service (12.165667ms)
+✔ an old 401 arriving after a new account cannot invalidate the new account (3.173625ms)
+✔ video callback resumes the original view only for the matching verified session (1.5245ms)
+✔ creator-studio callback resumes the original view only for the matching verified session (0.206875ms)
+✔ cross-tab hints deduplicate the two browser transports and contain no account or proof (0.527208ms)
+✔ cancellation settles an uncooperative private authorization without emitting a request (0.234625ms)
+✔ cancellation settles an uncooperative network without invalidating another account (0.22675ms)
+✔ cancellation settles an uncooperative body without invalidating another account (0.157458ms)
+✔ the complete Video request has the real 15 second authority deadline (15001.49425ms)
+✔ unbounded responses and foreign response locations are rejected before use (3.002209ms)
+✔ only original private Video requests carry same-origin cookies alongside fresh SDK proof (4.447833ms)
+✔ ending during a pending ordinary flush persists completion for the same playback exactly once (2.657ms)
+✔ a lost response after service commit reuses the exact mutation across API retries and later flushes (15.861875ms)
+✔ an unreadable success response retains the same batch until a valid acknowledgement (1.052ms)
+✔ failed completion retains its immutable zero-second batch and key for retry (0.396625ms)
+✔ discard while a request is pending cancels queued completion and never restores accumulated playback (0.602042ms)
+✔ guests, seeking and unobserved time cannot create completion records (0.113917ms)
+✔ long playback automatically saves two observed checkpoints as one playback with separate batches (1.667792ms)
+✔ automatic failures are throttled by newly observed playback and retry the immutable batch (1.093791ms)
+✔ discard prevents periodic work and suppresses an older automatic failure (0.999375ms)
+✔ a retained automatic failure cannot retry from paused playback or seeking (1.968416ms)
+ℹ tests 171
+ℹ suites 0
+ℹ pass 156
+ℹ fail 15
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30113.375
+
+✖ failing tests:
+
+test at provider-signin.test.mjs:53:1
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (0.80275ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:55:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at provider-signin.test.mjs:58:1
+✖ Video choose-another and account-change discard a late approval without private activation (0.108375ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:62:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:85:1
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.604208ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:88:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:90:1
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.338ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:95:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:98:1
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.450916ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:100:103)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:103:1
+✖ Video without an injected extension still offers Web, phone and native choices (0.211458ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:104:183)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:107:1
+✖ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (0.645833ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:110:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:119:1
+✖ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.266458ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:121:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:124:1
+✖ Video unknown wallet failures do not expose internal exception text (0.091833ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:125:128)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:128:1
+✖ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.106125ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:130:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:133:1
+✖ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.100333ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:134:391)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:138:1
+✖ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.089ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:139:374)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:142:1
+✖ Video focus before native callback completion stays waiting, not a network error (0.065375ms)
+  ReferenceError: siteAccountBusy is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:143:269)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at provider-signin.test.mjs:146:1
+✖ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (1.922959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:148:54)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at provider-signin.test.mjs:152:1
+✖ Video empty library Go to sign in opens chooser in one click and closes player overlays (1.034333ms)
+  ReferenceError: siteAccountBusy is not defined
+      at prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:69:2)
+      at Element.focusSignIn [as onclick] (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:50:25), <anonymous>:14:74)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:153:154)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
