@@ -1,0 +1,20 @@
+PASS initial null-account context stays original
+PASS cold restore retains original device and generation
+PASS wrong product key refused
+PASS original null-target intent persisted
+PASS same intent may acquire its original verified target
+PASS new intent cannot overwrite original target
+PASS negative authority refuses OS opening
+PASS only persisted original revoke target releases unchanged signing bytes
+PASS logout blocks business before signer
+PASS wrong account revoke refused before signer
+PASS denials never reach signer
+PASS old-target cleanup preserves newer grant and pending record
+PASS old intent cleanup cannot repeat
+PASS changed generation fences old context
+PASS explicit public account selection increments generation
+PASS failed durable write rejected
+PASS uncertain write poisons live runtime
+PASS iOS tuple cannot claim registered macOS grant
+PASS Foundation floating values cannot silently alter signed protocol bytes
+19 original-source state checks PASS; controlled persistence/signer only, no device or Wallet approval

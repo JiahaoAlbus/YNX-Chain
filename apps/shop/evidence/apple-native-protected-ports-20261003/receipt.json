@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "baseCommit": "3babddc87c4dd1cda33ffac5413df082a321e828",
+  "scope": "Owned macOS protected Native runtime ports in inherited Apple source",
+  "sdkArtifactSha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82",
+  "verification": {
+    "actualStateAndEnclavePortSourceCompile": "PASS",
+    "controlledStateChecks": 19,
+    "actualAdoptedSdkScopeAndCanonicalInterop": "PASS",
+    "xcodeProjectPlistLint": "PASS",
+    "sourceDiffCheck": "PASS"
+  },
+  "boundaries": [
+    "Only registered macOS bundle com.ynxweb4.shop; unregistered iOS denied",
+    "Secure Enclave P256 no software private key fallback or export",
+    "Independent strict Keychain service with DeviceOnly protection, absent/error separated",
+    "Single snapshot durable write/readback, uncertain live state poisoned",
+    "Stable null-account context; generation advances only explicit public selection",
+    "Exact original revocation scope/intent/target and newer-record preservation",
+    "Original canonical signing bytes; only persisted original-target revoke signs after negative authority",
+    "Legacy Apple Wallet records and order/invoice recovery remain unchanged"
+  ],
+  "harness": "Original source compiled against minimal ShopError enum shim; controlled persistence and signer receipt, no real signature/Wallet authority",
+  "sourceSha256": {
+    "state": "68b07c964fbc7b1bd26eab9fc4281431cd53892e88fded781a79b5d97460ad6e",
+    "runtime": "4ffbaf2e10d249f030779d763c000479c3177e6fbaa50795f10e8172d934e7bd"
+  },
+  "notVerified": [
+    "Actual Secure Enclave/Keychain device behavior",
+    "Native SDK bridge and Apple WalletAuth/API wiring remain next owned implementation",
+    "Full SwiftUI app build and macOS target/release",
+    "Wallet approval/return/cold recovery/server revoke/private business/public install"
+  ]
+}
