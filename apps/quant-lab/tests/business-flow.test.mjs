@@ -399,7 +399,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, rawSnapshot = false
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, TextDecoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
-    localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
+    localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {if(storageBoundary?.('remove',key)!==false)storage.delete(key)}},
 fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)};
     if (url.endsWith('/backtests/from-market') && body?.strategy) {
       const research=JSON.parse(options.body);
@@ -1246,6 +1246,21 @@ test('Paper refuses unsafe numeric amounts before creating an intent or making a
   }
   assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 0);
   assert.equal([...app.storage.keys()].some(key => key.startsWith('ynx.quant.paper.pending.v1:')), false);
+});
+
+test('Paper acknowledgement cannot silently forget a pending intent when durable removal fails',async()=>{
+  for(const outcome of ['recorded','rejected'])for(const mode of ['silent','throw']){
+    const hash='d'.repeat(64),workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+    const app=harness({snapshot:workspace,confirmAction:()=>true,storageBoundary(operation,key){if(operation==='remove'&&key.startsWith('ynx.quant.paper.pending')){if(mode==='throw')throw Error('Storage removal unavailable');return false}},apiStatus:url=>url.endsWith('/paper/orders')&&outcome==='rejected'?400:200,apiResponse:(url,options)=>url.endsWith('/snapshot')?workspace:outcome==='rejected'?{error:'invalid_request'}:{...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:100}),...JSON.parse(options.body)}});
+    await settle();app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';await app.submit('paper-order');
+    const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.paper.pending'));assert.ok(key);
+    const durable=JSON.parse(app.storage.get(key));
+    assert.equal(vm.runInContext('workspaceStorageAvailable',app.context),false,`${outcome}/${mode}: failed removal must close stateful actions`);
+    assert.equal(vm.runInContext('pendingPaperIntent?.IdempotencyKey',app.context),durable.IdempotencyKey,'memory must not pretend the persisted intent is gone');
+    assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(app.ids.get('workspace-storage-boundary').hidden,false);
+    await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.url.endsWith('/paper/orders')).length,1);
+    assert.equal(app.proofs(),0);
+  }
 });
 
 test('only complete consistent Paper receipts acknowledge recorded orders; malformed 200 retains intent',async()=>{

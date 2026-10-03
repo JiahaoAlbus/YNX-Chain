@@ -271,6 +271,25 @@ test('actual Chrome keeps a malformed Paper receipt pending and retries only the
     assert.match(await page.locator('#paper-record-rows').textContent(),/1200000 \/ 100 \/ 100/);assert.equal(await page.locator('#paper-record-status').textContent(),'');
   }finally{await context.close()}
 });
+test('actual Chrome blocks fresh Paper intent after silent pending removal failure and reload keeps exact retry',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const hash='d'.repeat(64),bodies=[],errors=[];
+    await context.addInitScript(()=>{const remove=Storage.prototype.removeItem;Storage.prototype.removeItem=function(key){if(String(key).startsWith('ynx.quant.paper.pending.v1:'))return;return remove.call(this,key)}});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/paper/orders',route=>{
+      const submitted=route.request().postDataJSON();bodies.push(submitted);
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ID:'paper-000042',...submitted,Price:1200000,Filled:submitted.Amount,Status:'filled',Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'})});
+    });
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.locator('#paper-amount').fill('100');
+    const submit=async()=>{const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await(await dialog).accept();await click;await page.getByText('Simulated order recorded',{exact:true}).waitFor();await page.locator('#workspace-storage-boundary').waitFor()};
+    await submit();assert.equal(bodies.length,1);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    const saved=await page.evaluate(()=>({memory:pendingPaperIntent,raw:localStorage.getItem(paperPendingKey)}));assert.deepEqual(JSON.parse(saved.raw),saved.memory);assert.deepEqual(saved.memory,bodies[0]);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.equal(bodies.length,1,'reload must not submit an order');
+    assert.deepEqual(await page.evaluate(()=>pendingPaperIntent),bodies[0]);await submit();assert.deepEqual(bodies[1],bodies[0]);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+  }finally{await context.close()}
+});
 test('actual Chrome binds research schedule receipts, pending rerenders and confirmed stop without execution claims',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

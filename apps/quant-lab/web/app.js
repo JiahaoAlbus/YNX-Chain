@@ -27,6 +27,13 @@ function persistWorkspaceValue(key, value) {
   try { localStorage.setItem(key, value); if (localStorage.getItem(key) !== value) throw new Error('STORAGE_READBACK_MISMATCH'); }
   catch { workspaceStorageAvailable = false; statefulPreview = false; throw new Error(t('workspaceStorageUnavailable')); }
 }
+function clearPendingPaperIntent() {
+  try {
+    localStorage.removeItem(paperPendingKey);
+    if (localStorage.getItem(paperPendingKey) !== null) throw new Error('STORAGE_READBACK_MISMATCH');
+    pendingPaperIntent = null;
+  } catch { workspaceStorageAvailable = false; statefulPreview = false; }
+}
 try {
   tenantId = localStorage.getItem(tenantKey);
   if (!/^[0-9a-f]{64}$/.test(tenantId || "")) tenantId = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -1225,14 +1232,12 @@ $("#paper-order").onsubmit = async (e) => {
       body: JSON.stringify(submitted),
     });
     if (!verifiedPaperRecord(order) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
-    pendingPaperIntent = null;
-    try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
+    clearPendingPaperIntent();
     toast(t("paperRecorded"), "paperRecorded");
     await refresh();
   } catch (e) {
     if (e.code !== 'QUANT_API_REJECTED' && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
-      pendingPaperIntent = null;
-      try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
+      clearPendingPaperIntent();
     }
     if(e.code === 'paper_daily_loss_limit') { try { await refresh(); } catch { /* Keep the precise rejection; no automatic order retry. */ } }
     toast(e.message,e.localeKey ?? null);
