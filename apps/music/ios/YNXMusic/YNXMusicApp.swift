@@ -36,8 +36,12 @@ struct MusicOperation {
     let account:MusicAccountContext
 }
 
+enum MusicSnapshotReadState:String {case unread,loading,ready,failed}
+
 @MainActor final class MusicModel:ObservableObject {
     @Published var snapshot=Snapshot()
+    @Published private(set) var snapshotReadState=MusicSnapshotReadState.unread
+    private var snapshotContext:MusicSessionContext?
     @Published var state=LocalState()
     @Published var status="loading"
     @Published var query=""
@@ -92,6 +96,8 @@ struct MusicOperation {
             ($0.title+" "+$0.artistName+" "+($0.album ?? "")).localizedCaseInsensitiveContains(query)
         }
     }
+    var hasCurrentSnapshot:Bool { guard let snapshotContext else{return false};return snapshotContext==api.context && fence.isCurrent(snapshotContext) && account != nil }
+    func retrySnapshot()async {if api.context.binding != nil {await refresh()}else{await restoreNative()}}
     var signedIn:Bool { captureOperation() != nil }
     var canSignOut:Bool { api.context.binding != nil || revokePending }
     func captureOperation()->MusicOperation? {
@@ -122,7 +128,7 @@ struct MusicOperation {
     private func refresh(api requestAPI:MusicAPI,context:MusicSessionContext)async {
         guard fence.isCurrent(context),context.binding != nil else { status="offline_mode"; return }
         snapshotReadGeneration &+= 1;let readGeneration=snapshotReadGeneration
-        status="loading"
+        status="loading";snapshotReadState = .loading
         do {
             let received=try await requestAPI.snapshot()
             guard fence.isCurrent(context),readGeneration==snapshotReadGeneration else { return }
@@ -139,11 +145,11 @@ struct MusicOperation {
                 ((try? store.audioURL(track:track,for:selected)) ?? nil) == nil ? nil : (track.id,"available")
             })
             try store.save(candidate,for:selected)
-            account=selected;state=candidate;snapshot=received;status="ready"
+            account=selected;state=candidate;snapshot=received;snapshotContext=context;snapshotReadState = .ready;status="ready"
         } catch {
             guard fence.isCurrent(context),readGeneration==snapshotReadGeneration else { return }
             if (error as? URLError)?.code == .userAuthenticationRequired { signOut(); status="auth_rejected" }
-            else { status="offline_mode" }
+            else { snapshotReadState = .failed;status="offline_mode" }
         }
     }
     private func engine() throws -> MusicNativeEngine {
@@ -156,7 +162,7 @@ struct MusicOperation {
         return created
     }
     private func withdraw() {
-        snapshotReadGeneration &+= 1
+        snapshotReadGeneration &+= 1;snapshotContext=nil;snapshotReadState = .unread
         player.stop();let context=fence.replace(binding:nil)
         api=MusicAPI(context:context,fence:fence,deviceKey:"",native:native)
         store.detach();account=nil;state=LocalState();snapshot=Snapshot();query="";viewGeneration=UUID()
@@ -426,7 +432,36 @@ struct MusicOperation {
 
 struct TrackDetail:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;let t:Track;@State var reason="";@State var evidence="";var body:some View{Form{Section(t.title){Text(t.artistName);if let album=t.album,!album.isEmpty{Text(album)};Text("\(l.t("rights")): \(t.rights.basis) · \(t.rights.evidenceRef)");Text("\(l.t("provenance")): \(t.provenance["audio"] ?? "")")};Section(l.t("rights")){TextField(l.t("rights_declaration"),text:$reason);TextField(l.t("rights_evidence"),text:$evidence);ForEach(["report","dispute","appeal"],id:\.self){kind in Button(kind.capitalized){guard let operation=m.captureOperation() else{return};let reason=reason,evidence=evidence;Task{guard await m.perform(operation,{try await $0.openCase(kind:kind,track:t.id,reason:reason,evidence:evidence)}) != nil else{return};await m.refresh(operation)}}.disabled(reason.count<5||evidence.isEmpty)}}}.navigationTitle(t.title)}}
 struct TrackRow:View { @EnvironmentObject var m:MusicModel;let t:Track;@EnvironmentObject var l:I18n;var body:some View{VStack(alignment:.leading,spacing:8){NavigationLink{TrackDetail(t:t)}label:{VStack(alignment:.leading){Text(t.title).font(.headline);Text(t.artistName+(t.album.map{" · "+$0} ?? "")).font(.subheadline)}};Text("\(l.t("rights")): \(t.rights.basis) · \(l.t("provenance")): \(t.provenance["audio"] ?? "")").font(.caption).foregroundStyle(.secondary);HStack{Button(l.t("play")){m.play(t)};Button(l.t("favorite")){m.favorite(t.id)};Button(l.t("add_queue")){m.enqueue(t.id)};Button(l.t("download")){m.download(t.id)}}}.accessibilityElement(children:.contain).padding(.vertical,6)}}
-struct HomeView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;var body:some View{NavigationStack{List{if m.filtered.isEmpty{ContentUnavailableView(l.t("empty_catalog"),systemImage:"music.note",description:Text(l.t("retry")))}else{ForEach(m.filtered){TrackRow(t:$0)}}}.searchable(text:$m.query,prompt:l.t("search_hint")).navigationTitle(l.t("app_name")).toolbar{Button(l.t("sign_in_wallet")){Task{await m.beginSignIn()}}.disabled(m.authBusy || m.revokePending)}.refreshable{await m.restoreNative()}}}}
+struct MusicSnapshotNotice:View {
+    @EnvironmentObject var m:MusicModel
+    @EnvironmentObject var l:I18n
+    var body:some View {
+        VStack(alignment:.leading,spacing:12) {
+            if m.snapshotReadState == .loading || m.authBusy {ProgressView(l.t("loading"))}
+            else if m.snapshotReadState == .failed {Text(l.t("offline_mode"))}
+            else if !m.hasCurrentSnapshot {Text(l.t("sign_in_wallet"))}
+            if m.snapshotReadState != .loading && !m.authBusy {Button(l.t("retry")){Task{await m.retrySnapshot()}}}
+        }.padding(.vertical,8)
+    }
+}
+struct HomeView:View {
+    @EnvironmentObject var m:MusicModel
+    @EnvironmentObject var l:I18n
+    var body:some View {
+        NavigationStack {
+            List {
+                if !m.hasCurrentSnapshot {MusicSnapshotNotice()}
+                else {
+                    if m.snapshotReadState != .ready {MusicSnapshotNotice()}
+                    if m.filtered.isEmpty {ContentUnavailableView(l.t(m.snapshot.catalog.isEmpty ? "empty_catalog":"no_search_results"),systemImage:"music.note")}
+                    else {ForEach(m.filtered){TrackRow(t:$0)}}
+                }
+            }.searchable(text:$m.query,prompt:l.t("search_hint")).navigationTitle(l.t("app_name"))
+            .toolbar{Button(l.t("sign_in_wallet")){Task{await m.beginSignIn()}}.disabled(m.authBusy || m.revokePending)}
+            .refreshable{await m.retrySnapshot()}
+        }
+    }
+}
 struct LibraryView:View {
     @EnvironmentObject var m:MusicModel
     @EnvironmentObject var l:I18n
@@ -438,6 +473,8 @@ struct LibraryView:View {
     var body:some View {
         NavigationStack {
             List {
+                if !m.hasCurrentSnapshot {MusicSnapshotNotice()}else{
+                if m.snapshotReadState != .ready {MusicSnapshotNotice()}
                 Section(l.t("favorites")){ForEach(m.state.favorites,id:\.self){Text($0)}}
                 Section(l.t("queue")){ForEach(m.state.queue,id:\.self){Text($0)}}
                 Section(l.t("download_ready")){ForEach(m.state.downloads.keys.sorted(),id:\.self){Text($0)}}
@@ -461,7 +498,8 @@ struct LibraryView:View {
                         Task {if await m.createPlaylist(captured,name:name),m.isCurrent(captured){playlistName=""}}
                     }.disabled(m.creatingPlaylist||(m.state.playlistCreation==nil&&(playlistName.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty||m.state.favorites.isEmpty)))
                 }
-            }.navigationTitle(l.t("library"))
+                }
+            }.navigationTitle(l.t("library")).refreshable{await m.retrySnapshot()}
         }
         .alert(l.t("new_playlist"),isPresented:$discardCreation){Button(l.t("cancel"),role:.cancel){};Button(l.t("new_playlist"),role:.destructive){if let operation=discardOperation{m.discardPlaylistCreation(operation)}}}message:{Text(l.t("playlist_pending"))}
         .sheet(item:$editing){playlist in
@@ -529,8 +567,8 @@ struct MusicPlaylistEditor:View {
     }
 }
 
-struct CreatorView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;@State var importing=false;@State var cancellingUpload=false;@State var cancelUploadOperation:MusicOperation?;@State var importOperation:MusicOperation?;@State var title="";@State var artist="";@State var evidence="";@State var provenance="";@State var proposal:AIProposal?;@State var proposalOperation:MusicOperation?;@State var aiStatus="";var body:some View{NavigationStack{Form{Text(l.t("creator_truth"));TextField(l.t("track_title"),text:$title);TextField(l.t("artist_name"),text:$artist);TextField(l.t("rights_evidence"),text:$evidence);TextField(l.t("provenance"),text:$provenance);if let intent=m.state.uploadIntent {Text(intent.title+" · "+intent.artist);Button(l.t("retry")){guard let operation=m.captureOperation() else{return};Task{_ = await m.retryUpload(operation)}}.disabled(m.uploading);Button(l.t("cancel")){cancelUploadOperation=m.captureOperation();cancellingUpload=cancelUploadOperation != nil}.disabled(m.uploading)};Button(l.t("upload_owned_audio")){importOperation=m.captureOperation();importing=importOperation != nil}.disabled(m.uploading || m.state.uploadIntent != nil || !m.signedIn).fileImporter(isPresented:$importing,allowedContentTypes:[.wav]){result in guard let operation=importOperation,m.isCurrent(operation) else{return};importOperation=nil;if case .success(let url)=result{let title=title,artist=artist,evidence=evidence,provenance=provenance;Task{let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}};guard m.prepareUpload(operation,url:url,title:title,artist:artist,evidence:evidence,provenance:provenance) else{return};_ = await m.retryUpload(operation)}}};Section(l.t("creator")){ForEach(m.snapshot.creatorTracks){track in HStack{Text(track.title+" · "+track.rights.basis);Spacer();if !m.snapshot.catalog.contains(where:{$0.id==track.id}){Button(l.t("upload")){guard let operation=m.captureOperation() else{return};Task{guard await m.perform(operation,{try await $0.release(track.id)}) != nil else{return};await m.refresh(operation)}}}}}};Section(l.t("usage_records")){Text(l.number(m.snapshot.usage.count));Text("YNX Pay: \(l.number(m.snapshot.settlements.count)) · YNX Trust: \(l.number(m.snapshot.cases.count))")};Text(l.t("revenue_truth")).font(.footnote);ForEach(m.snapshot.allocations){allocation in Button("YNX Pay · \(allocation.amountMicros) µYNXT"){guard let operation=m.captureOperation() else{return};let payTo=operation.account.account;Task{if let settlement=await m.perform(operation,{try await $0.settlement(allocation.id,payTo:payTo)}),m.isCurrent(operation),let url=URL(string:settlement.reviewUri){openURL(url)};await m.refresh(operation)}}};Button(l.t("ai_enabled")){guard m.state.aiEnabled,let operation=m.captureOperation() else{return};let ids=m.state.favorites,language=l.aiLanguage == "system" ? l.resolved : l.aiLanguage;Task{guard let result=await m.perform(operation,{try await $0.createAI(ids:ids,language:language)}),m.isCurrent(operation) else{return};proposal=result;proposalOperation=operation;aiStatus="YNX AI · \(result.status) · \(result.estimatedUnits) units\n\(result.result ?? "")"}}.disabled(!m.state.aiEnabled||m.state.favorites.isEmpty);if let proposal{HStack{Button(l.t("upload")){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"apply")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}};Button(l.t("cancel"),role:.destructive){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"reject")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}}}};Text(aiStatus.isEmpty ? l.t("ai_explanation"):aiStatus).font(.footnote)}.navigationTitle(l.t("creator")).confirmationDialog(l.t("cancel_upload_draft"),isPresented:$cancellingUpload,titleVisibility:.visible){Button(l.t("cancel_upload"),role:.destructive){if let operation=cancelUploadOperation{m.discardUpload(operation)};cancelUploadOperation=nil};Button(l.t("cancel"),role:.cancel){cancelUploadOperation=nil}}}}}
-struct SettingsView:View{@AppStorage("ynx.media.display.text") private var displayMode=1;@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@State private var clearing=false;@State private var clearOperation:MusicOperation?;var body:some View{NavigationStack{Form{Picker(musicDisplayLabels(l.resolved)[0],selection:$displayMode){ForEach(0..<3,id:\.self){Text(musicDisplayLabels(l.resolved)[$0+1]).tag($0)}};Section{NavigationLink(destination:CreatorView()){Label(l.t("creator"),systemImage:"waveform")};Text(l.t("creator_truth")).font(.footnote).foregroundStyle(.secondary)};Picker(l.t("language"),selection:Binding(get:{l.tag},set:l.set)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Section(l.t("profile")){Toggle(l.t("explicit_content"),isOn:Binding(get:{m.snapshot.profile.explicitAllowed},set:{m.setProfile(explicit:$0,privateHistory:m.snapshot.profile.privateHistory)}));Toggle(l.t("private_history"),isOn:Binding(get:{m.snapshot.profile.privateHistory},set:{m.setProfile(explicit:m.snapshot.profile.explicitAllowed,privateHistory:$0)}))};Toggle(l.t("ai_enabled"),isOn:Binding(get:{m.state.aiEnabled},set:m.setAI));Picker(l.t("ai_output_language"),selection:Binding(get:{l.aiLanguage},set:l.setAI)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Text(l.t("ai_explanation"));Button(l.t("sign_out")){m.signOut()}.disabled(!m.canSignOut);Button(l.t("clear_private_data"),role:.destructive){clearOperation=m.captureOperation();clearing=clearOperation != nil}.disabled(!m.signedIn).confirmationDialog(l.t("clear_confirm"),isPresented:$clearing,titleVisibility:.visible){Button(l.t("clear_private_data"),role:.destructive){if let operation=clearOperation{m.clearPrivate(operation)};clearOperation=nil};Button(l.t("cancel"),role:.cancel){clearOperation=nil}}}.navigationTitle(l.t("settings"))}}}
+struct CreatorView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;@State var importing=false;@State var cancellingUpload=false;@State var cancelUploadOperation:MusicOperation?;@State var importOperation:MusicOperation?;@State var title="";@State var artist="";@State var evidence="";@State var provenance="";@State var proposal:AIProposal?;@State var proposalOperation:MusicOperation?;@State var aiStatus="";var body:some View{NavigationStack{Form{if !m.hasCurrentSnapshot{MusicSnapshotNotice()}else{if m.snapshotReadState != .ready{MusicSnapshotNotice()};Text(l.t("creator_truth"));TextField(l.t("track_title"),text:$title);TextField(l.t("artist_name"),text:$artist);TextField(l.t("rights_evidence"),text:$evidence);TextField(l.t("provenance"),text:$provenance);if let intent=m.state.uploadIntent {Text(intent.title+" · "+intent.artist);Button(l.t("retry")){guard let operation=m.captureOperation() else{return};Task{_ = await m.retryUpload(operation)}}.disabled(m.uploading);Button(l.t("cancel")){cancelUploadOperation=m.captureOperation();cancellingUpload=cancelUploadOperation != nil}.disabled(m.uploading)};Button(l.t("upload_owned_audio")){importOperation=m.captureOperation();importing=importOperation != nil}.disabled(m.uploading || m.state.uploadIntent != nil || !m.signedIn).fileImporter(isPresented:$importing,allowedContentTypes:[.wav]){result in guard let operation=importOperation,m.isCurrent(operation) else{return};importOperation=nil;if case .success(let url)=result{let title=title,artist=artist,evidence=evidence,provenance=provenance;Task{let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}};guard m.prepareUpload(operation,url:url,title:title,artist:artist,evidence:evidence,provenance:provenance) else{return};_ = await m.retryUpload(operation)}}};Section(l.t("creator")){ForEach(m.snapshot.creatorTracks){track in HStack{Text(track.title+" · "+track.rights.basis);Spacer();if !m.snapshot.catalog.contains(where:{$0.id==track.id}){Button(l.t("upload")){guard let operation=m.captureOperation() else{return};Task{guard await m.perform(operation,{try await $0.release(track.id)}) != nil else{return};await m.refresh(operation)}}}}}};Section(l.t("usage_records")){Text(l.number(m.snapshot.usage.count));Text("YNX Pay: \(l.number(m.snapshot.settlements.count)) · YNX Trust: \(l.number(m.snapshot.cases.count))")};Text(l.t("revenue_truth")).font(.footnote);ForEach(m.snapshot.allocations){allocation in Button("YNX Pay · \(allocation.amountMicros) µYNXT"){guard let operation=m.captureOperation() else{return};let payTo=operation.account.account;Task{if let settlement=await m.perform(operation,{try await $0.settlement(allocation.id,payTo:payTo)}),m.isCurrent(operation),let url=URL(string:settlement.reviewUri){openURL(url)};await m.refresh(operation)}}};Button(l.t("ai_enabled")){guard m.state.aiEnabled,let operation=m.captureOperation() else{return};let ids=m.state.favorites,language=l.aiLanguage == "system" ? l.resolved : l.aiLanguage;Task{guard let result=await m.perform(operation,{try await $0.createAI(ids:ids,language:language)}),m.isCurrent(operation) else{return};proposal=result;proposalOperation=operation;aiStatus="YNX AI · \(result.status) · \(result.estimatedUnits) units\n\(result.result ?? "")"}}.disabled(!m.state.aiEnabled||m.state.favorites.isEmpty);if let proposal{HStack{Button(l.t("upload")){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"apply")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}};Button(l.t("cancel"),role:.destructive){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"reject")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}}}};Text(aiStatus.isEmpty ? l.t("ai_explanation"):aiStatus).font(.footnote)}}.navigationTitle(l.t("creator")).confirmationDialog(l.t("cancel_upload_draft"),isPresented:$cancellingUpload,titleVisibility:.visible){Button(l.t("cancel_upload"),role:.destructive){if let operation=cancelUploadOperation{m.discardUpload(operation)};cancelUploadOperation=nil};Button(l.t("cancel"),role:.cancel){cancelUploadOperation=nil}}}}}
+struct SettingsView:View{@AppStorage("ynx.media.display.text") private var displayMode=1;@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@State private var clearing=false;@State private var clearOperation:MusicOperation?;var body:some View{NavigationStack{Form{Picker(musicDisplayLabels(l.resolved)[0],selection:$displayMode){ForEach(0..<3,id:\.self){Text(musicDisplayLabels(l.resolved)[$0+1]).tag($0)}};Section{NavigationLink(destination:CreatorView()){Label(l.t("creator"),systemImage:"waveform")};Text(l.t("creator_truth")).font(.footnote).foregroundStyle(.secondary)};Picker(l.t("language"),selection:Binding(get:{l.tag},set:l.set)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Section(l.t("profile")){if !m.hasCurrentSnapshot{MusicSnapshotNotice()}else{Toggle(l.t("explicit_content"),isOn:Binding(get:{m.snapshot.profile.explicitAllowed},set:{m.setProfile(explicit:$0,privateHistory:m.snapshot.profile.privateHistory)}));Toggle(l.t("private_history"),isOn:Binding(get:{m.snapshot.profile.privateHistory},set:{m.setProfile(explicit:m.snapshot.profile.explicitAllowed,privateHistory:$0)}))}};Toggle(l.t("ai_enabled"),isOn:Binding(get:{m.state.aiEnabled},set:m.setAI));Picker(l.t("ai_output_language"),selection:Binding(get:{l.aiLanguage},set:l.setAI)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Text(l.t("ai_explanation"));Button(l.t("sign_out")){m.signOut()}.disabled(!m.canSignOut);Button(l.t("clear_private_data"),role:.destructive){clearOperation=m.captureOperation();clearing=clearOperation != nil}.disabled(!m.signedIn).confirmationDialog(l.t("clear_confirm"),isPresented:$clearing,titleVisibility:.visible){Button(l.t("clear_private_data"),role:.destructive){if let operation=clearOperation{m.clearPrivate(operation)};clearOperation=nil};Button(l.t("cancel"),role:.cancel){clearOperation=nil}}}.navigationTitle(l.t("settings"))}}}
 
 @main struct YNXMusicApp:App{@AppStorage("ynx.media.display.text") private var displayMode=1;@ScaledMetric(relativeTo:.body) private var displayPoints:CGFloat=15;private var displayScale:CGFloat {[0.9333333,1,1.1333333][max(0,min(displayMode,2))]};@Environment(\.scenePhase) private var scenePhase;@StateObject var model=MusicModel();@StateObject var l=I18n.shared;var body:some Scene{WindowGroup{VStack(spacing:0){HStack(spacing:12){Image("ynx-brand-original").resizable().scaledToFit().frame(width:46,height:24).padding(4).background(Color.white).clipShape(RoundedRectangle(cornerRadius:6)).accessibilityLabel("YNX");Text(l.t("app_name")).font(.headline.bold());Spacer()}.environment(\.layoutDirection,.leftToRight).padding(.horizontal).padding(.vertical,8);TabView{HomeView().tabItem{Label(l.t("home"),systemImage:"music.note.house")};LibraryView().tabItem{Label(l.t("library"),systemImage:"books.vertical")};SettingsView().tabItem{Label(l.t("settings"),systemImage:"gear")}}}.font(.system(size:displayPoints*displayScale)).environmentObject(model).environmentObject(l).environment(\.locale,Locale(identifier:l.resolved)).environment(\.layoutDirection,l.rtl ? .rightToLeft:.leftToRight).tint(Color(red:0,green:47/255,blue:167/255)).onOpenURL{model.acceptCallback($0)}.onChange(of:scenePhase){_,phase in if phase == .background { model.suspendNative() } else if phase == .active { Task{await model.restoreNative()} }}.id(model.viewGeneration)}}}
 

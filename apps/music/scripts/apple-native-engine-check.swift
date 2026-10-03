@@ -118,7 +118,7 @@ import Foundation
                         case "holdNext":hold=true;value=["holding":true]
                         case "holdNextSnapshot":holdSnapshot=true;value=["holding":true]
                         case "release":failSnapshot=command["failSnapshot"] as? Bool==true;held?.resume();held=nil;value=["released":true]
-                        case "inspect":value=["held":held != nil,"pending":model.revokePending,"connected":model.signedIn,"played":renderedTrack,"playCount":renderedCount,"status":model.status,"count":model.snapshot.playlists.count,"playlistName":model.snapshot.playlists.first?.name ?? ""]
+                        case "inspect":value=["snapshotReadState":model.snapshotReadState.rawValue,"hasCurrentSnapshot":model.hasCurrentSnapshot,"held":held != nil,"pending":model.revokePending,"connected":model.signedIn,"played":renderedTrack,"playCount":renderedCount,"status":model.status,"count":model.snapshot.playlists.count,"playlistName":model.snapshot.playlists.first?.name ?? ""]
                         case "suspend":model.suspendNative();value=["connected":model.signedIn]
                         case "close":engine.close();value=["closed":true]
                         default:throw MusicNativeEngine.Failure.invalidSource
