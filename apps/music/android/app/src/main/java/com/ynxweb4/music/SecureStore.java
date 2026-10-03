@@ -13,7 +13,7 @@ final class SecureStore {
     private static SessionCustody custody(Context context) {
         SharedPreferences preferences=context.getSharedPreferences("secure",Context.MODE_PRIVATE);
         return new SessionCustody(new SessionCustody.Record() {
-            public String read() { return preferences.getString("sessionBinding",""); }
+            public String read() { return preferences.getString("sessionBinding",null); }
             public boolean write(String raw) { return preferences.edit().putString("sessionBinding",raw).commit(); }
             public boolean remove() { return preferences.edit().remove("sessionBinding").commit(); }
         },new SessionCustody.Keys() {

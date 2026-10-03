@@ -1,0 +1,97 @@
+{
+  "schema": "ynx.media.music-native-os-ports-source-progress.v1",
+  "verifiedCommerceReference": "f4f5fad2176b99a87ef0ac8d5169d176b74ae9ee",
+  "approvedMediaNativeSource": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "keyAlias": "ynx_music_device_v1",
+  "aesAlias": "ynx_music_session_aes_v1",
+  "metadataFile": "native_product_runtime_music_v2.enc",
+  "accountVaultReplaced": false,
+  "legacySessionPreferenceMutatedByMetadataStore": false,
+  "presentEmptyLegacyCiphertextRejected": true,
+  "originalNativeCallback": "ynxmusic://auth/callback",
+  "scopes": [
+    "music.creator",
+    "music.library",
+    "music.playback",
+    "music.profile"
+  ],
+  "jvmTests": 12,
+  "jvmTestsPassed": true,
+  "androidAssembleDebugPassed": true,
+  "nativeSDKEngineConnected": false,
+  "originalUIConnected": false,
+  "actualDeviceKeyAccessedByAgent": false,
+  "actualOSKeysAndWalletAcceptance": false,
+  "inputs": [
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java",
+      "bytes": 9205,
+      "sha256": "2dd48b492c7197beecb0539c1ef91937b662a774592c2a426692cc01bfca8fb2"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "d17dc66c4c014f62f4bd10ff6738dc32b14da950ce9ede5cebc65b126cfea6b5"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/LocaleSupport.java",
+      "bytes": 838,
+      "sha256": "4ca6fe8d5630f087e102a30d141fecfa6453e3663e01245b9e09543b2bc5276a"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MainActivity.java",
+      "bytes": 38212,
+      "sha256": "5b9a39703cf96b73f10ff035e1dc11a04b616a0eae38915a17c1c75ab3c79b05"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "bytes": 10046,
+      "sha256": "ea6dcf7a6bd12d2963b51fd1c097a662cadbfdf554c132e103e8401f568045c7"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "bytes": 6857,
+      "sha256": "d0cb6e00e53da3b1fdf2ea98a128487c0511daaa7df098330b79f64e55cec4f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java",
+      "bytes": 20097,
+      "sha256": "ba4341435a4b56bffd410827af1c29bcbfe85cc4e82d2767f5c618740c653025"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProtectedRuntime.java",
+      "bytes": 7807,
+      "sha256": "aa3722db3806c82a5b7c3bce810288d81ca4360ea19f3d411efdd6aa68af18ee"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeStateCustody.java",
+      "bytes": 4936,
+      "sha256": "1c6d88ce22d78f180959dc0f631c21fa7d953b76238e550521e4747690a5f2b0"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/PlaybackService.java",
+      "bytes": 7128,
+      "sha256": "9192ef51f841ebfc1ccd4684bff966292083c68ac7bb5815dc95b285fc747599"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SecureStore.java",
+      "bytes": 2473,
+      "sha256": "3c130bc5cd1fdfe4a997e7a28076fc65c64700a5c2b7f612b95fa2653a1dba72"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SessionCustody.java",
+      "bytes": 3897,
+      "sha256": "7f23eac8f12de2e11141119ddebe8526ffa2054ebe23f6b2d16608caaf3a0cab"
+    },
+    {
+      "path": "apps/music/android/app/src/test/java/com/ynxweb4/music/NativeProductStateTest.java",
+      "bytes": 12153,
+      "sha256": "3af95264cb3f822fceab5d7a111b6152e92a4eacf8dc1d9ef128f8ab751598c4"
+    },
+    {
+      "path": "apps/music/scripts/SessionCustodyCheck.java",
+      "bytes": 4159,
+      "sha256": "07136fd4459fb31b9bbd4a73838f5cc12babdaf6cf284013f383f3f92cb0e5cd"
+    }
+  ]
+}

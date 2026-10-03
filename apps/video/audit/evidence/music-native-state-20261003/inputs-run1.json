@@ -1,0 +1,31 @@
+{
+  "sources": [
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java",
+      "bytes": 20097,
+      "sha256": "ba4341435a4b56bffd410827af1c29bcbfe85cc4e82d2767f5c618740c653025"
+    },
+    {
+      "path": "apps/music/android/app/src/test/java/com/ynxweb4/music/NativeProductStateTest.java",
+      "bytes": 12153,
+      "sha256": "3af95264cb3f822fceab5d7a111b6152e92a4eacf8dc1d9ef128f8ab751598c4"
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12/junit-4.13.2.jar",
+      "sha256": "8e495b634469d64fb8acfa3495a065cbacc8a0fff55ce1e31007be4c16dc57d3"
+    },
+    {
+      "path": "/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar",
+      "sha256": "66fdef91e9739348df7a096aa384a5685f4e875584cce89386a7a47251c4d8e9"
+    },
+    {
+      "path": "/tmp/ynx-music-json-20240303.jar",
+      "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+    }
+  ],
+  "actualOSProtectedStorage": false,
+  "actualNativeSDKOSPortsWired": false,
+  "actualWalletConsent": false
+}

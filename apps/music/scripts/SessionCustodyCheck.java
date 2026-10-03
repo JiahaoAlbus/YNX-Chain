@@ -9,10 +9,10 @@ import javax.crypto.Cipher;
 public final class SessionCustodyCheck {
     static final String A="a".repeat(64),B="b".repeat(64);
     static final class Fixture implements SessionCustody.Record,SessionCustody.Keys {
-        String raw="";SecretKey key;boolean locked,failWrite,failRemove;int created,writes,removes;
+        String raw=null;SecretKey key;boolean locked,failWrite,failRemove;int created,writes,removes;
         public String read(){return raw;}
         public boolean write(String next){writes++;if(failWrite)return false;raw=next;return true;}
-        public boolean remove(){removes++;if(failRemove)return false;raw="";return true;}
+        public boolean remove(){removes++;if(failRemove)return false;raw=null;return true;}
         public SecretKey existing(){if(locked)throw new IllegalStateException("locked");return key;}
         public SecretKey create()throws Exception{created++;KeyGenerator g=KeyGenerator.getInstance("AES");g.init(256);key=g.generateKey();return key;}
         SessionCustody custody(){return new SessionCustody(this,this);}
@@ -30,14 +30,15 @@ public final class SessionCustodyCheck {
     public static void main(String[] args)throws Exception{
         Fixture first=new Fixture();equal(first.custody().read(),"");equal(first.created,0);first.custody().write(A);equal(first.created,1);equal(first.custody().read(),A);
         Fixture legacy=legacy();SecretKey original=legacy.key;equal(legacy.custody().read(),A);legacy.custody().write(B);equal(legacy.custody().read(),B);equal(legacy.key,original);equal(legacy.created,0);
+        Fixture emptyMissing=new Fixture();emptyMissing.raw="";preservedFailures(emptyMissing);
         Fixture absent=legacy();absent.key=null;preservedFailures(absent);
         Fixture locked=legacy();locked.locked=true;preservedFailures(locked);locked.locked=false;equal(locked.custody().read(),A);
         Fixture corrupted=legacy();byte[] encrypted=Base64.getDecoder().decode(corrupted.raw.split("\\.")[1]);encrypted[0]^=1;corrupted.raw=corrupted.raw.split("\\.")[0]+"."+Base64.getEncoder().encodeToString(encrypted);preservedFailures(corrupted);
-        for(String invalid:new String[]{"not-a-record","...","".repeat(0)+"A".repeat(4097)}){Fixture f=legacy();f.raw=invalid;preservedFailures(f);}
+        for(String invalid:new String[]{"","not-a-record","...","".repeat(0)+"A".repeat(4097)}){Fixture f=legacy();f.raw=invalid;preservedFailures(f);}
         Fixture wrong=legacy();SecretKey originalWrong=wrong.key;wrong.key=legacy().key;preservedFailures(wrong);wrong.key=originalWrong;equal(wrong.custody().read(),A);
         Fixture commit=legacy();String old=commit.raw;commit.failWrite=true;unavailable(()->commit.custody().write(B));equal(commit.raw,old);equal(commit.created,0);equal(commit.custody().read(),A);
         SecretKey savedKey=commit.key;commit.failRemove=true;unavailable(commit.custody()::clear);equal(commit.raw,old);commit.failRemove=false;commit.custody().clear();equal(commit.custody().read(),"");equal(commit.key,savedKey);
         Fixture invalid=legacy();String oldInvalid=invalid.raw;unavailable(()->invalid.custody().write("guest"));equal(invalid.raw,oldInvalid);equal(invalid.created,0);
-        System.out.println("PASS original AES/GCM record, first-use-only creation, missing/locked/wrong key, corrupt/oversized record, failed commits, explicit removal and preserved signer/storage identity; host JCE only, no installed Keystore claim");
+        System.out.println("PASS original AES/GCM record, first-use-only creation, present-empty record, missing/locked/wrong key, corrupt/oversized record, failed commits, explicit removal and preserved signer/storage identity; host JCE only, no installed Keystore claim");
     }
 }

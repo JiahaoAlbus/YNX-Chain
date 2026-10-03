@@ -10,6 +10,7 @@ import javax.crypto.spec.GCMParameterSpec;
 // Only a genuinely absent record may cause first-use storage-key creation.
 final class SessionCustody {
     interface Record {
+        // null means absent; an existing empty value is corrupt and must be held.
         String read() throws Exception;
         boolean write(String raw) throws Exception;
         boolean remove() throws Exception;
@@ -27,7 +28,7 @@ final class SessionCustody {
     synchronized String read() {
         try {
             String raw=record.read();
-            return raw==null || raw.isEmpty() ? "" : decrypt(raw, requireExisting());
+            return raw==null ? "" : decrypt(raw, requireExisting());
         } catch (Exception error) { throw new Unavailable(error); }
     }
     synchronized void write(String value) {
@@ -35,7 +36,7 @@ final class SessionCustody {
             if(value==null || !value.matches("[0-9a-f]{64}")) throw new IllegalArgumentException("Invalid Music session binding");
             String previous=record.read();
             SecretKey key=keys.existing();
-            if(previous!=null && !previous.isEmpty()) {
+            if(previous!=null) {
                 if(key==null) throw new IllegalStateException("Saved session storage key is missing");
                 decrypt(previous,key); // Locked, damaged or foreign bytes are never replaced.
             }
@@ -50,7 +51,7 @@ final class SessionCustody {
     }
     synchronized void clear() {
         try {
-            String raw=record.read();if(raw!=null&&!raw.isEmpty())decrypt(raw,requireExisting());
+            String raw=record.read();if(raw!=null)decrypt(raw,requireExisting());
             if(!record.remove()) throw new IllegalStateException("Session removal did not commit");
         } catch (Exception error) { throw new Unavailable(error); }
     }
