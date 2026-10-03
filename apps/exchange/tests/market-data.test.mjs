@@ -73,6 +73,29 @@ test('invalid or regressed stream data marks last valid state stale instead of r
   h.sources[0].emit('reconciled', snapshot(3)); assert.equal(h.feed.snapshot().revision, 4);
   assert.equal(h.statuses.at(-1).code, 'MARKET_DATA_INVALID'); h.feed.stop();
 });
+test('same venue revision cannot silently replace depth or matched-trade provenance',async()=>{
+  for(const change of [s=>s.orderBook.asks[0].priceMicro++,s=>s.orderBook.asks[0].filledMicro++,s=>s.orderBook.asks=[],s=>s.trades[0].amountMicro++,s=>s.trades[0].sourceDigest='b'.repeat(64),s=>s.trades=[]]){
+    const h=harness();await h.feed.start();const original=h.feed.snapshot(),next=snapshot();change(next);
+    h.sources[0].emit('reconciled',next);
+    assert.equal(h.feed.snapshot(),original);assert.equal(h.received.length,1);
+    assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');assert.equal(h.sources[0].closed,true);
+    h.feed.stop();assert.equal(h.timers.size,0);
+  }
+});
+test('manual same-revision conflict preserves stale data then recovers at a newer revision',async()=>{
+  let reads=0;const h=harness(async()=>{const next=snapshot(++reads===3?2:1);if(reads>1)next.trades[0].priceMicro++;return Response.json(next)});
+  await h.feed.start();const original=h.feed.snapshot();await h.feed.retry();
+  assert.equal(h.feed.snapshot(),original);assert.equal(h.statuses.at(-1).phase,'reconnecting');assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');
+  await h.timer(1000);assert.equal(h.feed.snapshot().revision,2);assert.equal(h.received.length,2);assert.equal(h.statuses.at(-1).phase,'live');h.feed.stop();
+});
+test('same-revision observation refresh and reordered rows do not invent a state mutation',async()=>{
+  const initial=snapshot();initial.trades.push({...initial.trades[0],id:'other-trade'});
+  const h=harness(async()=>Response.json(initial));await h.feed.start();
+  const next=structuredClone(initial);next.trades.reverse();next.sourceMetadata.asOf='2026-09-12T00:01:00Z';
+  h.sources[0].emit('reconciled',next);
+  assert.equal(h.received.length,2);assert.equal(h.statuses.at(-1).phase,'live');assert.equal(h.sources[0].closed,false);
+  assert.equal(h.feed.snapshot().sourceMetadata.asOf,next.sourceMetadata.asOf);h.feed.stop();
+});
 test('invalid duplicate IDs, unsafe amounts, mismatched chain provenance and false live state fail closed', () => {
   for (const change of [s => s.trades.push(s.trades[0]), s => s.orderBook.asks.push(s.orderBook.asks[0]), s => s.trades[0].priceMicro = Number.MAX_SAFE_INTEGER + 1,
     s => s.trades[0].sourceType = 'external', s => s.sourceMetadata.status = 'live', s => s.sourceMetadata.classification = 'mainnet', s => s.trades[0].sourceDigest = 'bad']) {

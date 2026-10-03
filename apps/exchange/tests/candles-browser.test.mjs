@@ -10,6 +10,27 @@ const root=new URL('../web/',import.meta.url);
 const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
+test('conflicting revision keeps actual candle view stale until an explicit verified retry',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const status=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
+    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={publicTrades:[]},display=v=>formatMicro(v);${render}${status}
+      window.marketQA={next:null,reads:0};let transport;class Source{constructor(){transport=this;this.events={}}addEventListener(k,f){this.events[k]=f}close(){} }
+      window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});
+    const source={authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',asOf:'2026-10-03T00:00:00Z',classification:'testnet',status:'degraded_single_host',coverage:'stream-orderbook-matched-trades',stateBackend:'file_snapshot',multiInstance:false};
+    const snapshot={schemaVersion:'exchange-public-market-v1',revision:1,market:'YNXT-YUSD_TEST',sourceMetadata:source,orderBook:{market:'YNXT-YUSD_TEST',bids:[],asks:[]},trades:[{id:'local-match',market:'YNXT-YUSD_TEST',priceMicro:2000000,amountMicro:4000000,createdAt:source.asOf,sourceType:'deterministic_price_time_match',sourceDigest:'a'.repeat(64)}]};
+    await page.evaluate(async s=>{marketQA.next=s;await feed.start()},snapshot);
+    const original=await page.locator('#candle-records').textContent();
+    const conflict=structuredClone(snapshot);conflict.trades[0].priceMicro=3000000;
+    await page.evaluate(s=>emitConflict(s),conflict);
+    assert.equal(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),false);assert.equal(await page.locator('#market-source').getAttribute('data-stale'),'true');
+    conflict.revision=2;await page.evaluate(async s=>{marketQA.next=s;await feed.retry()},conflict);
+    assert.notEqual(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),true);
+    assert.equal(await page.evaluate(()=>marketQA.reads),2);assert.equal(page.context().pages().length,1);await page.evaluate(()=>feed.stop());
+  }finally{await browser.close()}
+});
 test('desktop/mobile candle controls and exact trace rows remain read-only, localized and bounded',async t=>{
   const evidence=await mkdtemp(path.join(os.tmpdir(),'ynx-exchange-candle-display-'));
   const browser=await chromium.launch(await financeBrowserLaunchOptions());

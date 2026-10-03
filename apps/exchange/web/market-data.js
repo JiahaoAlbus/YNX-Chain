@@ -78,7 +78,7 @@ export function formatMicro(value, locale = 'en') {
 
 export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl = globalThis.EventSource, onSnapshot, onStatus,
   setTimer = globalThis.setTimeout, clearTimer = globalThis.clearTimeout} = {}) {
-  let epoch = 0, stopped = true, snapshot = null, stream = null, abort = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
+  let epoch = 0, stopped = true, snapshot = null, revisionContents = null, stream = null, abort = null, retryTimer = null, watchdog = null, observationTimer = null, attempts = 0;
   const report = (phase, code = null) => onStatus?.({phase, code, source: snapshot?.sourceMetadata ?? null});
   function cancel() {
     abort?.abort(); abort = null;
@@ -90,6 +90,15 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
   function apply(value) {
     const next = validateSnapshot(value);
     if (snapshot && next.revision < snapshot.revision) throw invalid();
+    // The venue binds revision to persisted state.Sequence. Observation time,
+    // transport health and row ordering can change without a state mutation,
+    // but prices, fills and match provenance cannot change at the same revision.
+    const sorted = rows => rows.slice().sort((a,b)=>a.id.localeCompare(b.id));
+    const order = row => [row.id,row.market,row.side,row.priceMicro,row.amountMicro,row.filledMicro,row.createdAt];
+    const trade = row => [row.id,row.market,row.priceMicro,row.amountMicro,row.createdAt,row.sourceType,row.sourceDigest];
+    const contents = JSON.stringify([sorted(next.orderBook.bids).map(order),sorted(next.orderBook.asks).map(order),sorted(next.trades).map(trade)]);
+    if (snapshot && next.revision === snapshot.revision && contents !== revisionContents) throw invalid();
+    revisionContents = contents;
     snapshot = next;
     onSnapshot?.(snapshot);
   }
