@@ -2,10 +2,13 @@ package exchangeproduct
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -139,5 +142,68 @@ func TestPostgreSQLPartialFillConcurrentCancelOwnerReplayAfterRestart(t *testing
 	}
 	if digest(loaded.state) != before {
 		t.Fatal("replays mutated persisted balances, audit or orders")
+	}
+	// Guest projections must reflect the persisted match, not cancellation
+	// traffic: no invented trades/volume and no remaining cancelled depth.
+	readPublic := func(path string, target any) {
+		t.Helper()
+		response, err := client.Get(restarted.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		raw, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+		if err != nil || response.StatusCode != 200 || json.Unmarshal(raw, target) != nil {
+			t.Fatalf("guest projection failed: status=%d err=%v", response.StatusCode, err)
+		}
+		for _, forbidden := range []string{seller.account, buyer.account, `"buyer"`, `"seller"`, `"authorizationDigest"`, `"reservedMicro"`} {
+			if bytes.Contains(raw, []byte(forbidden)) {
+				t.Fatal("guest projection contains private account material")
+			}
+		}
+	}
+	var market MarketDataSnapshot
+	readPublic("/v1/market-data/snapshot", &market)
+	if len(market.Trades) != 1 || len(market.OrderBook.Bids) != 0 || len(market.OrderBook.Asks) != 0 {
+		t.Fatal("cancelled remainder invented public depth or trades")
+	}
+	for _, persisted := range loaded.state.Trades {
+		if market.Trades[0].ID != persisted.ID || market.Trades[0].SourceDigest != persisted.SourceDigest || market.Trades[0].SourceDigest == "" {
+			t.Fatal("public match lost persisted source identity")
+		}
+	}
+	for _, interval := range []string{"60", "300", "900", "3600", "14400", "86400"} {
+		var projection struct {
+			Candles []Candle `json:"candles"`
+		}
+		readPublic("/v1/market-data/candles?market="+DefaultMarket+"&interval="+interval+"&limit=20", &projection)
+		if len(projection.Candles) != 1 {
+			t.Fatal("cancellation or restart generated extra/empty candles")
+		}
+		c := projection.Candles[0]
+		if c.Trades != 1 || c.BaseVolumeMicro != AmountScale || c.QuoteVolumeMicro != 2*AmountScale || c.OpenMicro != 2*AmountScale || c.HighMicro != c.OpenMicro || c.LowMicro != c.OpenMicro || c.CloseMicro != c.OpenMicro {
+			t.Fatal("candle does not aggregate the one persisted fill exactly")
+		}
+	}
+	if err := loaded.refreshState(); err != nil {
+		t.Fatal(err)
+	}
+	if digest(loaded.state) != before {
+		t.Fatal("guest projections changed persisted business state")
+	}
+	if node, err := exec.LookPath("node"); err == nil {
+		// Two separate consumer launches; each performs real GET, offline and
+		// retry through the owned JS transport, not a mocked snapshot.
+		for launch := 0; launch < 2; launch++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			cmd := exec.CommandContext(ctx, node, filepath.Join("..", "..", "apps", "exchange", "tests", "http-cancelled-market-flow.mjs"), restarted.URL)
+			output, err := cmd.CombinedOutput()
+			cancel()
+			if err != nil || string(output) != "CANCELLED_MARKET_RECOVERY=verified\n" {
+				t.Fatalf("owned guest consumer recovery failed: %v %s", err, output)
+			}
+		}
+	} else {
+		t.Log("Node unavailable: cross-language guest recovery NOT_RUN")
 	}
 }
