@@ -1,3 +1,4 @@
+import {createMerchantBusinessSession} from './merchant-session.js';
 import {createPrivateSessionController} from '../../seller-console/product-session.js';
 import { p256 } from "@noble/curves/nist.js";
 import { createRequestContext } from "./request-context.js";
@@ -20,7 +21,7 @@ const STORAGE="ynx-merchant-wallet-auth-v1";
 const pendingRequests=createRequestContext(()=>sessionStorage.getItem(STORAGE));
 const completing=new Set();
 
-export function cancelWalletSignIn(){pendingRequests.invalidate();sessionStorage.removeItem(STORAGE);void canonicalMerchant.clear().catch(()=>{});sessionStorage.removeItem("ynx-merchant-canonical-selection-v2")}
+export function cancelWalletSignIn(){merchantBusiness.invalidate();pendingRequests.invalidate();void canonicalMerchant.clear().catch(()=>{});sessionStorage.removeItem("ynx-merchant-canonical-selection-v2")}
 
 export async function connectStandardWallet({windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK,origin=windowLike.location?.origin??globalThis.location?.origin??'https://pay.ynxweb4.com'}={}){
  const discovery=await discoverEip6963WalletProviders(windowLike,timeoutMs);
@@ -56,11 +57,15 @@ export function beginWalletSignIn(merchantId,now=new Date()){
 }
 
 const canonicalMerchant=createPrivateSessionController({productId:'pay-merchant',scopes:['account:read','merchant:session:create'],purpose:'Sign in to my authorized YNX Merchant Console records on ynx_6423-1.',endpoint:()=>globalThis.YNX_APP_GATEWAY_URL||null});
-export async function launchMerchantWalletSignIn(merchantId){
+const merchantBusiness=createMerchantBusinessSession({controller:canonicalMerchant,endpoint:()=>globalThis.YNX_PAY_API_URL||null});
+export const authorizeMerchantBusiness=(url,options,token)=>merchantBusiness.authorize(url,options,token);
+export async function restoreMerchantSignIn(){const raw=sessionStorage.getItem('ynx-merchant-canonical-selection-v2');if(!raw)return null;const selection=JSON.parse(raw);if(!selection||typeof selection.merchantId!=='string')return null;await canonicalMerchant.recover(globalThis.location.href,selection.standardAccount);return merchantBusiness.restore(selection.merchantId)}
+export async function launchMerchantWalletSignIn(merchantId,{standardAccount}={}){
  if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error('A valid merchant ID is required');
  // The selected object is a navigation hint, never membership or a role grant.
  const state=await canonicalMerchant.begin();
- sessionStorage.setItem('ynx-merchant-canonical-selection-v2',merchantId);
+ merchantBusiness.invalidate();
+ sessionStorage.setItem('ynx-merchant-canonical-selection-v2',JSON.stringify({merchantId,standardAccount:standardAccount||null}));
  return state;
 }
 
@@ -75,9 +80,15 @@ function prepareWalletSignIn(merchantId,now){
 
 export async function finishWalletSignIn(callbackURL,gatewayBase,now=new Date()){
   if(new URL(callbackURL).searchParams.has("result")){
-    await canonicalMerchant.recover(callbackURL);
-    throw new Error("Canonical private approval was checked. Merchant membership readback is not yet configured; no role or merchant session was created.");
+    const selection=JSON.parse(sessionStorage.getItem('ynx-merchant-canonical-selection-v2')||'null');
+    if(!selection?.merchantId)throw new Error('The original selected merchant is unavailable.');
+    await canonicalMerchant.recover(callbackURL,selection.standardAccount);
+    return merchantBusiness.start(selection.merchantId);
   }
+  throw new Error('This saved approval belongs to an older sign-in flow. Start a new Merchant sign-in.');
+}
+// Historical recovery utility remains available, but current UI does not call it.
+export async function finishLegacyWalletSignIn(callbackURL,gatewayBase,now=new Date()){
   const pending=sessionStorage.getItem(STORAGE);
   const stored=JSON.parse(pending||"null");
   if(!stored?.merchantId||!stored?.request||!stored?.deviceSecret)throw new Error("Wallet sign-in recovery state is missing or expired");

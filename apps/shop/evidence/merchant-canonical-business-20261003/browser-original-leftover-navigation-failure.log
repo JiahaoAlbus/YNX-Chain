@@ -1,0 +1,165 @@
+
+Running 4 tests using 1 worker
+
+(node:31401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated (5.2s)
+(node:31722) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available (30.1s)
+(node:32659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile (5.2s)
+(node:33688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › test/browser/wallet-visible.spec.mjs:163:1 › retired saved merchant credentials cannot activate records and cancellation preserves original evidence (5.1s)
+
+
+  1) [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: 'Merchant Console' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('heading', { name: 'Merchant Console' })
+
+
+      44 |   await installProvider(page);
+      45 |   await page.goto("/");
+    > 46 |   await expect(page.getByRole("heading",{name:"Merchant Console"})).toBeVisible();
+         |                                                                     ^
+      47 |   await page.getByRole("button",{name:"Explore without signing in"}).click();
+      48 |   await expect(page.getByText("Public capability preview")).toBeVisible();
+      49 |   await page.getByRole("button",{name:"Connect Wallet"}).click();
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:46:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-approved-de-d6725-d-private-service-separated-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Connect Wallet' })
+
+
+      61 |   await installProvider(page,{reject:true});
+      62 |   await page.goto("/");
+    > 63 |   await page.getByRole("button",{name:"Connect Wallet"}).click();
+         |                                                          ^
+      64 |   await expect(page.getByText(/Not connected\. Public information remains available\./)).toBeVisible();
+      65 |   await expect(page.getByText(/rejected/i)).toBeVisible();
+      66 |   await expect(page.getByRole("button",{name:"Continue to private merchant session"})).toBeDisabled();
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:63:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-rejected-de-ea85d-c-preview-remains-available-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.auth-mark img')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('.auth-mark img')
+
+
+      71 | });
+      72 |
+    > 73 | test("Commerce roles and original logo remain usable on mobile",async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('navigation',{name:'Commerce'})).toBeVisible();await expect(page.getByRole('link',{name:'Merchant invoices'})).toHaveAttribute('aria-current','page');await expect(page.locator('.auth-mark img')).toBeVisible();expect(await page.locator('.auth-mark img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:resolve(evidence,'merchant-commerce-mobile-390x844.png'),fullPage:true})});
+         |                                                                                                                                                                                                                                                                                                                                                                                        ^
+      74 |
+      75 | // Controlled legacy API fixtures exercise product UI only. They are not an
+      76 | // installed Wallet, canonical v2 approval, public service, or true SSO receipt.
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:73:376
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/wallet-visible.spec.mjs:163:1 › retired saved merchant credentials cannot activate records and cancellation preserves original evidence 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Connect Wallet' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Connect Wallet' })
+
+
+      164 |  const errors=[],privateRequests=[];page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/v1/merchant/'))privateRequests.push(request.url())});
+      165 |  await page.addInitScript(()=>{sessionStorage.setItem('ynx-merchant-session','original-retired-domain-token');sessionStorage.setItem('ynx-merchant-account','ynx1'+'q'.repeat(38));sessionStorage.setItem('ynx-merchant-role','owner');sessionStorage.setItem('ynx-merchant-wallet-auth-v1','original-retired-pending');sessionStorage.setItem('ynx-merchant-id','mrc_original')});
+    > 166 |  await installProvider(page);await page.goto('/merchant/');await expect(page.getByRole('button',{name:'Connect Wallet'})).toBeVisible();await expect(page.getByRole('button',{name:'Create invoice',exact:true})).toHaveCount(0);expect(privateRequests).toEqual([]);
+          |                                                                                                                           ^
+      167 |  await page.getByRole('button',{name:'Connect Wallet'}).click();await page.getByRole('button',{name:'Cancel private sign-in'}).click();expect(await page.evaluate(()=>({token:sessionStorage.getItem('ynx-merchant-session'),pending:sessionStorage.getItem('ynx-merchant-wallet-auth-v1')}))).toEqual({token:'original-retired-domain-token',pending:'original-retired-pending'});expect(errors).toEqual([]);await page.screenshot({path:resolve(evidence,'merchant-canonical-retired-records-preserved.png'),fullPage:true});
+      168 | });
+      169 |
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:166:123
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-retired-sav-e7791-preserves-original-evidence-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-retired-sav-e7791-preserves-original-evidence-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-retired-sav-e7791-preserves-original-evidence-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-retired-sav-e7791-preserves-original-evidence-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated 
+    [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available 
+    [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile 
+    [chromium] › test/browser/wallet-visible.spec.mjs:163:1 › retired saved merchant credentials cannot activate records and cancellation preserves original evidence 

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "baseCommit": "4587a8b28016bca8c7f4ea5c4f955a8e825f193f",
+  "scope": "Owned Merchant canonical grant to original Pay domain carrier/member readback and business request guard",
+  "sdkVendorSha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+  "verification": {
+    "isolatedFullNodeTests": 49,
+    "failures": 0,
+    "browserBuild": "PASS",
+    "currentPublicAndRetiredRecordBrowserChecks": 4,
+    "sourceDiffCheck": "PASS"
+  },
+  "sourceChanges": [
+    "Canonical result no longer unconditionally rejects membership wiring; it calls original POST /v1/merchant/sessions then original selected merchant/member readback",
+    "Current UI does not adopt original bare token/role/account or consume old Wallet V1 records",
+    "PayAPI requires current canonical authorizer and original domain carrier; two SDK proofs remain alongside the original domain carrier, never carrier alone",
+    "Original immutable merchant selection and public standard account are carried through callback; current verified private account is SDK-derived",
+    "Creation admission retains exact original body plus both signed proof headers before dispatch; unknown/restart cannot automatically mint another carrier",
+    "Original ready carrier is bound to complete canonical session binding/account/full expiry and selected merchant/domain expiry/current role",
+    "Definite rejection is archived before another explicit attempt; cancellation or late context change cannot publish its carrier",
+    "Existing unified Commerce navigation is preserved; duplicate addition removed"
+  ],
+  "retainedFailures": [
+    "Initial live node_modules had retired1.0 SDK missing subpath exports; immutable1.2 vendor was extracted only into fresh QA stage",
+    "Original full14-browser run:2 pass12 fail; duplicate navigation fixed;11 private UI fixtures still use retired token activation and remain unupdated/unverified",
+    "Original leftover navigation function call broke guest loading; source fixed and four current checks pass"
+  ],
+  "backendContract": {
+    "originalReadOnlySource": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0/internal/payproduct",
+    "observed": "CompleteMerchantSession still uses original V1 Gateway HMAC assertion; merchantAuth uses original domain bearer. Canonical V2 private backend/nonce/transaction integration not implemented by this frontend",
+    "requiredBySoleA": [
+      "Exact full private pay-merchant Web session, original confidential reader/backend key/actor/SSO binding",
+      "Two original proof headers/exact route and body, fresh revalidation after awaits outside PayStore lock",
+      "Original selected merchant/member/role/account/object/full session/proof deadlines and one-shot nonce plus original effect checked atomically inside original PayStore",
+      "Create/recover original domain carrier bound to private session; opaque domain token alone cannot authorize formal V2 routes",
+      "Unknown original creation proof/action nonce recovery without replaying consumed proof or inventing carrier"
+    ],
+    "runtimeManifest": "Inherited UNAVAILABLE/PENDING unchanged; no endpoint fallback enabled"
+  },
+  "notVerified": [
+    "Real Pay V2 backend/source transaction integration and Host registration",
+    "Approved canonical Merchant browser UI journey; previous11 private UI fixtures require upgraded canonical fixture wiring",
+    "Production Gateway/issuer/Browser actor and public deploy",
+    "Real Wallet approval/member readback/invoice/refund/webhook/AI domain flows",
+    "Final signed Android/macOS/Web entry and installed user-flow acceptance"
+  ]
+}

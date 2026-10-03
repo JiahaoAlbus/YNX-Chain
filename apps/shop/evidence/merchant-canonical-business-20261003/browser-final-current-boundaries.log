@@ -1,0 +1,11 @@
+
+Running 4 tests using 1 worker
+
+(node:39833) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated (664ms)
+  ✓  2 [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available (508ms)
+  ✓  3 [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile (157ms)
+  ✓  4 [chromium] › test/browser/wallet-visible.spec.mjs:163:1 › retired saved merchant credentials cannot activate records and cancellation preserves original evidence (234ms)
+
+  4 passed (2.1s)

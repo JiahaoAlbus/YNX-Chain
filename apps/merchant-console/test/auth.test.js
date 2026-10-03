@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyGatewayCompletion } from "@ynx-chain/wallet-auth";
-import { beginWalletSignIn, cancelWalletSignIn, connectStandardWallet, finishWalletSignIn, launchMerchantWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
+import { beginWalletSignIn, cancelWalletSignIn, connectStandardWallet, finishWalletSignIn as finishCanonicalWalletSignIn, finishLegacyWalletSignIn as finishWalletSignIn, launchMerchantWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
 
 const records=new Map();
 globalThis.sessionStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)};
 
-test("canonical Wallet approval and product-device proof create only a short merchant session",async t=>{
+test("inherited compatibility recovery keeps original approval/device checks and short domain session",async t=>{
   records.clear();
   const now=new Date("2026-07-18T12:00:00.000Z");
   const link=beginWalletSignIn("mrc_truth123",now);
@@ -124,3 +124,5 @@ test("late completion preserves a replacement approval instead of consuming its 
     await assert.rejects(result,error=>error.code==="COMMERCE_CONTEXT_CHANGED");assert.equal(records.get("ynx-merchant-wallet-auth-v1"),preserved);
   }finally{globalThis.fetch=originalFetch;cancelWalletSignIn()}
 });
+
+test('current Merchant callback entry retires V1 without consuming its original recovery',async()=>{records.clear();records.set('ynx-merchant-wallet-auth-v1','original-retired-pending');const previous=globalThis.fetch;let calls=0;globalThis.fetch=async()=>{calls++;throw Error('unexpected request')};try{await assert.rejects(()=>finishCanonicalWalletSignIn('https://pay.ynxweb4.com/merchant/wallet-auth/callback?response=original-legacy'),/older sign-in/);assert.equal(calls,0);assert.equal(records.get('ynx-merchant-wallet-auth-v1'),'original-retired-pending')}finally{globalThis.fetch=previous}});

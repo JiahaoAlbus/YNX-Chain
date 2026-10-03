@@ -1,0 +1,56 @@
+✔ only the selected merchant and its persisted records enter the page, regardless of map order (1.565834ms)
+✔ missing selection or missing/inactive/duplicate current membership cannot create a workspace (1.220959ms)
+✔ a changed verified role requires fresh approval instead of silently promoting or downgrading (0.216416ms)
+✔ foreign and unbound collections or aggregate analytics cannot enter a selected workspace (0.135458ms)
+node:internal/modules/esm/resolve:315
+  return new ERR_PACKAGE_PATH_NOT_EXPORTED(
+         ^
+
+Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './wallet-provider-discovery' is not defined by "exports" in /Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/merchant-console/node_modules/@ynx-chain/wallet-auth/package.json imported from /Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/merchant-console/src/auth.js
+    at exportsNotFound (node:internal/modules/esm/resolve:315:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:663:9)
+    at packageResolve (node:internal/modules/esm/resolve:792:12)
+    at moduleResolve (node:internal/modules/esm/resolve:873:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+    at #resolve (node:internal/modules/esm/loader:690:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35) {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+}
+
+Node.js v26.7.0
+✖ apps/merchant-console/test/auth.test.js (93.619917ms)
+✔ form drafts survive replacement while acknowledgement resets only its form (1.047375ms)
+✔ datetime-local displays the chosen local time without a UTC shift (1.3755ms)
+✔ all twelve locales have complete nonblank audited strings (0.869958ms)
+✔ payment, refund, dispute and AI strings preserve strict authority boundaries (1.024417ms)
+✔ locale detection, Arabic and plural formatting are deterministic (10.693875ms)
+✔ unknown outcome survives controller restart and rejects edits without issuing another request (1.710875ms)
+✔ opaque journal contains no private input or identity and separate accounts/merchants remain independent (0.254959ms)
+✔ two competing pages serialize dispatch and cannot create replacement after the first confirmation (0.162334ms)
+✔ late successful response after logout preserves original recovery and is not adopted (0.178125ms)
+✔ storage failure or malformed original data prevents sending and retains original evidence (0.180292ms)
+✔ successful response whose durable cleanup fails retains its exact recovery key (0.111792ms)
+✔ a changed caller object cannot alter the original body during asynchronous admission (0.107458ms)
+✔ release config consumes the accepted bundled endpoint boundary and fails private services closed (3.455375ms)
+✔ browser source contains no loopback, emulator, HTTP production or Node-only runtime dependency (1.301625ms)
+✔ English is the first-run primary language while saved user choice remains supported (1.32525ms)
+✔ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (0.96725ms)
+✔ merchant JSON and reconciliation export reject late records after logout or merchant switch (18.689333ms)
+✔ merchant mutation forwards the original idempotency key and JSON through the bounded product request (0.616083ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 22
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.706458
+
+✖ failing tests:
+
+test at apps/merchant-console/test/auth.test.js:1:1
+✖ apps/merchant-console/test/auth.test.js (93.619917ms)
+  'test failed'

@@ -1,0 +1,488 @@
+
+Running 14 tests using 1 worker
+
+(node:28004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated (610ms)
+  ✓   2 [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available (513ms)
+  ✘   3 [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile (129ms)
+(node:28013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [chromium] › test/browser/wallet-visible.spec.mjs:92:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft (30.1s)
+(node:29567) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [chromium] › test/browser/wallet-visible.spec.mjs:112:1 › logout during a mutation never restores private workspace from its late response (30.1s)
+(node:29827) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [chromium] › test/browser/wallet-visible.spec.mjs:120:1 › viewer overview hides invoice creation and merchant forms (5.2s)
+(node:29839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [chromium] › test/browser/wallet-visible.spec.mjs:124:1 › authenticated mobile navigation reaches settings without document overflow (5.2s)
+(node:29844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [chromium] › test/browser/wallet-visible.spec.mjs:130:1 › authoritative session rejection clears private records and requires new approval (5.2s)
+(node:29855) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [chromium] › test/browser/wallet-visible.spec.mjs:137:1 › reload retains opaque original invoice key and blocks replacement until exact retry (30.1s)
+(node:30150) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [chromium] › test/browser/wallet-visible.spec.mjs:146:1 › the selected merchant wins over a foreign first row and excludes foreign invoices (5.2s)
+(node:30158) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 [chromium] › test/browser/wallet-visible.spec.mjs:151:1 › a forged saved owner role cannot expose owner controls when current membership is viewer (5.1s)
+(node:30290) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership revoked clears the old workspace and requires approval (5.1s)
+(node:30480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership different-role clears the old workspace and requires approval (5.2s)
+(node:30493) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  14 [chromium] › test/browser/wallet-visible.spec.mjs:159:1 › analytics for another merchant never enters the selected dashboard (5.2s)
+
+
+  1) [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('navigation', { name: 'Commerce' })
+    Expected: visible
+    Error: strict mode violation: getByRole('navigation', { name: 'Commerce' }) resolved to 2 elements:
+        1) <nav class="commerceNav" aria-label="Commerce">…</nav> aka getByText('YNX PayShopSell')
+        2) <nav aria-label="Commerce" class="commerce-links">…</nav> aka getByText('ShopSellerMerchant')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('navigation', { name: 'Commerce' })
+
+
+      71 | });
+      72 |
+    > 73 | test("Commerce roles and original logo remain usable on mobile",async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await expect(page.getByRole('navigation',{name:'Commerce'})).toBeVisible();await expect(page.getByRole('link',{name:'Merchant invoices'})).toHaveAttribute('aria-current','page');await expect(page.locator('.auth-mark img')).toBeVisible();expect(await page.locator('.auth-mark img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:resolve(evidence,'merchant-commerce-mobile-390x844.png'),fullPage:true})});
+         |                                                                                                                                                                                                                      ^
+      74 |
+      75 | // Controlled legacy API fixtures exercise product UI only. They are not an
+      76 | // installed Wallet, canonical v2 approval, public service, or true SSO receipt.
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:73:214
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-Commerce-ro-04c97-ogo-remain-usable-on-mobile-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/wallet-visible.spec.mjs:92:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Create invoice', exact: true })
+
+
+      93 |   const errors=[],requests=[];page.on('pageerror',error=>errors.push(error.message));
+      94 |   await installPrivateFixture(page,{invoice:async route=>{requests.push(route.request().postDataJSON());await route.fulfill({status:requests.length<3?503:201,contentType:'application/json',body:JSON.stringify(requests.length<3?{error:'Controlled unavailable'}:{id:'invoice-controlled'})})}});
+    > 95 |   await page.goto('/');await page.getByRole('button',{name:'Create invoice',exact:true}).click();
+         |                                                                                          ^
+      96 |   await page.locator('#description').fill('Order 42');await page.locator('#amount').fill('8');await page.locator('#tipAmount').fill('1');
+      97 |   await page.locator('#itemName').fill('Keep this catalog draft');await page.locator('#itemAmount').fill('12');
+      98 |   await page.getByRole('button',{name:'Create through central Pay API'}).click();
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:95:90
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-failed-invo-b9649-voice-keeps-unrelated-draft-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/wallet-visible.spec.mjs:112:1 › logout during a mutation never restores private workspace from its late response 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Create invoice', exact: true })
+
+
+      113 |   let release,started;const pending=new Promise(resolve=>started=resolve);
+      114 |   await installPrivateFixture(page,{invoice:async route=>{started();await new Promise(resolve=>release=resolve);await route.fulfill({contentType:'application/json',body:'{"id":"late-invoice"}'}).catch(()=>{})}});
+    > 115 |   await page.goto('/');await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Old account');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await pending;
+          |                                                                                          ^
+      116 |   await expect(page.getByRole('button',{name:'Create through central Pay API'})).toBeDisabled();await page.getByRole('button',{name:'Sign out',exact:true}).click();release();
+      117 |   await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+      118 | });
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:115:90
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-logout-duri-84f4f-pace-from-its-late-response-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/wallet-visible.spec.mjs:120:1 › viewer overview hides invoice creation and merchant forms 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      119 |
+      120 | test('viewer overview hides invoice creation and merchant forms',async({page})=>{
+    > 121 |   await installPrivateFixture(page,{role:'viewer'});await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();await expect(page.getByRole('button',{name:'Create invoice',exact:true})).toHaveCount(0);await expect(page.locator('#invoice-form')).toHaveCount(0);
+          |                                                                                                                              ^
+      122 | });
+      123 |
+      124 | test('authenticated mobile navigation reaches settings without document overflow',async({page})=>{
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:121:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-viewer-over-04ded-creation-and-merchant-forms-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-viewer-over-04ded-creation-and-merchant-forms-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-viewer-over-04ded-creation-and-merchant-forms-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-viewer-over-04ded-creation-and-merchant-forms-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › test/browser/wallet-visible.spec.mjs:124:1 › authenticated mobile navigation reaches settings without document overflow 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByText('Controlled Merchant')
+    Expected: 1
+    Received: 0
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+        14 × locator resolved to 0 elements
+           - unexpected value "0"
+
+
+      123 |
+      124 | test('authenticated mobile navigation reaches settings without document overflow',async({page})=>{
+    > 125 |   await page.setViewportSize({width:390,height:844});await installPrivateFixture(page,{role:'viewer'});await page.goto('/');await expect(page.getByText('Controlled Merchant')).toHaveCount(1);
+          |                                                                                                                                                                                 ^
+      126 |   await page.locator('.mobile-nav').getByRole('button',{name:'Settings',exact:true}).click();await expect(page.getByRole('heading',{name:'Security',exact:true})).toBeVisible();await expect(page.locator('[data-locale]')).toBeVisible();
+      127 |   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:resolve(evidence,'merchant-private-controlled-mobile-390x844.png'),fullPage:true});
+      128 | });
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:125:177
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-authenticat-90834-s-without-document-overflow-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-authenticat-90834-s-without-document-overflow-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-authenticat-90834-s-without-document-overflow-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-authenticat-90834-s-without-document-overflow-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › test/browser/wallet-visible.spec.mjs:130:1 › authoritative session rejection clears private records and requires new approval 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      129 |
+      130 | test('authoritative session rejection clears private records and requires new approval',async({page})=>{
+    > 131 |   await installPrivateFixture(page);await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();
+          |                                                                                                              ^
+      132 |   await page.route('**/v1/merchant/state',route=>route.fulfill({status:401,contentType:'application/json',body:'{"error":"Session expired"}'}));
+      133 |   await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/Your merchant session expired/)).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+      134 | });
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:131:110
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-authoritati-1df11-s-and-requires-new-approval-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-authoritati-1df11-s-and-requires-new-approval-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-authoritati-1df11-s-and-requires-new-approval-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-authoritati-1df11-s-and-requires-new-approval-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › test/browser/wallet-visible.spec.mjs:137:1 › reload retains opaque original invoice key and blocks replacement until exact retry 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Create invoice', exact: true })
+
+
+      137 | test('reload retains opaque original invoice key and blocks replacement until exact retry',async({page})=>{
+      138 |  const sent=[];await installPrivateFixture(page,{invoice:async route=>{sent.push(route.request().postDataJSON());await route.fulfill({status:sent.length===1?503:201,contentType:'application/json',body:sent.length===1?'{"error":"response unknown"}':'{"id":"original-recovered"}'})}});
+    > 139 |  await page.goto('/');await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toBeVisible();
+          |                                                                                         ^
+      140 |  const journal=await page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('ynx-merchant-mutation-v1:')));expect(journal).toHaveLength(1);expect(JSON.stringify(journal)).not.toContain('Original invoice');
+      141 |  await page.reload();await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Different invoice');await page.locator('#amount').fill('9');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(sent).toHaveLength(1);
+      142 |  await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:139:89
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-reload-reta-62a11-placement-until-exact-retry-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › test/browser/wallet-visible.spec.mjs:146:1 › the selected merchant wins over a foreign first row and excludes foreign invoices 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      146 | test('the selected merchant wins over a foreign first row and excludes foreign invoices',async({page})=>{
+      147 |  const state=await installPrivateFixture(page);state.merchants={foreign:{id:'mrc_foreign',displayName:'Foreign private merchant',status:'active'},...state.merchants};state.merchantMembers.foreign={merchantId:'mrc_foreign',account:'ynx1'+'q'.repeat(38),role:'owner',status:'active'};state.invoices.foreign={id:'foreign-secret-invoice',merchantId:'mrc_foreign',description:'Foreign order',amount:999,status:'pending'};
+    > 148 |  await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();await expect(page.getByText('Foreign private merchant')).toHaveCount(0);await expect(page.getByText('foreign-secret-invoice')).toHaveCount(0);await page.getByRole('button',{name:'Transactions',exact:true}).first().click();await expect(page.getByText('Foreign order')).toHaveCount(0);
+          |                                                                           ^
+      149 | });
+      150 |
+      151 | test('a forged saved owner role cannot expose owner controls when current membership is viewer',async({page})=>{
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:148:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-the-selecte-f4d7f-d-excludes-foreign-invoices-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-the-selecte-f4d7f-d-excludes-foreign-invoices-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-the-selecte-f4d7f-d-excludes-foreign-invoices-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-the-selecte-f4d7f-d-excludes-foreign-invoices-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › test/browser/wallet-visible.spec.mjs:151:1 › a forged saved owner role cannot expose owner controls when current membership is viewer 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      150 |
+      151 | test('a forged saved owner role cannot expose owner controls when current membership is viewer',async({page})=>{
+    > 152 |  await installPrivateFixture(page,{role:'viewer',savedRole:'owner'});await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();await expect(page.getByRole('button',{name:'Create invoice',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Settings',exact:true}).first().click();await expect(page.locator('#member-form')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-role'))).toBe('viewer');
+          |                                                                                                                                               ^
+      153 | });
+      154 |
+      155 | for(const change of ['revoked','different-role'])test('current merchant membership '+change+' clears the old workspace and requires approval',async({page})=>{
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:152:143
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-a-forged-sa-555a8-urrent-membership-is-viewer-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-a-forged-sa-555a8-urrent-membership-is-viewer-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-a-forged-sa-555a8-urrent-membership-is-viewer-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-a-forged-sa-555a8-urrent-membership-is-viewer-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership revoked clears the old workspace and requires approval 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      154 |
+      155 | for(const change of ['revoked','different-role'])test('current merchant membership '+change+' clears the old workspace and requires approval',async({page})=>{
+    > 156 |  const state=await installPrivateFixture(page);await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();if(change==='revoked')state.merchantMembers.current.status='revoked';else state.merchantMembers.current.role='viewer';await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/selected merchant or membership changed/)).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);await expect(page.locator('#invoice-form')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+          |                                                                                                                         ^
+      157 | });
+      158 |
+      159 | test('analytics for another merchant never enters the selected dashboard',async({page})=>{
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:156:121
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-current-mer-07f4a-space-and-requires-approval-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-current-mer-07f4a-space-and-requires-approval-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-current-mer-07f4a-space-and-requires-approval-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-current-mer-07f4a-space-and-requires-approval-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  11) [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership different-role clears the old workspace and requires approval 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Controlled Merchant')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Controlled Merchant')
+
+
+      154 |
+      155 | for(const change of ['revoked','different-role'])test('current merchant membership '+change+' clears the old workspace and requires approval',async({page})=>{
+    > 156 |  const state=await installPrivateFixture(page);await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();if(change==='revoked')state.merchantMembers.current.status='revoked';else state.merchantMembers.current.role='viewer';await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/selected merchant or membership changed/)).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);await expect(page.locator('#invoice-form')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+          |                                                                                                                         ^
+      157 | });
+      158 |
+      159 | test('analytics for another merchant never enters the selected dashboard',async({page})=>{
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:156:121
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-current-mer-485d4-space-and-requires-approval-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-current-mer-485d4-space-and-requires-approval-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-current-mer-485d4-space-and-requires-approval-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-current-mer-485d4-space-and-requires-approval-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12) [chromium] › test/browser/wallet-visible.spec.mjs:159:1 › analytics for another merchant never enters the selected dashboard 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/selected merchant or membership changed/)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/selected merchant or membership changed/)
+
+
+      158 |
+      159 | test('analytics for another merchant never enters the selected dashboard',async({page})=>{
+    > 160 |  await installPrivateFixture(page);await page.route('**/v1/merchant/analytics',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({merchantId:'mrc_other',netYnxt:999999,grossYnxt:999999})}));await page.goto('/');await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/selected merchant or membership changed/)).toBeVisible();await expect(page.getByText('999999')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+          |                                                                                                                                                                                                                                                                                                                                                                                                   ^
+      161 | });
+      162 |
+        at /private/tmp/ynx-commerce-merchant-v2-Eq9Zvt/apps/merchant-console/test/browser/wallet-visible.spec.mjs:160:387
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-analytics-f-5e7a8-ters-the-selected-dashboard-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/wallet-visible-analytics-f-5e7a8-ters-the-selected-dashboard-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/wallet-visible-analytics-f-5e7a8-ters-the-selected-dashboard-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/wallet-visible-analytics-f-5e7a8-ters-the-selected-dashboard-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  12 failed
+    [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile 
+    [chromium] › test/browser/wallet-visible.spec.mjs:92:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft 
+    [chromium] › test/browser/wallet-visible.spec.mjs:112:1 › logout during a mutation never restores private workspace from its late response 
+    [chromium] › test/browser/wallet-visible.spec.mjs:120:1 › viewer overview hides invoice creation and merchant forms 
+    [chromium] › test/browser/wallet-visible.spec.mjs:124:1 › authenticated mobile navigation reaches settings without document overflow 
+    [chromium] › test/browser/wallet-visible.spec.mjs:130:1 › authoritative session rejection clears private records and requires new approval 
+    [chromium] › test/browser/wallet-visible.spec.mjs:137:1 › reload retains opaque original invoice key and blocks replacement until exact retry 
+    [chromium] › test/browser/wallet-visible.spec.mjs:146:1 › the selected merchant wins over a foreign first row and excludes foreign invoices 
+    [chromium] › test/browser/wallet-visible.spec.mjs:151:1 › a forged saved owner role cannot expose owner controls when current membership is viewer 
+    [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership revoked clears the old workspace and requires approval 
+    [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership different-role clears the old workspace and requires approval 
+    [chromium] › test/browser/wallet-visible.spec.mjs:159:1 › analytics for another merchant never enters the selected dashboard 
+  2 passed (2.3m)
