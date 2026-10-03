@@ -330,20 +330,30 @@ test('real research form coalesces a delayed request without displaying unconfir
 test('actual Chrome retains confirmed workspace with persistent stale warning then explicitly recovers',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
-    let body={paper:{Cash:777,Position:0,KillSwitch:true},strategies:{},experiments:{},audit:[]};
+    const strategy={ID:'stale-paper-fixture',Name:'Saved fixture',Family:'transparent',Stage:'Backtest',License:'test-only',StrategyHash:'e'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
+    let body={access:{statefulPreview:true},paper:{Cash:777,Position:0,KillSwitch:false},strategies:{saved:strategy},experiments:{},audit:[]};
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)}));
     const page=await context.newPage(),errors=[],writes=[];
     page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes.push(request.url());});
     await page.goto(base,{waitUntil:'networkidle'});
+    await page.locator('nav button[data-view="paper"]').click();
+    await page.locator('#paper-strategy').selectOption(strategy.StrategyHash);
+    assert.equal(await page.locator('#paper-submit').isEnabled(),true);
     body=null;await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'visible'});
     assert.match(await page.locator('#paper-state').textContent(),/777/);
+    assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    assert.equal(await page.evaluate(()=>statefulPreview),true);
+    assert.equal(await page.locator('#reconcile').isDisabled(),true);assert.equal(await page.locator('#kill').isEnabled(),true);
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);
       assert.equal(await page.locator('#workspace-read-status').textContent(),await page.evaluate(()=>t('workspaceReadUnavailable')));
+      assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     }
-    body={paper:{Cash:888,Position:0,KillSwitch:true},strategies:{},experiments:{},audit:[]};
+    body={access:{statefulPreview:true},paper:{Cash:888,Position:0,KillSwitch:false},strategies:{saved:strategy},experiments:{},audit:[]};
     await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'hidden'});
     assert.match(await page.locator('#paper-state').textContent(),/888/);
+    assert.equal(await page.locator('#paper-submit').isEnabled(),true);
+    assert.equal(await page.locator('#reconcile').isEnabled(),true);
     assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.equal(context.pages().length,1);
   }finally{await context.close()}
 });

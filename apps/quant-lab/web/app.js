@@ -50,7 +50,8 @@ function readPendingResearchIntent() {
 let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
 // A pending exact-key replay may retrieve an already committed receipt even
 // after a kill. The service still rejects new execution under the kill switch.
-function paperFreshIntentBlocked() { return snapshot.paper?.KillSwitch === true && !pendingPaperIntent; }
+function paperFreshIntentBlockKey() { return pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
+function paperFreshIntentBlocked() { return paperFreshIntentBlockKey() !== null; }
 function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); }
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
@@ -625,7 +626,7 @@ async function refresh() {
     if(!object(next)||['paper','strategies','experiments','access'].some(key=>next[key]!==undefined&&!object(next[key])))throw Object.assign(new Error(t('workspaceReadUnavailable')),{code:'QUANT_SNAPSHOT_INVALID',localeKey:'workspaceReadUnavailable'});
   } catch(error) {
     if(revision!==snapshotRevision)return;
-    workspaceReadUnavailable=true;renderWorkspaceReadStatus();throw error;
+    workspaceReadUnavailable=true;renderWorkspaceReadStatus();renderPaperSubmitControl();renderRiskControls();throw error;
   }
   if (revision !== snapshotRevision) return;
   snapshot = next;
@@ -1099,7 +1100,7 @@ $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
   if (paperSubmitting || !statefulPreview) return;
   try {
-    if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
+    if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
     const strategyHash = $("#paper-strategy").value;
     if (!Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
     const Side = $("#side").value, Amount = +$("#paper-amount").value;
@@ -1109,7 +1110,7 @@ $("#paper-order").onsubmit = async (e) => {
     paperSubmitting = true;
     $("#paper-submit").disabled = true;
     if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${t("paperExecutionBoundary")}`)) return;
-    if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
+    if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
     if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
@@ -1293,7 +1294,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
   }
 };
 function renderRiskControls() {
-  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0; button.ariaBusy=String(riskWrites.has(id)); }
+  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0||(id==='reconcile'&&workspaceReadUnavailable); button.ariaBusy=String(riskWrites.has(id)); }
 }
 function confirmedRiskReceipt(value) {
   if(!value||!Number.isSafeInteger(value.Cash)||!Number.isSafeInteger(value.Position)||!Number.isSafeInteger(value.ReconciliationDelta)||value.ReconciliationDelta<0||typeof value.KillSwitch!=='boolean'||value.ReconciliationDelta>0&&!value.KillSwitch) throw Object.assign(new Error(t('riskReceiptUnconfirmed')), {localeKey:'riskReceiptUnconfirmed'});
@@ -1311,6 +1312,7 @@ function applyConfirmedRiskReceipt(receipt) {
 }
 $("#reconcile").onclick = async () => {
   if (!statefulPreview || riskWrites.size>0) return;
+  if (workspaceReadUnavailable) { toast(t('workspaceReadUnavailable'),'workspaceReadUnavailable');return; }
   riskWrites.add('reconcile');snapshotRevision++;renderRiskControls();
   try {
     if (!Number.isSafeInteger(snapshot.paper?.Cash) || !Number.isSafeInteger(snapshot.paper?.Position)) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});

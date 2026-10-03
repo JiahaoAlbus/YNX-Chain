@@ -840,6 +840,48 @@ test('workspace malformed or failed refresh preserves confirmed readback with a 
   assert.equal(app.ids.get('workspace-read-status').hidden,true);
   assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);
 });
+test('failed workspace refresh blocks fresh Paper intent before confirmation and recovers without clearing authority or records',async()=>{
+  const hash='e'.repeat(64),workspace={paper:{Cash:777,Position:0,KillSwitch:false},strategies:{saved:{Name:'Saved fixture',StrategyHash:hash}}};
+  let unavailable=false,confirmations=0;
+  const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>{assert.ok(url.endsWith('/snapshot'));if(unavailable)throw Error('offline');return workspace}});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('paper-strategy').onchange();app.ids.get('paper-amount').value='100';app.ids.get('side').value='buy';
+  assert.equal(app.ids.get('paper-submit').disabled,false);
+  unavailable=true;await app.ids.get('refresh').onclick();
+  assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(vm.runInContext('statefulPreview',app.context),true);
+  assert.equal(app.ids.get('reconcile').disabled,true);assert.equal(app.ids.get('kill').disabled,false);
+  await app.ids.get('reconcile').onclick();
+  assert.equal(vm.runInContext('snapshot.paper.Cash',app.context),777);
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    await app.ids.get('paper-order').onsubmit({preventDefault(){}});
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
+    assert.equal(app.ids.get('paper-submit').disabled,true);
+  }
+  assert.equal(confirmations,0);assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);
+  unavailable=false;await app.ids.get('refresh').onclick();
+  assert.equal(app.ids.get('workspace-read-status').hidden,true);assert.equal(app.ids.get('paper-submit').disabled,false);
+  assert.equal(app.ids.get('reconcile').disabled,false);
+});
+
+test('unknown exact Paper replay remains available during failed workspace reads without enabling fresh intent',async()=>{
+  const hash='e'.repeat(64),workspace={paper:{KillSwitch:false},strategies:{saved:{Name:'Saved fixture',StrategyHash:hash}}};
+  let unavailable=false,posts=0,original;
+  const app=harness({confirmAction:()=>true,apiResponse:(url,options)=>{
+    if(url.endsWith('/snapshot')){if(unavailable)throw Error('offline');return workspace}
+    assert.ok(url.endsWith('/paper/orders'));const submitted=JSON.parse(options.body);posts++;
+    if(posts===1){original=submitted;throw Error('lost receipt')}
+    assert.deepEqual(submitted,original);return {...paperRecord({Status:'filled',Filled:100,Amount:100}),...submitted};
+  }});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('paper-strategy').onchange();app.ids.get('paper-amount').value='100';app.ids.get('side').value='buy';
+  await app.ids.get('paper-order').onsubmit({preventDefault(){}});
+  unavailable=true;await app.ids.get('refresh').onclick();
+  assert.equal(app.ids.get('paper-submit').disabled,false);
+  await app.ids.get('paper-order').onsubmit({preventDefault(){}});
+  assert.equal(posts,2);assert.equal(vm.runInContext('pendingPaperIntent',app.context),null);
+  assert.equal(app.ids.get('paper-submit').disabled,true);
+  await app.ids.get('paper-order').onsubmit({preventDefault(){}});assert.equal(posts,2);
+});
+
 test('retired workspace read failure cannot mark a newer successful snapshot unavailable',async()=>{
   const old=deferred();let reads=0;
   const app=harness({rawSnapshot:true,apiResponse:()=>++reads===2?old.promise:{paper:{Cash:reads,KillSwitch:true}}});await settle();
