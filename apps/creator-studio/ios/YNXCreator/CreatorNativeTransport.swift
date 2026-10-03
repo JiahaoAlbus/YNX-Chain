@@ -2,7 +2,7 @@ import Foundation
 
 // Native transport is never a cookie, redirect or credential-bearing Web view.
 final class CreatorNativeTransport: NSObject, URLSessionTaskDelegate {
-    enum Failure: Error { case invalidResponse, responseTooLarge }
+    enum Failure: Error { case invalidResponse, responseTooLarge, httpRejected(Int) }
     private lazy var session: URLSession = {
         let config=URLSessionConfiguration.ephemeral
         config.httpCookieStorage=nil; config.urlCredentialStorage=nil
@@ -19,6 +19,19 @@ final class CreatorNativeTransport: NSObject, URLSessionTaskDelegate {
             guard data.count<limit else { throw Failure.responseTooLarge }; data.append(byte)
         }
         try Task.checkCancellation(); return (data,http)
+    }
+    func stream(_ request:URLRequest,_ limit:Int,_ receive:@escaping @MainActor (Data)throws->Void) async throws -> HTTPURLResponse {
+        let (stream,response)=try await session.bytes(for:request)
+        guard let http=response as? HTTPURLResponse,http.url==request.url else {throw Failure.invalidResponse}
+        guard http.statusCode==200 else {throw Failure.httpRejected(http.statusCode)}
+        guard http.value(forHTTPHeaderField:"Content-Type")?.lowercased().hasPrefix("application/x-ndjson")==true else {throw Failure.invalidResponse}
+        var line=Data(),total=0
+        for try await byte in stream {
+            if total&8191==0 {try Task.checkCancellation()};total+=1
+            guard total<=limit,line.count<=524288 else {throw Failure.responseTooLarge}
+            if byte==10 {if !line.isEmpty {try await receive(line)};line.removeAll(keepingCapacity:true)} else {line.append(byte)}
+        }
+        try Task.checkCancellation();if !line.isEmpty {try await receive(line)};return http
     }
     func urlSession(_ session: URLSession,task: URLSessionTask,willPerformHTTPRedirection response: HTTPURLResponse,newRequest request: URLRequest,completionHandler: @escaping (URLRequest?) -> Void) { completionHandler(nil) }
 }

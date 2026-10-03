@@ -81,6 +81,19 @@ final class CreatorHTTP: NSObject, URLSessionTaskDelegate {
         }
         return data
     }
+    @MainActor func streamAI(_ operation:CreatorDraftState.Operation,engine:CreatorNativeEngine,guardRequest:@escaping @MainActor ()throws->Void,receive:@escaping @MainActor (Data)throws->Void) async throws {
+        guard operation.method=="POST",CreatorNativeState.matches(operation.path,"^/v1/ai/jobs/[A-Za-z0-9_-]{1,160}/stream$"),operation.body=="{}",let original=engine.identity else {throw Failure.invalidPath}
+        let epoch=engine.epoch,bytes=Data(operation.body.utf8),digest=CreatorNativeState.hash(bytes)
+        try guardRequest();try engine.require(original,epoch)
+        let proof=try await engine.dispatch("prepareRequest",["method":"POST","path":operation.path,"bodyDigest":digest,"bodyBytes":bytes.count])
+        try guardRequest();try engine.require(original,epoch)
+        guard proof["account"] as? String==original.account,proof["sessionBinding"] as? String==original.binding,proof["bodyDigest"] as? String==digest,proof["bodyBytes"] as? Int==bytes.count,let identity=proof["identityHeader"] as? String,let action=proof["actionHeader"] as? String else {throw Failure.nativeSessionUnavailable}
+        var request=URLRequest(url:try Self.url(operation.path));request.httpMethod="POST";request.httpBody=bytes
+        request.setValue("application/x-ndjson",forHTTPHeaderField:"Accept");request.setValue("application/json",forHTTPHeaderField:"Content-Type")
+        request.setValue(operation.key,forHTTPHeaderField:"Idempotency-Key");request.setValue(identity,forHTTPHeaderField:"X-YNX-Product-Session-Proof-V2");request.setValue(action,forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2")
+        try await engine.streamBusiness(request,original,epoch) {line in try guardRequest();try receive(line)}
+        try guardRequest()
+    }
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                     newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         completionHandler(nil)

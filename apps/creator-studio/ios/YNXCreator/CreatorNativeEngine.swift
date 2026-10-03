@@ -15,6 +15,8 @@ import AppKit
         let context: CreatorNativeState.Context
     }
     typealias Sender = (URLRequest,Int) async throws -> (Data,HTTPURLResponse)
+    typealias StreamSender = (URLRequest,Int,@escaping @MainActor (Data)throws->Void) async throws -> HTTPURLResponse
+    private let stream:StreamSender?
     private struct Waiter { let epoch: UInt64; let method: String; let continuation: CheckedContinuation<[String:Any],Error>; let timeout: Task<Void,Never> }
     static let sourceSHA = "2d934be645b5fcca79b8f8253c120a14b34d9339ad5179dfc8cd917eb766dd35"
     static let sdkSHA = "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
@@ -50,7 +52,7 @@ import AppKit
         let key=CreatorDeviceKey.shared,custody=try CreatorNativeCustody(platform:platform)
         let state=try CreatorNativeState.open(platform:platform,key:key,custody:custody)
         let transport=CreatorNativeTransport()
-        return try CreatorNativeEngine(state:state,key:key,assets:assets,send:transport.send,walletDetected:{
+        return try CreatorNativeEngine(state:state,key:key,assets:assets,send:transport.send,stream:transport.stream,walletDetected:{
             let url=URL(string:"ynxwallet://authorize")!
             #if os(iOS)
             return UIApplication.shared.canOpenURL(url)
@@ -65,8 +67,8 @@ import AppKit
             #endif
         })
     }
-    init(state: CreatorNativeState,key: CreatorDeviceKey,assets: URL,send: @escaping Sender,walletDetected: @escaping () -> Bool,openWallet: @escaping (URL) async -> Bool) throws {
-        self.state=state;self.key=key;self.send=send;self.walletDetected=walletDetected;self.openWallet=openWallet
+    init(state: CreatorNativeState,key: CreatorDeviceKey,assets: URL,send: @escaping Sender,stream:StreamSender?=nil,walletDetected: @escaping () -> Bool,openWallet: @escaping (URL) async -> Bool) throws {
+        self.state=state;self.key=key;self.send=send;self.stream=stream;self.walletDetected=walletDetected;self.openWallet=openWallet
         let manifest=try Data(contentsOf:assets.appendingPathComponent("source.json"))
         guard CreatorNativeState.hash(manifest)==Self.sourceSHA,
               let record=try JSONSerialization.jsonObject(with:manifest) as? [String:Any],
@@ -221,6 +223,17 @@ import AppKit
               request.value(forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2") != nil else { throw Failure.rejected("business endpoint") }
         try require(original,captured);let result=try await send(request,limit);try require(original,captured)
         guard result.1.url==url else { throw Failure.rejected("business response") };return result
+    }
+    func streamBusiness(_ request:URLRequest,_ original:Identity,_ captured:UInt64,_ receive:@escaping @MainActor (Data)throws->Void) async throws {
+        guard let stream,let url=request.url,request.httpMethod=="POST",url.absoluteString==CreatorHTTP.api.absoluteString+url.path.replacingOccurrences(of:"/video/api",with:"",options:.anchored),url.query==nil,url.fragment==nil,CreatorNativeState.matches(url.path,"^/video/api/v1/ai/jobs/[A-Za-z0-9_-]{1,160}/stream$"),request.value(forHTTPHeaderField:"X-YNX-Product-Session-Proof-V2") != nil,request.value(forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2") != nil else {throw Failure.unavailable}
+        try require(original,captured)
+        do {
+            let response=try await stream(request,1_048_576) {line in try self.require(original,captured);try receive(line)}
+            try require(original,captured);guard response.url==url else {throw Failure.rejected("stream response")}
+        } catch {
+            if case CreatorNativeTransport.Failure.httpRejected(401)=error {try rejected(original)}
+            throw error
+        }
     }
     func suspend() { epoch &+= 1;denied=true;identity=nil;expiration?.cancel();onChange?() }
     private func requireEpoch(_ captured: UInt64) throws { guard !closed,epoch==captured else { throw Failure.retired };try Task.checkCancellation() }

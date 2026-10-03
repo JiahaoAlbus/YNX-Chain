@@ -28,7 +28,7 @@ import ImageIO
         var path:String {"/v1/videos/"+videoID+"/"+kind}
         var limit:Int {kind=="thumbnail" ? 5*1024*1024 : 1024*1024}
     }
-    private struct Saved: Codable { let version: Int; let account: String; var upload: Upload?; var operation: Operation?;var asset:Asset? }
+    private struct Saved: Codable { let version: Int; let account: String; var upload: Upload?; var operation: Operation?;var asset:Asset?;var aiCancel:Operation? }
 
     let account: String
     let directory: URL
@@ -58,9 +58,18 @@ import ImageIO
             if let upload=saved.upload { try validate(upload) }
             if let operation=saved.operation { try validate(operation) }
             if let asset=saved.asset {try validate(asset)}
+            if let cancel=saved.aiCancel {try validate(cancel);guard CreatorNativeState.matches(cancel.path,"^/v1/ai/jobs/[A-Za-z0-9_-]{1,160}/cancel$"),cancel.method=="POST",cancel.body=="{}" else {throw Failure.damaged}}
         } else { saved=Saved(version:1,account:account,upload:nil,operation:nil) }
         try require()
     }
+    func pendingAICancel() throws -> Operation? {try require();return saved.aiCancel}
+    func reserveAICancel(_ jobID:String) throws -> Operation {
+        try require();guard Self.validID(jobID) else {throw Failure.invalid}
+        let path="/v1/ai/jobs/"+jobID+"/cancel"
+        if let original=saved.aiCancel {guard original.path==path else {throw Failure.pending};return original}
+        let operation=Operation(key:"creator-op-"+UUID().uuidString,path:path,body:"{}",method:"POST");var next=saved;next.aiCancel=operation;try persist(next);return operation
+    }
+    func acknowledgeAICancel(_ operation:Operation) throws {try require();guard saved.aiCancel==operation else {throw Failure.changed};var next=saved;next.aiCancel=nil;try persist(next)}
     func pendingAsset() throws -> Asset? {try require();return saved.asset}
     func pendingUpload() throws -> Upload? { try require();return saved.upload }
     func pendingOperation() throws -> Operation? { try require();return saved.operation }

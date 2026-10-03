@@ -11,6 +11,17 @@ struct CreatorVideo: Decodable, Identifiable {
     let thumbnail_key:String?
     let captions:[Caption]?
 }
+struct CreatorAIJob:Decodable,Identifiable,Equatable {
+    let recordID,Owner,VideoID,Kind,State,Provider,Model,Failure,OutputLanguage,ContextPreview,Result,Partial:String
+    let ContextClasses:[String]?
+    let EstimatedUnits:Int
+    let Accepted:Bool
+    var id:String {recordID}
+    enum CodingKeys:String,CodingKey {case recordID="ID",Owner,VideoID,Kind,State,Provider,Model,Failure,OutputLanguage,ContextPreview,Result,Partial,ContextClasses,EstimatedUnits,Accepted}
+    @MainActor func valid(_ account:String) -> Bool {
+        Owner==account && CreatorDraftState.validID(id) && CreatorDraftState.validID(VideoID) && ["awaiting_permission","running","review_required","accepted_suggestion","rejected","cancelled","recovery_required"].contains(State) && Result.utf8.count<=200000 && Partial.utf8.count<=200000 && ContextPreview.utf8.count<=10000 && EstimatedUnits>=0
+    }
+}
 struct CreatorSnapshot: Decodable {
     struct Analytics: Decodable { let views, watch_seconds, subscribers, revenue_ynxt: Int; let source: String }
     struct Team: Decodable, Identifiable {
@@ -48,6 +59,7 @@ struct CreatorSnapshot: Decodable {
     let reports: [Report]?
     let appeals: [Appeal]?
     let disputes: [Dispute]?
+    let ai_jobs:[CreatorAIJob]?
 }
 
 @MainActor final class CreatorModel: ObservableObject {
@@ -61,6 +73,13 @@ struct CreatorSnapshot: Decodable {
     @Published var pendingUploadTitle=""
     @Published var pendingOperation=false
     @Published var pendingAssetKind=""
+    @Published var selectedAI:CreatorAIJob?
+    @Published var aiStreaming=false
+    @Published var aiPartial=""
+    @Published var aiCancelling=false
+    @Published var pendingAICancel=false
+    @Published var aiProviderAvailable:Bool?
+    private var aiSelection:UInt64=0
     @Published var snapshot: CreatorSnapshot?
     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
     private(set) var engine: CreatorNativeEngine?
@@ -81,7 +100,7 @@ struct CreatorSnapshot: Decodable {
     func text(_ key: String) -> String { catalog[locale]?[key] ?? catalog["en"]?[key] ?? key }
     func language(_ value: String) {locale=value;UserDefaults.standard.set(value,forKey:"ynx.creator.locale")}
     func number(_ value: Int) -> String {value.formatted(.number.locale(Locale(identifier:locale)))}
-    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false;pendingAssetKind=""}
+    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false;pendingAssetKind="";selectedAI=nil;aiStreaming=false;aiPartial="";aiCancelling=false;pendingAICancel=false;aiProviderAvailable=nil;aiSelection &+= 1}
     private func ensure() throws -> CreatorNativeEngine {
         if let engine {return engine};let created=try makeEngine();engine=created
         created.onChange={ [weak self,weak created] in
@@ -98,6 +117,7 @@ struct CreatorSnapshot: Decodable {
                 self.pendingUploadTitle=try store.pendingUpload()?.title ?? ""
                 self.pendingOperation=try store.pendingOperation() != nil
                 self.pendingAssetKind=try store.pendingAsset()?.kind ?? ""
+                self.pendingAICancel=try store.pendingAICancel() != nil
             } catch {self.clear();self.message=self.text("draftUnavailable")}
         }
         return created
@@ -121,7 +141,11 @@ struct CreatorSnapshot: Decodable {
             else if status=="revocation-pending" || result["revocationPending"] as? Bool==true {signOutPending=true}
             awaitingWallet=status=="connecting"
             message=connected ? "" : awaitingWallet ? text("walletPending") : signOutPending ? text("signOutRetry") : text("signIn")
-            if connected {try await refreshCaptured(active,captured)}
+            if connected {
+                try await refreshCaptured(active,captured)
+                if let cancel=try drafts?.pendingAICancel() {let id=String(cancel.path.split(separator:"/")[3]);selectedAI=snapshot?.ai_jobs?.first(where:{$0.id==id})}
+                else if let operation=try drafts?.pendingOperation(),operation.path.hasSuffix("/stream") {let id=String(operation.path.split(separator:"/")[3]);selectedAI=snapshot?.ai_jobs?.first(where:{$0.id==id})}
+            }
         } catch {if captured==revision {message=text("retryRequired")}}
     }
     func handle(url: URL) {
@@ -136,9 +160,11 @@ struct CreatorSnapshot: Decodable {
     private func refreshCaptured(_ active: CreatorNativeEngine,_ captured: UInt64) async throws {
         let data=try await CreatorHTTP.shared.accountData("/v1/studio",engine:active,guardRequest:{try self.require(active,captured)})
         try require(active,captured);let fresh=try JSONDecoder().decode(CreatorSnapshot.self,from:data)
-        guard let identity=active.identity,(fresh.revenue ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.payout_intents ?? []).allSatisfy({$0.Owner==identity.account}),
+        guard let identity=active.identity,(fresh.revenue ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.payout_intents ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.ai_jobs ?? []).allSatisfy({$0.valid(identity.account)}),
               (fresh.videos ?? []).allSatisfy({CreatorDraftState.validID($0.id) && CreatorDraftState.validID($0.channel_id) && CreatorNativeState.matches($0.owner,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$")}) else {throw CreatorHTTP.Failure.unexpectedResponse}
         snapshot=fresh
+        if let selectedAI {self.selectedAI=fresh.ai_jobs?.first(where:{$0.id==selectedAI.id})}
+
         if channelID.isEmpty {channelID=fresh.team?.first?.channel_id ?? fresh.videos?.first?.channel_id ?? ""}
     }
     func refresh() async {
@@ -176,13 +202,93 @@ struct CreatorSnapshot: Decodable {
         defer {if captured==revision {busy=false}}
         do {
             guard let operation=try store.pendingOperation() else {return}
+            if CreatorNativeState.matches(operation.path,"^/v1/ai/jobs/[A-Za-z0-9_-]{1,160}/stream$") {try await runSavedAI(active,store,operation,captured);return}
             let data=try await CreatorHTTP.shared.accountData(operation.path,method:operation.method,body:Data(operation.body.utf8),engine:active,requestKey:operation.key,guardRequest:{try self.require(active,captured)})
             try require(active,captured)
             if operation.path=="/v1/channels",let channel=try JSONSerialization.jsonObject(with:data) as? [String:Any],let id=channel["ID"] as? String,CreatorDraftState.validID(id),channel["Owner"] as? String==account {channelID=id}
-            try await refreshCaptured(active,captured);try store.acknowledge(operation);pendingOperation=false;message=""
+            try await refreshCaptured(active,captured)
+            if operation.path=="/v1/ai/jobs" {
+                let job=try JSONDecoder().decode(CreatorAIJob.self,from:data);guard job.valid(account),let original=snapshot?.ai_jobs?.first(where:{$0.id==job.id}) else {throw CreatorHTTP.Failure.unexpectedResponse};selectedAI=original;aiSelection &+= 1
+            }
+            try store.acknowledge(operation);pendingOperation=false;message=""
         } catch {if captured==revision {lastFailure=String(describing:error);message=text("operationPending");try? await refreshCaptured(active,captured)}}
     }
     func cancelOperation() {guard !busy else {return};do {try drafts?.cancelOperation();pendingOperation=false;message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
+    func checkAIProvider() async {
+        guard !busy,let active=engine,connected else {return};let captured=revision
+        do {
+            let data=try await CreatorHTTP.shared.accountData("/v1/ai/status",engine:active,guardRequest:{try self.require(active,captured)});try require(active,captured)
+            guard let body=try JSONSerialization.jsonObject(with:data) as? [String:Any],let configured=body["configured"] as? Bool else {throw CreatorHTTP.Failure.unexpectedResponse};aiProviderAvailable=configured
+        } catch {if captured==revision {aiProviderAvailable=nil}}
+    }
+    func prepareAI(videoID:String,kind:String,classes:[String],language:String,expectedRevision:UInt64) async {
+        guard expectedRevision==revision,let video=snapshot?.videos?.first(where:{$0.id==videoID}),canManageAssets(video),["summary","chapters","captions","metadata","search_assistance","moderation_explanation"].contains(kind),classes.allSatisfy({["metadata","captions"].contains($0)}),["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"].contains(language) else {return}
+        await perform("/v1/ai/jobs",body:["video_id":videoID,"kind":kind,"context_classes":classes,"output_language":language],expectedRevision:expectedRevision)
+    }
+    private func readAI(_ id:String,_ active:CreatorNativeEngine,_ captured:UInt64) async throws -> CreatorAIJob {
+        guard CreatorDraftState.validID(id) else {throw CreatorHTTP.Failure.invalidPath}
+        let data=try await CreatorHTTP.shared.accountData("/v1/ai/jobs/"+id,engine:active,guardRequest:{try self.require(active,captured)})
+        try require(active,captured);let job=try JSONDecoder().decode(CreatorAIJob.self,from:data)
+        guard job.id==id,job.valid(account) else {throw CreatorHTTP.Failure.unexpectedResponse};return job
+    }
+    func openAI(_ id:String,expectedRevision:UInt64) async {
+        guard !busy,expectedRevision==revision,let active=engine else {return};busy=true;let captured=revision;aiSelection &+= 1;let selection=aiSelection;selectedAI=nil;aiPartial=""
+        defer {if captured==revision {busy=false}}
+        do {let original=try await readAI(id,active,captured);guard selection==aiSelection else {return};selectedAI=original;message=""}
+        catch {if captured==revision,selection==aiSelection {message=text("aiUnavailable")}}
+    }
+    func approveAI(_ id:String,expectedRevision:UInt64) async {
+        guard expectedRevision==revision,selectedAI?.id==id,selectedAI?.State=="awaiting_permission" else {return}
+        await perform("/v1/ai/jobs/"+id+"/stream",expectedRevision:expectedRevision)
+    }
+    private func runSavedAI(_ active:CreatorNativeEngine,_ store:CreatorDraftState,_ operation:CreatorDraftState.Operation,_ captured:UInt64) async throws {
+        let id=String(operation.path.split(separator:"/")[3]);let original=try await readAI(id,active,captured)
+        selectedAI=original;aiSelection &+= 1;let selection=aiSelection
+        if original.State=="running" || original.State=="recovery_required" {message=text("aiUnknown");return}
+        if original.State != "awaiting_permission" {try store.acknowledge(operation);pendingOperation=false;message="";return}
+        aiStreaming=true;aiPartial="";var terminal=false
+        defer {if captured==revision,selection==aiSelection {aiStreaming=false}}
+        try await CreatorHTTP.shared.streamAI(operation,engine:active,guardRequest:{try self.require(active,captured)}) {line in
+            guard selection==self.aiSelection,!terminal,let text=String(data:line,encoding:.utf8),let value=try JSONSerialization.jsonObject(with:Data(text.utf8)) as? [String:Any],Set(value.keys).isSubset(of:["state","delta","job","error"]),["starting","running","review_required","cancelled","recovery_required","failed"].contains(value["state"] as? String ?? "") else {throw CreatorHTTP.Failure.unexpectedResponse}
+            if value["error"] != nil {throw CreatorHTTP.Failure.unexpectedResponse}
+            if let delta=value["delta"] {guard let delta=delta as? String,self.aiPartial.utf8.count+delta.utf8.count<=200000,value["state"] as? String=="running" else {throw CreatorHTTP.Failure.unexpectedResponse};self.aiPartial += delta}
+            if let result=value["job"] {
+                let job=try JSONDecoder().decode(CreatorAIJob.self,from:JSONSerialization.data(withJSONObject:result))
+                guard job.id==id,job.valid(self.account),["review_required","cancelled","recovery_required"].contains(job.State),value["state"] as? String==job.State else {throw CreatorHTTP.Failure.unexpectedResponse};self.selectedAI=job;terminal=true
+            }
+        }
+        try require(active,captured);guard terminal else {throw CreatorHTTP.Failure.unexpectedResponse}
+        let confirmed=try await readAI(id,active,captured);guard confirmed.State != "running",confirmed.State != "awaiting_permission" else {throw CreatorHTTP.Failure.unexpectedResponse}
+        try await refreshCaptured(active,captured);selectedAI=confirmed;try store.acknowledge(operation);pendingOperation=false;aiPartial="";message=""
+    }
+    func cancelAI(_ id:String,expectedRevision:UInt64) async {
+        guard connected,expectedRevision==revision,!aiCancelling,let store=drafts,selectedAI?.id==id,["awaiting_permission","running"].contains(selectedAI?.State ?? "") || aiStreaming else {return}
+        do {_ = try store.reserveAICancel(id);pendingAICancel=true}catch {message=text("aiCancelUnknown");return}
+        await retryAICancel()
+    }
+    func retryAICancel() async {
+        guard connected,!aiCancelling,let active=engine,let store=drafts else {return};aiCancelling=true;let captured=revision
+        defer {if captured==revision {aiCancelling=false}}
+        do {
+            guard let operation=try store.pendingAICancel() else {return};let id=String(operation.path.split(separator:"/")[3]);var job=try await readAI(id,active,captured)
+            if ["awaiting_permission","running"].contains(job.State) {
+                _ = try await CreatorHTTP.shared.accountData(operation.path,method:"POST",body:Data(operation.body.utf8),engine:active,requestKey:operation.key,guardRequest:{try self.require(active,captured)})
+                job=try await readAI(id,active,captured)
+            }
+            guard !["awaiting_permission","running"].contains(job.State) else {throw CreatorHTTP.Failure.unexpectedResponse}
+            try require(active,captured);try store.acknowledgeAICancel(operation);pendingAICancel=false
+            if selectedAI?.id==id {selectedAI=job};message=job.State=="cancelled" ? text("aiCancelled") : text("aiCancelTooLate")
+            try await refreshCaptured(active,captured)
+        }catch {if captured==revision {lastFailure=String(describing:error);message=text("aiCancelUnknown")}}
+    }
+    func reviewAI(_ id:String,apply:Bool,expectedRevision:UInt64) async {
+        guard expectedRevision==revision,selectedAI?.id==id,selectedAI?.State=="review_required" else {return}
+        await perform("/v1/ai/jobs/"+id+"/review",body:["apply":apply],expectedRevision:expectedRevision)
+    }
+    func deleteAI(_ id:String,expectedRevision:UInt64) async {
+        guard expectedRevision==revision,selectedAI?.id==id,selectedAI?.State != "running" else {return}
+        await perform("/v1/ai/jobs/"+id,method:"DELETE",expectedRevision:expectedRevision)
+    }
     func canManageAssets(_ video:CreatorVideo) -> Bool {connected && ["owner","editor","uploader"].contains(role(video.channel_id) ?? "")}
     func stageAsset(file:URL,videoID:String,kind:String,language:String="",label:String="",expectedContentSHA:String?=nil,expectedRevision:UInt64) async {
         guard !busy,expectedRevision==revision,let store=drafts,let video=snapshot?.videos?.first(where:{$0.id==videoID}),canManageAssets(video) else {return}

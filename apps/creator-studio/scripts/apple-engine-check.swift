@@ -13,7 +13,7 @@ import Foundation
             let root=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-creator-qa-"+UUID().uuidString,isDirectory:true)
             try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
             defer {try? FileManager.default.removeItem(at:root)}
-            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,held: CheckedContinuation<Void,Never>?
+            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,dropStream=false,foreignStream=false,streamLines=0,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=CreatorNativeTransport()
             let sender: CreatorNativeEngine.Sender = { request,limit in
@@ -31,9 +31,22 @@ import Foundation
                 var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
                 return (bytes,HTTPURLResponse(url:url,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!)
             }
+            let streamer:CreatorNativeEngine.StreamSender = {request,limit,receive in
+                let original=request.url!;guard original.host=="creator.ynxweb4.com",original.path.hasPrefix("/video/api/v1/ai/jobs/") else {throw CreatorNativeEngine.Failure.invalidSource}
+                var redirected=request;redirected.url=URL(string:backend.absoluteString+original.path.dropFirst("/video/api".count))!
+                let response=try await network.stream(redirected,limit) {line in
+                    streamLines+=1
+                    if foreignStream,var event=try JSONSerialization.jsonObject(with:line) as? [String:Any],var job=event["job"] as? [String:Any] {
+                        foreignStream=false;job["ID"]="foreign_original_job";event["job"]=job;try receive(JSONSerialization.data(withJSONObject:event))
+                    } else {try receive(line)}
+                }
+                if dropStream {dropStream=false;throw CreatorHTTP.Failure.unexpectedResponse}
+                var headers:[String:String]=[:];for (key,value) in response.allHeaderFields {headers[String(describing:key)]=String(describing:value)}
+                return HTTPURLResponse(url:original,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!
+            }
             func create() throws -> CreatorNativeEngine {
                 let state=try CreatorNativeState(platform:platform,deviceId:isolatedDevice,deviceKey:CreatorNativeState.encode(original.publicKey.compressedRepresentation),read:{persisted},write:{persisted=$0})
-                return try CreatorNativeEngine(state:state,key:key,assets:assets,send:sender,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
+                return try CreatorNativeEngine(state:state,key:key,assets:assets,send:sender,stream:streamer,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
             }
             var engine=try create()
             func createModel(_ engine: CreatorNativeEngine) -> CreatorModel {
@@ -77,6 +90,16 @@ import Foundation
                             assetWire=directory.appendingPathComponent(key+".multipart");assetBackup=try Data(contentsOf:assetWire!);if name=="corruptAssetWire" {try (assetBackup!+Data([1])).write(to:assetWire!)}
                         case "restoreAssetWire":guard let assetWire,let assetBackup else {throw CreatorDraftState.Failure.invalid};try assetBackup.write(to:assetWire)
                         case "retainedAssetWire":value["retained"]=assetWire.map{FileManager.default.fileExists(atPath:$0.path)} ?? false
+                        case "uiAIProvider":await model.checkAIProvider()
+                        case "uiPrepareAI":await model.prepareAI(videoID:command["videoID"] as! String,kind:command["kind"] as? String ?? "summary",classes:["metadata"],language:"zh-CN",expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
+                        case "uiOpenAI":await model.openAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
+                        case "uiApproveAI":await model.approveAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
+                        case "uiCancelAI":await model.cancelAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
+                        case "uiRetryAICancel":await model.retryAICancel()
+                        case "uiReviewAI":await model.reviewAI(command["jobID"] as! String,apply:command["apply"] as! Bool,expectedRevision:model.currentRevision)
+                        case "uiDeleteAI":await model.deleteAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
+                        case "dropNextStream":dropStream=true
+                        case "foreignStreamJob":foreignStream=true
                         case "uiRetryOperation":await model.retryOperation()
                         case "uiCancelOperation":model.cancelOperation()
                         case "dropNextUpload":dropMutation=true
@@ -119,6 +142,9 @@ import Foundation
                         value["reports"]=(model.snapshot?.reports ?? []).map{["id":$0.id,"videoID":$0.VideoID,"state":$0.State,"canAppeal":model.canAppeal($0)] as [String:Any]}
                         value["appeals"]=(model.snapshot?.appeals ?? []).map{["id":$0.id,"reportID":$0.ReportID,"appellant":$0.Appellant,"state":$0.State,"reason":$0.Reason]}
                         value["disputes"]=(model.snapshot?.disputes ?? []).map{["id":$0.id,"recordID":$0.RevenueRecordID,"owner":$0.Owner,"state":$0.State]}
+                        value["aiStreaming"]=model.aiStreaming;value["aiPartial"]=model.aiPartial;value["aiStreamLines"]=streamLines;value["aiCancelPending"]=model.pendingAICancel;value["aiProvider"]=model.aiProviderAvailable as Any? ?? NSNull()
+                        value["aiJobs"]=(model.snapshot?.ai_jobs ?? []).map{["id":$0.id,"owner":$0.Owner,"state":$0.State,"language":$0.OutputLanguage,"provider":$0.Provider,"result":$0.Result]}
+                        if let job=model.selectedAI {value["selectedAI"]=["id":job.id,"owner":job.Owner,"state":job.State,"language":job.OutputLanguage,"preview":job.ContextPreview,"units":job.EstimatedUnits,"provider":job.Provider,"result":job.Result] as [String:Any]}
                         if let identity=engine.identity {value["account"]=identity.account;value["binding"]=identity.binding;value["deviceId"]=identity.context.deviceId;value["deviceKey"]=identity.context.deviceKey}
                         reply(id,["ok":true,"result":value])
                     }catch {reply(id,["ok":false,"code":String(describing:error),"businessVerified":engine.identity != nil])}

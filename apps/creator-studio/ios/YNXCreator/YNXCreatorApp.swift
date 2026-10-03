@@ -36,7 +36,7 @@ struct CreatorView: View {
                 VStack(alignment:.leading,spacing:20) {
                     header
                     Picker(model.text("overview"),selection:$section) {
-                        ForEach(["overview","channel","team","content","upload","moderation","earn","disputes","assets"],id:\.self) {Text(model.text($0)).tag($0)}
+                        ForEach(["overview","channel","team","content","upload","moderation","earn","disputes","assets","ai"],id:\.self) {Text(model.text($0)).tag($0)}
                     }.pickerStyle(.menu)
                     if !model.message.isEmpty {Text(model.message).foregroundStyle(.secondary).textSelection(.enabled)}
                     if !model.connected {
@@ -52,6 +52,7 @@ struct CreatorView: View {
                         case "earn": earnings
                         case "disputes": CreatorDisputeView()
                         case "assets": CreatorAssetsView()
+                        case "ai": CreatorAIView()
                         default: overview
                         }
                     }
@@ -96,6 +97,9 @@ struct CreatorView: View {
             if !model.pendingUploadTitle.isEmpty {
                 Label(model.pendingUploadTitle,systemImage:"arrow.up.document")
                 HStack {Button(model.text("retryUpload")) {Task {await model.retryUpload()}};Button(model.text("cancelDraft"),role:.destructive) {cancelUpload=true}}
+            }
+            if model.pendingAICancel {
+                HStack {Text(model.text("aiCancelUnknown"));Button(model.text("retryAICancel")) {Task {await model.retryAICancel()}}.disabled(model.aiCancelling)}
             }
             if !model.pendingAssetKind.isEmpty {
                 HStack {Text(model.text("assetUnconfirmed"));Button(model.text("retryAsset")) {Task {await model.retryAsset()}};Button(model.text("cancelAsset"),role:.destructive) {cancelAsset=true}}
@@ -457,5 +461,76 @@ struct CreatorAssetForm:View {
             .onChange(of:model.connected) {_,connected in if !connected {clearFile();label="";humanApproved=false;dismiss()}}
             .onDisappear {clearFile();label="";humanApproved=false}
         }.frame(minWidth:320,minHeight:420)
+    }
+}
+
+struct CreatorAIView:View {
+    @EnvironmentObject private var model:CreatorModel
+    @State private var videoID=""
+    @State private var kind="summary"
+    @State private var language="en"
+    @State private var metadata=false
+    @State private var captions=false
+    @State private var savedID=""
+    @State private var deletion:String?
+    private let kinds=["summary","chapters","captions","metadata","search_assistance","moderation_explanation"]
+    private let languages=["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]
+    private var blocked:Bool {model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || model.pendingAICancel}
+    var body:some View {
+        VStack(alignment:.leading,spacing:16) {
+            HStack {Text(model.text("ai")).font(.title2);Spacer();Button(model.text("aiCheckProvider")) {Task {await model.checkAIProvider()}}.disabled(model.busy)}
+            Text(model.text(model.aiProviderAvailable==true ? "aiProviderReady" : model.aiProviderAvailable==false ? "aiProviderMissing" : "aiProviderUnknown")).foregroundStyle(.secondary)
+            Text(model.text("aiPrepareHelp")).foregroundStyle(.secondary)
+            Picker(model.text("content"),selection:$videoID) {
+                Text(model.text("aiChooseVideo")).tag("")
+                ForEach((model.snapshot?.videos ?? []).filter{model.canManageAssets($0)}) {video in Text(video.title).tag(video.id)}
+            }.disabled(blocked)
+            Picker(model.text("aiKind"),selection:$kind) {ForEach(kinds,id:\.self) {Text(model.text("aiKind_"+$0)).tag($0)}}.disabled(blocked)
+            Picker(model.text("aiOutputLanguage"),selection:$language) {ForEach(languages,id:\.self) {Text(Locale(identifier:$0).localizedString(forIdentifier:$0) ?? $0).tag($0)}}.disabled(blocked)
+            Toggle(model.text("aiShareMetadata"),isOn:$metadata).disabled(blocked)
+            Toggle(model.text("aiShareCaptions"),isOn:$captions).disabled(blocked)
+            Button(model.text("aiPrepare")) {
+                let captured=(videoID,kind,language,metadata,captions,model.currentRevision)
+                Task {await model.prepareAI(videoID:captured.0,kind:captured.1,classes:(captured.3 ? ["metadata"] : [])+(captured.4 ? ["captions"] : []),language:captured.2,expectedRevision:captured.5)}
+            }.disabled(blocked || videoID.isEmpty)
+            Divider()
+            Picker(model.text("aiSaved"),selection:$savedID) {
+                Text(model.text("aiChooseSaved")).tag("")
+                ForEach(model.snapshot?.ai_jobs ?? []) {job in Text(model.text("aiKind_"+job.Kind)+" · "+model.text("aiState_"+job.State)).tag(job.id)}
+            }.disabled(model.busy)
+            Button(model.text("aiOpenSaved")) {let captured=(savedID,model.currentRevision);Task {await model.openAI(captured.0,expectedRevision:captured.1)}}.disabled(model.busy || savedID.isEmpty)
+            if let job=model.selectedAI {
+                VStack(alignment:.leading,spacing:12) {
+                    Text(model.text("aiState_"+job.State)).font(.headline)
+                    Text(job.id).font(.caption).textSelection(.enabled)
+                    Text(model.text("aiOutputLanguage")+": "+job.OutputLanguage)
+                    Text(model.text("aiContextPreview")+": "+job.ContextPreview).textSelection(.enabled)
+                    Text(model.text("aiEstimatedUnits")+": "+model.number(job.EstimatedUnits))
+                    if !job.Provider.isEmpty {Text(job.Provider+" · "+job.Model).font(.caption).textSelection(.enabled)}
+                    if !job.Failure.isEmpty {Text(job.Failure).foregroundStyle(.secondary).textSelection(.enabled)}
+                    if model.aiStreaming {ProgressView();Text(model.aiPartial.isEmpty ? model.text("aiWaiting") : model.aiPartial).textSelection(.enabled)}
+                    else {Text(!job.Result.isEmpty ? job.Result : !job.Partial.isEmpty ? job.Partial : model.text("aiNoResult")).textSelection(.enabled)}
+                    Text(model.text("aiHumanHelp")).font(.caption).foregroundStyle(.secondary)
+                    ViewThatFits {
+                        HStack {actions(job)}
+                        VStack(alignment:.leading) {actions(job)}
+                    }
+                    Button(model.text("aiRefreshTask")) {let captured=(job.id,model.currentRevision);Task {await model.openAI(captured.0,expectedRevision:captured.1)}}.disabled(model.busy)
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+        }.task {await model.checkAIProvider()}
+        .onChange(of:model.currentRevision) {_,_ in videoID="";savedID="";metadata=false;captions=false;deletion=nil}
+        .confirmationDialog(model.text("aiDeleteQuestion"),isPresented:Binding(get:{deletion != nil},set:{if !$0 {deletion=nil}}),titleVisibility:.visible) {
+            Button(model.text("aiDelete"),role:.destructive) {guard let id=deletion else {return};let revision=model.currentRevision;deletion=nil;Task {await model.deleteAI(id,expectedRevision:revision)}}
+        }
+    }
+    @ViewBuilder private func actions(_ job:CreatorAIJob) -> some View {
+        if job.State=="awaiting_permission",!model.aiStreaming {Button(model.text("aiApproveRun")) {let captured=(job.id,model.currentRevision);Task {await model.approveAI(captured.0,expectedRevision:captured.1)}}.disabled(blocked || model.aiProviderAvailable != true)}
+        if ["awaiting_permission","running"].contains(job.State) || model.aiStreaming {Button(model.text("aiCancel"),role:.destructive) {let captured=(job.id,model.currentRevision);Task {await model.cancelAI(captured.0,expectedRevision:captured.1)}}.disabled(model.aiCancelling)}
+        if job.State=="review_required" {
+            Button(model.text("aiAccept")) {let captured=(job.id,model.currentRevision);Task {await model.reviewAI(captured.0,apply:true,expectedRevision:captured.1)}}.disabled(blocked)
+            Button(model.text("aiReject")) {let captured=(job.id,model.currentRevision);Task {await model.reviewAI(captured.0,apply:false,expectedRevision:captured.1)}}.disabled(blocked)
+        }
+        if job.State != "running",!model.aiStreaming {Button(model.text("aiDelete"),role:.destructive) {deletion=job.id}.disabled(blocked)}
     }
 }
