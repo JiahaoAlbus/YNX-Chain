@@ -89,7 +89,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
       {busy ? <View style={styles.loading}><ActivityIndicator /><Text style={styles.body}>{t('Checking original attachment...')}</Text></View> : null}
       {lease ? <View style={styles.preview}>
         <Text selectable style={styles.filename}>{lease.filename}</Text>
-        <Text style={styles.body}>{lease.mimeType} · {(lease.bytes / 1024).toFixed(1)} KB</Text>
+        <Text style={styles.body}>{lease.mimeType} - {(lease.bytes / 1024).toFixed(1)} KB</Text>
         {lease.imagePreview && !decodeError ? <Image source={{ uri: lease.uri }} resizeMode="contain"
           accessibilityLabel={t('Original received image')} style={styles.image}
           onError={() => { setDecodeError(true); }} /> :
