@@ -563,3 +563,23 @@ test("wrong channel identity and rejected channel reads fail closed",async()=>{
  }
 });
 test('shipped Creator controller sends exactly its signed multipart bytes with original boundary',async()=>{let signed,received;const controller=await app({productAuthorization:async(path,method,body)=>{signed={path,method,body};return {'X-YNX-Product-Session-Action-Proof-V2':'fresh-action'}},fetch:async(url,options)=>{received=options;return response({id:'original'})}});controller.renderProductState(connected('owner-a'));const form=new FormData();form.set('media',new Blob(['original']),'owned.mp4');form.set('title','原作品');await controller.api('/v1/uploads',{method:'POST',body:form,headers:{'Content-Type':'incorrect','Authorization':'old'}});assert.equal(received.body,signed.body);assert.equal(signed.method,'POST');assert.equal(signed.path,'/v1/uploads');assert.equal(received.headers.authorization,undefined);assert.equal(received.headers['X-YNX-Product-Session-Action-Proof-V2'],'fresh-action');const parsed=await new Request('https://creator.ynxweb4.com/',{method:'POST',headers:received.headers,body:received.body}).formData();assert.equal(parsed.get('title'),'原作品');assert.equal(await parsed.get('media').text(),'original')});
+
+test('payout failure refreshes the saved unknown request and prevents duplicate concurrent submit',async()=>{
+ const pending=deferred();let dispatches=0;
+ const c=await app({fetch:async(url)=>{if(url.endsWith('/v1/studio/payout-intents')){dispatches++;return pending.promise;}return response({...privateSnapshot('saved-payout'),payout_intents:[{ID:'saved-original-request',State:'recovery_required',AmountYNXT:5}]});}});
+ c.renderProductState(connected('owner-a'));const form=c.element('#payout');form.amount={value:'5'};
+ const first=form.onsubmit({preventDefault(){},target:form});await turn();await form.onsubmit({preventDefault(){},target:form});assert.equal(dispatches,1);
+ pending.resolve(response({error:'Result unconfirmed'},400));await first;
+ assert.match(c.element('#payout-list').innerHTML,/saved-original-request/);assert.match(c.element('#payout-list').innerHTML,/payoutUnconfirmed/);assert.equal(c.element('#status').textContent,'payoutUnconfirmed');
+});
+test('late payout completion cannot paint the replacement account',async()=>{
+ const pending=deferred();const c=await app({fetch:async()=>pending.promise});c.renderProductState(connected('owner-a'));const form=c.element('#payout');form.amount={value:'5'};
+ const operation=form.onsubmit({preventDefault(){},target:form});await turn();c.renderProductState(connected('owner-b'));const before=c.element('#status').textContent;
+ pending.resolve(response({PayIntentID:'old-owner-private-intent',State:'awaiting_wallet_confirmation'}));await operation;
+ assert.equal(c.readState().creatorAccount,'owner-b');assert.equal(c.element('#status').textContent,before);assert.doesNotMatch(c.element('#payout-list').innerHTML,/old-owner-private-intent/);
+});
+test('unknown AI state offers no provider resend or application',async()=>{
+ const c=await app();c.renderProductState(connected('owner-a'));c.showAI({ID:'saved-ai',State:'recovery_required'});
+ assert.equal(c.element('#ai-run').disabled,true);assert.equal(c.element('#ai-accept').disabled,true);assert.equal(c.element('#ai-reject').disabled,true);
+ c.showAI({ID:'historical-failure',State:'failed'});assert.equal(c.element('#ai-run').disabled,true);
+});

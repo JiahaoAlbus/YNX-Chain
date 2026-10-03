@@ -12,9 +12,12 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func (g GatewayAI) Stream(ctx context.Context, in AIRequest, emit func(string) error) (AIResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if g.Endpoint == "" || g.Token == "" {
 		return AIResult{}, errors.New("AI Gateway is not configured")
 	}
@@ -26,9 +29,9 @@ func (g GatewayAI) Stream(ctx context.Context, in AIRequest, emit func(string) e
 	req.Header.Set("Authorization", "Bearer "+g.Token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/x-ndjson")
-	client := g.Client
-	if client == nil {
-		client = &http.Client{Timeout: 2 * time.Minute}
+	client, err := videoIntegrationClient(g.Endpoint, g.Client)
+	if err != nil {
+		return AIResult{}, err
 	}
 	res, err := client.Do(req)
 	if err != nil {
@@ -38,18 +41,34 @@ func (g GatewayAI) Stream(ctx context.Context, in AIRequest, emit func(string) e
 	if res.StatusCode != http.StatusOK {
 		return AIResult{}, fmt.Errorf("AI Gateway stream returned %s", res.Status)
 	}
-	scanner := bufio.NewScanner(res.Body)
+	bounded := &io.LimitedReader{R: res.Body, N: (1 << 20) + 1}
+	scanner := bufio.NewScanner(bounded)
 	scanner.Buffer(make([]byte, 4096), 1<<20)
 	var out AIResult
 	var text strings.Builder
+	complete := false
 	for scanner.Scan() {
+		if len(bytes.TrimSpace(scanner.Bytes())) == 0 {
+			continue
+		}
+		if complete || !utf8.Valid(scanner.Bytes()) {
+			return AIResult{}, errors.New("AI stream has data after completion or invalid UTF-8")
+		}
 		var event struct {
 			Delta, Provider, Model, Error string
 			Units                         int64
 			Done                          bool
 		}
-		if err = json.Unmarshal(scanner.Bytes(), &event); err != nil {
+		d := json.NewDecoder(bytes.NewReader(scanner.Bytes()))
+		d.DisallowUnknownFields()
+		if err = d.Decode(&event); err != nil {
 			return AIResult{}, err
+		}
+		if d.Decode(&struct{}{}) != io.EOF || event.Units < 0 || len(event.Provider) > 256 || len(event.Model) > 256 {
+			return AIResult{}, errors.New("AI stream event is invalid")
+		}
+		if event.Done {
+			complete = true
 		}
 		if event.Error != "" {
 			return AIResult{}, errors.New(event.Error)
@@ -77,7 +96,7 @@ func (g GatewayAI) Stream(ctx context.Context, in AIRequest, emit func(string) e
 		return AIResult{}, err
 	}
 	out.Text = text.String()
-	if out.Provider == "" || out.Model == "" || out.Text == "" {
+	if bounded.N == 0 || !complete || out.Provider == "" || out.Model == "" || out.Text == "" {
 		return AIResult{}, errors.New("AI Gateway stream ended without complete provenance or result")
 	}
 	return out, nil
@@ -89,6 +108,8 @@ type GatewayAI struct {
 }
 
 func (g GatewayAI) Generate(ctx context.Context, in AIRequest) (AIResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if g.Endpoint == "" || g.Token == "" {
 		return AIResult{}, errors.New("AI Gateway is not configured")
 	}
@@ -99,9 +120,9 @@ func (g GatewayAI) Generate(ctx context.Context, in AIRequest) (AIResult, error)
 	}
 	req.Header.Set("Authorization", "Bearer "+g.Token)
 	req.Header.Set("Content-Type", "application/json")
-	client := g.Client
-	if client == nil {
-		client = &http.Client{Timeout: 45 * time.Second}
+	client, err := videoIntegrationClient(g.Endpoint, g.Client)
+	if err != nil {
+		return AIResult{}, err
 	}
 	res, err := client.Do(req)
 	if err != nil {
@@ -112,12 +133,10 @@ func (g GatewayAI) Generate(ctx context.Context, in AIRequest) (AIResult, error)
 		return AIResult{}, fmt.Errorf("AI Gateway returned %s", res.Status)
 	}
 	var out AIResult
-	d := json.NewDecoder(res.Body)
-	d.DisallowUnknownFields()
-	if err = d.Decode(&out); err != nil {
+	if err = decodeVideoIntegration(res.Body, &out); err != nil {
 		return AIResult{}, err
 	}
-	if out.Provider == "" || out.Model == "" || out.Text == "" || out.Units < 0 {
+	if out.Provider == "" || out.Model == "" || out.Text == "" || len(out.Text) > 200_000 || !utf8.ValidString(out.Text) || len(out.Provider) > 256 || len(out.Model) > 256 || out.Units < 0 {
 		return AIResult{}, errors.New("AI Gateway response is incomplete")
 	}
 	return out, nil
@@ -128,13 +147,9 @@ type PayClient struct {
 	Client          *http.Client
 }
 
-func (p PayClient) client() *http.Client {
-	if p.Client != nil {
-		return p.Client
-	}
-	return &http.Client{Timeout: 15 * time.Second}
-}
 func (p PayClient) VerifyReceipt(ctx context.Context, id, owner string, amount int64) error {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if p.Endpoint == "" || p.Token == "" {
 		return errors.New("Pay verifier is not configured")
 	}
@@ -144,7 +159,11 @@ func (p PayClient) VerifyReceipt(ctx context.Context, id, owner string, amount i
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+p.Token)
-	res, err := p.client().Do(req)
+	client, err := videoIntegrationClient(p.Endpoint, p.Client)
+	if err != nil {
+		return err
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -157,17 +176,17 @@ func (p PayClient) VerifyReceipt(ctx context.Context, id, owner string, amount i
 		Amount                                                                                                int64
 		BlockNumber                                                                                           uint64
 	}
-	d := json.NewDecoder(io.LimitReader(res.Body, 2<<20))
-	d.DisallowUnknownFields()
-	if err = d.Decode(&x); err != nil {
+	if err = decodeVideoIntegration(res.Body, &x); err != nil {
 		return err
 	}
-	if x.InvoiceID != id || x.PayoutAddress != owner || x.Amount != amount || x.Currency != "YNXT" || x.Status != "paid" || x.BlockNumber == 0 || len(x.TransactionHash) != 66 || !strings.HasPrefix(x.TransactionHash, "0x") || len(x.AuditHash) != 64 || x.IntentID == "" || x.ID == "" {
+	if x.Merchant != "ynx-video" || x.InvoiceID != id || x.PayoutAddress != owner || x.Amount != amount || x.Currency != "YNXT" || x.Status != "paid" || x.BlockNumber == 0 || len(x.TransactionHash) != 66 || !strings.HasPrefix(x.TransactionHash, "0x") || len(x.AuditHash) != 64 || x.IntentID == "" || x.ID == "" {
 		return errors.New("authoritative Pay settlement evidence mismatch or not committed")
 	}
 	return nil
 }
 func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount int64, ref string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	if p.Endpoint == "" || p.Token == "" {
 		return "", errors.New("Pay service is not configured")
 	}
@@ -178,7 +197,11 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount 
 	}
 	req.Header.Set("Authorization", "Bearer "+p.Token)
 	req.Header.Set("Content-Type", "application/json")
-	res, err := p.client().Do(req)
+	client, err := videoIntegrationClient(p.Endpoint, p.Client)
+	if err != nil {
+		return "", err
+	}
+	res, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -190,9 +213,7 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount 
 		ID, Merchant, PayoutAddress, Status, Currency string
 		Amount                                        int64
 	}
-	d := json.NewDecoder(io.LimitReader(res.Body, 2<<20))
-	d.DisallowUnknownFields()
-	if err = d.Decode(&x); err != nil {
+	if err = decodeVideoIntegration(res.Body, &x); err != nil {
 		return "", err
 	}
 	if x.ID == "" || x.Merchant != "ynx-video" || x.PayoutAddress != owner || x.Amount != amount || x.Currency != "YNXT" || (x.Status != "created" && x.Status != "pending") {

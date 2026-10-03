@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -854,14 +856,21 @@ func (s *Service) RecordRevenue(ctx context.Context, reviewer, videoID, receiptI
 	return rec, err
 }
 func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount int64) (*PayoutIntent, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if s.cfg.Pay == nil {
 		return nil, errors.New("Pay service unavailable")
 	}
 	if amount <= 0 {
 		return nil, errors.New("positive payout amount required")
 	}
-	var audited, reserved int64
-	err := s.store.read(func(st State) error {
+	localID := id("payout")
+	var p *PayoutIntent
+	err := s.store.update(func(st *State) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		ownsChannel := false
 		for _, channel := range st.Channels {
 			if channel.Owner == owner {
@@ -872,36 +881,81 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
 		if !ownsChannel {
 			return ErrForbidden
 		}
+		var audited, reserved int64
 		for _, revenue := range st.Revenue {
 			if revenue.Owner == owner {
+				if revenue.AmountYNXT > math.MaxInt64-audited {
+					return errors.New("revenue balance overflow")
+				}
 				audited += revenue.AmountYNXT
 			}
 		}
 		for _, payout := range st.PayoutIntents {
 			if payout.Owner == owner && payout.State != "cancelled" {
+				if payout.AmountYNXT > math.MaxInt64-reserved {
+					return errors.New("payout reservation overflow")
+				}
 				reserved += payout.AmountYNXT
 			}
 		}
+		if reserved > audited || amount > audited-reserved {
+			return errors.New("insufficient audited revenue")
+		}
+		p = &PayoutIntent{ID: localID, Owner: owner, State: "dispatching", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
+		st.PayoutIntents[localID] = p
+		s.audit(st, owner, "payout.intent.reserve", "payout", localID, "")
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if audited-reserved < amount {
-		return nil, errors.New("insufficient audited revenue")
+	runCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	if s.store.business != nil {
+		if err = s.store.business.check(); err != nil {
+			s.markPayoutUnknown(owner, localID)
+			return nil, err
+		}
 	}
-	localID := id("payout")
-	payID, err := s.cfg.Pay.CreatePayoutIntent(ctx, owner, amount, localID)
-	if err != nil {
-		return nil, err
+	type reply struct {
+		id  string
+		err error
 	}
-	p := &PayoutIntent{ID: localID, Owner: owner, PayIntentID: payID, State: "awaiting_wallet_confirmation", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
+	ready := make(chan reply, 1)
+	go func() {
+		remote, e := s.cfg.Pay.CreatePayoutIntent(runCtx, owner, amount, localID)
+		ready <- reply{remote, e}
+	}()
+	var remote reply
+	select {
+	case <-runCtx.Done():
+		remote.err = runCtx.Err()
+	case remote = <-ready:
+	}
+	if remote.err != nil || runCtx.Err() != nil || strings.TrimSpace(remote.id) == "" || len(remote.id) > 256 {
+		s.markPayoutUnknown(owner, localID)
+		if remote.err != nil {
+			return nil, remote.err
+		}
+		return nil, errors.New("payout response is unconfirmed")
+	}
 	err = s.store.update(func(st *State) error {
-		st.PayoutIntents[p.ID] = p
-		s.audit(st, owner, "payout.intent.create", "payout", p.ID, payID)
+		current := st.PayoutIntents[localID]
+		if current == nil || current.Owner != owner || current.State != "dispatching" || current.AmountYNXT != amount {
+			return ErrUnauthorized
+		}
+		current.PayIntentID = remote.id
+		current.State = "awaiting_wallet_confirmation"
+		s.audit(st, owner, "payout.intent.create", "payout", localID, remote.id)
+		copy := *current
+		p = &copy
 		return nil
 	})
-	return p, err
+	if err != nil {
+		s.markPayoutUnknown(owner, localID)
+		return nil, err
+	}
+	return p, nil
 }
 func (s *Service) DisputeRevenue(actor, recordID, reason string) (*Dispute, error) {
 	reason, err := cleanText(reason, 2000)
@@ -1924,6 +1978,9 @@ func (s *Service) PrepareAIInLanguage(actor, videoID, kind string, classes []str
 	return job, err
 }
 func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if s.cfg.AI == nil {
 		return nil, errors.New("AI provider unavailable")
 	}
@@ -1936,7 +1993,7 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 		if j.Owner != actor {
 			return ErrForbidden
 		}
-		if j.State != "awaiting_permission" && j.State != "failed" {
+		if j.State != "awaiting_permission" {
 			return errors.New("AI job cannot run")
 		}
 		j.State = "running"
@@ -1948,53 +2005,105 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 	if err != nil {
 		return nil, err
 	}
-	runCtx, cancel := context.WithCancel(ctx)
+	runCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	s.aiMu.Lock()
 	s.aiCancels[jobID] = cancel
 	s.aiMu.Unlock()
 	defer func() { cancel(); s.aiMu.Lock(); delete(s.aiCancels, jobID); s.aiMu.Unlock() }()
 	request := AIRequest{Kind: snapshot.Kind, VideoID: snapshot.VideoID, ContextPreview: snapshot.ContextPreview, ContextClasses: snapshot.ContextClasses, OutputLanguage: snapshot.OutputLanguage}
+	type aiReply struct {
+		result AIResult
+		err    error
+	}
+	ready := make(chan aiReply, 1)
+	go func() {
+		if s.store.business != nil {
+			if e := s.store.business.check(); e != nil {
+				ready <- aiReply{err: e}
+				return
+			}
+		}
+		if e := runCtx.Err(); e != nil {
+			ready <- aiReply{err: e}
+			return
+		}
+		var result AIResult
+		var runErr error
+
+		if streamer, ok := s.cfg.AI.(AIStreamer); ok {
+			result, runErr = streamer.Stream(runCtx, request, func(delta string) error {
+				if err := runCtx.Err(); err != nil {
+					return err
+				}
+				if delta == "" {
+					return nil
+				}
+				return s.store.update(func(st *State) error {
+					if err := runCtx.Err(); err != nil {
+						return err
+					}
+					j := st.AIJobs[jobID]
+					if j == nil {
+						return ErrNotFound
+					}
+					if j.State != "running" {
+						return context.Canceled
+					}
+					if len(j.Partial)+len(delta) > 200_000 {
+						return errors.New("AI result exceeds bound")
+					}
+					j.Partial += delta
+					return nil
+				})
+			})
+		} else {
+			result, runErr = s.cfg.AI.Generate(runCtx, request)
+		}
+		ready <- aiReply{result, runErr}
+	}()
 	var result AIResult
 	var runErr error
-	if streamer, ok := s.cfg.AI.(AIStreamer); ok {
-		result, runErr = streamer.Stream(runCtx, request, func(delta string) error {
-			if delta == "" {
-				return nil
-			}
-			return s.store.update(func(st *State) error {
-				j := st.AIJobs[jobID]
-				if j == nil {
-					return ErrNotFound
-				}
-				if j.State == "cancelled" {
-					return context.Canceled
-				}
-				if len(j.Partial)+len(delta) > 200_000 {
-					return errors.New("AI result exceeds bound")
-				}
-				j.Partial += delta
-				return nil
-			})
-		})
-	} else {
-		result, runErr = s.cfg.AI.Generate(runCtx, request)
+	select {
+	case <-runCtx.Done():
+		runErr = runCtx.Err()
+	case out := <-ready:
+		result, runErr = out.result, out.err
 	}
+	if runErr == nil {
+		runErr = runCtx.Err()
+	}
+	if runErr == nil && (result.Provider == "" || len(result.Provider) > 256 || result.Model == "" || len(result.Model) > 256 || result.Text == "" || len(result.Text) > 200_000 || !utf8.ValidString(result.Text) || result.Units < 0) {
+		runErr = errors.New("AI response is incomplete or exceeds its bound")
+	}
+	if runErr != nil {
+		s.markAIUnknown(actor, jobID)
+		if current, e := s.GetAI(actor, jobID); e == nil && current.State == "cancelled" {
+			return current, nil
+		}
+		return nil, runErr
+	}
+
 	err = s.store.update(func(st *State) error {
 		j := st.AIJobs[jobID]
+		if j == nil {
+			return ErrNotFound
+		}
 		if j.State == "cancelled" {
 			return nil
 		}
-		if runErr != nil {
-			j.State = "failed"
-			j.Failure = runErr.Error()
-		} else {
-			j.State = "review_required"
-			j.Provider = result.Provider
-			j.Model = result.Model
-			j.Result = result.Text
-			j.Partial = ""
-			j.EstimatedUnits = result.Units
+		if j == nil {
+			return ErrNotFound
 		}
+		if j.State != "running" {
+			return ErrUnauthorized
+		}
+		j.State = "review_required"
+		j.Provider = result.Provider
+		j.Model = result.Model
+		j.Result = result.Text
+		j.Partial = ""
+		j.EstimatedUnits = result.Units
+		s.audit(st, actor, "ai.result.persist", "ai_job", jobID, "")
 		return nil
 	})
 	if current, _ := s.GetAI(actor, jobID); current != nil && current.State == "cancelled" {
@@ -2004,6 +2113,7 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 		return nil, runErr
 	}
 	if err != nil {
+		s.markAIUnknown(actor, jobID)
 		return nil, err
 	}
 	return s.GetAI(actor, jobID)

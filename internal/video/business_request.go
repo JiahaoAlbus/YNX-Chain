@@ -58,13 +58,6 @@ func (s *Server) serveBusinessBoundary(w http.ResponseWriter, r *http.Request) {
 		problem(w, 401, err)
 		return
 	}
-	// External computation/settlement must have its own durable dispatch receipt.
-	// Keep the inherited implementation for legacy mode, but do not expose it
-	// under this V2 mount before its original effect journal is integrated.
-	if r.Method != http.MethodGet && (strings.Contains(r.URL.Path, "/payout-intents") || strings.HasPrefix(r.URL.Path, "/v1/ai/jobs/") && (strings.HasSuffix(r.URL.Path, "/run") || strings.HasSuffix(r.URL.Path, "/stream"))) {
-		problem(w, 503, errors.New("Video external effect recovery is not integrated"))
-		return
-	}
 	limit := int64(1 << 20)
 	if r.URL.Path == "/v1/uploads" {
 		limit = 512 << 20
