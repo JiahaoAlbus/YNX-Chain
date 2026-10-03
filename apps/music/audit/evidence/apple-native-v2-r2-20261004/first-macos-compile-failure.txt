@@ -1,0 +1,189 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusicMac -configuration Debug -sdk macosx -derivedDataPath /tmp/ynx-music-macos-v2-r1-20261004 CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+    SDKROOT = macosx27.0
+
+2026-10-04 01:37:30.504 xcodebuild[50363:4871249] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:macOS, arch:arm64, id:00008132-0018682C3C20C01C, name:My Mac }
+{ platform:macOS, arch:x86_64, id:00008132-0018682C3C20C01C, name:My Mac }
+{ platform:macOS, name:Any Mac }
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXMusicMac' in project 'YNXMusic' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 0bbc465b88d57330586101aeb39f3d19
+Build description path: /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/XCBuildData/0bbc465b88d57330586101aeb39f3d19.xcbuilddata
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/ModuleCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/ModuleCache.noindex
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/SDKExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/CompilationCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/CompilationCache.noindex
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Products
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Products
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk /tmp/ynx-music-macos-v2-r1-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -o /tmp/ynx-music-macos-v2-r1-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusic-611bce7c1ae9b9e3e87f91a5319b72cf-VFS/all-product-headers.yaml
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusic-611bce7c1ae9b9e3e87f91a5319b72cf-VFS/all-product-headers.yaml
+
+CreateBuildDirectory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-generated-files.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-generated-files.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-all-target-headers.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-all-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-project-headers.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-project-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-all-non-framework-target-headers.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.DependencyStaticMetadataFileList (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.DependencyMetadataFileList (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac.DependencyMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-own-target-headers.hmap (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-own-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac_const_extract_protocols.json (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac_const_extract_protocols.json
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.SwiftFileList (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.SwiftFileList
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.SwiftConstValuesFileList (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.LinkFileList (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.LinkFileList
+
+WriteAuxiliaryFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac-OutputFileMap.json (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac-OutputFileMap.json
+
+MkDir /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /bin/mkdir -p /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources
+
+MkDir /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/MacOS (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /bin/mkdir -p /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/MacOS
+
+MkDir /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /bin/mkdir -p /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents
+
+MkDir /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /bin/mkdir -p /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app
+
+CpResource /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources/native-session /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/native-session (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/native-session /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources
+
+ProcessInfoPlistFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Info.plist /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MacInfo.plist (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-infoPlistUtility /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MacInfo.plist -producttype com.apple.product-type.application -genpkginfo /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/PkgInfo -expandbuildsettings -platform macosx -o /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Info.plist
+
+CopyPNGFile /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources/ynx-brand-original.png /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/ynx-brand-original.png (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/ynx-brand-original.png /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources/ynx-brand-original.png
+
+CpResource /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources/i18n.json /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/shared/i18n.json (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/shared/i18n.json /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/YNXMusicMac.app/Contents/Resources
+
+SwiftDriver YNXMusicMac normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusicMac' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusicMac -O @/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-macos14.0 -g -module-cache-path /tmp/ynx-music-macos-v2-r1-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug -F /tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-music-macos-v2-r1-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache -output-file-map /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-music-macos-v2-r1-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-music-macos-v2-r1-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-music-macos-v2-r1-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-generated-files.hmap -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-own-target-headers.hmap -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/YNXMusicMac-project-headers.hmap -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Products/Debug/include -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/YNXMusic.build/Debug/YNXMusicMac.build/Objects-normal/arm64/YNXMusicMac-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:187:101: error: '=' must have consistent whitespace on both sides (in target 'YNXMusicMac' from project 'YNXMusic')
+
+PruneExplicitPrecompiledModules /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-music-macos-v2-r1-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-music-macos-v2-r1-20261004/SDKExplicitPrecompiledModules
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftDriver YNXMusicMac normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusicMac' from project 'YNXMusic')
+	Building project YNXMusic with scheme YNXMusicMac and configuration Debug
+(2 failures)
