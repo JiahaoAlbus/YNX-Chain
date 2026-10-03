@@ -227,7 +227,9 @@
       "webOrigin": "https://music.ynxweb4.com",
       "platforms": [
         "android",
-        "ios"
+        "ios",
+        "macos",
+        "web"
       ],
       "nativeCallback": "ynxmusic://auth/callback",
       "legacyCallbacks": [
