@@ -1,0 +1,9 @@
+Observed pinned API via javap, not runtime network or Rust source behavior:
+Client.getMediaContent(MediaSource, Continuation<byte[]>)
+Client.getMediaFile(MediaSource, String, String, boolean, String, Continuation<MediaFileHandle>)
+Client.uploadMedia(String, byte[], ProgressWatcher, Continuation<String>)
+ProgressWatcher.transmissionProgress(TransmissionProgress)
+RequestConfig: retryLimit, timeout, maxConcurrentRequests, maxRetryTime
+ClientBuilder.requestConfig(RequestConfig)
+No public body-cap/stream argument observed in these inspected interfaces.
+No inference that getMediaFile avoids whole-body buffering.

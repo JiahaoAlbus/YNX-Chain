@@ -1,0 +1,4 @@
+stage=/tmp/social-veil-bounded-read-20261004.9uEQXc
+compile_exit=0
+check_exit=0
+same_module_kotlin_compile_exit=0

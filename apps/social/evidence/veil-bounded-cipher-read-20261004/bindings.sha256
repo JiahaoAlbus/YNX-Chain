@@ -1,0 +1,7 @@
+bfd000215775f3904929d35befa734b869725cc6306555ace72dc01b6422b63b  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilBoundedCipherRead.java
+25e89688342116591b680d056f6ed7beafa73a43ed391a73dfe2f5d69103ac6a  apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixBoundedDownload.kt
+26f70b2ba8d9c8119fae307943c84a020c02029b293cc96901eff33bbf49bc43  apps/social/scripts/veil-libsignal-qa/VeilBoundedCipherReadCheck.java
+3736c83f5140672a13b0d031726fa7f6f232bff80526a931a59c4d3b6b09c721  apps/social/evidence/veil-bounded-cipher-read-20261004/dormant-bounded-readers.jar
+808a73b45ce305e0adf9a2ca4458d36c396e2be9a9328a4a45b2b2b50aa77061  apps/social/evidence/veil-bounded-cipher-read-20261004/dormant-bounded-native-module.jar
+330fdfd05dce85fede3cd4f052a1b1df2fd809de85aea85e22f9ca9137fd2cec  apps/social/evidence/veil-matrix-pipeline-20261004/dormant-java-adapters.jar
+e5f2f79adef6e3b5542a64767b25dfc1c1c09018222ef88db71f9a3a1b644149  /Users/huangjiahao/.gradle/caches/9.3.1/transforms/5a90a3b51aa49a04124c92e17624c327/transformed/sdk-android-26.09.28-api.jar

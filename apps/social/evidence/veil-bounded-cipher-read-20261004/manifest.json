@@ -1,0 +1,23 @@
+{
+  "sourceBase": "071b8a62e76944817a5183fbccdc33a38464182e",
+  "kind": "DORMANT_LOCAL_COMPILE_CANDIDATE",
+  "artifacts": [
+    {
+      "name": "dormant-bounded-readers.jar",
+      "bytes": 6453,
+      "sha256": "3736c83f5140672a13b0d031726fa7f6f232bff80526a931a59c4d3b6b09c721"
+    },
+    {
+      "name": "dormant-bounded-native-module.jar",
+      "bytes": 83634,
+      "sha256": "808a73b45ce305e0adf9a2ca4458d36c396e2be9a9328a4a45b2b2b50aa77061"
+    }
+  ],
+  "originalSdkStreamProducer": null,
+  "activationApproved": false,
+  "activated": false,
+  "runtimeVerified": false,
+  "installedVerified": false,
+  "publicVerified": false,
+  "MONSTER": "NOT_RUN"
+}

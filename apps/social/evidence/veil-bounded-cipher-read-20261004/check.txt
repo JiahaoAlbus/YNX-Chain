@@ -1,0 +1,1 @@
+PASS bounded native stream checks=32; generated input only, no original SDK streaming producer or HTTP/OS proof
