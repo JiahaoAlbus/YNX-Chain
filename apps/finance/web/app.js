@@ -756,7 +756,7 @@ function renderStatement(s){
   $('#statement').classList.remove('statement-placeholder');
   const observed=s.calculationStatus==='partial'?s.observedTotals:null;
   const amount=value=>Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown');
-  $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} ${esc(financeText('statementThrough'))} ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><p><strong>${esc(financeText('fullPeriodTotals'))}: ${esc(financeText('unknown'))}</strong><br>${esc(s.coverage||financeText('completeHistoryMissing'))}</p><div class="statement-grid"><div class="stat"><small>${esc(financeText('observedIncoming'))}</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedOutgoing'))}</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedFees'))}</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>${esc(financeText('returnedRecords'))}</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. ${esc(financeText('notBankStatement'))}</small></p>`;
+  $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} ${esc(financeText('statementThrough'))} ${esc(date(new Date(new Date(s.toExclusive).getTime()-1).toISOString()))}</p><p><strong>${esc(financeText('fullPeriodTotals'))}: ${esc(financeText('unknown'))}</strong><br>${esc(s.coverage||financeText('completeHistoryMissing'))}</p><div class="statement-grid"><div class="stat"><small>${esc(financeText('observedIncoming'))}</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedOutgoing'))}</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedFees'))}</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>${esc(financeText('returnedRecords'))}</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. ${esc(financeText('notBankStatement'))}</small></p>`;
 }
 let statementOperation=null;
 function statementDate(value){
@@ -766,6 +766,18 @@ function statementDate(value){
   return parsed;
 }
 function retireOwnedStatementView(){statementOperation=null;$('#statement').removeAttribute('aria-busy');$('#statement-form').removeAttribute('aria-busy')}
+function validateStatementObservation(statement){
+  if(statement?.calculationStatus!=='partial')return;
+  const invalid=()=>{throw new Error(financeText('statementCoverageInvalid'))},keys=['incomingYnxt','outgoingYnxt','feesYnxt'],observed=statement.observedTotals;
+  if(!Array.isArray(statement.activity)||!observed||typeof observed!=='object'||Array.isArray(observed)||!keys.every(key=>Number.isSafeInteger(observed[key])&&observed[key]>=0))invalid();
+  const from=Date.parse(statement.from),to=Date.parse(statement.toExclusive),sum={incomingYnxt:0n,outgoingYnxt:0n,feesYnxt:0n};
+  for(const row of statement.activity){
+    if(!row||typeof row!=='object'||Array.isArray(row)||!['incoming','outgoing'].includes(row.direction)||!financeTimestampValid(row.timestamp)||!Number.isSafeInteger(row.amountYnxt)||row.amountYnxt<0||!Number.isSafeInteger(row.feeYnxt)||row.feeYnxt<0)invalid();
+    const time=Date.parse(row.timestamp);if(!Number.isFinite(from)||!Number.isFinite(to)||time<from||time>=to)invalid();
+    sum[row.direction==='incoming'?'incomingYnxt':'outgoingYnxt']+=BigInt(row.amountYnxt);sum.feesYnxt+=BigInt(row.feeYnxt);
+  }
+  if(!keys.every(key=>sum[key]===BigInt(observed[key])))invalid();
+}
 function loadStatement(form){
   const context=state.context,identityRevision=browserSSOIntentGeneration,account=state.overview?.portfolio?.account,draft=formDraft(form),previous=statementOperation;
   if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.account===account&&previous.draft===draft)return previous.promise;
@@ -778,7 +790,7 @@ function loadStatement(form){
     const from=fromDate.toISOString();toDate.setUTCDate(toDate.getUTCDate()+1);const toExclusive=toDate.toISOString();
     const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toExclusive)}`);if(!current()||formDraft(form)!==draft)return;
     if(candidate?.account!==account||!financeTimestampValid(candidate.from)||!financeTimestampValid(candidate.toExclusive)||Date.parse(candidate.from)!==fromDate.getTime()||Date.parse(candidate.toExclusive)!==toDate.getTime())throw new Error(financeText('statementCoverageInvalid'));
-    renderStatement(candidate);state.statement=candidate;state.statementError=false;
+    validateStatementObservation(candidate);renderStatement(candidate);state.statement=candidate;state.statementError=false;
   }catch(error){if(!current()||formDraft(form)!==draft)return;state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable');
   }finally{if(statementOperation===operation){statementOperation=null;$('#statement').removeAttribute('aria-busy');form.removeAttribute('aria-busy');}}})();
   return operation.promise;

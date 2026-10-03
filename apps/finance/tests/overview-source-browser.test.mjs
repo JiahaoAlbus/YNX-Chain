@@ -26,12 +26,29 @@ test('actual statement controller binds owner and selected period before renderi
     const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf("$('#statement-form').addEventListener"));
     await f.page.addScriptTag({content:`let browserSSOIntentGeneration=1;state.overview={portfolio:{account:'owned-render-fixture'}};const statementCalls=[];function formDraft(form){return JSON.stringify(Array.from(new FormData(form)))}function api(path){return new Promise(resolve=>statementCalls.push({path,resolve}))}${controller}\nwindow.statementQA={read:()=>loadStatement($('#statement-form')),reply(patch={}){const call=statementCalls.at(-1),url=new URL(call.path,'https://finance.invalid');call.resolve({schemaVersion:'finance-statement-v2',account:state.overview.portfolio.account,network:'ynx_6423-1',symbol:'YNXT',from:url.searchParams.get('from'),toExclusive:url.searchParams.get('to'),activity:[],totals:{incomingYnxt:null,outgoingYnxt:null,feesYnxt:null},coverageComplete:false,openingBalance:'unavailable',...patch})},inspect:()=>({calls:statementCalls.length,statement:state.statement,error:state.statementError})};`});
     await f.page.locator('#statement-form [name=from]').fill('2026-09-01');await f.page.locator('#statement-form [name=to]').fill('2026-09-30');
-    for(const patch of [{account:'other-owner'},{toExclusive:'2026-09-30T00:00:00Z'}]){
+    for(const patch of [{account:'other-owner'},{toExclusive:'2026-09-30T00:00:00Z'},
+      {calculationStatus:'partial',observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}},
+      {calculationStatus:'partial',observedTotals:{incomingYnxt:0,outgoingYnxt:0,feesYnxt:9007199254740992}},
+      {calculationStatus:'partial',activity:[{id:'bad-date',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:'2026-02-30T00:00:00Z'}],observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}},
+      ...[
+        {direction:'sideways'}, {timestamp:'2026-10-01T00:00:00Z'},
+        {amountYnxt:-1}, {amountYnxt:'1'}, {feeYnxt:-1}
+      ].map(change=>({calculationStatus:'partial',activity:[{id:'controlled-row',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:'2026-09-01T00:00:00Z',...change}],observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}}))
+    ]){
       await f.page.evaluate(()=>{window.statementPending=statementQA.read()});await f.page.evaluate(patch=>statementQA.reply(patch),patch);await f.page.evaluate(()=>statementPending);
       assert.equal(await f.page.locator('#statement').textContent(),'unavailable');assert.equal((await f.page.evaluate(()=>statementQA.inspect())).statement,null);
     }
     await f.page.evaluate(()=>{window.statementPending=statementQA.read();statementQA.reply()});await f.page.evaluate(()=>statementPending);
     assert.match(await f.page.locator('#statement').textContent(),/fullPeriodTotals: unknown/);assert.equal((await f.page.evaluate(()=>statementQA.inspect())).statement.account,'owned-render-fixture');assert.equal(await f.page.locator('#statement').getAttribute('aria-busy'),null);
+    const valid={calculationStatus:'partial',activity:[
+      {id:'controlled-in',direction:'incoming',amountYnxt:7,feeYnxt:1,timestamp:'2026-09-01T08:00:00+08:00'},
+      {id:'controlled-out',direction:'outgoing',amountYnxt:2,feeYnxt:1,timestamp:'2026-09-30T23:59:59.999Z'}
+    ],observedTotals:{incomingYnxt:7,outgoingYnxt:2,feesYnxt:2}};
+    await f.page.evaluate(patch=>{window.statementPending=statementQA.read();statementQA.reply(patch)},valid);await f.page.evaluate(()=>statementPending);
+    const text=await f.page.locator('#statement').textContent();
+    assert.match(text,/observedIncoming7 YNXT/);assert.match(text,/observedOutgoing2 YNXT/);assert.match(text,/observedFees2 YNXT/);
+    assert.match(text,/fullPeriodTotals: unknown/);assert.doesNotMatch(text,/dateUnavailable/);
+    assert.deepEqual((await f.page.evaluate(()=>statementQA.inspect())).statement.activity,valid.activity);
     assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
   }finally{await f.browser.close()}
 });

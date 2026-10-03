@@ -40,6 +40,21 @@ test('statement dates fail closed before showing coverage and explicit read reco
     await page.waitForFunction(()=>statementQA.state.statement?.from==='2024-02-29T08:00:00+08:00');
     assert.equal(await page.evaluate(()=>calls.length),3);assert.equal(await page.evaluate(()=>calls.every(c=>c.path.startsWith('/api/statements?'))),true);
     assert.deepEqual(await page.evaluate(()=>failures),['read-failed']);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+    for(const language of ['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(language=>YNXFinanceLocale.set(language),language);
+      let index=await page.evaluate(()=>calls.length);
+      await submit();await respond(index,{observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}});
+      await page.waitForFunction(()=>!document.querySelector('#statement-form').hasAttribute('aria-busy'));
+      assert.equal(await page.locator('#statement').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('unavailable')));
+      assert.equal(await page.evaluate(()=>statementQA.state.statement),null);
+      index=await page.evaluate(()=>calls.length);
+      await submit();await respond(index,{});await page.waitForFunction(()=>statementQA.state.statement!==null);
+      const text=await page.locator('#statement').innerText();
+      assert.ok(text.includes(await page.evaluate(()=>YNXFinanceLocale.text('unknown'))));
+      assert.ok(!text.includes(await page.evaluate(()=>YNXFinanceLocale.text('dateUnavailable'))));
+      assert.equal(await page.evaluate(()=>statementQA.state.statement.coverageComplete),false);
+    }
+    assert.equal(await page.evaluate(()=>calls.length),27);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
   }finally{await browser.close()}
 });
 test('invalid calendar receipt preserves the visible draft and same retry request in real Chrome',async()=>{
