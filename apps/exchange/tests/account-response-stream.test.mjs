@@ -32,3 +32,21 @@ test('account retirement cancels a stalled body and never returns its old conten
   const response={headers:new Headers({'content-type':'application/json'}),body:{getReader:()=>({read:()=>new Promise(done=>{resolve=done}),cancel:async()=>{cancelled++;resolve({done:true})},releaseLock(){}})}};
   const pending=readAccountResponse(response,controller.signal);controller.abort();await assert.rejects(pending,{code:'PRIVATE_CONTEXT_CHANGED'});assert.ok(cancelled>=1);
 });
+test('identity responses require exact byte length and excess cancels before another read',async()=>{
+  const encoded=new TextEncoder().encode('{"message":"中文"}');
+  const exact=fixture([encoded.slice(0,13),encoded.slice(13)],{'content-length':String(encoded.length)});
+  assert.equal(await readAccountResponse(exact.response,new AbortController().signal),'{"message":"中文"}');
+  for(const declared of [encoded.length-1,encoded.length+1,0]){
+    const f=fixture([encoded,new Uint8Array()],{'content-length':String(declared)});
+    await assert.rejects(readAccountResponse(f.response,new AbortController().signal),{code:'INVALID_ACCOUNT_RESPONSE'});
+    assert.equal(f.inspect().cancels,1);
+    if(declared<encoded.length)assert.equal(f.inspect().reads,1);
+  }
+});
+test('compressed representation length is not confused with decoded body length',async()=>{
+  for(const encoding of ['gzip','br']){
+    const f=fixture([new TextEncoder().encode('{"message":"decoded"}')],{'content-length':'7','content-encoding':encoding});
+    assert.equal(await readAccountResponse(f.response,new AbortController().signal),'{"message":"decoded"}');
+    assert.equal(f.inspect().cancels,0);
+  }
+});

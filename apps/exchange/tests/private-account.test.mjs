@@ -57,6 +57,15 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
     // approved read channel. This is an authority fixture, not Wallet E2E.
     const independent=await fetch(base+'/__qa/proof?who=independent&nonce='+('x'.repeat(24)),{signal:AbortSignal.timeout(5000)}).then(r=>r.json());
     const response=await fetch(base+'/v1/account',{headers:{Origin:origin,'X-YNX-Product-Session-Proof-V2':independent.proofHeader},signal:AbortSignal.timeout(5000)});assert.equal(response.status,200);assert.equal((await response.json()).balances.find(row=>row.asset==='YUSD_TEST').availableMicro,17000000);
+    const framing=await page.evaluate(async()=>{
+      const {readAccountResponse}=await import('/controller.js'),body='{"message":"中文"}',bytes=new TextEncoder().encode(body).length,results=[];
+      for(const length of [bytes,bytes-1,bytes+1]){
+        try{results.push(await readAccountResponse(new Response(body,{headers:{'content-type':'application/json','content-length':String(length)}}),new AbortController().signal))}catch(error){results.push(error.code)}
+      }
+      results.push(await readAccountResponse(new Response(body,{headers:{'content-type':'application/json','content-length':'7','content-encoding':'gzip'}}),new AbortController().signal));
+      return results;
+    });
+    assert.deepEqual(framing,['{"message":"中文"}','INVALID_ACCOUNT_RESPONSE','INVALID_ACCOUNT_RESPONSE','{"message":"中文"}']);
   }finally{await browser?.close();if(base)await fetch(base+'/__qa/stop',{method:'POST',signal:AbortSignal.timeout(5000)});else child.kill();assert.equal(await done,0)}
 });
 function setup(overrides={}){
@@ -66,6 +75,23 @@ function setup(overrides={}){
   const controller=createPrivateAccountController({origin,onState:s=>states.push(s),createAdapter:async()=>{calls.push('createAdapter');return adapter},fetchImpl:async(url,options)=>{calls.push(['fetch',url,options]);return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}})},...overrides.controller});
   return {controller,calls,states,client};
 }
+test('length mismatch clears unverified account records and explicit refresh recovers only a newly bound snapshot',async()=>{
+  let malformed=false,reads=0;
+  const {controller,calls}=setup({controller:{fetchImpl:async()=>{
+    reads++;const body=JSON.stringify(snapshot());
+    return new Response(body,{headers:{'content-type':'application/json','content-length':String(Buffer.byteLength(body)+(malformed?1:0))}});
+  }}});
+  try{
+    assert.equal((await controller.start(origin+'/')).phase,'connected');
+    malformed=true;const rejected=await controller.refresh();
+    assert.equal(rejected.phase,'degraded');assert.equal(rejected.code,'INVALID_ACCOUNT_RESPONSE');
+    assert.equal(rejected.snapshot,null);assert.equal(rejected.account,null);assert.equal(reads,2);
+    malformed=false;const recovered=await controller.refresh();
+    assert.equal(recovered.phase,'connected');assert.equal(recovered.account,account);assert.equal(reads,3);
+    assert.deepEqual(calls.filter(v=>Array.isArray(v)&&v[0]==='proof').map(v=>v[1]),[['exchange:read'],['exchange:read'],['exchange:read']]);
+    assert.equal(calls.filter(v=>v==='beginExplicit').length,0);
+  }finally{controller.close()}
+});
 test('private SDK and registry are frozen exact 9840; no runtime external imports',()=>{
   assert.equal(PRIVATE_SDK_SOURCE,'9840ef871165eb523c4e7a3d48964dd25f8dee8e');
   for(const [name,bytes,sha]of [['product-session-browser-9840ef87.mjs',214746,'5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0'],['product-session-registry-9840ef87.json',7546,'85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3']]){

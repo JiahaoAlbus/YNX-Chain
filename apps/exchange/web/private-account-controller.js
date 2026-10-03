@@ -8,6 +8,11 @@ const failure=code=>Object.assign(new Error(code),{code});
 export async function readAccountResponse(response,signal){
   const length=response.headers.get('content-length');
   if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>MAX_BODY))||!response.body?.getReader){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw failure('INVALID_ACCOUNT_RESPONSE')}
+  // Fetch exposes decompressed bytes while Content-Length may describe the
+  // compressed representation. Compare lengths only for identity encoding;
+  // the decoded-byte ceiling still applies to every response.
+  const encoding=(response.headers.get('content-encoding')||'identity').trim().toLowerCase();
+  const expectedBytes=length!==null&&encoding==='identity'?Number(length):null;
   const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='';
   const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
   const abort=()=>cancel();signal.addEventListener('abort',abort,{once:true});
@@ -17,9 +22,10 @@ export async function readAccountResponse(response,signal){
       const chunk=await reader.read();
       if(signal.aborted)throw failure('PRIVATE_CONTEXT_CHANGED');
       if(chunk.done)break;
-      if(!(chunk.value instanceof Uint8Array)||(bytes+=chunk.value.byteLength)>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
+      if(!(chunk.value instanceof Uint8Array)||(bytes+=chunk.value.byteLength)>MAX_BODY||(expectedBytes!==null&&bytes>expectedBytes))throw failure('INVALID_ACCOUNT_RESPONSE');
       text+=decoder.decode(chunk.value,{stream:true});
     }
+    if(expectedBytes!==null&&bytes!==expectedBytes)throw failure('INVALID_ACCOUNT_RESPONSE');
     text+=decoder.decode();return text;
   }catch(error){cancel();if(['PRIVATE_CONTEXT_CHANGED','INVALID_ACCOUNT_RESPONSE'].includes(error?.code))throw error;throw failure('INVALID_ACCOUNT_RESPONSE')}
   finally{signal.removeEventListener('abort',abort);try{reader.releaseLock()}catch{}}
