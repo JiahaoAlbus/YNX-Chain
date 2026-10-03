@@ -13,6 +13,7 @@ import{discoverWalletProviders,isSharedWalletProvider,peekExactYNXProvider}from"
 import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,disconnectEip1193Wallet,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,restoreEip1193Wallet,switchEip1193WalletAccount,watchEip1193Provider,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence,type WalletProviderKind}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
+import{YNXBrandLogo}from"./src/YNXBrandLogo";
 import{CardProviderClient}from"./src/providerApplicationClient";
 import{createRuntimeProviderClient,createRuntimeCardBusinessClient}from"./src/providerClientRuntime";
 import{CardBusinessClient}from"./src/cardBusinessClient";
@@ -599,9 +600,12 @@ export default function App(){
   return <SafeAreaProvider><SafeAreaView style={[s.safe,{backgroundColor:c.canvas},rtl&&s.rtl]}>
     <StatusBar style={dark?"light":"dark"}/>
     <View style={[s.header,{borderBottomColor:c.separator},rtl&&s.rowRTL]}>
-      <View>
+      <View style={s.brandGroup}>
+        <YNXBrandLogo/>
+        <View style={s.brandCopy}>
         <Text style={[s.eyebrow,{color:c.secondary},rtl&&s.textRTL]}>{tr("sandbox")}</Text>
         <Text style={[s.brand,{color:c.text},rtl&&s.textRTL]}>{tr("app")}</Text>
+        </View>
       </View>
       <View style={[s.headerActions,rtl&&s.rowRTL]}>
         <Pressable accessibilityRole="button" accessibilityLabel={tr("settings")} onPress={()=>setSettings(true)} style={[s.round,{backgroundColor:c.surface}]}> <Globe2 color={BLUE} size={19}/></Pressable>
@@ -866,7 +870,7 @@ function TabBar({tab,setTab,c,tr}:{tab:Tab;setTab:(v:Tab)=>void;c:Colors;tr:T}){
 }
 
 function Language({locale,setLocale,close,c,tr}:{locale:Locale;setLocale:(v:Locale)=>Promise<void>;close:()=>void;c:Colors;tr:T}){
-  return <SafeAreaView style={[s.safe,{backgroundColor:c.canvas}]}><View style={[s.header,{borderBottomColor:c.separator}]}><Text style={[s.sectionTitle,{color:c.text}]}>{tr("settings")}</Text><Pressable accessibilityRole="button" accessibilityLabel={tr("done")} onPress={close}><Text style={s.link}>{tr("done")}</Text></Pressable></View><FlatList data={locales} keyExtractor={v=>v} renderItem={({item})=><Pressable accessibilityRole="radio" accessibilityLabel={localeNames[item]} accessibilityState={{checked:item===locale}} onPress={()=>void setLocale(item)} style={[s.locale,{borderBottomColor:c.separator}]}><Text style={[s.rowValue,{color:c.text}]}>{localeNames[item]}</Text>{item===locale?<Text accessible={false} importantForAccessibility="no" style={s.link}>✓</Text>:null}</Pressable>}/></SafeAreaView>
+  return <SafeAreaView style={[s.safe,{backgroundColor:c.canvas}]}><View style={[s.header,{borderBottomColor:c.separator}]}><View style={s.brandGroup}><YNXBrandLogo/><Text style={[s.sectionTitle,{color:c.text}]}>{tr("settings")}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={tr("done")} onPress={close}><Text style={s.link}>{tr("done")}</Text></Pressable></View><FlatList data={locales} keyExtractor={v=>v} renderItem={({item})=><Pressable accessibilityRole="radio" accessibilityLabel={localeNames[item]} accessibilityState={{checked:item===locale}} onPress={()=>void setLocale(item)} style={[s.locale,{borderBottomColor:c.separator}]}><Text style={[s.rowValue,{color:c.text}]}>{localeNames[item]}</Text>{item===locale?<Text accessible={false} importantForAccessibility="no" style={s.link}>✓</Text>:null}</Pressable>}/></SafeAreaView>
 }
 
 function Action({icon,label,onPress,c}:{icon:React.ReactNode;label:string;onPress:()=>void;c:Colors}){return <Pressable accessibilityRole="button" onPress={onPress} style={s.action}><View style={[s.actionIcon,{backgroundColor:c.surface}]}>{icon}</View><Text style={[s.actionText,{color:c.text}]}>{label}</Text></Pressable>}
@@ -894,6 +898,8 @@ const s=StyleSheet.create({
   header:{minHeight:72,paddingHorizontal:20,paddingVertical:12,borderBottomWidth:StyleSheet.hairlineWidth,flexDirection:"row",alignItems:"center",justifyContent:"space-between"},
   eyebrow:{fontSize:11,fontWeight:"700",letterSpacing:1.1},
   brand:{fontSize:25,fontWeight:"700",letterSpacing:-.5},
+  brandGroup:{flexDirection:"row",alignItems:"center",gap:12,flex:1,minWidth:0,marginRight:12},
+  brandCopy:{flexShrink:1,minWidth:0},
   headerActions:{flexDirection:"row",gap:10},
   round:{width:42,height:42,borderRadius:21,alignItems:"center",justifyContent:"center"},
   stage:{flex:1},
