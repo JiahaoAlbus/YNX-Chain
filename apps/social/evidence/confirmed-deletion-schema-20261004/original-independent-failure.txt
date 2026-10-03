@@ -1,0 +1,82 @@
+✖ existing deletion success schema must reject false before cleanup (8.578ms)
+✖ existing deletion success schema must reject missing before cleanup (0.293708ms)
+✖ existing deletion success schema must reject string before cleanup (0.198916ms)
+✖ existing deletion success schema must reject invalidJSON before cleanup (0.179375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.340166
+
+✖ failing tests:
+
+test at src/independentDeleteReceiptSchemaReview.test.ts:2:1445
+✖ existing deletion success schema must reject false before cleanup (8.578ms)
+  AssertionError [ERR_ASSERTION]: non-success deletion body was promoted to a cleanup receipt
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/social154-account-cleanup-independent-review/source/apps/social/src/independentDeleteReceiptSchemaReview.test.ts:15:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/independentDeleteReceiptSchemaReview.test.ts:2:1445
+✖ existing deletion success schema must reject missing before cleanup (0.293708ms)
+  AssertionError [ERR_ASSERTION]: non-success deletion body was promoted to a cleanup receipt
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/social154-account-cleanup-independent-review/source/apps/social/src/independentDeleteReceiptSchemaReview.test.ts:15:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/independentDeleteReceiptSchemaReview.test.ts:2:1445
+✖ existing deletion success schema must reject string before cleanup (0.198916ms)
+  AssertionError [ERR_ASSERTION]: non-success deletion body was promoted to a cleanup receipt
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/social154-account-cleanup-independent-review/source/apps/social/src/independentDeleteReceiptSchemaReview.test.ts:15:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/independentDeleteReceiptSchemaReview.test.ts:2:1445
+✖ existing deletion success schema must reject invalidJSON before cleanup (0.179375ms)
+  AssertionError [ERR_ASSERTION]: non-success deletion body was promoted to a cleanup receipt
+  
+  true !== false
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/social154-account-cleanup-independent-review/source/apps/social/src/independentDeleteReceiptSchemaReview.test.ts:15:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

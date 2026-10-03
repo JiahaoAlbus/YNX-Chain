@@ -97,11 +97,12 @@ export class SocialAPI {
     const current=this.authorizationGuard();
     const result=await this.request("/social/v1/privacy/delete",{method:"DELETE",headers:{"X-YNX-Confirm-Delete":"DELETE MY SOCIAL DATA"}});
     if(!current())throw new Error("Social authorization changed; deletion response discarded");
+    if(!result||typeof result!=="object"||Array.isArray(result)||Object.keys(result).length!==1||!("deleted" in result)||result.deleted!==true)throw new Error("Deletion response was not confirmed; original authorization and local data retained");
     this.setToken(null);
     return result;
   }
   async deleteAccountReceipt(account:string){
-    if(!/^ynx1[0-9a-z]{38}$/.test(account)||this.productAccount!==null&&this.productAccount!==account)throw new Error("Original Social account is required for deletion");
+    if(!/^ynx1[0-9a-z]{38}$/.test(account)||this.productProof===null||this.productAccount!==account)throw new Error("Verified current Social account binding is required; legacy local erasure is not confirmed");
     const generation=this.epoch;
     const result=await this.deleteAccount();
     if(this.epoch!==generation+1)throw new Error("Social authorization changed; deletion cleanup discarded");

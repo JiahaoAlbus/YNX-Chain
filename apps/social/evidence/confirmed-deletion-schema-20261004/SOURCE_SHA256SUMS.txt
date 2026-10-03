@@ -1,0 +1,3 @@
+18753c55215a623fda6edaf4de9c8b287485cc99bf1b918679f0c8d8f7bab166  apps/social/src/api.ts
+dc40aaa34b11b1db5def1313fee51f669b9dec676f87502e8a3b6238a9155995  apps/social/src/confirmedAccountDeletion.test.ts
+0c64d876da8ed6bc2d5c21ad24d5bd64410c6cd70f45db8fda6609c86336e179  apps/social/src/independentDeleteReceiptSchemaReview.test.ts
