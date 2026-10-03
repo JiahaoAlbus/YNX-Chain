@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "ynx-video-original-business-identity-checkpoint/v1",
+  "sourceCommit": "88d5291a8962727d0e19d31f757ff36ee54b1de5",
+  "sourceTree": "77d15099aa3d21dc861a7b7f86ed383501e95db8",
+  "baseline": "0dc54a2e4c38bbd0a12317df298166d22b2fe000",
+  "sourceDeltaPins": [
+    {
+      "path": "apps/video/app.js",
+      "bytes": 55963,
+      "sha256": "403d3509b884248d01879392846ea0f7f5b585755cb38a399a0bab3335cce494",
+      "gitBlob": "65b5b0b509e2418349f7c011b65d66540450a5b2"
+    },
+    {
+      "path": "apps/video/business-identity.js",
+      "bytes": 1278,
+      "sha256": "abc50339849449abd18f3bfc6b05bd3b1234267d31d9f1af58c1cace627a4977",
+      "gitBlob": "9bd10e4eb6d92ca82a99e3c664121413cfc86863"
+    },
+    {
+      "path": "apps/video/business-identity.test.mjs",
+      "bytes": 3019,
+      "sha256": "5e0c86614c31e7bdee08cb65fd8a586125bc7a196932bd1537da7cc088c9cddc",
+      "gitBlob": "e2af6f591e9d30301a958a5cf8a5d18f24d8cbfd"
+    },
+    {
+      "path": "apps/video/guest-navigation.test.mjs",
+      "bytes": 15598,
+      "sha256": "8a76e3d6490da6887d19870bf640d56773d69b6ee4d4afec72fd9987ec94afdb",
+      "gitBlob": "8c0091cb06c2898055f6bb402beafd2151b4e4f9"
+    },
+    {
+      "path": "apps/video/package.json",
+      "bytes": 1593,
+      "sha256": "80537973c361583f10e206a3f6b242487bfa00ab67872ca0c9ef91f15f74ab75",
+      "gitBlob": "9a03e42a79486ef0fac5aeab88c7555b5743eb00"
+    },
+    {
+      "path": "apps/video/product-session.js",
+      "bytes": 8238,
+      "sha256": "89d5d1854814f47bc924066e0918fae83e1fd7f3cc057dc41448caa8b8334a84",
+      "gitBlob": "d33e016ceff6985c3c332291bfabee54c689f6e0"
+    },
+    {
+      "path": "apps/video/scripts/build-runtime.sh",
+      "bytes": 4430,
+      "sha256": "eb01cd26d74fb8d6636cb6baac9f9f228055a5a4a8b62e489b9e626e2dbfcbe6",
+      "gitBlob": "9dfabeda7f1dcbcd6621465f8b06b588c8edc165"
+    },
+    {
+      "path": "apps/video/scripts/business-identity-web-check.cjs",
+      "bytes": 5105,
+      "sha256": "ef7cf80be13e01ed8bb344d6669ff6a435c88db253056491477b6128ff4fce1c",
+      "gitBlob": "a82d3895d31245ad55d0b3dc9a5b5291a5ce565e"
+    },
+    {
+      "path": "apps/video/server.mjs",
+      "bytes": 5080,
+      "sha256": "584dbf514a2409685a85137a0b6fa483c6199be6ec2bed9955d76d69b4514551",
+      "gitBlob": "9be00670fee42da56fb122efdb068170286e5811"
+    },
+    {
+      "path": "internal/video/account_readback_test.go",
+      "bytes": 1296,
+      "sha256": "32970998996565f002a965cb072bba15beffe40603e6a888875b849afd44e3fd",
+      "gitBlob": "118a4e1745467e748aab75f580da887cd8aabf5e"
+    },
+    {
+      "path": "internal/video/central_gateway_auth_v2.go",
+      "bytes": 9021,
+      "sha256": "375a1e079b99fea0edbcb89ddad81063611e2758dd9ea2bed44c54bccef168e0",
+      "gitBlob": "2a5d2a51f15eac9961c1bc6e9ef367e468c3a45e"
+    },
+    {
+      "path": "internal/video/server.go",
+      "bytes": 30626,
+      "sha256": "47a9d9fff67fcc5762e5f558780ceb28408485aa52299fe32c3da3f6a697a1e5",
+      "gitBlob": "2efa60613ca0889c63f8c5a559adee6d07609d66"
+    }
+  ],
+  "implemented": [
+    "Original Video authenticated GET /v1/account returns actual server actor; no private account data cached",
+    "Exact Video account scope allowlist in both browser and original Go consumer",
+    "Actual viewer requires matching authenticated business actor after SDK session, before comments/library/watch authority UI",
+    "Account/sessionBinding/device/expiry and operation generation checks fence stale confirmations, revoke/logout and account replacement",
+    "Readback pending disables repeated sign-in and private actions; old private data hidden; same-account playlist return pointer retained",
+    "Readback failure keeps guest playback and original retry/sign-out controls",
+    "New module included in original static whitelist and immutable historical-compatible runtime builder"
+  ],
+  "checks": {
+    "nodeTests": 126,
+    "nodePass": 126,
+    "nodeFailures": 0,
+    "nodeSkipped": 0,
+    "localeAudit": "12 locales /22 exact keys /RTL passed",
+    "browserGroups": 4,
+    "browserPass": [
+      "PASS shipped viewer holds private actions until original account GET succeeds",
+      "PASS original service actor mismatch refuses signed-in library",
+      "PASS replacement B readback wins and late A cannot overwrite it",
+      "PASS unavailable business service retains guest playback and refuses private actions"
+    ],
+    "browserAuthority": "Synthetic SDK module and API routes in isolated headless context emulating formal origin; original shipped app.js and createVideoBusinessIdentity exercised. Not public runtime or real Wallet approval.",
+    "goRace": "internal/video PASS including real original HTTP account route A/B/guest/no-store",
+    "goVet": "PASS",
+    "runtimeBuild": "Exact source artifact built; business-identity.js bytes verified against Git",
+    "runtime": {
+      "path": "apps/video/audit/evidence/business-identity-20261003/video-runtime.tar.gz",
+      "bytes": 619273,
+      "sha256": "984c7158b973199d1a658747f204d1c50a8274d6f3f39e93899fbae75e6ad8ad"
+    },
+    "screenshotActuallyInspected": "viewer-readback-unavailable-390.png",
+    "diffCheck": "PASS"
+  },
+  "failuresPreserved": {
+    "video-check.txt": "First suite failure: original app-evaluation harness stripped new import without injecting factory; fixed harness to use real identity module and original account readback fixture",
+    "browser-first.txt": "Isolated browser fixture omitted existing VIDEO_ORIGIN export, page could not initialize; original raw timeout retained, corrected fixture only"
+  },
+  "toolFailure": "Initial package update command used nested cwd path and failed before package edit; only accidentally-created empty directories removed, correct paths used; not a product test failure",
+  "evidencePins": [
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/browser-final.txt",
+      "bytes": 290,
+      "sha256": "4314f7ed9e8d625c316ec39ce3afade40b132d737a54dc0705ccee9ca484570b"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/browser-first.txt",
+      "bytes": 341,
+      "sha256": "dd2922140a2e179a0b82d6be53d7fb8702fd062e634ff78d906f89f61ede9c92"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/browser-run2.txt",
+      "bytes": 290,
+      "sha256": "4314f7ed9e8d625c316ec39ce3afade40b132d737a54dc0705ccee9ca484570b"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/go-race.jsonl",
+      "bytes": 155547,
+      "sha256": "1e1db8e3bf3c38ab26d4eb67bba30cff98b653edb5f8818e7ae3cf3556daaa54"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/runtime-build.txt",
+      "bytes": 234,
+      "sha256": "378e8a962cc94d71f7c4a28069897a45caff0f03b4d6696c95027bdee0e2b172"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/video-check-final.txt",
+      "bytes": 13779,
+      "sha256": "e494c5a932105b80864c6b9cbfc3e0a312e868d90143343d4b263dc75410a367"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/video-check-run2.txt",
+      "bytes": 13784,
+      "sha256": "73f6f22d8d0c47703bb7c5910f2004fc91415c456709b36e41f673871cf44ea3"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/video-check.txt",
+      "bytes": 29605,
+      "sha256": "b31f7b3942c664b0f910b24069791e84e30cd1f580f811636a204515186629cf"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/video-runtime.tar.gz",
+      "bytes": 619273,
+      "sha256": "984c7158b973199d1a658747f204d1c50a8274d6f3f39e93899fbae75e6ad8ad"
+    },
+    {
+      "path": "apps/video/audit/evidence/business-identity-20261003/viewer-readback-unavailable-390.png",
+      "bytes": 48597,
+      "sha256": "c70be5fd09503a77a180bd332d4beb94e25133b31a6d317df86b834fb01ac07e"
+    }
+  ],
+  "release": {
+    "sharedCanonicalBusinessVerifierInstalled": false,
+    "formalDeployment": false,
+    "publicRuntimeVerified": false,
+    "actualWalletApproval": false,
+    "nativeInstalledUI": false,
+    "fullMediaGoalComplete": false
+  },
+  "remaining": [
+    "A exact admitted full SDK adapter/tuple, action verifier, live actor revalidation and unique protected mount",
+    "Formal Video actual approval to original account/library operation and durable readback; recovery/A-B",
+    "Native Android/macOS complete protected bridge/build/install/user flows; Creator native completeness",
+    "Pay/Trust/AI unknown-outcome authoritative query recovery",
+    "Music Web full locale acceptance"
+  ]
+}

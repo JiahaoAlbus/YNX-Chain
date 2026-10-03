@@ -1,0 +1,4 @@
+PASS shipped viewer holds private actions until original account GET succeeds
+PASS original service actor mismatch refuses signed-in library
+PASS replacement B readback wins and late A cannot overwrite it
+PASS unavailable business service retains guest playback and refuses private actions

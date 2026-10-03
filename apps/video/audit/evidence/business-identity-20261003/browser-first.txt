@@ -1,0 +1,5 @@
+page.waitForFunction: Timeout 30000ms exceeded.
+    at waitPending (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/business-identity-web-check.cjs:19:42)
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/business-identity-web-check.cjs:21:85 {
+  name: 'TimeoutError'
+}
