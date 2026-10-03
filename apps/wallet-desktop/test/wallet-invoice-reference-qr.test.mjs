@@ -1,3 +1,4 @@
+import {pngHeader} from "./helpers/qr-image-headers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import QRCode from "qrcode";
@@ -5,11 +6,11 @@ import {decodeInvoiceReferenceQR} from "../src/wallet-invoice-reference-qr.mjs";
 import {createInvoiceReferenceUI} from "../src/wallet-invoice-reference-ui.mjs";
 const id="invoice-original-001",reference=`ynxpay://invoice/${id}`,account="0x"+"1".repeat(40);
 const deferred=()=>{let resolve;const promise=new Promise(done=>resolve=done);return {promise,resolve}};
-const fixture=text=>({bytes:Buffer.from("synthetic-image-container"),mimeType:"image/png",createImage:()=>({isEmpty:()=>false,getSize:()=>({width:1,height:1}),toBitmap:()=>Buffer.alloc(4)}),decode:()=>({data:text})});
+const fixture=text=>({bytes:pngHeader(),mimeType:"image/png",createImage:()=>({isEmpty:()=>false,getSize:()=>({width:1,height:1}),toBitmap:()=>Buffer.alloc(4)}),decode:()=>({data:text})});
 test("real encoded invoice QR pixels independently decode through the production local decoder to an ID only",()=>{
   const qr=QRCode.create(reference,{errorCorrectionLevel:"M"}),scale=8,margin=4,width=(qr.modules.size+margin*2)*scale,pixels=Buffer.alloc(width*width*4,255);
   for(let y=0;y<qr.modules.size;y++)for(let x=0;x<qr.modules.size;x++)if(qr.modules.get(y,x))for(let dy=0;dy<scale;dy++)for(let dx=0;dx<scale;dx++)pixels.set([0,0,0,255],(((y+margin)*scale+dy)*width+(x+margin)*scale+dx)*4);
-  const result=decodeInvoiceReferenceQR({bytes:Buffer.from("synthetic-image-container"),mimeType:"image/png",createImage:()=>({isEmpty:()=>false,getSize:()=>({width,height:width}),toBitmap:()=>pixels})});
+  const result=decodeInvoiceReferenceQR({bytes:pngHeader(width,width),mimeType:"image/png",createImage:()=>({isEmpty:()=>false,getSize:()=>({width,height:width}),toBitmap:()=>pixels})});
   assert.deepEqual(result,{invoiceID:id,decodedLocally:true,uploaded:false});assert.equal("amount" in result,false);assert.equal("uri" in result,false);
 });
 test("foreign origins, actions, encoded paths, pairing and arbitrary signed-looking JSON cannot become a reference",()=>{

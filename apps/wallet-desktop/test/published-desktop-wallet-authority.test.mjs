@@ -1,3 +1,4 @@
+import {pngHeader} from "./helpers/qr-image-headers.mjs";
 import { fixtureKeyAuthorization } from "./fixture-key-authorization.mjs";
 import assert from "node:assert/strict";
 import { createECDH } from "node:crypto";
@@ -304,14 +305,14 @@ test("desktop QR import is local-only, bounded and accepts only WalletConnect v2
   const uri = "wc:0123456789abcdef@2?relay-protocol=irn&symKey=0123456789abcdef";
   let observed;
   const result = decodeWalletConnectQR({
-    bytes: Buffer.from([1]),
+    bytes: pngHeader(),
     mimeType: "image/png",
     createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.from([3, 2, 1, 255]) }),
     decode: (rgba, width, height, options) => { observed = { rgba: [...rgba], width, height, options }; return { data: uri }; }
   });
   assert.deepEqual(observed, { rgba: [1, 2, 3, 255], width: 1, height: 1, options: { inversionAttempts: "attemptBoth" } });
   assert.deepEqual(result, { uri, format: "qr_code", decodedLocally: true, uploaded: false });
-  assert.throws(() => decodeWalletConnectQR({ bytes: Buffer.from([1]), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.alloc(4) }), decode: () => ({ data: "https://example.invalid" }) }), error => error.code === "INVALID_WALLETCONNECT_QR");
+  assert.throws(() => decodeWalletConnectQR({ bytes: pngHeader(), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.alloc(4) }), decode: () => ({ data: "https://example.invalid" }) }), error => error.code === "INVALID_WALLETCONNECT_QR");
 });
 
 test("WalletConnect session approval exposes only eip155:6423 and the approved account", async () => {

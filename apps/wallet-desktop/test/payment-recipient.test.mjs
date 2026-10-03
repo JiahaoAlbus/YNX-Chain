@@ -1,3 +1,4 @@
+import {pngHeader} from "./helpers/qr-image-headers.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
@@ -43,17 +44,17 @@ test("actual generated Klein blue QR pixels are decoded by jsQR into the exact S
   } }) };
   // nativeImage is the injected image boundary; QR generation/pixel conversion/jsQR/parser are real.
   drawReceiveCode(canvas, code, account);
-  const result = decodePaymentRecipientQR({ bytes: Buffer.from([1]), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: canvas.width, height: canvas.height }), toBitmap: () => bgra }) });
+  const result = decodePaymentRecipientQR({ bytes: pngHeader(canvas.width,canvas.height), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: canvas.width, height: canvas.height }), toBitmap: () => bgra }) });
   assert.equal(result.ynxAccount, account); assert.equal(result.account, evm);
 });
 
 test("untrusted QR image bounds and WalletConnect/URL content cannot become payment recipients", () => {
   const createImage = () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.alloc(4) });
   for (const data of ["https://malicious.invalid", "wc:abcd@2?relay-protocol=irn", `${uri}&amount=1`]) {
-    assert.throws(() => decodePaymentRecipientQR({ bytes: Buffer.from([1]), mimeType: "image/png", createImage, decode: () => ({ data }) }));
+    assert.throws(() => decodePaymentRecipientQR({ bytes: pngHeader(), mimeType: "image/png", createImage, decode: () => ({ data }) }));
   }
   for (const delta of [{ mimeType: "image/svg+xml" }, { bytes: Buffer.alloc(0) }, { bytes: Buffer.alloc(10 * 1024 * 1024 + 1) }, { createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 4097, height: 1 }), toBitmap: () => { throw new Error("must not allocate"); } }) }]) {
-    assert.throws(() => decodePaymentRecipientQR({ bytes: Buffer.from([1]), mimeType: "image/png", createImage, ...delta }));
+    assert.throws(() => decodePaymentRecipientQR({ bytes: pngHeader(), mimeType: "image/png", createImage, ...delta }));
   }
 });
 

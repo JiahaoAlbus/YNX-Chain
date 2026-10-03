@@ -1,3 +1,4 @@
+import {pngHeader} from "./helpers/qr-image-headers.mjs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
@@ -5,7 +6,7 @@ import {decodeLocalQRText,decodeWalletConnectQR} from '../src/walletconnect-qr-d
 import {decodePaymentRecipientQR} from '../src/payment-recipient.mjs';
 import {decodeInvoiceReferenceQR} from '../src/wallet-invoice-reference-qr.mjs';
 
-const input=pixels=>({bytes:Buffer.from('controlled-pixel-container'),mimeType:'image/png',createImage:()=>({isEmpty:()=>false,getSize:()=>({width:pixels.length/4,height:1}),toBitmap:()=>pixels})});
+const input=pixels=>({bytes:pngHeader(pixels.length/4,1),mimeType:'image/png',createImage:()=>({isEmpty:()=>false,getSize:()=>({width:pixels.length/4,height:1}),toBitmap:()=>pixels})});
 test('opaque colors retain exact BGRA channel order while premultiplied alpha composites onto white',()=>{
   const pixels=Buffer.from([120,80,20,255,60,40,10,128,0,0,0,0]);
   const original=Buffer.from(pixels);
@@ -20,7 +21,7 @@ function transparentQR(text){
   for(let y=0;y<qr.modules.size;y++)for(let x=0;x<qr.modules.size;x++)if(qr.modules.get(y,x)){
     for(let dy=0;dy<scale;dy++)for(let dx=0;dx<scale;dx++)pixels.set([0,0,0,255],(((y+margin)*scale+dy)*width+(x+margin)*scale+dx)*4);
   }
-  return{bytes:Buffer.from('controlled-transparent-container'),mimeType:'image/png',createImage:()=>({isEmpty:()=>false,getSize:()=>({width,height:width}),toBitmap:()=>pixels})};
+  return{bytes:pngHeader(width,width),mimeType:'image/png',createImage:()=>({isEmpty:()=>false,getSize:()=>({width,height:width}),toBitmap:()=>pixels})};
 }
 test('transparent black receiving QR decodes to the original public account only',()=>{
   const account='ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt';

@@ -1,6 +1,8 @@
 # Full Wallet goal audit — incomplete, not a source-checkpoint definition of done
 
-## Current owned composition after 54253c64a
+## Current owned source follow-ups
+
+After the inherited 476c72bfc alpha repair, Desktop now bounds encoded PNG/JPEG/WebP dimensions before invoking native image decoding, while retaining post-decode size/matching checks and all original protocol/lifecycle gates. Original five metadata tests reproduced 2 pass/3 fail; final expanded 11/11, complete Desktop 685/685, and freshly rerun actual macOS Electron PNG/JPEG 19/19 pass. No large image was allocated in negative tests. See `../../wallet-desktop/test/qr-image-predecode-bounds-20261003.md` for exact fixtures, logs, format sources and limits. This does not prove complete codec resource safety, actual WebP/animated codec behavior or installed UI acceptance. Current CUA inventory still reports Mac locked; no bypass was attempted.
 
 A's frozen five Dashboard copy expressions and import are adopted at App SHA256 `c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f`. Complete reverse comparison restores the inherited 7d610 App05beb; all 124 flow, 205 detail and five Dashboard messages now have explicit twelve-locale source coverage. Native 935/935, typecheck and Android/iOS Hermes export passed. This is not whole rendered-UI language/RTL acceptance. See `dashboard-copy-composition-20261003.md`.
 

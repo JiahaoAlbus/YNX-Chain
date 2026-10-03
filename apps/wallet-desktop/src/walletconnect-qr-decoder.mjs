@@ -1,9 +1,8 @@
 import jsQR from "jsqr";
+import {readQRImageBounds,assertQRImageDimensions} from "./qr-image-bounds.mjs";
 
 const ACCEPTED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_DIMENSION = 4096;
-const MAX_PIXELS = 16 * 1024 * 1024;
 
 export function decodeWalletConnectQR({ bytes, mimeType, createImage, decode = jsQR }) {
   const uri = decodeLocalQRText({ bytes, mimeType, createImage, decode }).trim();
@@ -14,10 +13,12 @@ export function decodeWalletConnectQR({ bytes, mimeType, createImage, decode = j
 /** Shared local pixel decoder. Consumers validate their own exact URI protocol. */
 export function decodeLocalQRText({ bytes, mimeType, createImage, decode = jsQR }) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 1 || bytes.length > MAX_IMAGE_BYTES || !ACCEPTED_MIME_TYPES.has(mimeType)) throw qrError("INVALID_QR_IMAGE", "Choose a PNG, JPEG or WebP image up to 10 MB");
+  const expected = readQRImageBounds(bytes, mimeType);
   const image = createImage(bytes);
   if (!image || image.isEmpty()) throw qrError("QR_DECODE_FAILED", "The image could not be decoded locally");
   const { width, height } = image.getSize();
-  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > MAX_DIMENSION || height > MAX_DIMENSION || width * height > MAX_PIXELS) throw qrError("INVALID_QR_DIMENSIONS", "QR image dimensions exceed the local decoder limit");
+  assertQRImageDimensions(width,height);
+  if (width !== expected.width || height !== expected.height) throw qrError("INVALID_QR_DIMENSIONS", "Decoded QR image dimensions did not match its container");
   const bgra = image.toBitmap();
   if (!Buffer.isBuffer(bgra) || bgra.length !== width * height * 4) throw qrError("QR_DECODE_FAILED", "Decoded image pixels were invalid");
   const rgba = new Uint8ClampedArray(bgra.length);
