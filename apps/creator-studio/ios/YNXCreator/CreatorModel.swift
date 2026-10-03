@@ -20,6 +20,21 @@ struct CreatorSnapshot: Decodable {
     }
     struct Rights: Decodable,Identifiable {let id,video_id,declared_by,basis,state,evidence_sha256,source_sha256: String;let reviewer: String?}
     struct Revenue: Decodable,Identifiable { let recordID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {recordID};enum CodingKeys:String,CodingKey {case recordID="ID",Owner,PayReceiptID,AmountYNXT} }
+    struct Report: Decodable,Identifiable {
+        let recordID,VideoID,Reporter,Reason,Details,State:String
+        var id:String {recordID}
+        enum CodingKeys:String,CodingKey {case recordID="ID",VideoID,Reporter,Reason,Details,State}
+    }
+    struct Appeal: Decodable,Identifiable {
+        let recordID,ReportID,VideoID,Appellant,Reason,State:String
+        var id:String {recordID}
+        enum CodingKeys:String,CodingKey {case recordID="ID",ReportID,VideoID,Appellant,Reason,State}
+    }
+    struct Dispute: Decodable,Identifiable {
+        let recordID,Owner,RevenueRecordID,Reason,State:String
+        var id:String {recordID}
+        enum CodingKeys:String,CodingKey {case recordID="ID",Owner,RevenueRecordID,Reason,State}
+    }
     struct Payout: Decodable,Identifiable { let intentID,Owner,State: String;let AmountYNXT: Int;var id:String {intentID};enum CodingKeys:String,CodingKey {case intentID="ID",Owner,State,AmountYNXT} }
     let videos: [CreatorVideo]?
     let analytics: Analytics
@@ -27,6 +42,9 @@ struct CreatorSnapshot: Decodable {
     let revenue: [Revenue]?
     let payout_intents: [Payout]?
     let rights: [Rights]?
+    let reports: [Report]?
+    let appeals: [Appeal]?
+    let disputes: [Dispute]?
 }
 
 @MainActor final class CreatorModel: ObservableObject {
@@ -143,8 +161,8 @@ struct CreatorSnapshot: Decodable {
         } catch {if captured==revision {message=text("uploadUnconfirmed");try? await refreshCaptured(active,captured)}}
     }
     func cancelUpload() {guard !busy else {return};do {try drafts?.cancelUpload();pendingUploadTitle="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
-    func perform(_ path: String,body: [String:Any]=[:],method:String="POST") async {
-        guard !busy,let store=drafts else {return}
+    func perform(_ path: String,body: [String:Any]=[:],method:String="POST",expectedRevision:UInt64?=nil) async {
+        guard !busy,expectedRevision==nil || expectedRevision==revision,let store=drafts else {return}
         do {_ = try store.reserve(path:path,body:body,method:method);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}
         await retryOperation()
     }
@@ -160,6 +178,22 @@ struct CreatorSnapshot: Decodable {
         } catch {if captured==revision {lastFailure=String(describing:error);message=text("operationPending");try? await refreshCaptured(active,captured)}}
     }
     func cancelOperation() {guard !busy else {return};do {try drafts?.cancelOperation();pendingOperation=false;message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
+    func canAppeal(_ report:CreatorSnapshot.Report) -> Bool {
+        connected && report.State=="takedown" && snapshot?.videos?.contains(where:{$0.id==report.VideoID && $0.owner==account})==true && !(snapshot?.appeals ?? []).contains(where:{$0.ReportID==report.id && $0.State=="submitted"})
+    }
+    func canDispute(_ record:CreatorSnapshot.Revenue) -> Bool {
+        connected && record.Owner==account && !(snapshot?.disputes ?? []).contains(where:{$0.RevenueRecordID==record.id && $0.State=="submitted"})
+    }
+    func submitAppeal(_ reportID:String,reason:String,expectedRevision:UInt64) async {
+        let reason=reason.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard expectedRevision==revision,let report=snapshot?.reports?.first(where:{$0.id==reportID}),canAppeal(report),CreatorDraftState.validID(reportID),!reason.isEmpty,reason.count<=2000 else {return}
+        await perform("/v1/reports/"+reportID+"/appeals",body:["reason":reason],expectedRevision:expectedRevision)
+    }
+    func submitDispute(_ recordID:String,reason:String,expectedRevision:UInt64) async {
+        let reason=reason.trimmingCharacters(in:.whitespacesAndNewlines)
+        guard expectedRevision==revision,let record=snapshot?.revenue?.first(where:{$0.id==recordID}),canDispute(record),CreatorDraftState.validID(recordID),!reason.isEmpty,reason.count<=2000 else {return}
+        await perform("/v1/revenue/"+recordID+"/disputes",body:["reason":reason],expectedRevision:expectedRevision)
+    }
     func role(_ channel: String) -> String? {snapshot?.team?.first(where:{$0.channel_id==channel})?.members?.first(where:{$0.account==account && $0.state=="active"})?.role}
     func canReview(_ video: CreatorVideo) -> Bool {connected && video.owner != account && role(video.channel_id)=="moderator"}
 }

@@ -212,13 +212,15 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualIndependentReview      bool   `json:"actualIndependentRightsAndPublication"`
 				ActualPublicationRecovery    bool   `json:"actualScheduledPublicationRecovery"`
 				ActualRevokedTeamDenied      bool   `json:"actualRevokedTeamMutationDenied"`
+				ActualAppealColdRecovery     bool   `json:"actualAppealColdRecovery"`
+				ActualAppealFreshReview      bool   `json:"actualAppealRequiresFreshPublicationReview"`
 				ActualWalletConsent          bool   `json:"actualWalletConsent"`
 				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()
@@ -259,6 +261,9 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 					studio, err := owned.Studio(actor.Account)
 					if err != nil || len(studio.Videos) != 1 || studio.Videos[0].Owner != actor.Account || studio.Videos[0].WorkflowState != WorkflowPublished || studio.Videos[0].Visibility != VisibilityPublic {
 						t.Fatal("missing exact original Creator upload and independent-review readback")
+					}
+					if len(studio.Reports) != 1 || len(studio.Appeals) != 1 || studio.Appeals[0].Appellant != actor.Account || studio.Appeals[0].State != "accepted" || studio.Reports[0].State != "appeal_accepted" || studio.Appeals[0].ReportID != studio.Reports[0].ID || len(studio.Disputes) != 0 {
+						t.Fatal("missing original single recovered owner appeal and independent human acceptance")
 					}
 					original := studio.Videos[0]
 					if original.ReviewedBy != creatorModerator || original.SubmittedBy == original.ReviewedBy || len(actors) != 2 {

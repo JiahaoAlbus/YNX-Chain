@@ -103,7 +103,13 @@
     "pending": "Pending acceptance",
     "revoked": "Revoked",
     "accepted": "Accepted",
-    "public_domain": "Public domain"
+    "public_domain": "Public domain",
+    "disputes": "Appeals & disputes",
+    "disputeHelp": "Submit a reason for human review. An appeal does not restore publication or confirm payment. Saved requests can be recovered from the latest records.",
+    "noReports": "No reports on your accessible videos.",
+    "submitAppeal": "Submit appeal",
+    "submitDispute": "Dispute revenue record",
+    "disputeReason": "Reason (up to 2,000 characters)"
   },
   "zh-CN": {
     "signIn": "登录",
@@ -209,7 +215,13 @@
     "pending": "等待接受",
     "revoked": "已撤销",
     "accepted": "已接受",
-    "public_domain": "公有领域"
+    "public_domain": "公有领域",
+    "disputes": "申诉与争议",
+    "disputeHelp": "填写理由并提交人工审核。提交申诉不会自动恢复发布或确认付款。已保存的请求可结合最新记录恢复。",
+    "noReports": "你可访问的视频暂无举报记录。",
+    "submitAppeal": "提交申诉",
+    "submitDispute": "提交收益争议",
+    "disputeReason": "理由（最多 2,000 字）"
   },
   "zh-TW": {
     "signIn": "Sign in",

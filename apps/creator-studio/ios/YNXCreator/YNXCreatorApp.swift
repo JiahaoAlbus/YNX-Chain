@@ -34,7 +34,7 @@ struct CreatorView: View {
                 VStack(alignment:.leading,spacing:20) {
                     header
                     Picker(model.text("overview"),selection:$section) {
-                        ForEach(["overview","channel","team","content","upload","moderation","earn"],id:\.self) {Text(model.text($0)).tag($0)}
+                        ForEach(["overview","channel","team","content","upload","moderation","earn","disputes"],id:\.self) {Text(model.text($0)).tag($0)}
                     }.pickerStyle(.menu)
                     if !model.message.isEmpty {Text(model.message).foregroundStyle(.secondary).textSelection(.enabled)}
                     if !model.connected {
@@ -48,6 +48,7 @@ struct CreatorView: View {
                         case "content": content
                         case "upload": upload
                         case "earn": earnings
+                        case "disputes": CreatorDisputeView()
                         default: overview
                         }
                     }
@@ -300,5 +301,68 @@ struct CreatorPublicationControls: View {
             }.navigationTitle(model.text("schedule")).toolbar {Button(model.text("close")) {scheduling=false}}}.frame(minWidth:320,minHeight:300)
         }
         .onChange(of:model.account) {_,_ in editing=false;scheduling=false;title="";description=""}
+    }
+}
+
+struct CreatorDisputeView:View {
+    @EnvironmentObject private var model:CreatorModel
+    @State private var selected:Request?
+    struct Request:Identifiable {let id:String;let appeal:Bool;let revision:UInt64}
+    var body:some View {
+        VStack(alignment:.leading,spacing:16) {
+            HStack {Text(model.text("disputes")).font(.title2);Spacer();Button(model.text("refresh")) {Task {await model.refresh()}}}
+            Text(model.text("disputeHelp")).foregroundStyle(.secondary)
+            Text(model.text("reportsAppeals")).font(.headline)
+            if (model.snapshot?.reports ?? []).isEmpty {Text(model.text("noReports")).foregroundStyle(.secondary)}
+            ForEach(model.snapshot?.reports ?? []) {report in
+                VStack(alignment:.leading,spacing:8) {
+                    Text(report.Reason);Text(report.Details).foregroundStyle(.secondary)
+                    Text(report.id+" · "+report.State).font(.caption).textSelection(.enabled)
+                    if model.canAppeal(report) {Button(model.text("submitAppeal")) {selected=Request(id:report.id,appeal:true,revision:model.currentRevision)}}
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+            ForEach(model.snapshot?.appeals ?? []) {appeal in
+                VStack(alignment:.leading,spacing:6) {Text(appeal.Reason);Text(appeal.id+" · "+appeal.State).font(.caption);Text(appeal.ReportID).font(.caption).textSelection(.enabled)}
+            }
+            Text(model.text("revenueDisputes")).font(.headline)
+            if (model.snapshot?.revenue ?? []).isEmpty {Text(model.text("noRevenue")).foregroundStyle(.secondary)}
+            ForEach(model.snapshot?.revenue ?? []) {record in
+                VStack(alignment:.leading,spacing:8) {
+                    Text(model.number(record.AmountYNXT)+" YNXT");Text(record.PayReceiptID).font(.caption).textSelection(.enabled)
+                    if model.canDispute(record) {Button(model.text("submitDispute")) {selected=Request(id:record.id,appeal:false,revision:model.currentRevision)}}
+                }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
+            }
+            ForEach(model.snapshot?.disputes ?? []) {dispute in
+                VStack(alignment:.leading,spacing:6) {Text(dispute.Reason);Text(dispute.id+" · "+dispute.State).font(.caption);Text(dispute.RevenueRecordID).font(.caption).textSelection(.enabled)}
+            }
+        }.disabled(model.busy || model.pendingOperation)
+        .sheet(item:$selected) {request in CreatorDisputeForm(request:request)}
+        .onChange(of:model.currentRevision) {_,_ in selected=nil}
+        .onChange(of:model.connected) {_,connected in if !connected {selected=nil}}
+    }
+}
+struct CreatorDisputeForm:View {
+    @EnvironmentObject private var model:CreatorModel
+    @Environment(\.dismiss) private var dismiss
+    let request:CreatorDisputeView.Request
+    @State private var reason=""
+    var body:some View {
+        NavigationStack {
+            Form {
+                Text(request.id).font(.caption).textSelection(.enabled)
+                Text(model.text("disputeHelp")).foregroundStyle(.secondary)
+                TextField(model.text("disputeReason"),text:$reason,axis:.vertical).lineLimit(3...8)
+                Button(model.text(request.appeal ? "submitAppeal" : "submitDispute")) {
+                    let captured=reason
+                    Task {
+                        if request.appeal {await model.submitAppeal(request.id,reason:captured,expectedRevision:request.revision)}
+                        else {await model.submitDispute(request.id,reason:captured,expectedRevision:request.revision)}
+                        if !model.pendingOperation {dismiss()}
+                    }
+                }.disabled(model.busy || model.pendingOperation || request.revision != model.currentRevision || reason.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || reason.count>2000)
+            }.navigationTitle(model.text(request.appeal ? "submitAppeal" : "submitDispute"))
+            .toolbar {Button(model.text("close")) {dismiss()}}
+            .onChange(of:model.connected) {_,connected in if !connected {reason="";dismiss()}}
+        }.frame(minWidth:320,minHeight:320)
     }
 }

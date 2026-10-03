@@ -59,6 +59,8 @@ import Foundation
                             while model.busy && Date()<deadline {try await Task.sleep(nanoseconds:10_000_000)}
                         case "callback":_ = try await engine.dispatch("handleReturn",["url":command["url"]!])
                         case "uiPerform":await model.perform(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:],method:command["method"] as? String ?? "POST")
+                        case "uiSubmitAppeal":await model.submitAppeal(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
+                        case "uiSubmitDispute":await model.submitDispute(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:model.currentRevision)
                         case "uiRetryOperation":await model.retryOperation()
                         case "uiCancelOperation":model.cancelOperation()
                         case "dropNextUpload":dropMutation=true
@@ -98,6 +100,9 @@ import Foundation
                         value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
                         value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state]}] as [String:Any]}
                         value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? ""]}
+                        value["reports"]=(model.snapshot?.reports ?? []).map{["id":$0.id,"videoID":$0.VideoID,"state":$0.State,"canAppeal":model.canAppeal($0)] as [String:Any]}
+                        value["appeals"]=(model.snapshot?.appeals ?? []).map{["id":$0.id,"reportID":$0.ReportID,"appellant":$0.Appellant,"state":$0.State,"reason":$0.Reason]}
+                        value["disputes"]=(model.snapshot?.disputes ?? []).map{["id":$0.id,"recordID":$0.RevenueRecordID,"owner":$0.Owner,"state":$0.State]}
                         if let identity=engine.identity {value["account"]=identity.account;value["binding"]=identity.binding;value["deviceId"]=identity.context.deviceId;value["deviceKey"]=identity.context.deviceKey}
                         reply(id,["ok":true,"result":value])
                     }catch {reply(id,["ok":false,"code":String(describing:error),"businessVerified":engine.identity != nil])}
