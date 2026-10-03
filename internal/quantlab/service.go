@@ -1433,8 +1433,17 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	if side == "sell" {
 		signed = -fill
 	}
-	if abs(s.state.Paper.Position+signed) > limits.MaxPosition {
+	// Validate the complete settlement before changing risk, sequence or audit.
+	// Legacy/reconciled balances must not wrap at either int64 boundary.
+	nextPosition := new(big.Int).Add(big.NewInt(s.state.Paper.Position), big.NewInt(signed))
+	if new(big.Int).Abs(new(big.Int).Set(nextPosition)).Cmp(big.NewInt(limits.MaxPosition)) > 0 {
 		return PaperOrder{}, ErrForbidden
+	}
+	cashDelta := new(big.Int).Mul(big.NewInt(signed), big.NewInt(price))
+	cashDelta.Quo(cashDelta, big.NewInt(1_000_000))
+	nextCash := new(big.Int).Sub(big.NewInt(s.state.Paper.Cash), cashDelta)
+	if !nextCash.IsInt64() {
+		return PaperOrder{}, ErrInvalid
 	}
 	dailyRisk, err := paperDailyRisk(s.state.Paper, price, s.cfg.Now(), limits.MaxDailyLoss)
 	if err != nil {
@@ -1456,8 +1465,8 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	} else if fill > 0 {
 		o.Status = "partially_filled"
 	}
-	s.state.Paper.Position += signed
-	s.state.Paper.Cash -= signed * price / 1_000_000
+	s.state.Paper.Position = nextPosition.Int64()
+	s.state.Paper.Cash = nextCash.Int64()
 	s.state.Paper.Orders = append(s.state.Paper.Orders, o)
 	s.state.Paper.LastSequence = s.state.Sequence
 	s.state.Paper.UpdatedAt = s.cfg.Now()
