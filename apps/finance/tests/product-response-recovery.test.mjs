@@ -6,7 +6,7 @@ import {chromium} from '../../quant-lab/node_modules/playwright/index.mjs';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
-const transport=app.slice(app.indexOf('async function financeProductResponse('),app.indexOf('function scope(path)'));
+const transport=app.slice(app.indexOf('function financeProductDocument('),app.indexOf('function scope(path)'));
 const exportView=app.slice(app.indexOf('const ownedExportOperations='),app.indexOf('let ownedAIGeneration='));
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b});return {promise,resolve,reject}};
 const reply=(body,mime='application/json',status=200,length=null)=>({ok:status>=200&&status<300,status,headers:{get:key=>key==='content-type'?mime:key==='content-length'?length:null},text:async()=>body});
@@ -37,6 +37,32 @@ test('only the exact AI cancellation POST accepts an empty 202, never a cancella
     const f=fixture(),pending=f.scope.response(url,{method},()=>{});f.calls[0].resolve(response);
     await assert.rejects(pending,{code:'FINANCE_RESPONSE_INVALID'});assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);
   }
+});
+test('ambiguous financial JSON never materializes duplicate balances, privacy choices or escaped aliases',async()=>{
+  for(const body of ['{"balanceYnxt":1,"balanceYnxt":999999}', '{"profile":{"privacy":{"alertsEnabled":false,"alertsEnabled":true}}}', '{"account":"owner-a","\\u0061ccount":"owner-b"}', '['.repeat(66)+'0'+']'.repeat(66)]){
+    const f=fixture(),pending=f.scope.response('/api/overview',{},()=>{});f.calls[0].resolve(reply(body));
+    await assert.rejects(pending,{code:'FINANCE_RESPONSE_INVALID'});assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);
+  }
+  const f=fixture(),pending=f.scope.response('/api/overview',{},()=>{});
+  f.calls[0].resolve(reply('{"rows":[{"balanceYnxt":1},{"balanceYnxt":2}],"label":"中文 \\\" quoted","nested":{"alertsEnabled":true}}'));
+  assert.deepEqual(JSON.parse(JSON.stringify((await pending).body)),{rows:[{balanceYnxt:1},{balanceYnxt:2}],label:'中文 " quoted',nested:{alertsEnabled:true}});
+});
+test('real Chrome rejects duplicate fields from native streamed financial responses and recovers without Wallet mutation',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.setContent('<p>Controlled native Finance document QA</p>');
+    await page.addScriptTag({content:`const state={context:1},READ_RETRY_DELAYS=[0],wait=async()=>{},sourceStatus=()=>{},scope=()=> 'finance.portfolio.read';window.YNXFinanceWallet={getRevision:()=>1};${transport}`});
+    const result=await page.evaluate(async()=>{
+      let reads=0;const outcomes=[];window.controlledStandard={status:'connected',account:'isolated-test-owner'};
+      for(const text of ['{"portfolio":{"balanceYnxt":1,"balanceYnxt":999999}}','{"portfolio":{"balanceYnxt":1},"label":"中文"}']){
+        const bytes=new TextEncoder().encode(text);
+        const fetchImpl=async()=>{reads++;return new Response(new ReadableStream({start(controller){controller.enqueue(bytes.slice(0,12));controller.enqueue(bytes.slice(12));controller.close()}}),{headers:{'content-type':'application/json'}})};
+        try{const {body}=await financeProductResponse('/api/overview',{},()=>{},{fetchImpl});outcomes.push(body)}catch(error){outcomes.push(error.code)}
+      }
+      return {outcomes,reads,standard:window.controlledStandard};
+    });
+    assert.deepEqual(result,{outcomes:['FINANCE_RESPONSE_INVALID',{portfolio:{balanceYnxt:1},label:'中文'}],reads:2,standard:{status:'connected',account:'isolated-test-owner'}});assert.deepEqual(errors,[]);assert.equal(page.context().pages().length,1);
+  }finally{await browser.close()}
 });
 test('actual API write timeout covers stalled fetch and stalled body, unlocks without replay, and ignores a late result',async()=>{
   for(const phase of ['fetch','body']){

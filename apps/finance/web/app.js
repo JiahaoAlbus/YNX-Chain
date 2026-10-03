@@ -371,6 +371,33 @@ function sourceStatus(key,className='neutral',attempt=0,total=0){sourceStatusSta
 async function publicHealth(){for(let attempt=0;attempt<READ_RETRY_DELAYS.length;attempt++){if(attempt){sourceStatus('reconnecting','warning',attempt,READ_RETRY_DELAYS.length-1);await wait(READ_RETRY_DELAYS[attempt])}try{const response=await fetch('/health',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10_000)}),body=await response.json();if(!response.ok||body.ok!==true||body.chainId!=='ynx_6423-1'||body.portfolio!=='read-only')throw Object.assign(new Error(`Finance health check failed (${response.status})`),{status:response.status});sourceStatus(state.connected?'privateFinanceReachable':'publicFinanceReachable','live');return body}catch(error){if(error?.status||attempt===READ_RETRY_DELAYS.length-1){sourceStatus('connectionUnavailable','warning');throw error}}}throw new Error('Public connection retry exhausted.')}
 // Ordinary product response transport; proof generation remains in the shared
 // Wallet adapter. Bound response parsing too, without ever replaying a write.
+// Product documents must have one unambiguous value per decoded object key.
+// This does not parse or replace Wallet/SSO authority messages.
+function financeProductDocument(text){
+  let cursor=0;
+  const invalid=()=>{throw new Error('Ambiguous product document')};
+  const whitespace=()=>{while(/[\t\n\r ]/.test(text[cursor]??'\0'))cursor++};
+  const stringToken=()=>{
+    const start=cursor++;
+    while(cursor<text.length){if(text[cursor]==='\\'){cursor+=2;continue}if(text[cursor++]==='"')return text.slice(start,cursor)}
+    invalid();
+  };
+  const scan=depth=>{
+    if(depth>64)invalid();whitespace();
+    if(text[cursor]==='"'){stringToken();return}
+    if(text[cursor]==='{'||text[cursor]==='['){
+      const object=text[cursor++]==='{',close=object?'}':']',keys=new Set();whitespace();
+      if(text[cursor]===close){cursor++;return}
+      while(cursor<text.length){
+        if(object){if(text[cursor]!=='"')invalid();const key=JSON.parse(stringToken());if(keys.has(key))invalid();keys.add(key);whitespace();if(text[cursor++]!==':')invalid()}
+        scan(depth+1);whitespace();if(text[cursor]===close){cursor++;return}if(text[cursor++]!==',')invalid();whitespace();
+      }
+      invalid();
+    }
+    const start=cursor;while(cursor<text.length&&!/[\t\n\r ,}\]]/.test(text[cursor]))cursor++;if(cursor===start)invalid();
+  };
+  scan(0);whitespace();if(cursor!==text.length)invalid();return JSON.parse(text);
+}
 async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetch,setTimer=setTimeout,clearTimer=clearTimeout}={}){
   const controller=new AbortController();let rejectDeadline;
   const deadline=new Promise((_,reject)=>{rejectDeadline=reject});
@@ -409,7 +436,7 @@ async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetc
     assertCurrent();
     if(emptyAICancel){if(text!=='')throw invalid();return {response,body:null}}
     if(new TextEncoder().encode(text).byteLength>8*1024*1024)throw invalid();
-    let parsed;if(mime==='application/json'){try{parsed=JSON.parse(text)}catch{throw invalid()}}
+    let parsed;if(mime==='application/json'){try{parsed=financeProductDocument(text)}catch{throw invalid()}}
     return {response,body:exportDocument?new Blob([text],{type:mime}):parsed};
   })(),deadline])}finally{clearTimer(timer);controller.abort()}
 }
