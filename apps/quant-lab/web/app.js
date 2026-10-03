@@ -653,6 +653,16 @@ for (const [language,[reuseSavedLabel,reuseSavedAction,reuseSavedDone]] of Objec
 function verifiedResearchResult(result) {
   return typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
 }
+function researchRequestMatches(result, submitted) {
+  // Check the immutable submitted parameters, not the user's next edited draft.
+  // Source/data hashes are computed by the existing market-backed engine; this
+  // check is a response consistency fence, not proof of engine/data authenticity.
+  return verifiedResearchResult(result) && result.status === "completed_oos" &&
+    result.strategy.Family === submitted.strategy.family && result.strategy.Seed === submitted.strategy.seed &&
+    result.strategy.Params && Object.keys(result.strategy.Params).sort().join(",") === "fast,slow" &&
+    ["fast","slow"].every(key => result.strategy.Params[key] === submitted.strategy.params[key]) &&
+    Object.entries(submitted.assumptions).every(([key,value]) => result.assumptions?.[key[0].toUpperCase()+key.slice(1)] === value);
+}
 function renderResult(result, savedWorkspace) {
   if (!verifiedResearchResult(result)) throw Error(t("researchInvalid"));
   const metrics = result.metrics;
@@ -766,6 +776,7 @@ $("#backtest").onsubmit = async (e) => {
       },
     };
     const result = await api(savedWorkspace ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
+    if (!researchRequestMatches(result, body)) throw Error(t("researchInvalid"));
     renderResult(result, savedWorkspace);
     const resultMessage = savedWorkspace ? "researchSaved" : "researchTemporary";
     toast(t(resultMessage), resultMessage);

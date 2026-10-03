@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtemp, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, rm, readdir, readFile } from 'node:fs/promises';
+import vm from 'node:vm';
 import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
@@ -101,6 +102,21 @@ test('actual local Quant HTTP: two tenants, two processes, durable Paper replay 
     api(server1, '/v1/backtests', tenantA, syntheticBacktest('a', 11), 201),
     api(server2, '/v1/backtests', tenantB, syntheticBacktest('b', 22), 201),
   ]);
+  // Exercise the shipped UI consistency fence against actual Go JSON, not a
+  // reimplemented JS engine or a hand-built successful response.
+  const source=await readFile(path.join(repository,'apps/quant-lab/web/app.js'),'utf8');
+  const functions=['verifiedResearchResult','researchRequestMatches'].map(name=>{
+    const match=source.match(new RegExp(`^function ${name}\\([^\\n]*\\) \\{[\\s\\S]*?^\\}`, 'm'));
+    assert.ok(match,`missing shipped ${name}`);return match[0];
+  }).join('\n');
+  const fence=vm.createContext();vm.runInContext(functions,fence);
+  for(const [owner,seed,result] of [['a',11,experimentA],['b',22,experimentB]]){
+    const request=syntheticBacktest(owner,seed);
+    const submitted={strategy:{family:request.strategy.Family,seed:request.strategy.Seed,params:request.strategy.Params},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toLowerCase()+key.slice(1),value]))};
+    fence.result=result;fence.submitted=submitted;assert.equal(vm.runInContext('researchRequestMatches(result,submitted)',fence),true);
+    fence.result={...result,assumptions:{...result.assumptions,FeeBPS:result.assumptions.FeeBPS+1}};
+    assert.equal(vm.runInContext('researchRequestMatches(result,submitted)',fence),false);
+  }
   const hashA = experimentA.strategy.StrategyHash, hashB = experimentB.strategy.StrategyHash;
   assert.notEqual(hashA, hashB);
   const snapshot = (server, tenant) => api(server, '/v1/snapshot', tenant);

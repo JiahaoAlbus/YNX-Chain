@@ -10,10 +10,17 @@ const connected = account => ({status: 'connected', providerKind: 'metamask', ch
 const receipt = (account, balance = '1000000000000000000') => ({...connected(account), asset: 'YNXT', decimals: 18, balanceBaseUnits: balance, blockNumber: '42', source: 'selected-wallet-provider', asOf: '2026-09-12T00:00:00.000Z'});
 const deferred = () => {let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); return {promise, resolve, reject};};
 const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
-const researchFixture = (id, name = id) => ({id, createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name, StrategyHash:'e'.repeat(64)}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
+const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
+
+test('a research response with different or missing declared costs/windows is not the submitted completed run',async()=>{
+  let response=researchFixture('good-run');const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:response});await settle();await app.submit('backtest');
+  const good=response;
+  const cases=[{status:'running'},{assumptions:undefined},...Object.keys(good.assumptions).map(key=>({assumptions:{...good.assumptions,[key]:good.assumptions[key]+1}})),{strategy:{...good.strategy,Params:{fast:4,slow:8}}},{strategy:{...good.strategy,Params:{fast:3,slow:8,hidden:1}}},{strategy:{...good.strategy,Seed:8}},{strategy:{...good.strategy,Family:'other-engine'}}];
+  for(const change of cases){response={...good,...change,id:'unbound-run',metrics:{...good.metrics,ReturnBPS:999}};await app.submit('backtest');assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.match(app.ids.get('toast').textContent,/unconfirmed/);assert.equal(app.ids.get('research-submit').disabled,false);}
+});
 
 test('research rejects empty, unsafe, fractional and reordered parameters before HTTP without silently using zero or engine defaults',async()=>{
   for(const [id,value] of [['strategy',''],['strategy','   '],['strategy','x'.repeat(81)],['seed',''],['seed','1.5'],['seed','9007199254740992'],['fee',''],['fee','-1'],['fee','1.5'],['fee','9007199254740992'],['slippage',''],['slippage','-1'],['fast',''],['fast','1'],['fast','8'],['slow',''],['slow','3'],['slow','3.5']]){
@@ -25,7 +32,8 @@ test('research rejects empty, unsafe, fractional and reordered parameters before
 });
 
 test('research input errors follow all 12 languages and explicit zero costs and zero seed remain exact',async()=>{
-  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:researchFixture('zero-cost')});await settle();
+  const zero=researchFixture('zero-cost');zero.strategy.Seed=0;Object.assign(zero.assumptions,{FeeBPS:0,SlippageBPS:0,Seed:0});
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:zero});await settle();
   for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
     app.ids.get('locale').onchange({target:{value:language}});app.ids.get('fee').value='';await app.submit('backtest');
     assert.equal(app.ids.get('toast').textContent,vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchInputInvalid`,app.context));
@@ -34,6 +42,7 @@ test('research input errors follow all 12 languages and explicit zero costs and 
   for(const id of ['fee','slippage','seed'])app.ids.get(id).value='0';await app.submit('backtest');
   const request=JSON.parse(app.calls.find(call=>call.options.method==='POST').options.body);
   assert.equal(request.assumptions.feeBPS,0);assert.equal(request.assumptions.slippageBPS,0);assert.equal(request.strategy.seed,0);assert.equal(request.assumptions.seed,0);
+  assert.equal(app.ids.get('result-return').textContent,'120 bps');
 });
 
 test('research schedule never treats blank costs as zero, including changes during explicit confirmation',async()=>{
@@ -244,7 +253,7 @@ test('risk receipt mismatch is unconfirmed and pending operations coalesce witho
 });
 
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
-  const experiment = {id:'public-test-result',createdAt:'2026-09-12T00:00:00Z',strategy:{Name:'Explicit synthetic UI fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2};
+  const experiment = researchFixture('public-test-result','Explicit synthetic UI fixture');
   const app = harness({apiResponse: async url => {
     if (url.endsWith('/snapshot')) return {access:{statefulPreview:false},strategies:{},experiments:{},paper:{},audit:[]};
     assert.equal(url,'/api/v1/public/research/backtests/from-market');
@@ -323,9 +332,9 @@ test('unverified sensitivity values cannot become HTML or a fabricated numeric s
   }
 });
 test('run details stay bound to the returned experiment through input edits and locale changes', async () => {
-  const result={...researchFixture('reported-run'),strategy:{Name:'Reported run',Source:'verified-index/<img src=x>',DataHash:'a'.repeat(64),StrategyHash:'b'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:2,ParticipationBPS:2500,TrainEnd:30,WalkForwardWindows:4,Seed:0},metricDefinitions:{sharpeMilli:'returned Sharpe definition <script>alert(1)</script>',volatilityBPS:'sample deviation; not annualized'}};
+  const result={...researchFixture('reported-run'),strategy:{...researchFixture('base').strategy,Name:'Reported run',Seed:0,Source:'verified-index/<img src=x>',DataHash:'a'.repeat(64),StrategyHash:'b'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:0},metricDefinitions:{sharpeMilli:'returned Sharpe definition <script>alert(1)</script>',volatilityBPS:'sample deviation; not annualized'}};
   const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:result});await settle();
-  app.ids.get('fee').value='10';app.ids.get('slippage').value='5';await app.submit('backtest');
+  app.ids.get('fee').value='34';app.ids.get('slippage').value='17';app.ids.get('seed').value='0';await app.submit('backtest');
   assert.equal(app.ids.get('research-fee').textContent,'34');
   assert.equal(app.ids.get('research-slippage').textContent,'17');
   assert.equal(app.ids.get('research-seed').textContent,'0');
@@ -347,6 +356,7 @@ test('run details stay bound to the returned experiment through input edits and 
   }
   assert.equal(app.proofs(),0);assert.equal(app.calls.filter(call=>!call.url.endsWith('/snapshot')).length,1);
   const absent=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:{...researchFixture('absent-run-details'),strategy:{Name:'Absent run metadata'}}});await settle();await absent.submit('backtest');
+  assert.equal(absent.ids.get('latest-result').hidden,true);assert.match(absent.ids.get('toast').textContent,/unconfirmed/);
   for(const id of ['source','data-hash','strategy-hash','fee','slippage','latency','participation','training','windows','seed'])assert.equal(absent.ids.get('research-'+id).textContent,'—');
 });
 

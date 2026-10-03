@@ -2,6 +2,25 @@ import test from 'node:test';import assert from'node:assert/strict';import{spawn
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
+test('actual Chrome rejects a declared mismatched research receipt without replacing the prior result or auto-retrying',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let posts=0;
+    const respond=async route=>{
+      posts++;const submitted=route.request().postDataJSON();
+      const assumptions=Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]));
+      if(posts>1)assumptions.FeeBPS++;
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,status:'completed_oos',strategy:{Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
+    };
+    await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    await page.locator('#result-return').getByText('120 bps',{exact:true}).waitFor();assert.equal(posts,1);
+    await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'Research result is unconfirmed'}).waitFor();
+    assert.equal(posts,2);assert.equal(await page.locator('#result-return').textContent(),'120 bps');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');
+    await page.waitForTimeout(150);assert.equal(posts,2);assert.equal(context.pages().length,1);
+    await page.screenshot({path:path.join(evidence,'research-declared-receipt-mismatch.png'),fullPage:true});
+  }finally{await context.close()}
+});
 test('actual Chrome rejects ambiguous research costs/windows without HTTP and preserves explicit zero input on source failure',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
@@ -241,10 +260,12 @@ test('early public research retains temporary provenance in the real page throug
     });
     await context.route('**/api/v1/public/research/backtests/from-market',async route=>{
       assert.equal(route.request().method(),'POST');researchStarted();await heldResearch;
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:2,ParticipationBPS:2500,TrainEnd:30,WalkForwardWindows:4,Seed:0},metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
+      const request=route.request().postDataJSON();
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
+    await page.locator('#fee').fill('34');await page.locator('#slippage').fill('17');await page.locator('#seed').fill('0');
     await page.getByRole('button',{name:'Run out-of-sample backtest',exact:true}).click();await startedResearch;
     releaseSnapshot();await page.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);
     releaseResearch();await page.locator('#research-result-status').getByText('Temporary result on this page only — not saved or audited. Reloading the page discards it.',{exact:true}).waitFor();

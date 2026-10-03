@@ -1,0 +1,27 @@
+{
+  "kind":"QUANT_RESEARCH_PARAMETER_RESPONSE_FENCE_NOT_RELEASE",
+  "predecessorCommit":"990883d39408dad324222b52a536baea69ec839c",
+  "predecessorTree":"3ec3e10864c92ed220d774ce05e2552e9d667db7",
+  "scope":"Existing ordinary research submission/result view and its direct tests only. No engine, permissions, Auth, Wallet, SDK, real capital or deployment edits.",
+  "defect":"A well-formed metric response could be accepted even when its status was running or its declared fee/slippage/window/seed assumptions did not describe the submitted draft. Initial regression reproduced unbound 999bps replacing prior confirmed120bps.",
+  "fix":"Before updating latestResearchResult or saving a public view result, require completed_oos plus exact submitted family, seed, fast/slow-only Params and all7 submitted assumption values. Compare immutable submitted body, not subsequently edited form inputs. On mismatch retain the previous confirmed result, report existing localized unconfirmed error, release busy controls, do not replay.",
+  "proofBoundary":"Consistency fence only: does not authenticate data, verify engine correctness, verify strategy IDs/hashes/signatures or bind private account authority. Historical records continue to use existing metric validation. No new evidence promotion.",
+  "files":[
+    {"path":"apps/quant-lab/web/app.js","blob":"fd384eb1ce36c80f5a9d4524a345b847eafc4ba5","bytes":116633,"sha256":"d8ab030b2c0ba8f342f732dd5fed6333fa9a49f5f31e8241336e182204ecec0f"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"29972039d1a4150a8f8ea2fce651d380a591ef03","bytes":58334,"sha256":"7b7ba926deec3909c2877c1f272bb133334f1b62f66340a1fef46db032ea2106"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"1ea060e46d9919f09b8484c9501d1a351e28aec3","bytes":43700,"sha256":"47f5c688c6aad3bbdd7aa94b97b999b0764091bbc370c395d0e45d5548fbcbdc"},
+    {"path":"apps/quant-lab/tests/tenant-persistence.test.mjs","blob":"2e86ebbc85cd3c3731f7d076f477ff992f0989b3","bytes":12429,"sha256":"d9e6836bd5a647a9be4775e6a9d00019369df1597acd24786164872b7fbc0846"}
+  ],
+  "tests":{
+    "initialNewRegression":"FAIL: running/unbound response overwrote confirmed120bps with999bps.",
+    "intermediate":"41PASS/2FAIL after product fence because old synthetic positive fixtures omitted request metadata or deliberately returned34/17 costs for10/5 inputs. Positive fixtures now explicitly model actual matching submitted assumptions; missing metadata is a negative case, not auto-repaired by harness.",
+    "combined":{"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":63,"fail":0,"skip":0,"durationMs":49007.394833},
+    "finalActualGoReceiptCompatibility":{"command":"node --test apps/quant-lab/tests/tenant-persistence.test.mjs","pass":1,"fail":0,"skip":0,"durationMs":863.51475,"coverage":"After combined run, extended existing actual HTTP fixture directly evaluates shipped JS fence against both Go-generated backtest receipts; exact parameters accepted, fee+1 rejected; existing2tenant/2process/restart/idempotency still PASS."},
+    "goRace":{"command":"go test -race ./internal/quantlab -count=1","result":"PASS","seconds":2.596},
+    "syntaxDiff":"app.js/business-flow/browser/tenant-persistence Node syntax and git diff--check PASS"
+  },
+  "screenshot":{"path":"research-declared-receipt-mismatch.png","blob":"bd841e49bfc4203e9c97f32410c8320c6dcf7252","bytes":112238,"sha256":"af78613d6fc567b417d2ae22ff7a42a2da10606360e6388df211165a2c491830","boundary":"Actual isolated Chrome390px, explicitly synthetic response; fee mismatch yields unconfirmed and preserves prior120bps; two requests only, one page."},
+  "localHTTPBoundary":"Synthetic local data/browser-local tenant capability IDs. Real Go response decoding exercised, not public market authenticity, Wallet approval, private identity or PostgreSQL evidence.",
+  "integration":"A merges only reviewed ordinary researchRequestMatches + its submit guard, refreezes final app.js and compatible release graph, returns exact official URL/version/assets/rollback for owner public user-flow verification. Do not replace authority sections inside app.js.",
+  "truth":{"localConsistency":true,"localRegression":true,"publicCurrentSource":false,"installed":false,"walletApproval":false,"productSession":false,"signatures":false,"transactions":false,"computerControl":false,"complete":false}
+}
