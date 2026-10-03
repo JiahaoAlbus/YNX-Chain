@@ -1581,7 +1581,15 @@ func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (Pap
 		return PaperState{}, lockErr
 	}
 	defer release()
-	delta := abs(authoritativeCash-s.state.Paper.Cash) + abs(authoritativePosition-s.state.Paper.Position)
+	// Subtract/abs/sum must be checked before any risk or audit mutation.
+	// int64 subtraction or abs(MinInt64) can otherwise wrap into a false delta.
+	cashDifference := new(big.Int).Sub(big.NewInt(authoritativeCash), big.NewInt(s.state.Paper.Cash))
+	positionDifference := new(big.Int).Sub(big.NewInt(authoritativePosition), big.NewInt(s.state.Paper.Position))
+	total := new(big.Int).Add(cashDifference.Abs(cashDifference), positionDifference.Abs(positionDifference))
+	if !total.IsInt64() {
+		return PaperState{}, ErrInvalid
+	}
+	delta := total.Int64()
 	s.state.Paper.ReconciliationDelta = delta
 	if delta != 0 {
 		s.state.Paper.KillSwitch = true

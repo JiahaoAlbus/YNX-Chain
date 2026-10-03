@@ -412,11 +412,15 @@ func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, v, e, 201)
 }
 func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {
-	var q struct{ Cash, Position int64 }
+	var q struct{ Cash, Position *int64 }
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.Reconcile(q.Cash, q.Position)
+	if q.Cash == nil || q.Position == nil {
+		writeProblem(w, r, http.StatusBadRequest, "invalid_json")
+		return
+	}
+	v, e := s.service.Reconcile(*q.Cash, *q.Position)
 	respond(w, r, v, e, 200)
 }
 func (s *Server) kill(w http.ResponseWriter, r *http.Request) {
