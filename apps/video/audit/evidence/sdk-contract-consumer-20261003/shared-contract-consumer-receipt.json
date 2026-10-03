@@ -1,0 +1,48 @@
+{
+  "sourceFreezeReceiptSHA256": "23db792c1270057f159de5a87b8fdbdc9282155c91d9bf9cd6450650561e5c78",
+  "sharedSourceCommit": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedSourceTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "verifiedSourcePins": [
+    {
+      "path": "internal/productsessionv2/registered_clients.go",
+      "bytes": 4601,
+      "sha256": "0b5181a0be8087358a270f70cef97057f017e9efd42d4aa275eddb8da39d7ead"
+    },
+    {
+      "path": "internal/productsessionv2/registered_clients_test.go",
+      "bytes": 4534,
+      "sha256": "d97a210731f2a42396f403af3ddf6dc173d2255acc6bd6d9b7946474e0cf1282"
+    },
+    {
+      "path": "internal/productsessionv2/REGISTERED_CLIENT_CONSUMER_CONTRACT.md",
+      "bytes": 3755,
+      "sha256": "75b0d1ae88f9d89dde3716379f821baf845d3ec9cace38b77a66fece4dc1f3a7"
+    }
+  ],
+  "scope": "A frozen three-file composition contract only; no SDK/key/Host source modified or installed",
+  "sharedIndependentSourceAdmission": "PENDING per A receipt",
+  "findings": [
+    "Mature original nineteen-field proof has no platform; infer only unique registered complete application/origin/callback/bundle/package tuple before trusted unchanged-header SDK verification",
+    "Introspection proof expiry is not the original full active session expiry; returned owned grant must carry SessionExpiresAt from original full verified SDK Session; action expiry may be later than introspection proof yet must not exceed original SessionExpiresAt",
+    "Full verified SDK Session must remain captured in Revalidate; reduced owned grant does not replace it",
+    "Next concrete consumer must use explicit RegisteredClientSet.Authorize once, raw VerifyHTTPActionStream over original RequestURI/EOF bytes, same original full Session Revalidate plus actual current actor/object/member/role checks",
+    "Nonce must be original-store atomic pair(SessionBinding,Nonce), no side-store; current nonce-key migration/pair implementation still needs alignment before full concrete SDK integration"
+  ],
+  "goRacePackageResults": [
+    {
+      "Time": "2026-10-03T15:02:19.104462+08:00",
+      "Action": "pass",
+      "Package": "github.com/JiahaoAlbus/YNX-Chain/internal/music",
+      "Elapsed": 7.735
+    },
+    {
+      "Time": "2026-10-03T15:02:23.755949+08:00",
+      "Action": "pass",
+      "Package": "github.com/JiahaoAlbus/YNX-Chain/internal/video",
+      "Elapsed": 12.387
+    }
+  ],
+  "passedTestEvents": 382,
+  "failEvents": 0,
+  "cryptoOrActualWalletAcceptance": false
+}
