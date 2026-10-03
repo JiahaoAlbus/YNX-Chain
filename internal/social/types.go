@@ -41,6 +41,7 @@ type Config struct {
 	BrowserSSO                       *productsessionv2.BrowserSSO
 	ProductSessions                  map[string]ProductSessionAuthorizer
 	ProductSessionAuthority          ProductSessionAuthorizer
+	ProductSessionRevalidator        MatrixAudienceSessionRevalidator
 	MatrixDirectory                  *MatrixDirectory
 	MatrixAudienceAuthority          MatrixAudienceAuthority
 	MatrixAudienceActionVerifier     MatrixAudienceActionVerifier
@@ -130,14 +131,15 @@ type PendingWalletChallenge struct {
 
 type Session struct {
 	// Request-local only: never serialized, persisted or supplied by a caller.
-	requestContext context.Context
-	ID             string     `json:"id"`
-	Account        string     `json:"account"`
-	DeviceID       string     `json:"deviceId"`
-	Scopes         []string   `json:"scopes"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	ExpiresAt      time.Time  `json:"expiresAt"`
-	RevokedAt      *time.Time `json:"revokedAt,omitempty"`
+	requestContext    context.Context
+	revalidateProduct func(string) error
+	ID                string     `json:"id"`
+	Account           string     `json:"account"`
+	DeviceID          string     `json:"deviceId"`
+	Scopes            []string   `json:"scopes"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	ExpiresAt         time.Time  `json:"expiresAt"`
+	RevokedAt         *time.Time `json:"revokedAt,omitempty"`
 }
 
 type SessionRotation struct {

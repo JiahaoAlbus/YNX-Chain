@@ -33,7 +33,9 @@ func (s *Service) prepareProfileContract(actor Session, req square.SetProfileReq
 			return ErrInvalid
 		}
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if s.stateWriteError != nil {
 		return s.stateWriteError
@@ -64,7 +66,9 @@ func (s *Service) prepareProfileContract(actor Session, req square.SetProfileReq
 // network reader. Holding the Social mutex here serializes local revoke/device
 // changes with its dispatch; no confidential Revalidate is called under it.
 func (s *Service) dispatchProfileContract(actor Session, req square.SetProfileRequest, avatar string) (square.Result[square.Profile], error) {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
+		return square.Result[square.Profile]{}, err
+	}
 	defer s.mu.Unlock()
 	if s.stateWriteError != nil {
 		return square.Result[square.Profile]{}, s.stateWriteError
@@ -92,7 +96,9 @@ func (s *Service) dispatchProfileContract(actor Session, req square.SetProfileRe
 }
 
 func (s *Service) completeProfileContract(actor Session, req square.SetProfileRequest, avatar string) error {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if s.stateWriteError != nil {
 		return s.stateWriteError
@@ -125,7 +131,9 @@ func (s *Service) setProfileContractAvatar(actor Session, originalKey, avatar st
 	if err != nil {
 		return err
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if s.stateWriteError != nil {
 		return s.stateWriteError

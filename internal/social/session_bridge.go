@@ -318,6 +318,7 @@ func (s *Server) authorizeProductActor(r *http.Request, scope string) (Session, 
 		return Session{}, ErrUnauthorized
 	}
 	actor.requestContext = r.Context()
+	actor.revalidateProduct = s.productActorRevalidation(r, session, binding)
 	return actor, nil
 }
 func bindingMatchesSession(binding productSessionBinding, session productsessionv2.Session) bool {

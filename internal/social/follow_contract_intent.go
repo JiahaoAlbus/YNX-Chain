@@ -37,7 +37,9 @@ func (s *Service) prepareFollowContract(actor Session, req square.SetFollowReque
 	if err != nil || target != req.Account || !identifierPattern.MatchString(req.IdempotencyKey) {
 		return ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if err := s.followContractGuardLocked(actor, req); err != nil {
 		return err
@@ -64,7 +66,9 @@ func (s *Service) prepareFollowContract(actor Session, req square.SetFollowReque
 // Only the local in-process Square domain effect runs under this mutex.
 // Never invoke a network authority/revalidation reader while holding it.
 func (s *Service) dispatchFollowContract(actor Session, req square.SetFollowRequest) (square.Result[square.Follow], error) {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return square.Result[square.Follow]{}, err
+	}
 	defer s.mu.Unlock()
 	if err := s.followContractGuardLocked(actor, req); err != nil {
 		return square.Result[square.Follow]{}, err
@@ -88,7 +92,9 @@ func (s *Service) dispatchFollowContract(actor Session, req square.SetFollowRequ
 }
 
 func (s *Service) completeFollowContract(actor Session, req square.SetFollowRequest) error {
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if err := s.followContractGuardLocked(actor, req); err != nil {
 		return err

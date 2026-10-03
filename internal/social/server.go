@@ -860,6 +860,11 @@ func decodeRequest(w http.ResponseWriter, r *http.Request, out any, limit int) b
 	return true
 }
 func writeServiceError(w http.ResponseWriter, err error) {
+	var authority *productsessionv2.Error
+	if errors.As(err, &authority) {
+		writeError(w, authority.Status, authority.Code)
+		return
+	}
 	status := 500
 	switch {
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
