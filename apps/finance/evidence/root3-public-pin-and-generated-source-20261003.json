@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "ynx-finance-root3-source-preparation/v1",
+  "baseCommit": "17d2d6dd0f9e30c7639bb5ccdf919c4896280e6c",
+  "rootVersion": 3,
+  "rootCanonicalSHA256": "679a231b7120ceecd73673823ce2d05b6cfd93a6875ffae7de03ab7350234e7b",
+  "rootRawSHA256": "1da2527be6fdd67c38845ecf2b8e5bb0d25c9cc4c00d77c8ed8a5170b36dbdf3",
+  "keyNotBefore": "2026-10-03T02:02:39.492Z",
+  "keyNotAfter": "2026-10-04T02:02:39.492Z",
+  "originalKeysConsumersAndTTLUnchanged": true,
+  "manifestInputCount": 903,
+  "walletInputCount": 796,
+  "centralInputCount": 781,
+  "strictWalletRebuildCount": 2,
+  "strictEVMBundleCount": 3,
+  "productionAuthoritySigned": false,
+  "publicActivated": false,
+  "publicUserVerified": false,
+  "root3IndependentPinAdmissionSHA256": "a9fee3c14779e498397621453e05cfb4b3f3743bae77bc127a8933e56b41b4b9",
+  "originalExpired54IsHistoricalAuthenticationOnly": true
+}

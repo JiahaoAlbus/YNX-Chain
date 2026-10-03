@@ -25877,9 +25877,12 @@ ${item.productId}`));
   // src/central-browser-session-registry.js
   var CENTRAL_BROWSER_ISSUER = "https://wallet-auth.ynxweb4.com";
   var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai", "developer"]);
-  function createCentralBrowserSessionRegistry(productRegistry) {
+  var ECOSYSTEM_ADOPTED = Object.freeze([...ADOPTED, "calendar", "cloud", "docs", "mail", "shop", "video", "creator-studio"]);
+  function createCentralBrowserSessionRegistry(productRegistry, options = {}) {
+    exactFields(options, Object.hasOwn(options, "ecosystem") ? ["ecosystem"] : [], "Central adoption configuration");
+    if (Object.hasOwn(options, "ecosystem") && typeof options.ecosystem !== "boolean") fail2("SSO_REGISTRY_INVALID");
     const registry = parseProductSessionRegistry(productRegistry);
-    return Object.freeze(ADOPTED.map((productId) => {
+    return Object.freeze((options.ecosystem === true ? ECOSYSTEM_ADOPTED : ADOPTED).map((productId) => {
       const product = registry.products.find((value) => value.productId === productId);
       if (!product) fail2("SSO_REGISTRY_INVALID");
       return Object.freeze({
@@ -25901,7 +25904,7 @@ ${item.productId}`));
   function fail2(code2) {
     throw new WalletAuthError(code2, "Central browser client is not exactly registered");
   }
-  var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"]]);
+  var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"], [...ECOSYSTEM_ADOPTED]]);
   function centralBrowserProfiles(registry) {
     return PROFILE_PRODUCTS.filter((ids) => ids.every((id) => registry.some((c4) => c4.productId === id))).map((ids) => ({ id: ids.length, clients: ids.map((id) => {
       const c4 = registry.find((c5) => c5.productId === id);
@@ -26530,8 +26533,17 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.ai",
         webOrigin: "https://assistant.ynxweb4.com",
         nativeCallback: "ynxai://wallet-auth/callback",
-        legacyCallbacks: ["ynxai://wallet-auth/callback"],
-        scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"],
+        legacyCallbacks: [
+          "ynxai://wallet-auth/callback"
+        ],
+        scopes: [
+          "ai:actions",
+          "ai:attachments",
+          "ai:conversations",
+          "ai:data-control",
+          "ai:generate",
+          "ai:permissions"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26542,8 +26554,14 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.calendar",
         webOrigin: "https://calendar.ynxweb4.com",
         nativeCallback: "ynxcalendar://wallet-auth/callback",
-        legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
-        scopes: ["calendar:account", "calendar:recover"],
+        legacyCallbacks: [
+          "ynxcalendar",
+          "ynxcalendar://wallet-auth/callback"
+        ],
+        scopes: [
+          "calendar:account",
+          "calendar:recover"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26554,8 +26572,18 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.card",
         webOrigin: "https://card.ynxweb4.com",
         nativeCallback: "ynxcard://wallet-auth/callback",
-        legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"],
-        scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"],
+        legacyCallbacks: [
+          "ynxcard",
+          "ynxcard://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "card:application:write",
+          "card:controls:write",
+          "card:dispute:write",
+          "card:simulation:write",
+          "card:topup:write"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26565,10 +26593,15 @@ ${item.productId}`));
         displayName: "YNX Cloud",
         applicationId: "com.ynxweb4.cloud",
         webOrigin: "https://web4.ynxweb4.com",
-        platforms: ["web"],
+        platforms: [
+          "web"
+        ],
         nativeCallback: null,
         legacyCallbacks: [],
-        scopes: ["files.read", "files.write"],
+        scopes: [
+          "files.read",
+          "files.write"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       },
@@ -26579,8 +26612,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.creator-studio",
         webOrigin: "https://creator.ynxweb4.com",
         nativeCallback: "ynxcreator://wallet-auth/callback",
-        legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"],
-        scopes: ["creator:account", "creator:publish", "creator:revenue"],
+        legacyCallbacks: [
+          "ynxcreator",
+          "ynxcreator://wallet-auth/callback"
+        ],
+        scopes: [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26591,8 +26631,14 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.developer.testnetpreview",
         webOrigin: "https://developer.ynxweb4.com",
         nativeCallback: "ynxdeveloper://wallet-auth/callback",
-        legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
-        scopes: ["account:read", "developer:deploy"],
+        legacyCallbacks: [
+          "ynxdeveloper",
+          "ynxdeveloper://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "developer:deploy"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26603,8 +26649,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.dex",
         webOrigin: "https://dex.ynxweb4.com",
         nativeCallback: "ynxdex://wallet-auth/callback",
-        legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"],
-        scopes: ["dex:account", "dex:orders", "dex:trade"],
+        legacyCallbacks: [
+          "ynxdex",
+          "ynxdex://wallet-auth/callback"
+        ],
+        scopes: [
+          "dex:account",
+          "dex:orders",
+          "dex:trade"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26615,8 +26668,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.docs",
         webOrigin: "https://docs.ynxweb4.com",
         nativeCallback: "ynxdocs://wallet-auth/callback",
-        legacyCallbacks: ["ynxdocs://wallet-auth/callback"],
-        scopes: ["docs.read", "docs.write", "files.read", "files.write"],
+        legacyCallbacks: [
+          "ynxdocs://wallet-auth/callback"
+        ],
+        scopes: [
+          "docs.read",
+          "docs.write",
+          "files.read",
+          "files.write"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       },
@@ -26627,8 +26687,17 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.exchange",
         webOrigin: "https://exchange.ynxweb4.com",
         nativeCallback: "ynxexchange://wallet-auth/callback",
-        legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"],
-        scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+        legacyCallbacks: [
+          "ynxexchange",
+          "ynxexchange://wallet-auth/callback"
+        ],
+        scopes: [
+          "exchange:ai",
+          "exchange:deposit",
+          "exchange:read",
+          "exchange:trade",
+          "exchange:withdrawal-review"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26639,9 +26708,34 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.finance",
         webOrigin: "https://finance.ynxweb4.com",
         nativeCallback: "ynxfinance://wallet-auth/callback",
-        legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"],
-        scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+        legacyCallbacks: [
+          "ynxfinance",
+          "ynxfinance://wallet-auth/callback"
+        ],
+        scopes: [
+          "finance.ai.draft",
+          "finance.pay.read",
+          "finance.portfolio.read",
+          "finance.profile.write"
+        ],
         evmCompatible: true,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "mail",
+        clientId: "ynx-mail-v1",
+        displayName: "YNX Mail",
+        applicationId: "com.ynxweb4.mail",
+        webOrigin: "https://mail.ynxweb4.com",
+        nativeCallback: "ynxmail://wallet-auth/callback",
+        legacyCallbacks: [
+          "ynxmail://wallet-auth/callback"
+        ],
+        scopes: [
+          "mail:account",
+          "mail:recover"
+        ],
+        evmCompatible: false,
         sessionDurationSeconds: 240
       },
       {
@@ -26651,8 +26745,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.pay",
         webOrigin: "https://pay.ynxweb4.com",
         nativeCallback: "ynxpay://wallet-auth/callback",
-        legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"],
-        scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+        legacyCallbacks: [
+          "ynxpay",
+          "ynxpay://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "pay:case:create",
+          "pay:settlement:submit"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26663,8 +26764,18 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.quant",
         webOrigin: "https://quant.ynxweb4.com",
         nativeCallback: "ynxquant://wallet-auth/callback",
-        legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
-        scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:paper:workspace", "quant:records:read"],
+        legacyCallbacks: [
+          "ynxquant",
+          "ynxquant://wallet-auth/callback"
+        ],
+        scopes: [
+          "quant:account",
+          "quant:mandate:create",
+          "quant:mandate:execute",
+          "quant:mandate:revoke",
+          "quant:paper:workspace",
+          "quant:records:read"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 180
       },
@@ -26675,8 +26786,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.shop",
         webOrigin: "https://shop.ynxweb4.com",
         nativeCallback: "ynxshop://wallet-auth/callback",
-        legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"],
-        scopes: ["account:read", "shop:orders:write", "shop:profile:write"],
+        legacyCallbacks: [
+          "ynxshop",
+          "ynxshop://wallet-auth/callback"
+        ],
+        scopes: [
+          "account:read",
+          "shop:orders:write",
+          "shop:profile:write"
+        ],
         evmCompatible: true,
         sessionDurationSeconds: 240
       },
@@ -26687,8 +26805,19 @@ ${item.productId}`));
         applicationId: "com.ynx.social",
         webOrigin: "https://social.ynxweb4.com",
         nativeCallback: "ynx-social://com.ynx.social",
-        legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"],
-        scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
+        legacyCallbacks: [
+          "ynx-social",
+          "ynx-social://com.ynx.social"
+        ],
+        scopes: [
+          "account:read",
+          "profile:link",
+          "social.ai",
+          "social.contacts",
+          "social.feed",
+          "social.messaging",
+          "social.profile"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 240
       },
@@ -26699,8 +26828,15 @@ ${item.productId}`));
         applicationId: "com.ynxweb4.video",
         webOrigin: "https://video.ynxweb4.com",
         nativeCallback: "ynxvideo://wallet-auth/callback",
-        legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"],
-        scopes: ["video:account", "video:library", "video:playback"],
+        legacyCallbacks: [
+          "ynxvideo",
+          "ynxvideo://wallet-auth/callback"
+        ],
+        scopes: [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
         evmCompatible: false,
         sessionDurationSeconds: 300
       }
@@ -28258,7 +28394,11 @@ ${item.productId}`));
         const result = await request("cancel", { challengeId: challenge.challengeId });
         const redirect = new URL(result.redirectUri);
         if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
-        location.assign(redirect.href);
+        if (context.mode === "oidc") {
+          const target = new URL(context.oidcCancelRedirect);
+          if (target.protocol !== "https:" || target.username || target.password || target.hash || !target.pathname.endsWith("/_synapse/client/oidc/callback") || target.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
+          location.assign(target.href);
+        } else location.assign(redirect.href);
       } catch (error) {
         const code2 = failure2(error, "server-cancel");
         safeReturn.hidden = false;
