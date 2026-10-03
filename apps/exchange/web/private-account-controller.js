@@ -137,9 +137,13 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     if(closed)return Promise.resolve(current);
     if(operation?.kind===kind)return operation.promise;
     guestIntent=false;
-    const token=++epoch;cancel();publish({phase:'loading'});
-    const promise=(async()=>{try{if(pendingRetirement)await pendingRetirement;const a=await getAdapter();if(!active(token))return current;return await accept(await action(a.client,token),token)}catch(error){return active(token)?publish(errorState(error)):current}})();
-    operation={kind,promise};promise.finally(()=>{if(operation?.promise===promise)operation=null});return promise;
+    const token=++epoch;operation?.nativeCancel?.();operation?.cancelWait?.();cancel();publish({phase:'loading'});
+    // SDK/proof promises may outlive transport cancellation. Settle the product
+    // caller independently, retaining epoch fences on all late completions.
+    let cancelWait;const retired=new Promise(resolve=>{cancelWait=()=>resolve()}).then(()=>current);
+    const work=(async()=>{try{if(pendingRetirement)await pendingRetirement;const a=await getAdapter();if(!active(token))return current;return await accept(await action(a.client,token),token)}catch(error){return active(token)?publish(errorState(error)):current}})();
+    const promise=Promise.race([work,retired]);
+    operation={kind,promise,cancelWait};promise.finally(()=>{if(operation?.promise===promise)operation=null});return promise;
   }
   function retirePending(client){
     if(!pendingRetirement){const pending=Promise.resolve().then(()=>client.disconnect()).catch(()=>({status:'revocation-pending'}));pendingRetirement=pending;pending.finally(()=>{if(pendingRetirement===pending)pendingRetirement=null})}
@@ -180,10 +184,10 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       if(same&&(context.status==='connected'||context.status==='transport-unavailable'))return current;
       api.guest();if(adapter)retirePending(adapter.client);return current;
     },
-    guest(){guestIntent=true;++epoch;selectionBinding=null;operation?.nativeCancel?.();operation=null;cancel();adapter?.client.enterGuest();return publish({phase:'guest',code:'LOCAL_GUEST_NOT_REVOKED'})},
-    offline(){++epoch;operation?.nativeCancel?.();operation=null;cancel();adapter?.client.setNetworkAvailable(false);return guestIntent?current:publish({phase:'degraded',code:'NETWORK_UNAVAILABLE'})},
+    guest(){guestIntent=true;++epoch;selectionBinding=null;operation?.nativeCancel?.();operation?.cancelWait?.();operation=null;cancel();adapter?.client.enterGuest();return publish({phase:'guest',code:'LOCAL_GUEST_NOT_REVOKED'})},
+    offline(){++epoch;operation?.nativeCancel?.();operation?.cancelWait?.();operation=null;cancel();adapter?.client.setNetworkAvailable(false);return guestIntent?current:publish({phase:'degraded',code:'NETWORK_UNAVAILABLE'})},
     online(){adapter?.client.setNetworkAvailable(true);return guestIntent?Promise.resolve(current):api.retry()},
-    close(){closed=true;++epoch;const retirement=operation?.nativeCancel?.(),previous=adapter;cancel();if(retirement)retirement.finally(()=>previous?.close());else previous?.close();publish({phase:'closed'})},
+    close(){closed=true;++epoch;const retirement=operation?.nativeCancel?.(),previous=adapter;operation?.cancelWait?.();operation=null;cancel();if(retirement)retirement.finally(()=>previous?.close());else previous?.close();publish({phase:'closed'})},
   };
   return Object.freeze(api);
 }

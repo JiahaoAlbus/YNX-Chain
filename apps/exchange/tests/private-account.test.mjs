@@ -129,6 +129,27 @@ test('second startup uses restore, every account refresh obtains a fresh proof, 
 test('private network loss clears visible private data; Retry resumes without standard Wallet interaction',async()=>{
   const {controller,calls}=setup();await controller.start(origin+'/');controller.offline();assert.equal(controller.state().phase,'degraded');assert.equal(controller.state().snapshot,null);await controller.online();assert.equal(controller.state().phase,'connected');assert.ok(calls.includes('retryDetected'));assert.ok(!calls.some(v=>/eth_|personal_sign|disconnectWallet/.test(JSON.stringify(v))));controller.close();
 });
+test('retiring stalled SDK or proof wait settles caller before late completion and isolates retry',async()=>{
+  for(const stage of ['restore','proof'])for(const action of ['guest','offline','close','replace']){
+    let release,entered,completed=false,count=0;
+    const wait=new Promise(resolve=>release=resolve),reached=new Promise(resolve=>entered=resolve);
+    const overrides=stage==='restore'?{client:{restore:async()=>{if(++count===1){entered();return wait}return connected()}}}:{adapter:{createIntrospectionProof:async()=>{if(++count===1){entered();return wait}return {proofHeader:'fresh-retry-proof'}}}};
+    const {controller,calls}=setup(overrides);
+    const old=controller.start(origin+'/').then(value=>{completed=true;return value});await reached;
+    let next;if(action==='replace')next=controller.refresh();else controller[action]();
+    await new Promise(setImmediate);assert.equal(completed,true,`${stage}/${action} must not wait for retired SDK promise`);
+    assert.equal((await old).snapshot,null,'retired caller cannot receive stale private data');
+    if(action!=='close'){
+      if(action==='offline')next=controller.online();else if(action==='guest')next=controller.refresh();
+      assert.equal((await next).phase,'connected');
+    }
+    const requests=calls.filter(item=>Array.isArray(item)&&item[0]==='fetch').length;
+    release(stage==='restore'?connected(other):{proofHeader:'late-retired-proof'});await new Promise(setImmediate);
+    assert.equal(calls.filter(item=>Array.isArray(item)&&item[0]==='fetch').length,requests,'late retired completion must not issue API read');
+    assert.equal(controller.state().account,action==='close'?null:account);
+    assert.ok(!calls.some(item=>/eth_requestAccounts|personal_sign|disconnectWallet/.test(JSON.stringify(item))));controller.close();
+  }
+});
 test('private response and body cancellation settle callers; retry needs a fresh proof and cannot revive a retired account',async()=>{
   for(const stalled of ['response','body'])for(const action of ['deadline','guest','offline','close']){
     const timers=new Map();let next=0,reads=0,release,completed=false;
