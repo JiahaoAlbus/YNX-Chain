@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "ynx-music-v2-external-effect-source-checkpoint/v1",
+  "sourceCommit": "259ccc7a9b9c74c2d3344fc8a9e5a20f9dc6e6b0",
+  "sourceTree": "3fafe7023c67e0a5fd5dc5ddd585f204391f83cc",
+  "baseline": "ba014a416e89cf5f544da6166a924104b3a75b7f",
+  "completeMediaInheritedFrom": "ba014a416e89cf5f544da6166a924104b3a75b7f",
+  "sourceDeltaPins": [
+    {
+      "path": "internal/music/business_effect.go",
+      "sha256": "f59402a0101c1de7470f3056b1956e6bca61e58b4cbc210d7130496d5c54689a",
+      "bytes": 7742,
+      "gitBlob": "17173dd36c2c98d52d984f45de108bf841a804e8"
+    },
+    {
+      "path": "internal/music/business_effect_test.go",
+      "sha256": "95fa4a70e25e3c2aaf567f683c496c07629a0a4d9fea753d9ba61199cc8d78fd",
+      "bytes": 16607,
+      "gitBlob": "6b0438604bf0acb387c3584a3231ddd0ecac5593"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "sha256": "ebd944522c1282f8785e392773963215e62fcb3ec3c66af9bf1641e7e1cba37e",
+      "bytes": 9094,
+      "gitBlob": "f5d06c7e1bb96ad0eb6ca092f4d842cc33526859"
+    },
+    {
+      "path": "internal/music/business_request_test.go",
+      "sha256": "c2e027411550c507ea72bccf34b8c9049eba425fcfbb1d09539c19130d9392df",
+      "bytes": 14028,
+      "gitBlob": "4b67782abb72efe2613680c17efafcd180777229"
+    },
+    {
+      "path": "internal/music/compatibility.go",
+      "sha256": "19d4173e62b580b3a75ba4172ce6884e33e1bfd0956bf251682b0ca8608b6469",
+      "bytes": 2746,
+      "gitBlob": "5869842f82e3bd5cea4801b79a4f684f9757d031"
+    },
+    {
+      "path": "internal/music/server.go",
+      "sha256": "29ecc5c7e71c5e75d0ea52cc2e5ebdc85a2a82bfe5898e3743a7688ca67e324e",
+      "bytes": 25226,
+      "gitBlob": "32ac118a6bdf4d5d1c1963843357502380f7cff1"
+    },
+    {
+      "path": "internal/music/store.go",
+      "sha256": "c00c4db5ad027551dedadb10d68b1d367c560d98230ceee8e3ff6df23f6398c6",
+      "bytes": 12977,
+      "gitBlob": "c50d89ce94777dcf2d172b422345501669be1e79"
+    },
+    {
+      "path": "internal/music/types.go",
+      "sha256": "d5b463d3fb0b87e97a90f42b150698e02bf480634d18a19fb674e2e3d0fbf56f",
+      "bytes": 7626,
+      "gitBlob": "2bde3133b473b7dbeaa545bac746b67c927cad79"
+    }
+  ],
+  "completeMusicSourceFiles": 154,
+  "checks": {
+    "goRacePackages": {
+      "github.com/JiahaoAlbus/YNX-Chain/apps/music": "pass",
+      "github.com/JiahaoAlbus/YNX-Chain/internal/music": "pass"
+    },
+    "actualNewEffectLeafPass": 16,
+    "newEffectLeaves": [
+      "TestBusinessEffectCompleteReceiptRecoversAfterRestartWithoutResend",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/rejected",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/oversized",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/multiple_JSON",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/wrong_type",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/redirect",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/revoked_after_response",
+      "TestBusinessEffectUnknownOutcomeIsNeverResent/cancelled_after_response",
+      "TestBusinessEffectRevalidatesImmediatelyBeforeDispatch",
+      "TestBusinessEffectAdmissionFailureMakesNoNetworkCall",
+      "TestBusinessEffectParallelAdmissionAndNoLockDuringNetwork",
+      "TestBusinessEffectReceiptRejectsActorAndWireTampering",
+      "TestBusinessEffectActualPayAndTrustHandlersUseDurableReceipts",
+      "TestBusinessEffectReceiptPersistenceFailureDoesNotResend",
+      "TestBusinessEffectInvalidPayReceiptStaysUncommitted",
+      "TestBusinessEffectSchema3BackupMigratesOnlyRestoreDestination"
+    ],
+    "actualHTTPSPayAndTrustHandlers": true,
+    "vet": "PASS",
+    "diffCheck": "PASS"
+  },
+  "implemented": [
+    "exact bounded original Pay/Trust wire and server-only configured credential",
+    "live original authority after admission and immediately before dispatch",
+    "original actor/object and action nonce admitted durably before network",
+    "no business store lock held over Pay/Trust network",
+    "15s original-request-context deadline, no redirects or forwarded consumer headers",
+    "bounded strict JSON receipt; never accepts paid as review intent",
+    "receipt durable before original business link; fresh authorization recovers saved receipt",
+    "unknown outcome remains admitted and never automatically resends, including restart",
+    "schema1/2/3 to4 verified migration and historic backup read-only validation"
+  ],
+  "sourceV2Routes": [
+    "POST /api/cases",
+    "POST /api/creator/settlements"
+  ],
+  "remainingV2Explicit503": [
+    "GET /api/ai/proposals/{id}/stream"
+  ],
+  "unknownOutcomeRecovery": {
+    "status": "NOT_VERIFIED",
+    "reason": "No authoritative provider reconciliation/query contract supplied. A dispatch without a durable receipt is retained for reconciliation and never automatically resent. This is not full provider-outcome recovery."
+  },
+  "preservedFailure": {
+    "transcribedOutput": "first-run-failure.txt",
+    "reason": "Some new direct service test fixture nonces were shorter than 16 characters. Padding fixture-only values preserves restart and no-resend assertions. Commit path also now rejects malformed grant metadata before save."
+  },
+  "release": {
+    "concreteSharedCryptoAdapterInstalled": false,
+    "protectedMount": false,
+    "formalArtifact": false,
+    "publicRuntimeVerified": false,
+    "actualWalletApproval": false,
+    "nativeInstalled": false,
+    "fullMediaGoalComplete": false
+  },
+  "next": [
+    "A exact admitted shared adapter, live actor, tuple/key/Host and full SDK composition",
+    "authoritative Pay/Trust reconciliation contract for unknown transport outcomes",
+    "owned AI stream/result recovery",
+    "original-logo compact sizing and display preferences across supported Media platforms per latest user steering",
+    "formal/public/original-account/Android/macOS acceptance"
+  ],
+  "evidencePins": [
+    {
+      "path": "apps/music/central/evidence/business-effects-v2-20261003/complete-music-source-manifest.json",
+      "sha256": "53fa93c551ada2a16b43f4261a6f97cdb184bce1cd453d1ad85f11568851e08b",
+      "bytes": 37362
+    },
+    {
+      "path": "apps/music/central/evidence/business-effects-v2-20261003/first-run-failure.txt",
+      "sha256": "2054dc7815c008e7624e0820df329e6333e88486584aab2c88aa39abdb6b80c1",
+      "bytes": 1456
+    },
+    {
+      "path": "apps/music/central/evidence/business-effects-v2-20261003/go-race-final.jsonl",
+      "sha256": "7ae986288bed7071714ea1bd926861f19b8738ea345f993cd99dc80e290db92c",
+      "bytes": 141418
+    },
+    {
+      "path": "apps/music/central/evidence/business-effects-v2-20261003/go-race-run2.jsonl",
+      "sha256": "af524514b74cd7bd767852f4157fc71b38d2b81914adfb82a985ca79b6e74aa4",
+      "bytes": 138629
+    },
+    {
+      "path": "apps/music/central/evidence/business-effects-v2-20261003/go-race-run3.jsonl",
+      "sha256": "87963236076fd6ef56a21c631a17afb21b69a48393ba3524376c56fbeb6ddd80",
+      "bytes": 141389
+    }
+  ]
+}

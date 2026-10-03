@@ -1,0 +1,20 @@
+Transcribed original go test -race ./internal/music ./apps/music failure, session 49653. Original tool output remains in chat; this file is a transcription.
+--- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent (0.19s)
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/rejected (0.02s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/oversized (0.04s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/multiple_JSON (0.03s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/wrong_type (0.03s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/redirect (0.03s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/revoked_after_response (0.02s)
+        business_effect_test.go:138: music business replay entry is invalid
+    --- FAIL: TestBusinessEffectUnknownOutcomeIsNeverResent/cancelled_after_response (0.02s)
+        business_effect_test.go:138: music business replay entry is invalid
+FAIL
+FAIL github.com/JiahaoAlbus/YNX-Chain/internal/music 3.217s
+ok github.com/JiahaoAlbus/YNX-Chain/apps/music (cached)
+FAIL

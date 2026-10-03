@@ -1,0 +1,930 @@
+{
+  "sourceCommit": "259ccc7a9b9c74c2d3344fc8a9e5a20f9dc6e6b0",
+  "sourceTree": "3fafe7023c67e0a5fd5dc5ddd585f204391f83cc",
+  "pins": [
+    {
+      "path": "apps/music/ARTIFACT_MANIFEST.json",
+      "sha256": "b01e91436d1261b3ff219b53111c356a0375cbeb9d156628dc96691629ff76aa",
+      "bytes": 4385,
+      "gitBlob": "c21d4b95d1ad52b2d5eaeea696c10b2b15956878"
+    },
+    {
+      "path": "apps/music/EVIDENCE_INDEX.md",
+      "sha256": "0f55b146fafa77a86a799118f16770a1f4426caa0530a5dd4fbc68cb73890686",
+      "bytes": 7099,
+      "gitBlob": "17c193b68b559451e6e754ee53c37588a51f3af4"
+    },
+    {
+      "path": "apps/music/FEATURE_COMPLETION_EVIDENCE.md",
+      "sha256": "ba1a8370bf70cedabbe741d6dfa867b328f3ad27c886230e153f6582ee29334a",
+      "bytes": 4423,
+      "gitBlob": "6f52190930c6aa79a0357ad450b805b4c7097f8f"
+    },
+    {
+      "path": "apps/music/MIGRATION_COMPATIBILITY.md",
+      "sha256": "79dabbf1e9420e74a793abd814c58ce922e2bc3bb1364d3f9e62e258d0c54874",
+      "bytes": 3197,
+      "gitBlob": "fdf0dd773cb9186e6be83f540b5229434f6c1e0e"
+    },
+    {
+      "path": "apps/music/OBSERVABILITY.md",
+      "sha256": "30cd3c058a730bc6692d4e5e5db37b8dd3591eeab8467925d87d41d7479f385b",
+      "bytes": 3511,
+      "gitBlob": "289aa42bd6eb6075b53dada1d5b2add9f7f8b02f"
+    },
+    {
+      "path": "apps/music/README.md",
+      "sha256": "463980a8d485bcbe6a3b8e6c3f98a1288b59d6e3cae5161a7e69896ffb2cbdb0",
+      "bytes": 2097,
+      "gitBlob": "c705d395641d5ff2946fa2b24a87e4c2eaafdb7a"
+    },
+    {
+      "path": "apps/music/RELEASE_NOTES.md",
+      "sha256": "650971d78a295c99f235be280338eeed448d0d14ad4cf1f0f9f694d935ae5062",
+      "bytes": 3204,
+      "gitBlob": "82dd0484f56f1f96ffc0e6544c0652d889f116d7"
+    },
+    {
+      "path": "apps/music/SBOM.spdx.json",
+      "sha256": "d2f3923af2d5e68f304b393a27eca428be79ed41b78dce5e6ecca5c33aa3ca63",
+      "bytes": 1557,
+      "gitBlob": "084343a9efec62806347c4b841da1742503210c8"
+    },
+    {
+      "path": "apps/music/THIRD_PARTY_NOTICES.md",
+      "sha256": "72862f77e22e4345f32f067c35d95f7f93eaa06071fa140b791cd1625fd5dbe3",
+      "bytes": 885,
+      "gitBlob": "ac4bc5a007f8751b6888f513c49ec72550524ba1"
+    },
+    {
+      "path": "apps/music/UI_DESIGN_AUDIT.md",
+      "sha256": "acfead0da4eff016183bb06017052412492030745d7e22b099777fadaec62245",
+      "bytes": 3680,
+      "gitBlob": "1e6362b32cccc4cf5ff3de0f8901ae27f392ac4b"
+    },
+    {
+      "path": "apps/music/WEB_CANONICAL_INTEGRATION.md",
+      "sha256": "2bc88bd64f82a832f116702777a41b0cdd97c734beb9737ed715656fe17d500f",
+      "bytes": 4081,
+      "gitBlob": "83d5fb81b7757e6219e0d16c7250042c66ddb612"
+    },
+    {
+      "path": "apps/music/android/.gitignore",
+      "sha256": "f0d90fe6dd188cfa5cbac987949cfa3893a2c1ac3cf6dbfcb837e0e2abb698b1",
+      "bytes": 44,
+      "gitBlob": "a7e04a21b33b84d790a98b011a1680440c74c99e"
+    },
+    {
+      "path": "apps/music/android/app/build.gradle",
+      "sha256": "5e6215cf2a08f0670ad843ac4cad218edd36cfb7cd8397cffbd94ab4c94e2bba",
+      "bytes": 943,
+      "gitBlob": "39e11d9db3cceab4c4ba17c00d9bb0eaee405cad"
+    },
+    {
+      "path": "apps/music/android/app/proguard-rules.pro",
+      "sha256": "e3b967b9c0e328f67f6d2a0692deab24d40f8718395812855fb3d505dc8aebbf",
+      "bytes": 75,
+      "gitBlob": "f6584a14a119bbea5e5e57fd44de58bc6195a26d"
+    },
+    {
+      "path": "apps/music/android/app/src/androidTest/java/com/ynxweb4/music/ContractInstrumentedTest.java",
+      "sha256": "620ce148d688096bb60591051711457435d5101078e2531152a0fcdea0a285b8",
+      "bytes": 3240,
+      "gitBlob": "2ecd5c5ce96f356d270c5fc238a98190c9ae1648"
+    },
+    {
+      "path": "apps/music/android/app/src/main/AndroidManifest.xml",
+      "sha256": "66ae3fc2821369b0fe62534b9c5a77bd2fb505cca5b918c165fb8376f44dc7cc",
+      "bytes": 1438,
+      "gitBlob": "0fe925ad65140cb17fe0deb0c88b1b0344ca71a3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java",
+      "sha256": "2dd48b492c7197beecb0539c1ef91937b662a774592c2a426692cc01bfca8fb2",
+      "bytes": 9205,
+      "gitBlob": "bcfb8374672a69e2aa79626631b7aff0e562ccd3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/LocaleSupport.java",
+      "sha256": "4ca6fe8d5630f087e102a30d141fecfa6453e3663e01245b9e09543b2bc5276a",
+      "bytes": 838,
+      "gitBlob": "fa689d933e664441aa1442444e94440557f90288"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MainActivity.java",
+      "sha256": "1be1ba56832bd7cd2185737024c7cc6a002d03f0568fec715bb38250e0dc4081",
+      "bytes": 37743,
+      "gitBlob": "65ab437e25074e13b98946157fbfb71c17df13c4"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "sha256": "def80b07873bc453030abf8a00cc713ea278afb0f8523cc4d2f3ec25ef56fa64",
+      "bytes": 9772,
+      "gitBlob": "c0a23b4fdfd834f679af77f6d124f8eb410da4bc"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "sha256": "d0cb6e00e53da3b1fdf2ea98a128487c0511daaa7df098330b79f64e55cec4f9",
+      "bytes": 6857,
+      "gitBlob": "e09194e29094ae7d730786044e7053fb49aa56ea"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/PlaybackService.java",
+      "sha256": "9192ef51f841ebfc1ccd4684bff966292083c68ac7bb5815dc95b285fc747599",
+      "bytes": 7128,
+      "gitBlob": "c95cf2eb2b588c67d0564b11f38aa93b28cf84ad"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SecureStore.java",
+      "sha256": "2d62ecf03f9e04f50781955e49db5ca68b1b66093213224f3ec79818db4bd0cc",
+      "bytes": 2098,
+      "gitBlob": "8402db0ac6e691f855364756173319b173b27c72"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "bytes": 104171,
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable/ic_music.xml",
+      "sha256": "d768fb031f375fbedcd4c114c881d926e27c26ea84f530a550c474ccc5d7beb9",
+      "bytes": 359,
+      "gitBlob": "8bde7e4410f29377d470bf8b3334112a4071c242"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable/ynx_logo.png",
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "bytes": 172128,
+      "gitBlob": "104a2773172d2b22192271b1ac2c1c16969be2f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ar/strings.xml",
+      "sha256": "4f237cbe8dea705ea3ca6b640102d3e5bcb8bb27a268ed9865c2b7ad0abd027d",
+      "bytes": 5491,
+      "gitBlob": "a455ffcfe922894bc97cc6afb208343dfd227f7d"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-de/strings.xml",
+      "sha256": "670d10b046d999382ff005e81baa8960d9c901a280d709134490213b48566d6f",
+      "bytes": 4607,
+      "gitBlob": "3eed5a8854dd34b263016d3bece0df2aad1060f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-es/strings.xml",
+      "sha256": "8f452f7c9a34f66d39f72a206fa086153e0c1874afcaf30a0facef08f2d08d8c",
+      "bytes": 4609,
+      "gitBlob": "e8645dc4bccd69906a752ec9b32286f00341665a"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-fr/strings.xml",
+      "sha256": "4f095f8fb26d6427fb3432b170c31319b791f157418444c9ec25fd5e508bcd7f",
+      "bytes": 4736,
+      "gitBlob": "dead656104d909c266d46ebaea3d9e8b6828352d"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-in/strings.xml",
+      "sha256": "68761e99f08a4394d304b8eee5a83a5e59c9a3fe98a5efa17e3a72956164e2a3",
+      "bytes": 4426,
+      "gitBlob": "714366588b9d6e69f830a968d63590e348d2f094"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ja/strings.xml",
+      "sha256": "c75b7dc587dcc27ff1efad2285945ea9af13c76771e078fc810945e6711b5c05",
+      "bytes": 5146,
+      "gitBlob": "e3ccf83ea11f143a9cab367388f6b3bfee40c45c"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ko/strings.xml",
+      "sha256": "b1379004c73c120ace7f12169689aa540a8f2f2f29a5b52f7fc7de9a71be4296",
+      "bytes": 4773,
+      "gitBlob": "f4458fb1aa0b37c2f679daaa13344c010f5bdbad"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-night/styles.xml",
+      "sha256": "c40484f7f0f194ab6eddc6a331e930a301cf03ea2f0f1710ac04a262186d0127",
+      "bytes": 461,
+      "gitBlob": "57b3632dfc119645f2a8def81077982ec1efb28c"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-pt/strings.xml",
+      "sha256": "32c23077749b4b8888ce9dfcefe7b3c518639d45a7a36cd57c2262c44e53d230",
+      "bytes": 4626,
+      "gitBlob": "cb0a49fb7d3d317b8619cb0506b2ffa116b8c6f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ru/strings.xml",
+      "sha256": "4679ae6db45ae81f44edd4ecd90b9c557ea5bf433f64df9987ddbf77f1dc53bf",
+      "bytes": 6095,
+      "gitBlob": "98fdddaadc4e5a3f782fe406a223d0f13d30c3e2"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rCN/strings.xml",
+      "sha256": "e28007d1c799e1af3aa05f570c1ef165b2663a34bba2664b7d9b8b945ced237e",
+      "bytes": 4199,
+      "gitBlob": "636fdcd5c1dfde94ff588cb37e83d1a3a73e61a5"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rTW/strings.xml",
+      "sha256": "f6c940fc6c374d922b202182c2b74f7b04f08c00c41785f089580923e8cc41b2",
+      "bytes": 4193,
+      "gitBlob": "64642c0c29eab9fb70ad786e41be3e53c35bcd9e"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values/strings.xml",
+      "sha256": "89b3dba8493c8c2e293c86a3e184961661bb87bf9c040aee155187cf6f100de4",
+      "bytes": 4318,
+      "gitBlob": "a563aa30275a1fa9c3d22c5a35b56066b366cca4"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values/styles.xml",
+      "sha256": "17b63a333481c6d47113f9ed750970d25604cf55f8e3f45eda19ad1ae5413cee",
+      "bytes": 466,
+      "gitBlob": "42c1e3a301229dc9a8e194b15c8c8e20828eb368"
+    },
+    {
+      "path": "apps/music/android/build.gradle",
+      "sha256": "498f04b13506032fefc35d99ee2c006b3e322b5bbb202f1db06bc17141a37cb2",
+      "bytes": 133,
+      "gitBlob": "17cb3d8aeea592ec7c28ab84a6908fe35d8a7b46"
+    },
+    {
+      "path": "apps/music/android/gradle.properties",
+      "sha256": "454d9ea3a6ed271db953f86cb4b02291135b6e543562418b1870a7f6c4856336",
+      "bytes": 135,
+      "gitBlob": "a2312e87c4d6034d7c1fc30bf8bc5de5a995ff75"
+    },
+    {
+      "path": "apps/music/android/settings.gradle",
+      "sha256": "5b51f39d1c58cdc551b0633cdd88aa1550a63c7d6dc1f6f75b1a8c68b6276021",
+      "bytes": 270,
+      "gitBlob": "f91a413c06524da2ff4b585629872271a4d6cd52"
+    },
+    {
+      "path": "apps/music/central/CENTRAL_INTEGRATION.md",
+      "sha256": "4560d2ee70a365a65ec550ace09f9fa0871cd96c993bc9f60790b1e5920de129",
+      "bytes": 2586,
+      "gitBlob": "7cbe64e596e6ce90da7d08671f23e66cf4e972e4"
+    },
+    {
+      "path": "apps/music/central/business-store-v2-checkpoint-20261003.json",
+      "sha256": "a226ea852a1b9e1d75cb2b94317307d14d2e1ffa4c5bed2f2bbeb4d7a4433128",
+      "bytes": 7631,
+      "gitBlob": "79eb2dd1037d4ae0206fa9303c023ecc3bcf53d7"
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/complete-music-source-manifest.json",
+      "sha256": "cde38f7ab2d8b7d15375a4bef31998df0153d25e5ac4a7cf35a640f90530fd4c",
+      "bytes": 35541,
+      "gitBlob": "74d1d492ad412a41a6981055669b13a52ad9b66e"
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race-run2-fail.jsonl",
+      "sha256": "bb89e2e344b13c9802cd2fcebd74232f0111fa93d901988b9592d56bc20d6f31",
+      "bytes": 125811,
+      "gitBlob": "dd98dbf1f4f77cec23226d0b33bff817020435cd"
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race-run3.jsonl",
+      "sha256": "1ff0f5682425887fc5a5de8c0eeb5fbd154f276aeaf8cb79795945cac3e4f108",
+      "bytes": 125497,
+      "gitBlob": "85cf22863d15fba97f0ef1ae6dbc5cd9a701cb5a"
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race.jsonl",
+      "sha256": "c6204d7112415288c0d69eb35d185ba38f8a36440b5b0121ff2e6e79e01a7087",
+      "bytes": 124578,
+      "gitBlob": "897f3d77fd93c50bd26d1fd22a7885944522c5eb"
+    },
+    {
+      "path": "apps/music/central/wallet-registry-v2.json",
+      "sha256": "62deb5e13c89ee58561882db426ed787022f15bc89e299480d57c6bca05b92e2",
+      "bytes": 357,
+      "gitBlob": "68497aac7542f2f531edad1aeb38c5476eccca34"
+    },
+    {
+      "path": "apps/music/central/web-private-registration-owner-contract-20261003.json",
+      "sha256": "b02c5f4055c9e2fc42b85eb5fd086280cbd3733f37cc5b60c5ad071ec1b17c27",
+      "bytes": 1767,
+      "gitBlob": "ade5a88a6ff21d6b2e17bda4870064ff1f65e542"
+    },
+    {
+      "path": "apps/music/central/web-private-source-checkpoint-20261003.json",
+      "sha256": "8b34e0ac36728b148269248165ce6b2c70f3077cf0f6065597c4db058cc7fb69",
+      "bytes": 3910,
+      "gitBlob": "3c2a3b4cb45e80bba4e9a70a6c172d7fe5a85bd5"
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "sha256": "87012d6d82d83c988e3c895279774bfa3d47716c6ff8571dfa92fc8838427035",
+      "bytes": 3300,
+      "gitBlob": "328376f49f9139f30076cf909f7a18b0134a48b0"
+    },
+    {
+      "path": "apps/music/deploy/music.env.example",
+      "sha256": "b0c120b54553d7d46405261ff4a08ee7ff6dfee58de65c11b605e298b7d88114",
+      "bytes": 356,
+      "gitBlob": "3a50b4c990b76dd80be867d988dd52c739f0fd73"
+    },
+    {
+      "path": "apps/music/deploy/web4-music.caddy",
+      "sha256": "816f6d52c84641e68dc860cdf9a1b2b4193f59de24c26b6296d92fd0217ea65b",
+      "bytes": 162,
+      "gitBlob": "0e522e405428b6ace404297190059ba84a59d465"
+    },
+    {
+      "path": "apps/music/deploy/ynx-musicd.service",
+      "sha256": "74038cd3e9319b3646d0adc80ede1c2705d96d12d2c81b51a884bd898e83ea8c",
+      "bytes": 564,
+      "gitBlob": "654f5e033c1a3acef8b5a3e6b52e41e59db88b1b"
+    },
+    {
+      "path": "apps/music/docs/DEVELOPMENT.md",
+      "sha256": "ce4c234bfa747cea0a97fc3944c15ab3409577670def28d3da2c5887a1b67c05",
+      "bytes": 1848,
+      "gitBlob": "b77cab53ba790cbb4d5ae5ba999771551dc8e1ac"
+    },
+    {
+      "path": "apps/music/docs/OPERATIONS.md",
+      "sha256": "4685b834ed63f672023a932d61da9f0085b7d8831064c31446ef3265207e75b1",
+      "bytes": 3144,
+      "gitBlob": "6d39fecd23af055df1b699b44cab1a0afe839c89"
+    },
+    {
+      "path": "apps/music/docs/USER_GUIDE.md",
+      "sha256": "d3acf6a87c8109eec82fdc17dbc9dd2a3da40004e3b2a35f9ae6996ea0f72ca6",
+      "bytes": 2472,
+      "gitBlob": "2a6e89fe877834d039b3ffaa43593143838e0068"
+    },
+    {
+      "path": "apps/music/evidence/media-owned-checkpoint-20261002.json",
+      "sha256": "92d639fff97201f00fdbb69453cde07462e4df6aed91b82ae0ac02c8dc1ae365",
+      "bytes": 2930,
+      "gitBlob": "9c528540bcd88751ba98028a2c8a51fa979bc008"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/android/arabic-rtl-1080x2400.png",
+      "sha256": "a11c14efc95171498525a07535f78b293497d0a13d77885acee696d28de4250d",
+      "bytes": 130372,
+      "gitBlob": "c11ab4bc9f5209395db5b72beea2d7c188f818b3"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/android/cold-start-1080x2400.png",
+      "sha256": "34435f2def4e3b1cf168ff49831f61838910a70bf5f6732cc4f01c1361abd8fe",
+      "bytes": 39233,
+      "gitBlob": "2a3cc3f6db70a70045f2d0ffa754629f6ebf507c"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/android/dark-1080x2400.png",
+      "sha256": "85cdd40072d9efaac59756551178e41c5ae17b5251df32a9fa17a33c50d8f963",
+      "bytes": 106367,
+      "gitBlob": "f4ad5eabdf659fe528bdccc3650523a368125391"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/android/empty-offline-1080x2400.png",
+      "sha256": "fbfeef607ea388a6337f469add61a2b82c3f4e8d141bd8bfb9aeb0ba6a480bc6",
+      "bytes": 109858,
+      "gitBlob": "84338b2fbe86463f22e6d57c6ff3abc88a8c11e1"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/android/large-text-1080x2400.png",
+      "sha256": "57cff61379fa9395aaac1804b73fe9ca1dd7f30fa7fca48fcca395e37e1018de",
+      "bytes": 130968,
+      "gitBlob": "29e42e82b931e1900b3a4181672dc6604cbd8713"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/web/desktop-dark-1440x900.png",
+      "sha256": "518afcf56410589d309e55d60a14fc494f8c0cca374e643b6fab61f3af7dc3d4",
+      "bytes": 198484,
+      "gitBlob": "41e220603c7f67d6c7588c824aaa425dd788b47e"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/web/desktop-light-1440x900.png",
+      "sha256": "f270f0fffc6d93c790045217a7410f8324a4e5228fc230e96f672561a618c9f3",
+      "bytes": 238518,
+      "gitBlob": "5eecbe0c26cc9a60ca8488bf8887501a933cb63a"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/web/mobile-light-390x844.png",
+      "sha256": "c4b4d252603bd4702cc6b978e3427b11b264f5a6cb08211410379dbaa8ae332c",
+      "bytes": 100575,
+      "gitBlob": "31397fc97ea6035351020dac1aa17f6f0b451b5d"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/web/wallet-approved.png",
+      "sha256": "598d14c1625e33e130845b60cba1a0e8071c3d407839f0d1bf556fb5b04bb12f",
+      "bytes": 181159,
+      "gitBlob": "12070e12f9afe4c49cacd9535d1fddff12213a0c"
+    },
+    {
+      "path": "apps/music/evidence/screenshots/web/wallet-rejected.png",
+      "sha256": "c4fe598ac3c851eda70e5ab799e629295689eb3e8361ac19371c623ea5d0a8bd",
+      "bytes": 182294,
+      "gitBlob": "b281755b7b3197ae60648452fe4344ead30c2710"
+    },
+    {
+      "path": "apps/music/ios/.gitignore",
+      "sha256": "b5a691d830a59ebcca07eef7545a27cb2b2b13c5e78a5a84a77ffa2a65f541a6",
+      "bytes": 39,
+      "gitBlob": "6f1d047aa96acbc3f76f8c45f0cf7c42d29c9718"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic.xcodeproj/project.pbxproj",
+      "sha256": "e3371047ec9a014235c9868bdd19fe8fe48d52035d1949d5c1d117238d6a9a56",
+      "bytes": 6242,
+      "gitBlob": "f4b0865ab03826b933f1f52245fb99abbdfa6d44"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/Info.plist",
+      "sha256": "a24bd1a7e709db560fb67b640aa9e45f32ee32faddad3120986f344471c2593f",
+      "bytes": 1049,
+      "gitBlob": "cee1bbdcdb35e16b08f4540464e3b8626f229dc4"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAPI.swift",
+      "sha256": "b8f04e9fd2c9b48c2edaf422afe5d037a7243e7038112376606cf3c26c0d3a6e",
+      "bytes": 10179,
+      "gitBlob": "6afc98ad2f0336d1cf9519708242843b126a60f2"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAccountState.swift",
+      "sha256": "45855fff64414ca593362a12e07ff0a627778af6c351cee68185dd53557cd4e5",
+      "bytes": 8223,
+      "gitBlob": "5936f96e2c68c686fde37ff25390598d66c290b1"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicCredentials.swift",
+      "sha256": "a59cba734ecc768a5893337f7e2a1eeb227ca16a7251da968c36e8ba6f89ff5a",
+      "bytes": 4697,
+      "gitBlob": "a8c985bea853d2f576ce5ce0cd6beba6bf3e9810"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusic.entitlements",
+      "sha256": "f78d1674ddc52e751214988f87e419028528a6cf9c11a06f91cffe15317dd813",
+      "bytes": 239,
+      "gitBlob": "62cd4b69b90291d57117f7e0869aa2c4ae01d90e"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+      "sha256": "061d6b775015b7fa0eaf1ddf8892a63048c2fb896370ceb1c705e5fc170ce514",
+      "bytes": 37153,
+      "gitBlob": "67ff7b85fb46785c71085a7ffbd561611ce79bb8"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/ynx-brand-original.png",
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "bytes": 104171,
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/music/product-release.json",
+      "sha256": "859d8ddb254f96b093a3c6de3ce7a52b5d2b202f3df35e8d5a0445b0e186ec72",
+      "bytes": 7011,
+      "gitBlob": "1b9eec7ebe72d295e8337e6e9676644a00956775"
+    },
+    {
+      "path": "apps/music/public-product-metadata.json",
+      "sha256": "fdde296a4e9d9e55a169e66966c0389452b08505b6376591867a02e8f62dcba7",
+      "bytes": 5401,
+      "gitBlob": "5ccf3b265e9809d031afa7e660219b1c66e7c8b0"
+    },
+    {
+      "path": "apps/music/release/evidence/p0-076/music-standard-wallet-visible-evidence.json",
+      "sha256": "25caa968c714ae628222d94719e4482558d865afdeff33ed558b8ede3b62c3cf",
+      "bytes": 3820,
+      "gitBlob": "2c9c24b5b91631f9856f739f124bfbb3e436d9c2"
+    },
+    {
+      "path": "apps/music/scripts/apple-account-check.mjs",
+      "sha256": "980ec50d5eeada503978d748252b2c5f33b24d32a62bee15fafd61fc3276ced6",
+      "bytes": 1747,
+      "gitBlob": "2a5dfe69f01e25a52974f95e703d64c2658282bf"
+    },
+    {
+      "path": "apps/music/scripts/apple-account-check.swift",
+      "sha256": "d56adda89d3f5ec8d0cab4ad89f80c0d8cb71de652e82ce2c77d3732c66ccfc0",
+      "bytes": 17964,
+      "gitBlob": "0e55fbea6827d474a89ebb3873f6cc56031c9a53"
+    },
+    {
+      "path": "apps/music/scripts/business-web-check.cjs",
+      "sha256": "937bb7fe50865e8e86b8baae92ce46590360fc577a7df791c20727cbefe847d4",
+      "bytes": 14569,
+      "gitBlob": "9379eb4aad2a4fc004235117b96623edd7a1e321"
+    },
+    {
+      "path": "apps/music/scripts/canonical-session.test.mjs",
+      "sha256": "fb9b91f48cde0c26e34fc0036fa32407fecbd7e08db36971070fbd4d702d8001",
+      "bytes": 7525,
+      "gitBlob": "e303b224f655042fa87b67a5952e221024075f0c"
+    },
+    {
+      "path": "apps/music/scripts/canonical-web-check.cjs",
+      "sha256": "8743252ce70056fe72b3f6debb87697f2b1eeaee4d4bff08d16819db42723ec4",
+      "bytes": 2717,
+      "gitBlob": "b9adea67367709c7a8357fbfb22bcb4a4cf6dc64"
+    },
+    {
+      "path": "apps/music/scripts/central-contract-audit.mjs",
+      "sha256": "7c5dba4e855fd89b2e1828be06d8c41664406c333e7339e029af11df55a6e8c5",
+      "bytes": 1911,
+      "gitBlob": "137790e9d4f78a0bae3938f78691bb3b1061ed4e"
+    },
+    {
+      "path": "apps/music/scripts/generate-sbom.mjs",
+      "sha256": "f49d3fe478d32c8a78d496de78e8897f6efcda923fc3368963428faec59ef564",
+      "bytes": 2894,
+      "gitBlob": "4dcd1e64824f985b180c83b6f31a29f9a1ef0504"
+    },
+    {
+      "path": "apps/music/scripts/i18n-audit.mjs",
+      "sha256": "383a8a8bb0e973609124a9c63ea22e3f36958a0dedb829e7210248a1d76a8b33",
+      "bytes": 2646,
+      "gitBlob": "5decb4bd5113900eb3a44325f8ba0d1abb12a3f0"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/android/content/Context.java",
+      "sha256": "454849a28606b6d4b5300d20a588577cc1f36f743705a3c8e7028de0a2d57aee",
+      "bytes": 1078,
+      "gitBlob": "32ee4c1c98afd7483d3853042363e9813df2a774"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/BuildConfig.java",
+      "sha256": "ee580386179c0cf56c38ead3ac28d6023ccaae2338a2807da8e9a0b2a6a21b5d",
+      "bytes": 136,
+      "gitBlob": "56e649c0dee321642dc2bf4e4a661435b4f0a0e5"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/CentralContracts.java",
+      "sha256": "f9ace71e4f7f8a66cfd04ff0a5e53fa72b8e0ac8d82610e8d91d1cf9861fbfff",
+      "bytes": 355,
+      "gitBlob": "33a7ce5f652c692172abf6c5e3055102e08217ce"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/NativeApiCheck.java",
+      "sha256": "4b054a7a276d48356d07ab6d796bdcbd951ab2ce5046da7244012e3d3a1dd72b",
+      "bytes": 7177,
+      "gitBlob": "43b2c02ab3b5c4534424f867e751d85f65065f34"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/NativeStoreCheck.java",
+      "sha256": "b0d5c54935216c441917f9ac57f13a11f29ac126683eb70c4fb95ea64685009a",
+      "bytes": 4048,
+      "gitBlob": "829e2393f07501f27ef4b802b1fc57bc47cf3ddf"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/SecureStore.java",
+      "sha256": "f605bac0e5bf6357ee96ad3e0e5bd2a757020ea34069d2a426c07b60991bbc92",
+      "bytes": 379,
+      "gitBlob": "7248873aab5bbe228e08c984b69dc8b8a0f60309"
+    },
+    {
+      "path": "apps/music/scripts/playlist-recovery-web-check.cjs",
+      "sha256": "fbb362a99c76618c9d33ff4808069e25f149de80c5026e002f49851a2d2dec58",
+      "bytes": 5496,
+      "gitBlob": "f51713165e1f0f1b8ccf869536ee808452fb5cdd"
+    },
+    {
+      "path": "apps/music/scripts/smoke.sh",
+      "sha256": "9fa6c2cbe983cfe09894d6d099975b00ac506511fbda4c4065a894d72f194869",
+      "bytes": 1199,
+      "gitBlob": "3e506ca9a0a619d364f6bc8119e363c50c635c53"
+    },
+    {
+      "path": "apps/music/scripts/verify-native-store.mjs",
+      "sha256": "ba5922205680ec706dccb6285a353077cd37295beefd7631b6e5bb93026189d6",
+      "bytes": 1943,
+      "gitBlob": "72639c5c405b988d33c6c569928436b388477e54"
+    },
+    {
+      "path": "apps/music/scripts/wallet-connection.test.mjs",
+      "sha256": "bc192e0fa2c43d0ba2e214575d8eb055bedb5c9da6a4be7e660ab10be7512c00",
+      "bytes": 3685,
+      "gitBlob": "6b98cc756869341c3575914bf5af676b1261b1ba"
+    },
+    {
+      "path": "apps/music/scripts/web-playwright.cjs",
+      "sha256": "983da72cc62b4b1243ed587868f43cf5e5eabd62e87ed78a91cd1fbef4c2b60f",
+      "bytes": 3892,
+      "gitBlob": "394418dfcd2e380f73785ca6ab27a29eb85f8964"
+    },
+    {
+      "path": "apps/music/shared/i18n.json",
+      "sha256": "d2de4d58c45e42d7737b6dfb7c94f1ccfc51d9a027a2fc66afd39dfe4a94b9c4",
+      "bytes": 47420,
+      "gitBlob": "f636aa7ef766b29a60f29ad5806bdb4d6cc86227"
+    },
+    {
+      "path": "apps/music/web/app.js",
+      "sha256": "827c22e63cd011f21e474d939495bb25a9dc8a4cdc9192f89189f0c7c86d3474",
+      "bytes": 5789,
+      "gitBlob": "98f9a3e50c11e337d6bf4d2566276f895e0269a6"
+    },
+    {
+      "path": "apps/music/web/assets/ynx-brand-original.png",
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "bytes": 104171,
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/music/web/assets/ynx-logo.png",
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "bytes": 172128,
+      "gitBlob": "104a2773172d2b22192271b1ac2c1c16969be2f9"
+    },
+    {
+      "path": "apps/music/web/business.js",
+      "sha256": "d7d0132756c02c284972e1fc462f74104f60e5931061105671e6e1f325e17666",
+      "bytes": 27572,
+      "gitBlob": "b0af9af6e9d3698699e15d69da694eda56c28330"
+    },
+    {
+      "path": "apps/music/web/canonical-release.js",
+      "sha256": "44dac4bdd4b57521510b4baa6dce09e95918c236c8f2aab187fd613f6c73879b",
+      "bytes": 333,
+      "gitBlob": "49dc8c4607ea07cc703b8da5275627d700d375db"
+    },
+    {
+      "path": "apps/music/web/canonical-request.js",
+      "sha256": "77008e99770eea46aec39cd753ef1134b483a3923514ef3e40fadf0e246f5653",
+      "bytes": 5716,
+      "gitBlob": "45be476f5db84580a0041f6e0672320145064907"
+    },
+    {
+      "path": "apps/music/web/canonical-session.js",
+      "sha256": "5ce13954e19a6aa5f19b69cbcbbd8d714a39f3f5a23597ac9e1ef6bbf0e15bc4",
+      "bytes": 3374,
+      "gitBlob": "2c7b3dd2b30124c214a9502593351ed4ec69d35b"
+    },
+    {
+      "path": "apps/music/web/index.html",
+      "sha256": "3d4bfb94a9553f17340a645f9202010c125dcdabf88ea4b36295b98857cc73ad",
+      "bytes": 10063,
+      "gitBlob": "9c5dae45ba0443847a722a555bcbfab545a71dfc"
+    },
+    {
+      "path": "apps/music/web/playlist-journal.js",
+      "sha256": "3758446c65892ae81d658b2c860f15ccaab2fcc056fee5516ea0526d6bdee14c",
+      "bytes": 3582,
+      "gitBlob": "d9344835ff20f26ac80bcb290a9e30bcdf21ff79"
+    },
+    {
+      "path": "apps/music/web/styles.css",
+      "sha256": "88eae870cb5ed0d91ecd75976b10b4d993d4486c9043ec53b0521d4839f321bf",
+      "bytes": 12565,
+      "gitBlob": "f29dad1444fa829810811ce6c930ebf6f613f0ae"
+    },
+    {
+      "path": "apps/music/web/wallet-callback.html",
+      "sha256": "fcb71a631bf87fdd5ed63504b3e26b982d79c47b3b8f04c1c80a20aa54ba6584",
+      "bytes": 731,
+      "gitBlob": "514a6dc1f3bbbeccd7043e5ddc8243093b71e828"
+    },
+    {
+      "path": "apps/music/web/wallet-callback.js",
+      "sha256": "d7d24801854bdc3b9d9a24a833b1761d74efb9cb5a7f52c17e727e0d5c3c94e5",
+      "bytes": 945,
+      "gitBlob": "7c407a329f577b331e358d22fd6d99e0b6666f03"
+    },
+    {
+      "path": "apps/music/web/wallet-connection.js",
+      "sha256": "523e17460198cbfebe678521538b054f919a235de551f34e339255d94188c315",
+      "bytes": 2424,
+      "gitBlob": "afa98d338334f24f5da300e85836f9d6dee85945"
+    },
+    {
+      "path": "apps/music/web/ynx-dapp-connect-sdk/constants.js",
+      "sha256": "c07741eab50a665810dd000dd533f51dfd3078d2c829138cba2eb9d3bb91908c",
+      "bytes": 755,
+      "gitBlob": "3b355fbc47531f432929cccd571ba12067fc83f7"
+    },
+    {
+      "path": "apps/music/web/ynx-dapp-connect-sdk/discovery.js",
+      "sha256": "7e8fed32b7ba6528054743c3cd8fafa95370d1ece0c8541d154ae37f05d75f13",
+      "bytes": 799,
+      "gitBlob": "a63d8797983088e5f4df3b53067dd637aec07232"
+    },
+    {
+      "path": "apps/music/web/ynx-dapp-connect-sdk/errors.js",
+      "sha256": "e766988819ed54eb7eeb3bf79c7943de30daa7cbaf682d92ec74c68b63f1ed4c",
+      "bytes": 2883,
+      "gitBlob": "5421f86f36122ea7b0002601904b38b286550f95"
+    },
+    {
+      "path": "apps/music/web/ynx-dapp-connect-sdk/manifest.json",
+      "sha256": "6bccad7e2c11014347bbb5bce2014f029596a78940edeb4ecfee791538afe2c5",
+      "bytes": 534,
+      "gitBlob": "3cef7e5bb4e6be68a8796f11ea516b509ee4e1de"
+    },
+    {
+      "path": "apps/music/web/ynx-dapp-connect-sdk/provider.js",
+      "sha256": "67d48625c5c97df7e327f37ae96d4563dee9467078725d65100a2fe752912335",
+      "bytes": 4038,
+      "gitBlob": "36605114d6609f8821b7cd799af4c2062ba729c9"
+    },
+    {
+      "path": "apps/music/webfs.go",
+      "sha256": "7d45913af5d691d02a160d1a9835cea28dae774f12f6853fe7c7a99704d74194",
+      "bytes": 153,
+      "gitBlob": "9e131c93ba0e68531723bbd17244fc4ee7bdb2e3"
+    },
+    {
+      "path": "apps/music/webfs_test.go",
+      "sha256": "6a81a219c29200229d85bcf644cef444c68b5fdb8cebbd51868b04a056aaa9f3",
+      "bytes": 1217,
+      "gitBlob": "359562a9f3f1e5cff25acaa6880fc1191e9e4746"
+    },
+    {
+      "path": "internal/music/account.go",
+      "sha256": "fbccedab81f452420ee82e10ae351e0021f0efa77badb5c81dd738c902634715",
+      "bytes": 1969,
+      "gitBlob": "322cfa2419bf0abf42b29807ce19c06d4291e064"
+    },
+    {
+      "path": "internal/music/ai_output_test.go",
+      "sha256": "af6715beb288796529b7ab702233230bcc189e9081a78b951243fec28f8d094e",
+      "bytes": 2987,
+      "gitBlob": "29889408d6bf57925d8294935da9073ca37d2ee0"
+    },
+    {
+      "path": "internal/music/backup.go",
+      "sha256": "9d4417d134e075734e3cbba9b75d378a7eaa42d9a310934ab08252dce1a1ee72",
+      "bytes": 12665,
+      "gitBlob": "999ca96549863e94cee21d05ae357d34fcee56a1"
+    },
+    {
+      "path": "internal/music/business_effect.go",
+      "sha256": "f59402a0101c1de7470f3056b1956e6bca61e58b4cbc210d7130496d5c54689a",
+      "bytes": 7742,
+      "gitBlob": "17173dd36c2c98d52d984f45de108bf841a804e8"
+    },
+    {
+      "path": "internal/music/business_effect_test.go",
+      "sha256": "95fa4a70e25e3c2aaf567f683c496c07629a0a4d9fea753d9ba61199cc8d78fd",
+      "bytes": 16607,
+      "gitBlob": "6b0438604bf0acb387c3584a3231ddd0ecac5593"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "sha256": "ebd944522c1282f8785e392773963215e62fcb3ec3c66af9bf1641e7e1cba37e",
+      "bytes": 9094,
+      "gitBlob": "f5d06c7e1bb96ad0eb6ca092f4d842cc33526859"
+    },
+    {
+      "path": "internal/music/business_request_test.go",
+      "sha256": "c2e027411550c507ea72bccf34b8c9049eba425fcfbb1d09539c19130d9392df",
+      "bytes": 14028,
+      "gitBlob": "4b67782abb72efe2613680c17efafcd180777229"
+    },
+    {
+      "path": "internal/music/callback_test.go",
+      "sha256": "404bdbe6cca6598bbd6c0d366f500595d927907ba6df8657a2cb91d4d26ca0ad",
+      "bytes": 958,
+      "gitBlob": "a36f14f37a3a252fca18eb329ab6d082ceaa62e2"
+    },
+    {
+      "path": "internal/music/central.go",
+      "sha256": "2977f43939b3fd6b49ee99277e9eea5ac601b5b1182dcbb0fe1c08e87f9df9da",
+      "bytes": 4223,
+      "gitBlob": "34b9281e4c57725bd64824316cfdd77a8c6bca46"
+    },
+    {
+      "path": "internal/music/compatibility.go",
+      "sha256": "19d4173e62b580b3a75ba4172ce6884e33e1bfd0956bf251682b0ca8608b6469",
+      "bytes": 2746,
+      "gitBlob": "5869842f82e3bd5cea4801b79a4f684f9757d031"
+    },
+    {
+      "path": "internal/music/compatibility_test.go",
+      "sha256": "f6fda0d3ad0d824d1a52b74b208af512a38b8823d73c4af2b962e40fd9e3f26c",
+      "bytes": 1751,
+      "gitBlob": "9035a995e641e0262c58fd6084d8eaf0129b7513"
+    },
+    {
+      "path": "internal/music/first_use_test.go",
+      "sha256": "2adafd5fcf301ffab4e35f86969d3860c6fa9a10bcd5a5193a9cdac339b6eb68",
+      "bytes": 5557,
+      "gitBlob": "ac4938c2bc98c0432a501af36fae066b8bbab027"
+    },
+    {
+      "path": "internal/music/pay_review_test.go",
+      "sha256": "61032958caef2a68c3ec3859da8e0bcdef1df05ba3117c9001f88f6d94ea78b3",
+      "bytes": 1958,
+      "gitBlob": "38eff226dd921209d9b2d78c0601680bf7715300"
+    },
+    {
+      "path": "internal/music/playback_binding_test.go",
+      "sha256": "3c0ab1c5a8120591320c825b8779d292b8ca5d8f6c9e81babf958c3c19ac72cb",
+      "bytes": 3001,
+      "gitBlob": "e844ffc1d3e279abf3e8c9ec00b6abfcdfd4faf7"
+    },
+    {
+      "path": "internal/music/playlist_recovery_test.go",
+      "sha256": "99a9060d79d1b96a00356ee3742f7eaae54abd04de6b9d7089f38ca6d845405c",
+      "bytes": 3420,
+      "gitBlob": "a6a1b379ccc9abd54865ebafc61e34967b557a3b"
+    },
+    {
+      "path": "internal/music/server.go",
+      "sha256": "29ecc5c7e71c5e75d0ea52cc2e5ebdc85a2a82bfe5898e3743a7688ca67e324e",
+      "bytes": 25226,
+      "gitBlob": "32ac118a6bdf4d5d1c1963843357502380f7cff1"
+    },
+    {
+      "path": "internal/music/server_test.go",
+      "sha256": "9ca72a6a3b02660adb4efcdde93b2c1b86609157977e9133f56f518f3a992ec0",
+      "bytes": 12711,
+      "gitBlob": "03df5755fb38cce4814a6b13d8810788347d5d26"
+    },
+    {
+      "path": "internal/music/service.go",
+      "sha256": "b83fce3c5cfd8ddbb98c63f4e03645f4b4da7d0fa9dcf6578053343379b26a1f",
+      "bytes": 37840,
+      "gitBlob": "ca35154cc9ba60b87ac3cb2e11d3fed9c611b4ff"
+    },
+    {
+      "path": "internal/music/service_test.go",
+      "sha256": "7aca664061bb939c261aac4e7944f90a071ee25cb6630a3e0f6e0a8d9b0d1a45",
+      "bytes": 18380,
+      "gitBlob": "a541d6dc35b79d484a3a79aa7bc7b08831141cd4"
+    },
+    {
+      "path": "internal/music/store.go",
+      "sha256": "c00c4db5ad027551dedadb10d68b1d367c560d98230ceee8e3ff6df23f6398c6",
+      "bytes": 12977,
+      "gitBlob": "c50d89ce94777dcf2d172b422345501669be1e79"
+    },
+    {
+      "path": "internal/music/store_backup_test.go",
+      "sha256": "43b33505a1927e7d75286f4d7665353c148da4da788334d39f8f307eb789a34f",
+      "bytes": 13606,
+      "gitBlob": "fdbaff49d82496fd99cce6370e727c466f27ab20"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-empty.json",
+      "sha256": "c5a70af75a143c53d2a95362b23f98679b352eda97cb2ab40d0ebedd71e828df",
+      "bytes": 313,
+      "gitBlob": "1a1287ce034784fa29b31c35e091ab7425c22365"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-rich/README.md",
+      "sha256": "47e76af8cfe9c2e48169a4a021310751b827526d58eeb4d5de3489f94c14f50c",
+      "bytes": 949,
+      "gitBlob": "ed1db3da5e64272954eefaca15b7539c078d3227"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-rich/expectations.json",
+      "sha256": "26a8f18e7ff4324cd4386265a122265fecf071f418f390c206731d2f1fd9b69f",
+      "bytes": 839,
+      "gitBlob": "bfb66a70ccd708bea5de546a63d7fb9f1fb327ae"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.art",
+      "sha256": "7e5a1711b00d4f782a8a2ddd2a104884558c17c4c8462fafcfdf149ac2a751a5",
+      "bytes": 32,
+      "gitBlob": "bf57e74e3e71e4e4f90dd53f3e6830110fd7ab53"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.wav",
+      "sha256": "57d5f3bf36c4daf885fcbd6efd73fe435788c84f0d66efccef92d2f4f7cd1995",
+      "bytes": 24044,
+      "gitBlob": "57ddc8d5f25bce35b4d82821679adbe6a579fda9"
+    },
+    {
+      "path": "internal/music/testdata/state-v1-rich/state.json",
+      "sha256": "6dce3b73f13e81d1c231374f5a58263a3c5632fb7a09b2a682319e5f1be06d20",
+      "bytes": 10879,
+      "gitBlob": "421a67dc746982312ca97c1b8c59d91de183119a"
+    },
+    {
+      "path": "internal/music/types.go",
+      "sha256": "d5b463d3fb0b87e97a90f42b150698e02bf480634d18a19fb674e2e3d0fbf56f",
+      "bytes": 7626,
+      "gitBlob": "2bde3133b473b7dbeaa545bac746b67c927cad79"
+    },
+    {
+      "path": "internal/music/visibility.go",
+      "sha256": "6556f8506e6d09788f6fa9527bb112b03ef0f6443d430c0518e5120278e4078a",
+      "bytes": 2855,
+      "gitBlob": "61be91ac532e14144580b2ea03528737156893c8"
+    },
+    {
+      "path": "internal/music/visibility_test.go",
+      "sha256": "ca97afe1726590a38d71705bff802cac973ea55315d14f55d8b5dbc3443c9436",
+      "bytes": 18267,
+      "gitBlob": "3c7f08df8ad096ddbf574a8b887b3e6d4b4aa843"
+    },
+    {
+      "path": "internal/music/wav.go",
+      "sha256": "318eba8d1e35ed106ee64352a362c127aa59e41e064b90a3958b7b461277785e",
+      "bytes": 3343,
+      "gitBlob": "87d7909f807b94e64f55f5665eacd8bdf6047db0"
+    },
+    {
+      "path": "internal/music/wav_test.go",
+      "sha256": "f1d90aac8a8c5ed6e170a0398bc92c90a0ee0d9d28dc189f44af05d0103d3b1b",
+      "bytes": 5427,
+      "gitBlob": "6cda11fd3e88b48a28c4f7355607f1a4cb1acbca"
+    }
+  ]
+}
