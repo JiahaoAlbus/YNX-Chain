@@ -138,7 +138,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
     runInNewContext(`${copyHelper}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
-      approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
+      approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
@@ -185,7 +185,7 @@ async function sendEntryHarness() {
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
-    signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
+    signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, invoiceUI: {clear() {}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
   };

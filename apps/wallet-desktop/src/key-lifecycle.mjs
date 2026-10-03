@@ -80,12 +80,12 @@ export class DesktopKeyLifecycle {
     finally { if (this.#active === guard) this.#active = null; }
   }
   current() { const lease = this.#context.getStore(); if (!lease) throw keyAccessError(); lease.assert(); return lease; }
-  async run(operation) {
+  async run(operation, { assertCurrent = () => {} } = {}) {
     this.assertUnlocked();
     if (this.#active) throw keyAccessError("WALLET_OPERATION_BUSY");
     const generation = this.#generation, account = this.#account, deadline = this.now() + this.ttlMs;
     let submitted = false, delivered = false;
-    const assertLive = () => { if (this.#active !== lease || this.#locked || !this.focused() || this.#generation !== generation || this.#account !== account || this.now() >= deadline) throw keyAccessError("WALLET_OPERATION_CANCELLED"); };
+    const assertLive = () => { if (this.#active !== lease || this.#locked || !this.focused() || this.#generation !== generation || this.#account !== account || this.now() >= deadline) throw keyAccessError("WALLET_OPERATION_CANCELLED"); assertCurrent(); };
     const external = async (kind, action) => {
       assertLive();
       if (delivered || (kind === "submit" && submitted)) throw keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -102,6 +102,9 @@ export class DesktopKeyLifecycle {
     };
     const lease = Object.freeze({
       account,
+      // Recheck an already-started outward effect without reopening key access.
+      // Signing steps still use assert(), which rejects after submit/deliver.
+      assertEffectCurrent: assertLive,
       assert: () => { assertLive(); if (submitted || delivered) throw keyAccessError("WALLET_OPERATION_CANCELLED"); },
       step: async action => { lease.assert(); const result = await action(); if (!submitted && !delivered) lease.assert(); return result; },
       submit: action => external("submit", action),
@@ -109,7 +112,7 @@ export class DesktopKeyLifecycle {
     });
     this.#active = lease;
     try { return await this.#context.run(lease, async () => { lease.assert(); const result = await operation(lease); if (!submitted && !delivered) lease.assert(); return result; }); }
-    finally { if (this.#active === lease) this.#active = null; }
+    finally { if (this.#active === lease) { this.#active = null; this.#notify(); } }
   }
   // Only the app's own file dialog may transiently take focus. No secret work
   // occurs while it is unfocused, and a screen lock always invalidates the lease.

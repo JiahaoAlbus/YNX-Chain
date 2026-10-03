@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { verifyMessage, verifyTypedData, Wallet } from "ethers";
-import { createProductSessionRequest, parseProductSessionReturnURL, walletIdentity } from "@ynx-chain/wallet-auth";
+import { createProductSessionRequest, encodeRequestDeepLink, parseProductSessionReturnURL, walletIdentity } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY } from "../src/wallet-auth-contract.mjs";
 import { APPROVAL_TTL_MS, DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
@@ -18,15 +18,52 @@ const SECRET = "0000000000000000000000000000000000000000000000000000000000000001
 const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
 const ORIGIN = "https://example-dapp.invalid";
 
-test("finite Finance authorization signs the displayed deadline and exact permissions, without extending request expiry",async()=>{
-  const {authority,status}=await fixture(),device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,7));
-  const at=new Date("2026-10-02T00:00:00.000Z");
-  const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"finance",platform:"web",deviceId:"desktop-finite-fixture",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"n".repeat(32),state:"s".repeat(32),scopes:["finance.profile.write"],purpose:"Review fixed service access",finiteServiceSeconds:3600},at);
-  const result=await authority.approveCanonicalAuthorization(request,at.toISOString(),status.account);
-  const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,result.callbackUrl,at);
-  assert.equal(verified.status,"ready");assert.deepEqual(verified.approval.serviceConsent,request.serviceConsent);
-  assert.equal(verified.approval.expiresAt,request.expiresAt);assert.deepEqual(verified.approval.scopes,request.scopes);
-  await assert.rejects(authority.approveCanonicalAuthorization(request,request.expiresAt,status.account));
+test("central identity consent requires explicit review, stays native, and expires without granting product permissions", async () => {
+  const {authority,status}=await fixture();
+  const base=import.meta.resolve("@ynx-chain/wallet-auth");
+  const {createCentralBrowserSessionRegistry}=await import(new URL("./central-browser-session-registry.js",base));
+  const {CENTRAL_BROWSER_ISSUER:origin,CENTRAL_BROWSER_PURPOSE:purpose}=await import(new URL("./central-browser-session-contract.js",base));
+  const clients=createCentralBrowserSessionRegistry(PRODUCT_SESSION_REGISTRY),client=clients[0],now=authority.clock().getTime();
+  const challenge={version:1,issuer:origin,purpose,challengeId:"a".repeat(43),browserBinding:"b".repeat(64),nonce:"c".repeat(43),initiator:{clientId:client.clientId,origin:client.origin,redirectUri:client.redirectUri,state:"d".repeat(43),codeChallenge:"e".repeat(43),codeChallengeMethod:"S256"},clients:clients.map(c=>({clientId:c.clientId,origin:c.origin,audience:c.audience,scopes:[...c.scopes]})).sort((a,b)=>a.clientId.localeCompare(b.clientId)),issuedAt:new Date(now).toISOString(),expiresAt:new Date(now+120000).toISOString()};
+  const input={origin,method:"ynx_requestCentralBrowserSignIn",params:[challenge]};
+  await assert.rejects(authority.request({...input,origin:client.origin}));
+  const pending=await authority.request(input);
+  assert.equal(pending.status,"approval-required");
+  assert.equal(pending.result,undefined);
+  assert.deepEqual(pending.request.review.clients,challenge.clients);
+  assert.equal(pending.request.review.purpose,purpose);
+  const approved=await authority.approve(pending.request.id);
+  assert.equal(approved.result.account,status.ynxAccount);
+  assert.equal(approved.result.challengeId,challenge.challengeId);
+  assert.deepEqual((await authority.request({origin,method:"eth_accounts"})).result,[]);
+  await assert.rejects(authority.approve(pending.request.id));
+  const expired=await authority.request(input);authority.clock=()=>new Date(now+120000);
+  await assert.rejects(authority.approve(expired.request.id));
+});
+
+test("Pair native Product Session returns the exact official approval only after review, with origin, expiry and permission enforced", async () => {
+  const { authority, status } = await fixture();
+  const now = new Date("2026-08-22T00:00:00Z"), device = createECDH("prime256v1");
+  device.setPrivateKey(Buffer.alloc(32,0x42));
+  const request = createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"creator-studio",platform:"web",deviceId:"pair-authority-test",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",state:"state_abcdefghijklmnopqrstuvwxyz12",scopes:["creator:account"],purpose:"Sign in to Creator Studio."},now);
+  const params = [encodeRequestDeepLink(request)];
+  await assert.rejects(authority.request({origin:request.origin,method:"ynx_requestProductSessionV2",params}),error=>error.data.code==="ACCOUNT_PERMISSION_REQUIRED");
+  await authority.approveOrigin(request.origin,status.account);
+  await authority.approveOrigin(ORIGIN,status.account);
+  await assert.rejects(authority.request({origin:ORIGIN,method:"ynx_requestProductSessionV2",params}),error=>error.data.code==="PRODUCT_SESSION_ORIGIN_MISMATCH");
+  const pending = await authority.request({origin:request.origin,method:"ynx_requestProductSessionV2",params});
+  assert.equal(pending.status,"approval-required");
+  assert.deepEqual(pending.request.review.request,request);
+  const returned = (await authority.approve(pending.request.id)).result;
+  assert.equal(returned.version,2);
+  const verified = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now);
+  assert.equal(verified.status,"ready");
+  assert.equal(verified.approval.account,status.ynxAccount);
+  assert.equal(verified.approval.origin,request.origin);
+  await assert.rejects(authority.approve(pending.request.id));
+  const expired = await authority.request({origin:request.origin,method:"ynx_requestProductSessionV2",params});
+  authority.clock=()=>new Date(Date.parse(request.expiresAt)+1000);
+  await assert.rejects(authority.approve(expired.request.id));
 });
 
 test("desktop Wallet exposes no account before explicit origin approval", async () => {
@@ -250,7 +287,7 @@ test("pending approvals expire, are bounded, and cannot survive permission revoc
 
 test("WalletConnect remains fail closed without a real project ID", async () => {
   const transport = new WalletConnectTransport({ projectId: "", metadata: { name: "YNX Wallet", description: "YNX Testnet Wallet", url: "https://wallet.ynxweb4.com", icons: [] } });
-  assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false, pairing:false, pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
+  assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false,pairing:false,pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
   await assert.rejects(transport.start({}), error => error.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
   assert.equal(WALLETCONNECT_CHAIN, "eip155:6423");
   assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
@@ -281,6 +318,7 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
   const handlers = new Map();
   let approved = null, paired = null;
   const fake = {
+    rejectSession:async()=>{},
     on(name, handler) { handlers.set(name, handler); },
     async pair(input) { paired = input; return undefined; },
     async approveSession(input) { approved = input; return { topic: "session-topic", expiry: 2000000000, peer: { metadata: { name: "Example DApp", url: ORIGIN } }, namespaces: input.namespaces }; },
@@ -300,8 +338,8 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
   assert.deepEqual(approved.namespaces.eip155.accounts, ["eip155:6423:0x1234567890abcdef1234567890abcdef12345678"]);
   assert.deepEqual(approved.namespaces.eip155.methods, ["personal_sign"]);
   assert.deepEqual(approved.namespaces.eip155.events, ["accountsChanged"]);
-  // Dedicated published pairing tests exercise full bounded proposal-driven pairing.
-  assert.equal(paired, null);
+  await transport.pair(`wc:${"c".repeat(64)}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`);
+  assert.match(paired.uri, /^wc:/);
   assert.equal(observed.length, 1);
 });
 
@@ -310,6 +348,7 @@ test("WalletConnect drops expired or non-HTTPS proposals before approval UI and 
   const invalid = [];
   let releaseApproval;
   const fake = {
+    rejectSession:async()=>{},
     on(name, handler) { handlers.set(name, handler); },
     getActiveSessions() { return {}; },
     async approveSession(input) {
@@ -362,11 +401,11 @@ test("WalletConnect restores exact sessions, emits standard events and disconnec
     walletKitFactory: async () => fake
   });
   await transport.start({ onSessionRestore: session => restored.push(session), onSessionDelete: event => deleted.push(event) });
-  assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true, pairing:false, pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 1, code: null });
+  assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true,pairing:false,pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 1, code: null });
   assert.deepEqual(restored, [{ topic: "restored-session", origin: "https://card.ynxweb4.com", name: "First-party DApp", url: "https://card.ynxweb4.com/path", expiry: 2000000000 }]);
   assert.deepEqual(transport.sessions(), restored);
   const authorized = transport.authorizeRequest({ topic: restoredSession.topic, id: 41, params: { chainId: "eip155:6423", request: { method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] } } }, "0x1234567890abcdef1234567890abcdef12345678");
-  assert.deepEqual(authorized, { topic: restoredSession.topic, jsonRpcId: 41, origin: "https://card.ynxweb4.com", method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"], sessionBinding: JSON.stringify({namespaces:restoredSession.namespaces,peer:restoredSession.peer,expiry:restoredSession.expiry}) });
+  assert.deepEqual(authorized, { topic: restoredSession.topic, jsonRpcId: 41, origin: "https://card.ynxweb4.com", method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"],sessionBinding:JSON.stringify({namespaces:restoredSession.namespaces,peer:restoredSession.peer,expiry:restoredSession.expiry}) });
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 42, params: { chainId: "eip155:1", request: { method: "personal_sign", params: [] } } }), error => error.code === "UNSUPPORTED_WALLETCONNECT_CHAIN");
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 43, params: { chainId: "eip155:6423", request: { method: "eth_signTypedData_v4", params: [] } } }), error => error.code === "UNAUTHORIZED_WALLETCONNECT_METHOD");
   const account = "0x1234567890abcdef1234567890abcdef12345678";
@@ -466,4 +505,15 @@ test("a key switch after provider permission checks cannot sign the previously r
     await assert.rejects(authority.approve(pending.request.id), error => error.data.code === "ACCOUNT_CHANGED");
     assert.equal(sent, false);
   }
+});
+
+test('Paper workspace desktop approval shows simulated-only limits and returns only the exact new grant',async()=>{
+  const {authority,status}=await fixture(),now=new Date('2026-08-22T00:00:00Z'),device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,0x42));
+  const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'quant',platform:'web',deviceId:'paper-authority-test',deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),nonce:'nonce_abcdefghijklmnopqrstuvwxyz12',state:'state_abcdefghijklmnopqrstuvwxyz12',scopes:['quant:paper:workspace'],purpose:'Paper simulation only'},now);
+  await authority.approveOrigin(request.origin,status.account);
+  const pending=await authority.request({origin:request.origin,method:'ynx_requestProductSessionV2',params:[encodeRequestDeepLink(request)]});
+  assert.match(pending.request.review.warning,/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/);
+  assert.deepEqual(pending.request.review.request.scopes,['quant:paper:workspace']);
+  const returned=(await authority.approve(pending.request.id)).result;
+  assert.deepEqual(parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now).approval.scopes,['quant:paper:workspace']);
 });

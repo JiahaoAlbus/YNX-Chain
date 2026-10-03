@@ -354,14 +354,28 @@ const walletConnectURI = document.querySelector("#walletconnect-uri");
 const walletConnectQR = document.querySelector("#walletconnect-qr");
 const walletConnectQRStatus = document.querySelector("#walletconnect-qr-status");
 const sessionsPanel = document.querySelector("#walletconnect-sessions");
+const pairCancel = document.createElement("button");
+pairCancel.id = "walletconnect-cancel-pair"; pairCancel.type = "button";
+pairCancel.hidden = true; copyUI(pairCancel,"Cancel"); pairButton.after(pairCancel);
+pairCancel.addEventListener("click",async()=>{
+  pairCancel.disabled = true;
+  try { const result=await window.ynxWallet.walletConnectCancelPair(); if(!result.ok)walletConnectDetail.textContent=errorText(result); }
+  finally { renderWalletConnect(await window.ynxWallet.walletConnectStatus()); pairCancel.disabled=false; }
+});
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
+  pairCancel.hidden = !status?.pairing;
+  pairButton.disabled = !status?.started || status?.pairing === true;
   const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
   walletConnectTitle.textContent = startupFailed ? "WalletConnect unavailable" : status?.relayConnected ? "Ready to connect an app" : status?.started ? "Connecting to WalletConnect…" : status?.configured ? "WalletConnect unavailable" : "Cross-device connections are coming";
   walletConnectDetail.textContent = status?.relayConnected && !startupFailed
     ? `${status.activeSessionCount} connected app${status.activeSessionCount === 1 ? "" : "s"}. You review every signature and transaction.`
     : status?.configured ? "The connection service is unavailable. Your wallet and accounts remain accessible." : "WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.";
-  pairButton.disabled = !status?.started || startupFailed;
+  pairButton.disabled = !status?.started || startupFailed || status?.pairing === true;
+  const pairPhase = status?.pair?.phase;
+  if(pairPhase === "pairing")copyUI(walletConnectDetail,"Connecting… You can cancel this pairing attempt.");
+  else if(pairPhase === "proposal-received")copyUI(walletConnectDetail,"Connection proposal received. Review before approving.");
+  else if(["canceled","timed-out","failed"].includes(pairPhase))copyUI(walletConnectDetail,pairPhase === "canceled" ? "Pairing canceled. Request a fresh QR code before retrying." : "The pairing attempt did not finish. Request a fresh QR code before retrying.");
 }
 async function refreshWalletConnectSessions() {
   const response = await window.ynxWallet.walletConnectSessions();
@@ -402,11 +416,12 @@ window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(pay
 pairButton.addEventListener("click", async () => {
   const uri = walletConnectURI.value.trim();
   pairButton.disabled = true;
-  const result = await window.ynxWallet.walletConnectPair(uri);
-  if (!result.ok) walletConnectDetail.textContent = `${result.error.code}: ${result.error.message}`;
-  else walletConnectDetail.textContent = "Pairing request submitted. Waiting for a DApp proposal.";
-  const status = await window.ynxWallet.walletConnectStatus();
-  pairButton.disabled = !(status?.ok ? status.value.started : status?.started);
+  try {
+    const result = await window.ynxWallet.walletConnectPair(uri);
+    if (!result.ok) walletConnectDetail.textContent = errorText(result);
+    else copyUI(walletConnectDetail,"Connection proposal received. Review before approving.");
+  } catch { copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying."); }
+  finally { renderWalletConnect(await window.ynxWallet.walletConnectStatus()); }
 });
 walletConnectQR.addEventListener("change", async () => {
   const file = walletConnectQR.files?.[0];
@@ -740,6 +755,7 @@ function renderKeyDetail() {
   copyUI(detail,!accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.");
 }
 function renderKeyState(state) {
+  const accountChanged = state.account !== keyState.account;
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invoiceUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
@@ -757,7 +773,9 @@ function renderKeyState(state) {
   if (state.locked) {
     if (invalidated) {
       document.querySelector("#unlock-result").textContent = "";
-      approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; passwordUI?.cancel();
+      if(accountChanged){approvalQueue.clear();authorizationChoices.clear();}
+      else approvalQueue.suspend();
+      transferReview = null; passwordUI?.cancel();
       for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";
       for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
     }

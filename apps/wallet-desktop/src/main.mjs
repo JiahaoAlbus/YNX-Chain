@@ -16,6 +16,8 @@ import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
+import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
+import { WalletConnectRequestInbox } from "./walletconnect-request-inbox.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { createReceiveCode } from "./receive-code.mjs";
 import { NativeContractClient } from "./native-contract.mjs";
@@ -61,14 +63,22 @@ let walletAuthority;
 let nativeWallet;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
+let lastReviewAccount = null;
 keyAccess.subscribe(state => {
+  if (state.account !== lastReviewAccount) {
+    lastReviewAccount = state.account;
+    authorizationController?.cancel();
+    for (const entry of walletConnectInbox.pending()) { walletConnectInbox.finish(entry.key); void terminateWalletConnectReview(entry, "ACCOUNT_CHANGED"); }
+    walletConnectProposalAccounts.clear();
+  }
   if (state.locked && !state.authenticating) {
-    authorizationController?.cancel(); walletAuthority?.cancelAll(); nativeWallet?.clear();
-    walletConnectRequests.clear(); walletConnectProposalAccounts.clear();
+    walletConnect?.cancelPair(true);
+    authorizationController?.suspend(); nativeWallet?.clear();
   }
   mainWindow?.webContents.send("wallet:security-state", state);
+  if (!state.locked && !state.authenticating) void drainWalletConnectInbox();
 });
-const sensitiveIPC = action => safeIPC(() => keyAccess.run(action));
+const sensitiveIPC = (action, options) => safeIPC(() => keyAccess.run(action, options));
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -78,6 +88,8 @@ const readInvoiceReference=createInvoiceReferenceService({
   getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress}),
 });
 const walletConnectRequests = new Map();
+const walletConnectInbox = new WalletConnectRequestInbox({ onExpire: terminateWalletConnectReview });
+let drainingWalletConnectInbox = false;
 const walletConnectProposalAccounts = new Map();
 const walletConnectProposalActions = new Set();
 let accountChangeInProgress = false;
@@ -137,6 +149,7 @@ async function recordEvidence(status, window, { launch = false } = {}) {
 }
 
 handleWalletIPC("wallet:status", rpcStatus);
+handleWalletIPC("wallet:app-info", () => ({ version: app.getVersion() }));
 handleWalletIPC("wallet:security-status", () => keyAccess.status());
 handleWalletIPC("wallet:unlock", (_event, input) => safeIPC(() => {
   if (accountChangeInProgress) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
@@ -157,7 +170,7 @@ handleWalletIPC("wallet:authorization-action", async (_event, input) => {
     const result = await keyAccess.run(() => authorizationController.act(input));
     lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: result.callbackEmitted, callbackReceivedProved: false, authorityGranted: result.authorityGranted, productSessionCreated: false };
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setTitle("YNX Wallet");
+      mainWindow.setTitle(app.isPackaged ? "YNX Wallet" : "YNX Wallet · QA");
       await recordEvidence(await rpcStatus(), mainWindow);
     }
     return result;
@@ -231,6 +244,7 @@ handleWalletIPC("wallet:permissions", (_event, origin) => safeIPC(() => walletAu
 handleWalletIPC("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
 handleWalletIPC("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
 handleWalletIPC("wallet:walletconnect-pair", (_event, uri) => safeIPC(() => walletConnect.pair(uri)));
+handleWalletIPC("wallet:walletconnect-cancel-pair", () => safeIPC(() => walletConnect.cancelPair()));
 handleWalletIPC("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() => decodeWalletConnectQR({
   bytes: Buffer.from(input?.bytes ?? []),
   mimeType: input?.mimeType,
@@ -238,6 +252,10 @@ handleWalletIPC("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() 
 })));
 handleWalletIPC("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
   const origin = walletConnect.sessionOrigin(topic);
+  for (const entry of walletConnectInbox.pending()) if (entry.event.topic === topic) {
+    walletConnectInbox.finish(entry.key);
+    await terminateWalletConnectReview(entry, "WALLETCONNECT_SESSION_DISCONNECTED");
+  }
   await walletAuthority.revokeOrigin(origin);
   const result = await walletConnect.disconnectSession(topic);
   mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "disconnected", topic, origin });
@@ -255,9 +273,11 @@ handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, exp
     if (!account.initialized) throw Object.assign(new Error("Create an account before approving the session"), { code: "ACCOUNT_NOT_CREATED" });
     if (expectedAccount !== walletConnectProposalAccounts.get(key) || expectedAccount !== account.account) throw Object.assign(new Error("The selected account changed. Review a new connection."), { code: "ACCOUNT_CHANGED" });
     const origin = walletConnect.proposalOrigin(id);
+    await walletConnect.decideProposal(id,expectedAccount,keyAccess.current().assert);
     await walletAuthority.approveOrigin(origin, expectedAccount);
     try {
-      const session = await keyAccess.current().deliver(() => walletConnect.approveSession(id, expectedAccount));
+      const lease = keyAccess.current();
+      const session = await lease.deliver(() => walletConnect.approveSession(id, expectedAccount,lease.assertEffectCurrent));
       walletConnectProposalAccounts.delete(key);
       mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "approved", topic: session.topic, origin });
       return { approved: true, topic: session.topic, origin, account: expectedAccount };
@@ -271,6 +291,7 @@ handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, exp
 handleWalletIPC("wallet:provider-action", (_event, id, action) => sensitiveIPC(async () => {
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
+  if(transport){const entry=walletConnectInbox.get(transport.entryKey);await walletConnectInbox.markDecided(entry,lease.assert);}
   let response;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
@@ -279,15 +300,25 @@ handleWalletIPC("wallet:provider-action", (_event, id, action) => sensitiveIPC(a
     response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed", ...(error?.data ? { data: error.data } : {}) };
   }
   if (transport) {
-    try { await lease.deliver(() => walletConnect.respond(transport.topic, transport.jsonRpcId, response)); }
-    catch (error) {
-      if (error?.data?.code === "WALLET_OPERATION_CANCELLED") return { ...response, responseDelivered: false, deliveryCode: "WALLET_OPERATION_CANCELLED" };
-      throw error;
+    try {
+      const send = () => { walletConnectInbox.finish(transport.entryKey); return walletConnect.respond(transport.topic, transport.jsonRpcId, response); };
+      await lease.deliver(send);
     }
-    walletConnectRequests.delete(id);
+    catch (error) {
+      const entry = walletConnectInbox.finish(transport.entryKey);
+      const terminalResponseDelivered = entry ? await terminateWalletConnectReview(entry, "WALLET_OPERATION_CANCELLED") : false;
+      throw Object.assign(error, { data: { ...error?.data, terminalResponseDelivered } });
+    } finally { walletConnectRequests.delete(id); walletAuthority.expire(id); }
   }
   return { ...response, responseDelivered: Boolean(transport) };
-}));
+}, { assertCurrent: () => {
+  const transport = walletConnectRequests.get(id);
+  if (!transport) return;
+  const entry = walletConnectInbox.get(transport.entryKey);
+  walletConnectInbox.assertLive(entry);
+  const current = walletConnect.authorizeRequest(entry.event, entry.account);
+  if (current.origin !== entry.origin||current.sessionBinding!==entry.sessionBinding) throw Object.assign(new Error("WalletConnect session changed"), { code: 4100 });
+} }));
 
 async function handleCallback(rawValue) {
   try {
@@ -325,12 +356,14 @@ async function handleCallback(rawValue) {
 async function changeActiveAccount(change) {
   if (accountChangeInProgress || walletConnectProposalActions.size) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
   keyAccess.assertUnlocked();
+  accountChangeInProgress = true;
   keyAccess.cancelOperations();
   const invalidatedAuthorizationId = authorizationController.pending?.id;
   if (authorizationController.cancel()) mainWindow?.webContents.send("wallet:authorization-error", { acceptedForReview: false, code: "ACCOUNT_CHANGED", requestId: invalidatedAuthorizationId, callbackEmitted: false, authorityGranted: false });
   accountChangeInProgress = true;
   try {
     nativeWallet?.clear();
+    for (const entry of walletConnectInbox.pending()) { walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, "ACCOUNT_CHANGED"); }
     const proposals = [...walletConnectProposalAccounts.keys()];
     walletConnectProposalAccounts.clear();
     for (const id of proposals) { try { await walletConnect.rejectSession(id); } catch {} }
@@ -358,6 +391,7 @@ async function custodyChange(change) {
   if (accountChangeInProgress || walletConnectProposalActions.size) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
   accountChangeInProgress = true;
   try {
+    for (const entry of walletConnectInbox.pending()) { walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, "ACCOUNT_CHANGED"); }
     const status = await keyAccess.custody(async guard => {
       // The repository first validates the exact review, file identity and staged
       // readback. Revoke only that live commit, still before publishing new keys.
@@ -409,8 +443,13 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });
+  let pairConfig, pairConfigurationError = null;
+  try { pairConfig = await loadPublicWalletConnectConfig({ resourcesPath: process.resourcesPath }); }
+  catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }
   walletConnect = new WalletConnectTransport({
-    projectId: process.env.YNX_WALLETCONNECT_PROJECT_ID,
+    projectId: pairConfig?.projectId,
+    storagePath: path.join(app.getPath("userData"), "walletconnect", "sdk-store"),
+    configurationError: pairConfigurationError,
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });
   const branding=configureWalletRuntimeBranding({app,Menu,nativeImage,directory});
@@ -454,17 +493,19 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   if (walletConnect.status().configured) {
     try {
       await walletConnect.start({
+        onPairState: status => window.webContents.send("wallet:walletconnect-status-result", status),
         onSessionProposal: async proposal => {
-          try { window.webContents.send("wallet:walletconnect-proposal", await sanitizeProposal(proposal)); }
+          try { const review=await sanitizeProposal(proposal);await walletConnect.bindProposalAccount(proposal.id,review.account);window.webContents.send("wallet:walletconnect-proposal",review); }
           catch (error) { window.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: safeCode(error) }); }
         },
         onSessionRequest: event => void handleWalletConnectRequest(event),
         onSessionDelete: async event => {
+          for (const entry of walletConnectInbox.pending()) if (entry.event.topic === event.topic) { walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, "WALLETCONNECT_SESSION_DELETED", false); }
           if (event.origin) await walletAuthority.revokeOrigin(event.origin);
           window.webContents.send("wallet:walletconnect-session-changed", { type: "deleted", topic: event.topic, origin: event.origin, localPermissionRevoked: Boolean(event.origin) });
         },
         onSessionRestore: session => window.webContents.send("wallet:walletconnect-session-changed", { type: "restored", topic: session.topic, origin: session.origin }),
-        onRequestExpire: event => expireWalletConnectRequest(event.id, window)
+        onRequestExpire: event => expireWalletConnectRequest(event.id, window, event.topic)
       });
       window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());
     } catch (error) {
@@ -478,32 +519,56 @@ if (singleInstanceLock) app.whenReady().then(async () => {
 app.on("window-all-closed", () => app.quit());
 
 async function handleWalletConnectRequest(event) {
-  const { topic, id } = event;
+  const { topic, id } = event ?? {};
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account is changing"), { code: 4100 });
-    await keyAccess.run(async lease => {
-      const selected = await walletAuthority.accountStatus();
-      lease.assert();
-      const authorized = walletConnect.authorizeRequest(event, selected.account);
-      const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
-      lease.assert();
-      if (response.status === "success") { await lease.deliver(() => walletConnect.respond(topic, id, response)); return; }
-      walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId });
-      mainWindow?.webContents.send("wallet:provider-request", response.request);
-    });
+    const account = keyAccess.status().account;
+    const authorized = walletConnect.authorizeRequest(event, account);
+    await walletConnectInbox.start(walletConnect.reviewStorage(),walletConnect.pendingRequestKeys());
+    const accepted = walletConnectInbox.accept(event, authorized, account);
+    await walletConnectInbox.persist();
+    if (!accepted.duplicate) await drainWalletConnectInbox();
   } catch (error) {
-    await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" });
+    await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" }).catch(() => { mainWindow?.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: "WALLETCONNECT_RESPONSE_UNCONFIRMED" }); });
   }
 }
-function expireWalletConnectRequest(jsonRpcId, window = mainWindow) {
-  const expired = [];
-  for (const [requestId, transport] of walletConnectRequests) {
-    if (String(transport.jsonRpcId) !== String(jsonRpcId)) continue;
-    walletConnectRequests.delete(requestId);
-    walletAuthority.expire(requestId);
-    expired.push(requestId);
-  }
-  for (const requestId of expired) window?.webContents.send("wallet:provider-request-expired", { id: requestId, code: "WALLETCONNECT_REQUEST_EXPIRED" });
+async function drainWalletConnectInbox() {
+  if (drainingWalletConnectInbox || accountChangeInProgress || keyAccess.status().locked || keyAccess.status().authenticating) return;
+  drainingWalletConnectInbox = true;
+  try { for (const entry of walletConnectInbox.pending()) {
+    if (entry.stage !== "received" || keyAccess.status().locked) continue;
+    try { await keyAccess.run(async lease => {
+      walletConnectInbox.assertLive(entry);
+      const selected = await walletAuthority.accountStatus();
+      lease.assert();
+      if (selected.account !== entry.account || accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
+      const authorized = walletConnect.authorizeRequest(entry.event, selected.account);
+      if (authorized.origin !== entry.origin||authorized.sessionBinding!==entry.sessionBinding) throw Object.assign(new Error("WalletConnect session changed"), { code: 4100 });
+      const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
+      if (response.status === "success") { await walletConnectInbox.markDecided(entry,lease.assert);await lease.deliver(() => { walletConnectInbox.finish(entry.key); return walletConnect.respond(authorized.topic, authorized.jsonRpcId, response); }); return; }
+      try { walletConnectInbox.stage(entry, response.request.id); } catch (error) { walletAuthority.expire(response.request.id); throw error; }
+      walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId, entryKey: entry.key });
+      mainWindow?.webContents.send("wallet:provider-request", response.request);
+    }, { assertCurrent: () => walletConnectInbox.assertLive(entry) }); }
+    catch (error) {
+      if (!walletConnectInbox.get(entry.key) || entry.stage === "review") continue;
+      if (["WALLET_LOCKED", "WALLET_OPERATION_BUSY", "WALLET_OPERATION_CANCELLED"].includes(safeCode(error))) continue;
+      walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, safeCode(error));
+    }
+  } } finally { drainingWalletConnectInbox = false; }
+}
+async function terminateWalletConnectReview(entry, code, respond = true) {
+  try{await walletConnectInbox.persist();}catch{mainWindow?.webContents.send("wallet:walletconnect-status-result",{...walletConnect.status(),code:"WALLETCONNECT_REVIEW_WRITE_UNCONFIRMED"});return false;}
+  if (entry.requestId) { walletConnectRequests.delete(entry.requestId); walletAuthority?.expire(entry.requestId); mainWindow?.webContents.send("wallet:provider-request-expired", { id: entry.requestId, code }); }
+  if (!respond) return false;
+  try { await walletConnect.respond(entry.event.topic, entry.event.id, { status: "error", code: 4100, message: "Wallet request ended before approval. Check the app and any existing submission before requesting again." }); return true; }
+  catch { mainWindow?.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: "WALLETCONNECT_RESPONSE_UNCONFIRMED" }); return false; }
+}
+function expireWalletConnectRequest(jsonRpcId, window = mainWindow, topic) {
+  const matches = walletConnectInbox.pending().filter(entry => String(entry.event.id) === String(jsonRpcId) && (!topic || entry.event.topic === topic));
+  if (!topic && matches.length > 1) return Object.freeze({ jsonRpcId: String(jsonRpcId), expiredRequestIds: Object.freeze([]) });
+  for (const entry of matches) { walletConnectInbox.finish(entry.key); void terminateWalletConnectReview(entry, "WALLETCONNECT_REQUEST_EXPIRED"); }
+  const expired = matches.map(entry => entry.requestId).filter(Boolean);
   return Object.freeze({ jsonRpcId: String(jsonRpcId), expiredRequestIds: Object.freeze(expired) });
 }
 async function sanitizeProposal(proposal) {
@@ -514,7 +579,7 @@ async function sanitizeProposal(proposal) {
   if (accountChangeInProgress) throw Object.assign(new Error("The selected account is changing"), { code: "ACCOUNT_CHANGED" });
   const permissions = { chains: boundedArray(namespace.chains), methods: boundedArray(namespace.methods), events: boundedArray(namespace.events) };
   walletConnectProposalAccounts.set(String(proposal.id), selected.account);
-  return { id: String(proposal.id), account: selected.account, name: boundedText(metadata.name, "Unknown DApp"), url: boundedText(metadata.url, null), expiresAt: new Date(proposal.expiryTimestamp * 1000).toISOString(), requested: permissions, permissions, methods: permissions.methods };
+  return { verification:proposal.verifyContext?.verified?.validation??"UNKNOWN",id: String(proposal.id), account: selected.account, name: boundedText(metadata.name, "Unknown DApp"), url: boundedText(metadata.url, null), expiresAt: new Date(walletConnect.proposalReviewDeadline(proposal.id)).toISOString(), requested: permissions, permissions, methods: permissions.methods };
 }
 function rejectProviderRequest(id) { walletAuthority.reject(id); }
 function protocolActivationFingerprint(value) {
@@ -523,7 +588,7 @@ function protocolActivationFingerprint(value) {
   try { const url = new URL(text); route = { scheme: url.protocol, host: url.hostname, pathname: url.pathname, queryKeys: [...url.searchParams.keys()], hasHash: Boolean(url.hash) }; } catch {}
   return Object.freeze({ bytes: Buffer.byteLength(text), sha256: createHash("sha256").update(text).digest("hex"), ...route });
 }
-async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed", ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}) } }; } }
+async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { const storageStage = error?.data?.storageStage; return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed", ...(typeof storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(storageStage) ? { storageStage } : {}), ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}) } }; } }
 function safeCode(error) { return error?.data?.code ?? error?.code ?? "WALLET_REQUEST_FAILED"; }
 function safeErrorClass(error) { return typeof error?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error"; }
 function safeFailureCategory(error) {
