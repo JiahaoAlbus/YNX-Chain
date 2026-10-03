@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "source": "d27de078376625fe7239d8a253a5985afaa6b503",
+  "tree": "7fe90ac6d1b8579f5369bea2cfd34c5f61445872",
+  "parent": "defe253c604e1ebf389994a27b02bb02993a82bc",
+  "ownedPaths": [
+    "internal/social/session_bridge.go",
+    "internal/social/session_bridge_current_test.go",
+    "internal/social/types.go"
+  ],
+  "sharedValidationSource": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedValidationTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "carrierManifest": "cb6a6262f1d0468e5f9192465c25d6d93480ca7ca7828895ad4f39b92ca6ef5a",
+  "carrierFilesVerified": 929,
+  "stage": "/tmp/social-backend-16195.enQ7Rc",
+  "sharedLiveChanged": false,
+  "moduleLiveChanged": false,
+  "stageOnlyModuleMerge": "golang.org/x/sys v0.47.0",
+  "stageSocialDependency": "read-only source reference via apps/social symlink to owner; existing locked node_modules",
+  "initialFailures": [
+    "live cmd compile lacks existing shared action/revalidation APIs",
+    "first stage omitted Social tsx dependency and state-check CLI; original failures were not product regressions, stage dependency restored without deleting tests"
+  ],
+  "gates": {
+    "ownedSocialRegression": "PASS",
+    "isolatedSocialAndDaemonRace": "PASS",
+    "isolatedDaemonBuild": "PASS",
+    "sharedLiveAdoption": "PENDING_ROOT",
+    "actualPublicSourceBoundBusiness": "NOT_VERIFIED",
+    "nativeCanonicalEnrollment": "NOT_VERIFIED",
+    "ABCThreeJourneys": "NOT_VERIFIED",
+    "MONSTER": "NOT_RUN",
+    "socialCompleted": false,
+    "deployed": false,
+    "sensitiveWalletRequests": false
+  },
+  "limitations": [
+    "Public-tuple routing is only verifier selection; unchanged shared Client remains authority.",
+    "Optional single typed authority is not enabled or enrollment installed by this change.",
+    "New binding stores full verified Session digest and original chat keys; old binding compatibility does not invent missing original tuple metadata.",
+    "Post-browser-await local snapshot fence does not claim all domain commit boundaries are complete.",
+    "Authority fixtures are synthetic QA, not real Wallet acceptance."
+  ]
+}
