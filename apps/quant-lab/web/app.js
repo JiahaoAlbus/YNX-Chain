@@ -2,6 +2,7 @@ const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
 let snapshotRevision = 0;
+let workspaceReadUnavailable = false;
 let statefulPreview = false;
 let publicExperiments = {};
 let latestResearchMode = null;
@@ -530,6 +531,22 @@ $("#latest-result").append(researchResultStatus);
 function renderResearchStatus() {
   researchResultStatus.textContent = latestResearchMode === null ? "" : t(latestResearchMode ? "researchSaved" : "researchTemporary");
 }
+const workspaceReadCopy={
+  en:'Workspace refresh unavailable. Shown records are the last confirmed read, not current. Use Refresh to read again; pending actions are retained.',
+  'zh-CN':'工作区刷新不可用。显示的是上次确认记录，并非当前数据。请点击刷新重读；未确认操作已保留。',
+  'zh-TW':'工作區重新整理失敗。顯示上次確認記錄，並非目前資料。請重新整理重讀；未確認操作已保留。',
+  ja:'更新できません。表示は最後に確認した記録で、現在の状態ではありません。更新で再取得してください。未確認の操作は保持されています。',
+  ko:'작업 공간을 새로 고칠 수 없습니다. 마지막 확인 기록이며 현재 상태가 아닙니다. 새로 고침으로 다시 읽으세요. 미확인 작업은 보존됩니다.',
+  es:'No se puede actualizar. Se muestra la última lectura confirmada, no el estado actual. Pulsa Actualizar; las acciones pendientes se conservan.',
+  fr:'Actualisation indisponible. Les données affichées sont la dernière lecture confirmée, pas l’état actuel. Actualisez ; les actions en attente sont conservées.',
+  de:'Aktualisierung nicht verfügbar. Angezeigt wird der letzte bestätigte Stand, nicht der aktuelle. Erneut aktualisieren; offene Aktionen bleiben erhalten.',
+  pt:'Atualização indisponível. Os registros são da última leitura confirmada, não do estado atual. Atualize novamente; ações pendentes são preservadas.',
+  ru:'Обновление недоступно. Показаны последние подтверждённые записи, а не текущее состояние. Обновите снова; ожидающие действия сохранены.',
+  ar:'تعذر التحديث. السجلات المعروضة هي آخر قراءة مؤكدة وليست الحالة الحالية. أعد التحديث؛ الإجراءات المعلقة محفوظة.',
+  id:'Pembaruan tidak tersedia. Catatan adalah pembacaan terakhir yang terkonfirmasi, bukan keadaan terbaru. Muat ulang; tindakan tertunda tetap disimpan.'
+};
+for(const [language,workspaceReadUnavailable] of Object.entries(workspaceReadCopy))Object.assign(businessCopy[language],{workspaceReadUnavailable});
+function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable;element.textContent=workspaceReadUnavailable?t('workspaceReadUnavailable'):'';}
 function applyLocale() {
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
@@ -544,6 +561,7 @@ function applyLocale() {
   $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
   $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
   renderRiskControls();
+  renderWorkspaceReadStatus();
   if (lastToastKey) $("#toast").textContent = t(lastToastKey) + lastToastSuffix;
 }
 // Product API transport only: no Wallet calls, automatic POST retry, or guessed
@@ -599,9 +617,19 @@ const toast = (m, key = null, suffix = '') => {
 };
 async function refresh() {
   const revision = ++snapshotRevision;
-  const next = await api("/v1/snapshot");
+  let next;
+  try {
+    next = await api("/v1/snapshot");
+    if(revision!==snapshotRevision)return;
+    const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+    if(!object(next)||['paper','strategies','experiments','access'].some(key=>next[key]!==undefined&&!object(next[key])))throw Object.assign(new Error(t('workspaceReadUnavailable')),{code:'QUANT_SNAPSHOT_INVALID',localeKey:'workspaceReadUnavailable'});
+  } catch(error) {
+    if(revision!==snapshotRevision)return;
+    workspaceReadUnavailable=true;renderWorkspaceReadStatus();throw error;
+  }
   if (revision !== snapshotRevision) return;
   snapshot = next;
+  workspaceReadUnavailable=false;renderWorkspaceReadStatus();
   statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
   for (const id of scheduleUnconfirmed) if (Object.values(snapshot.strategies || {}).some(strategy => strategy?.ID === id && observedSchedule(strategy))) scheduleUnconfirmed.delete(id);
   $("#workspace-boundary").hidden = statefulPreview;

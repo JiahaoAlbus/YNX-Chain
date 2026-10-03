@@ -243,7 +243,7 @@ class Element {
   append(...elements) {this.children.push(...elements);}
   replaceChildren(...elements) {this.children = elements;}
 }
-function harness({snapshot = {}, portfolioRead, apiResponse, apiStatus = () => 200, savedStorage, storageBoundary, confirmAction = () => false} = {}) {
+function harness({snapshot = {}, portfolioRead, apiResponse, rawSnapshot = false, apiStatus = () => 200, savedStorage, storageBoundary, confirmAction = () => false} = {}) {
   snapshot = {access: {statefulPreview: true}, ...snapshot};
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
@@ -268,7 +268,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, apiStatus = () => 2
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy) {const research=JSON.parse(options.body);body={...body,strategy:{...body.strategy,ID:body.strategy.ID??research.strategy.id},researchRequestKey:body.researchRequestKey??research.idempotencyKey};} const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, headers:new Headers({'content-type':'application/json'}), text:async()=>JSON.stringify(url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body)};},
+fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy) {const research=JSON.parse(options.body);body={...body,strategy:{...body.strategy,ID:body.strategy.ID??research.strategy.id},researchRequestKey:body.researchRequestKey??research.idempotencyKey};} const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, headers:new Headers({'content-type':'application/json'}), text:async()=>JSON.stringify(url.endsWith('/snapshot')&&!rawSnapshot ? {access: {statefulPreview: true}, ...body} : body)};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -753,6 +753,32 @@ test('temporary research provenance stays visible in all supported languages aft
   }
 });
 
+test('workspace malformed or failed refresh preserves confirmed readback with a persistent localized warning and recovers explicitly',async()=>{
+  let next={paper:{Cash:777,Position:0,KillSwitch:true},strategies:{},experiments:{},audit:[]};
+  const app=harness({rawSnapshot:true,apiResponse:()=>{if(next instanceof Error)throw next;return next;}});await settle();
+  for(const invalid of [null,[], 'not a snapshot',42,{paper:[]}, {strategies:[]},new Error('offline')]){
+    next=invalid;await app.ids.get('refresh').onclick();
+    assert.match(app.ids.get('paper-state').innerHTML,/777/);
+    assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),true);
+    assert.equal(app.ids.get('workspace-read-status').hidden,false);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.equal(app.ids.get('workspace-read-status').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
+    }
+  }
+  next={paper:{Cash:888,Position:0,KillSwitch:true},strategies:{},experiments:{},audit:[]};
+  await app.ids.get('refresh').onclick();assert.match(app.ids.get('paper-state').innerHTML,/888/);
+  assert.equal(app.ids.get('workspace-read-status').hidden,true);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);
+});
+test('retired workspace read failure cannot mark a newer successful snapshot unavailable',async()=>{
+  const old=deferred();let reads=0;
+  const app=harness({rawSnapshot:true,apiResponse:()=>++reads===2?old.promise:{paper:{Cash:reads,KillSwitch:true}}});await settle();
+  const first=app.ids.get('refresh').onclick();await settle();await app.ids.get('refresh').onclick();
+  old.reject(Error('retired read'));await first;
+  assert.equal(vm.runInContext('snapshot.paper.Cash',app.context),3);
+  assert.equal(app.ids.get('workspace-read-status').hidden,true);
+});
 test('late workspace snapshots cannot replace a newer confirmed risk state', async () => {
   const stale = deferred(); let snapshots = 0;
   const app = harness({apiResponse: url => {
