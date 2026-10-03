@@ -1,4 +1,4 @@
-import {createMarketFeed,formatMicro} from './market-data.js?v=53ccbb3def98b0bbdedfb99ae9e69ee1698ea777fd369baa96a484f01ad4af1d';
+import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-data.js?v=b8a186f1a359bfd7f83ddcf1f9186ae8aefebf4de3ab21e1b67a24f0891a6312';
 import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
 import {installExchangeLocale} from './locale.js';
@@ -78,6 +78,7 @@ function bind(){
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
   $('#refresh').addEventListener('click',refreshAll);$('#security-form').addEventListener('submit',saveSecurity);$('#support-form').addEventListener('submit',openSupport);
   $('#market-retry').addEventListener('click',refreshAll);
+  $('#chart-interval').addEventListener('change',renderPublicMarket);
   window.addEventListener('offline',()=>{marketFeed.offline();privateAccount.offline()});window.addEventListener('online',()=>{marketFeed.retry();privateAccount.online()});
   window.addEventListener('pagehide',()=>marketFeed.stop());window.addEventListener('pageshow',event=>{if(event.persisted)marketFeed.retry()});
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
@@ -198,18 +199,35 @@ function renderActivity(){
   for(const row of rows){const tr=document.createElement('tr');for(const value of row){const td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}
 }
 function renderPublicMarket(){
-  const trades=[...state.publicTrades].sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));
+  const candles=aggregateRetainedCandles(state.publicTrades,Number($('#chart-interval').value));
+  const byID=new Map(state.publicTrades.map(trade=>[trade.id,trade]));
+  const trades=candles.flatMap(candle=>candle.trades.map(reference=>byID.get(reference.id)));
   const body=$('#public-trades'),svg=$('#chart-svg');body.replaceChildren();svg.replaceChildren();
+  let caption=$('#candle-caption');if(!caption){caption=document.createElement('p');caption.id='candle-caption';caption.className='source-note';svg.before(caption)}
+  caption.textContent='OHLCV from retained venue matches';window.YNXExchangeLocale?.write(caption,'candle-chart-label');svg.setAttribute('aria-labelledby','chart-title candle-caption');
+  const records=$('#candle-records');records.replaceChildren();
   // SVG has no HTML hidden property. Set the actual attribute, not an expando.
   svg.toggleAttribute('hidden',!trades.length);$('#chart-empty').hidden=!!trades.length;$('#last-price').textContent='—';
   const emptyTitle=$('#chart-empty').querySelector('strong');emptyTitle.textContent='No matched price yet';window.YNXExchangeLocale?.write(emptyTitle,'market-no-price');
   if(!trades.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.className='empty-cell';td.textContent='No actual venue matches yet.';window.YNXExchangeLocale?.write(td,'market-no-matches');tr.append(td);body.append(tr);return}
   for(const trade of [...trades].reverse().slice(0,20)){const tr=document.createElement('tr');[new Date(trade.createdAt).toLocaleString(),display(trade.priceMicro),display(trade.amountMicro),trade.sourceType,trade.sourceDigest].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td)});body.append(tr)}
-  const prices=trades.slice(-60).map(t=>t.priceMicro),lo=Math.min(...prices),hi=Math.max(...prices);
-  const points=prices.map((p,i)=>`${30+i*(740/Math.max(1,prices.length-1))},${250-(p-lo)/Math.max(1,hi-lo)*210}`).join(' ');
-  const polyline=document.createElementNS('http://www.w3.org/2000/svg','polyline');polyline.setAttribute('fill','none');polyline.setAttribute('stroke','#002FA7');polyline.setAttribute('stroke-width','4');polyline.setAttribute('points',points);
-  const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x','30');label.setAttribute('y','25');label.setAttribute('fill','#667085');label.setAttribute('font-size','14');label.textContent='Actual YNX-owned matching-engine trades · latest 60';window.YNXExchangeLocale?.write(label,'market-trade-chart-label');
-  svg.append(polyline,label);$('#last-price').textContent=`${display(prices.at(-1))} YUSD_TEST`;
+  const visible=candles.slice(-60),lo=Math.min(...visible.map(c=>c.lowMicro)),hi=Math.max(...visible.map(c=>c.highMicro));
+  const y=price=>250-(price-lo)/Math.max(1,hi-lo)*210;
+  const element=(tag,attributes)=>{const node=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [key,value] of Object.entries(attributes))node.setAttribute(key,String(value));return node};
+  const fontSize=Math.round(14*800/Math.max(280,svg.getBoundingClientRect().width||800));
+  const label=element('text',{x:30,y:fontSize+5,fill:'#667085','font-size':fontSize});label.textContent='OHLCV';svg.append(label);
+  for(const [i,candle] of visible.entries()){
+    // x is elapsed UTC time, not a synthetic fill for intervals without trades.
+    const x=visible.length===1?400:40+(candle.start-visible[0].start)/Math.max(1,visible.at(-1).start-visible[0].start)*720;
+    const width=Math.min(12,Math.max(1,720/Math.max(1,(visible.at(-1).start-visible[0].start)/Number($('#chart-interval').value)+1)*.6));
+    const color=candle.closeMicro>=candle.openMicro?'#087a55':'#c0342b';
+    const group=element('g',{'data-candle-start':candle.start});
+    group.append(element('line',{x1:x,x2:x,y1:y(candle.highMicro),y2:y(candle.lowMicro),stroke:color,'stroke-width':2}),element('rect',{x:x-width/2,y:Math.min(y(candle.openMicro),y(candle.closeMicro)),width,height:Math.max(1,Math.abs(y(candle.openMicro)-y(candle.closeMicro))),fill:color}));
+    const description=`${new Date(candle.start).toISOString()} · O/H/L/C ${[candle.openMicro,candle.highMicro,candle.lowMicro,candle.closeMicro].map(price=>display(price)).join(' / ')} YUSD_TEST · V ${display(BigInt(candle.volumeMicro))} YNXT`;
+    const title=element('title',{});title.textContent=description;group.append(title);svg.append(group);
+    const row=document.createElement('tr');[new Date(candle.start).toISOString(),[candle.openMicro,candle.highMicro,candle.lowMicro,candle.closeMicro].map(price=>display(price)).join(' / '),display(BigInt(candle.volumeMicro)),candle.trades.map(t=>`${t.id}: ${t.sourceDigest}`).join('\n')].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});records.append(row);
+  }
+  $('#last-price').textContent=`${display(trades.at(-1).priceMicro)} YUSD_TEST`;
 }
 
 async function reviewOrder(event){

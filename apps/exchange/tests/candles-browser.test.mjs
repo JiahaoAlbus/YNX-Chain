@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile,mkdtemp} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {chromium} from 'playwright';
+import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
+
+const root=new URL('../web/',import.meta.url);
+const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
+const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
+const logo=await readFile(new URL('ynx-logo.png',root));
+test('desktop/mobile candle controls and exact trace rows remain read-only, localized and bounded',async t=>{
+  const evidence=await mkdtemp(path.join(os.tmpdir(),'ynx-exchange-candle-display-'));
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    for(const width of [1440,390,320]){
+      const page=await browser.newPage({viewport:{width,height:1000},reducedMotion:'reduce'});let requests=0;
+      await page.route('**/*',route=>{requests++;return route.abort()});
+      await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/src="\/ynx-logo\.png\?v=[a-f0-9]+"/,`src="data:image/png;base64,${logo.toString('base64')}"`));await page.addStyleTag({content:css});
+      await page.addScriptTag({type:'module',content:`${locale}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+      await page.addScriptTag({content:`${market.replace(/^export /gm,'')}\nconst $=s=>document.querySelector(s);const state={publicTrades:[]};const display=v=>formatMicro(v,document.documentElement.lang);${render}\nwindow.candleQA={render(trades){this.rows=trades;state.publicTrades=trades;renderPublicMarket()}};$('#chart-interval').addEventListener('change',renderPublicMarket);`});
+      const trades=Array.from({length:20},(_,i)=>({id:`fixture-${i}`,market:'YNXT-YUSD_TEST',createdAt:new Date(Date.UTC(2026,9,3,0,i)).toISOString(),priceMicro:1000000+(i%5)*10000,amountMicro:2000000,sourceType:'deterministic_price_time_match',sourceDigest:i.toString(16).padStart(64,'0')}));
+      await page.evaluate(trades=>window.candleQA.render(trades),trades);
+      for(const language of ['en','ar']){
+        await page.locator('#exchange-language').selectOption(language);
+        await page.evaluate(()=>window.candleQA.render(window.candleQA.rows));
+        for(const [period,count] of [['60000',20],['300000',4],['3600000',1]]){
+          await page.locator('#chart-interval').selectOption(period);assert.equal(await page.locator('#chart-svg g').count(),count);assert.equal(await page.locator('#candle-records tr').count(),count);
+          assert.ok(await page.locator('#chart-svg').evaluate(svg=>Number(svg.querySelector('text').getAttribute('font-size'))*svg.getBoundingClientRect().width/800>=12),'chart label must not shrink to unreadable SVG text');
+        }
+        await page.locator('.chart summary').click();
+        assert.ok((await page.locator('#candle-records').textContent()).includes(trades[19].sourceDigest));
+        assert.ok(await page.locator('#candle-records').textContent().then(value=>value.includes('fixture-0')));
+        assert.equal(await page.locator('#candle-records tr td').nth(2).textContent(),await page.evaluate(()=>formatMicro(40000000,document.documentElement.lang)));
+        const metrics=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:document.documentElement.clientWidth}));assert.ok(metrics.scroll<=metrics.width,JSON.stringify(metrics));
+        if(language==='en')await page.screenshot({path:path.join(evidence,`candles-${width}.png`),fullPage:true});
+        await page.locator('.chart summary').click();
+      }
+      assert.equal(requests,0,'local returned-data visualization must not fetch/sign/order');assert.equal(page.context().pages().length,1);await page.close();
+    }
+    t.diagnostic(`CONTROLLED LOCAL DISPLAY ONLY; screenshots=${evidence}`);
+  }finally{await browser.close()}
+});

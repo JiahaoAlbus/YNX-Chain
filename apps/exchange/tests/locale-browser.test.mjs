@@ -10,6 +10,7 @@ const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
+const marketSource=await readFile(new URL('../web/market-data.js',import.meta.url),'utf8');
 const privateRender=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
 const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
@@ -112,17 +113,22 @@ test('actual public trade chart switches SVG visibility from real returned rows 
     const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
     await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
-    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={publicTrades:[]};const display=${formatMicro.toString()};${publicRender}\nwindow.publicChartQA={render(trades){state.publicTrades=trades;renderPublicMarket()},source:()=>JSON.stringify(state.publicTrades)};`});
-    const trades=Array.from({length:65},(_,i)=>({id:String(i).padStart(3,'0'),createdAt:'2026-10-03T00:00:00Z',priceMicro:1000000+i,amountMicro:2000000+i,sourceType:'EXACT_RETURNED_SOURCE',sourceDigest:`digest-${i}`})).reverse();
+    await page.addScriptTag({content:`${marketSource.replace(/^export /gm,'')}\nconst $=s=>document.querySelector(s);const state={publicTrades:[]};const display=v=>formatMicro(v);${publicRender}\nwindow.publicChartQA={render(trades){state.publicTrades=trades;renderPublicMarket()},source:()=>JSON.stringify(state.publicTrades)};document.querySelector('#chart-interval').addEventListener('change',renderPublicMarket);`});
+    const trades=Array.from({length:65},(_,i)=>({id:String(i).padStart(3,'0'),market:'YNXT-YUSD_TEST',createdAt:new Date(Date.UTC(2026,9,3,0,i)).toISOString(),priceMicro:1000000+i,amountMicro:2000000+i,sourceType:'deterministic_price_time_match',sourceDigest:i.toString(16).padStart(64,'0')})).reverse();
     for(const locale of locales){
       await page.locator('#exchange-language').selectOption(locale);
       await page.evaluate(()=>window.publicChartQA.render([]));
       assert.equal(await page.locator('#chart-svg').isVisible(),false);assert.equal(await page.locator('#chart-empty').isVisible(),true);assert.equal(await page.locator('#last-price').textContent(),'—');assert.equal(await page.locator('#public-trades').textContent(),catalogs[locale]['market-no-matches']);
       await page.evaluate(trades=>window.publicChartQA.render(trades),trades);
       assert.equal(await page.locator('#chart-svg').getAttribute('hidden'),null);assert.equal(await page.locator('#chart-svg').isVisible(),true);assert.equal(await page.locator('#chart-empty').isVisible(),false);
-      assert.equal(await page.locator('#public-trades tr').count(),20);assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(1).textContent(),formatMicro(1000064));assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(3).textContent(),'EXACT_RETURNED_SOURCE');assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(4).textContent(),'digest-64');
-      assert.equal(await page.locator('#last-price').textContent(),formatMicro(1000064)+' YUSD_TEST');assert.equal(await page.locator('#chart-svg text').textContent(),catalogs[locale]['market-trade-chart-label']);
-      const points=await page.locator('#chart-svg polyline').getAttribute('points');assert.equal(points.split(' ').length,60);assert.doesNotMatch(points,/NaN|Infinity/);assert.equal(await page.evaluate(()=>window.publicChartQA.source()),JSON.stringify(trades));
+      assert.equal(await page.locator('#public-trades tr').count(),20);assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(1).textContent(),formatMicro(1000064));assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(3).textContent(),'deterministic_price_time_match');assert.equal(await page.locator('#public-trades tr').first().locator('td').nth(4).textContent(),'40'.padStart(64,'0'));
+      assert.equal(await page.locator('#last-price').textContent(),formatMicro(1000064)+' YUSD_TEST');assert.equal(await page.locator('#candle-caption').textContent(),catalogs[locale]['candle-chart-label']);
+      for(const [period,count] of [['60000',60],['300000',13],['3600000',2]]){
+        await page.locator('#chart-interval').selectOption(period);
+        assert.equal(await page.locator('#chart-svg g[data-candle-start]').count(),count);assert.equal(await page.locator('#candle-records tr').count(),count);
+        assert.doesNotMatch(await page.locator('#chart-svg').innerHTML(),/NaN|Infinity/);
+      }
+      assert.equal(await page.evaluate(()=>window.publicChartQA.source()),JSON.stringify(trades));await page.locator('#chart-interval').selectOption('60000');
       await page.evaluate(()=>window.publicChartQA.render([]));assert.equal(await page.locator('#chart-svg').isVisible(),false);assert.equal(await page.locator('#chart-svg polyline').count(),0);assert.equal(await page.locator('#last-price').textContent(),'—');
     }
     assert.equal(requests,0,'controlled returned rows test only display behavior, not public matching or real orders');

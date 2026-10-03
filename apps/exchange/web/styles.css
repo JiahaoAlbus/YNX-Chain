@@ -37,6 +37,7 @@ small,.source-note,.form-help{font-size:.75rem}
 .product-brand{gap:10px;min-height:44px}
 .product-brand h1{font-size:1rem}
 .ui-preferences{position:relative;max-width:100%;font-size:.875rem}
+.candle-interval{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap}.candle-interval>span{float:none!important}.candle-interval select{width:auto;min-height:44px;margin:0}.chart svg{width:100%;height:auto}.chart details{font-size:.875rem}.chart summary{cursor:pointer;min-height:44px;display:flex;align-items:center}#candle-records td:last-child{white-space:pre;max-width:240px;font-family:monospace;font-size:.75rem}
 .ui-preferences summary{min-height:44px;display:flex;align-items:center;cursor:pointer;padding:8px 12px}
 .ui-preferences label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px}
 .ui-preferences select{width:auto;max-width:100%;min-height:44px;margin:0}

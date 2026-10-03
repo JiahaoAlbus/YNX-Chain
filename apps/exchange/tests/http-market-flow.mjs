@@ -1,6 +1,6 @@
 // Invoked only by the Go httptest integration test. No production fixture route.
 import assert from 'node:assert/strict';
-import {createMarketFeed, STREAM_PATH} from '../web/market-data.js';
+import {createMarketFeed, STREAM_PATH,aggregateRetainedCandles} from '../web/market-data.js';
 const base = new URL(process.argv[2]);
 assert.equal(base.hostname, '127.0.0.1');
 const requests = [];
@@ -42,6 +42,11 @@ const feed = createMarketFeed({fetchImpl: localFetch, EventSourceImpl: HTTPEvent
       if (snapshot.trades.length === 1) {
         assert.equal(snapshot.trades[0].amountMicro, 4_000_000);
         assert.equal(snapshot.orderBook.asks[0].filledMicro, 4_000_000);
+        for(const interval of [60000,300000,3600000]){
+          const candles=aggregateRetainedCandles(snapshot.trades,interval);assert.equal(candles.length,1);
+          assert.equal(candles[0].volumeMicro,'4000000');assert.equal(candles[0].openMicro,snapshot.trades[0].priceMicro);assert.equal(candles[0].closeMicro,snapshot.trades[0].priceMicro);
+          assert.deepEqual(candles[0].trades,[{id:snapshot.trades[0].id,sourceDigest:snapshot.trades[0].sourceDigest}]);assert.equal(candles[0].complete,false);
+        }
         assert.equal(requests.every(([, method]) => method === 'GET'), true);
         console.log(`MATCH=${snapshot.trades[0].sourceDigest}`); finish();
       }

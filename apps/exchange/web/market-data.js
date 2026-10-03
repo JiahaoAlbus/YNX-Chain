@@ -6,6 +6,42 @@ const invalid = () => Object.assign(new Error('The venue returned invalid market
 const integer = (n, min = 0) => Number.isSafeInteger(n) && n >= min;
 const date = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
 
+export const CANDLE_INTERVALS = Object.freeze([60_000, 300_000, 3_600_000]);
+
+// A snapshot retains at most 1000 venue matches, not complete candle history.
+// Never fill empty intervals, extend prices, or certify bucket completeness.
+export function aggregateRetainedCandles(trades, intervalMs) {
+  if (!CANDLE_INTERVALS.includes(intervalMs) || !Array.isArray(trades) || trades.length > 1000) throw invalid();
+  const ids = new Set();
+  const ordered = trades.map(trade => {
+    if (!trade || typeof trade.id !== 'string' || !trade.id || ids.has(trade.id) || trade.market !== MARKET ||
+        !integer(trade.priceMicro, 1) || !integer(trade.amountMicro, 1) || !date(trade.createdAt) ||
+        trade.sourceType !== 'deterministic_price_time_match' || !/^[a-f0-9]{64}$/.test(trade.sourceDigest)) throw invalid();
+    ids.add(trade.id);
+    const time = Date.parse(trade.createdAt);
+    // Date.parse truncates sub-ms precision; preserve venue RFC3339 nanoseconds.
+    const fraction = trade.createdAt.match(/\.(\d+)(?:Z|[+-]\d\d:\d\d)$/)?.[1] ?? '';
+    const subMs = Number(fraction.padEnd(9, '0').slice(3, 9));
+    return {trade, time, subMs};
+  }).sort((a,b) => a.time-b.time || a.subMs-b.subMs || a.trade.id.localeCompare(b.trade.id));
+  const candles = [];
+  for (const {trade,time} of ordered) {
+    const start = Math.floor(time/intervalMs)*intervalMs;
+    let candle = candles.at(-1);
+    if (!candle || candle.start !== start) {
+      candle = {start, end:start+intervalMs, openMicro:trade.priceMicro, highMicro:trade.priceMicro,
+        lowMicro:trade.priceMicro, closeMicro:trade.priceMicro, volumeMicro:'0', trades:[], complete:false};
+      candles.push(candle);
+    }
+    candle.highMicro = Math.max(candle.highMicro,trade.priceMicro);
+    candle.lowMicro = Math.min(candle.lowMicro,trade.priceMicro);
+    candle.closeMicro = trade.priceMicro;
+    candle.volumeMicro = (BigInt(candle.volumeMicro)+BigInt(trade.amountMicro)).toString();
+    candle.trades.push({id:trade.id,sourceDigest:trade.sourceDigest});
+  }
+  return candles;
+}
+
 export function validateSnapshot(value) {
   const source = value?.sourceMetadata, book = value?.orderBook;
   if (value?.schemaVersion !== 'exchange-public-market-v1' || value.market !== MARKET || !integer(value.revision) ||
