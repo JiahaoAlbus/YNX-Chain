@@ -1,0 +1,5 @@
+--- FAIL: TestIndependentAppealResultCannotMutateOriginalEvidence (0.33s)
+    independent_appeal_evidence_review_test.go:3: returned appeal evidence aliases original persistent report state
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	0.874s
+FAIL

@@ -460,7 +460,7 @@ func (s *Service) AppealSocialReport(actor Session, id, correction string) (Soci
 	record.Appeal, record.Status, record.UpdatedAt = correction, "appealed", now
 	s.state.Reports[id] = record
 	s.appendAuditLocked("social_report_appealed", "report", id, actor.Account, objectDigest(record), now)
-	return record, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
+	return copyReportResult(record), s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) canViewMomentLocked(account string, moment Moment) bool {

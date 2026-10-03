@@ -1,0 +1,3 @@
+package social
+import("strings";"testing")
+func TestIndependentAppealResultCannotMutateOriginalEvidence(t *testing.T){s,actor,moment:=reportEvidenceFixture(t);hash:=strings.Repeat("a",64);r,_,e:=s.CreateSocialReport(actor,"independent-appeal-original","moment",moment.ID,"other","Explicit original",[]string{hash});if e!=nil{t.Fatal(e)};appealed,e:=s.AppealSocialReport(actor,r.ID,"Original correction");if e!=nil{t.Fatal(e)};before:=objectDigest(s.state);appealed.EvidenceHashes[0]=strings.Repeat("b",64);if objectDigest(s.state)!=before{t.Fatal("returned appeal evidence aliases original persistent report state")}}
