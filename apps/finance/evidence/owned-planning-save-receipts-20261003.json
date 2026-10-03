@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "product": "finance",
+  "scope": "existing category/budget/reminder/privacy product save controller; no authority/service/SDK rewrite",
+  "predecessor": "9c7633b54c7e1a4b30a0f914c0423e0f4ad79610",
+  "predecessorTree": "39a09dd6543797b38826d4bb91cae9f33e6c2507",
+  "sourceIdentity": "immutable containing commit",
+  "files": [
+    {"path":"apps/finance/web/app.js","blob":"02613efe014e90dc652894b00f11188f5579446f","bytes":103101,"sha256":"594ccaa1c9ecc9e788451d22278e3edff51fd5440fb3b9738becd322b5e38f95"},
+    {"path":"apps/finance/tests/owned-save-controller.test.mjs","blob":"89e15e5ddb84baae372736d675bb88b9e02d517b","bytes":9632,"sha256":"8176920917946d68a27d29d13965252794ef012b2ed18d03a3e42d1e3a972e74"},
+    {"path":"apps/finance/tests/owned-save-browser.test.mjs","blob":"fce1a33797bce88b625be1ac87229080cd29fdbb","bytes":13306,"sha256":"a012bee38b70e4fa2b000e5ea86edd60f2d4ceb4bf49edf1aef28af119aca881"}
+  ],
+  "implemented": [
+    "Empty/malformed successful HTTP responses cannot clear drafts, delete uncertain intents, attest activity or produce saved notifications.",
+    "Category normalized name/color/id/source/time; budget category/amount/period/start; reminder optional amount/schedule/date/enabled/sourceRef; privacy exact three booleans and persisted timestamp bind receipts to submitted content.",
+    "Unsafe integer/fractional planning quantities and invalid payloads do not send requests.",
+    "Same-draft explicit retry preserves existing idempotency key and original computed time/body. Current account/context fencing and draft edit protection remain unchanged."
+  ],
+  "tests": {
+    "nodeCommand":"node --test apps/finance/tests/owned-save-controller.test.mjs apps/finance/tests/owned-save-browser.test.mjs apps/finance/tests/owned-read-controller.test.mjs apps/finance/tests/finance-12-locales.test.mjs",
+    "passed":21,"failed":0,"skipped":0,"durationMs":4673.479208,
+    "goCommand":"go test -race ./internal/finance -run '^TestOwnedBudgetCommittedResponseLossExplicitRetryAndRestart$' -count=1",
+    "goResult":"PASS 1.335s",
+    "syntaxAndDiff":true,
+    "boundary":"Actual local Chromium with controlled API responses and isolated existing Go HTTP persistence test. Not official public runtime, real Wallet approval or authenticated production business evidence."
+  },
+  "truth":{"localSourceTests":true,"sourceBoundPublic":false,"installed":false,"realWalletApproval":false,"productSession":false,"computerControl":false,"complete":false},
+  "publication":"A-owned compatible final asset/cache/runtime/package graph; include this exact app.js plus all preceding sizing assets and ui-preferences.js",
+  "reportTo":"01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}

@@ -53,7 +53,7 @@ test('normal privacy checkbox submit is single-flight and a late read preserves 
       assert.equal(await page.locator('#privacy-form [data-save-state]').innerText(),await page.evaluate(()=>window.YNXFinanceLocale.text('ownedSavePending')));
     }
     await page.evaluate(()=>window.YNXFinanceLocale.set('en'));
-    await alerts.uncheck();await page.evaluate(()=>calls[0].resolve({}));
+    await alerts.uncheck();await page.evaluate(()=>calls[0].resolve({...calls[0].body,updatedAt:'2026-10-03T00:00:00Z'}));
     await page.waitForFunction(()=>!document.querySelector('#privacy-form button').disabled);
     const savedText=await page.evaluate(()=>window.YNXFinanceLocale.text('privacySaved'));
     assert.equal(await alerts.isChecked(),false);assert.deepEqual(await page.evaluate(()=>notices),[savedText]);
@@ -108,7 +108,21 @@ test('normal account switch releases old save controls without letting its late 
     await page.locator('#category-form input[name=name]').fill('B category');await page.locator('#category-form button').click();
     await page.evaluate(()=>calls[0].resolve({}));
     assert.equal(await page.locator('#category-form button').isDisabled(),true);assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'B category');assert.deepEqual(await page.evaluate(()=>notices),[]);
-    await page.evaluate(()=>calls[1].resolve({}));await page.waitForFunction(()=>!document.querySelector('#category-form button').disabled);
+    await page.evaluate(()=>calls[1].resolve({...calls[1].body,color:calls[1].body.color.toUpperCase(),id:'owned-B',source:'user',createdAt:'2026-10-03T00:00:00Z'}));await page.waitForFunction(()=>!document.querySelector('#category-form button').disabled);
     assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'');assert.deepEqual(await page.evaluate(()=>notices),['profileSaved']);assert.deepEqual(errors,[]);
   }finally{await browser.close();}
+});
+test('actual category form preserves draft and exact idempotency key after an invalid successful response',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.request().url()==='https://finance.ynxweb4.com/'?route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}):route.abort());
+    await page.goto('https://finance.ynxweb4.com/');await page.addScriptTag({content:locale});
+    await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const $=selector=>document.querySelector(selector),$$=selector=>Array.from(document.querySelectorAll(selector));window.calls=[];window.notices=[];window.reads=0;const financeText=k=>window.YNXFinanceLocale.text(k),notify=x=>notices.push(x),notifyFailure=()=>notices.push('unconfirmed'),attestBrowserIdentityActivity=async()=>{},load=async()=>{reads++};const api=(path,options)=>new Promise(resolve=>calls.push({path,body:JSON.parse(options.body),resolve}));${saves}`});
+    const input=page.locator('#category-form input[name=name]'),button=page.locator('#category-form button');await input.fill('Reviewed category');await button.click();
+    await page.evaluate(()=>calls[0].resolve({}));await page.waitForFunction(()=>!document.querySelector('#category-form button').disabled);
+    assert.equal(await input.inputValue(),'Reviewed category');assert.deepEqual(await page.evaluate(()=>notices),['unconfirmed']);assert.equal(await page.evaluate(()=>reads),0);
+    await button.click();assert.deepEqual(await page.evaluate(()=>calls[1].body),await page.evaluate(()=>calls[0].body));
+    await page.evaluate(()=>calls[1].resolve({...calls[1].body,color:calls[1].body.color.toUpperCase(),id:'verified-category',source:'user',createdAt:'2026-10-03T00:00:00Z'}));await page.waitForFunction(()=>!document.querySelector('#category-form button').disabled);
+    assert.equal(await input.inputValue(),'');assert.equal(await page.evaluate(()=>reads),1);assert.equal((await page.evaluate(()=>notices)).length,2);
+  }finally{await browser.close()}
 });

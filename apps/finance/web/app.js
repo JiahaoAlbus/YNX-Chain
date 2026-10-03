@@ -552,6 +552,25 @@ function renderAIRecords(items){const selected=new Set($$('#ai-records input:che
 function renderSupport(s){$('#support-links').innerHTML=[['supportHelp',s.helpUrl],['supportPrivacy',s.privacyUrl],['supportDispute',s.disputeUrl]].map(([key,url])=>`<a class="panel support-card" href="${esc(url)}" rel="noreferrer"><span>${esc(financeText('verifiedPath'))}</span><strong>${esc(financeText(key))} →</strong></a>`).join('')}
 
 const formSaves=new WeakMap(),formSaveIntents=new WeakMap(),formUncommittedDrafts=new WeakMap();
+function ownedSavePayloadValid(path,body){
+  const named=value=>typeof value==='string'&&value.trim().length>0;
+  const instant=value=>typeof value==='string'&&!value.startsWith('0001-')&&Number.isFinite(Date.parse(value));
+  if(path==='/api/privacy')return ['includePayInStatements','allowAiActivityContext','alertsEnabled'].every(key=>typeof body[key]==='boolean');
+  if(path==='/api/categories')return named(body.name)&&typeof body.color==='string'&&/^#[0-9a-f]{6}$/i.test(body.color);
+  if(path==='/api/budgets')return named(body.name)&&named(body.categoryId)&&Number.isSafeInteger(body.limitYnxt)&&body.limitYnxt>0&&['weekly','monthly'].includes(body.period)&&instant(body.startsAt);
+  if(path==='/api/reminders')return named(body.title)&&['weekly','monthly','custom'].includes(body.schedule)&&instant(body.nextDueAt)&&(body.amountYnxt==null||Number.isSafeInteger(body.amountYnxt)&&body.amountYnxt>=0);
+  return false;
+}
+function ownedSaveReceiptMatches(path,body,receipt){
+  const instant=value=>typeof value==='string'&&!value.startsWith('0001-')&&Number.isFinite(Date.parse(value));
+  if(!receipt||typeof receipt!=='object'||Array.isArray(receipt))return false;
+  if(path==='/api/privacy')return instant(receipt.updatedAt)&&['includePayInStatements','allowAiActivityContext','alertsEnabled'].every(key=>typeof body[key]==='boolean'&&receipt[key]===body[key]);
+  if(typeof receipt.id!=='string'||!receipt.id.trim()||receipt.source!=='user'||!instant(receipt.createdAt))return false;
+  if(path==='/api/categories')return receipt.name===String(body.name).trim()&&typeof body.color==='string'&&/^#[0-9a-f]{6}$/i.test(receipt.color)&&receipt.color===body.color.toUpperCase();
+  if(path==='/api/budgets')return receipt.name===String(body.name).trim()&&receipt.categoryId===body.categoryId&&Number.isSafeInteger(body.limitYnxt)&&body.limitYnxt>0&&receipt.limitYnxt===body.limitYnxt&&['weekly','monthly'].includes(body.period)&&receipt.period===body.period&&instant(body.startsAt)&&instant(receipt.startsAt)&&Date.parse(receipt.startsAt)===Date.parse(body.startsAt)&&instant(receipt.updatedAt);
+  if(path==='/api/reminders')return receipt.title===String(body.title).trim()&&receipt.schedule===body.schedule&&['weekly','monthly','custom'].includes(body.schedule)&&receipt.enabled===true&&instant(body.nextDueAt)&&instant(receipt.nextDueAt)&&Date.parse(receipt.nextDueAt)===Date.parse(body.nextDueAt)&&instant(receipt.updatedAt)&&(body.amountYnxt==null?receipt.amountYnxt==null:Number.isSafeInteger(body.amountYnxt)&&body.amountYnxt>=0&&receipt.amountYnxt===body.amountYnxt)&&(receipt.sourceRef||'')===(body.sourceRef||'');
+  return false;
+}
 function retireOwnedFormSaveView(form){
   const operation=formSaves.get(form);if(!operation)return;
   // Retire only this page's UI ownership. The sent write may still have committed;
@@ -573,7 +592,9 @@ function submitForm(form,path,body,event,{method='POST',reset=true,successKey='p
   const current=()=>formSaves.get(form)===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision;
   formSaves.set(form,operation);form.setAttribute('aria-busy','true');ownedSaveStatus(form,'ownedSavePending');for(const {button} of buttons)button.disabled=true;
   operation.promise=(async()=>{try{
-    await api(path,{method,body:JSON.stringify({...JSON.parse(intent.payload),...(intent.key?{idempotencyKey:intent.key}:{})})});if(!current())return;
+    const submitted=JSON.parse(intent.payload);if(!ownedSavePayloadValid(path,submitted))throw new Error(financeText('ownedSaveUnconfirmed'));
+    const receipt=await api(path,{method,body:JSON.stringify({...submitted,...(intent.key?{idempotencyKey:intent.key}:{})})});if(!current())return;
+    if(!ownedSaveReceiptMatches(path,submitted,receipt))throw new Error(financeText('ownedSaveUnconfirmed'));
     formSaveIntents.delete(form);void attestBrowserIdentityActivity('save',event,identityRevision);
     const unchanged=formDraft(form)===operation.draft;
     if(reset&&unchanged)form.reset();
