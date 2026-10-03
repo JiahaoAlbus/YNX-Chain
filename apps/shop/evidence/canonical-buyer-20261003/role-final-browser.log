@@ -1,0 +1,56 @@
+
+Running 3 tests using 1 worker
+
+(node:3980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: approved stays in the original Seller namespace (2.2s)
+  ✓  2 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: rejected stays in the original Seller namespace (1.5s)
+  ✘  3 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: tampered-then-approved stays in the original Seller namespace (6.2s)
+
+
+  1) [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: tampered-then-approved stays in the original Seller namespace 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#status')
+    Expected substring: "Wallet callback rejected"
+    Received string:    "1 products with persistent inventory"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#status')
+        3 × locator resolved to <div id="status" role="status" aria-live="polite">Loading catalog…</div>
+          - unexpected value "Loading catalog…"
+        - locator resolved to <div id="status" role="status" aria-live="polite">Wallet connection restored on YNX Testnet.</div>
+        - unexpected value "Wallet connection restored on YNX Testnet."
+        10 × locator resolved to <div id="status" role="status" aria-live="polite">1 products with persistent inventory</div>
+           - unexpected value "1 products with persistent inventory"
+
+
+       8 |  const approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},now);
+       9 |  const original=createProductSessionReturnURL(registry,request,{result:'approved',approval},now);
+    > 10 |  if(outcome==='tampered-then-approved'){const broken=new URL(original);broken.searchParams.set('approval',encodeBase64url(new TextEncoder().encode(canonicalJSON({...approval,walletSignature:'0'.repeat(128)}))));await page.goto(broken.href);await expect(page.locator('#status')).toContainText('Wallet callback rejected');await expect(page.locator('#privateSession')).not.toHaveText('Private session active');}
+         |                                                                                                                                                                                                                                                                                       ^
+      11 |  await page.goto(outcome==='rejected'?createProductSessionReturnURL(registry,request,{result:'rejected',reason:'user_rejected'},now):original);await expect(page.getByRole('link',{name:'Continue to Seller Console',exact:true})).toHaveAttribute('href','https://shop.ynxweb4.com/seller/');await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
+      12 |  const before=requests.length;await page.getByRole('link',{name:'Continue to Seller Console',exact:true}).click();if(outcome==='rejected'){await expect(page.locator('#privateSession')).not.toHaveText('Private session active');expect(requests.slice(before).filter(r=>r.path==='/api/seller/stores')).toHaveLength(0);return}await expect(page.locator('#privateSession')).toHaveText('Private session active');await expect.poll(()=>requests.slice(before).filter(r=>r.path==='/api/seller/stores').length).toBe(1);
+      13 |  const wire=requests.slice(before).find(r=>r.path==='/api/seller/stores');expect(wire.headers.authorization).toBeUndefined();expect(wire.headers['x-ynx-product-session-proof-v2']).toBeTruthy();expect(wire.headers['x-ynx-product-session-action-proof-v2']).toBeTruthy();
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/role-callback.spec.mjs:10:279
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--89965-e-original-Seller-namespace-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/role-callback-shared-Shop--89965-e-original-Seller-namespace-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--89965-e-original-Seller-namespace-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/role-callback-shared-Shop--89965-e-original-Seller-namespace-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: tampered-then-approved stays in the original Seller namespace 
+  2 passed (10.6s)

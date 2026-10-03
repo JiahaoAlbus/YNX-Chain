@@ -1,0 +1,10 @@
+
+> test:browser
+> npm run build && playwright test
+
+
+> build
+> node scripts/build.mjs
+
+YNX Shop web build: dist/
+sh: playwright: command not found

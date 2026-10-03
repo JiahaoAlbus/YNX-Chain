@@ -1,0 +1,28 @@
+
+Running 21 tests using 1 worker
+
+(node:31720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  (843ms)
+  ✓   2 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  (778ms)
+  ✓   3 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  (796ms)
+  ✓   4 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent (813ms)
+  ✓   5 [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval (324ms)
+  ✓   6 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (777ms)
+  ✓   7 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (1.0s)
+  ✓   8 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (893ms)
+  ✓   9 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.1s)
+  ✓  10 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (879ms)
+  ✓  11 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (757ms)
+  ✓  12 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: approved stays in the original Seller namespace (1.5s)
+  ✓  13 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: rejected stays in the original Seller namespace (1.9s)
+  ✓  14 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: tampered-then-approved stays in the original Seller namespace (1.9s)
+  ✓  15 [chromium] › test/browser/session-ai.spec.mjs:3:1 › authoritative 401 removes private records, address fields and open dialogs (926ms)
+  ✓  16 [chromium] › test/browser/session-ai.spec.mjs:12:1 › close and reopen fences late provider chunks and run responses (901ms)
+  ✓  17 [chromium] › test/browser/session-ai.spec.mjs:33:1 › a late apply cannot open an order action or change a reopened AI dialog (2.0s)
+  ✓  18 [chromium] › test/browser/session-ai.spec.mjs:45:1 › stream 401 clears the active private session and AI presentation (811ms)
+  ✓  19 [chromium] › test/browser/session-ai.spec.mjs:55:1 › logout while Gateway challenge is pending prevents session completion (797ms)
+  ✓  20 [chromium] › test/browser/session-ai.spec.mjs:64:1 › changing buyer view closes AI and prevents a late result entering that view (915ms)
+  ✓  21 [chromium] › test/browser/session-ai.spec.mjs:78:1 › current approved AI result can be reviewed and applied only as a draft (910ms)
+
+  21 passed (23.2s)

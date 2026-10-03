@@ -1,5 +1,5 @@
-import {test,expect,installPrivateShop,orderFixture} from './shop-fixture.mjs';
-const confirmedOrder=overrides=>orderFixture({Buyer:'ynx1'+'q'.repeat(38),CartConsumption:{PreviousRevision:'qa-cart-v1',Revision:'qa-cart-consumed'},...overrides});
+import {test,expect,installPrivateShop,orderFixture,fixtureAccount} from './shop-fixture.mjs';
+const confirmedOrder=overrides=>orderFixture({Buyer:fixtureAccount,CartConsumption:{PreviousRevision:'qa-cart-v1',Revision:'qa-cart-consumed'},...overrides});
 const item={ProductID:'qa-product',VariantID:'qa-variant',Quantity:1};
 const submit=async page=>{await page.locator('#cartButton').click();await page.locator('#checkout').evaluate(form=>form.requestSubmit());};
 test('confirmed order survives cart refresh failure and no cleanup PUT is issued',async({page})=>{
@@ -13,7 +13,7 @@ test('lost response keeps exact key, changed address cannot create replacement, 
  await page.route('**/api/orders',async route=>{if(route.request().method()!=='POST'){await route.fallback();return}posts.push(route.request().postDataJSON());await route.abort('failed')});
  await page.route('**/api/orders/intent-lookup',async route=>{await route.fulfill(allowLookup?{json:confirmedOrder({ID:'recovered-checkout',Status:'payment_pending'})}:{status:404,json:{error:'not yet seen'}})});
  }});await submit(page);await expect(page.locator('#orderState')).toContainText('unconfirmed');await page.locator('#checkout [name=line1]').fill('Changed address');await page.locator('#checkout').evaluate(form=>form.requestSubmit());await expect(page.locator('#orderState')).toContainText('earlier checkout');expect(posts).toHaveLength(1);
- await page.locator('#checkout [name=line1]').fill('Private QA address');await page.locator('#checkout').evaluate(form=>form.requestSubmit());await expect.poll(()=>posts.length).toBe(2);expect(posts[1]).toEqual(posts[0]);await expect(page.locator('#orderState')).toContainText('unconfirmed');allowLookup=true;await page.getByRole('button',{name:'Recover unconfirmed checkout'}).click();await expect(page.locator('#orderState')).toContainText('Order recovered-checkout confirmed');expect(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-shop-checkout-v1:')).length)).toBe(0);
+ await page.locator('#checkout [name=line1]').fill('Private QA address');await page.locator('#checkout').evaluate(form=>form.requestSubmit());await expect.poll(()=>posts.length).toBe(2);expect(posts[1]).toEqual(posts[0]);await expect(page.locator('#orderState')).toContainText('unconfirmed');allowLookup=true;await page.getByRole('button',{name:'Recover unconfirmed checkout'}).click();await expect(page.locator('#orderState')).toContainText('Order recovered-checkout confirmed');await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-shop-checkout-v1:')).length)).toBe(0);
 });
 test('failed cart removal preserves visible original cart and concurrent clicks send one update',async({page})=>{
  let puts=0,release;const gate=new Promise(resolve=>release=resolve);await installPrivateShop(page,{cart:[item],beforeNavigate:async()=>{await page.route('**/api/cart',async route=>{if(route.request().method()!=='PUT'){await route.fallback();return}puts++;await gate;await route.fulfill({status:503,json:{error:'save unavailable'}})})}});

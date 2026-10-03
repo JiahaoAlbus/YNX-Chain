@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:98744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (1.5s)
+
+  1 passed (2.1s)

@@ -1,0 +1,61 @@
+
+> check
+> npm test && npm run build
+
+
+> test
+> node --test test/*.test.mjs
+
+✔ a late stream chunk cannot update a different account or selected store (65.69625ms)
+✔ split CRLF events render once and service failures remain visible (2.114166ms)
+✔ Seller: conflicting announcements never fall back to raw injection (2.5045ms)
+✔ Seller: ambiguous same-kind providers require selection (1.193ms)
+✔ Seller: rejected switching does not add a network or create a connection (20.482541ms)
+✔ Seller: successful switch requires independent network readback (8.528209ms)
+✔ Seller: account changes during switching fence the result (0.96375ms)
+✔ Seller: restore account drift rejects after confirmed chain (2.10875ms)
+✔ Seller: unknown chain alone permits add and a separate explicit switch (1.0325ms)
+✔ Seller: canonical event subscription observes and disposes account changes (4.031875ms)
+✔ Merchant: conflicting announcements never fall back to raw injection (2.185209ms)
+✔ Merchant: ambiguous same-kind providers require selection (1.858625ms)
+✔ Merchant: rejected switching does not add a network or create a connection (2.266083ms)
+✔ Merchant: successful switch requires independent network readback (1.638625ms)
+✔ Merchant: account changes during switching fence the result (1.854791ms)
+✔ Merchant: restore account drift rejects after confirmed chain (2.229333ms)
+✔ Merchant: unknown chain alone permits add and a separate explicit switch (2.32625ms)
+✔ Merchant: canonical event subscription observes and disposes account changes (0.79075ms)
+✔ unconfirmed writes keep their key after account reauthentication but cannot cross accounts (9.444292ms)
+✔ a changed decision or target gets a new key without mutating the pending request body (0.507667ms)
+✔ consumer sends both separate proofs and exactly the signed wire bytes (15.422417ms)
+✔ sign-out during proof preparation cannot yield a sendable request (2.082625ms)
+✔ pending revocation remains Retry and prevents a new Wallet request (0.26175ms)
+✔ late device initialization receives sign-out before restoring authority (0.160375ms)
+✔ approved private account mismatch triggers exact SDK sign-out (0.135791ms)
+✔ cross-origin business requests cannot obtain proofs (0.132209ms)
+✔ release consumes the accepted endpoint manifest without claiming unavailable services (17.86025ms)
+✔ UI separates Standard Wallet, private degradation and honest guest preview (9.993125ms)
+✔ English is the first-run interface while the existing language chooser remains available (6.193917ms)
+✔ private authorization uses the approved recoverable SDK and explicit Wallet link (2.436375ms)
+✔ late success and failure cannot cross a buyer, store or view change (12.251333ms)
+✔ signout during response body decoding rejects before any private result is returned (0.112542ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (0.520792ms)
+✔ requests are bounded and cancellation does not publish private data (36.688458ms)
+✔ Seller private identity uses canonical scope-bound nonextractable SDK storage (4.506666ms)
+✔ seller console persists only locale preferences and supports RTL (0.602917ms)
+✔ prefers YNX EIP-6963 provider and switches to YNX Testnet (2.689458ms)
+✔ missing provider exposes official YNX Wallet and MetaMask choices (41.9985ms)
+✔ private service degradation preserves standard account and chain (2.944042ms)
+✔ seller UI wires operations instead of navigation shells (6.802875ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 352.828042
+
+> build
+> node scripts/build.mjs
+
+YNX Seller Console web build: dist/

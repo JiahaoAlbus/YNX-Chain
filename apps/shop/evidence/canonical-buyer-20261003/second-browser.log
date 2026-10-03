@@ -1,0 +1,193 @@
+
+Running 13 tests using 1 worker
+
+(node:98137) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (5.6s)
+(node:98146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (5.6s)
+(node:98182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (5.6s)
+(node:98212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.8s)
+
+
+  1) [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#wallet')
+    Expected: "Wallet session active"
+    Received: "Sign in with YNX Wallet"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#wallet')
+        14 × locator resolved to <button id="wallet">Sign in with YNX Wallet</button>
+           - unexpected value "Sign in with YNX Wallet"
+
+
+       at shop-fixture.mjs:56
+
+      54 |   await beforeNavigate?.({state,requests,account});
+      55 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+    > 56 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+         |                                                            ^
+      57 |   return {state,requests,account};
+      58 | }
+      59 |
+        at installPrivateShop (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/shop-fixture.mjs:56:60)
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/checkout-recovery.spec.mjs:6:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#wallet')
+    Expected: "Wallet session active"
+    Received: "Sign in with YNX Wallet"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#wallet')
+        14 × locator resolved to <button id="wallet">Sign in with YNX Wallet</button>
+           - unexpected value "Sign in with YNX Wallet"
+
+
+       at shop-fixture.mjs:56
+
+      54 |   await beforeNavigate?.({state,requests,account});
+      55 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+    > 56 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+         |                                                            ^
+      57 |   return {state,requests,account};
+      58 | }
+      59 |
+        at installPrivateShop (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/shop-fixture.mjs:56:60)
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/checkout-recovery.spec.mjs:12:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update 
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#wallet')
+    Expected: "Wallet session active"
+    Received: "Sign in with YNX Wallet"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#wallet')
+        14 × locator resolved to <button id="wallet">Sign in with YNX Wallet</button>
+           - unexpected value "Sign in with YNX Wallet"
+
+
+       at shop-fixture.mjs:56
+
+      54 |   await beforeNavigate?.({state,requests,account});
+      55 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+    > 56 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+         |                                                            ^
+      57 |   return {state,requests,account};
+      58 | }
+      59 |
+        at installPrivateShop (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/shop-fixture.mjs:56:60)
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/checkout-recovery.spec.mjs:19:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address 
+
+    Test was interrupted.
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('#wallet')
+    Expected: "Wallet session active"
+    Received: "Sign in with YNX Wallet"
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('#wallet')
+        9 × locator resolved to <button id="wallet">Sign in with YNX Wallet</button>
+          - unexpected value "Sign in with YNX Wallet"
+
+
+       at shop-fixture.mjs:56
+
+      54 |   await beforeNavigate?.({state,requests,account});
+      55 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+    > 56 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+         |                                                            ^
+      57 |   return {state,requests,account};
+      58 | }
+      59 |
+        at installPrivateShop (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/shop-fixture.mjs:56:60)
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/checkout-recovery.spec.mjs:28:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update 
+  1 interrupted
+    [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address 
+  9 did not run

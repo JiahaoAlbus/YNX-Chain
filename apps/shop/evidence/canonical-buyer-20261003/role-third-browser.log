@@ -1,0 +1,54 @@
+
+Running 1 test using 1 worker
+
+(node:2262) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate (2.2s)
+
+
+  1) [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate 
+
+    WalletAuthError: Proof must bind the exact route-required introspection scopes
+
+       at ../../../../packages/wallet-auth/src/product-session-server.js:76
+
+      74 |   return "req_product_" + [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("");
+      75 | }
+    > 76 | function fail(code, message) { throw new WalletAuthError(code, message); }
+         |                                      ^
+      77 |
+        at fail (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/packages/wallet-auth/src/product-session-server.js:76:38)
+        at ProductSessionServerAuthorizer.authorize (/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/packages/wallet-auth/src/product-session-server.js:43:108)
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/shop-fixture.mjs:44:113
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"body": null, "headers": {"accept": "*/*", "accept-language": "en-US", "content-type": "application/json", "referer": "https://shop.ynxweb4.com/seller/", "sec-ch-ua": "\"HeadlessChrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"", "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Windows\"", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36", "x-ynx-product-session-action-proof-v2": "eyJhY2NvdW50IjoieW54MTBlMDUyNXNmcmY1M3loMmFsam1tM3NuOWpxNW5qazdsbHFobjgwIiwiYXBwbGljYXRpb25JZCI6ImNvbS55bnh3ZWI0LnNob3Aud2ViIiwiYm9keURpZ2VzdCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJidW5kbGVJZCI6bnVsbCwiY2FsbGJhY2siOiJodHRwczovL3Nob3AueW54d2ViNC5jb20vd2FsbGV0LWF1dGgvY2FsbGJhY2siLCJjbGllbnRJZCI6InlueC1zaG9wLXYxIiwiZGV2aWNlSWQiOiJ3ZWJfTTFVQUpvVGwxWmFHM09ta3JTcFpzUHFSNHFzVC1FUk81YjVsdklQOG5KYyIsImRldmljZUtleSI6IkF3U0oyeUt2Z19xV3ZpbVNoaUxSSlNpU3pqcFZ2Smdfd2l4MG00cXd6dXdaIiwiZXhwaXJlc0F0IjoiMjAyNi0xMC0wM1QwNToyMToxNC4xNDVaIiwiaXNzdWVkQXQiOiIyMDI2LTEwLTAzVDA1OjIwOjQ0LjE0NVoiLCJtZXRob2QiOiJHRVQiLCJub25jZSI6IkdQTkNRNmRPZW1HbmFSMkxxUWYwZEhCcEp2MWQtbDdVMkxuT2ZSUXVjbzgiLCJvcmlnaW4iOiJodHRwczovL3Nob3AueW54d2ViNC5jb20iLCJwYWNrYWdlSWQiOm51bGwsInBhdGgiOiIvYXBpL29yZGVycyIsInByb2R1Y3RJZCI6InNob3AiLCJzZXNzaW9uQmluZGluZyI6ImUxYTYxMDkxM2JmOWRkMTViYmFkZTg0MWQwNTliOTJlNjFkMzNiZmUyNTI1ZTFmNmI5NzUxN2RiN2E3N2UwMDciLCJzaWduYXR1cmUiOiJNRVVDSVFERHJGMWd4RDEwMHp2M3pOQ2FkVllSMmpiWmVvLUtEMVE4SGJ3S09Rcm5PZ0lnR081UXVNS1RBRjRZY25xZXh5REJXd1lvRzJ3UFFuMUdfSDc4VkI4bloydyIsInZlcnNpb24iOiIyIn0", "x-ynx-product-session-proof-v2": "eyJhY2NvdW50IjoieW54MTBlMDUyNXNmcmY1M3loMmFsam1tM3NuOWpxNW5qazdsbHFobjgwIiwiYXBwbGljYXRpb25JZCI6ImNvbS55bnh3ZWI0LnNob3Aud2ViIiwiYm9keURpZ2VzdCI6IjZiMzcwMWQ2YjgxYTgyYWYzNTk4NmFmOTU3ZWY1MzUwNDA0MTVhMzliZTlhZmJkMGZjNDYyMDFjMjI4NjljZjYiLCJidW5kbGVJZCI6bnVsbCwiY2FsbGJhY2siOiJodHRwczovL3Nob3AueW54d2ViNC5jb20vd2FsbGV0LWF1dGgvY2FsbGJhY2siLCJjbGllbnRJZCI6InlueC1zaG9wLXYxIiwiZGV2aWNlSWQiOiJ3ZWJfTTFVQUpvVGwxWmFHM09ta3JTcFpzUHFSNHFzVC1FUk81YjVsdklQOG5KYyIsImRldmljZUtleSI6IkF3U0oyeUt2Z19xV3ZpbVNoaUxSSlNpU3pqcFZ2Smdfd2l4MG00cXd6dXdaIiwiZXhwaXJlc0F0IjoiMjAyNi0xMC0wM1QwNToyMToxNC4xNDVaIiwiaXNzdWVkQXQiOiIyMDI2LTEwLTAzVDA1OjIwOjQ0LjE0NVoiLCJtZXRob2QiOiJQT1NUIiwibm9uY2UiOiJtVnh4Z2ljSlRLVE03d1dod3RDaHE3cFJPcllKRkxHRkdfbHhoeDFyXzZjIiwib3JpZ2luIjoiaHR0cHM6Ly9zaG9wLnlueHdlYjQuY29tIiwicGFja2FnZUlkIjpudWxsLCJwYXRoIjoiL3YyL3Byb2R1Y3Qtc2Vzc2lvbnMvaW50cm9zcGVjdCIsInByb2R1Y3RJZCI6InNob3AiLCJzZXNzaW9uQmluZGluZyI6ImUxYTYxMDkxM2JmOWRkMTViYmFkZTg0MWQwNTliOTJlNjFkMzNiZmUyNTI1ZTFmNmI5NzUxN2RiN2E3N2UwMDciLCJzaWduYXR1cmUiOiJNRVVDSUNLNmRvUkxYUGM0bFRFdDNvVnJOdUJ0T2wzclZoOGpyaG4zMTI3OGlpVUJBaUVBOVUwc1lPZkxSRkxkcWRSWDlOMUEtTnVIRWxtNzdXaUd2WU1FUmV0MDk5TSIsInZlcnNpb24iOiIyIn0"}, "method": "GET", "path": "/api/orders"}]
+
+      10 |  const before=requests.length;await page.getByRole('link',{name:'Continue to Seller Console',exact:true}).click();await expect(page.locator('#privateSession')).toHaveText('Private session active');await expect.poll(()=>requests.slice(before).filter(r=>r.path==='/api/seller/stores').length).toBe(1);
+      11 |  const wire=requests.slice(before).find(r=>r.path==='/api/seller/stores');expect(wire.headers.authorization).toBeUndefined();expect(wire.headers['x-ynx-product-session-proof-v2']).toBeTruthy();expect(wire.headers['x-ynx-product-session-action-proof-v2']).toBeTruthy();
+    > 12 |  expect(requests.slice(before).filter(r=>r.path==='/api/cart'||r.path==='/api/profile'||r.path==='/api/orders')).toHaveLength(0);
+         |                                                                                                                  ^
+      13 |  expect(await page.evaluate(()=>sessionStorage.getItem('ynx_wallet_pending'))).toBe('original-legacy-data');
+      14 | });
+      15 |
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/role-callback.spec.mjs:12:114
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate 

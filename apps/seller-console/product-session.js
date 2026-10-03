@@ -54,6 +54,6 @@ export function createPrivateSessionController({productId,scopes,purpose,endpoin
    headers.set('X-YNX-Product-Session-Proof-V2',proof.introspection.proofHeader);
    headers.set('X-YNX-Product-Session-Action-Proof-V2',proof.proofHeader);
    return {...options,method,headers,...(method==='GET'?{body:undefined}:{body:proof.body})};
-  },get signoutPending(){return signoutPending}
+  },get state(){return resource?.client.current??null},get signoutPending(){return signoutPending}
  });
 }

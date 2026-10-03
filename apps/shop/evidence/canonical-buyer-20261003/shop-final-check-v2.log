@@ -1,0 +1,48 @@
+
+> check
+> npm test && npm run build
+
+
+> test
+> node --test test/*.test.mjs
+
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (20.319083ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (0.995416ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (16.092958ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (6.817875ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (2.952833ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (1.409834ms)
+✔ privacy lock checks durable intent after a competing preparation (0.692334ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (15.739458ms)
+✔ activation only removes old Shop shells, preserving other products (0.714125ms)
+✔ privacy copy covers all twelve product locales (1.6305ms)
+✔ non-English privacy controls do not silently use English copy (0.134417ms)
+✔ late success and failure cannot cross a buyer, store or view change (15.781583ms)
+✔ signout during response body decoding rejects before any private result is returned (0.112584ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (1.165125ms)
+✔ requests are bounded and cancellation does not publish private data (15.417708ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (3.088167ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (1.055417ms)
+✔ marketplace promise strip is localized in all twelve locales (1.718833ms)
+✔ buyer UI wires full order lifecycle (6.585916ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (2.296125ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (1.668875ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.232417ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.176584ms)
+✔ refresh restores an already-approved account without prompting again (0.1945ms)
+✔ account and chain events update or invalidate the standard connection (0.200791ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.213916ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.129084ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 111.680875
+
+> build
+> node scripts/build.mjs
+
+YNX Shop web build: dist/

@@ -1,0 +1,47 @@
+
+Running 1 test using 1 worker
+
+(node:1498) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate (6.9s)
+
+
+  1) [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator: getByRole('link', { name: 'Continue to Seller Console', exact: true })
+    Expected: "https://shop.ynxweb4.com/seller/"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for getByRole('link', { name: 'Continue to Seller Console', exact: true })
+
+
+       7 |  const request=parseProductSessionWalletURL(registry,await open.getAttribute('href')),now=new Date();expect(request.scopes).toEqual(['account:read','shop:seller:operate']);
+       8 |  const approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},now);
+    >  9 |  await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},now));await expect(page.getByRole('link',{name:'Continue to Seller Console',exact:true})).toHaveAttribute('href','https://shop.ynxweb4.com/seller/');await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
+         |                                                                                                                                                                                        ^
+      10 |  const before=requests.length;await page.getByRole('link',{name:'Continue to Seller Console',exact:true}).click();await expect(page.locator('#privateSession')).toHaveText('Private session active');await expect.poll(()=>requests.slice(before).filter(r=>r.path==='/api/seller/stores').length).toBe(1);
+      11 |  const wire=requests.slice(before).find(r=>r.path==='/api/seller/stores');expect(wire.headers.authorization).toBeUndefined();expect(wire.headers['x-ynx-product-session-proof-v2']).toBeTruthy();expect(wire.headers['x-ynx-product-session-action-proof-v2']).toBeTruthy();
+      12 |  expect(requests.slice(before).filter(r=>r.path==='/api/cart'||r.path==='/api/profile'||r.path==='/api/orders')).toHaveLength(0);
+        at /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/browser/role-callback.spec.mjs:9:184
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/role-callback-shared-Shop--43ed3-ps-Buyer-authority-separate-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate 

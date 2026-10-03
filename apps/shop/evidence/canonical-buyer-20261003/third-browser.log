@@ -1,0 +1,20 @@
+
+Running 13 tests using 1 worker
+
+(node:99088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (1.6s)
+  ✓   2 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (1.1s)
+  ✓   3 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (957ms)
+  ✓   4 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.2s)
+  ✓   5 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (1.1s)
+  ✓   6 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (808ms)
+  ✓   7 [chromium] › test/browser/session-ai.spec.mjs:3:1 › authoritative 401 removes private records, address fields and open dialogs (1.0s)
+  ✓   8 [chromium] › test/browser/session-ai.spec.mjs:12:1 › close and reopen fences late provider chunks and run responses (935ms)
+  ✓   9 [chromium] › test/browser/session-ai.spec.mjs:33:1 › a late apply cannot open an order action or change a reopened AI dialog (2.1s)
+  ✓  10 [chromium] › test/browser/session-ai.spec.mjs:45:1 › stream 401 clears the active private session and AI presentation (878ms)
+  ✓  11 [chromium] › test/browser/session-ai.spec.mjs:55:1 › logout while Gateway challenge is pending prevents session completion (829ms)
+  ✓  12 [chromium] › test/browser/session-ai.spec.mjs:64:1 › changing buyer view closes AI and prevents a late result entering that view (953ms)
+  ✓  13 [chromium] › test/browser/session-ai.spec.mjs:78:1 › current approved AI result can be reviewed and applied only as a draft (1.1s)
+
+  13 passed (16.4s)

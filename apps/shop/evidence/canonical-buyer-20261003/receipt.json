@@ -1,0 +1,430 @@
+{
+  "schemaVersion": "ynx-commerce-canonical-buyer-and-role-source/v1",
+  "classification": "LOCAL_SOURCE_AND_CONTROLLED_SOFTWARE_AUTHORITY_QA_ONLY",
+  "sourceBasis": "ffd89495915afd5ab5ad35f2fd7be582ac978a1f",
+  "backendCommitUnchanged": "be2280869895bc4ee5895b31b66b90a17a732b6f",
+  "backendSchema": 14,
+  "SDK": {
+    "source": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "version": "1.2.0",
+    "artifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+    "exactArtifactConsumed": true
+  },
+  "buyer": {
+    "productId": "shop",
+    "scopes": [
+      "account:read",
+      "shop:orders:write",
+      "shop:profile:write"
+    ],
+    "actualRecoverableSDK": true,
+    "dualProofSender": true,
+    "rawBusinessBodyPreserved": true,
+    "bearerRemoved": true,
+    "publicCatalogRemainsPublic": true,
+    "originalCheckoutCASIntentAndAddressRecoveryPreserved": true,
+    "legacyRecordsUnchanged": true,
+    "standardTransport": "Original owned EIP-1193 orchestration retained; actual SDK StandardWalletConnection migration still pending"
+  },
+  "sharedCallback": {
+    "buyerAndSellerNamespacesSeparate": true,
+    "unverifiedApprovalScopesOnlyRoutingHint": true,
+    "actualSDKValidatesOriginalRequestApprovalSignatureNonceStateDeviceAndAuthority": true,
+    "sellerApprovedRejectedTamperedThenExactRetryVerified": true,
+    "sellerGrantNeverAdoptedAsBuyer": true,
+    "callbacksRemainLiveNetwork": true
+  },
+  "entries": {
+    "shop": "https://shop.ynxweb4.com/",
+    "seller": "https://shop.ynxweb4.com/seller/",
+    "merchant": "https://pay.ynxweb4.com/merchant/",
+    "sourceNavigationAlignedToOriginalContract": true,
+    "assetBases": [
+      "/",
+      "/seller/",
+      "/merchant/"
+    ],
+    "productionMountVerified": false
+  },
+  "verification": {
+    "unitTests": {
+      "shop": 27,
+      "seller": 40,
+      "merchant": 26
+    },
+    "browserTests": 21,
+    "failed": 0,
+    "skipped": 0,
+    "allThreeBuilds": true,
+    "actualSDKWebCryptoGatewayChallengeCompletionIntrospectionAndActionSignatures": true,
+    "authority": "Controlled in-memory SDK Gateway HTTP handler and Node-host-compatible time response; software test key only",
+    "business": "Controlled original-shape fixtures; no live business or funds",
+    "layout": {
+      "viewports": 320,
+      "locales": [
+        "en",
+        "zh-CN",
+        "ar"
+      ],
+      "preset": "larger",
+      "browser200CombinedWithPresetRootPercent": 230,
+      "clickHeightAtLeast44": true,
+      "noDocumentHorizontalOverflow": true,
+      "bottomNavFitsReservedSpace": true,
+      "RTLLogicalOrder": true,
+      "privateControlCopyLocales": 12,
+      "visualInspected": [
+        "ar200",
+        "zh-CN"
+      ],
+      "mobileHeaderScrollsAway": true,
+      "focusedFinalLayoutTests": 4,
+      "full21RunBeforeOnlyMobileHeaderCSSAndProbeRefinement": true
+    },
+    "dependencyMetadataOnly": true,
+    "dependenciesInstalled": false
+  },
+  "sourceFiles": [
+    {
+      "path": "apps/merchant-console/src/app.js",
+      "bytes": 33763,
+      "sha256": "08d75159b4fcf3b857b7186e79aeee46b768c8aff30f561d6a8a52ca8e2ddcb7"
+    },
+    {
+      "path": "apps/merchant-console/src/index.html",
+      "bytes": 1230,
+      "sha256": "fb56a54e94302b28d9882dd023928ec6fff45c51df63c46a4081f18fcf6eacda"
+    },
+    {
+      "path": "apps/seller-console/app.js",
+      "bytes": 42155,
+      "sha256": "55f1f542a36fc79e2b90bbf40cddb743af33185cdcb5e8dff9a37fb707297a06"
+    },
+    {
+      "path": "apps/seller-console/index.html",
+      "bytes": 9889,
+      "sha256": "bb4a47a7bec16d6fb37514dd1e16715456633ab495e770706ebae1633b1dcd7a"
+    },
+    {
+      "path": "apps/seller-console/private-copy.js",
+      "bytes": 4633,
+      "sha256": "5ffcd4b4b0cee53e23bd5d60cad4b9383618d3c08abe88a0f4989ba3592c168e"
+    },
+    {
+      "path": "apps/seller-console/product-session.js",
+      "bytes": 4509,
+      "sha256": "04759ee604d90d5c41b39e1e0a63be23a495fec96bde32a54ba9470c5feecd7d"
+    },
+    {
+      "path": "apps/seller-console/test/release_wallet.test.mjs",
+      "bytes": 2490,
+      "sha256": "9c335488cbb191d78de8937024bb565be606a4032bdbb4298af47e2241dbc8cd"
+    },
+    {
+      "path": "apps/shop/app.js",
+      "bytes": 31732,
+      "sha256": "f7cbb72139d39ab2f6d365a23bfb7491255f239f6027188fba5bb0293c8d2e40"
+    },
+    {
+      "path": "apps/shop/index.html",
+      "bytes": 8306,
+      "sha256": "d43ec156845e6e614190e1540473372d275591a3f88cc7693941c49976543986"
+    },
+    {
+      "path": "apps/shop/package-lock.json",
+      "bytes": 66886,
+      "sha256": "2bf91a1a93e51a3aab0ea8f96e9f1198487fc81643d20c08d08fbeae643d0dc8"
+    },
+    {
+      "path": "apps/shop/package.json",
+      "bytes": 585,
+      "sha256": "95106177de8e4762a58984f8959c5292823c2aab6424107a78df1b1ddcb7f1b7"
+    },
+    {
+      "path": "apps/shop/playwright.config.mjs",
+      "bytes": 404,
+      "sha256": "82dac214704f1bc8818e73179b066dbb3692f9621d4040d25fcb3afc4f725262"
+    },
+    {
+      "path": "apps/shop/scripts/build.mjs",
+      "bytes": 1013,
+      "sha256": "8220a16539ab1fb5331b826b466bd2ffb939a165aa7a3b10839dd465f878ec6f"
+    },
+    {
+      "path": "apps/shop/styles.css",
+      "bytes": 12034,
+      "sha256": "4a3e0941ea50e5c1d00d0ad33f6c087862df47e3fe6e317535738af6dac1bdae"
+    },
+    {
+      "path": "apps/shop/sw.js",
+      "bytes": 1410,
+      "sha256": "94aa53084be34673226e0e57edd5dbbd9dd7d67828b16c94300e618a8be7051b"
+    },
+    {
+      "path": "apps/shop/test/browser/canonical-layout.spec.mjs",
+      "bytes": 2921,
+      "sha256": "855a0a5c0e64a4d6d0449f8579978e527d95d2859c4976d43f858a03f729b966"
+    },
+    {
+      "path": "apps/shop/test/browser/checkout-recovery.spec.mjs",
+      "bytes": 6740,
+      "sha256": "49cf4550f5bd80d6553c55f520a8fd0f2bc1f7492160f3820904ff987dafd4f1"
+    },
+    {
+      "path": "apps/shop/test/browser/role-callback.spec.mjs",
+      "bytes": 3228,
+      "sha256": "b22728b03e7df1ca48047a2a8fe260743bb17d06eb66e734369d3f0db1ff5558"
+    },
+    {
+      "path": "apps/shop/test/browser/session-ai.spec.mjs",
+      "bytes": 9512,
+      "sha256": "ace637a522d25943b6abee0bde164b8e520a580a7c95c35b07fa53f488f4dde0"
+    },
+    {
+      "path": "apps/shop/test/browser/shop-fixture.mjs",
+      "bytes": 8829,
+      "sha256": "41ae7bbe32b96cf6d8d359c039fd59cde270d6f91e02a2f5094aac85519005b5"
+    },
+    {
+      "path": "apps/shop/test/offline-boundary.test.mjs",
+      "bytes": 1818,
+      "sha256": "c1c1d39d532c8b03c42ba61a81b2197212f3b18b53725b6b13ac3a4f63b427ef"
+    },
+    {
+      "path": "apps/shop/test/security_i18n.test.mjs",
+      "bytes": 1689,
+      "sha256": "33d4705e36ccecd7b90536e46f41a0b6c570b070912a5dba35b65933ffc04402"
+    },
+    {
+      "path": "apps/shop/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+      "bytes": 553264,
+      "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+    },
+    {
+      "path": "apps/shop/wallet-auth.js",
+      "bytes": 11204,
+      "sha256": "7b5bdc7aa9528907525b543e995eec7689f2985d4f8c22a23246e7763cd44bd7"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "buyer-canonical-ar-200.png",
+      "bytes": 216522,
+      "sha256": "686954356207b4a109866616694916cb59c9f2da4bd0bf88ae97a4c692ab2ef5"
+    },
+    {
+      "path": "buyer-canonical-ar.png",
+      "bytes": 101786,
+      "sha256": "057753469dc5a8875a1225b01d946aee1c82a72252bbbf5bc58549b7144add6d"
+    },
+    {
+      "path": "buyer-canonical-en.png",
+      "bytes": 118266,
+      "sha256": "aa1d3e4e6ee788ae0bba2e383340e756d4f70a93b51ba8bcfa4b2236af18adf5"
+    },
+    {
+      "path": "buyer-canonical-zh-CN.png",
+      "bytes": 120167,
+      "sha256": "6e3b82f7b2efe1f0b19a50e5ca1968bdc60bf51da09e52c22f9f3f213890a37f"
+    },
+    {
+      "path": "callback-base-browser.log",
+      "bytes": 369,
+      "sha256": "05ecefb4fc6b95b370e6ad4ff74d40c4b24c6fa837fd0afd74d42afb9883bea4"
+    },
+    {
+      "path": "callback-base-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "exact-final-browser.log",
+      "bytes": 3388,
+      "sha256": "5af97ba876e56bbc32070d711c4e1f297933bd53f122798d716647c30b0d02b6"
+    },
+    {
+      "path": "final-browser-first.log",
+      "bytes": 3388,
+      "sha256": "fbb6b87f3812f784c52e311e3e69600edf4adc156ca3f54e92634fa46086915a"
+    },
+    {
+      "path": "final-browser.log",
+      "bytes": 3389,
+      "sha256": "da7b65ee0e18887e4de1a50e45246d52fea8eb54c17ddcc48d662edbc2ebe337"
+    },
+    {
+      "path": "final-lock-metadata-v2.log",
+      "bytes": 131,
+      "sha256": "f9c9eda1d380a16740e56055967ade2371fd98092e7ff17e5babe7204433d8fc"
+    },
+    {
+      "path": "final-lock-metadata.log",
+      "bytes": 134,
+      "sha256": "5590125d2574996816f55abae1ce0c877312c48da7d669f9af4d13d49040e9cc"
+    },
+    {
+      "path": "first-browser.log",
+      "bytes": 147,
+      "sha256": "44f119d98adc3e6607685fcf5b34198d953174df248b09f3885673ac3d2ccc1d"
+    },
+    {
+      "path": "first-check.log",
+      "bytes": 591,
+      "sha256": "c847c90cfd13e347c67a7ef65f70c0c473091aee27afa24d93f7273529b848e2"
+    },
+    {
+      "path": "localized-final-browser.log",
+      "bytes": 7990,
+      "sha256": "94ea7a59d34ae8583b6e3a437828ab8c25f8beb99bb87f1d6c34be3a1d2d779f"
+    },
+    {
+      "path": "lock-metadata-v2.log",
+      "bytes": 134,
+      "sha256": "3d047415d1ff61cc6f0ecd2ac2b1950f0ecb52d904b11d40e4dcd540b968dbe2"
+    },
+    {
+      "path": "lock-metadata.log",
+      "bytes": 21,
+      "sha256": "cb418be4e38f07cf936c67caea2ea0cebfa85be72e846c1fbfc1853cd8fd7c84"
+    },
+    {
+      "path": "merchant-console-final-check.log",
+      "bytes": 2749,
+      "sha256": "050731c5d7bdc1a0a7213bbe42cdb9c74d8d6cd96719aaf39c8133f346c5eb8d"
+    },
+    {
+      "path": "merchant-console-localized-final-check.log",
+      "bytes": 2766,
+      "sha256": "1db2fec23cef08b7da543482067fae2933598b15b07ba2cb7de0fde2ed03421c"
+    },
+    {
+      "path": "mobile-header-browser.log",
+      "bytes": 762,
+      "sha256": "e66ce1c6b98e96e184090658efa042051092fe97b840e27d599d6f0d5339cb4a"
+    },
+    {
+      "path": "mobile-header-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "rejection-browser.log",
+      "bytes": 667,
+      "sha256": "d58a027c45bbfa24f8194893547653f7f72190fc491cd3049267a19e096db6e0"
+    },
+    {
+      "path": "rejection-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "role-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "role-final-browser.log",
+      "bytes": 5714,
+      "sha256": "f11bd556f9277b4c367e491e04b2fda2c82a8a2fcad1cf203bbd2d793348da61"
+    },
+    {
+      "path": "role-final-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "role-first-browser.log",
+      "bytes": 3875,
+      "sha256": "431be4b3d252f0e41b41c5cbf8c706a93379932d1ba26ccb3e4d0d0950e21046"
+    },
+    {
+      "path": "role-fourth-browser.log",
+      "bytes": 380,
+      "sha256": "26b308f28116a4ceb9d18be2291a503054232a0f2951ba5915e0676d803f3668"
+    },
+    {
+      "path": "role-second-browser.log",
+      "bytes": 4389,
+      "sha256": "45153be78aa0526b438ab84395b3e5e21f6b1b48910ff5198ead9991427b4957"
+    },
+    {
+      "path": "role-third-browser.log",
+      "bytes": 7284,
+      "sha256": "52829791f537c75d1dc9be9158651daaf86c00dfc83984a5a4201d889126e5f7"
+    },
+    {
+      "path": "second-browser.log",
+      "bytes": 15785,
+      "sha256": "abe979478d0f872c80e908e1c8d301a3fa364cf5a3848b70a7f1a7b324a2406e"
+    },
+    {
+      "path": "second-check.log",
+      "bytes": 2637,
+      "sha256": "cbfad92bb7d24d543dec9981b543e558e28c2b9db51bb954b8e8cf84e04ea525"
+    },
+    {
+      "path": "seller-console-final-check.log",
+      "bytes": 3729,
+      "sha256": "de1cb6bd2db914dcedbda8e7d7eb3c5da90fba00bfaa695a9cafa4ee5edfa5b7"
+    },
+    {
+      "path": "seller-console-localized-final-check.log",
+      "bytes": 3722,
+      "sha256": "4c57a7121a40ff47d7069344579c3c0506379c525fdfa0c54a1a4c164658ff99"
+    },
+    {
+      "path": "seller-console-role-check.log",
+      "bytes": 3735,
+      "sha256": "a362d816c3dec97f094445d6c645fb5f0167209fc70f11ac445b2ca765115a8f"
+    },
+    {
+      "path": "shop-final-check-v2.log",
+      "bytes": 2643,
+      "sha256": "e05c0f5fc9d5a5c8de7f29912e94a3fdff1d24d78caca3044e39fe4e13b53ff7"
+    },
+    {
+      "path": "shop-final-check.log",
+      "bytes": 2644,
+      "sha256": "e0a17561db3ce5d4f18fcd1b21d9fcfb3246fd70978cb21e15ab1bcaf646589e"
+    },
+    {
+      "path": "shop-localized-final-check.log",
+      "bytes": 2645,
+      "sha256": "5248b2bbfbaa47de04d0bb5935e793e037872ba987a3ca80eb3accebcb23e785"
+    },
+    {
+      "path": "shop-role-check.log",
+      "bytes": 2641,
+      "sha256": "3b1b314c1b66472721fe6d4c0c20ba315d3df1e6330c312050f43c00dc814b8a"
+    },
+    {
+      "path": "third-browser.log",
+      "bytes": 2198,
+      "sha256": "145156838dc813cee44555e649c5511477124d4ce633b17bb00a72ad05fab733"
+    }
+  ],
+  "failuresRetained": [
+    "First metadata/check commands were run at the QA parent without a manifest",
+    "QA shared root has no playwright bin shim; actual locked cli used directly",
+    "Actual callback relative asset path failure repaired with canonical bases",
+    "Controlled Seller fixture directory mapping repaired",
+    "Callback continuation/status overwritten by catalog repaired",
+    "No selected seller store no longer loads unrelated order view",
+    "Invalid signed callback now reports SDK failure instead of hiding it",
+    "Checkout browser assertion now waits for actual async durable cleanup; still asserts exact key removal"
+  ],
+  "remaining": [
+    "A Merchant canonical membership and role readback carrier plus final business sender",
+    "A actual accepted Gateway endpoints, canonical mounts and production actor binder",
+    "Shop standard transport actual SDK consumption",
+    "Independent full-source admission",
+    "Public real Wallet approval and live own-business readback",
+    "Installed Android/macOS/Web complete flow"
+  ],
+  "merchantMembershipVerified": false,
+  "realWalletApproved": false,
+  "productionHostWritten": false,
+  "publicRuntimeVerified": false,
+  "installedNativeVerified": false,
+  "fullGoalComplete": false
+}

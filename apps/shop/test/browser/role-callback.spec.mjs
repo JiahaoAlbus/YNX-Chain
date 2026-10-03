@@ -1,0 +1,16 @@
+import {test,expect,installPrivateShop} from './shop-fixture.mjs';
+import {parseProductSessionWalletURL,signProductSessionApproval,createProductSessionReturnURL,encodeBase64url,canonicalJSON} from '@ynx-chain/wallet-auth';
+for(const outcome of ['approved','rejected','tampered-then-approved'])test(`shared Shop callback: ${outcome} stays in the original Seller namespace`,async({page})=>{
+ const {requests,registry}=await installPrivateShop(page);
+ await page.route('**/seller/runtime-config.js',route=>route.fulfill({contentType:'text/javascript',body:'globalThis.__YNX_SELLER_RUNTIME__={endpoints:{appGateway:{status:"AVAILABLE",url:"https://auth.ynxweb4.com"},sellerProductApi:{status:"AVAILABLE"}}};'}));
+ await page.goto('https://shop.ynxweb4.com/seller/');await page.locator('#wallet').click();await expect(page.locator('#wallet')).toContainText('MetaMask');await page.locator('#privateSession').click();const open=page.locator('#state a');await expect(open).toHaveAttribute('href',/^ynxwallet:/);
+ const request=parseProductSessionWalletURL(registry,await open.getAttribute('href')),now=new Date();expect(request.scopes).toEqual(['account:read','shop:seller:operate']);
+ const approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},now);
+ const original=createProductSessionReturnURL(registry,request,{result:'approved',approval},now);
+ if(outcome==='tampered-then-approved'){const broken=new URL(original);broken.searchParams.set('approval',encodeBase64url(new TextEncoder().encode(canonicalJSON({...approval,walletSignature:'0'.repeat(128)}))));await page.goto(broken.href);await expect(page.locator('#status')).toContainText('Wallet callback rejected');await expect(page.locator('#privateSession')).not.toHaveText('Private session active');}
+ await page.goto(outcome==='rejected'?createProductSessionReturnURL(registry,request,{result:'rejected',reason:'user_rejected'},now):original);await expect(page.getByRole('link',{name:'Continue to Seller Console',exact:true})).toHaveAttribute('href','https://shop.ynxweb4.com/seller/');await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
+ const before=requests.length;await page.getByRole('link',{name:'Continue to Seller Console',exact:true}).click();if(outcome==='rejected'){await expect(page.locator('#privateSession')).not.toHaveText('Private session active');expect(requests.slice(before).filter(r=>r.path==='/api/seller/stores')).toHaveLength(0);return}await expect(page.locator('#privateSession')).toHaveText('Private session active');await expect.poll(()=>requests.slice(before).filter(r=>r.path==='/api/seller/stores').length).toBe(1);
+ const wire=requests.slice(before).find(r=>r.path==='/api/seller/stores');expect(wire.headers.authorization).toBeUndefined();expect(wire.headers['x-ynx-product-session-proof-v2']).toBeTruthy();expect(wire.headers['x-ynx-product-session-action-proof-v2']).toBeTruthy();
+ expect(requests.slice(before).filter(r=>r.path==='/api/cart'||r.path==='/api/profile'||r.path==='/api/orders')).toHaveLength(0);
+ expect(await page.evaluate(()=>sessionStorage.getItem('ynx_wallet_pending'))).toBe('original-legacy-data');
+});

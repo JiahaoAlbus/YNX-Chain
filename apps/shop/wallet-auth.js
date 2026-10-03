@@ -1,22 +1,20 @@
-import { discoverWalletProviders, WALLET_PROVIDER_KIND } from './wallet-provider-discovery.js';
-import { createRequestContext } from './request-context.js';
-
-const DB_NAME = 'ynx_product_device_v1';
-const KEY_STORE = 'keys';
-const REPLAY_STORE = 'replays';
-let bearer = '';
-let approvedSession = null;
-let sessionRevision = 0;
-let connectionRevision = 0;
-let completionInFlight = false;
-const approvalRequests = createRequestContext(() => sessionRevision + ':' + sessionStorage.getItem('ynx_wallet_pending'));
-const privateListeners = new Set();
-export const onPrivateSessionChange = listener => { privateListeners.add(listener); return () => privateListeners.delete(listener); };
-export const privateSession = () => { token(); return approvedSession; };
-function publishPrivateSession() { for (const listener of privateListeners) listener(approvedSession); }
-function discardPrivateSession() { const hadSession = Boolean(bearer || approvedSession); sessionRevision++; connectionRevision++; approvalRequests.invalidate(); bearer = ''; approvedSession = null; if (hadSession) publishPrivateSession(); }
-export function expirePrivateSession() { discardPrivateSession(); try { sessionStorage.removeItem('ynx_wallet_pending'); } catch {} }
-export function cancelWalletConnection() { connectionRevision++; }
+import {decodeBase64url} from '@ynx-chain/wallet-auth';
+import {discoverWalletProviders,WALLET_PROVIDER_KIND} from './wallet-provider-discovery.js';
+import {createPrivateSessionController} from '../seller-console/product-session.js';
+const controller=createPrivateSessionController({productId:'shop',scopes:['account:read','shop:orders:write','shop:profile:write'],purpose:'Manage my YNX Shop profile, cart, and orders on ynx_6423-1.',endpoint:()=>globalThis.__YNX_SHOP_RUNTIME__?.endpoints?.appGateway?.status==='AVAILABLE'?globalThis.__YNX_SHOP_RUNTIME__.endpoints.appGateway.url:null});
+let callbackSeller=null;
+let sessionRevision=0,connectionRevision=0;
+export const onPrivateSessionChange=controller.onChange;
+export const privateSession=controller.current;
+// The session binding identifies UI context; it is never sent as a bearer.
+export const token=()=>controller.current()?.sessionBinding||'';
+export const authorizeBusinessRequest=controller.authorize;
+export const privateSignoutPending=()=>controller.signoutPending||Boolean(callbackSeller?.signoutPending);
+function discardPrivateSession(){sessionRevision++;connectionRevision++;return clearPrivateSession()}
+export const expirePrivateSession=discardPrivateSession;
+export function cancelWalletConnection(){connectionRevision++}
+export const startPrivateSession=()=>controller.begin();
+export async function clearPrivateSession(){const states=await Promise.all([controller.clear().catch(()=>null),callbackSeller?.clear().catch(()=>null)]);return states.find(state=>state&&!['disconnected','expired'].includes(state.status))||states[0]}
 let standard = null;
 let activeProvider = null;
 let removeProviderListeners = null;
@@ -32,7 +30,6 @@ const YNX_CHAIN = Object.freeze({
 export const OFFICIAL_YNX_WALLET_DOWNLOAD_URL = 'https://www.ynxweb4.com/dapp/download';
 export const STANDARD_METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/';
 
-export const token = () => { if (approvedSession && approvedSession.expiresAt <= Date.now()) discardPrivateSession(); return bearer; };
 export const standardConnection = () => standard;
 export const onStandardConnectionChange = listener => {
   if (typeof listener !== 'function') throw new TypeError('Wallet connection listener must be a function.');
@@ -84,56 +81,35 @@ export async function restoreStandardConnection(options = {}) {
   return standard;
 }
 
-export async function completeWalletCallback() {
-  const query = new URLSearchParams(location.search);
-  const encoded = query.get('response');
-  if (!encoded) return null;
-  if (completionInFlight) throw new Error('This Wallet approval is already being completed.');
-  const pendingText = sessionStorage.getItem('ynx_wallet_pending');
-  if (!pendingText) throw new Error('Wallet callback has no matching request on this device.');
-  const pending = JSON.parse(pendingText);
-  const response = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(fromBase64url(encoded)));
-  for (const field of ['nonce', 'chainId', 'requestingProduct', 'productClientId', 'bundleId', 'productDeviceAlgorithm', 'productDeviceKey', 'callback', 'purpose']) {
-    if (response[field] !== pending[field]) throw new Error('Wallet callback binding mismatch: ' + field);
+function sellerCallbackController(){callbackSeller??=createPrivateSessionController({productId:'shop',scopes:['account:read','shop:seller:operate'],purpose:'Operate only my authorized YNX Shop seller records on ynx_6423-1.',endpoint:()=>globalThis.__YNX_SHOP_RUNTIME__?.endpoints?.appGateway?.status==='AVAILABLE'?globalThis.__YNX_SHOP_RUNTIME__.endpoints.appGateway.url:null});return callbackSeller}
+export async function completeWalletCallback(){
+ if(new URL(location.href).searchParams.has('response'))throw new Error('Legacy Shop approval requires a fresh canonical approval. Original recovery data was retained.');
+ const url=new URL(location.href);
+ // The decoded scopes select a local handler only. The approved SDK still
+ // validates the original pending nonce/state/device, signature and authority.
+ if(url.searchParams.get('result')==='approved'){
+  let hint;try{const encoded=url.searchParams.get('approval');if(encoded?.length<=16384)hint=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(decodeBase64url(encoded)))}catch{}
+  if(JSON.stringify(hint?.scopes)===JSON.stringify(['account:read','shop:seller:operate'])){
+   sellerCallbackController();
+   const seller=await callbackSeller.recover(location.href,standard?.account);
+   if(seller){history.replaceState({},'',location.pathname+location.hash);return Object.freeze({account:seller.account,expiresAt:seller.expiresAt,continuation:'seller',entry:'https://shop.ynxweb4.com/seller/'})}
+   throw new Error(callbackSeller.state?.message||'The original Seller approval was not verified.');
   }
-  if (!Number.isFinite(Date.parse(response.expiresAt)) || !Number.isFinite(Date.parse(pending.expiresAt)) || canonicalJSON(response.grantedScopes) !== canonicalJSON(pending.scopes) || Date.parse(response.expiresAt) > Date.parse(pending.expiresAt) || Date.parse(response.expiresAt) <= Date.now()) {
-    throw new Error('Wallet callback scope or expiry mismatch.');
-  }
-  const replayKey = response.requestDigest + ':' + response.nonce;
-  const assertCurrent = approvalRequests.capture();
-  completionInFlight = true;
-  try {
-  if (await replaySeen(replayKey)) throw new Error('Wallet callback replay rejected.');
-  assertCurrent();
-  const challengeEnvelope = await requestJSON('/api/auth/gateway/challenges', { method: 'POST', body: JSON.stringify(response) });
-  const challenge = challengeEnvelope.challenge || challengeEnvelope;
-  const pair = await deviceKey(response.productClientId.includes('seller') ? 'seller' : 'buyer');
-  assertCurrent();
-  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V1\n' + canonicalJSON(challenge))));
-  assertCurrent();
-  const completion = { challenge, deviceSignature: base64url(rawSignatureToDER(signature)) };
-  const session = await requestJSON('/api/auth/gateway/sessions', { method: 'POST', body: JSON.stringify(completion) });
-  if (typeof session.account !== 'string' || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(session.account) || typeof session.token !== 'string' || session.token.length < 24 || session.account !== response.account || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt) <= Date.now()) {
-    throw new Error('Central Gateway returned an invalid product session.');
-  }
-  await markReplay(replayKey);
-  assertCurrent();
-  bearer = session.token;
-  approvedSession = Object.freeze({ account: session.account, expiresAt: Date.parse(session.expiresAt) });
-  publishPrivateSession();
-  sessionStorage.removeItem('ynx_wallet_pending');
-  history.replaceState({}, '', location.pathname + location.hash);
-  return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
-  } finally { completionInFlight = false; }
+ }
+ if(url.searchParams.get('result')==='rejected'){
+  let buyerError;try{await controller.recover(location.href,standard?.account)}catch(error){buyerError=error}
+  if(!buyerError&&controller.state?.status==='disconnected'){history.replaceState({},'',location.pathname+location.hash);return Object.freeze({continuation:'buyer-rejected'})}
+  const selected=sellerCallbackController();await selected.recover(location.href,standard?.account);
+  if(selected.state?.status==='disconnected'){history.replaceState({},'',location.pathname+location.hash);return Object.freeze({continuation:'seller',entry:'https://shop.ynxweb4.com/seller/',rejected:true})}
+  if(buyerError)throw buyerError;
+  return null;
+ }
+ const session=await controller.recover(location.href,standard?.account);
+ if(!session&&url.searchParams.get('result')==='approved')throw new Error(controller.state?.message||'The original Shop approval was not verified.');
+ if(session&&new URL(location.href).searchParams.has('result'))history.replaceState({},'',location.pathname+location.hash);
+ return session;
 }
-
-export function clearWalletSession() {
-  discardPrivateSession();
-  sessionStorage.removeItem('ynx_wallet_pending');
-  clearStandardConnection();
-  try { sessionStorage.removeItem('ynx_shop_wallet_kind'); } catch {}
-}
-
+export function clearWalletSession(){discardPrivateSession();clearStandardConnection();try{sessionStorage.removeItem('ynx_shop_wallet_kind')}catch{}}
 function setStandardConnection(provider, wallet, account) {
   if (standard?.account?.toLowerCase() !== account.toLowerCase()) discardPrivateSession();
   removeProviderListeners?.();
@@ -144,7 +120,7 @@ function setStandardConnection(provider, wallet, account) {
     const next = Array.isArray(accounts) ? accounts[0] : null;
     if (!/^0x[0-9a-fA-F]{40}$/.test(next || '')) clearStandardConnection();
     else {
-      if (standard?.account?.toLowerCase() !== next.toLowerCase()) { discardPrivateSession(); sessionStorage.removeItem('ynx_wallet_pending'); }
+      if (standard?.account?.toLowerCase() !== next.toLowerCase()) { discardPrivateSession();  }
       standard = Object.freeze({ ...standard, account: next });
       emitStandardConnection();
     }
@@ -167,7 +143,7 @@ function setStandardConnection(provider, wallet, account) {
 
 function clearStandardConnection() {
   discardPrivateSession();
-  try { sessionStorage.removeItem('ynx_wallet_pending'); } catch {}
+  try {  } catch {}
   removeProviderListeners?.();
   removeProviderListeners = null;
   activeProvider = null;
@@ -201,90 +177,4 @@ function walletError(code, message, cause) {
   const error = new Error(message, cause ? { cause } : undefined);
   error.code = code;
   return error;
-}
-
-function exactConfig(config, surface) {
-  const expected = surface === 'seller'
-    ? { client: 'ynx-seller-v1', bundle: 'com.ynxweb4.seller-console', callback: 'ynxseller://wallet-auth/callback', scopes: ['account:read', 'shop:seller:operate'] }
-    : { client: 'ynx-shop-v1', bundle: 'com.ynxweb4.shop', callback: 'ynxshop://wallet-auth/callback', scopes: ['account:read', 'shop:orders:write', 'shop:profile:write'] };
-  if (config.version !== '1' || config.chainId !== 'ynx_6423-1' || config.productDeviceAlgorithm !== 'p256-sha256' || config.productClientId !== expected.client || config.bundleId !== expected.bundle || config.callback !== expected.callback || canonicalJSON(config.scopes) !== canonicalJSON(expected.scopes)) {
-    throw new Error('Unsafe Wallet product registry binding.');
-  }
-}
-
-function localizedPurpose(surface) {
-  const language = (document.documentElement.lang || navigator.language || 'en').toLowerCase();
-  const code = language.startsWith('zh-tw') || language.startsWith('zh-hant') ? 'zh-TW' : language.startsWith('zh') ? 'zh-CN' : ['ja','ko','es','fr','de','pt','ru','ar','id'].find(value => language.startsWith(value)) || 'en';
-  const buyer = { en:'Manage my YNX Shop profile, cart, and orders on ynx_6423-1 for four minutes.', 'zh-CN':'授权 YNX 商城在四分钟内管理本人于 ynx_6423-1 的资料、购物车和订单。', 'zh-TW':'授權 YNX 商城在四分鐘內管理本人於 ynx_6423-1 的資料、購物車與訂單。', ja:'YNX Shopに4分間、ynx_6423-1上の自分のプロフィール、カート、注文の管理を許可します。', ko:'YNX Shop에 4분 동안 ynx_6423-1의 내 프로필, 장바구니 및 주문 관리를 허용합니다.', es:'Autorizar durante cuatro minutos a YNX Shop para gestionar mi perfil, carrito y pedidos en ynx_6423-1.', fr:'Autoriser YNX Shop pendant quatre minutes à gérer mon profil, mon panier et mes commandes sur ynx_6423-1.', de:'YNX Shop vier Minuten lang erlauben, mein Profil, meinen Warenkorb und meine Bestellungen auf ynx_6423-1 zu verwalten.', pt:'Autorizar o YNX Shop por quatro minutos a gerenciar meu perfil, carrinho e pedidos em ynx_6423-1.', ru:'Разрешить YNX Shop на четыре минуты управлять моим профилем, корзиной и заказами в ynx_6423-1.', ar:'تفويض متجر YNX لمدة أربع دقائق لإدارة ملفي وسلتي وطلباتي على ynx_6423-1.', id:'Izinkan YNX Shop selama empat menit mengelola profil, keranjang, dan pesanan saya di ynx_6423-1.' };
-  const seller = { en:'Operate only my authorized YNX Shop seller records on ynx_6423-1 for four minutes.', 'zh-CN':'授权在四分钟内仅操作本人获准的 ynx_6423-1 商城卖家记录。', 'zh-TW':'授權在四分鐘內僅操作本人獲准的 ynx_6423-1 商城賣家記錄。', ja:'4分間、ynx_6423-1上で許可された自分のYNX Shop販売者記録のみを操作します。', ko:'4분 동안 ynx_6423-1에서 승인된 내 YNX Shop 판매자 기록만 운영합니다.', es:'Operar durante cuatro minutos solo mis registros autorizados de vendedor de YNX Shop en ynx_6423-1.', fr:'Gérer pendant quatre minutes uniquement mes données vendeur YNX Shop autorisées sur ynx_6423-1.', de:'Vier Minuten lang nur meine autorisierten YNX-Shop-Verkäuferdaten auf ynx_6423-1 bearbeiten.', pt:'Operar por quatro minutos apenas meus registros autorizados de vendedor do YNX Shop em ynx_6423-1.', ru:'В течение четырех минут работать только с разрешенными мне записями продавца YNX Shop в ynx_6423-1.', ar:'تشغيل سجلات بائع متجر YNX المصرح بها لي فقط على ynx_6423-1 لمدة أربع دقائق.', id:'Operasikan selama empat menit hanya catatan penjual YNX Shop saya yang diizinkan di ynx_6423-1.' };
-  return (surface === 'seller' ? seller : buyer)[code];
-}
-
-async function requestJSON(path, options = {}) {
-  if (location.pathname.startsWith('/shop-staging/') && path.startsWith('/api')) path = '/shop-api-staging' + path;
-  return approvalRequests.fetchJSON(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
-}
-
-async function deviceKey(surface) {
-  const id = surface === 'seller' ? 'seller-p256' : 'shop-p256';
-  const db = await openDB();
-  const existing = await transactionResult(db, KEY_STORE, 'readonly', store => store.get(id));
-  if (existing?.privateKey && existing?.publicKey) return existing;
-  const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
-  await transactionResult(db, KEY_STORE, 'readwrite', store => store.put({ id, privateKey: pair.privateKey, publicKey: pair.publicKey }));
-  return pair;
-}
-
-async function replaySeen(id) {
-  const db = await openDB();
-  return Boolean(await transactionResult(db, REPLAY_STORE, 'readonly', store => store.get(id)));
-}
-async function markReplay(id) {
-  const db = await openDB();
-  await transactionResult(db, REPLAY_STORE, 'readwrite', store => store.put({ id, consumedAt: new Date().toISOString() }));
-}
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(KEY_STORE)) request.result.createObjectStore(KEY_STORE, { keyPath: 'id' });
-      if (!request.result.objectStoreNames.contains(REPLAY_STORE)) request.result.createObjectStore(REPLAY_STORE, { keyPath: 'id' });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-function transactionResult(db, storeName, mode, action) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, mode);
-    const request = action(tx.objectStore(storeName));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-    tx.onerror = () => reject(tx.error);
-  });
-}
-function canonicalJSON(value) {
-  if (Array.isArray(value)) return '[' + value.map(canonicalJSON).join(',') + ']';
-  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalJSON(value[key])).join(',') + '}';
-  return JSON.stringify(value);
-}
-function randomBase64url(length) { const bytes = new Uint8Array(length); crypto.getRandomValues(bytes); return base64url(bytes); }
-function base64url(bytes) { let value = ''; for (const byte of bytes) value += String.fromCharCode(byte); return btoa(value).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, ''); }
-function fromBase64url(value) { const normalized = value.replaceAll('-', '+').replaceAll('_', '/'); const raw = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4)); return Uint8Array.from(raw, char => char.charCodeAt(0)); }
-function rawSignatureToDER(raw) {
-  if (raw.length !== 64) {
-    if (raw[0] === 0x30) return raw;
-    throw new Error('Product device signature format is unsupported.');
-  }
-  const integer = part => {
-    let start = 0;
-    while (start < part.length - 1 && part[start] === 0) start++;
-    let body = part.slice(start);
-    if (body[0] & 0x80) body = Uint8Array.from([0, ...body]);
-    return Uint8Array.from([0x02, body.length, ...body]);
-  };
-  const r = integer(raw.slice(0, 32));
-  const s = integer(raw.slice(32));
-  return Uint8Array.from([0x30, r.length + s.length, ...r, ...s]);
 }

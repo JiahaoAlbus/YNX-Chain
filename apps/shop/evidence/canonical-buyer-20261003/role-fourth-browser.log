@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+(node:3085) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/role-callback.spec.mjs:3:1 › shared Shop callback verifies the original Seller grant and keeps Buyer authority separate (2.1s)
+
+  1 passed (2.5s)

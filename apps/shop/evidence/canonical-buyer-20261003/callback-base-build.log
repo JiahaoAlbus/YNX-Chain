@@ -1,0 +1,5 @@
+
+> build
+> node scripts/build.mjs
+
+YNX Shop web build: dist/

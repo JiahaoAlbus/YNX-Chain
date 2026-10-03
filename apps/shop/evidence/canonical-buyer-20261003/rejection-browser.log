@@ -1,0 +1,10 @@
+
+Running 3 tests using 1 worker
+
+(node:4527) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: approved stays in the original Seller namespace (2.3s)
+  ✓  2 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: rejected stays in the original Seller namespace (1.5s)
+  ✓  3 [chromium] › test/browser/role-callback.spec.mjs:3:71 › shared Shop callback: tampered-then-approved stays in the original Seller namespace (1.9s)
+
+  3 passed (6.3s)

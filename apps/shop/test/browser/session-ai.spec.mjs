@@ -6,7 +6,7 @@ test('authoritative 401 removes private records, address fields and open dialogs
   await page.route('**/api/profile',route=>route.fulfill({status:401,contentType:'application/json',body:'{"error":"Session expired"}'}));
   await page.getByRole('button',{name:'Save profile & address',exact:true}).click();
   await expect(page.locator('#status')).toContainText('Your Shop session expired');await expect(page.locator('dialog[open]')).toHaveCount(0);await expect(page.locator('#orders')).toBeEmpty();await expect(page.locator('#cartCount')).toHaveText('0');await expect(page.locator('#profileForm [name="line1"]')).toHaveValue('');await expect(page.locator('#checkout [name="line1"]')).toHaveValue('');
-  expect(await page.evaluate(async()=> (await import('/wallet-auth.js')).token())).toBe('');
+  await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
 });
 
 test('close and reopen fences late provider chunks and run responses',async({page})=>{
@@ -55,10 +55,10 @@ test('stream 401 clears the active private session and AI presentation',async({p
 test('logout while Gateway challenge is pending prevents session completion',async({page})=>{
   let release,started=false;const gate=new Promise(resolve=>release=resolve);
   const {requests}=await installPrivateShop(page,{waitForSession:false,beforeNavigate:async()=>{
-    await page.route('**/api/auth/gateway/challenges',async route=>{started=true;await gate;await route.fulfill({contentType:'application/json',body:'{"challenge":{"nonce":"obsolete"}}'}).catch(()=>{})});
+    await page.route('**/v2/product-sessions/challenge',async route=>{started=true;await gate;await route.fallback().catch(()=>{})});
   }});
   await expect.poll(()=>started).toBe(true);await page.locator('#disconnectWallet').click();release();await expect(page.locator('#status')).toContainText('Signed out.');
-  expect(await page.evaluate(()=>sessionStorage.getItem('ynx_wallet_pending'))).toBeNull();expect(requests.filter(request=>request.path.endsWith('/gateway/sessions'))).toHaveLength(0);expect(await page.evaluate(async()=> (await import('/wallet-auth.js')).token())).toBe('');
+  expect(await page.evaluate(()=>sessionStorage.getItem('ynx_wallet_pending'))).toBe('original-legacy-data');expect(requests.filter(request=>request.path.endsWith('/product-sessions/complete'))).toHaveLength(0);await expect(page.locator('#privateSession')).not.toHaveText('Private session active');
 });
 
 test('changing buyer view closes AI and prevents a late result entering that view',async({page})=>{

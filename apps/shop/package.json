@@ -7,12 +7,17 @@
     "build": "node scripts/build.mjs",
     "smoke": "node scripts/smoke.mjs",
     "native:verify": "node native/scripts/verify.mjs",
-    "test:browser": "npm run build && playwright test"
+    "test:browser": "npm run build && playwright test",
+    "check": "npm test && npm run build"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "devDependencies": {
-    "@playwright/test": "1.61.1"
+    "@playwright/test": "1.61.1",
+    "esbuild": "0.25.12"
+  },
+  "dependencies": {
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.2.0.tgz"
   }
 }
