@@ -489,7 +489,7 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
   const act=async(mode:"new"|"retry"|"done"|"check")=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);const request=Object.freeze({account:account.account,accountPublicKey:account.accountPublicKey,to,amount:Number(amount)});
     try{lease=scope.begin({account:request.account});const activeLease=lease,client=stored&&mode!=="new"?storedChainClient(stored.origin):chainClient();let result:NativeTransferOutboxEntry;
       if(mode==="new"||mode==="done"){
-        const payBinding=await activeLease.step(()=>walletPayFlow.read(request.account));
+        const payBinding=await activeLease.step(()=>walletPayFlow.hasRetainedPayment(request.account));
         if(payBinding)throw new Error("This account has a retained Pay payment. Complete its invoice review and receipt before starting another transfer.");
       }
       if(mode==="done"){
@@ -500,6 +500,7 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
         result=await nativeOutbox.checkStatus(request.account,stored.hash,client,activeLease.assert);
       }else if(mode==="retry"){
         if(!stored)throw new Error("Stored transfer is unavailable");
+        if(await activeLease.step(()=>walletPayFlow.hasSignedRetainedPayment(request.account)))throw new Error("This signed Pay payment requires its original account-session review. Checking the original transaction remains available; no replacement was signed.");
         result=await nativeOutbox.retry(request.account,stored.hash,client,activeLease.assert,()=>authorizeLocalKeyUse("transaction-retry"));
       }else{
         result=await nativeOutbox.sendNew(request.account,client,activeLease.assert,

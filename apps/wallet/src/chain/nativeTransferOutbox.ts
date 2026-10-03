@@ -28,6 +28,22 @@ export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBO
 export class NativeTransferOutbox {
   constructor(private readonly storage:SecureStorageAdapter,private readonly now:()=>Date=()=>new Date()){}
   read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(()=>this.load(account))}
+  /** Explicit recovery of public ORIGINAL bytes retained by the Pay journal if
+   * process death happened between the two storage writes. Missing outbox never
+   * proves non-submission: restore uncertain, not new/unsent, and never POST. */
+  retainUnknown(account:string,origin:string,signed:NativeTransferPrepared,createdAt:string,assertCurrent:Guard):Promise<NativeTransferOutboxEntry>{return this.serial(async()=>{
+    assertCurrent();const existing=await this.load(account);assertCurrent();
+    if(existing){if(existing.payload!==signed.payload||existing.hash!==signed.hash||existing.origin!==origin)throw new NativeOutboxBlocked();return existing}
+    const recovered=parse({version:1,account,origin,...signed,phase:"uncertain",attempts:0,createdAt,updatedAt:this.now().toISOString(),replayed:null,durabilityEvidence:null},account);
+    let archived:string|null;
+    try{archived=await this.storage.getItem(historyKey(account,signed.hash));assertCurrent()}catch{assertCurrent();throw new NativeOutboxStorageError()}
+    if(archived!==null){
+      const done=parseHistoryRecord(archived,account,signed.hash);
+      if(done.payload!==signed.payload||done.origin!==origin)throw new NativeOutboxBlocked();
+      await this.save(done);assertCurrent();return done;
+    }
+    await this.save(recovered);assertCurrent();return recovered;
+  })}
   /** Account-bound history revalidates each saved signed original and checkpoint,
    * but returns public display fields only. An older version's last Done record
    * is retained before paging or before the next transfer can overwrite it. */
@@ -50,7 +66,7 @@ export class NativeTransferOutbox {
       return Object.freeze({records:Object.freeze(records),nextCursor:hash});
     }catch{assertCurrent();throw new NativeOutboxStorageError()}
   })}
-  async sendNew(account:string,client:NativeChainClient,assertCurrent:Guard,prepare:()=>Promise<NativeTransferPrepared>):Promise<NativeTransferOutboxEntry>{
+  async sendNew(account:string,client:NativeChainClient,assertCurrent:Guard,prepare:()=>Promise<NativeTransferPrepared>,beforeBroadcast?:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
       assertCurrent();const existing=await this.load(account);assertCurrent();
       if(existing&&existing.phase!=="done")throw new NativeOutboxBlocked();
@@ -60,7 +76,7 @@ export class NativeTransferOutbox {
       const time=this.now().toISOString();
       const record=parse({version:1,account,origin:client.origin,...signed,phase:"prepared",attempts:0,createdAt:time,updatedAt:time,replayed:null,durabilityEvidence:null},account);
       await this.save(record);assertCurrent();
-      return this.dispatch(record,client,assertCurrent,true);
+      return this.dispatch(record,client,assertCurrent,true,beforeBroadcast);
     });
   }
   async checkStatus(account:string,reviewedHash:string,client:NativeChainClient,assertCurrent:Guard):Promise<NativeTransferOutboxEntry>{
@@ -94,7 +110,7 @@ export class NativeTransferOutbox {
       await this.save(done);return done;
     });
   }
-  private async dispatch(record:NativeTransferOutboxEntry,client:NativeChainClient,assertCurrent:Guard,requireNewSendCapability=false):Promise<NativeTransferOutboxEntry>{
+  private async dispatch(record:NativeTransferOutboxEntry,client:NativeChainClient,assertCurrent:Guard,requireNewSendCapability=false,beforeBroadcast?:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
     assertCurrent();
     const dispatch=parse({...record,phase:"unknown",attempts:record.attempts+1,durabilityEvidence:null,updatedAt:this.now().toISOString()},record.account);
     await this.save(dispatch);assertCurrent();
@@ -102,6 +118,10 @@ export class NativeTransferOutbox {
     // recheck after its exact readback, immediately before the outward effect.
     // Failure leaves the conservative marker and original bytes, never a POST.
     if(requireNewSendCapability){await client.requireDurabilityCapability();assertCurrent()}
+    // A narrower product authority may expire/revoke during the last storage
+    // await. Re-introspect immediately before POST; failure preserves the exact
+    // conservative unknown marker and bytes, never authorizes a replacement.
+    if(beforeBroadcast){await beforeBroadcast();assertCurrent()}
     // From this point on, lifecycle cancellation must not erase a real network
     // result. UI owners check their lease separately before updating a screen.
     let result:BroadcastResult;

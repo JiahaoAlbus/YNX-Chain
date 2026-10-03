@@ -7,6 +7,7 @@ import {verifyNativeDurability} from "../chain/nativeDurability";
 import {NativeTransferOutbox,type NativeTransferOutboxEntry,type NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import {WalletPayInvoiceClient,WalletPayError,assertWalletPayReview,parseWalletPayInvoice,parseWalletPaySettlement,type WalletPayInvoice,type WalletPaySettlement} from "../chain/walletPayInvoice";
 import {buildWalletPayReview,type WalletPayReview} from "./walletPayReview";
+import {SIGNED_PAY_BINDING_PREFIX} from "./walletSignedPayRecord";
 
 const PREFIX="ynx.wallet.pay-binding.v1.";
 const RECEIPT_PREFIX="ynx.wallet.pay-receipt.v1.";
@@ -26,6 +27,14 @@ export class WalletPayFlow {
   constructor(private readonly storage:SecureStorageAdapter,private readonly outbox:NativeTransferOutbox,
     private readonly pay:WalletPayInvoiceClient,private readonly now:()=>number=Date.now){}
   read(account:string):Promise<WalletPayBinding|null>{return this.serial(()=>this.load(account))}
+  /** Cross-contract gate: corrupt/unknown signed bytes still block replacement.
+   * Never migrate or reinterpret them as a legacy invoice. */
+  hasSignedRetainedPayment(account:string):Promise<boolean>{return this.serial(async()=>{
+    evmAddressFromYNX(account);try{return await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account)!==null}catch{throw new WalletPayError("PAY_BINDING_STORAGE_UNAVAILABLE")}
+  })}
+  hasRetainedPayment(account:string):Promise<boolean>{return this.serial(async()=>{
+    evmAddressFromYNX(account);try{return await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account)!==null||await this.load(account)!==null}catch{throw new WalletPayError("PAY_BINDING_STORAGE_UNAVAILABLE")}
+  })}
   /** Read the retained payment and its original journal together. This never
    * queries a QR origin, signs, resends or creates a settlement session. */
   recovery(account:string,guard:Guard):Promise<WalletPayReview|null>{return this.serial(async()=>{
@@ -95,6 +104,7 @@ export class WalletPayFlow {
     prepare:(current:WalletPayInvoice)=>Promise<NativeTransferPrepared>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
       guard();if(await this.load(account))throw new WalletPayError("PAY_ORIGINAL_PAYMENT_REQUIRES_REVIEW");guard();
+      if(await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account)!==null)throw new WalletPayError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");guard();
       // A stale issued projection must never reopen an already paid invoice.
       const reviewed=parseWalletPayInvoice(invoice,invoice.id);
       let paid:string|null;try{paid=await this.storage.getItem(PAID_INVOICE_PREFIX+account+"."+reviewed.id)}
