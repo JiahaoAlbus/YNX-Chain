@@ -15,18 +15,18 @@ Production React browser evidence has 36 layout checks: widths 320/390/1440, sta
 | Surface | Current observed evidence | Remaining acceptance |
 | --- | --- | --- |
 | C/C++ | Actual Mac clang++ run; clangd C/C++ completion, definitions and diagnostics pass | Formal full-kernel user flow |
-| TS/JS | Inherited adapter and Monaco support; current server test skips because executable absent | Actual completions/definitions/diagnostics on admitted kernel |
-| Python | Inherited Pyright adapter; current test skips | Real language server and run/debug |
+| TS/JS | Real cached TypeScript completion/definitions/symbols pass with verified bundled bin path; installed JS/TS verification is recorded separately | Full-kernel language and debug user flow |
+| Python | Real cached Pyright completion/diagnostics pass with verified bundled bin path | Full-kernel language server and run/debug |
 | Go | Inherited gopls adapter; both tests skip | Actual completion/definition/rename/format/symbol flow |
 | Rust | Inherited rust-analyzer adapter; test skips | Actual language server/compiler |
-| Solidity | Inherited adapter; both LSP tests skip | Actual language and testnet deployment/readback |
+| Solidity | Real cached Nomic LSP completion/definitions and compiler diagnostics pass | Full-kernel language and actual testnet deployment/readback |
 | Java | Inherited JDT adapter; test skips | Actual Java language server/execution |
 | Editing/Explorer/search | Owned guest Monaco capabilities; native edit/save/reopen tested | Mature OpenVSCode normal-user comparison |
 | Git/debug/extensions | Existing implementations and prior scoped evidence | Full upstream extension host and real Git/debug compatibility |
 | Terminal | Actual Mac sandbox PTY/read/write/Stop/synchronization | Approved full-kernel and multi-owner containment/capacity |
 | AI | Exact inherited Tools guards/history/diff and controlled tests | Canonical identity, real model, full-kernel apply/reopen |
 
-Current language tests: 12 total, 4 pass including an input guard, 8 explicitly skipped. Skips are not successes; this is not full VS Code parity. Chrome port 41943 was a reference comparison workspace, not the formal multi-user IDE.
+Baseline language tests had 4 passes and 8 skips because packaged bins were not in PATH. The successor discovers the verified cached bins without downloading or installing anything: 12 tests total, 8 pass including an input guard and 4 explicitly skip (Go twice, Rust, Java). The desktop launcher now prepends bundled Node and packaged bin paths for Finder's minimal environment. Installed-copy verification also calls the actual JS/TS/Python/Solidity HTTP language endpoints, with success/failure retained in the exact package receipt. Skips are not successes; this is not full VS Code parity. Chrome port 41943 was a reference comparison workspace, not the formal multi-user IDE.
 
 ## A integration contract
 

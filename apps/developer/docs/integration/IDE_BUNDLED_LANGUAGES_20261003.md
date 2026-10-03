@@ -1,0 +1,11 @@
+# Bundled language-service discovery
+
+The preceding installed-preview verifier covered C++ only. Inspection found verified cached TypeScript language server, Pyright and Nomic Solidity bins already inside the package. Finder's minimal PATH did not expose them, even though the package contained their modules. No additional download, package install, language service or executor was introduced.
+
+desktop/code-server.mjs now prepends the exact bundled Node directory and packaged application node_modules/.bin after provenance validation and before importing the gateway. Project folders are not used as executable search paths. The existing dependency-link package verifier remains unchanged. A regression launches the actual launcher with a Finder-like /usr/bin:/bin:/usr/sbin:/sbin PATH and executes a bundled shebang tool through its matching interpreter. All ten provenance/launcher cases pass, including rejection before user state for invalid metadata.
+
+The actual cached language suites run with these verified bins: C/C++ completion/definitions/diagnostics, TypeScript completion/definitions/symbols, Python completion/diagnostics, Solidity completion/definitions/compiler diagnostics. Twelve tests yield eight passes and four explicit skips: Go (two), Rust and Java. This is a local macOS sandbox service result, not full OpenVSCode or public multi-language readiness.
+
+scripts/verify-local-macos-package.sh now additionally invokes scripts/verify-bundled-language-services.mjs through the installed app's Node. It sends only localhost language requests with the isolated verifier cookie jar, checks real project-symbol completions in JS/TS/Python and nonempty Solidity completions, and requires network=false for every sandbox response. Cookie/credential values are never printed. Cold startup, exact provenance/SBOM/Mach-O, C++ compilation, persistence and child cleanup remain required. Package-specific receipts identify the before/fixed results; a source-level pass is not substituted for an installed package result.
+
+Full upstream language/debug/extension-host journeys, canonical Wallet, real AI and multi-user capacity still require the A-provided approved full-kernel mount described in IDE_NATIVE_SESSION_ENTRY_20261003.md. No LXD or package-egress operation ran.

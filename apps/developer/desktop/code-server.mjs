@@ -43,6 +43,11 @@ process.env.YNX_CODE_SOURCE_TREE = provenance.sourceTree;
 process.env.YNX_CODE_WORKSPACE_SESSION_KEY = sessionKey;
 process.env.YNX_CODE_STATE_DIR = join(supportRoot, "code-state");
 process.env.YNX_CODE_STATIC_ROOT = join(applicationRoot, "frontend", "dist");
+// Finder supplies a minimal PATH. Discover the verified bundled Node and
+// language servers before inherited host tools, without an install or a
+// workspace-selected executable path.
+process.env.PATH = [dirname(process.execPath), join(applicationRoot, "node_modules", ".bin"),
+  process.env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin"].join(":");
 process.chdir(applicationRoot);
 
 await import(pathToFileURL(join(applicationRoot, "services", "gateway", "src", "server.mjs")).href);

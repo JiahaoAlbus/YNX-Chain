@@ -20,8 +20,15 @@ dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 work=$(mktemp -d /private/tmp/ynx-developer-install.XXXXXX)
 cleanup() {
   if [[ -n "${app_pid:-}" ]]; then kill "$app_pid" >/dev/null 2>&1 || true; wait "$app_pid" 2>/dev/null || true; fi
+  local preserve_work=false
+  for child_pid in "${server_pid:-}" "${second_server_pid:-}"; do
+    [[ -n "$child_pid" ]] || continue
+    for _ in {1..30}; do kill -0 "$child_pid" 2>/dev/null || break; sleep 0.1; done
+    if kill -0 "$child_pid" 2>/dev/null; then preserve_work=true; fi
+  done
   if [[ -n "${mount_point:-}" ]]; then /usr/bin/hdiutil detach "$mount_point" -quiet >/dev/null 2>&1 || true; fi
-  rm -rf "$work"
+  if [[ "$preserve_work" == true ]]; then echo "Verifier child exit is unconfirmed; isolated state retained at $work" >&2;
+  else rm -rf "$work"; fi
 }
 trap cleanup EXIT
 mount_point=$(/usr/bin/hdiutil attach -nobrowse -readonly "$dmg" | /usr/bin/awk 'match($0, /\/Volumes\/.*/) { print substr($0, RSTART); exit }')
@@ -122,6 +129,7 @@ done
 /usr/bin/curl -fsS -c "$work/cookies" "http://127.0.0.1:$runtime_port/runtime/health" | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));for(const id of ["javascript","cpp"]){if(v.compilers?.[id]!==true)throw new Error(`${id} toolchain unavailable`);}if(!v.sandboxReady)throw new Error("desktop sandbox unavailable");console.log("Bundled YNX Code runtime detected JavaScript and C++ toolchains.");'
 /usr/bin/curl -fsS -b "$work/cookies" -X POST "http://127.0.0.1:$runtime_port/runtime/tasks" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","task":"build-run-active","approval":"execute-once","activePath":"hello.cpp","projectId":"package-cpp-verification","files":{"hello.cpp":"#include <iostream>\nint main(){ std::cout << 1; return 0; }"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(!v.ok||v.code!==0||v.language!=="cpp"||v.sandbox?.network!==false)throw new Error(`C++ package compile failed: ${JSON.stringify(v)}`);console.log("Bundled YNX Code runtime completed a real bounded C++ compile.");'
 /usr/bin/curl -fsS -b "$work/cookies" -X POST "http://127.0.0.1:$runtime_port/runtime/language/cpp" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","projectId":"package-lsp-verification","files":{"main.cpp":"int square(int value) { return value * value; }\nint main(){ return square(2); }\n"},"activePath":"main.cpp","operation":"documentSymbols"}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(v.language!=="cpp"||v.operation!=="documentSymbols"||!Array.isArray(v.result)||v.result.length<1||v.sandbox?.network!==false)throw new Error(`C++ package LSP failed: ${JSON.stringify(v)}`);console.log(`Bundled YNX Code runtime completed a real C++ LSP document-symbol request with ${v.result.length} symbols.`);'
+"$app/Contents/Resources/runtime/node" scripts/verify-bundled-language-services.mjs "$runtime_port" "$work/cookies"
 /usr/bin/curl -fsS -b "$work/cookies" -X PUT "http://127.0.0.1:$runtime_port/runtime/workspaces/package-persist" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","expectedRevision":0,"idempotencyKey":"package-save-00000001","workspace":{"name":"Persistent package check","folders":[],"files":{"hello.cpp":"int main(){return 0;}"},"open":["hello.cpp"],"active":"hello.cpp"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(v.workspace?.revision!==1)throw new Error("workspace was not saved");'
 kill "$app_pid"
 wait "$app_pid" 2>/dev/null || true
