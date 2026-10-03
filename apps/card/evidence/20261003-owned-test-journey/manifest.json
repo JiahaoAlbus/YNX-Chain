@@ -1,0 +1,148 @@
+{
+  "schema": "ynx.card.owned-test-journey.v1",
+  "sourceCommit": "6d8f85ce1d483495187ec0b9f771352eb0b6c932",
+  "sourceTree": "b8dc09650b1521ef4fb9a6dec37ff9955d133418",
+  "baseCompleteCandidate": "ebde29860201dcc3aaaf8e28e02b656dbe60a96a",
+  "files": [
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/01-guest-overview.jpg",
+      "bytes": 7175,
+      "sha256": "1951546042ecaadd0bb7bdea60107a6a37936ef60f5d75078e2ba444cf5c6b61"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/02-audit.jpg",
+      "bytes": 48797,
+      "sha256": "a5fbf3875472b8673d56ce4f6da5c01cdd5dc671828684eb4c82d5c0b0e25ce4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/03-fixed-controls.jpg",
+      "bytes": 52301,
+      "sha256": "f1182e8ba83f55e74c943af0d22716b2837d5210ab1fcadc927e45435184a6fb"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/04-wallet-chooser-mobile.jpg",
+      "bytes": 51413,
+      "sha256": "bd7d5b0c38e0e2b973427dce7d0cc821543be34cbad7137b496d3a3394579fbd"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/05-wallet-chooser-desktop.jpg",
+      "bytes": 123744,
+      "sha256": "3fd510db291924e658758841f0db66aacfc52174c56e4ccbbac73fe2c159e506"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/06-desktop-cold-start.jpg",
+      "bytes": 127862,
+      "sha256": "56aa9c02d198e1c8c2357651b98af35e78945613c287a665d69403de85e09ba4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/affected-fixture-tests.log",
+      "bytes": 16810,
+      "sha256": "2b3f2f1f79576b2294eb69dca4dd1651d99fa8c8f005a2dea0522573d1e32508"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/before-and-stale-preview.json",
+      "bytes": 16950,
+      "sha256": "ecc226e86fb4cfa28cd8f27dd2fbc78c72d70498caf2d7f67208a0d498622a45"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/console.json",
+      "bytes": 672,
+      "sha256": "96d7e9133c8800b872a5eeb0570a8b48628b781c306b91efa2413e22df3279a0"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/final-browser.json",
+      "bytes": 38667,
+      "sha256": "e96c1eb88690720ccd0c88886fa00091e4f2bcf024b5046c377786f4362e1846"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/final-preview.log",
+      "bytes": 1237,
+      "sha256": "ed60db3d3c4541a278c4ab5c20dcea04b0bef707ebfc7371ffe38f83457d17e2"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/final-typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/preview-after-fix.log",
+      "bytes": 839,
+      "sha256": "06040bcfa025fac1d3e19993c28565415688eb19f4443ee28bec23c982840e59"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/preview.log",
+      "bytes": 1070,
+      "sha256": "f3d1e6d3ee155e5e41403104ada333aa3a22e8547cae4bd6e942de6d67c3ccd9"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/tests-with-tsx.log",
+      "bytes": 673,
+      "sha256": "39cad794735bf6bd3549e0fb7cca3ffc68fb883e53a9997e75893385d0c93ce2"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/tests.log",
+      "bytes": 3934,
+      "sha256": "d99eb5f085dcf8e62f707a3df23505b9747bec52e17c624df7c18f900ded0ace"
+    },
+    {
+      "path": "apps/card/evidence/20261003-owned-test-journey/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    }
+  ],
+  "actualFinding": "Control toggle changed state and immediately navigated to Activity, preventing consecutive control edits and causing switch locator post-action timeout.",
+  "fix": "Controls record local DEMO audit and notice without leaving their section; explicit card-flow demos retain Activity navigation. Web section selection is explicit aria-selected; Native retains accessibilityState.",
+  "tests": {
+    "affectedFixturesPassed": 88,
+    "failed": 0,
+    "skipped": 0,
+    "typecheck": true,
+    "newTestsWiredIntoNpmTest": true,
+    "firstNodeCommandFailed": "ERR_IMPORT_ATTRIBUTE_MISSING; original log retained; corrected tsx loader used"
+  },
+  "browser": {
+    "localOnly": true,
+    "englishDefault": true,
+    "sixSectionsOpened": true,
+    "sequentialFreezeUnfreezeOnlineInternational": true,
+    "explicitAuditVisible": true,
+    "unconnectedApplicationFailClosed": true,
+    "distinctWalletNamesAndLogosVisible": true,
+    "chooserCreatedTabs": 0,
+    "chooserClosed": true,
+    "desktop1440": true,
+    "mobile390": true,
+    "coldStartGuest": true,
+    "priorNonWatchingPreviewStillServedOldBehavior": "Retained as failed/stale observation; accepted final proof is fresh port19095."
+  },
+  "boundaries": {
+    "guestAudit": "Ephemeral local component state; reset on reload, not private durable ledger.",
+    "realOwnerIsolation": "Fixture coverage, not signed real-user E2E.",
+    "formalBuild": false,
+    "publicDeployment": false,
+    "installedWalletApproval": false,
+    "signature": false,
+    "activeCard": false,
+    "ynxtCredit": false,
+    "realPayment": false,
+    "monster": "NOT_RUN"
+  },
+  "integrationNext": {
+    "sharedRpcCandidateExists": true,
+    "requiredAuthority": "Exact accepted ynx_requestCardApplicationApproval capability/reserve/pending candidate package/source/tree plus paired Card TEST backend identity; consume under Card-owned seam. Do not invent shared RPC or mark absence from missing handoff.",
+    "backendMethods": [
+      "createRuntimeCardBusinessClient",
+      "createRuntimeProviderClient"
+    ],
+    "identityFields": [
+      "sourceCommit",
+      "sourceTree",
+      "cardApiCompatibility.frontendSourceCommit",
+      "cardApiCompatibility.frontendSourceTree",
+      "cardApiCompatibility.backendSourceCommit",
+      "cardApiCompatibility.backendVersionSchema"
+    ],
+    "productionReleaseOwner": "A",
+    "noUserConfirmationBlockerForOrdinaryOwnedDevelopment": true
+  }
+}

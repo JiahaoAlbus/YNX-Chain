@@ -1,0 +1,14 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest control changes stay in Controls and preserve their actual local state (338.736833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ local controls audit remains visible through explicit Activity navigation (60.659416ms)
+✔ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (51.820625ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 744.72075

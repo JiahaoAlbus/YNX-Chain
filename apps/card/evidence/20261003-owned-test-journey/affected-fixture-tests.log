@@ -1,0 +1,184 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest cannot fetch personal records using only Standard Wallet connectivity (227.30475ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ approved private identity loads existing records and refreshes without mutation (96.060292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ empty API state never becomes an automatically issued card or balance (85.673792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ private read failure preserves guest and uses safe localized copy, not remote text (75.303125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ identity switch hides old records synchronously and late responses cannot restore them (58.403625ms)
+✔ private degraded message follows explicit locale changes without replaying remote English text (67.514375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ each locale declares the scoped shell copy explicitly, with only valid brands and same-spelling words shared (14.906333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: actual Language page exposes localized title, Done action and all twelve named radio choices (93.970792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: actual Language page exposes localized title, Done action and all twelve named radio choices (57.971667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: actual Language page exposes localized title, Done action and all twelve named radio choices (26.78325ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: actual Language page exposes localized title, Done action and all twelve named radio choices (36.269584ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: actual Language page exposes localized title, Done action and all twelve named radio choices (31.08675ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: actual Language page exposes localized title, Done action and all twelve named radio choices (17.393916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: actual Language page exposes localized title, Done action and all twelve named radio choices (24.752042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: actual Language page exposes localized title, Done action and all twelve named radio choices (28.738333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: actual Language page exposes localized title, Done action and all twelve named radio choices (26.908083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: actual Language page exposes localized title, Done action and all twelve named radio choices (12.294125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: actual Language page exposes localized title, Done action and all twelve named radio choices (28.965541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: actual Language page exposes localized title, Done action and all twelve named radio choices (28.716833ms)
+✔ actual language selection updates the page title, Done name and checked radio together (26.784875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: every guest connection entry calls only native YNX authorization (390.598292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: every guest connection entry calls only native YNX authorization (114.972083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ web keeps its separate standard-wallet chooser and explicit MetaMask action (81.996ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: all six native sections render localized fixed text and local demo notices (94.604333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: all six native sections render localized fixed text and local demo notices (61.808625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: all six native sections render localized fixed text and local demo notices (67.047208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: all six native sections render localized fixed text and local demo notices (57.129584ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: all six native sections render localized fixed text and local demo notices (50.507834ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: all six native sections render localized fixed text and local demo notices (49.884208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: all six native sections render localized fixed text and local demo notices (47.433ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: all six native sections render localized fixed text and local demo notices (47.812291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: all six native sections render localized fixed text and local demo notices (36.973791ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: all six native sections render localized fixed text and local demo notices (37.907584ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: all six native sections render localized fixed text and local demo notices (43.683542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: all six native sections render localized fixed text and local demo notices (41.145833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Arabic compact header retains column layout without limiting text scaling (68.639708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact Arabic shares one scroll viewport for chrome, six tabs, safety boundary and real content (31.656917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact navigation measures current content then returns to the section start, including Help and repeated tabs (28.371208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ locale change with no onLayout still navigates using a fresh synchronous host measurement (30.679ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late measurement callbacks cannot override newer locale, navigation or onLayout requests (33.552417ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silent: missing or failed measure callbacks never block a fresh tab request (26.438667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ throwMeasure: missing or failed measure callbacks never block a fresh tab request (24.104167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fail: missing or failed measure callbacks never block a fresh tab request (26.218167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ invalid measured positions and late callbacks after unmount never scroll (27.31275ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ desktop keeps chrome outside its content viewport and navigation starts at content zero (24.682292ms)
+✔ crossing the compact breakpoint preserves the current owner's unsaved registration form (25.406292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: actual Card Guest chooser and errors use localized Hosted Wallet copy (325.588291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: actual Card Guest chooser and errors use localized Hosted Wallet copy (105.818667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: actual Card Guest chooser and errors use localized Hosted Wallet copy (87.237125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: actual Card Guest chooser and errors use localized Hosted Wallet copy (59.429291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: actual Card Guest chooser and errors use localized Hosted Wallet copy (53.8295ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: actual Card Guest chooser and errors use localized Hosted Wallet copy (62.858542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: actual Card Guest chooser and errors use localized Hosted Wallet copy (41.239084ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: actual Card Guest chooser and errors use localized Hosted Wallet copy (34.454584ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: actual Card Guest chooser and errors use localized Hosted Wallet copy (39.545792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: actual Card Guest chooser and errors use localized Hosted Wallet copy (34.593625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: actual Card Guest chooser and errors use localized Hosted Wallet copy (31.881042ms)
+✔ id: actual Card Guest chooser and errors use localized Hosted Wallet copy (29.864709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: real registration accepts sequential fields, prepares only after validation and safely degrades (309.028708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: real registration accepts sequential fields, prepares only after validation and safely degrades (132.890833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: real registration accepts sequential fields, prepares only after validation and safely degrades (111.665959ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: real registration accepts sequential fields, prepares only after validation and safely degrades (87.507833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: real registration accepts sequential fields, prepares only after validation and safely degrades (57.568459ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: real registration accepts sequential fields, prepares only after validation and safely degrades (51.101958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: real registration accepts sequential fields, prepares only after validation and safely degrades (53.194709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: real registration accepts sequential fields, prepares only after validation and safely degrades (41.06375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: real registration accepts sequential fields, prepares only after validation and safely degrades (44.596042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: real registration accepts sequential fields, prepares only after validation and safely degrades (34.888792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: real registration accepts sequential fields, prepares only after validation and safely degrades (36.030792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: real registration accepts sequential fields, prepares only after validation and safely degrades (34.726ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: real registration never reads or writes storage or offers web application actions (29.555208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: real registration never reads or writes storage or offers web application actions (32.199625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration read rejection shows safe localized failure and blocks actions (28.264042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ writeError: persistence failure retains the last confirmed draft without success or advancement (32.304333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silentWriteFailure: persistence failure retains the last confirmed draft without success or advancement (32.94225ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ failed draft creation does not display a draft or success (31.763708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late save completion cannot replace a newly selected wallet's form, record or notice (28.543625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late load completion after wallet switch cannot expose the prior wallet's application (30.502ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late save completion after unmount stops before persistence readback (31.197208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration UI preserves the protocol's minimum 1 YNXT and UTF-16 length validation (43.644584ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration removes old-owner fields in the first committed tree on wallet switch (28.459334ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration removes old-owner fields in the first committed tree on disconnect (30.255667ms)
+✔ changing locale preserves the current owner's unsaved registration form (32.382833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web navigation exposes one selected section before and after local controls change (310.591167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Native sections retain native selection attributes without Web-only aria props (98.315667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest control changes stay in Controls and preserve their actual local state (139.126625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ local controls audit remains visible through explicit Activity navigation (81.547875ms)
+✔ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (76.153125ms)
+ℹ tests 88
+ℹ suites 0
+ℹ pass 88
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2061.94325

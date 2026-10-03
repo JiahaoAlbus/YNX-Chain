@@ -1,0 +1,61 @@
+✖ Guest control changes stay in Controls and preserve their actual local state (41.909792ms)
+✖ local controls audit remains visible through explicit Activity navigation (0.502625ms)
+✖ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (0.379041ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 217.329167
+
+✖ failing tests:
+
+test at test/card-guest-controls-journey.test.cjs:5:1
+✖ Guest control changes stay in Controls and preserve their actual local state (41.909792ms)
+  TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module "file:///Users/huangjiahao/.codex/worktrees/f41f/YNX%20Chain/apps/card/src/registration-locales/en.json" needs an import attribute of "type: json"
+      at validateAttributes (node:internal/modules/esm/assert:99:15)
+      at defaultLoadSync (node:internal/modules/esm/load:163:3)
+      at #loadAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:809:12)
+      at #loadSync (node:internal/modules/esm/loader:841:53)
+      at ModuleLoader.loadAndTranslateForImportInRequiredESM (node:internal/modules/esm/loader:393:38)
+      at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:565:36)
+      at afterResolve (node:internal/modules/esm/loader:614:52)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:12)
+      at ModuleJobSync.syncLink (node:internal/modules/esm/module_job:277:33)
+      at ModuleJobSync.link (node:internal/modules/esm/module_job:619:17) {
+    code: 'ERR_IMPORT_ATTRIBUTE_MISSING'
+  }
+
+test at test/card-guest-controls-journey.test.cjs:20:1
+✖ local controls audit remains visible through explicit Activity navigation (0.502625ms)
+  TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module "file:///Users/huangjiahao/.codex/worktrees/f41f/YNX%20Chain/apps/card/src/registration-locales/en.json" needs an import attribute of "type: json"
+      at validateAttributes (node:internal/modules/esm/assert:99:15)
+      at defaultLoadSync (node:internal/modules/esm/load:163:3)
+      at #loadAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:809:12)
+      at #loadSync (node:internal/modules/esm/loader:841:53)
+      at ModuleLoader.loadAndTranslateForImportInRequiredESM (node:internal/modules/esm/loader:393:38)
+      at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:565:36)
+      at afterResolve (node:internal/modules/esm/loader:614:52)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:12)
+      at ModuleJobSync.syncLink (node:internal/modules/esm/module_job:277:33)
+      at ModuleJobSync.link (node:internal/modules/esm/module_job:619:17) {
+    code: 'ERR_IMPORT_ATTRIBUTE_MISSING'
+  }
+
+test at test/card-guest-controls-journey.test.cjs:28:1
+✖ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (0.379041ms)
+  TypeError [ERR_IMPORT_ATTRIBUTE_MISSING]: Module "file:///Users/huangjiahao/.codex/worktrees/f41f/YNX%20Chain/apps/card/src/registration-locales/en.json" needs an import attribute of "type: json"
+      at validateAttributes (node:internal/modules/esm/assert:99:15)
+      at defaultLoadSync (node:internal/modules/esm/load:163:3)
+      at #loadAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:809:12)
+      at #loadSync (node:internal/modules/esm/loader:841:53)
+      at ModuleLoader.loadAndTranslateForImportInRequiredESM (node:internal/modules/esm/loader:393:38)
+      at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:565:36)
+      at afterResolve (node:internal/modules/esm/loader:614:52)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:620:12)
+      at ModuleJobSync.syncLink (node:internal/modules/esm/module_job:277:33)
+      at ModuleJobSync.link (node:internal/modules/esm/module_job:619:17) {
+    code: 'ERR_IMPORT_ATTRIBUTE_MISSING'
+  }
