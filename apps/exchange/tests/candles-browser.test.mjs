@@ -8,6 +8,10 @@ import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-op
 
 const root=new URL('../web/',import.meta.url);
 const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
+// Production gained an export alias; stripping only the `export ` prefix
+// leaves invalid `{date as isVenueTimestamp}` syntax in a classic test script.
+const marketForClassicScript=market.replace(/^export \{[^}]*\};?$/gm,'').replace(/^export /gm,'');
+assert.doesNotMatch(marketForClassicScript,/^export /m);
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
 test('actual read-only order preview uses the selected language for its rule observation time',async()=>{
@@ -21,7 +25,7 @@ test('actual read-only order preview uses the selected language for its rule obs
     const preview=app.split('\n').find(line=>line.startsWith('function preview()'));
     const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
     const rules={schemaVersion:'exchange-limit-rules-v2',market:'YNXT-YUSD_TEST',orderTypes:['limit'],scale:'1000000',minPriceMicro:'1',maxPriceMicro:'1000000000000',minAmountMicro:'1',maxAmountMicro:'1000000000000',maxOrderNotionalMicro:'100000000000',makerFeeBps:17,takerFeeBps:43,notionalRounding:'floor_micro',feeRounding:'ceil_micro_per_fill',quoteAssetType:'venue_only_test_credit_not_token',admissionMinimumQuote:'one_micro_credit',reservationShortfall:'atomic_order_request_rejection'};
-    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:${JSON.stringify(rules)},source:null,marketPhase:'live'},display=v=>formatMicro(v,document.documentElement.lang);const toast=()=>{};window.previewReads=0;const marketFeed={retry:async()=>{previewReads++;state.source={asOf:new Date().toISOString(),authority:'YNX-owned deterministic order state',classification:'testnet',status:'degraded_single_host'}}};${preview}${review}$('#review-order').onclick=reviewOrder;window.previewSource=()=>JSON.stringify({rules:state.rules,source:state.source});`});
+    await page.addScriptTag({content:`${marketForClassicScript}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:${JSON.stringify(rules)},source:null,marketPhase:'live'},display=v=>formatMicro(v,document.documentElement.lang);const toast=()=>{};window.previewReads=0;const marketFeed={retry:async()=>{previewReads++;state.source={asOf:new Date().toISOString(),authority:'YNX-owned deterministic order state',classification:'testnet',status:'degraded_single_host'}}};${preview}${review}$('#review-order').onclick=reviewOrder;window.previewSource=()=>JSON.stringify({rules:state.rules,source:state.source});`});
     await page.locator('#price').fill('2.000001');await page.locator('#amount').fill('3.000001');
     for(const language of ['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.locator('#exchange-language').selectOption(language);await page.locator('#review-order').click();
@@ -41,7 +45,7 @@ test('actual order book shows best seven prices independent of equivalent snapsh
     const page=await browser.newPage();await page.route('**/*',route=>route.abort());
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
     const bookRenderer=app.split('\n').filter(line=>line.startsWith('function renderBook(')||line.startsWith('function renderRows(')).join('\n');
-    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={book:null},display=v=>formatMicro(v);${bookRenderer} window.bookQA=book=>{state.book=book;renderBook();return JSON.stringify(state.book)};`});
+    await page.addScriptTag({content:`${marketForClassicScript}const $=s=>document.querySelector(s),state={book:null},display=v=>formatMicro(v);${bookRenderer} window.bookQA=book=>{state.book=book;renderBook();return JSON.stringify(state.book)};`});
     const row=(price,id)=>({id,priceMicro:price*1000000,amountMicro:2000000,filledMicro:500000});
     const book={bids:[1,3,7,5,9,2,8,6,4].map(price=>row(price,'b'+price)),asks:[19,16,18,12,14,11,17,15,13].map(price=>row(price,'a'+price))};
     for(const input of [book,{bids:[...book.bids].reverse(),asks:[...book.asks].reverse()}]){
@@ -61,7 +65,7 @@ test('actual preview control unlocks after a bounded stalled read without showin
     const arithmetic=await readFile(new URL('order-preview.js',root),'utf8');
     const preview=app.split('\n').find(line=>line.startsWith('function preview()'));
     const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
-    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:null,source:null,marketPhase:'loading'};window.deadlines=[];window.readCalls=[];const toast=()=>{};const marketFeed=createMarketFeed({fetchImpl:(url,options)=>{readCalls.push({url,method:options.method});return new Promise(()=>{})},EventSourceImpl:null,setTimer:(fn,ms)=>{deadlines.push({fn,ms});return deadlines.length},clearTimer:()=>{},onStatus:value=>state.marketPhase=value.phase});${preview}${review}$('#review-order').onclick=reviewOrder;window.fireDeadline=()=>deadlines.find(item=>item.ms===10000).fn();window.stopFeed=()=>marketFeed.stop();`});
+    await page.addScriptTag({content:`${marketForClassicScript}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:null,source:null,marketPhase:'loading'};window.deadlines=[];window.readCalls=[];const toast=()=>{};const marketFeed=createMarketFeed({fetchImpl:(url,options)=>{readCalls.push({url,method:options.method});return new Promise(()=>{})},EventSourceImpl:null,setTimer:(fn,ms)=>{deadlines.push({fn,ms});return deadlines.length},clearTimer:()=>{},onStatus:value=>state.marketPhase=value.phase});${preview}${review}$('#review-order').onclick=reviewOrder;window.fireDeadline=()=>deadlines.find(item=>item.ms===10000).fn();window.stopFeed=()=>marketFeed.stop();`});
     await page.locator('#review-order').click();assert.equal(await page.locator('#review-order').isEnabled(),false);
     await page.evaluate(()=>fireDeadline());await page.waitForFunction(()=>!document.querySelector('#review-order').disabled);
     assert.equal(await page.locator('#order-preview-dialog').evaluate(element=>element.open),false);
@@ -76,7 +80,7 @@ test('conflicting revision keeps actual candle view stale until an explicit veri
     const page=await browser.newPage();await page.route('**/*',route=>route.abort());
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
     const status=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
-    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={publicTrades:[]},display=v=>formatMicro(v);${render}${status}
+    await page.addScriptTag({content:`${marketForClassicScript}const $=s=>document.querySelector(s),state={publicTrades:[]},display=v=>formatMicro(v);${render}${status}
       window.marketQA={next:null,reads:0};let transport;class Source{constructor(){transport=this;this.events={}}addEventListener(k,f){this.events[k]=f}close(){} }
       window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});
     const source={authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',asOf:'2026-10-03T00:00:00Z',classification:'testnet',status:'degraded_single_host',coverage:'stream-orderbook-matched-trades',stateBackend:'file_snapshot',multiInstance:false};
@@ -107,7 +111,7 @@ test('desktop/mobile candle controls and exact trace rows remain read-only, loca
       await page.route('**/*',route=>{requests++;return route.abort()});
       await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/src="\/ynx-logo\.png\?v=[a-f0-9]+"/,`src="data:image/png;base64,${logo.toString('base64')}"`));await page.addStyleTag({content:css});
       await page.addScriptTag({type:'module',content:`${locale}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
-      await page.addScriptTag({content:`${market.replace(/^export /gm,'')}\nconst $=s=>document.querySelector(s);const state={publicTrades:[]};const display=v=>formatMicro(v,document.documentElement.lang);${render}\nwindow.candleQA={render(trades){this.rows=trades;state.publicTrades=trades;renderPublicMarket()}};$('#chart-interval').addEventListener('change',renderPublicMarket);`});
+      await page.addScriptTag({content:`${marketForClassicScript}\nconst $=s=>document.querySelector(s);const state={publicTrades:[]};const display=v=>formatMicro(v,document.documentElement.lang);${render}\nwindow.candleQA={render(trades){this.rows=trades;state.publicTrades=trades;renderPublicMarket()}};$('#chart-interval').addEventListener('change',renderPublicMarket);`});
       const trades=Array.from({length:20},(_,i)=>({id:`fixture-${i}`,market:'YNXT-YUSD_TEST',createdAt:new Date(Date.UTC(2026,9,3,0,i)).toISOString(),priceMicro:1000000+(i%5)*10000,amountMicro:2000000,sourceType:'deterministic_price_time_match',sourceDigest:i.toString(16).padStart(64,'0')}));
       await page.evaluate(trades=>window.candleQA.render(trades),trades);
       for(const language of ['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
