@@ -91,7 +91,8 @@ export class MatrixSocialTransport {
   }
   async messages(roomId){const operation=this.capture(),room=operation.client.getRoom(roomId);if(!room)return [];const events=room.getLiveTimeline().getEvents();const result=[];
     for(const event of events){if(!event.isEncrypted())continue;await operation.client.decryptEventIfNeeded(event);this.guard(operation);if(event.isDecryptionFailure())continue;if(event.getType()!=='m.room.message')continue;const verification=await operation.client.getCrypto().getEncryptionInfoForEvent(event);this.guard(operation);if(!verification||verification.shieldColour!==0){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: sender authentication warning'},encrypted:true,verification});continue}
-      const record={id:event.getId(),sender:event.getSender(),content:structuredClone(event.getContent()),encrypted:true,verification,remoteConfirmed:event.status===null&&/^\$[^\s\x00-\x1f]{1,254}$/.test(event.getId())};
+      const record={id:event.getId(),sender:event.getSender(),content:structuredClone(event.getContent()),encrypted:true,verification,remoteConfirmed:event.status===null&&/^\$[^\s\x00-\x1f]{1,254}$/.test(event.getId()),timestamp:event.getTs?.(),localStatus:event.status,
+        readByPeer:(room.getUsersReadUpTo?.(event)??[]).some(user=>user!==operation.binding.userId)};
       // Own remote echoes only. Pending local echoes cannot settle delivery.
       const unsigned=event.getUnsigned?.().transaction_id,local=event.getTxnId?.();
       const transactionId=unsigned??local;

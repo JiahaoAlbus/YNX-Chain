@@ -51,3 +51,25 @@ body[data-social-page] [hidden]{display:none!important;}
  body[data-social-page] .brand{min-width:0;font-size:.95rem;}
  body[data-social-page] .section{padding:18px;}
 }
+
+/* Reviewed SDK conversation presentation and real single-pane mobile navigation. */
+body[data-social-page] #matrix-social-workspace .chat-room{display:flex;align-items:center;gap:12px;min-height:76px;border:0;border-radius:0;padding:12px 4px;text-align:start;background:#fff;color:var(--ink);}
+body[data-social-page] #matrix-social-workspace .chat-room-selected{background:#edf2ff;}
+.chat-room-avatar{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#e5edff;color:#002fa7;font-weight:650;}
+.chat-room-copy{flex:1;min-width:0;display:grid;gap:5px;overflow-wrap:anywhere;}
+.chat-room-copy strong{font-size:1rem;font-weight:650;}
+.chat-room-preview{font-size:.85rem;color:#667085;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-room-detail{display:grid;justify-items:end;gap:8px;font-size:.75rem;color:#667085;}.chat-unread{min-width:24px;padding:3px 7px;border-radius:14px;text-align:center;color:#fff;background:#002fa7;}
+.chat-conversation-heading{display:flex;align-items:center;gap:12px;background:#fff;padding:4px 12px;margin:-20px -20px 16px;}
+.chat-conversation-heading h3{flex:1;min-width:0;font-size:1rem;font-weight:650;overflow-wrap:anywhere;}
+[data-chat-back]{display:none;}
+body[data-social-page] #matrix-social-workspace [data-messages] .chat-message-own{justify-self:end;border-radius:16px 16px 4px 16px;background:#e0eaff;}
+.chat-message-meta{display:block;text-align:end;margin-top:6px;color:#667085;font-size:.75rem;}
+@media(max-width:899px){
+ body[data-social-page=chats] #matrix-social-workspace[data-chat-pane=list] .chat-conversation{display:none;}
+ body[data-social-page=chats] #matrix-social-workspace[data-chat-pane=conversation] .chat-sidebar,body[data-social-page=chats] #matrix-social-workspace[data-chat-pane=conversation] > .chat-heading,body[data-social-page=chats] #matrix-social-workspace[data-chat-pane=conversation] > .chat-actions{display:none;}
+ body[data-social-page=chats][data-social-chat-pane=conversation] .topbar nav{display:none;}
+ body[data-social-page=chats][data-social-chat-pane=conversation] > main{height:calc(100dvh - 64px);}
+ body[data-social-page=chats] [data-chat-back]{display:inline-flex;align-items:center;justify-content:center;min-width:48px;}
+ body[data-social-page=chats] #matrix-social-workspace[data-chat-pane=conversation] .chat-workspace-grid{min-height:calc(100dvh - 140px);}
+}

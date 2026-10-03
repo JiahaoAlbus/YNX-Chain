@@ -11,6 +11,7 @@ import {openProtectedMomentDrafts} from './protected-drafts.mjs';
 import {RestrictedMoments} from './restricted-moments.mjs';
 import {mountRestrictedFeed} from './restricted-feed-ui.mjs';
 import {createContactChat} from './contact-chat.mjs';
+import {roomPresentation,approvedMessagePreview,messagePresentation,shouldSubmitChatKey} from './chat-presentation.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -19,6 +20,14 @@ if(root&&!loginCallback){
  for(const node of root.querySelectorAll('[data-chat-copy]'))if(node.dataset.chatCopy)node.textContent=copy.text(node.dataset.chatCopy);
  const label=text=>{status.textContent=copy.message(text)},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,activeWork=null,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false,sendReady=false;
  let momentComposer=null,momentFeed=null;
+ const roomList=root.querySelector('[data-room-list]'),drafts=new Map();let reviewedPreview=null;
+ const draftKey=id=>account&&transport.binding?JSON.stringify([account,transport.binding.deviceId,id]):null;
+ function saveDraft(){const key=draftKey(roomId);if(key)drafts.set(key,root.querySelector('[name=matrixText]').value)}
+ function returnToList(){if(activeWork){const previous=activeWork;activeWork=null;previous.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));previous.buttons.forEach(button=>button.disabled=false)}confirmation.cancel();renderQueued=false;selectRoom(null);controls()}
+ root.querySelector('[data-chat-back]').onclick=()=>{returnToList();if(globalThis.window?.history?.state?.ynxSocialPane==='conversation')globalThis.window.history.back()};
+ globalThis.window?.addEventListener?.('popstate',()=>{if(roomId&&globalThis.window.matchMedia('(max-width:899px)').matches)returnToList()});
+ root.querySelector('[data-chat-device-menu]').onclick=()=>{const panel=root.querySelector('.chat-device-section');panel.hidden=!panel.hidden};
+ root.querySelector('[name=matrixText]').onkeydown=event=>{if(shouldSubmitChatKey(event)){event.preventDefault();root.querySelector('[data-send-form]').requestSubmit()}};
  function controls(){root.querySelector('[data-send-form] button').disabled=!sendReady||!!activeWork;root.querySelector('[data-attachment]').disabled=!sendReady||!!activeWork;momentComposer?.refresh()}
  function phase(value,text){status.dataset.phase=value;root.dataset.chatPhase=value;root.querySelector('[data-connection-label]').textContent=copy.text('state'+value[0].toUpperCase()+value.slice(1));label(text??copy.text(value));controls()}
  function diagnostic(error){const code=typeof error?.code==='string'&&/^[A-Z][A-Z0-9_]{2,63}$/.test(error.code)?error.code:'ACTION_UNAVAILABLE';root.querySelector('[data-diagnostic-code]').textContent=code}
@@ -39,7 +48,7 @@ if(root&&!loginCallback){
  function captureView(){return {epoch:pageEpoch,account,roomId,operation:transport.capture()}}
  function currentView(view){return view.epoch===pageEpoch&&view.account===account&&view.roomId===roomId&&view.operation.client===transport.client&&view.operation.binding===transport.binding&&view.operation.generation===transport.generation}
  function guardView(view){if(!currentView(view))throw uiError('UI_STALE_VIEW','Previous encrypted view was discarded');transport.guard(view.operation)}
- function selectRoom(id){if(roomId!==id){pageEpoch++;roomId=id;sendReady=false;messages.replaceChildren();phase('verifying')}}
+ function selectRoom(id){if(roomId!==id){saveDraft();const previousRoom=roomId;pageEpoch++;roomId=id;sendReady=false;reviewedPreview=null;messages.replaceChildren();const key=draftKey(id),loose=draftKey(null);if(id&&previousRoom===null&&!drafts.has(key)&&drafts.has(loose)){drafts.set(key,drafts.get(loose));drafts.delete(loose)}root.querySelector('[name=matrixText]').value=id?(drafts.get(key)??''):'';root.dataset.chatPane=id?'conversation':'list';if(document.body?.dataset)document.body.dataset.socialChatPane=root.dataset.chatPane;const room=id?transport.client?.getRoom(id):null;root.querySelector('[data-room-title]').textContent=room?roomPresentation(room).title:'Your conversations';if(id&&globalThis.window?.matchMedia?.('(max-width:899px)').matches&&globalThis.window.history.state?.ynxSocialPane!=='conversation')globalThis.window.history.pushState({...globalThis.window.history.state,ynxSocialPane:'conversation'},'',globalThis.window.location.href);phase(id?'verifying':'connected')}}
  async function identity(view=null,intent=activeWork){
   const base={epoch:pageEpoch,account,generation:transport.generation,client:transport.client};
   const guard=()=>{guardWork(intent);if(view){guardView(view);return}if(base.epoch!==pageEpoch||base.account!==account||base.generation!==transport.generation||base.client!==transport.client)throw uiError('UI_STALE_VIEW','Identity check belongs to a previous workspace')};
@@ -53,9 +62,9 @@ if(root&&!loginCallback){
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code)){lock();phase('approval')}throw error}
  }
- function lock(){pageEpoch++;renderQueued=false;sendReady=false;contactChat.cancel();clearContactChoices();momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
+ function lock(){saveDraft();root.querySelector('[name=matrixText]').value='';reviewedPreview=null;roomList.replaceChildren();root.dataset.chatPane='list';if(document.body?.dataset)document.body.dataset.socialChatPane='list';pageEpoch++;renderQueued=false;sendReady=false;contactChat.cancel();clearContactChoices();momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
  async function work(action){
-  if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
+  if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]')&&button!==root.querySelector('[data-chat-back]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
   controls();try{await waitIntent(action(intent),intent,0)}catch(error){if(activeWork===intent&&intent.epoch===pageEpoch&&!stale(error)){diagnostic(error);sendReady=false;if(error?.code==='MATRIX_LOGIN_CANCELLED'){phase(transport.client?'connected':'locked','Sign-in cancelled. Open private chat again when you are ready. Your encrypted history is retained.')}else phase(error?.code==='UI_IDENTITY_UNAVAILABLE'?'offline':error?.code==='MATRIX_PERMISSION_REQUIRED'?'approval':error?.code==='MATRIX_UNVERIFIED_DEVICE'||error?.code==='MATRIX_DEVICE_CHANGED'?'verifying':'error',error?.code==='UI_IDENTITY_UNAVAILABLE'?copy.text('offline'):error?.code==='MATRIX_PERMISSION_REQUIRED'?copy.text('approval'):copy.text('failed'))}}
   finally{if(activeWork===intent){activeWork=null;intent.buttons.forEach(button=>button.disabled=false);controls()}}
  }
@@ -72,13 +81,13 @@ if(root&&!loginCallback){
    try{
     view=captureView();await identity(view);guardView(view);await currentConversation(view);guardView(view);const records=await transport.messages(view.roomId);guardView(view);
     await identity(view);guardView(view);
-    const items=[];for(const record of records){const item=document.createElement('li');item.textContent=`${record.sender===view.operation.binding.userId?'You':'Participant'}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
+    const items=[];for(const record of records){const item=document.createElement('li'),display=messagePresentation(record,view.operation.binding.userId);item.className=display.own?'chat-message chat-message-own':'chat-message';item.textContent=`${record.sender===view.operation.binding.userId?'You':'Participant'}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
      if(record.content.file){const download=document.createElement('button');download.type='button';download.textContent='Download encrypted attachment';download.onclick=()=>void work(async()=>{
       guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view);await currentConversation(view);guardView(view)}});guardView(view);
       await identity(view);guardView(view);await currentConversation(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
       try{link.href=url;link.download=record.content.body||'attachment';link.click()}finally{setTimeout(()=>URL.revokeObjectURL(url),10000)}
-     });item.append(download)}items.push(item)
-    }guardView(view);messages.replaceChildren(...items);await readiness(view);
+     });item.append(download)}if(display.timestamp||display.status){const meta=document.createElement('small');meta.className='chat-message-meta';meta.textContent=[display.timestamp?new Date(display.timestamp).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}):'',display.status].filter(Boolean).join(' / ');item.append(meta)}items.push(item)
+    }guardView(view);messages.replaceChildren(...items);reviewedPreview={roomId:view.roomId,body:approvedMessagePreview(records.at(-1))};renderRoomButtons();await readiness(view);
    }catch(error){if(!stale(error)&&view&&currentView(view)){sendReady=false;phase('offline')}}
   }}finally{renderRunning=false}
  }
@@ -148,7 +157,7 @@ if(root&&!loginCallback){
    guardPending();await identity();guardPending();
    await transport.connect(binding,selected,stored.storageKey,{expectedUserId:metadata.userId});guard();const operation=transport.capture();
    transport.guard(operation);await identity();guard();transport.guard(operation);
-   phase('connected');await renderDevices(binding.userId);const view=captureView();await readiness(view);guardView(view);attachMomentFeed();
+   if(!roomId&&root.querySelector('[name=matrixText]').value)saveDraft();phase('connected');renderRoomButtons();await renderDevices(binding.userId);const view=captureView();await readiness(view);guardView(view);attachMomentFeed();
   }finally{stored.storageKey.fill(0)}
  });
  root.querySelector('[data-stop]').onclick=()=>lock();
@@ -156,7 +165,11 @@ if(root&&!loginCallback){
  function renderRoomButtons(){
   const view=captureView();guardView(view);const items=[];
   for(const room of view.operation.client.getRooms()){
-   const node=document.createElement('button');node.textContent=room.getMyMembership()==="invite"?"Review conversation invitation":"Open encrypted conversation";node.title=room.roomId;
+   const metadata=roomPresentation(room,{selected:room.roomId===roomId,preview:reviewedPreview?.roomId===room.roomId?reviewedPreview.body:null});
+   const node=document.createElement('button');node.type='button';node.className='chat-room'+(metadata.selected?' chat-room-selected':'');node.title=metadata.title;node.setAttribute?.('aria-pressed',String(metadata.selected));
+   const avatar=document.createElement('span');avatar.className='chat-room-avatar';avatar.textContent=metadata.initial;
+   const info=document.createElement('span');info.className='chat-room-copy';const title=document.createElement('strong');title.textContent=metadata.title;const summary=document.createElement('span');summary.className='chat-room-preview';summary.textContent=metadata.preview;info.append(title,summary);node.append(avatar,info);
+   const detail=document.createElement('span');detail.className='chat-room-detail';if(metadata.timestamp){const time=document.createElement('time');time.textContent=new Date(metadata.timestamp).toLocaleDateString();detail.append(time)}if(metadata.unread){const badge=document.createElement('span');badge.className='chat-unread';badge.textContent=String(metadata.unread);detail.append(badge)}node.append(detail);
    node.onclick=()=>void work(async()=>{
     guardView(view);await identity(view);guardView(view);
     if(room.getMyMembership()==='invite'){if(!await confirmation.request({title:copy.text('invitationTitle'),description:copy.text('invitationBody'),approveText:copy.text('accept'),account:view.account,site:view.operation.binding.homeserver,roomId:room.roomId,signal:activeWork.controller.signal,guard:()=>guardView(view)}))return;guardView(view);await identity(view);guardView(view);await transport.join(room.roomId);guardView(view)}
@@ -164,7 +177,7 @@ if(root&&!loginCallback){
     for(const member of room.getJoinedMembers())if(member.userId!==selected.operation.binding.userId){await renderDevices(member.userId);guardView(selected)}
    });items.push(node);
   }
-  guardView(view);requests.replaceChildren(...items);
+  guardView(view);roomList.replaceChildren(...items);
  }
  root.querySelector('[data-rooms]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);renderRoomButtons()});
  root.querySelector('[data-show-devices]').onclick=()=>void work(async()=>{const view=captureView();await identity(view);guardView(view);await renderDevices(view.operation.binding.userId);guardView(view)});
@@ -202,6 +215,7 @@ if(root&&!loginCallback){
   resolveAudience:selection=>audienceHTTP.resolve(selection),authorize:(expected,action,options)=>audienceHTTP.authorize(expected,action,options),loadSelections:audienceChoices,
   drafts:{save:(view,payload)=>draftAccess(view,(vault,guard)=>vault.save(payload,guard)),savePrepared:(view,payload)=>draftAccess(view,(vault,guard)=>vault.savePrepared(payload,guard)),load:view=>draftAccess(view,(vault,guard)=>vault.load(guard)),clearConfirmed:(view,transactionId,assertCurrent=()=>{})=>draftAccess(view,(vault,guard)=>vault.clearConfirmed(transactionId,()=>{guard();assertCurrent()}))},
   approvePublishing:async()=>{const view=captureView();await identity(view);guardView(view);const result=await publishing.begin();guardView(view);if(result?.status!=='connected')throw new Error('Publishing approval is not confirmed; chat permission was not upgraded')}});
+ root.dataset.chatPane='list';root.querySelector('.chat-device-section').hidden=true;
  phase('locked');
  setInterval(()=>{if(!account||checkingIdentity)return;checkingIdentity=true;void identity().catch(error=>{if(account&&!stale(error)){sendReady=false;phase('offline')}}).finally(()=>{checkingIdentity=false})},15000);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&account)label('Session retained locally; permissions are rechecked on next operation')});
