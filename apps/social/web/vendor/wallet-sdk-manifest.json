@@ -1,8 +1,12 @@
 {
-  "sourceCommit": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
-  "sourceTree": "28a660bbe1451f0d5e20d6eb08da17eef0970d77",
-  "bytes": 22417,
-  "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43",
+  "sourceCommit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "sourceTree": "35c54f0a17e8f01807c38e3f1e99ff5beaec95e3",
   "artifact": "standard-wallet-browser.mjs",
+  "bytes": 23341,
+  "sha256": "2eb63acdfc973020ed2deac89eb9ff01d457385861ef03915f4446d7074d9e23",
+  "exports": [
+    "StandardWalletConnection",
+    "discoverWalletProviders"
+  ],
   "publicRuntimeVerified": false
 }
