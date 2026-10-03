@@ -1,0 +1,56 @@
+{
+  "schema": "ynx.creator.apple-engine.software-qa.v1",
+  "binary": "/tmp/ynx-creator-asset-engine-final-20261004/apple-engine-check",
+  "bytes": 1539360,
+  "sha256": "c4b8094ab5220271bb8493d910c78bfe96caa21be7902cc14a408c77a47eaedc",
+  "sourcePins": [
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift",
+      "bytes": 21887,
+      "sha256": "d9f0b47188b851a7bfdf50b2ca7522731e4c51f543112ce12b01ab099da8ae8f"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift",
+      "bytes": 18455,
+      "sha256": "da351d88334e2014457f44004f3df0844e7546629c894c0e04123b228c3720bf"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift",
+      "bytes": 2891,
+      "sha256": "90d0eea42d872148284f11b570bc89705e7002c50a95aeb33be8a6f63bfa278a"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift",
+      "bytes": 4099,
+      "sha256": "ff6687e2d04e4f28054ef1c97e86bbae3da2f18cf6eaed7c8dbd2ff25b382f76"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift",
+      "bytes": 1475,
+      "sha256": "eaf26536c9b549cf478c5ba1064a41e4b6b8bec355db53fce229f274a576bab2"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift",
+      "bytes": 6084,
+      "sha256": "721300334794a3263edc871b6a6b08399449010bf9927252bfe881d3ed87952b"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift",
+      "bytes": 16051,
+      "sha256": "b7ad8af455e5752b882b5bb15d0fb05dc626e790c593efb1603f119aa3831cdd"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorModel.swift",
+      "bytes": 18251,
+      "sha256": "14039d157dddab58ef890a38ac05b6646fd1bd16eba093eccac35cc0618a0223"
+    },
+    {
+      "path": "apps/creator-studio/scripts/apple-engine-check.swift",
+      "bytes": 14160,
+      "sha256": "e7abb5d6b6265e2a711f135e9120c10a6058702ea95a98817765da65e4629d4e"
+    }
+  ],
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "installed": false
+}
