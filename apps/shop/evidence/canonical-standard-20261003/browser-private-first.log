@@ -1,0 +1,22 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'network-unavailable'
+- 'connecting'
+
+    at file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/evidence/canonical-standard-20261003/browser-private-protocol.mjs:32:65
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:541:9) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'network-unavailable',
+  expected: 'connecting',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v26.7.0

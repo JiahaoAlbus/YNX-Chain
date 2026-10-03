@@ -1,0 +1,58 @@
+{
+  "classification": "CONTROLLED_REAL_SDK_SOFTWARE_APPROVAL_AND_PROOF_ONLY",
+  "sdkSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "bundleSHA256": "6a5d0254b1a3ae1c1d7986ec14a3036c41ae54b29d9cee46a2f87a694cf75d77",
+  "records": [
+    {
+      "productId": "shop",
+      "origin": "https://shop.ynxweb4.com",
+      "scopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "softwareApprovalOnly": true,
+      "realWalletApproved": false,
+      "canonicalChallengeCompletionIntrospection": true,
+      "separateActionProofVerified": true,
+      "introspectionReplayRejected": true,
+      "changedHTTPPathRejected": true,
+      "exactRevocationConfirmed": true,
+      "automatic": false,
+      "installation": "unverified",
+      "nonextractableKeyPersisted": true,
+      "pendingNonceSurvivedReload": true,
+      "legacyRecordUntouched": true,
+      "softwareSessionRevoked": true,
+      "localPendingRequestCleared": true,
+      "timeCalls": 7,
+      "unapprovedNetworkRequests": 0
+    },
+    {
+      "productId": "pay-merchant",
+      "origin": "https://pay.ynxweb4.com",
+      "scopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "softwareApprovalOnly": true,
+      "realWalletApproved": false,
+      "canonicalChallengeCompletionIntrospection": true,
+      "separateActionProofVerified": true,
+      "introspectionReplayRejected": true,
+      "changedHTTPPathRejected": true,
+      "exactRevocationConfirmed": true,
+      "automatic": false,
+      "installation": "unverified",
+      "nonextractableKeyPersisted": true,
+      "pendingNonceSurvivedReload": true,
+      "legacyRecordUntouched": true,
+      "softwareSessionRevoked": true,
+      "localPendingRequestCleared": true,
+      "timeCalls": 7,
+      "unapprovedNetworkRequests": 0
+    }
+  ],
+  "wrongRegisteredOriginRejected": true,
+  "realWalletApproved": false,
+  "liveBusinessReadback": false
+}

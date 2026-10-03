@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "ynx-commerce-canonical-browser-software-protocol/v1",
+  "sourceCommit": "cb51fd3db5536d0ebc9458908839e9602071bdda",
+  "sourceTree": "287fb34a6252396c6d9493aa6f88a0c2a09127a3",
+  "classification": "CONTROLLED_SOFTWARE_APPROVAL_AND_SIGNATURE_QA_ONLY",
+  "actualSDKSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "actualBrowserWebCrypto": true,
+  "actualSDKGatewayHTTPHandler": true,
+  "authorityTime": "Controlled response matching SDK Node-host time route; no live authority contacted",
+  "consumerUnderTest": "apps/seller-console/product-session.js shared consumer controller; Merchant UI business sender remains incomplete",
+  "result": {
+    "classification": "CONTROLLED_REAL_SDK_SOFTWARE_APPROVAL_AND_PROOF_ONLY",
+    "sdkSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "bundleSHA256": "6a5d0254b1a3ae1c1d7986ec14a3036c41ae54b29d9cee46a2f87a694cf75d77",
+    "records": [
+      {
+        "productId": "shop",
+        "origin": "https://shop.ynxweb4.com",
+        "scopes": [
+          "account:read",
+          "shop:seller:operate"
+        ],
+        "softwareApprovalOnly": true,
+        "realWalletApproved": false,
+        "canonicalChallengeCompletionIntrospection": true,
+        "separateActionProofVerified": true,
+        "introspectionReplayRejected": true,
+        "changedHTTPPathRejected": true,
+        "exactRevocationConfirmed": true,
+        "automatic": false,
+        "installation": "unverified",
+        "nonextractableKeyPersisted": true,
+        "pendingNonceSurvivedReload": true,
+        "legacyRecordUntouched": true,
+        "softwareSessionRevoked": true,
+        "localPendingRequestCleared": true,
+        "timeCalls": 7,
+        "unapprovedNetworkRequests": 0
+      },
+      {
+        "productId": "pay-merchant",
+        "origin": "https://pay.ynxweb4.com",
+        "scopes": [
+          "account:read",
+          "merchant:session:create"
+        ],
+        "softwareApprovalOnly": true,
+        "realWalletApproved": false,
+        "canonicalChallengeCompletionIntrospection": true,
+        "separateActionProofVerified": true,
+        "introspectionReplayRejected": true,
+        "changedHTTPPathRejected": true,
+        "exactRevocationConfirmed": true,
+        "automatic": false,
+        "installation": "unverified",
+        "nonextractableKeyPersisted": true,
+        "pendingNonceSurvivedReload": true,
+        "legacyRecordUntouched": true,
+        "softwareSessionRevoked": true,
+        "localPendingRequestCleared": true,
+        "timeCalls": 7,
+        "unapprovedNetworkRequests": 0
+      }
+    ],
+    "wrongRegisteredOriginRejected": true,
+    "realWalletApproved": false,
+    "liveBusinessReadback": false
+  },
+  "files": [
+    {
+      "path": "browser-private-protocol.mjs",
+      "bytes": 9168,
+      "sha256": "1f7285b41e4bbbc3de469816ea92eb5422daf229eaf1bf8451776d74f6868e8f"
+    },
+    {
+      "path": "browser-private-first.log",
+      "bytes": 669,
+      "sha256": "0ad0ccf2e8545ae0e24e6a616030056e909abfccb8eb6943f3acccff62e02c43"
+    },
+    {
+      "path": "browser-private-second.log",
+      "bytes": 1919,
+      "sha256": "ff2c043369a90164bcf6eb58d600016f75d4c8e29c373ede65522bf12243a7a6"
+    }
+  ],
+  "introspectionReplayRejected": true,
+  "actionSignatureVerified": true,
+  "actionNonceConsumedWithRealBusinessMutation": false,
+  "merchantMembershipVerified": false,
+  "realWalletApproved": false,
+  "publicRuntimeVerified": false,
+  "formalReleaseVerified": false,
+  "fullGoalComplete": false,
+  "firstFailure": "QA initially sent the Node-host-only time route to the pure HTTP handler. Original failure kept; route composition corrected without product-source edits."
+}
