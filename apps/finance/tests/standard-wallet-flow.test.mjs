@@ -161,7 +161,7 @@ test('local Chrome planning view shows fixture observations, not false complete 
       location.hash='#planning';
       // This exercises rendering only; no private authorization is inferred.
       state.connected=true;
-      state.overview={portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}};
+      state.overview={portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}};
       render(state.overview);
     });
     assert.equal(await page.locator('#planning').isVisible(),true);
