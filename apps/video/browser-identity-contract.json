@@ -1,0 +1,20 @@
+{
+  "schema": "ynx.media.browser-identity.consumer-contract.v1",
+  "authoritySourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+  "approvedRosterSourceCommit": "2587012a7eaf9c2b827596b7914d6304d91840ab",
+  "sharedOwner": "wallet_release_owner",
+  "hostMountVerified": false,
+  "products": [
+    {"productId":"video","origin":"https://video.ynxweb4.com","clientId":"ynx-video-mobile-v1-sso-v1","audience":"ynx:video:identity","targets":["discover","subscriptions","playlists","history","settings","channel"]},
+    {"productId":"creator-studio","origin":"https://creator.ynxweb4.com","clientId":"ynx-creator-studio-web-v1-sso-v1","audience":"ynx:creator-studio:identity","targets":["overview","channel","team","rights","content","upload","assets","earn","moderation","disputes","ai"]}
+  ],
+  "requiredHostRoutes": [
+    {"method":"GET","path":"/sso/start","handler":"BrowserSSO.Start","query":"target is restricted to original product targets; no automatic prompt=none"},
+    {"method":"GET","path":"/sso/callback","handler":"BrowserSSO.Callback","landing":"/#originalTarget; separate from /wallet-auth/callback"},
+    {"method":"GET","path":"/api/sso/account","handler":"BrowserSSO.Account","response":"signedIn/account/subject/generation/expiresAt/scopes/csrfToken/privateWorkspaceAuthorized only"},
+    {"method":"POST","path":"/api/sso/logout","handler":"BrowserSSO.Logout","response":"revoked:true only on original grant revocation acknowledgement"}
+  ],
+  "privateBusiness": {"prefix":"/video/api","credentials":"same-origin","csrfHeader":"X-YNX-SSO-CSRF","originalPrivateProofHeaders":["X-YNX-Product-Session-Proof-V2","X-YNX-Product-Session-Action-Proof-V2"],"sameAccountRequired":true,"authority":"NewVideoCombinedSDKAuthority for original Web session and HttpOnly browser grant; actual Host native route authority remains A owned"},
+  "preserved": ["original private SDK registration scopes and custody","original HttpOnly browser sealed grant managed only by A","old accounts contents keys and private approval record","no SSO identity:read expansion into private workspace scopes"],
+  "acceptance": {"sourceConsumerImplemented":true,"publicDeployed":false,"realWalletConsent":false,"authenticatedOwnBusiness":false}
+}

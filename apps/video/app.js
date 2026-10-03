@@ -1,3 +1,4 @@
+import {createMediaBrowserIdentity} from './browser-identity.js';
 import {connectMediaWallet} from './session-events.js';
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
 import {connectVideoWallet, restoreVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
@@ -142,9 +143,10 @@ function bindWalletEvents(walletState) {
   provider.on("disconnect", onDisconnect);
 }
 
+const browserIdentity=createMediaBrowserIdentity({productId:"video",onExpiry:()=>renderProductState({status:"retry-required",message:"Your YNX account sign-in expired. Sign in and retry your saved product approval."})});
 // Product Session v2 and the EVM provider are independent authorities.
 export const api = createVideoAPI({baseURL: API,
-  authorize: (path, method, body) => videoProductSession.authorization(path, method, body),
+  authorize: (path, method, body) => {const state=productState,revision=productRevision;return browserIdentity.authorization(state.session,()=>videoProductSession.authorization(path,method,body),()=>{if(state!==productState||revision!==productRevision||productSignOutPending)throw new DOMException("Video account changed.","AbortError");});},
   onUnauthorized: () => renderProductState({status: "retry-required", message: "Your sign-in needs to be checked. Retry or sign in again."}),
 });
 const businessIdentity = createVideoBusinessIdentity({read: (path, options) => api(path, {...options, private: true})});
@@ -173,7 +175,7 @@ function productConnected() {
 function renderProductState(state, {identityConfirmed = false} = {}) {
   const wasConnected = productConnected();
   const previousAccount = productState.session?.account;
-  if (!identityConfirmed) businessIdentity.invalidate();
+  if (!identityConfirmed) {businessIdentity.invalidate();browserIdentity.invalidate();}
   if (state.revocationPending) productSignOutPending = true;
   if (["disconnected", "expired"].includes(state.status)) productSignOutPending = false;
   productState = state;
@@ -904,6 +906,8 @@ $("#signin").onclick = async () => {
 };
 
 $("#revoke").onclick = () => revokeWallet("user-requested");
+$("#browser-disconnect").onclick=async()=>{try{await signOutVideoAccount();if(productSignOutPending)throw Error("Confirm Video sign out before signing out of your YNX account.");await browserIdentity.logout();notice("Your YNX account is signed out on this site.");}catch(error){notice(error.message,true);}};
+$("#browser-signin").onclick=()=>{cancelVideoSignIn();browserIdentity.invalidate();browserIdentity.signIn("settings");};
 $("#product-signin").onclick = focusSignIn;
 $("#product-connect").onclick = prepareVideoSignIn;
 $("#product-retry").onclick = restoreVideoAccount;
@@ -1001,7 +1005,7 @@ const linkedVideo = new URLSearchParams(location.search).get("video");
 if (linkedVideo) {
   api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(async error=>{await catalogReady;notice(error.message,true);});
 }
-const returnedView = new URLSearchParams(location.search).get('mediaView');
+const returnedView = new URLSearchParams(location.search).get('mediaView') || location.hash.slice(1);
 if (['subscriptions','playlists','history','settings','channel'].includes(returnedView)) {currentView=returnedView;activate(returnedView==='settings'?$("#privacy"):document.querySelector('nav button[data-view="'+returnedView+'"]'));}
 const returnedParams=new URLSearchParams(location.search);
 if (/^[A-Za-z0-9_-]{1,128}$/.test(returnedParams.get('mediaPlaylist')||''))currentPlaylist=returnedParams.get('mediaPlaylist');

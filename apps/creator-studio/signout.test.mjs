@@ -52,8 +52,8 @@ async function app(overrides = {}) {
     querySelector: element, querySelectorAll: selector => selector === ".panel form" ? forms : [],
     getElementById: id => element(`#${id}`), createElement: () => new Element(),
   };
-  const dependencies = {
-    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", assign() {} },
+  const dependencies = {createMediaBrowserIdentity:()=>({invalidate(){},signIn(){},authorization:(_session,proof)=>proof()}),
+    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", search:"", hash:"", assign() {} },
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
@@ -630,4 +630,9 @@ test('actual Creator AI stream carries original site cookies and its independent
  await controller.run('ai-run');
  const stream=calls.find(c=>c.url.endsWith('/v1/ai/jobs/job-own/stream'));assert.ok(stream);
  assert.equal(stream.options.credentials,'same-origin');assert.equal(stream.options.headers['X-YNX-Product-Session-Action-Proof-V2'],'stream-original');assert.equal(stream.options.redirect,'error');
+});
+
+test('original BrowserSSO hash landing opens the requested Creator panel',async()=>{
+ const c=await app({location:{origin:'https://creator.ynxweb4.com',search:'',hash:'#content',assign(){}}});
+ assert.equal(c.element('nav button[data-panel="content"]').clicked,true);
 });

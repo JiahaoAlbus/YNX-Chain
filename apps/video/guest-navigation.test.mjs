@@ -23,13 +23,13 @@ class Element {
  scrollIntoView(){}
  focus(){this.focused=true;}
 }
-async function controller({search='',product={atRegisteredOrigin:()=>false},request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
+async function controller({search='',hash='',product={atRegisteredOrigin:()=>false},request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,new Element());return nodes.get(selector);};
  const nav=['discover','subscriptions','playlists','history','settings'].map(view=>{const e=node(`[data-view="${view}"]`);e.dataset.view=view;return e;});
  node('#page-title').setAttribute('data-i18n','discover');node('#content').setAttribute('aria-busy','true');
  const document={querySelector:node,querySelectorAll:selector=>selector==='nav button'?nav:[],createElement:()=>new Element()};
  const calls=[];
- const dependencies={document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash:''},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
+ const dependencies={createMediaBrowserIdentity:()=>({invalidate(){},signIn(){},authorization:(_session,proof)=>proof()}),document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
   history:{replaceState(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;},clearTimeout,
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
@@ -39,7 +39,7 @@ async function controller({search='',product={atRegisteredOrigin:()=>false},requ
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
   discoverWalletCandidates:async()=>[],
  };
- const app=await new AsyncFunction(...Object.keys(dependencies),code+'\nreturn {openVideo,showChannel,loadVideos,restoreVideoAccount,signOutVideoAccount,renderProductState,showPlaylists};')(...Object.values(dependencies));
+ const app=await new AsyncFunction(...Object.keys(dependencies),code+'\nreturn {openVideo,showChannel,loadVideos,restoreVideoAccount,signOutVideoAccount,renderProductState,showPlaylists,readView:()=>currentView};')(...Object.values(dependencies));
  await turn();await turn();
  return {...app,node,calls};
 }
@@ -234,4 +234,9 @@ test('a recoverable sign-in error opens the chooser and the selected native requ
  assert.equal(c.node('#product-native-open').hidden,false);
  assert.equal(c.node('#product-native-open').href,'ynxwallet://authorize?request=fixture');
  assert.equal(c.node('#comment textarea').disabled,true);
+});
+
+test('original BrowserSSO hash landing resumes only an existing Video page',async()=>{
+ const returned=await controller({hash:'#settings'});assert.equal(returned.readView(),'settings');
+ const foreign=await controller({hash:'#https://other.test/private'});assert.equal(foreign.readView(),'discover');
 });

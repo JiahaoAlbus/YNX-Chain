@@ -1,3 +1,4 @@
+import {createMediaBrowserIdentity} from './browser-identity.js';
 import {serializeMediaBody} from './business-wire.js';
 import {connectMediaWallet} from './session-events.js';
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
@@ -23,7 +24,9 @@ import{ready as i18nReady,t}from"./i18n.js";
 const CREATOR_RUNTIME_BINDING="ynx-creator-studio-web-v1",CREATOR_BUNDLE_ID="com.ynxweb4.creator-studio.web";
 const API=`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
-let creatorSessionRevision=0,creatorAccount=null;
+let creatorSessionRevision=0,creatorAccount=null,creatorPrivateSession=null;
+const browserIdentity=createMediaBrowserIdentity({productId:"creator-studio",onExpiry:()=>renderProductState({status:"retry-required",message:"Your YNX account sign-in expired. Sign in and retry your saved product approval."})});
+const authorizeCreator=(path,method,body)=>{const original=creatorPrivateSession,revision=creatorSessionRevision;return browserIdentity.authorization(original,()=>productAuthorization(path,method,body),()=>{if(original!==creatorPrivateSession||revision!==creatorSessionRevision)throw new DOMException("Creator account changed.","AbortError");});};
 let payoutFlight=null;
 let creatorExpiryTimer;
 const creatorRequestFlights=new Set();
@@ -77,7 +80,7 @@ async function api(path,opt={}){
     const wire=await operation.wait(serializeMediaBody(path,method,opt.body,baseHeaders,operation.signal));assertCreatorSession(revision);operation.signal.throwIfAborted();
     let response;
     for(let attempt=0;attempt<2;attempt++){
-      const headers={...wire.headers,...await operation.wait(productAuthorization(path,method,wire.body))};
+      const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
       try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
       catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
@@ -290,6 +293,8 @@ walletSendTx.addEventListener("click",async()=>{
     status(error.message||"eth_sendTransaction failed",error.code==="USER_REJECTED");
   }
 });
+$("#browser-disconnect").onclick=async()=>{try{await signOutCreatorAccount();if(creatorSignOutPending)throw Error("Confirm Creator sign out before signing out of your YNX account.");await browserIdentity.logout();status("Your YNX account is signed out on this site.");}catch(error){status(error.message,true);}};
+$("#browser-signin").onclick=()=>{cancelCreatorSignIn();browserIdentity.invalidate();browserIdentity.signIn("overview");};
 const productStatus=$("#product-status"),productConnect=$("#product-signin"),productOpen=$("#product-open"),productDisconnect=$("#product-disconnect");
 let creatorSignOutPending=false;
 function clearCreatorSession(){
@@ -297,7 +302,7 @@ function clearCreatorSession(){
   for(const request of creatorRequestFlights)request.abort(new Error("Creator account changed. Sign in and retry."));
   studioReadRevision++;channelReadRevision++;selectedChannelId=null;channelAutofill.clear();
   const channelChoice=document.getElementById("channel-select");if(channelChoice){channelChoice.replaceChildren();channelChoice.hidden=true;}
-  creatorAccount=null;payoutFlight=null;
+  creatorAccount=null;creatorPrivateSession=null;browserIdentity.invalidate();payoutFlight=null;
   snapshot=null;
   currentAI=null;aiSelectionRevision++;aiCreateRevision++;
   renderContent();renderTeam();renderRights();renderAudit();renderSavedAI();
@@ -319,7 +324,7 @@ function renderProductState(state){
   const connected=state.status==="connected";
   const account=connected?state.session.account:null;
   if(!connected||account!==creatorAccount)clearCreatorSession();
-  creatorAccount=account;
+  creatorAccount=account;creatorPrivateSession=connected?state.session:null;
   productStatus.textContent=connected?`Signed in · ${state.session.account}`:state.status==="disconnected"?"Sign in to manage your channel.":state.message;
   productDisconnect.hidden=!connected&&!creatorSignOutPending&&!['retry-required','network-unavailable'].includes(state.status);
   productDisconnect.textContent=creatorSignOutPending?"Retry sign out":"Sign out";
@@ -528,6 +533,7 @@ async function signOutCreatorAccount(){
   finally{productDisconnect.disabled=false;productConnect.disabled=creatorSignOutPending;}
 }
 async function restoreCreator(){
+  browserIdentity.invalidate();
   if(creatorSignOutPending)return;
   if(!atRegisteredOrigin()){productStatus.textContent="Open creator.ynxweb4.com to sign in and manage your channel.";return;}
   const revision=creatorSessionRevision;
@@ -708,7 +714,7 @@ $("#ai-run").onclick=async()=>{
  finally{recovery.finish();if(activeAIRequest===recovery)activeAIRequest=null}
  };
  try{
-  const headers={...await operation.wait(productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST")),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};assertCreatorSession(revision);operation.signal.throwIfAborted();
+  const headers={...await operation.wait(authorizeCreator(`/v1/ai/jobs/${id}/stream`,"POST")),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};assertCreatorSession(revision);operation.signal.throwIfAborted();
   const response=await operation.wait(fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers,credentials:"same-origin",redirect:"error",signal:operation.signal}));
   if(!currentAISelection(revision,id,selection)){await response.body?.cancel();return}if(!response.ok)throw new Error(`HTTP ${response.status}`);reader=response.body.getReader();
   await readCreatorAIWire(reader,operation,id,account,delta=>{if(!currentAISelection(revision,id,selection))throw new DOMException("Creator account changed","AbortError");streamed+=delta;$("#ai-result").textContent=streamed});
@@ -733,6 +739,6 @@ $('#ai-delete').onclick=async()=>{
   const id=get(currentAI,'id','ID'),revision=creatorSessionRevision,selection=aiSelectionRevision;
   try{await api('/v1/ai/jobs/'+id,{method:'DELETE'});if(!currentAISelection(revision,id,selection))return;currentAI=null;aiSelectionRevision++;$('#ai-result').textContent='AI context and result deleted.';for(const id of ['#ai-run','#ai-cancel','#ai-accept','#ai-reject','#ai-delete'])$(id).disabled=true;status('AI data deleted within the service retention boundary.');await refresh()}catch(error){if(currentAISelection(revision,id,selection))status(error.message,true)}
 };
-const returnedPanel=new URLSearchParams(location.search).get('mediaView');
+const returnedPanel=new URLSearchParams(location.search).get('mediaView') || location.hash.slice(1);
 if(['overview','channel','team','rights','content','upload','assets','earn','moderation','disputes','ai'].includes(returnedPanel))document.querySelector('nav button[data-panel="'+returnedPanel+'"]')?.click();
 await i18nReady.catch(()=>null);
