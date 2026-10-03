@@ -25,6 +25,8 @@ import { createNativeContractService } from "./native-contract-service.mjs";
 import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
 import { createInvoiceReferenceService } from "./wallet-invoice-reference-service.mjs";
 import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
+import {createDesktopPayService,installDesktopPayIPC} from "./wallet-pay-service.mjs";
+import {DesktopNativePayChain} from "./native-pay-chain.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
@@ -93,6 +95,16 @@ let drainingWalletConnectInbox = false;
 const walletConnectProposalAccounts = new Map();
 const walletConnectProposalActions = new Set();
 let accountChangeInProgress = false;
+const desktopPayService=createDesktopPayService({
+  getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress}),
+  getIdentity:()=>walletAuthority.accountStatus(),
+  getRuntime:()=>({vault:walletAuthority.vault,lifecycle:keyAccess,store:walletAuthority.transactionSender.submissions.intentStore,client:new DesktopNativePayChain({fetchImpl:net.fetch.bind(net)})}),
+});
+installDesktopPayIPC({handleWalletIPC,safeIPC,service:desktopPayService});
+// Main-process boot composition only. Sole issuer A supplies its admitted real
+// policy, quote/current-authority/business and authenticated settlement ports.
+// This function is NOT an IPC, renderer, CLI or environment activation path.
+export function composeProtectedDesktopPay(integration){desktopPayService.compose(integration)}
 const startupProtocolUrls = [];
 let protocolRegistration = { platform: process.platform, attempted: false, registered: false };
 const initialProtocolUrl = extractYNXWalletProtocolUrl(process.argv);

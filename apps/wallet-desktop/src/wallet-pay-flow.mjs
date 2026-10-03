@@ -11,7 +11,7 @@ function serialized(store,action){const result=(queues.get(store)??Promise.resol
  * and caller-chosen endpoints never turn this feature on. No default adapter.
  * All signing remains inside the EXISTING lifecycle and encrypted vault.
  */
-export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,policy,authorityForReview,authorityForOriginal,settlementTransport,now=Date.now}){
+export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,policy,authorityForReview,authorityForOriginal,settlementTransport,now=Date.now,assertCurrent=()=>{}}){
   if(!policy||typeof policy.resolve!=="function"||typeof lifecycle?.run!=="function"||typeof vault?.withSecret!=="function"||
     typeof store?.signedPayProgress!=="function"||client?.origin!==CANONICAL_RPC_URL||typeof client?.broadcast!=="function"||typeof client?.checkTransferDurability!=="function"||
     typeof authorityForReview!=="function"||typeof authorityForOriginal!=="function"||typeof settlementTransport?.submitOriginal!=="function"||typeof settlementTransport?.readOriginal!=="function")fail("PAY_PROTECTED_INTEGRATION_REQUIRED");
@@ -33,7 +33,7 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
     current();const fresh=await authority.refresh();current();if(canonicalJSON(parseProductSession(fresh))!==snapshot)fail("PAY_CURRENT_SESSION_CHANGED");
     await authority.verifyOriginalBinding(structuredClone(record),current);current();return {authority,current,session};
   };
-  const run=operation=>serialized(store,()=>lifecycle.run(operation));
+  const run=operation=>serialized(store,()=>lifecycle.run(operation,{assertCurrent}));
   return Object.freeze({
     async restore(account){return run(async guard=>{
       guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");

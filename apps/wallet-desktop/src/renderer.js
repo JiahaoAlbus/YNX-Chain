@@ -7,6 +7,7 @@ import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
+import {mountDesktopPayUI} from "./wallet-pay-ui.mjs";
 import { setWalletCopy } from "./wallet-locale.mjs";
 import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
 
@@ -787,3 +788,4 @@ window.ynxWallet.onSecurityState?.(renderKeyState);
 if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(renderKeyState);
 else renderKeyState(keyState);
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
+mountDesktopPayUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.ynxAccount??null,keyRevision:keyState.revision,locked:keyState.locked})});
