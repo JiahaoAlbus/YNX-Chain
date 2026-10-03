@@ -145,7 +145,7 @@ struct CreatorView: View {
                     ViewThatFits {
                         HStack {videoActions(video)}
                         VStack(alignment:.leading) {videoActions(video)}
-                    }
+                    }.disabled(model.busy || model.pendingOperation)
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
         }
@@ -169,7 +169,7 @@ struct CreatorView: View {
                 TextField(model.text("territories"),text:$territories)
                 TextField(model.text("evidence"),text:$rightsEvidence)
                 Text(model.text("independentReview")).foregroundStyle(.secondary)
-                Button(model.text("declareRights")) {Task {await model.perform("/v1/videos/"+video.id+"/rights",body:["basis":basis,"license_reference":rightsLicense,"territories":territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespaces)},"contributor_splits":[],"evidence_sha256":rightsEvidence.lowercased(),"source_sha256":video.sha256]);if !model.pendingOperation {selectedVideo=nil}}}.disabled(model.busy || model.pendingOperation || rightsEvidence.count != 64)
+                Button(model.text("declareRights")) {Task {await model.perform("/v1/videos/"+video.id+"/rights",body:["basis":basis=="public-domain" ? "public_domain" : basis,"license_reference":rightsLicense,"territories":territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespaces)},"contributor_splits":[],"evidence_sha256":rightsEvidence.lowercased(),"source_sha256":video.sha256]);if !model.pendingOperation {selectedVideo=nil}}}.disabled(model.busy || model.pendingOperation || rightsEvidence.count != 64)
             }.navigationTitle(model.text("rights")).toolbar {Button(model.text("close")) {selectedVideo=nil}}
         }.frame(minWidth:320,minHeight:360)
     }

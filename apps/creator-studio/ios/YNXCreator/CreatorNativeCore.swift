@@ -10,7 +10,7 @@ import Foundation
 final class CreatorHTTP: NSObject, URLSessionTaskDelegate {
     static let api = URL(string: "https://creator.ynxweb4.com/video/api")!
     static let shared = CreatorHTTP()
-    enum Failure: Error { case invalidPath, unexpectedResponse, nativeSessionUnavailable }
+    enum Failure: Error { case invalidPath, unexpectedResponse, nativeSessionUnavailable, businessRejected(Int,String) }
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.ephemeral
         config.httpCookieStorage = nil
@@ -70,7 +70,10 @@ final class CreatorHTTP: NSObject, URLSessionTaskDelegate {
         let (data,response)=try await engine.sendBusiness(request,2_097_152,original,epoch)
         try guardRequest();try engine.require(original,epoch)
         if response.statusCode==401 { try engine.rejected(original) }
-        guard (200..<300).contains(response.statusCode) else { throw Failure.unexpectedResponse }
+        guard (200..<300).contains(response.statusCode) else {
+            let reply=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any]
+            throw Failure.businessRejected(response.statusCode,String((reply?["error"] as? String ?? "Unavailable").prefix(500)))
+        }
         return data
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,

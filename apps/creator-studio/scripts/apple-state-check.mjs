@@ -1,0 +1,4 @@
+import {mkdtemp,rm} from 'node:fs/promises';import{tmpdir}from'node:os';import{join}from'node:path';import{fileURLToPath}from'node:url';import{spawnSync}from'node:child_process';
+const root=fileURLToPath(new URL('../',import.meta.url)),temp=await mkdtemp(join(tmpdir(),'ynx-creator-apple-state-'));
+function run(cmd,args){const r=spawnSync(cmd,args,{stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error(`${cmd} exited ${r.status}; source retained, Apple state execution unverified`)}
+try{run('xcrun',['swiftc','-module-cache-path',join(temp,'modules'),...['CreatorNativeState.swift','CreatorNativeCustody.swift','CreatorDeviceKey.swift'].map(p=>join(root,'ios/YNXCreator',p)),join(root,'scripts/apple-state-check.swift'),'-o',join(temp,'check')]);run(join(temp,'check'),[])}finally{await rm(temp,{recursive:true,force:true})}

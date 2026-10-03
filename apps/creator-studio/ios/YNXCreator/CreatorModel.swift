@@ -31,7 +31,10 @@ struct CreatorSnapshot: Decodable {
     @Published var snapshot: CreatorSnapshot?
     @Published var locale=UserDefaults.standard.string(forKey:"ynx.creator.locale") ?? (Locale.current.identifier.hasPrefix("zh") ? "zh-CN" : "en")
     private(set) var engine: CreatorNativeEngine?
+    private(set) var lastFailure=""
     private var drafts: CreatorDraftState?
+    private var visibleIdentity: CreatorNativeEngine.Identity?
+    private var visibleEpoch: UInt64?
     private var revision: UInt64=0
     var currentRevision: UInt64 {revision}
     private var started=false
@@ -45,14 +48,19 @@ struct CreatorSnapshot: Decodable {
     func text(_ key: String) -> String { catalog[locale]?[key] ?? catalog["en"]?[key] ?? key }
     func language(_ value: String) {locale=value;UserDefaults.standard.set(value,forKey:"ynx.creator.locale")}
     func number(_ value: Int) -> String {value.formatted(.number.locale(Locale(identifier:locale)))}
-    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;channelID="";pendingUploadTitle="";pendingOperation=false}
+    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false}
     private func ensure() throws -> CreatorNativeEngine {
         if let engine {return engine};let created=try makeEngine();engine=created
         created.onChange={ [weak self,weak created] in
             guard let self,let created,self.engine === created else {return}
             guard let identity=created.identity else {self.clear();return}
+            // prepareRequest publishes the same verified SDK identity. Keep
+            // its original draft controller so a previously acknowledged
+            // operation cannot reappear from a stale in-memory snapshot.
+            if self.visibleIdentity==identity,self.visibleEpoch==created.epoch,self.drafts != nil {return}
             do {
                 let store=try self.makeDrafts(created,identity);self.drafts=store
+                self.visibleIdentity=identity;self.visibleEpoch=created.epoch
                 self.connected=true;self.account=identity.account
                 self.pendingUploadTitle=try store.pendingUpload()?.title ?? ""
                 self.pendingOperation=try store.pendingOperation() != nil
@@ -67,8 +75,8 @@ struct CreatorSnapshot: Decodable {
     }
     func signOut() async {await auth("disconnect")}
     func restore() async {await auth("restore")}
-    private func auth(_ method: String,args: [String:Any]=[:]) async {
-        guard !busy else {return};revision &+= 1;let captured=revision;busy=true;clear()
+    private func auth(_ method: String,args: [String:Any]=[:],replaceBusy: Bool=false) async {
+        guard !busy || replaceBusy else {return};revision &+= 1;let captured=revision;busy=true;clear()
         if method=="disconnect" {signOutPending=true}
         defer {if captured==revision {busy=false}}
         do {
@@ -87,7 +95,7 @@ struct CreatorSnapshot: Decodable {
         // A callback supersedes any in-flight original attempt. Late responses
         // cannot restore a former account or publish its private studio.
         revision &+= 1;busy=false;engine?.suspend();clear()
-        Task {@MainActor in await auth("handleReturn",args:["url":url.absoluteString])}
+        Task {@MainActor in await auth("handleReturn",args:["url":url.absoluteString],replaceBusy:true)}
     }
     func suspend() {revision &+= 1;busy=false;engine?.suspend();clear()}
     private func require(_ active: CreatorNativeEngine,_ captured: UInt64) throws {guard captured==revision,connected,engine === active else {throw CancellationError()}}
@@ -126,7 +134,7 @@ struct CreatorSnapshot: Decodable {
     func cancelUpload() {guard !busy else {return};do {try drafts?.cancelUpload();pendingUploadTitle="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
     func perform(_ path: String,body: [String:Any]=[:]) async {
         guard !busy,let store=drafts else {return}
-        do {_ = try store.reserve(path:path,body:body);pendingOperation=true}catch {message=text("operationPending");return}
+        do {_ = try store.reserve(path:path,body:body);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}
         await retryOperation()
     }
     func retryOperation() async {
@@ -138,7 +146,7 @@ struct CreatorSnapshot: Decodable {
             try require(active,captured)
             if operation.path=="/v1/channels",let channel=try JSONSerialization.jsonObject(with:data) as? [String:Any],let id=channel["ID"] as? String,CreatorDraftState.validID(id),channel["Owner"] as? String==account {channelID=id}
             try await refreshCaptured(active,captured);try store.acknowledge(operation);pendingOperation=false;message=""
-        } catch {if captured==revision {message=text("operationPending");try? await refreshCaptured(active,captured)}}
+        } catch {if captured==revision {lastFailure=String(describing:error);message=text("operationPending");try? await refreshCaptured(active,captured)}}
     }
     func cancelOperation() {guard !busy else {return};do {try drafts?.cancelOperation();pendingOperation=false;message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
 }

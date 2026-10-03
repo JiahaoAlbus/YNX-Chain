@@ -84,7 +84,7 @@ import Foundation
                         }
                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
                         value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message
-                        value["businessVerified"]=engine.identity != nil
+                        value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
                         value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility] as [String:Any]}
                         if let identity=engine.identity {value["account"]=identity.account;value["binding"]=identity.binding}
                         reply(id,["ok":true,"result":value])
