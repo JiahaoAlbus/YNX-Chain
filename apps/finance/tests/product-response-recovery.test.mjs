@@ -12,7 +12,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve
 const reply=(body,mime='application/json',status=200,length=null)=>({ok:status>=200&&status<300,status,headers:{get:key=>key==='content-type'?mime:key==='content-length'?length:null},text:async()=>body});
 function fixture(){
   const calls=[],proofs=[],statuses=[],timers=new Map();let next=0;
-  const scope={AbortController,TextEncoder,Blob,URL,location:{href:'https://finance.local/'},state:{context:1},READ_RETRY_DELAYS:[0,600,1600],wait:async()=>{},sourceStatus:(...args)=>statuses.push(args),scope:()=> 'finance.portfolio.read',window:{YNXFinanceWallet:{getRevision:()=>1,requireProof:async()=>{proofs.push(1);return {proofHeader:'controlled-qa-only',requestId:'request-'+proofs.length}}}},fetch:(path,options)=>{const value=deferred();calls.push({path,options,...value});return value.promise},setTimeout:(callback,ms)=>{const id=++next;timers.set(id,{callback,ms});return id},clearTimeout:id=>timers.delete(id)};
+  const scope={AbortController,TextEncoder,TextDecoder,Blob,URL,location:{href:'https://finance.local/'},state:{context:1},READ_RETRY_DELAYS:[0,600,1600],wait:async()=>{},sourceStatus:(...args)=>statuses.push(args),scope:()=> 'finance.portfolio.read',window:{YNXFinanceWallet:{getRevision:()=>1,requireProof:async()=>{proofs.push(1);return {proofHeader:'controlled-qa-only',requestId:'request-'+proofs.length}}}},fetch:(path,options)=>{const value=deferred();calls.push({path,options,...value});return value.promise},setTimeout:(callback,ms)=>{const id=++next;timers.set(id,{callback,ms});return id},clearTimeout:id=>timers.delete(id)};
   runInNewContext(transport+'globalThis.invoke=api;globalThis.response=financeProductResponse;',scope);
   return {scope,calls,proofs,statuses,timers};
 }
@@ -42,6 +42,44 @@ test('GET retry remains bounded, gets fresh proofs, and malformed HTTP 200 never
 test('old-account response after stalled parsing fails context fence before any private success',async()=>{
   const f=fixture(),body=deferred(),pending=f.scope.invoke('/api/overview');await new Promise(setImmediate);f.calls[0].resolve({...reply('{}'),text:()=>body.promise});await new Promise(setImmediate);f.scope.state.context++;body.resolve('{"old":"private"}');await assert.rejects(pending,{nonRetryable:true});assert.equal(f.calls.length,1);assert.equal(f.statuses.some(([key])=>key==='privateFinanceReachable'),false);
 });
+test('native streams cancel oversized, malformed UTF8, deadline and retired-owner bodies without read replay',async()=>{
+  for(const kind of ['oversize','utf8','truncated','deadline','owner']){
+    const f=fixture();let cancels=0,reads=0,streamController;
+    const response=new Response(new ReadableStream({start(controller){streamController=controller},pull(controller){reads++;if(kind==='oversize')controller.enqueue(new Uint8Array(8388609));else if(kind==='utf8'){controller.enqueue(new Uint8Array([255]));controller.close()}else if(kind==='truncated'){controller.enqueue(new Uint8Array([228,184]));controller.close()}},cancel(){cancels++}}),{headers:{'content-type':'application/json'}});
+    const pending=f.scope.invoke('/api/notes',{method:'POST',body:'{}'});pending.catch(()=>{});await new Promise(setImmediate);f.calls[0].resolve(response);await new Promise(setImmediate);
+    if(kind==='deadline'||kind==='owner'){
+      if(kind==='owner'){f.scope.state.context++;streamController.enqueue(new TextEncoder().encode('{}'))}
+      else [...f.timers.values()][0].callback();
+    }
+    await assert.rejects(pending,error=>error.code==='FINANCE_RESPONSE_INVALID'||error.code==='FINANCE_REQUEST_TIMEOUT'||error.nonRetryable===true);
+    assert.equal(cancels,kind==='utf8'||kind==='truncated'?0:1);if(kind==='oversize')assert.ok(reads<=2);assert.equal(f.calls.length,1);assert.equal(f.proofs.length,1);assert.equal(f.timers.size,0);assert.equal(f.statuses.some(([key])=>key==='privateFinanceReachable'),false);
+  }
+  const f=fixture(),bytes=new TextEncoder().encode('{"label":"中文"}'),response=new Response(new ReadableStream({start(controller){controller.enqueue(bytes.slice(0,11));controller.enqueue(bytes.slice(11));controller.close()}}),{headers:{'content-type':'application/json'}});
+  const pending=f.scope.response('/api/overview',{},()=>{});f.calls[0].resolve(response);assert.deepEqual(JSON.parse(JSON.stringify((await pending).body)),{label:'中文'});
+  for(const length of ['-1','1.5','8388609','9007199254740992']){
+    const f=fixture(),pending=f.scope.response('/api/overview',{},()=>{});f.calls[0].resolve(new Response('{}',{headers:{'content-type':'application/json','content-length':length}}));await assert.rejects(pending,{code:'FINANCE_RESPONSE_INVALID'});assert.equal(f.timers.size,0);
+  }
+});
+test('actual Chrome native JSON and CSV streams decode split UTF8 and discard old-owner chunks',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.setContent('<p>Controlled Finance response QA</p>');
+    await page.addScriptTag({content:`const state={context:1};const READ_RETRY_DELAYS=[0],wait=async()=>{},sourceStatus=()=>{},scope=()=> 'finance.portfolio.read';window.YNXFinanceWallet={getRevision:()=>1};${transport}`});
+    const result=await page.evaluate(async()=>{
+      const outcomes=[];
+      for(const [path,mime,text] of [['/api/export?format=csv','text/csv','label,amount\n中文,1\n'],['/api/export?format=json','application/json','{"label":"中文"}']]){
+        const bytes=new TextEncoder().encode(text),split=bytes.indexOf(228)+1;
+        const fetchImpl=async()=>new Response(new ReadableStream({start(controller){controller.enqueue(bytes.slice(0,split));controller.enqueue(bytes.slice(split));controller.close()}}),{headers:{'content-type':mime}});
+        const {body}=await financeProductResponse('https://finance-controlled.test'+path,{responseType:'blob'},()=>{},{fetchImpl});outcomes.push(await body.text());
+      }
+      let cancels=0;
+      const fetchImpl=async()=>new Response(new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{}'))},cancel(){cancels++}}),{headers:{'content-type':'application/json'}});
+      let error,checks=0;try{await financeProductResponse('/api/overview',{},()=>{if(++checks===3)throw Object.assign(new Error('retired'),{nonRetryable:true})},{fetchImpl})}catch(value){error=value.message}
+      return {outcomes,error,cancels};
+    });
+    assert.deepEqual(result.outcomes,['label,amount\n中文,1\n','{"label":"中文"}']);assert.equal(result.error,'retired');assert.equal(result.cancels,1);
+  }finally{await browser.close()}
+});
 test('actual Chrome export rejects HTML fallback, recovers with explicit retry and emits only verified JSON bytes',{timeout:20000},async t=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   t.diagnostic('browser launched');
@@ -52,9 +90,9 @@ test('actual Chrome export rejects HTML fallback, recovers with explicit retry a
     await page.goto('https://finance-export.local/');
     t.diagnostic('controlled document loaded');
     await page.addScriptTag({content:`const state={context:1};let browserSSOIntentGeneration=1;const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));const READ_RETRY_DELAYS=[0,0,0],wait=async()=>{},sourceStatus=()=>{},scope=()=> 'finance.portfolio.read';window.YNXFinanceWallet={getRevision:()=>1,requireProof:async()=>({proofHeader:'controlled-only',requestId:'controlled'})};window.calls=[];window.failures=[];const notifyFailure=error=>failures.push(error.code);window.fetch=()=>new Promise(resolve=>calls.push(resolve));${transport}${exportView}window.complete=(text,mime)=>calls.shift()({ok:true,status:200,headers:new Headers({'content-type':mime}),text:async()=>text});`});
-    await page.locator('#export-json').click();await page.evaluate(()=>complete('<html>not export</html>','text/html'));await page.waitForFunction(()=>failures.length===1);assert.deepEqual(downloads,[]);assert.equal(await page.evaluate(()=>ownedExportOperations.size),0);
+    await page.evaluate(()=>document.getElementById('export-json').click());await page.evaluate(()=>complete('<html>not export</html>','text/html'));await page.waitForFunction(()=>failures.length===1);assert.deepEqual(downloads,[]);assert.equal(await page.evaluate(()=>ownedExportOperations.size),0);
     t.diagnostic('HTML refusal observed');
-    await page.locator('#export-json').click({timeout:5000});t.diagnostic('explicit retry clicked');await page.waitForFunction(()=>calls.length===1,{},{timeout:5000});assert.deepEqual(errors,[]);
-    const downloaded=page.waitForEvent('download',{timeout:5000});await page.evaluate(()=>complete('{"coverageComplete":false}','application/json'));const result=await downloaded;assert.equal(result.suggestedFilename(),'ynx-finance-observed-export.json');assert.equal(await page.evaluate(()=>ownedExportOperations.size),0);assert.equal(downloads.length,1);
+    await page.evaluate(()=>document.getElementById('export-json').click());t.diagnostic('explicit retry clicked');await page.waitForFunction(()=>calls.length===1,{},{timeout:5000});assert.deepEqual(errors,[]);
+    const downloaded=page.waitForEvent('download',{timeout:5000});downloaded.catch(()=>{});await page.evaluate(()=>complete('{"coverageComplete":false}','application/json'));t.diagnostic(JSON.stringify(await page.evaluate(()=>({failures,pending:ownedExportOperations.size}))));const result=await downloaded;assert.equal(result.suggestedFilename(),'ynx-finance-observed-export.json');assert.equal(await page.evaluate(()=>ownedExportOperations.size),0);assert.equal(downloads.length,1);
   }finally{await browser.close()}
 });

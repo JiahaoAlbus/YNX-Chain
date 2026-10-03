@@ -377,12 +377,32 @@ async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetc
     const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
     const exportDocument=options.responseType==='blob'&&response.ok;
     const expected=exportDocument&&new URL(path,location.href).searchParams.get('format')==='csv'?'text/csv':'application/json';
-    if(mime!==expected||Number(response.headers.get('content-length'))>8*1024*1024)throw invalid();
-    const text=await response.text();assertCurrent();
+    const length=response.headers.get('content-length'),limit=8*1024*1024;
+    if(mime!==expected||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>limit))){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw invalid()}
+    let text;
+    if(typeof response.body?.getReader==='function'){
+      const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true}),parts=[];let bytes=0;
+      const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+      controller.signal.addEventListener('abort',cancel,{once:true});
+      try{
+        while(true){
+          assertCurrent();if(controller.signal.aborted)throw invalid();
+          const chunk=await reader.read();assertCurrent();if(controller.signal.aborted)throw invalid();if(chunk.done)break;
+          if(!Number.isSafeInteger(chunk.value?.byteLength)||chunk.value.byteLength<0||chunk.value.byteLength>limit-bytes)throw invalid();
+          bytes+=chunk.value.byteLength;parts.push(decoder.decode(chunk.value,{stream:true}));
+        }
+        parts.push(decoder.decode());text=parts.join('');
+      }catch(error){cancel();if(error?.nonRetryable)throw error;throw invalid()}
+      finally{controller.signal.removeEventListener('abort',cancel);try{reader.releaseLock()}catch{}}
+    }else{
+      // Legacy controlled adapters only; native fetch uses the stream above.
+      text=await response.text();
+    }
+    assertCurrent();
     if(new TextEncoder().encode(text).byteLength>8*1024*1024)throw invalid();
     let parsed;if(mime==='application/json'){try{parsed=JSON.parse(text)}catch{throw invalid()}}
     return {response,body:exportDocument?new Blob([text],{type:mime}):parsed};
-  })(),deadline])}finally{clearTimer(timer)}
+  })(),deadline])}finally{clearTimer(timer);controller.abort()}
 }
 async function api(path,options={}){
   const context=state.context,walletRevision=window.YNXFinanceWallet.getRevision();
