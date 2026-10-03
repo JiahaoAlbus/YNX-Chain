@@ -1,3 +1,4 @@
+import { readOpenedFiles } from "../explorer/openFiles";
 import { applyPackageMetadata, persistTerminalWorkspace, terminalCommonBase, mergeTerminalFiles, mergeStoppedTerminalWorkspace, stopSelectedTerminals } from "../terminal/admission";
 import { installHostCommands } from "../desktop/host-commands";
 import { desktopEditorReady } from "../editor/native-edit";
@@ -197,6 +198,8 @@ export function Workbench() {
     workspaceKey = useMemo(() => JSON.stringify(workspace), [workspace]);
   const workspaceKeyRef = useRef(workspaceKey);
   workspaceKeyRef.current = workspaceKey;
+  const workspaceProjectRef = useRef(project.id);
+  workspaceProjectRef.current = project.id;
   const languageOf = useCallback(
     (path: string) => {
       const lower = path.toLowerCase();
@@ -484,6 +487,18 @@ export function Workbench() {
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
     }
+  };
+  const openFiles = async (selected: File[]) => {
+    if (collaborationReadOnly) return "Your workspace is read-only.";
+    const expected = workspaceKeyRef.current;
+    try {
+      const additions = await readOpenedFiles(selected, project.files);
+      if (workspaceProjectRef.current !== project.id || workspaceKeyRef.current !== expected) return "The workspace changed while opening files. Existing edits are retained; select the files again.";
+      const paths = Object.keys(additions);
+      setProject(current => ({ ...current, files: { ...current.files, ...additions }, open: [...new Set([...current.open, ...paths])], active: paths.at(-1) || current.active, revision: current.revision + 1 }));
+      setDirty(current => new Set([...current, ...paths]));
+      return null;
+    } catch (error) { return error instanceof Error ? error.message : String(error); }
   };
   const importFolder = async (selected: File[]) => {
     if (!selected.length) return "The selected folder contains no files.";
@@ -990,7 +1005,7 @@ export function Workbench() {
         </button>
       </aside>
       <aside className="sidebar">
-        {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} onImportFolder={importFolder} onImportProject={importProject} onExportProject={exportProject} />}{" "}
+        {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} onImportFiles={openFiles} onImportFolder={importFolder} onImportProject={importProject} onExportProject={exportProject} />}{" "}
         {view === "outline" && <OutlinePanel projectId={project.id} runtimeId={selectedRuntime?.startsWith("ssh-") ? undefined : selectedRuntime} files={project.files} activePath={project.active} language={languageOf(project.active)} onNavigate={navigateToLocation} />}
         {view === "native" && <NativeIDEPanel projectId={project.id} projectName={project.name} revision={project.remoteRevision} admitted={workspaceAdmitted && !packageBusy} onOwnershipChange={setNativeReadOnly} />}
         {view === "search" && (
