@@ -17,15 +17,18 @@ test("simulation replay detection keeps one canonical record for same idempotenc
   };
 
   const first=replayAwareAppend([],base,"first",now("2026-08-20T00:00:00.000Z"));
-  const second=replayAwareAppend(first.next,{...base,amountMinor:1300},"second",now("2026-08-20T00:00:01.000Z"));
+  assert.throws(()=>replayAwareAppend(first.next,{...base,amountMinor:1300},"second",now("2026-08-20T00:00:01.000Z")),/IDEMPOTENCY_CONFLICT/);
+  const second=replayAwareAppend(first.next,base,"second",now("2026-08-20T00:00:01.000Z"));
 
   assert.equal(first.next.length,1);
   assert.equal(second.next.length,1);
   assert.equal(second.duplicate,true);
-  assert.equal(second.entry.status,"duplicate");
+  assert.equal(second.entry,first.entry);
+  assert.equal(second.next,first.next);
+  assert.equal(second.entry.status,"accepted");
 });
 
-test("recoverLastFailed marks failed simulation entries as recoverable",()=>{
+test("recoverLastFailed preserves failed outcomes without authoritative evidence",()=>{
   const first=replayAwareAppend([],{
     kind:"refund",
     cardId:"card_1",
@@ -42,7 +45,23 @@ test("recoverLastFailed marks failed simulation entries as recoverable",()=>{
   const record=recovered[0];
 
   assert.equal(recovered.length,1);
-  assert.equal(record.status,"recovered");
-  assert.equal(isFailure(record),false);
-  assert.match(record.reason,/Recovery/);
+  assert.equal(record.status,"failed");
+  assert.equal(isFailure(record),true);
+  assert.equal(record.reason,"declined");
+});
+
+test("same-millisecond events remain distinct and unsafe minor amounts reject",()=>{
+  const base:SimulationInput={kind:"authorization",cardId:"card_1",merchant:"Demo",amountMinor:1,currency:"YNXT",idempotencyKey:"auth-key-1"};
+  const first=replayAwareAppend([],base,"local simulation",now("2026-08-20T00:00:00.000Z"));
+  const second=replayAwareAppend(first.next,{...base,idempotencyKey:"auth-key-2"},"local simulation",now("2026-08-20T00:00:00.000Z"));
+  assert.notEqual(first.entry.id,second.entry.id);
+  assert.throws(()=>replayAwareAppend([],{...base,amountMinor:Number.MAX_SAFE_INTEGER+1},"invalid"),/safe minor/);
+});
+
+test("failed same-key retry cannot turn into a recovered outcome",()=>{
+  const input:SimulationInput={kind:"refund",cardId:"card_1",merchant:"Demo",amountMinor:1,currency:"YNXT",idempotencyKey:"refund-key-1"};
+  const first=replayAwareAppend([],input,"local simulation");
+  const failed={...first.entry,status:"failed" as const,reason:"original denial"};
+  const result=replayAwareAppend([failed],input,"unproven retry");
+  assert.equal(result.entry,failed);assert.equal(result.entry.status,"failed");
 });

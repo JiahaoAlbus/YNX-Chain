@@ -34,7 +34,7 @@ export type SimulationInput=Readonly<{
 export function simulationEntryId(operation:SimulationOperation,now:Date = new Date()):string{return `sim-${operation}-${now.toISOString().replace(/[^0-9]/g,"")}`}
 
 function isValid(amountMinor:number,currency:string,merchant:string,idempotencyKey:string):void{
-  if(!Number.isInteger(amountMinor)||amountMinor<=0)throw new Error("simulation amount must be a positive minor unit");
+  if(!Number.isSafeInteger(amountMinor)||amountMinor<=0)throw new Error("simulation amount must be a positive safe minor unit");
   if(!/^[A-Z]{3,4}$/.test(currency))throw new Error("currency must be an ISO currency code");
   if(!merchant.trim())throw new Error("merchant is required");
   if(!/^(?:[a-zA-Z0-9._-]{6,})$/.test(idempotencyKey))throw new Error("idempotency key format is invalid");
@@ -44,22 +44,18 @@ export function replayAwareAppend(entries:readonly SimulationAuditRecord[],input
   isValid(input.amountMinor,input.currency,input.merchant,input.idempotencyKey);
   const existing=entries.find(item=>item.idempotencyKey===input.idempotencyKey&&item.kind===input.kind&&item.cardId===input.cardId);
   if(existing){
-    const duplicate={...existing,status:existing.status==="failed"?"recovered":"duplicate",reason:existing.status==="failed"?"Recovered from prior failure":"Replay detected" ,updatedAt:now.toISOString()} as SimulationAuditRecord;
-    return {entry:duplicate,next:replaceEntry(entries,duplicate),duplicate:true};
+    if(existing.amountMinor!==input.amountMinor||existing.currency!==input.currency||existing.merchant!==input.merchant.trim()||existing.txHash!==input.txHash||existing.chainId!==input.chainId)throw new Error("SIMULATION_IDEMPOTENCY_CONFLICT");
+    return {entry:existing,next:entries,duplicate:true};
   }
-  const record:SimulationAuditRecord={id:simulationEntryId(input.kind,now),kind:input.kind,cardId:input.cardId,merchant:input.merchant.trim(),amountMinor:input.amountMinor,currency:input.currency,idempotencyKey:input.idempotencyKey,status:"accepted",reason,txHash:input.txHash,chainId:input.chainId,createdAt:now.toISOString(),updatedAt:now.toISOString()};
+  const record:SimulationAuditRecord=Object.freeze({id:`${simulationEntryId(input.kind,now)}:${input.cardId}:${input.idempotencyKey}`,kind:input.kind,cardId:input.cardId,merchant:input.merchant.trim(),amountMinor:input.amountMinor,currency:input.currency,idempotencyKey:input.idempotencyKey,status:"accepted",reason,txHash:input.txHash,chainId:input.chainId,createdAt:now.toISOString(),updatedAt:now.toISOString()});
   const next=[record,...entries];
   return {entry:record,next:Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS)),duplicate:false};
 }
 
-function replaceEntry(entries:readonly SimulationAuditRecord[],entry:SimulationAuditRecord):readonly SimulationAuditRecord[]{
-  return Object.freeze(entries.map(item=>item.id===entry.id?entry:item));
-}
-
 export function recoverLastFailed(entries:readonly SimulationAuditRecord[]):readonly SimulationAuditRecord[]{
-  const now=new Date().toISOString();
-  const next=entries.map(item=>item.status==="failed"?{...item,status:"recovered",reason:"Recovery executed",updatedAt:now} as SimulationAuditRecord:item);
-  return Object.freeze(next);
+  // A local recovery action cannot prove that a rejected/unknown operation
+  // succeeded. Preserve its original outcome until authoritative readback.
+  return Object.freeze([...entries]);
 }
 
 export function isFailure(entry:SimulationAuditRecord):boolean{return entry.status==="failed";}
