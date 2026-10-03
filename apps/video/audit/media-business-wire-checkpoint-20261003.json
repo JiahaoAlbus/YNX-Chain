@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "ynx-media-source-checkpoint/v1",
+  "date": "2026-10-03",
+  "sourceCommit": "fc0dbb26c3432b71f63af81558f1e4199408bcfa",
+  "sourceTree": "8d095498e037e0d3271804eff1b15d9534ece809",
+  "parent": "77e6cbebcdba5e9247e577155f3c3e3423e6c3c4",
+  "status": "SOURCE_CONSUMER_READY_SHARED_SDK_AND_PRODUCT_BACKEND_INTEGRATION_HOLD",
+  "changes": [
+    "Video ordinary requests and Creator ordinary/multipart/empty AI stream POST use fresh introspection and separate exact-body action proofs",
+    "Serialize multipart once; keep final boundary/content type and send identical bytes; route-specific upload/thumbnail/caption caps, 512MiB final-wire shared ceiling",
+    "Video retry reuses immutable body and stable original Idempotency-Key but gets fresh action proof; multipart unknown result retains original no-auto-retry policy",
+    "No old-SDK introspection-only fallback; current frozen vendored SDK is deliberately not falsely upgraded",
+    "Static server whitelists and both owned builds include business-wire.js, Video historical source packaging remains compatible"
+  ],
+  "validation": {
+    "videoCheck": {
+      "passed": 121,
+      "failed": 0,
+      "skipped": 0
+    },
+    "creatorCheck": {
+      "passed": 62,
+      "failed": 0,
+      "skipped": 0
+    },
+    "builtBrowser": "PASS actual immutable artifacts, entry/import graph, explicit old SDK hold, no private HTTP/errors; isolated fixture only",
+    "creatorManifest": "All listed current dist file bytes/SHA independently checked, exact fc0 source and business-wire included",
+    "initialFailure": "Original full Video run failed watcher original idempotency header after Headers lowercasing; raw failure retained. Source corrected case-insensitive read and canonical output, original watch retry passes."
+  },
+  "artifacts": {
+    "video-initial-failure.log": {
+      "bytes": 14402,
+      "sha256": "5ca8b971c6f01dfed20285d12685b66cf0d60736f4214ba080b182ef3a7a78a8"
+    },
+    "formal-video-runtime-manifest.json": {
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    },
+    "video-final.log": {
+      "bytes": 13197,
+      "sha256": "4c31f6bc4dc1bba1c8c9016beb624ca83e78fe1dfd45930ddd6b69720c9bb7cd"
+    },
+    "built-browser.log": {
+      "bytes": 254,
+      "sha256": "0a70930db10560bf0c7281aafd6576075bb58130186d9a3382e34eaeef5dfd16"
+    },
+    "creator-studio.manifest.json": {
+      "bytes": 4056,
+      "sha256": "a16bb23e9f9a9c24d01962d770a8abf2e7d45343fc5f8191ac1819e704519b6e"
+    },
+    "creator-final.log": {
+      "bytes": 5792,
+      "sha256": "c11a6c6553165449db7af92e758dd4882d9d3f55d4c0bf423af48c91c3f5c458"
+    },
+    "video-runtime.tar.gz": {
+      "bytes": 512243,
+      "sha256": "ea8d020fab34eedf3b0aef5821fb1aaead7ca00b883b7a1f4840424eba2c451a"
+    }
+  },
+  "formalVideoObservedSource": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+  "requiresA": [
+    "Frozen admitted complete browser SDK supplying createBusinessProof/createBusinessProofCommitment for exact Video/Creator bindings, rebuild/version consumer vendor graph as a whole",
+    "Protected shared original-session/business revalidation registration, exact Node/Gateway compatible routing, real Wallet review and formal deployment"
+  ],
+  "remainingMediaOwned": [
+    "Integrate exact admitted shared primitives with original internal/video and internal/music business routes; bound actual raw bytes/staging, schema/role/live object validation and atomic nonce/business commit",
+    "Consume original OS-protected Native session bridge and real backend business proofs for Android/macOS; preserve legacy keys/history and original product features",
+    "Repeat formal Video sign-in -> normal Wallet approval -> original本人 private business -> recovery/account isolation, plus all platform/content/Creator/Music flows after unique A deploy"
+  ],
+  "acceptance": {
+    "formalCurrentSourceDeployed": false,
+    "realWalletApproval": "NOT_VERIFIED",
+    "originalUserBusiness": "NOT_VERIFIED",
+    "nativeInstalled": "NOT_VERIFIED",
+    "macOSFullProduct": "NOT_COMPLETED",
+    "fullMediaGoal": "NOT_COMPLETED"
+  },
+  "scope": "Only original Media owned Video/Creator source/tests/build/static lists changed. Shared SDK/Host/config/keys/content were not modified."
+}
