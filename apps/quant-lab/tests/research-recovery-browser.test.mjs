@@ -73,7 +73,20 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     assert.equal(await otherPage.locator('#research-request-status').isVisible(),false);
     assert.equal(await otherPage.evaluate(()=>pendingResearchIntent),null);
     assert.equal(await otherPage.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.research.pending.v1:')).length),0);
+    assert.equal(await otherPage.evaluate(()=>snapshot.paper.KillSwitch),false);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await otherPage.selectOption('#locale',language);
+      assert.equal(await otherPage.locator('#paper-strategy-status').textContent(),await otherPage.evaluate(()=>t('workspaceReadUnavailable')));
+      assert.equal(await otherPage.locator('#paper-submit').isDisabled(),true);
+      assert.equal(await otherPage.evaluate(()=>snapshot.paper.KillSwitch),false);
+    }
+    await otherPage.selectOption('#locale','en');
+    await otherPage.locator('nav button[data-view="paper"]').click();
+    await otherPage.screenshot({path:path.join(work,'workspace-unavailable-en.png'),fullPage:true});
     otherSnapshotUnavailable=false;await otherPage.evaluate(()=>refresh());assert.equal(otherPosts,1,'history recovery must not resubmit confirmed research');
+    assert.equal(await otherPage.locator('#paper-strategy-status').textContent(),'');
+    await otherPage.screenshot({path:path.join(work,'workspace-recovered-en.png'),fullPage:true});
+    await otherPage.locator('nav button[data-view="research"]').click();
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
     const otherBefore=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));
     assert.equal(otherBefore.experiments[0].strategy.Name,'Independent browser research');assert.equal(otherBefore.experiments[0].assumptions.FeeBPS,29);
@@ -136,6 +149,7 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     }
     const killDialog=page.waitForEvent('dialog'),killClick=page.locator('#kill').click();await (await killDialog).accept();await killClick;
     await page.waitForFunction(()=>snapshot.paper?.KillSwitch===true);
+    assert.equal(await page.locator('#paper-strategy-status').textContent(),await page.evaluate(()=>t('killActive')));
     assert.equal(killRequests,1,'fresh explicit confirmation reaches the local simulation engine exactly once');
     const killedBefore=await page.evaluate(()=>snapshot.paper);
     await stop();await start();await page.reload({waitUntil:'networkidle'});await otherPage.reload({waitUntil:'networkidle'});
@@ -174,5 +188,9 @@ test('actual Go two-browser saved research stays isolated through lost-return an
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
-  t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
+  const screenshots=[];
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png']){
+    const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
+  }
+  t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
 });

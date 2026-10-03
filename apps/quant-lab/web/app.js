@@ -65,7 +65,12 @@ let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperIntent = r
 // after a kill. The service still rejects new execution under the kill switch.
 function paperFreshIntentBlockKey() { return riskWrites.size>0 || riskOutcomeUnconfirmed ? 'riskReceiptUnconfirmed' : pendingPaperInvalid ? 'paperPendingUnreadable' : pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
 function paperFreshIntentBlocked() { return paperFreshIntentBlockKey() !== null; }
-function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); renderPaperPendingState(); }
+function renderPaperSubmitControl() {
+  const blocked = paperFreshIntentBlockKey();
+  $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || blocked !== null;
+  $('#paper-strategy-status').textContent = blocked ? t(blocked) : Object.values(snapshot.strategies || {}).some(paperStrategyHashAvailable) ? '' : t('strategyMissing');
+  renderPaperPendingState();
+}
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
   try {
@@ -886,7 +891,6 @@ function renderPaperStrategies(strategies) {
     $("#side").value = pendingPaperIntent.Side;
     $("#paper-amount").value = String(pendingPaperIntent.Amount);
   }
-  $("#paper-strategy-status").textContent = paperFreshIntentBlocked() ? t('killActive') : available.length ? "" : t("strategyMissing");
 }
 function researchAmount(attribution, key) {
   const value = attribution?.[key];

@@ -1203,11 +1203,28 @@ test('failed workspace refresh blocks fresh Paper intent before confirmation and
     await app.ids.get('paper-order').onsubmit({preventDefault(){}});
     assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
     assert.equal(app.ids.get('paper-submit').disabled,true);
+    assert.equal(app.ids.get('paper-strategy-status').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
   }
   assert.equal(confirmations,0);assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);
   unavailable=false;await app.ids.get('refresh').onclick();
   assert.equal(app.ids.get('workspace-read-status').hidden,true);assert.equal(app.ids.get('paper-submit').disabled,false);
   assert.equal(app.ids.get('reconcile').disabled,false);
+  assert.equal(app.ids.get('paper-strategy-status').textContent,'');
+});
+
+test('Paper availability explains exact risk or recovery fence without inventing an active kill switch',async()=>{
+  const hash='e'.repeat(64),workspace={paper:{Cash:777,Position:0,KillSwitch:false},strategies:{saved:{Name:'Saved fixture',StrategyHash:hash}}};
+  for(const [mutation,key] of [['riskOutcomeUnconfirmed=true','riskReceiptUnconfirmed'],['riskWrites.add("reconcile")','riskReceiptUnconfirmed'],['pendingPaperInvalid=true','paperPendingUnreadable'],['snapshot.paper.KillSwitch=true','killActive']]){
+    const app=harness({snapshot:workspace});await settle();
+    vm.runInContext(mutation+';renderPaperSubmitControl()',app.context);
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.equal(app.ids.get('paper-strategy-status').textContent,vm.runInContext(`t(${JSON.stringify(key)})`,app.context));
+      assert.equal(app.ids.get('paper-submit').disabled,true);
+      if(key!=='killActive')assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),false);
+    }
+    assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);assert.equal(app.proofs(),0);
+  }
 });
 
 test('unknown exact Paper replay remains available during failed workspace reads without enabling fresh intent',async()=>{
