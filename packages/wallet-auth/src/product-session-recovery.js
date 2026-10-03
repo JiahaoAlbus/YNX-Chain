@@ -645,6 +645,10 @@ export class RecoverableProductSessionClient {
   async acknowledgeRevocationCompletion(receipt) {
     const raw = canonicalJSON(receipt); parseRevocationCompletion(raw, this.#binding, this.#device);
     if (typeof this.#storage.acknowledgeRevocationCompletion !== "function") fail("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This runtime cannot acknowledge an exact completion");
+    const parsed = parseRevocationCompletion(raw, this.#binding, this.#device);
+    const current = await this.getRevocationCompletion(parsed.intentId);
+    if (current === null) return;
+    if (canonicalJSON(current) !== raw) fail("REVOCATION_CHANGED", "Cannot acknowledge a different original completion");
     await this.#storage.acknowledgeRevocationCompletion(`${this.storageKey}:revoke-completions`, raw);
   }
   async #finishRevocationIntent(outcome) {

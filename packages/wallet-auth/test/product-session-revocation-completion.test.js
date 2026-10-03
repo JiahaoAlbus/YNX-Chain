@@ -75,3 +75,13 @@ test('exact Browser storage handlers atomically preserve completion; bounded ful
  await assert.rejects(ports.finishRevocationIntentWithCompletion(revocationKey,local,localReceipt),{code:'REVOCATION_COMPLETION_FULL'});assert.equal(committed.values[revocationKey],local);assert.equal(readRevocationCompletions(committed.values[completionKey],binding,device).length,64);
  }finally{await f.close()}
 });
+
+test('SDK blocks forged acknowledgement before a defective delete-by-ID native port can lose the original receipt',async()=>{
+ const f=await fixture();try{
+ const ports=atomicPorts(f);let calls=0;
+ ports.acknowledgeRevocationCompletion=async(n,k,raw,c)=>{calls++;assert.equal(canonicalJSON(c),canonicalJSON(f.runtime.readContext()));const records=JSON.parse(f.values.get(n).get(k));f.values.get(n).set(k,canonicalJSON(records.filter(r=>r.intentId!==JSON.parse(raw).intentId)))};
+ const c=await createNativeProductSessionClient({...f.config,runtime:{...f.runtime,storage:ports}}),pending=await c.beginExplicit();await c.handleReturn(f.returned(pending.request));await c.disconnect();const receipt=(await c.getRevocationCompletions())[0];
+ await assert.rejects(c.acknowledgeRevocationCompletion({...receipt,targetDigest:'9'.repeat(64)}),{code:'REVOCATION_CHANGED'});assert.equal(calls,0);assert.deepEqual((await c.getRevocationCompletions())[0],receipt);
+ await c.acknowledgeRevocationCompletion(receipt);assert.equal(calls,1);assert.equal((await c.getRevocationCompletions()).length,0);await c.acknowledgeRevocationCompletion(receipt);assert.equal(calls,1);
+ }finally{await f.close()}
+});
