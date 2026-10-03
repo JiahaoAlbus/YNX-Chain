@@ -88,6 +88,30 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, stora
   };
 }
 
+test('saved research parameters fill only an explicit draft and never run, order or replace cost assumptions',async()=>{
+  const strategy={...savedResearchStrategy(),Seed:0,Params:{fast:4,slow:12}},app=harness({snapshot:{strategies:{saved:strategy}}});await settle();
+  const key=encodeURIComponent(strategy.ID)+':'+strategy.StrategyHash;
+  assert.equal(app.ids.get('research-reuse').disabled,true);
+  app.ids.get('research-saved-strategy').value=key;app.ids.get('research-saved-strategy').onchange();
+  app.ids.get('fee').value='34';app.ids.get('slippage').value='17';
+  app.ids.get('research-reuse').onclick();
+  assert.equal(app.ids.get('strategy').value,strategy.Name);assert.equal(app.ids.get('seed').value,'0');assert.equal(app.ids.get('fast').value,'4');assert.equal(app.ids.get('slow').value,'12');assert.equal(app.ids.get('fee').value,'34');assert.equal(app.ids.get('slippage').value,'17');
+  assert.match(app.ids.get('toast').textContent,/No run or order started/);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);assert.equal(app.proofs(),0);
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});app.ids.get('research-reuse').onclick();
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext(`businessCopy[${JSON.stringify(language)}].reuseSavedDone`,app.context));
+  }
+});
+test('saved research reuse rejects stale hashes, duplicate identities and missing or unsafe parameters without changing draft',async()=>{
+  for(const invalid of [{Seed:undefined},{Family:'different_engine'},{Params:{fast:4,slow:12,other:1}},{Params:{fast:Number.MAX_SAFE_INTEGER+1,slow:12}},{Params:{fast:1,slow:12}},{Name:''}]){
+    const app=harness({snapshot:{strategies:{one:{...savedResearchStrategy(),Seed:0,Params:{fast:4,slow:12},...invalid}}}});await settle();assert.equal(app.ids.get('research-saved-strategy').disabled,true);assert.equal(app.ids.get('research-reuse').disabled,true);
+  }
+  const strategy={...savedResearchStrategy(),Seed:0,Params:{fast:4,slow:12}};
+  for(const strategies of [{one:strategy,two:strategy},{one:strategy}]){
+    const app=harness({snapshot:{strategies}});await settle();app.ids.get('strategy').value='Preserve draft';app.ids.get('research-saved-strategy').value=encodeURIComponent(strategy.ID)+':'+(Object.keys(strategies).length===1?'e'.repeat(64):strategy.StrategyHash);app.ids.get('research-reuse').onclick();assert.equal(app.ids.get('strategy').value,'Preserve draft');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  }
+});
 test('saved research schedules render source failures and disable unknown or ineligible runtimes',async()=>{
   for(const Runtime of [undefined,{enabled:false},{enabled:true,running:false,intervalSeconds:60,nextRunAt:'not-a-date',lastRunStatus:'scheduled'},{enabled:false,running:true,intervalSeconds:60}]){
     const strategy=savedResearchStrategy({Runtime}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/>Stopped</);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
@@ -252,6 +276,12 @@ test('saved research history rejects malformed metrics without dropping valid ro
       assert.ok(rows.includes(vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchInvalid`,app.context)));assert.match(rows,/Verified history/);
     }
     assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  }
+});
+test('missing saved read timestamps remain explicitly unavailable without breaking valid research history',async()=>{
+  for(const createdAt of [undefined,null,'invalid','<img src=x>',0]){
+    const app=harness({snapshot:{experiments:{one:{...researchFixture('undated'),createdAt}}}});await settle();
+    assert.match(app.ids.get('experiment-rows').innerHTML,/<td>—<\/td>/);assert.match(app.ids.get('experiment-rows').innerHTML,/undated/);assert.doesNotMatch(app.ids.get('experiment-rows').innerHTML,/<img/);
   }
 });
 test('unverified sensitivity values cannot become HTML or a fabricated numeric spread in saved history',async()=>{

@@ -1,0 +1,30 @@
+{
+  "classification":"OWNER_SOURCE_AND_LOCAL_QA_NOT_OFFICIAL_RELEASE",
+  "predecessor":"8b3d3b399e8e50c2144ae6add8c54935044107d9",
+  "scope":"Existing saved transparent moving-average research parameters and ordinary product UI; no shared SDK/Auth/engine/permissions/capital/release mutation",
+  "closedFlow":[
+    "Explicit saved strategy selection carries exact ID and hash",
+    "Use in research draft copies name/seed/fast/slow from a single current matching record",
+    "Fee and slippage choices are not overwritten; no run, order or scheduling starts",
+    "Refresh removal or hash change clears stale selection without discarding user draft",
+    "Missing/unsafe params, incompatible strategy families, unknown extra params and duplicate identity fail closed",
+    "Reuse controls and successful copy notice follow all 12 existing languages",
+    "Malformed persisted timestamps show unavailable instead of crashing history"
+  ],
+  "objects":[
+    {"path":"apps/quant-lab/web/app.js","blob":"ed67559e66245396c9a6416691ed378e36e74139","bytes":112212,"sha256":"c4c2a049c4bad0db8442600045e36c03b194d21c6dc6c5e04ffa723d832e36bf"},
+    {"path":"apps/quant-lab/web/index.html","blob":"b02de38f974a74c844bc536d01fd1f75acf1a2ac","bytes":27659,"sha256":"c8b26c0dbf2532dc759c9ee9db88196b35769fc7992c2f230264303f546dbc42"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"704b251d243c32537f433d10b9ce4c7d5aaa19df","bytes":54386,"sha256":"cf5969ec8e6c5454a10850ab20705ae44b6f51367d323e93ea3fefb13bbfb145"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"bf69836a89316db156d4cc5b7d2a4bffc9dd774d","bytes":38925,"sha256":"9d71e06f3f6e00a49ccc735cec2e8ca464d74af0801c453f62a18ae8d236bc9b"}
+  ],
+  "tests":[
+    {"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":56,"fail":0,"skip":0,"durationMs":46483.670542,"note":"Full regression before the final invalid-timestamp display guard"},
+    {"command":"node --test apps/quant-lab/tests/business-flow.test.mjs","pass":39,"fail":0,"skip":0,"durationMs":237.409292,"note":"Final source includes timestamp regression and all reuse negative cases"},
+    {"command":"node --test --test-name-pattern='actual Chrome (reuses saved MA|recovers saved research)' apps/quant-lab/tests/browser.test.mjs","pass":2,"fail":0,"skip":0,"durationMs":4214.907584,"note":"Final-source real local Chrome plus Go HTTP, controlled saved-record readback only"},
+    {"command":"go test -race ./internal/quantlab -run '^(TestBacktestIsDeterministicOOSAndPersistent|TestBacktestAndPaperConsumeConfiguredMarketAdapter|TestPublicResearchSupportsConcurrentIsolatedUsers|TestPublicResearchIsRemoteSafeAndDoesNotMutateSharedState|TestScheduledResearchRunPersistsAndIsClaimedOnceAcrossServices)$' -count=1 -v","pass":5,"result":"PASS","seconds":1.761,"note":"Existing engine/HTTP/persistence tests with controlled market fixtures, not live public trading"},
+    {"command":"node --check apps/quant-lab/web/app.js; node --check apps/quant-lab/tests/business-flow.test.mjs; node --check apps/quant-lab/tests/browser.test.mjs; git diff --check","result":"PASS"}
+  ],
+  "releaseHandoff":"A integrates this exact ordinary product delta and its app/index version pins into the compatible final shared graph. Owner requires exact official URL/version/source before testing the published workflow; no owner deployment occurred.",
+  "rollback":"No runtime changed. A may omit delta before release or use approved prior immutable release rollback after publication; preserve user work.",
+  "truth":{"sourcePassed":true,"localChromePassed":true,"localPersistencePassed":true,"publicCurrentSourceVerified":false,"installedVerified":false,"realWalletApproval":false,"productSessionLifecycle":false,"signatures":false,"realTransactions":false,"computerControl":false,"productComplete":false}
+}

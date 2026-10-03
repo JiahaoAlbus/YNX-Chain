@@ -361,7 +361,7 @@ function renderPaperRecords(paper) {
     return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}</td><td>${value(row.Source)}</td></tr>`;
   }).join("") : "";
 }
-const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
+const localDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value)) : "—";
 const researchResultStatus = document.createElement("p");
 researchResultStatus.id = "research-result-status";
 researchResultStatus.role = "status";
@@ -479,6 +479,23 @@ async function refreshPortfolio() {
   }
   renderPortfolio();
 }
+function reusableResearchStrategy(strategy) {
+  return typeof strategy?.ID === "string" && !!strategy.ID && strategy.Family === "transparent" && typeof strategy.Name === "string" && !!strategy.Name.trim() && strategy.Name.length <= 80 && /^[a-f0-9]{64}$/.test(strategy.StrategyHash || "") && Number.isSafeInteger(strategy.Seed) && Number.isSafeInteger(strategy.Params?.fast) && strategy.Params.fast >= 2 && Number.isSafeInteger(strategy.Params?.slow) && strategy.Params.slow >= 3 && Object.keys(strategy.Params).sort().join(",") === "fast,slow";
+}
+function researchSelectionKey(strategy) { return encodeURIComponent(strategy.ID) + ":" + strategy.StrategyHash; }
+function renderResearchChoices(strategies) {
+  const selection = $("#research-saved-strategy"), previous = selection.value;
+  const candidates = strategies.filter(reusableResearchStrategy);
+  const available = candidates.filter(strategy => candidates.filter(other => researchSelectionKey(other) === researchSelectionKey(strategy)).length === 1);
+  selection.replaceChildren();
+  const placeholder = document.createElement("option");placeholder.value = "";placeholder.textContent = t("chooseStrategy");selection.append(placeholder);
+  for (const strategy of available) {
+    const option = document.createElement("option");option.value = researchSelectionKey(strategy);option.textContent = `${strategy.Name} · ${strategy.StrategyHash.slice(0,12)}…`;selection.append(option);
+  }
+  selection.value = available.some(strategy => researchSelectionKey(strategy) === previous) ? previous : "";
+  selection.disabled = researchSubmitting || available.length === 0;
+  $("#research-reuse").disabled = researchSubmitting || !selection.value;
+}
 function renderPaperStrategies(strategies) {
   const selection = $("#paper-strategy"), previous = selection.value;
   const available = strategies.filter(strategy => /^[0-9a-f]{64}$/.test(strategy.StrategyHash || ""));
@@ -541,6 +558,7 @@ function render() {
         .join("")
     : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
+  renderResearchChoices(strategies);
   renderPaperRecords(p);
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
@@ -617,6 +635,21 @@ const researchInvalidCopy = {
   id:"Hasil riset belum terkonfirmasi. Tidak ada hasil selesai baru yang dicatat dalam tampilan ini."
 };
 for (const [language, researchInvalid] of Object.entries(researchInvalidCopy)) Object.assign(businessCopy[language], {researchInvalid});
+const reuseResearchCopy = {
+  en:["Saved research parameters","Use in research draft","Parameters copied to the draft. No run or order started; review fees and slippage before running."],
+  "zh-CN":["已保存的研究参数","用于研究草稿","参数已填入草稿，未运行或下单；运行前请检查费用和滑点。"],
+  "zh-TW":["已儲存的研究參數","用於研究草稿","參數已填入草稿，未執行或下單；執行前請檢查費用與滑點。"],
+  ja:["保存済み研究パラメータ","研究下書きに使用","下書きにコピーしました。実行や注文は開始していません。手数料とスリッページを確認してください。"],
+  ko:["저장된 연구 매개변수","연구 초안에 사용","초안에 복사했습니다. 실행이나 주문은 시작하지 않았습니다. 수수료와 슬리피지를 검토하세요."],
+  es:["Parámetros de investigación guardados","Usar en borrador","Parámetros copiados. No se inició ejecución ni orden; revise comisiones y deslizamiento."],
+  fr:["Paramètres de recherche enregistrés","Utiliser dans le brouillon","Paramètres copiés. Aucun calcul ni ordre lancé ; vérifiez les frais et le glissement."],
+  de:["Gespeicherte Forschungsparameter","Im Entwurf verwenden","Parameter kopiert. Kein Lauf oder Auftrag gestartet; Gebühren und Slippage prüfen."],
+  pt:["Parâmetros de pesquisa salvos","Usar no rascunho","Parâmetros copiados. Nenhuma execução ou ordem iniciada; revise taxas e slippage."],
+  ru:["Сохранённые параметры исследования","Использовать в черновике","Параметры скопированы. Запуск и ордер не созданы; проверьте комиссии и проскальзывание."],
+  ar:["معلمات البحث المحفوظة","استخدام في مسودة البحث","نُسخت المعلمات إلى المسودة. لم يبدأ تشغيل أو أمر؛ راجع الرسوم والانزلاق قبل التشغيل."],
+  id:["Parameter riset tersimpan","Gunakan dalam draf","Parameter disalin ke draf. Tidak ada proses atau order dimulai; tinjau biaya dan slippage."],
+};
+for (const [language,[reuseSavedLabel,reuseSavedAction,reuseSavedDone]] of Object.entries(reuseResearchCopy)) Object.assign(businessCopy[language],{reuseSavedLabel,reuseSavedAction,reuseSavedDone});
 function verifiedResearchResult(result) {
   return typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
 }
@@ -657,6 +690,16 @@ $$("nav button").forEach(
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
 $("#paper-strategy").onchange = () => { $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !$("#paper-strategy").value; };
+$("#research-saved-strategy").onchange = () => { $("#research-reuse").disabled = researchSubmitting || !$("#research-saved-strategy").value; };
+$("#research-reuse").onclick = () => {
+  if (researchSubmitting) return;
+  const key = $("#research-saved-strategy").value;
+  const matches = Object.values(snapshot.strategies || {}).filter(strategy => reusableResearchStrategy(strategy) && researchSelectionKey(strategy) === key);
+  if (matches.length !== 1) { renderResearchChoices(Object.values(snapshot.strategies || {})); return; }
+  const strategy = matches[0];
+  for (const [id,value] of [["strategy",strategy.Name],["seed",strategy.Seed],["fast",strategy.Params.fast],["slow",strategy.Params.slow]]) $("#"+id).value = String(value);
+  toast(t("reuseSavedDone"), "reuseSavedDone");
+};
 $("#locale").onchange = (e) => {
   locale = e.target.value;
   try { localStorage.setItem("ynx.quant.locale", locale); } catch {}
@@ -666,6 +709,7 @@ $("#backtest").onsubmit = async (e) => {
   e.preventDefault();
   if (researchSubmitting) return;
   researchSubmitting = true;
+  renderResearchChoices(Object.values(snapshot.strategies || {}));
   renderResearchRequestState();
   const savedWorkspace = statefulPreview;
   try {
@@ -701,6 +745,7 @@ $("#backtest").onsubmit = async (e) => {
     toast(e.message);
   } finally {
     researchSubmitting = false;
+    renderResearchChoices(Object.values(snapshot.strategies || {}));
     renderResearchRequestState();
   }
 };
