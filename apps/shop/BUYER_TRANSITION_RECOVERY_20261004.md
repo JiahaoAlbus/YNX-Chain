@@ -20,3 +20,7 @@ The first cold browser check failed because it could open private orders before 
 Remaining release gates: actual matching A canonical backend/SDK/static deployment; independent Seller/Merchant qualification and approval; final entry readback; Native exact iOS authority; formal signing/packages/installed Android and macOS journeys; real Wallet/user private approval and real owned public business readback. Public snapshot currently has old Buyer app.js and Seller/Merchant 404. No local test is represented as a public operation.
 
 Known usability boundaries retained honestly: Web cold recovery requires restoring the original inputs because its durable journal intentionally contains only digest/key/phase. Legacy Native queue rows do not prove whether they were dispatched; lookup-not-found preserves them. New purely offline drafts therefore still need an explicit, proof-bound unsent draft retry design before the complete offline user journey can be claimed. Old unknown rows cannot be reclassified as unsent or automatically replayed.
+
+## Explicit offline successor
+
+OFFLINE_DRAFT_RETRY_20261004.md supersedes the earlier new-draft retry design gap: new Native transition drafts now carry independent prepared/dispatching/unknown metadata and explicit original retry. Legacy phase-less or dispatching/unknown originals still only read back, and not-found never makes them unsent. Formal integration/public/installed acceptance remains unverified.

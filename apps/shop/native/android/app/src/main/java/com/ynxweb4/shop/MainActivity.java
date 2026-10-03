@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
-    private Object cartWork,payHandoffWork,paymentReadbackWork;private long viewRevision;
+    private Object cartWork,payHandoffWork,paymentReadbackWork;private volatile long viewRevision;
     private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
     private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
     private void runCartTask(CartTask task,Runnable success){
@@ -257,7 +257,7 @@ public final class MainActivity extends Activity {
         showDialog(dialog,()->{if(orderActionDialog==dialog)orderActionDialog=null;});dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             if(view!=viewRevision||!isCurrent(expected,generation)){dialog.dismiss();return;}
             try{BuyerOrderReadback.validate(order,expected);requireOrderActionAvailable(expected,order);JSONObject body=BuyerOrderActionInput.build(order.getString("Status"),action,review?(int)rating.getRating():0,resolution?reason.getText().toString():"",review||resolution?detail.getText().toString():"");body.put("IdempotencyKey",UUID.randomUUID().toString());
-                if(!isOnline()){queue.enqueueForSession(expected,generation,"POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));}
+                if(!isOnline()){queue.enqueueUnsentForSession(expected,generation,"POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));}
                 else api.request("POST","/orders/"+order.getString("ID")+"/transition",body,()->view==viewRevision&&isCurrent(expected,generation),(value,failure)->{status.setText(failure==null?getString(R.string.loading):message(failure));if(failure==null)showOrders();});
                 dialog.dismiss();
             }catch(IllegalArgumentException invalid){error.setText(R.string.order_input_required);}catch(IllegalStateException pending){error.setText(R.string.order_request_pending);}catch(Exception rejected){error.setText(R.string.security_error);}
@@ -293,7 +293,7 @@ public final class MainActivity extends Activity {
         try{expected=api.session();if(expected==null){signIn();return;}previousCart=secure.get("cart:"+expected.account);generation=api.privacy().generation(expected.account);}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         retry.setEnabled(false);status.setText(getString(R.string.loading));
         new Thread(()->{
-            try{final int count=queue.flush(api,expected,generation)+BuyerTransitionRecovery.recoverTracked(api.privacy(),new OfflineMutationQueue.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session,long generation)throws Exception{return api.requestForSession(method,path,body,session,generation);}},expected,generation);runOnUiThread(()->{if(view!=viewRevision||!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();status.setText(count+" "+getString(R.string.restore_pending));});}
+            try{final int count=queue.flush(api,expected,generation,()->view==viewRevision&&isCurrent(expected,generation))+BuyerTransitionRecovery.recoverTracked(api.privacy(),new OfflineMutationQueue.Sender(){public boolean current(){return view==viewRevision&&isCurrent(expected,generation);}public ProductSession session()throws Exception{return api.session();}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session,long generation)throws Exception{return api.requestForSession(method,path,body,session,generation);}},expected,generation);final boolean pending=queue.sizeFor(expected.account)>0||api.privacy().snapshot(expected.account).getJSONObject("requests").length()>0;runOnUiThread(()->{if(view!=viewRevision||!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();status.setText(pending?getString(R.string.order_request_pending):count+" "+getString(R.string.restore_pending));});}
             catch(Exception error){runOnUiThread(()->{if(view!=viewRevision||!isCurrent(expected,generation))return;retry.setEnabled(true);status.setText(message(error));});}
         }).start();
     }

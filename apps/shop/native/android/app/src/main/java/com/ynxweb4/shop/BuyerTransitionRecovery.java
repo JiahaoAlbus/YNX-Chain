@@ -14,9 +14,9 @@ final class BuyerTransitionRecovery {
         while(ids.hasNext()){
             String id=ids.next();JSONObject original=requests.getJSONObject(id);String path=original.optString("path");
             if(!"POST".equals(original.optString("method"))||!"UNKNOWN".equals(original.optString("status"))||!path.matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition"))continue;
-            if(!expected.same(api.session())||!privacy.current(expected.account,generation))throw new SecurityException("Original Native recovery context changed");
+            if(!api.current()||!expected.same(api.session())||!privacy.current(expected.account,generation))throw new SecurityException("Original Native recovery context changed");
             JSONObject body=original.getJSONObject("body"),value=api.requestForSession("POST",path+"-intent-lookup",body,expected,generation);receipt(value,expected,path,body);
-            if(!expected.same(api.session()))throw new SecurityException("Original Native recovery account changed");
+            if(!api.current()||!expected.same(api.session()))throw new SecurityException("Original Native recovery account changed");
             privacy.confirmOriginalTransition(expected.account,generation,id,original);completed++;
         }
         return completed;
