@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from "react";
-import {ActivityIndicator,Modal,Pressable,ScrollView,StyleSheet,Text,View} from "react-native";
+import {ActivityIndicator,AppState,Modal,Pressable,ScrollView,StyleSheet,Text,View} from "react-native";
 import {CameraView,useCameraPermissions} from "expo-camera";
 import {SafeAreaView} from "react-native-safe-area-context";
 import {parseWalletScan,type WalletScanResult} from "./walletScan";
@@ -12,18 +12,31 @@ export function WalletScanner({locale,accept,close,textScale=1}:{locale:WalletLo
   const handled=useRef(false),active=useRef(true),permissionBusy=useRef(false);
   const [permissionFailed,setPermissionFailed]=useState(false),[requesting,setRequesting]=useState(false);
   const [routeFailed,setRouteFailed]=useState(false),[cameraRevision,setCameraRevision]=useState(0),[consumed,setConsumed]=useState(false);
+  const [appActive,setAppActive]=useState(AppState.currentState==="active");
   const permissionState=!permission?"pending":permission.granted?"granted":permission.canAskAgain?"askable":"denied";
   const cameraEpoch=useRef(0),permissionSnapshot=useRef(permissionState);
   // Revoke old granted-render callbacks before effects/unmount can run.
   if(permissionSnapshot.current!==permissionState){cameraEpoch.current++;permissionSnapshot.current=permissionState}
   const cameraTicket=cameraEpoch.current;
-  useEffect(()=>{active.current=true;return()=>{active.current=false}},[]);
+  useEffect(()=>{
+    active.current=true;
+    const subscription=AppState.addEventListener("change",next=>{
+      if(!active.current)return;
+      // iOS permission dialogs/control center may be transiently inactive.
+      // Retire frames synchronously, remove the camera, then mount a fresh
+      // camera on active. Background is terminal, like the parent Wallet lock.
+      retireCamera();setAppActive(next==="active");
+      if(next==="background")dismiss();
+    });
+    if(AppState.currentState==="background")dismiss();
+    return()=>{active.current=false;subscription.remove()};
+  },[]);
   const c=(key:ScannerCopyKey)=>scannerCopy(locale,key);
-  const currentCamera=()=>active.current&&cameraEpoch.current===cameraTicket;
+  const currentCamera=()=>active.current&&appActive&&AppState.currentState==="active"&&cameraEpoch.current===cameraTicket;
   const retireCamera=()=>{cameraEpoch.current++;setCameraRevision(cameraEpoch.current)};
   const dismiss=()=>{if(!active.current)return;active.current=false;retireCamera();close()};
   const allowCamera=async()=>{if(!currentCamera()||permissionBusy.current||permission?.granted||!permission?.canAskAgain)return;permissionBusy.current=true;setRequesting(true);setPermissionFailed(false);try{await requestPermission()}catch{if(currentCamera())setPermissionFailed(true)}finally{permissionBusy.current=false;if(active.current)setRequesting(false)}};
-  const cameraLive=Boolean(permission?.granted)&&!mountFailed&&!error&&!routeFailed&&!consumed;
+  const cameraLive=active.current&&appActive&&AppState.currentState==="active"&&Boolean(permission?.granted)&&!mountFailed&&!error&&!routeFailed&&!consumed;
   const cameraMountError=()=>{if(!currentCamera()||!cameraLive)return;retireCamera();setMountFailed(true)};
   const retryCamera=()=>{if(!currentCamera()||!permission?.granted||!mountFailed)return;retireCamera();setMountFailed(false)};
   const scanAgain=()=>{if(!currentCamera()||(!error&&!routeFailed))return;retireCamera();handled.current=false;setConsumed(false);setError(false);setRouteFailed(false)};
