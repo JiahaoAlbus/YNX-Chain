@@ -21,6 +21,7 @@ import { NativeContractClient } from "./native-contract.mjs";
 import { createNativeContractService } from "./native-contract-service.mjs";
 import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
 import { createInvoiceReferenceService } from "./wallet-invoice-reference-service.mjs";
+import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
@@ -178,6 +179,10 @@ handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => change
 handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
 handleWalletIPC("wallet:native-contract", (_event, input) => safeIPC(() => readNativeContract(input)));
 handleWalletIPC("wallet:invoice-reference",(_event,reference)=>safeIPC(()=>readInvoiceReference(reference)));
+handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
+  if(!(input?.bytes instanceof ArrayBuffer)||input.bytes.byteLength>10*1024*1024)throw Object.assign(new Error("Choose a supported QR image up to 10 MB."),{code:"INVALID_QR_IMAGE"});
+  return decodeInvoiceReferenceQR({bytes:Buffer.from(input.bytes),mimeType:input.mimeType,createImage:bytes=>nativeImage.createFromBuffer(bytes)});
+}));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;

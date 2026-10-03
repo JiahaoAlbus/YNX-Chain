@@ -27,9 +27,11 @@ const invoiceSheet=document.querySelector("#invoice-sheet");
 const invoiceUI=createInvoiceReferenceUI({
   getContext:()=>({open:invoiceSheet.open,account:accountState?.account,keyRevision:keyState.revision}),
   request:reference=>window.ynxWallet.invoiceReference(reference),
-  render:({busy,result,error})=>{
+  requestQR:input=>window.ynxWallet.invoiceReferenceQR(input),
+  applyReference:id=>{document.querySelector("#invoice-reference").value=id;document.querySelector("#invoice-reference").focus()},
+  render:({busy,result,error,notice})=>{
     document.querySelector("#check-invoice").disabled=busy;
-    document.querySelector("#invoice-status").textContent=busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":"");
+    document.querySelector("#invoice-status").textContent=notice??(busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":""));
     const facts=document.querySelector("#invoice-facts");facts.replaceChildren();
     if(!result)return;
     const invoice=result.invoice;
@@ -41,6 +43,10 @@ const invoiceUI=createInvoiceReferenceUI({
 document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;invoiceUI.clear();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
 document.querySelector("#invoice-form").addEventListener("submit",event=>{event.preventDefault();void invoiceUI.check(document.querySelector("#invoice-reference").value)});
 document.querySelector("#invoice-reference").addEventListener("input",()=>invoiceUI.clear());
+document.querySelector("#invoice-qr").addEventListener("change",event=>{
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;
+  void invoiceUI.importQR(async()=>{if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw new Error("Invalid QR image");return {mimeType:file.type,bytes:await file.arrayBuffer()}});
+});
 invoiceSheet.addEventListener("close",()=>invoiceUI.clear());invoiceSheet.addEventListener("cancel",()=>invoiceUI.clear());
 const contractSheet = document.querySelector("#contract-sheet");
 const contractUI = createNativeContractUI({

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   balance: () => ipcRenderer.invoke("wallet:balance"),
   nativeContract: input => ipcRenderer.invoke("wallet:native-contract", input),
   invoiceReference: reference => ipcRenderer.invoke("wallet:invoice-reference", reference),
+  invoiceReferenceQR: input => ipcRenderer.invoke("wallet:invoice-reference-qr", input),
   pendingTransactions: () => ipcRenderer.invoke("wallet:pending-transactions"),
   transactionHistory: cursor => ipcRenderer.invoke("wallet:transaction-history", cursor),
   transactionStatus: hash => ipcRenderer.invoke("wallet:transaction-status", hash),

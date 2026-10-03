@@ -61,10 +61,14 @@ test("actual Wallet markup and main/preload entry mount query only, never a grey
 test("mounted renderer opens invoice modal, queries only on explicit submit, and renders reported—not trusted—facts",async()=>{
   const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8"),nodes=new Map(),calls=[];
   const get=selector=>{if(!nodes.has(selector)){nodes.set(selector,{value:"",open:false,textContent:"",disabled:false,children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},showModal(){this.open=true},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}})}return nodes.get(selector)};
-  const document={querySelector:get,createElement:()=>({textContent:""})},api={async invoiceReference(reference){calls.push(reference);return {ok:true,value:{...result,invoice:{...invoice,status:"paid",merchant:"<script>untrusted</script>"}}}}};
+  let qrReads=0;
+  const document={querySelector:get,createElement:()=>({textContent:""})},api={async invoiceReferenceQR(input){qrReads++;assert.equal(input.mimeType,"image/png");assert.equal(input.bytes.byteLength,1);return {ok:true,value:{invoiceID:invoice.id,decodedLocally:true,uploaded:false}}},async invoiceReference(reference){calls.push(reference);return {ok:true,value:{...result,invoice:{...invoice,status:"paid",merchant:"<script>untrusted</script>"}}}}};
   const start=source.indexOf("const invoiceSheet="),end=source.indexOf("const contractSheet =",start);assert.ok(start>=0&&end>start);
   runInNewContext(source.slice(start,end),{document,window:{ynxWallet:api},createInvoiceReferenceUI,accountState:{account},keyState:{revision:1},nativeAccountLabel:value=>value});
   get("#open-invoice").listeners.get("click")();assert.equal(get("#invoice-sheet").open,true);assert.equal(calls.length,0);
+  const fileInput={value:"chosen-file",files:[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}]};
+  get("#invoice-qr").listeners.get("change")({target:fileInput});await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(fileInput.value,"");assert.equal(qrReads,1);assert.equal(calls.length,0);assert.equal(get("#invoice-reference").value,invoice.id);assert.match(get("#invoice-status").textContent,/Nothing was uploaded, queried or paid/);
   get("#invoice-reference").value=invoice.id;get("#invoice-form").listeners.get("submit")({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));
   assert.deepEqual(calls,[invoice.id]);assert.match(get("#invoice-status").textContent,/not a trusted signed invoice/);
   assert.ok(get("#invoice-facts").children.some(node=>node.textContent==="Reported merchant"));assert.ok(get("#invoice-facts").children.some(node=>node.textContent==="<script>untrusted</script>"));
