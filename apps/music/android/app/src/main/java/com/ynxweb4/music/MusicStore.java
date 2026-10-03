@@ -45,6 +45,51 @@ final class MusicStore {
         File f=file(),t=new File(directory,"music-state.tmp");try(FileOutputStream out=new FileOutputStream(t)){out.write(output.toString().getBytes(StandardCharsets.UTF_8));out.getFD().sync();}if(!t.renameTo(f))throw new IOException("atomic state replace failed");
     }}
     File offline(String trackId){if(!trackId.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Invalid Music track");return new File(directory,"offline/"+trackId+".wav");}
+    JSONObject commitSnapshot(JSONObject snapshot,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);
+        if(!account.equals(snapshot.getJSONObject("profile").getString("account")))throw new IOException("Original Music snapshot account changed");
+        JSONObject current=load(),listener=snapshot.getJSONObject("listener"),intent=current.optJSONObject("libraryIntent");
+        if(intent!=null&&libraryMatches(intent,listener)){current.remove("libraryIntent");intent=null;}
+        if(intent==null){current.put("favorites",new JSONArray(listener.getJSONArray("favorites").toString()));current.put("queue",new JSONArray(listener.getJSONArray("queue").toString()));}
+        JSONObject downloads=new JSONObject();JSONArray tracks=snapshot.getJSONArray("catalog");
+        for(int i=0;i<tracks.length();i++){JSONObject track=tracks.getJSONObject(i);try{MusicApi.verifyLocal(offline(track.getString("id")),track.getString("audioSha256"));downloads.put(track.getString("id"),"available");}catch(IOException unavailable){/* Remote markers do not prove local audio. */}}
+        current.put("downloads",downloads).put("remote",new JSONObject(snapshot.toString()));guard.check();save(current);return current;
+    }}
+    JSONObject prepareLibrary(JSONObject candidate,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject next=new JSONObject(candidate.toString());
+        JSONObject intent=new JSONObject().put("id","music-library-"+java.util.UUID.randomUUID()).put("account",account);
+        for(String key:new String[]{"favorites","queue","downloads"})intent.put(key,next.get(key));
+        next.put("libraryIntent",intent);guard.check();save(next);return next;
+    }}
+    boolean libraryPending(JSONObject intent)throws Exception{synchronized(WRITE_LOCK){
+        requireAccount(account);JSONObject current=load().optJSONObject("libraryIntent");
+        return current!=null&&account.equals(intent.optString("account"))&&NativeProductState.canonical(current).equals(NativeProductState.canonical(intent));
+    }}
+    boolean acknowledgeLibrary(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();if(!libraryPending(intent))return false;JSONObject current=load();current.remove("libraryIntent");guard.check();save(current);return true;
+    }}
+    static boolean libraryMatches(JSONObject intent,JSONObject listener)throws Exception{
+        if(!intent.optString("account").equals(listener.optString("account")))return false;
+        for(String key:new String[]{"favorites","queue","downloads"})if(!NativeProductState.canonical(intent.get(key)).equals(NativeProductState.canonical(listener.get(key))))return false;
+        return true;
+    }
+    JSONObject commitProfile(JSONObject profile,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);
+        if(!account.equals(profile.optString("account")))throw new IOException("Original profile account changed");
+        JSONObject current=load(),remote=current.optJSONObject("remote");
+        if(remote==null)throw new IOException("Original Music snapshot unavailable");
+        remote.put("profile",new JSONObject(profile.toString()));
+        guard.check();save(current);return current;
+    }}
+    JSONObject commitDownload(String trackId,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load(),remote=current.optJSONObject("remote");
+        JSONArray tracks=remote==null?null:remote.optJSONArray("catalog");JSONObject track=null;
+        if(tracks!=null)for(int i=0;i<tracks.length();i++){JSONObject item=tracks.optJSONObject(i);if(item!=null&&trackId.equals(item.optString("id"))){track=item;break;}}
+        if(track==null)throw new IOException("Original downloaded track unavailable");
+        MusicApi.verifyLocal(offline(trackId),track.getString("audioSha256"));
+        JSONObject downloads=current.optJSONObject("downloads");if(downloads==null){downloads=new JSONObject();current.put("downloads",downloads);}
+        downloads.put(trackId,"available");return prepareLibrary(current,guard);
+    }}
     void requireAccount(String expected)throws IOException{synchronized(WRITE_LOCK){if(account.isEmpty()||!account.equals(expected)||!account.equals(selectedAccount(c)))throw new IOException("Original upload account changed");}}
     void updateUpload(JSONObject intent,JSONObject snapshot,boolean acknowledge)throws Exception{synchronized(WRITE_LOCK){
         requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("uploadIntent");

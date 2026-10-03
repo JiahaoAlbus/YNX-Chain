@@ -27,12 +27,51 @@ public final class OriginalUploadCheck {
         JSONObject after=api.get("/api/me");check(after.getJSONArray("creatorTracks").length()==1,"cancel changed original server content");
         MusicReadBoundary reads=new MusicReadBoundary();long olderRead=reads.begin();JSONObject olderSnapshot=api.get("/api/me");
         JSONObject originalPlaylist=olderSnapshot.getJSONArray("playlists").getJSONObject(0);api.savePlaylist(originalPlaylist.getString("id"),"Newest original snapshot","Original ordered readback",originalPlaylist.getJSONArray("trackIds"));long newerRead=reads.begin();JSONObject newestSnapshot=api.get("/api/me");
-        final MusicStore currentStore=store;final JSONObject latest=newestSnapshot;check(reads.commit(newerRead,()->{JSONObject current=currentStore.load();current.put("remote",latest);currentStore.save(current);}),"new original read not published");
+        final MusicStore currentStore=store;final MusicApi readApi=api;final JSONObject latest=newestSnapshot;check(reads.commit(newerRead,()->{currentStore.commitSnapshot(latest,readApi::assertCurrent);}),"new original read not published");
         check(!reads.commit(olderRead,()->{JSONObject current=currentStore.load();current.put("remote",olderSnapshot);currentStore.save(current);}),"retired earlier read reached persisted cache");
         check(!reads.failed(olderRead)&&reads.state()==MusicReadBoundary.State.READY,"retired older error replaced ready state");
         check(currentStore.load().getJSONObject("remote").getJSONArray("playlists").getJSONObject(0).getString("name").equals("Newest original snapshot"),"new original playlist snapshot overwritten");
         long retiredRead=reads.begin();reads.retire();check(!reads.commit(retiredRead,()->{throw new AssertionError("retired UI/cache publication ran");})&&reads.state()==MusicReadBoundary.State.UNREAD,"sign-out read boundary not retired");
         long failingRead=reads.begin();boolean commitFailed=false;try{reads.commit(failingRead,()->{throw new IOException("Isolated original cache commit failure");});}catch(IOException expected){commitFailed=true;}check(commitFailed&&reads.failed(failingRead)&&reads.state()==MusicReadBoundary.State.FAILED,"failed cache commit claimed service readiness");
-        System.out.println(new JSONObject().put("actualOrderedOriginalSnapshots",true).put("actualShippedJavaUploadController",true).put("actualOriginalSDKProof",true).put("actualBusinessServerReadback",true).put("oneOriginalTrackAfterLostReplyColdRetry",true).put("sameAccountSignedAudioCache",true).put("key",key).put("audioSHA256",intent.getString("audioSHA256")).put("actualOSStorage",false).put("actualWalletConsent",false).put("productionInstalled",false));
+        // Use original profile/library HTTP responses and the production cache
+        // transactions; no Activity/Looper execution is claimed by this JVM.
+        final MusicApi originalApi=api;
+        JSONObject pendingDraft=new MusicUpload(originalApi,currentStore).stage(new ByteArrayInputStream(wav),"Pending during original library sync","Artist","Owned","Original");
+        String draftKey=pendingDraft.getString("key");JSONObject local=currentStore.load();local.put("aiEnabled",false).put("favorites",new JSONArray().put(track.getString("id")));currentStore.save(local);
+        JSONObject submittedProfile=new JSONObject(latest.getJSONObject("profile").toString()).put("displayName","Original current profile");
+        JSONObject savedProfile=originalApi.updateProfile(submittedProfile);JSONObject profileCommit=currentStore.commitProfile(savedProfile,originalApi::assertCurrent);
+        check(profileCommit.getJSONObject("uploadIntent").getString("key").equals(draftKey)&&!profileCommit.getBoolean("aiEnabled"),"profile commit replaced pending upload/preferences");
+        check(profileCommit.getJSONObject("remote").getJSONArray("playlists").getJSONObject(0).getString("name").equals("Newest original snapshot"),"profile completion restored older playlist cache");
+        JSONObject downloadCommit=currentStore.commitDownload(track.getString("id"),originalApi::assertCurrent);
+        check(downloadCommit.getJSONObject("uploadIntent").getString("key").equals(draftKey)&&downloadCommit.getJSONArray("favorites").length()==1,"download commit replaced pending original fields");
+        String libraryKey=downloadCommit.getJSONObject("libraryIntent").getString("id");
+        List<Runnable> queued=new ArrayList<>();MusicLibraryWriter writer=new MusicLibraryWriter(queued::add);
+        List<Boolean> acknowledgements=new ArrayList<>();List<Exception> failures=new ArrayList<>();
+        MusicLibraryWriter.Completion completed=(ack,error)->{acknowledgements.add(ack);failures.add(error);};
+        writer.submit(originalApi,currentStore,downloadCommit,originalApi::assertCurrent,completed);
+        downloadCommit.getJSONObject("libraryIntent").getJSONArray("favorites").put("mutated-after-enqueue");
+        queued.remove(0).run();check(!acknowledgements.get(0)&&failures.get(0)!=null,"lost original library reply was acknowledged");
+        check(currentStore.load().getJSONObject("libraryIntent").getString("id").equals(libraryKey),"unconfirmed original library intent lost");
+        bridge.restore();final MusicApi restoredApi=new MusicApi(context,bridge);MusicStore coldStore=MusicStore.selectAccount(context,restoredApi.account());
+        JSONObject coldSnapshot=restoredApi.get("/api/me"),coldLibrary=coldStore.commitSnapshot(coldSnapshot,restoredApi::assertCurrent);
+        check(!coldLibrary.has("libraryIntent")&&coldLibrary.getJSONArray("favorites").getString(0).equals(track.getString("id")),"original readback did not confirm lost reply without resending");
+        check(coldLibrary.getJSONObject("downloads").getString(track.getString("id")).equals("available"),"original cold read lost verified audio availability");
+        JSONObject olderIntent=coldStore.prepareLibrary(new JSONObject(coldLibrary.toString()).put("favorites",new JSONArray()),restoredApi::assertCurrent);
+        writer.submit(restoredApi,coldStore,olderIntent,restoredApi::assertCurrent,completed);
+        JSONObject newerIntent=coldStore.prepareLibrary(new JSONObject(coldStore.load().toString()).put("favorites",new JSONArray().put(track.getString("id"))).put("queue",new JSONArray().put(track.getString("id"))),restoredApi::assertCurrent);
+        String newerKey=newerIntent.getJSONObject("libraryIntent").getString("id");writer.submit(restoredApi,coldStore,newerIntent,restoredApi::assertCurrent,completed);
+        newerIntent.getJSONObject("libraryIntent").getJSONArray("queue").put("mutated-after-enqueue");
+        queued.remove(0).run();check(!acknowledgements.get(1)&&failures.get(1)==null&&coldStore.load().getJSONObject("libraryIntent").getString("id").equals(newerKey),"older library work consumed successor intent");
+        queued.remove(0).run();check(acknowledgements.get(2)&&failures.get(2)==null&&!coldStore.load().has("libraryIntent"),"current ordered original library write not confirmed");
+        JSONObject ordered=restoredApi.get("/api/me").getJSONObject("listener");check(ordered.getJSONArray("favorites").length()==1&&ordered.getJSONArray("queue").length()==1,"immutable ordered library values not reflected by original service");
+        restoredApi.saveLibrary(new JSONArray(),new JSONArray().put(track.getString("id")),new JSONObject());
+        JSONObject imported=coldStore.commitSnapshot(restoredApi.get("/api/me"),restoredApi::assertCurrent);check(imported.getJSONArray("favorites").length()==0&&imported.getJSONArray("queue").length()==1,"normal snapshot did not merge original remote library");
+        JSONObject retiring=coldStore.prepareLibrary(new JSONObject(imported.toString()).put("favorites",new JSONArray().put(track.getString("id"))),restoredApi::assertCurrent);String retiringKey=retiring.getJSONObject("libraryIntent").getString("id");writer.submit(restoredApi,coldStore,retiring,restoredApi::assertCurrent,completed);
+        bridge.restore();queued.remove(0).run();check(!acknowledgements.get(3)&&failures.get(3)!=null&&coldStore.load().getJSONObject("libraryIntent").getString("id").equals(retiringKey),"retired original SDK worker sent or erased library intent");
+        final MusicApi newestApi=new MusicApi(context,bridge);coldStore=MusicStore.selectAccount(context,newestApi.account());JSONObject recovered=coldStore.commitSnapshot(newestApi.get("/api/me"),newestApi::assertCurrent);check(recovered.getJSONObject("libraryIntent").getString("id").equals(retiringKey)&&recovered.getJSONArray("favorites").length()==1,"cold snapshot overwrote unconfirmed local original edit");
+        writer.submit(newestApi,coldStore,recovered,newestApi::assertCurrent,completed);queued.remove(0).run();check(acknowledgements.get(4)&&!coldStore.load().has("libraryIntent"),"original restored intent could not complete");
+        MusicStore switchedStore=MusicStore.selectAccount(context,"ynx1"+"b".repeat(38));boolean profileRetired=false;try{coldStore.commitProfile(savedProfile,newestApi::assertCurrent);}catch(IOException expected){profileRetired=true;}check(profileRetired&&!switchedStore.load().has("uploadIntent"),"old profile cache commit crossed account");
+        coldStore=MusicStore.selectAccount(context,newestApi.account());check(coldStore.load().getJSONObject("uploadIntent").getString("key").equals(draftKey),"cache transactions lost original pending upload");new MusicUpload(newestApi,coldStore).cancel(draftKey);check(coldStore.uploadFile(draftKey).isFile(),"library sync discarded original audio draft");
+        System.out.println(new JSONObject().put("actualOrderedOriginalSnapshots",true).put("actualMergedOriginalAccountCache",true).put("actualDurableOrderedLibrarySync",true).put("actualShippedJavaUploadController",true).put("actualOriginalSDKProof",true).put("actualBusinessServerReadback",true).put("oneOriginalTrackAfterLostReplyColdRetry",true).put("sameAccountSignedAudioCache",true).put("key",key).put("audioSHA256",intent.getString("audioSHA256")).put("actualOSStorage",false).put("actualWalletConsent",false).put("productionInstalled",false));
     }
 }
