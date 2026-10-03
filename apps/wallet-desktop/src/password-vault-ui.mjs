@@ -2,6 +2,7 @@
 import {setWalletCopy} from "./wallet-locale.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {RECOVERY_HISTORY_NOTICE} from "./wallet-locale-password.mjs";
+import {createRecoveryFileInput} from "./recovery-file-input.mjs";
 export function renderRecoveryReview(node,{account,resetPassword,count},doc=node.ownerDocument){
   node.replaceChildren();
   for(const [key,values]of [
@@ -13,9 +14,10 @@ export function renderRecoveryReview(node,{account,resetPassword,count},doc=node
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
   let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, busy = false;
+  const recoveryFile=createRecoveryFileInput({document:doc,getContext:()=>({open:recoverySheet.open,generation,revision:getKeyState().revision,locked:getKeyState().locked,authenticating:getKeyState().authenticating,busy,account:$("#recovery-account").value,kind:$("#recovery-kind").value,mode:$("#recovery-password-mode").value})});
   const message = result => result?.error?.message ?? "Wallet could not complete this operation. It remains locked.";
   const showError = (node,result) => {if(!renderPermissionError(node,result?.error))node.textContent=message(result)};
-  const clear = () => { for (const field of doc.querySelectorAll('#password-sheet input,#recovery-sheet input')) field.value = ""; };
+  const clear = () => { recoveryFile.invalidate();for (const field of doc.querySelectorAll('#password-sheet input,#recovery-sheet input')) field.value = ""; };
   async function refreshPublicStatus() {
     const revision = getKeyState().revision, intent = viewIntent;
     try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent) renderAccount(status); }
@@ -32,6 +34,9 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     setWalletCopy($("#unlock-wallet"),state.authenticating ? "Unlocking…" : status?.passwordConfigured ? "Unlock with local password" : status?.initialized ? "Set password and migrate accounts" : "Set local Wallet password");
   }
   function toggleRecovery() {
+    // Selecting a different account/source/password mode owns a fresh recovery
+    // draft, including a read already awaiting local backup bytes.
+    generation++;viewIntent++;previewId=null;
     const kind = $("#recovery-kind").value, reset = $("#recovery-password-mode").value === "reset";
     $("#recovery-value-group").hidden = ["encrypted-json", "previous-password"].includes(kind);
     $("#recovery-file-group").hidden = kind !== "encrypted-json";
@@ -39,7 +44,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     $("#recovery-backup-password-group").hidden = !["encrypted-json", "previous-password"].includes(kind);
     $("#recovery-current-group").hidden = reset;
     $("#recovery-new-group").hidden = !reset;
-    clear();
+    clear();setBusy(false);$("#recovery-form").hidden=false;$("#recovery-review").hidden=true;
   }
   function setBusy(value) {
     busy = value;
@@ -107,22 +112,34 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   });
   $("#recovery-kind").addEventListener("change", toggleRecovery);
   $("#recovery-password-mode").addEventListener("change", toggleRecovery);
+  $("#recovery-account").addEventListener("change", toggleRecovery);
+  $("#recovery-history").addEventListener("change", toggleRecovery);
   $("#recovery-form").addEventListener("submit", async event => {
     event.preventDefault(); if (busy) return;
     const token = generation, revision = getKeyState().revision;
     let input = { account: $("#recovery-account").value, kind: $("#recovery-kind").value, value: $("#recovery-value").value, backupPassword: $("#recovery-backup-password").value, currentPassword: $("#recovery-current-password").value, resetPassword: $("#recovery-password-mode").value === "reset", newPassword: $("#recovery-new-password").value, confirmation: $("#recovery-confirm").value };
-    const file = $("#recovery-file").files?.[0]; if (input.kind === "previous-password") input.value = $("#recovery-history").value;
+    const file = recoveryFile.selected(); if (input.kind === "previous-password") input.value = $("#recovery-history").value;
     clear(); setBusy(true);
     try {
-      if (input.kind === "encrypted-json") { if (!file || file.size > 100_000) throw new Error("Select an encrypted JSON backup smaller than 100 KB."); input.value = await file.text(); }
+      if (input.kind === "encrypted-json") {
+        if (!file || !Number.isSafeInteger(file.size) || file.size < 1 || file.size > 100_000) throw new Error("Select an encrypted JSON backup smaller than 100 KB.");
+        // Bound the read itself, then verify the selected snapshot's actual
+        // UTF-8 size before sending any backup/password to custody IPC.
+        const bytes = await file.slice(0,100_001).arrayBuffer();
+        if(token!==generation||revision!==getKeyState().revision)return;
+        if(!(bytes instanceof ArrayBuffer)||bytes.byteLength!==file.size)throw new Error("Select an encrypted JSON backup smaller than 100 KB.");
+        input.value=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
+      }
       if (token !== generation || revision !== getKeyState().revision) return;
       const result = await api.prepareRecovery(input);
       if (token !== generation || revision !== getKeyState().revision) return;
-      if (!result.ok) { showError($("#recovery-result"),result); return; }
-      previewId = result.value.previewId; $("#recovery-form").hidden = true; $("#recovery-review").hidden = false;
+      if (!result?.ok) { showError($("#recovery-result"),result); return; }
+      const review=result.value,knownAccounts=new Set(getAccountStatus()?.accounts?.map(item=>item.account)??[]);
+      if(!review||typeof review.previewId!=="string"||review.previewId.length<1||review.previewId.length>128||review.account!==input.account||review.resetPassword!==input.resetPassword||!Array.isArray(review.recoveryRequiredAccounts)||review.recoveryRequiredAccounts.length>32||new Set(review.recoveryRequiredAccounts).size!==review.recoveryRequiredAccounts.length||review.recoveryRequiredAccounts.some(account=>account===input.account||!knownAccounts.has(account))||!Number.isSafeInteger(review.expiresAt)||review.expiresAt<=Date.now())throw new Error("Recovery did not finish. Check the current Wallet before retrying.");
+      previewId = review.previewId; $("#recovery-form").hidden = true; $("#recovery-review").hidden = false;
       renderRecoveryReview($("#recovery-summary"),{account:getAccountStatus()?.accounts?.find(item => item.account === result.value.account)?.ynxAccount ?? result.value.account,resetPassword:result.value.resetPassword,count:result.value.recoveryRequiredAccounts.length},doc);
       setWalletCopy($("#recovery-result"),"The backup matches this exact account. Confirm within one minute.");
-    } catch (error) { if (token === generation) $("#recovery-result").textContent = error.message ?? "Recovery did not finish."; }
+    } catch (error) { if (token === generation && revision === getKeyState().revision) {const notice=error.message??"Recovery did not finish.";if(notice==="Recovery did not finish. Check the current Wallet before retrying.")setWalletCopy($("#recovery-result"),notice);else $("#recovery-result").textContent=notice;} }
     finally { input = null; if (token === generation) setBusy(false); }
   });
   $("#commit-recovery").addEventListener("click", async () => {

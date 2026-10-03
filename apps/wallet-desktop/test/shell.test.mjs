@@ -162,8 +162,10 @@ async function sendEntryHarness() {
         addEventListener(type, listener) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(listener); },
         async emit(type) { for (const listener of listeners.get(type) ?? []) await listener({ preventDefault() {} }); },
         click() { return this.disabled ? Promise.resolve() : this.emit("click"); },
-        children: [], append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
-        showModal() { this.open = true; }, close() { this.open = false; }, focus() { focused = selector; }
+        children: [], append(...children) { this.children.push(...children);if(["#recovery-account","#recovery-history"].includes(selector))for(const child of children)if(child.selected||!this.value)this.value=child.value??""; }, replaceChildren(...children) { this.children = children;if(["#recovery-account","#recovery-history"].includes(selector))this.value=""; },
+        showModal() { this.open = true; }, close() { this.open = false; }, focus() { focused = selector; },
+        cloneNode() {const key=`replacement-${++elementId}`;const next=get(key);next.disabled=this.disabled;return next;},
+        replaceWith(next) {for(const [key,node]of nodes)if(node===this)nodes.set(key,next);}
       };
       nodes.set(selector, node);
     }
@@ -256,7 +258,7 @@ for (const outcome of ["success", "failure", "throw"]) test(`cancelled recovery 
   h.account.accounts = [{account: h.account.account, ynxAccount: "public-fixture-account"}];
   h.api.lock = async () => { h.render({ locked: true, revision: h.context.keyState.revision + 1 }); return h.context.keyState; };
   h.api.recoveryHistory = async () => ({ok:true,value:[]});
-  h.api.prepareRecovery = async () => ({ok:true,value:{previewId:"owned-preview",account:h.account.account,resetPassword:false,recoveryRequiredAccounts:[]}});
+  h.api.prepareRecovery = async () => ({ok:true,value:{previewId:"owned-preview",account:h.account.account,resetPassword:false,recoveryRequiredAccounts:[],expiresAt:Date.now()+60_000}});
   await h.get("#recover-wallet").click();
   assert.equal(h.get("#recovery-sheet").open, true);
   h.get("#recovery-kind").value = "private-key";

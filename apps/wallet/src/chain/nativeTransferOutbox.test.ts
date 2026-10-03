@@ -6,6 +6,7 @@ import { NATIVE_DURABILITY_MODEL,createNativeDurabilityEvidence } from "./native
 import { NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX,NATIVE_OUTBOX_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
+import {WalletRepository,WalletSecretRecoveryRequired} from "../storage/walletRepository";
 
 const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"),to=ynxAddressFromEVM("0xffffffffffffffffffffffffffffffffffffffff");
 const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:25,nonce:7});
@@ -25,6 +26,34 @@ function client(fetcher:(url:string,init?:RequestInit)=>Promise<Response>,verify
 function fixtureOutbox(storage:MemoryStorage){return new NativeTransferOutbox(storage)}
 function lifecycle(){const operations=new WalletOperationLifecycle();operations.setAccount(account);const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();return operations}
 function deferred<T>(){let resolve!:(v:T)=>void;const promise=new Promise<T>(r=>{resolve=r});return {promise,resolve}}
+
+for(const cancelled of [false,true])test(`actual Native offline key recovery ${cancelled?"cancelled":"completed"} preserves other accounts and the cold original unknown outbox`,async()=>{
+  class RecoveryStorage extends MemoryStorage{
+    assertSecretProtectionAvailable?: (guard?:()=>void)=>Promise<void>;
+    authenticatedSecrets={getItem:(key:string)=>this.getItem(key),setItem:(key:string,value:string)=>this.setItem(key,value),deleteItem:(key:string)=>this.deleteItem(key)};
+    async deleteItem(key?:string){assert.ok(key);assert.ok(!key.startsWith(NATIVE_OUTBOX_PREFIX),"key recovery must not delete a transaction");this.values.delete(key)}
+  }
+  const storage=new RecoveryStorage(),repository=new WalletRepository(storage),secret="1".padStart(64,"0");
+  await repository.addAccount({secretHex:secret,label:"Offline primary",createdAt:"2026-10-04T00:00:00.000Z",backupConfirmed:true});
+  await repository.addAccount({secretHex:"2".padStart(64,"0"),label:"Other account",createdAt:"2026-10-04T00:01:00.000Z",backupConfirmed:true});
+  await repository.selectAccount(account);
+  await fixtureOutbox(storage).sendNew(account,client(async()=>{throw Error("synthetic lost ACK")}),noGuard,async()=>signed);
+  const original=storage.values.get(storageKey),manifest=await repository.load();
+  storage.values.delete(`ynx.wallet.account.auth.v3.${account}`);
+  await assert.rejects(repository.accountSecret(account),WalletSecretRecoveryRequired);
+  const operations=lifecycle();operations.lock();const lease=operations.scope().begin({requireUnlocked:false});
+  const entered=deferred<void>(),released=deferred<void>();storage.assertSecretProtectionAvailable=async guard=>{entered.resolve();await released.promise;guard?.()};
+  const restoring=repository.restoreAccountSecret(account,secret,lease.assert);await entered.promise;
+  if(cancelled)operations.lock();released.resolve();
+  if(cancelled)await assert.rejects(restoring);else await restoring;
+  lease.finish();assert.deepEqual(await repository.load(),manifest);assert.equal(storage.values.get(storageKey),original);
+  const cold=new NativeTransferOutbox(storage),retained=await cold.read(account);assert.equal(retained?.phase,"unknown");assert.equal(retained?.payload,signed.payload);assert.equal(retained?.hash,signed.hash);
+  let prepares=0,posts=0;
+  await assert.rejects(cold.sendNew(account,client(async()=>{posts++;throw Error("must not post")}),noGuard,async()=>{prepares++;return signed}),NativeOutboxBlocked);
+  assert.equal(prepares,0);assert.equal(posts,0);assert.equal(storage.values.get(storageKey),original);
+  if(cancelled)await assert.rejects(repository.accountSecret(account),WalletSecretRecoveryRequired);
+  else assert.equal(await repository.accountSecret(account),secret);
+});
 
 // Exact production signature and durability validator; synthetic local checkpoint,
 // not a real network receipt. No key or signed payload is returned by history.

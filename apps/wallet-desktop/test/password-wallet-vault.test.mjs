@@ -11,6 +11,10 @@ import { PasswordVaultFile } from "../src/password-vault-file.mjs";
 import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
 import {FilePermissionStore} from "../src/desktop-permission-store.mjs";
 import {DesktopWalletAuthority} from "../src/desktop-wallet-authority.mjs";
+import {FileTransactionIntentStore} from "../src/transaction-intent-store.mjs";
+import {TransactionSubmissions} from "../src/transaction-submissions.mjs";
+import {parseFeeModel} from "../src/rpc-capabilities.mjs";
+import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
 import { createPasswordVault, decryptPasswordVaultRecord, unlockPasswordVault, closePasswordVaultSession } from "../src/password-vault-crypto.mjs";
 
 const PASSWORD = "independent fixture password 2026", NEXT_PASSWORD = "independent next password 2026";
@@ -36,6 +40,41 @@ async function writeLegacy(f, secrets = [SECRET, SECOND], old = THIRD) {
   await fs.writeFile(f.v2, JSON.stringify(first), { mode: 0o600 });
   if (old) await fs.writeFile(f.v1, JSON.stringify({ schemaVersion: 1, ...legacyRecord(old) }), { mode: 0o600 });
 }
+
+for(const resetPassword of [false,true])test(`real offline account recovery (${resetPassword?"reset":"keep"}) and cold restart retain the exact unknown signed intent without key reuse or POST`,async t=>{
+  const f=await fixture(t);await create(f);
+  const added=await f.life.run(()=>f.vault.importAccount({kind:"private-key",value:SECOND}));f.life.setAccount(added.account);
+  const permissions=new FilePermissionStore(join(f.directory,"permissions.json")),origin="https://recovery-composition.invalid";
+  await permissions.grantAccount(origin,accountFor(SECRET),"2026-10-04T00:00:00Z");
+  const native=JSON.parse(await fs.readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
+  const capabilities=parseFeeModel({version:"ynx-ethereum-native-v1",enabled:true,chainId:"0x1917",transactionType:"0x0",feeYNXT:"1",feeWei:"0xde0b6b3a7640000",gas:"0x61a8",gasPrice:"0x246139ca8000",decimals:18,amountQuantumWei:"0xde0b6b3a7640000",scope:"whole-YNXT plain native transfers",fullEVM:false,eip1559:false,durability:native.capability});
+  const journalPath=join(f.directory,"transactions.json"),store=new FileTransactionIntentStore({filePath:journalPath});
+  // Public scalar-one signer, known synthetic bytes, real serializer and private journal.
+  const raw=await new Wallet(`0x${SECRET}`).signTransaction({type:0,chainId:6423,nonce:7,to:accountFor(THIRD),value:10n**18n,gasLimit:BigInt(capabilities.gas),gasPrice:BigInt(capabilities.gasPrice)});
+  const {Transaction}=await import("ethers"),hash=Transaction.from(raw).hash;
+  await store.add({account:accountFor(SECRET),to:accountFor(THIRD),value:"0xde0b6b3a7640000",nonce:"0x7",chainId:"0x1917",hash,raw,origin:CANONICAL_RPC_URL,capabilities});
+  const original=await fs.readFile(journalPath);f.life.lock();
+  const input={account:accountFor(SECRET),kind:"private-key",value:SECRET,resetPassword,...(resetPassword?{newPassword:NEXT_PASSWORD,confirmation:NEXT_PASSWORD}:{currentPassword:PASSWORD})};
+  const preview=await f.life.custody(guard=>f.vault.prepareRecovery(input,guard));
+  const saved=await f.life.custody(guard=>f.vault.commitRecovery(preview.previewId,guard,{beforePublish:()=>permissions.revokeAll()}));
+  f.life.setAccount(saved.account);f.life.lock();
+  assert.equal(saved.accounts.length,2);assert.equal(saved.accounts.find(record=>record.account===accountFor(SECOND)).state,resetPassword?"recovery-required":"protected");
+  assert.equal(await permissions.hasAccount(origin,accountFor(SECRET)),false);assert.deepEqual(await fs.readFile(journalPath),original);
+  const coldLife=new DesktopKeyLifecycle();coldLife.setFocused(true);t.after(()=>coldLife.lock());
+  const coldVault=new PasswordWalletVault({filePath:f.filePath,authorization:coldLife});coldLife.authorizer=coldVault.authorizer();coldLife.setAccount(saved.account);
+  const coldStore=new FileTransactionIntentStore({filePath:journalPath});let posts=0;
+  const submissions=new TransactionSubmissions({intentStore:coldStore,capabilities:async()=>capabilities,verifyChain:async()=>{},provider:{send:async(method)=>{
+    if(method==="eth_getTransactionReceipt")return null;
+    if(method==="ynx_getTransactionDurability")return{version:native.capability.version,scope:"local-snapshot",status:"not_found",transactionHash:hash};
+    posts++;throw Error("No POST/nonce/signing belongs to cold recovery");
+  }}});
+  assert.equal((await submissions.list(saved.account))[0].hash,hash);assert.equal(coldLife.status().locked,true);
+  const checked=await submissions.check(hash,saved.account);assert.equal(checked.confirmed,false);assert.equal(posts,0);
+  await assert.rejects(submissions.assertResolved(saved.account),error=>error.data.code==="TRANSACTION_RESOLUTION_REQUIRED");
+  await coldLife.unlock({password:resetPassword?NEXT_PASSWORD:PASSWORD});
+  assert.equal(await coldLife.run(()=>coldVault.withSecret(secret=>accountFor(secret))),saved.account);
+  assert.deepEqual(await fs.readFile(journalPath),original);assert.equal((await coldStore.snapshot())[0].raw,raw);assert.equal(posts,0);
+});
 
 test("real password vault and lifecycle reject permission revoked inside awaited vault entry",async t=>{
   const f=await fixture(t),status=await create(f),origin="https://permission-vault.invalid";
