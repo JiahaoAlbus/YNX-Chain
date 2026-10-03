@@ -1,0 +1,8 @@
+{
+  "schema":"ynx-social-desktop-jni-native-qa-v1",
+  "package":"org.signal:libsignal-client:0.104.0",
+  "java_runtime":"24.0.1",
+  "native_jni_actual_execution":true,
+  "checks":["actual JNI identity generation and native serialization roundtrip","native signed Kyber1024 prekey bundle establishes sender session","initial JNI prekey ciphertext decrypts at pinned recipient","native one-time curve key consumed and KEM use recorded","JNI native reply decrypts through acknowledged session","tampered native ciphertext rejected without committed session mutation","unaltered ciphertext still decrypts after tamper rejection","JNI replay rejected without committed session mutation","native skipped-key logic recovers bounded out-of-order delivery","replacement peer identity rejected by pinned native store without mutation","eight bounded bidirectional JNI-native control exchanges"],
+  "not_proven":["Android device or Keystore storage","artifact build provenance to selected source commit","fresh SPQR key contribution","durable JNI transactions or multi-node prekeys","browser support or production integration","license approval, independent review, migration, activation or user acceptance"]
+}

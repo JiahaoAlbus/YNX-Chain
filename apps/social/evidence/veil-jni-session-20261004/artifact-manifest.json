@@ -1,0 +1,59 @@
+{
+  "schema": "ynx-social-jni-isolated-artifact-v1",
+  "owner_base": "798227ca394929eaf47f8593ecf687078c976fce",
+  "selected_upstream_source": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "artifact_source_binding": "same version and official repository; exact build provenance to selected commit NOT_VERIFIED",
+  "official_transport_md5_match": true,
+  "published_sha256": {
+    "http_status": 200,
+    "valid_checksum_present": true,
+    "matched": true
+  },
+  "artifacts": [
+    {
+      "name": "libsignal-client-0.104.0.jar",
+      "url": "https://storage.googleapis.com/build-artifacts.signal.org/libraries/maven/org/signal/libsignal-client/0.104.0/libsignal-client-0.104.0.jar",
+      "bytes": 158492237,
+      "sha256": "c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9",
+      "md5_base64": "j5IFOIw8wDJwSqlbUK0Biw=="
+    },
+    {
+      "name": "kotlin-stdlib-2.2.20.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.2.20/kotlin-stdlib-2.2.20.jar",
+      "bytes": 1761444,
+      "sha256": "8836ccffd3585fadda9901244b20d42901d2f3cd581058d8434e2ffabcf3a3e7",
+      "md5_base64": "HXRoOOTP9GMJMOmxrtjaCg=="
+    },
+    {
+      "name": "kotlinx-coroutines-core-jvm-1.10.2.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.10.2/kotlinx-coroutines-core-jvm-1.10.2.jar",
+      "bytes": 1479317,
+      "sha256": "5ca175b38df331fd64155b35cd8cae1251fa9ee369709b36d42e0a288ccce3fd",
+      "md5_base64": "AWu1jQB3f8o7Lv3maGJHjA=="
+    },
+    {
+      "name": "kotlinx-serialization-json-jvm-1.9.0.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-serialization-json-jvm/1.9.0/kotlinx-serialization-json-jvm-1.9.0.jar",
+      "bytes": 278414,
+      "sha256": "d94cc34cae39246a1af74fda63f9c4812ce12216ef641d5fa3bbbb539a6922d8",
+      "md5_base64": "HoGp8I2qhQ4RbrhVHS87wA=="
+    },
+    {
+      "name": "kotlinx-serialization-core-jvm-1.9.0.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlinx/kotlinx-serialization-core-jvm/1.9.0/kotlinx-serialization-core-jvm-1.9.0.jar",
+      "bytes": 399128,
+      "sha256": "1f0afa172110e45a7231ef1b44ae8fd84c1ebaff96f3fc3ad68ef8c48120b59c",
+      "md5_base64": "uE3Y952UFcJDMkvSLXw8xQ=="
+    }
+  ],
+  "compile": {
+    "release": 21,
+    "runtime": "Zulu OpenJDK 24.0.1",
+    "native_jni_checks": 11,
+    "android_device": false,
+    "product_dependency_changed": false
+  },
+  "sensitive_operations": false,
+  "production_license_approved": false,
+  "activation_approved": false
+}

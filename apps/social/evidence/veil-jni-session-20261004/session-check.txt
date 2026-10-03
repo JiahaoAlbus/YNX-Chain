@@ -1,0 +1,12 @@
+PASS actual JNI identity generation and native serialization roundtrip
+PASS native signed Kyber1024 prekey bundle establishes sender session
+PASS initial JNI prekey ciphertext decrypts at pinned recipient
+PASS native one-time curve key consumed and KEM use recorded
+PASS JNI native reply decrypts through acknowledged session
+PASS tampered native ciphertext rejected without committed session mutation
+PASS unaltered ciphertext still decrypts after tamper rejection
+PASS JNI replay rejected without committed session mutation
+PASS native skipped-key logic recovers bounded out-of-order delivery
+PASS replacement peer identity rejected by pinned native store without mutation
+PASS eight bounded bidirectional JNI-native control exchanges
+PASS 11 actual native JNI checks

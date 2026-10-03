@@ -1,0 +1,2 @@
+PASS actual JNI identity generation and native serialization roundtrip
+FAIL UntrustedIdentityException
