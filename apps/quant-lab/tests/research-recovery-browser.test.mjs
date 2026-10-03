@@ -66,7 +66,16 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     const otherErrors=[];otherPage.on('pageerror',error=>otherErrors.push(error.message));
     let otherPosts=0,otherSnapshotUnavailable=false;
     await otherContext.route('**/api/v1/backtests/from-market',async route=>{otherPosts++;const response=await route.fetch();assert.equal(response.status(),201);otherSnapshotUnavailable=true;return route.fulfill({response});});
-    await otherContext.route('**/api/v1/snapshot',async route=>otherSnapshotUnavailable?route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'controlled history read unavailable'})}):route.continue());
+    await otherContext.route('**/api/v1/snapshot',async route=>{
+      if(otherSnapshotUnavailable===true)return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'controlled history read unavailable'})});
+      if(typeof otherSnapshotUnavailable==='string'){
+        const response=await route.fetch();assert.equal(response.status(),200);const body=await response.json();
+        if(otherSnapshotUnavailable==='failure')body.failure={code:'state_refresh_failed',message:'authoritative state is temporarily unavailable'};
+        else body.sourceMetadata={...body.sourceMetadata,status:'unavailable'};
+        return route.fulfill({response,json:body});
+      }
+      return route.continue();
+    });
     await otherPage.goto(base,{waitUntil:'networkidle'});await otherPage.locator('#strategy').fill('Independent browser research');await otherPage.locator('#fee').fill('29');await otherPage.locator('#research-submit').click();
     await otherPage.waitForFunction(()=>workspaceReadUnavailable&&!researchSubmitting);
     assert.equal(otherPosts,1);assert.equal(await otherPage.locator('#latest-result').isVisible(),true);
@@ -86,6 +95,25 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     otherSnapshotUnavailable=false;await otherPage.evaluate(()=>refresh());assert.equal(otherPosts,1,'history recovery must not resubmit confirmed research');
     assert.equal(await otherPage.locator('#paper-strategy-status').textContent(),'');
     await otherPage.screenshot({path:path.join(work,'workspace-recovered-en.png'),fullPage:true});
+    await otherPage.selectOption('#paper-strategy',await otherPage.evaluate(()=>Object.values(snapshot.strategies)[0].StrategyHash));
+    assert.equal(await otherPage.locator('#paper-submit').isEnabled(),true);
+    for(const mode of ['failure','source-unavailable']){
+      const verifiedBefore=await otherPage.evaluate(()=>JSON.stringify(snapshot));
+      otherSnapshotUnavailable=mode;
+      assert.equal(await otherPage.evaluate(()=>refresh().then(()=>null,error=>error.code)),'QUANT_SNAPSHOT_INVALID');
+      assert.equal(await otherPage.evaluate(()=>JSON.stringify(snapshot)),verifiedBefore,'explicit failed-read response cannot replace confirmed state');
+      for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+        await otherPage.selectOption('#locale',language);
+        assert.equal(await otherPage.locator('#paper-strategy-status').textContent(),await otherPage.evaluate(()=>t('workspaceReadUnavailable')));
+        assert.equal(await otherPage.locator('#paper-submit').isDisabled(),true);
+        assert.equal(await otherPage.evaluate(()=>snapshot.paper.KillSwitch),false);
+      }
+      otherSnapshotUnavailable=false;await otherPage.evaluate(()=>refresh());
+      assert.equal(await otherPage.locator('#workspace-read-status').isVisible(),false);
+      assert.equal(await otherPage.locator('#paper-submit').isEnabled(),true);
+      assert.equal(otherPosts,1,'failed-read recovery cannot resubmit the confirmed research');
+    }
+    await otherPage.selectOption('#locale','en');
     await otherPage.locator('nav button[data-view="research"]').click();
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
     const otherBefore=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));

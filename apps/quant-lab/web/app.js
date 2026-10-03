@@ -766,7 +766,9 @@ async function refresh() {
     next = await api("/v1/snapshot");
     if(revision!==snapshotRevision)return;
     const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-    if(!object(next)||['paper','strategies','experiments','access'].some(key=>next[key]!==undefined&&!object(next[key])))throw Object.assign(new Error(t('workspaceReadUnavailable')),{code:'QUANT_SNAPSHOT_INVALID',localeKey:'workspaceReadUnavailable'});
+    // A 200 response can carry the service's cached state together with an
+    // explicit durable-read failure. It is not a successful risk readback.
+    if(!object(next)||['paper','strategies','experiments','access'].some(key=>next[key]!==undefined&&!object(next[key]))||next.failure!==undefined&&next.failure!==null||next.sourceMetadata?.status==='unavailable')throw Object.assign(new Error(t('workspaceReadUnavailable')),{code:'QUANT_SNAPSHOT_INVALID',localeKey:'workspaceReadUnavailable'});
     // Only a complete read admitted after the risk write has settled can
     // resolve its unknown outcome. Reads while that lane is busy cannot.
     if(riskOutcomeUnconfirmed && riskWrites.size===0 && !riskPendingAtRead) confirmedRiskReceipt(next.paper);

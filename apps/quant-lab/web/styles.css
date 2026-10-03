@@ -278,12 +278,23 @@ h2 {
 }
 .inspector dl div {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: space-between;
   border-top: 1px solid var(--line);
   padding: 10px 0;
 }
 .inspector dt {
   color: var(--muted);
+}
+.inspector dt,
+.inspector dd {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.inspector dd {
+  margin-inline: 0;
 }
 .fields {
   display: grid;

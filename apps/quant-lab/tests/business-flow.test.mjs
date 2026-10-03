@@ -1172,7 +1172,9 @@ test('temporary research provenance stays visible in all supported languages aft
 test('workspace malformed or failed refresh preserves confirmed readback with a persistent localized warning and recovers explicitly',async()=>{
   let next={paper:{Cash:777,Position:0,KillSwitch:true},strategies:{},experiments:{},audit:[]};
   const app=harness({rawSnapshot:true,apiResponse:()=>{if(next instanceof Error)throw next;return next;}});await settle();
-  for(const invalid of [null,[], 'not a snapshot',42,{paper:[]}, {strategies:[]},new Error('offline')]){
+  for(const invalid of [null,[], 'not a snapshot',42,{paper:[]}, {strategies:[]},
+    {paper:{Cash:999,Position:0,KillSwitch:false},strategies:{},experiments:{},audit:[],failure:{code:'state_refresh_failed',message:'authoritative state is temporarily unavailable'}},
+    {paper:{Cash:999,Position:0,KillSwitch:false},strategies:{},experiments:{},audit:[],sourceMetadata:{status:'unavailable'}},new Error('offline')]){
     next=invalid;await app.ids.get('refresh').onclick();
     assert.match(app.ids.get('paper-state').innerHTML,/777/);
     assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),true);
@@ -1188,9 +1190,10 @@ test('workspace malformed or failed refresh preserves confirmed readback with a 
   assert.equal(app.calls.filter(call=>call.options.method==='POST'||call.options.method==='PUT').length,0);
 });
 test('failed workspace refresh blocks fresh Paper intent before confirmation and recovers without clearing authority or records',async()=>{
+  for(const mode of ['transport','failure','source-unavailable']){
   const hash='e'.repeat(64),workspace={paper:{Cash:777,Position:0,KillSwitch:false},strategies:{saved:{Name:'Saved fixture',StrategyHash:hash}}};
   let unavailable=false,confirmations=0;
-  const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>{assert.ok(url.endsWith('/snapshot'));if(unavailable)throw Error('offline');return workspace}});await settle();
+  const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>{assert.ok(url.endsWith('/snapshot'));if(unavailable){if(mode==='transport')throw Error('offline');return {...workspace,failure:mode==='failure'?{code:'state_refresh_failed'}:null,sourceMetadata:mode==='source-unavailable'?{status:'unavailable'}:undefined}}return workspace}});await settle();
   app.ids.get('paper-strategy').value=hash;app.ids.get('paper-strategy').onchange();app.ids.get('paper-amount').value='100';app.ids.get('side').value='buy';
   assert.equal(app.ids.get('paper-submit').disabled,false);
   unavailable=true;await app.ids.get('refresh').onclick();
@@ -1210,6 +1213,7 @@ test('failed workspace refresh blocks fresh Paper intent before confirmation and
   assert.equal(app.ids.get('workspace-read-status').hidden,true);assert.equal(app.ids.get('paper-submit').disabled,false);
   assert.equal(app.ids.get('reconcile').disabled,false);
   assert.equal(app.ids.get('paper-strategy-status').textContent,'');
+  }
 });
 
 test('Paper availability explains exact risk or recovery fence without inventing an active kill switch',async()=>{

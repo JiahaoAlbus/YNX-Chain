@@ -128,7 +128,7 @@ test('actual local Quant HTTP: two tenants, two processes, durable Paper replay 
     const request=syntheticBacktest(owner,seed);
     assert.deepEqual(result.equityCurve.map(point=>Date.parse(point.time)),request.bars.slice(request.assumptions.TrainEnd).map(bar=>Date.parse(bar.time)));
     assert.ok(result.metrics.DataGaps>=1,'real Go result must disclose the controlled source gap');
-const submitted={strategy:{id:request.strategy.ID,family:request.strategy.Family,seed:request.strategy.Seed,params:request.strategy.Params},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toLowerCase()+key.slice(1),value]))};
+const submitted={strategy:{id:request.strategy.ID,name:request.strategy.Name,family:request.strategy.Family,seed:request.strategy.Seed,params:request.strategy.Params},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toLowerCase()+key.slice(1),value]))};
     fence.result=result;fence.submitted=submitted;assert.equal(vm.runInContext('researchRequestMatches(result,submitted)',fence),true);
     fence.result={...result,assumptions:{...result.assumptions,FeeBPS:result.assumptions.FeeBPS+1}};
     assert.equal(vm.runInContext('researchRequestMatches(result,submitted)',fence),false);
