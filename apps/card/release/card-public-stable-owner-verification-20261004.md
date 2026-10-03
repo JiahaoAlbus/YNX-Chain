@@ -66,6 +66,20 @@ a full-green WIP candidate; no test was deleted or weakened to promote it.
 
 ## Remaining full-flow requirements
 
+A subsequent actual backend/client source integration test passed 1/1:
+`test/card-api-operations-integration.test.cjs`. It uses the original encrypted
+SQLite CardStore and CardService with explicitly synthetic Wallet/Core authority,
+then passes their actual records through CardBusinessClient (not a canned
+authorization/settlement response). Partial capture 600, reversal 400 and refund
+200 from an authorization of 1000 produce posted 400, pending 0 and available
+999999999999999600 wei after 1000000000000000000 fixture funding. Cold database
+reopen plus duplicate refund preserves the complete statement without another
+mutation, and the client reads CONFIRMED from the original authorization slot.
+Reconciliation returns CONSISTENT. The local transport dispatches directly to the
+service, not an HTTP server, real chain, public session or real installed Wallet.
+This test is in the standard npm test command; the retained earlier failed
+amount expectation still prevents claiming the entire npm command is green.
+
 Real account approve/reject, actual provider chain add/switch/readback,
 refresh/events/disconnect/revoke, actual Hosted/private capability, backend
 application acceptance, API-created ACTIVE Testnet card, real YNXT Testnet
