@@ -1,0 +1,7 @@
+--- FAIL: TestPlaylistCreateLostReplyReplaysOriginalRecord (0.04s)
+    playlist_recovery_test.go:29: lost response minted duplicate: first={"id":"pl_57b627abbccab82d73b632c5","owner":"ynx1llllllllllllllllllllllllllllllllyj698f","name":"Recovery playlist","description":"Original description","trackIds":["trk_f3adf6b98b050b213f0ece6b"],"createdAt":"2026-10-03T02:14:36.34643Z","updatedAt":"2026-10-03T02:14:36.34643Z"}
+         retry={"id":"pl_cc1e8f25494d22384ae68c86","owner":"ynx1llllllllllllllllllllllllllllllllyj698f","name":"Recovery playlist","description":"Original description","trackIds":["trk_f3adf6b98b050b213f0ece6b"],"createdAt":"2026-10-03T02:14:36.35091Z","updatedAt":"2026-10-03T02:14:36.35091Z"}
+         count=2
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/music	0.356s
+FAIL

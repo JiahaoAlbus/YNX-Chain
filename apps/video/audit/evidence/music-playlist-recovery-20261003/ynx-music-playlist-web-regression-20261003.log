@@ -1,0 +1,13 @@
+PASS guest private action emits zero private requests
+PASS title search permits legitimate punctuation in the query
+PASS original playlist edit/reorder/add, failed draft retained, PUT then GET readback, Library view retained
+PASS profile business save preserves explicit biography
+PASS account replacement closes old draft and removes prior private content
+PASS transport ignoring abort still cannot publish a late account snapshot
+PASS never-returning adapter settles on account invalidation
+PASS explicit AI context/cost consent, real stream readback, user review applies playlist
+PASS Pay review link uses existing central intent, exact scheme/host/path; malformed link omitted
+PASS never-ending AI body cancels promptly without applying output
+PASS actual 30-second adapter deadline settles a never-returning request
+PASS mobile layout, zero browser errors, zero browser credential storage
+PASS Standard Wallet approve/reject create no private Music authority or requests

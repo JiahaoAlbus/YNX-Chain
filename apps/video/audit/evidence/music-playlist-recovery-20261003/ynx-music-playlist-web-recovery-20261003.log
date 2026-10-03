@@ -1,0 +1,2 @@
+PASS shipped Web creation: lost reply, cold reload, A/B isolation, immutable body/key retry, original GET acknowledgement
+PASS real IndexedDB: two-tab atomic intent, mismatched acknowledgement retained, scoped clear and stale generation zero write

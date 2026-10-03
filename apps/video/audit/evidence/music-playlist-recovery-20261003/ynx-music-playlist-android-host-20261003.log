@@ -1,0 +1,3 @@
+PASS: verified legacy preservation, two-account state/offline isolation, stale worker rejection, detach, scoped clear and path binding; host fixture only
+PASS Android pending creation: failed response, same body/key retry, GET readback and account-file restore
+PASS: captured authority, checksum/WAV download, failure preservation, account switch before/during/after HTTP and temporary-file cleanup; host transport fixture only
