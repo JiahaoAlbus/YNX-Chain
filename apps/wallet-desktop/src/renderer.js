@@ -245,6 +245,7 @@ const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   clearAssetBalance();
+  clearTransactionResolution();
   invoiceUI.clear();
   contractUI.clear();
   invalidatePaymentInput();
@@ -464,6 +465,7 @@ let transferInFlight = false;
 let balanceRevision = 0;
 const errorText = result => result?.error?.outcomeUnknown ? `${result.error.message}${result.error.transactionHash ? ` Transaction hash: ${result.error.transactionHash}.` : ""}` : result?.error?.message ?? "The wallet is unavailable. Try again shortly.";
 let transactionRevision = 0;
+let transactionActionRevision = 0;
 const transactionHistoryUI = createTransactionHistoryUI({
   getAccount: () => activeAccount,
   request: cursor => window.ynxWallet.transactionHistory(cursor),
@@ -485,13 +487,21 @@ const transactionHistoryUI = createTransactionHistoryUI({
 });
 document.querySelector("#refresh-transaction-history").addEventListener("click", () => void transactionHistoryUI.refresh());
 document.querySelector("#older-transaction-history").addEventListener("click", () => void transactionHistoryUI.older());
+function clearTransactionResolution() {
+  ++transactionRevision; ++transactionActionRevision;
+  document.querySelector("#pending-transactions").replaceChildren();
+  document.querySelector("#transaction-resolution").hidden = true;
+  document.querySelector("#transaction-resolution-result").textContent = "";
+}
 async function refreshTransactions() {
   if (!window.ynxWallet.pendingTransactions) return;
   const revision = ++transactionRevision, account = activeAccount;
   const panel = document.querySelector("#transaction-resolution"), list = document.querySelector("#pending-transactions");
+  if (!account) { clearTransactionResolution(); return; }
+  const current = () => revision === transactionRevision && account === activeAccount;
   try {
     const result = await window.ynxWallet.pendingTransactions();
-    if (revision !== transactionRevision || account !== activeAccount) return;
+    if (!current()) return;
     list.replaceChildren(); panel.hidden = result.ok && result.value.length === 0 && !document.querySelector("#transaction-resolution-result").textContent;
     if (!result.ok) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
     for (const record of result.value) {
@@ -502,22 +512,31 @@ async function refreshTransactions() {
         button.textContent = retry ? "Retry identical signed transaction" : "Check receipt";
         button.disabled = retry && keyState.locked;
         if (retry) button.dataset.retryTransaction = "true";
+        let actionBusy = false;
         button.addEventListener("click", async () => {
+          if (actionBusy || !current() || retry && keyState.locked) return;
+          actionBusy = true;
+          const action = ++transactionActionRevision, keyRevision = keyState.revision;
+          const actionCurrent = () => current() && action === transactionActionRevision && keyRevision === keyState.revision;
           button.disabled = true;
           try {
             const response = await (retry ? window.ynxWallet.retryTransaction(record.hash) : window.ynxWallet.transactionStatus(record.hash));
-            if (account !== activeAccount) return;
+            if (!actionCurrent()) return;
             document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "mined successfully" : "failed"} in the node's completed local snapshot. Actual fee: ${response.value.actualFee} YNXT. Consensus finality is not established by this proof.` : response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.";
             if (response.ok && response.value.confirmed) void refreshAssets();
-          } catch { if (account === activeAccount) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
-          finally { void refreshTransactions(); void transactionHistoryUI.refresh(); }
+          } catch { if (actionCurrent()) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
+          finally {
+            actionBusy = false;
+            if (current()) button.disabled = retry && keyState.locked;
+            if (actionCurrent()) { void refreshTransactions(); void transactionHistoryUI.refresh(); }
+          }
         });
         row.append(button);
       }
       if (!record.canRetryExact) { const note = document.createElement("p"); note.textContent = "This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."; row.append(note); }
       list.append(row);
     }
-  } catch { if (revision === transactionRevision) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }
+  } catch { if (current()) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }
 }
 function clearAssetBalance() {
   ++balanceRevision;
