@@ -7,6 +7,8 @@ import { Transaction, toQuantity } from "ethers";
 import { parseFeeModel, capabilityFingerprint, capabilityError, assertCompatibleIntentCapabilities } from "./rpc-capabilities.mjs";
 import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durability.mjs";
 import { CANONICAL_RPC_URL, LEGACY_RPC_URL } from "./rpc.mjs";
+import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
+import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -36,9 +38,15 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  const signed = data.schemaVersion === 3;
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if(signed){
+    if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
+    try{data.signedPayments.forEach(assertDesktopSignedPayStorage)}catch{throw invalid()}
+    if(new Set(data.signedPayments.map(record=>record.account)).size!==data.signedPayments.length||new Set(data.signedPayments.map(record=>record.transfer.hash)).size!==data.signedPayments.length||data.signedPayments.some(record=>data.records.some(entry=>entry.account===evmAddressFromYNX(record.account))))throw invalid();
+  }
   data.records.forEach(record => validateIntent(record, legacy));
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -64,6 +72,27 @@ export class FileTransactionIntentStore {
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
+  async assertNoSignedPayment(account){
+    const records=(await this.#read()).signedPayments??[];
+    if(records.some(record=>evmAddressFromYNX(record.account)===account))throw capabilityError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW","A signed Pay original remains retained. Review its original hash and settlement; do not create a replacement transaction.");
+  }
+  async signedPayment(account,policy,guard){
+    guard();const record=((await this.#read()).signedPayments??[]).find(value=>value.account===account);guard();
+    return record?parseDesktopSignedPayRecord(canonicalJSON(record),account,policy,guard):null;
+  }
+  async retainSignedPayment(record,policy,guard){
+    const saved=parseDesktopSignedPayRecord(canonicalJSON(record),record.account,policy,guard);
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();
+      const prior=(state.signedPayments??[]).find(value=>value.account===saved.account);
+      if(prior){if(canonicalJSON(prior)!==canonicalJSON(saved))throw invalid();return parseDesktopSignedPayRecord(canonicalJSON(prior),saved.account,policy,guard)}
+      if(state.records.some(value=>value.account===evmAddressFromYNX(saved.account)))throw capabilityError("TRANSACTION_RESOLUTION_REQUIRED","The existing transaction must be resolved before signed Pay.");
+      const next={...state,schemaVersion:3,signedPayments:[...(state.signedPayments??[]),saved]};
+      await this.#write(next);guard();
+      const readback=await this.signedPayment(saved.account,policy,guard);guard();
+      if(!readback||canonicalJSON(readback)!==canonicalJSON(saved))throw invalid();return readback;
+    });
+  }
   async #read(filePath = this.filePath) {
     let handle;
     try {
@@ -81,6 +110,7 @@ export class FileTransactionIntentStore {
     if (intent.raw === null) throw invalid(); // Only the explicit V1 read can yield a no-raw pending entry.
     return this.#mutate(async () => {
       const state = await this.#read(), prior = state.records.find(item => item.account === intent.account);
+      if((state.signedPayments??[]).some(record=>evmAddressFromYNX(record.account)===intent.account))throw capabilityError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW","The retained signed Pay original must be reviewed before another broadcast.");
       if (prior) {
         const { attempts, ...original } = prior;
         if (!retry || capabilityFingerprint(original) !== capabilityFingerprint(intent)) throw capabilityError("TRANSACTION_RESOLUTION_REQUIRED", "A previous transaction for this account is still unresolved.");

@@ -91,7 +91,16 @@ public result inside the existing `DesktopWalletVault.withSecret` callback and
 `DesktopKeyLifecycle.run`. It is not the Ethereum sender and cannot broadcast.
 Controlled tests use the actual vault/lifecycle code with synthetic storage and
 authentication, not real OS custody acceptance. It is not yet wired into the
-Desktop main-process private native journal or normal approval/recovery UI.
+Desktop normal approval/recovery UI or a native dispatch adapter. Its original
+`FileTransactionIntentStore` now retains immutable signed Pay packets in an
+explicit schema-v3 successor. V1/V2 reads do not rewrite disk. Publication uses
+the same private permissions, fsync, atomic replacement and readback; existing
+Ethereum pending/rejection/resolution fields remain intact. Both admission
+paths block same-account replacement while the other original is unresolved.
+Stored session fields are historical context, not live approval. Signed Pay
+archival/removal, matching native durability and settlement must still be wired
+before any complete Desktop flow is claimed; no automatic pending-record delete
+or signing/retry/recovery effect is provided by this journal.
 
 Adopt the protected factory in the actual A bootstrap with real adapter/policy
 and authenticated canonical settlement transport; implement corresponding

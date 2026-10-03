@@ -34,6 +34,7 @@ export class TransactionSubmissions {
     return Object.freeze({ records: Object.freeze(page), nextCursor: entries[offset + limit]?.intent.hash ?? null });
   }
   async assertResolved(account) {
+    await this.intentStore?.assertNoSignedPayment?.(account);
     const record = (await this.#intents()).find(item => item.account === account);
     if (record) throw failure("TRANSACTION_RESOLUTION_REQUIRED", "A previous transaction's outcome is unconfirmed. Check its hash or retry the identical signed transaction before creating another transfer.", { outcomeUnknown: true, transactionHash: record.hash });
   }
