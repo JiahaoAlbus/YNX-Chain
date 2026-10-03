@@ -312,6 +312,13 @@ const paperConfirmCopy = {
 };
 for (const [language, [paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded]] of Object.entries(paperConfirmCopy)) Object.assign(businessCopy[language], {paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded});
 
+function verifiedPaperRecord(record) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return false;
+  if (typeof record.ID !== "string" || !/^paper-[0-9]+$/.test(record.ID) || typeof record.StrategyHash !== "string" || !/^[a-f0-9]{64}$/.test(record.StrategyHash)) return false;
+  if (!["buy", "sell"].includes(record.Side) || !Number.isSafeInteger(record.Price) || record.Price <= 0 || !Number.isSafeInteger(record.Amount) || record.Amount <= 0 || !Number.isSafeInteger(record.Filled) || record.Filled < 0 || record.Filled > record.Amount) return false;
+  if (record.Source !== "authoritative_market_adapter" || typeof record.CreatedAt !== "string" || !Number.isFinite(Date.parse(record.CreatedAt))) return false;
+  return record.Status === "open" && record.Filled === 0 || record.Status === "partially_filled" && record.Filled > 0 && record.Filled < record.Amount || record.Status === "filled" && record.Filled === record.Amount;
+}
 function renderPaperRecords(paper) {
   const records = paper.Orders;
   const ids = new Set();
@@ -320,7 +327,7 @@ function renderPaperRecords(paper) {
     if (ids.has(record?.ID)) duplicates.add(record?.ID);
     ids.add(record?.ID);
   }
-  const valid = record => record && !duplicates.has(record.ID) && /^paper-[0-9]+$/.test(record.ID) && /^[a-f0-9]{64}$/.test(record.StrategyHash) && ["buy", "sell"].includes(record.Side) && Number.isSafeInteger(record.Price) && record.Price > 0 && Number.isSafeInteger(record.Amount) && record.Amount > 0 && Number.isSafeInteger(record.Filled) && record.Filled >= 0 && record.Filled <= record.Amount && record.Source === "authoritative_market_adapter" && typeof record.CreatedAt === "string" && Number.isFinite(Date.parse(record.CreatedAt)) && ({open: record.Filled === 0, partially_filled: record.Filled > 0 && record.Filled < record.Amount, filled: record.Filled === record.Amount})[record.Status] === true;
+  const valid = record => verifiedPaperRecord(record) && !duplicates.has(record.ID);
   const verified = Array.isArray(records) && records.length <= 100 && records.every(valid);
   $("#paper-record-status").textContent = !verified ? t("paperRecordsUnknown") : records.length === 0 ? t("paperRecordsEmpty") : "";
   const value = input => safe(typeof input === "string" || Number.isSafeInteger(input) ? String(input) : "—");
@@ -661,7 +668,7 @@ $("#paper-order").onsubmit = async (e) => {
       method: "POST",
       body: JSON.stringify(submitted),
     });
-    if (!/^paper-[0-9]+$/.test(order?.ID) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
+    if (!verifiedPaperRecord(order) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
     pendingPaperIntent = null;
     try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
     toast(t("paperRecorded"), "paperRecorded");

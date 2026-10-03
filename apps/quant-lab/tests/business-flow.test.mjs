@@ -75,7 +75,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, stora
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-    fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
+    fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -399,6 +399,19 @@ test('Paper refuses unsafe numeric amounts before creating an intent or making a
   }
   assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 0);
   assert.equal([...app.storage.keys()].some(key => key.startsWith('ynx.quant.paper.pending.v1:')), false);
+});
+
+test('only complete consistent Paper receipts acknowledge recorded orders; malformed 200 retains intent',async()=>{
+  const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+  const cases=[{Status:'open',Filled:0},{Status:'partially_filled',Filled:1},{Status:'filled',Filled:100},{Price:0},{Price:9007199254740992},{Filled:-1},{Filled:101},{Filled:1,Status:'filled'},{Filled:100,Status:'open'},{Status:'unknown'},{Source:'static-placeholder'},{CreatedAt:'invalid'},{ID:['paper-000001']},{StrategyHash:[hash]},null];
+  for(const [caseIndex,override] of cases.entries()){
+    const expected=caseIndex<3;
+    const app=harness({snapshot,confirmAction:()=>true,apiResponse:(url,options)=>url.endsWith('/snapshot')?snapshot:override===null?null:{...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:100}),...JSON.parse(options.body),...override}});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';await app.submit('paper-order');
+    const pending=[...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending'));assert.equal(pending,!expected,JSON.stringify(override));
+    assert.match(app.ids.get('toast').textContent,expected?/Simulated order recorded/:/unknown outcome/);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(app.proofs(),0);
+  }
 });
 
 test('Paper does not acknowledge or forget an intent when the service returns an unbound result', async () => {

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-quant-lab",
+  "kind": "OWNED_COMPLETE_PAPER_ACKNOWLEDGEMENT",
+  "predecessor": "f6d68dffcd75c6e04c4cab1ec94523b3d70065a1",
+  "sourceIdentity": "Immutable commit containing this inventory",
+  "inventory": [
+    {"path":"apps/quant-lab/web/app.js","bytes":90653,"sha256":"4cd73bcabb5c07f7d0d8a8ce6311d68138d6e25467384570ffc424e046d7f933","blob":"d5a41c3c8b4f243ee8b14fff34955cb39cee4fa0"},
+    {"path":"apps/quant-lab/web/index.html","bytes":26677,"sha256":"a5d5c13c977a6add516f096e6bc27ed243e86bf7ee63528e0eb7aa056086d191","blob":"9d5f82601c38634da61ad490d37cd4d65f6d3099"},
+    {"path":"apps/quant-lab/web/i18n.js","bytes":25372,"sha256":"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca","blob":"f494c458ee6249b778e688c60df1b440bd64f0b6"},
+    {"path":"apps/quant-lab/web/styles.css","bytes":10752,"sha256":"c8dbaa4004deda041e6be4fe4b92ca23e4f4a11e5d7c02ec2178c92d17007158","blob":"6f1e0fcc1b157de3add3f66388dd9a073fae9ea6"},
+    {"path":"apps/quant-lab/web/ynx-brand-logo.png","bytes":104171,"sha256":"df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d","blob":"9857f146c2c53077e208dc063715b5d236e24346"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","bytes":40819,"sha256":"ce300033f33b56d94a53a788b57a8ca3182453472e3b47ec4c8782d57a43e6eb","blob":"a213cc5dc640d92e94521540b53346cff9178778"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","bytes":31618,"sha256":"e69fb4ccb0f34cab3824077fdb85bf9d763573fffb61d2f2b54a92865913d70e","blob":"7303ab3519fd1671b9803fda09cb64378c47f839"},
+    {"path":"apps/quant-lab/tests/tenant-persistence.test.mjs","bytes":11117,"sha256":"dccdffe5e10939ac3c8c6b67f02fd5e8327188123b74703bd26f61b7dd73ca94","blob":"5e46d485b1390759c728fc9cf689d836a0ea7ad9"}
+  ],
+  "tests":{"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":42,"fail":0,"skip":0,"durationMs":46375.189541},
+  "boundaries":{"typedConsistentReceiptRequired":true,"exactIntentBindingsRequired":true,"malformed200RetainsIntent":true,"reloadRetrySameKeyConfirmed":true,"noAutomaticReplay":true,"sharedReadAndWriteValidation":true,"noNewEngineAPIAuthority":true},
+  "localTenantEvidence":{"tenants":2,"processes":2,"sameKeyRequests":12,"resultingTenantOrders":2,"differentBodySameKeyOneOrderOne409":true,"restartReplayExact":true,"crossTenantOrStaleHash403":true,"syntheticLoopbackPrices":true,"browserLocalCapabilityNotWalletAuthentication":true,"postgresqlOrMultiHostProved":false},
+  "releaseOwner":"wallet_release_owner A",
+  "truth":{"sourceLocalQA":true,"currentSourcePublic":false,"installed":false,"realProviderApproval":false,"realProductSession":false,"realCapitalOrOrders":false,"computerControl":false,"userAcceptance":false},
+  "rollback":"Normal reviewed revert plus coherent A rebuild; no production mutation."
+}

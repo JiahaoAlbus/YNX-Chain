@@ -38,6 +38,26 @@ test('actual Chrome requires explicit Paper preview confirmation and preserves a
     assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
   }finally{await context.close()}
 });
+test('actual Chrome keeps a malformed Paper receipt pending and retries only the same confirmed intent',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const hash='d'.repeat(64),bodies=[];let recorded=null;
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};body.paper.Orders=recorded?[recorded]:[];await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/paper/orders',async route=>{
+      const submitted=route.request().postDataJSON();bodies.push(submitted);
+      const receipt={ID:'paper-000042',...submitted,Price:1200000,Filled:submitted.Amount,Status:'filled',Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'};
+      if(bodies.length===1)receipt.Filled=submitted.Amount+1;else recorded=receipt;
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(receipt)});
+    });
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','buy');await page.locator('#paper-amount').fill('100');
+    for(let attempt=0;attempt<2;attempt++){
+      const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await (await dialog).accept();await click;
+      if(attempt===0){await page.locator('#toast').filter({hasText:'unknown outcome'}).waitFor();assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);assert.doesNotMatch(await page.locator('#toast').textContent(),/Simulated order recorded/);await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click()}
+    }
+    await page.getByText('Simulated order recorded',{exact:true}).waitFor();assert.deepEqual(bodies[1],bodies[0]);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),0);
+    assert.match(await page.locator('#paper-record-rows').textContent(),/1200000 \/ 100 \/ 100/);assert.equal(await page.locator('#paper-record-status').textContent(),'');
+  }finally{await context.close()}
+});
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
