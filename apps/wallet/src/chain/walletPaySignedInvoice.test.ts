@@ -4,6 +4,10 @@ import {ed25519} from "@noble/curves/ed25519.js";
 import {bytesToHex} from "@noble/hashes/utils.js";
 import {createPayInvoiceSignerPolicy,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
 import {parseSignedPayInvoice,signedPayInvoiceMaterial,verifySignedPayInvoice} from "./walletPaySignedInvoice";
+import {createPrivateKey,sign as cryptoSign} from "node:crypto";
+import {execFileSync} from "node:child_process";
+import {resolve} from "node:path";
+import {pathToFileURL} from "node:url";
 
 // Deterministic synthetic keys ONLY, never user signing custody or live policy.
 const seed=new Uint8Array(32).fill(7),otherSeed=new Uint8Array(32).fill(8);
@@ -28,7 +32,24 @@ function originalMaterial(v:Record<string,any>):string{
   return parts.join("|");
 }
 function sign(v:Record<string,any>,key=seed):Record<string,any>{return {...v,signature:bytesToHex(ed25519.sign(new TextEncoder().encode(originalMaterial(v)),key))};}
+function desktopVerify(invoice:Record<string,any>){
+  // Run Desktop's real ESM boundary in Node, not tsx's Native CommonJS loader.
+  // Only a public synthetic invoice/policy crosses stdin; no secret key does.
+  const moduleURL=pathToFileURL(resolve(__dirname,"../../../wallet-desktop/src/wallet-pay-signed-invoice.mjs")).href;
+  const script=`import {readFileSync} from "node:fs";import {createPayInvoiceSignerPolicy} from "@ynx-chain/wallet-auth";import {verifySignedPayInvoice,signedPayInvoiceMaterial,parseSignedPayInvoice} from ${JSON.stringify(moduleURL)};const v=JSON.parse(readFileSync(0,"utf8"));const policy=createPayInvoiceSignerPolicy({schemaVersion:"ynx-pay-invoice-signers/v1",signers:[{keyId:"qa-key",publicKey:v.publicKey,algorithm:"ed25519",merchantIds:["qa-merchant"]}]});try{console.log(JSON.stringify({material:signedPayInvoiceMaterial(parseSignedPayInvoice(v.invoice,v.id)),result:verifySignedPayInvoice(v.invoice,v.id,policy,()=>{},v.now)}))}catch(e){console.log(JSON.stringify({error:e.code}))}`;
+  return JSON.parse(execFileSync(process.execPath,["--input-type=module","-e",script],{input:JSON.stringify({invoice,id,now,publicKey}),encoding:"utf8"}));
+}
 for(const version of [1,2,3,4,5]){
+  test(`v${version} Native Noble and Desktop OpenSSL agree on identical signature, wire and result`,()=>{
+    const v=sign(fixture(version));
+    const key=createPrivateKey({key:Buffer.concat([Buffer.from("302e020100300506032b657004220420","hex"),Buffer.from(seed)]),format:"der",type:"pkcs8"});
+    assert.equal(bytesToHex(cryptoSign(null,Buffer.from(originalMaterial(v)),key)),v.signature);
+    const desktop=desktopVerify(v);assert.equal(desktop.material,originalMaterial(v));
+    assert.deepEqual(desktop.result,verifySignedPayInvoice(v,id,policy,()=>{},now));
+    const changed={...v,signature:"0".repeat(128)};
+    assert.equal(desktopVerify(changed).error,"PAY_SIGNED_SIGNATURE_INVALID");
+    assert.throws(()=>verifySignedPayInvoice(changed,id,policy,()=>{},now),/SIGNATURE_INVALID/);
+  });
   test(`v${version} preserves original wire and verifies independently pinned signer only`,()=>{
     const v=sign(fixture(version));assert.equal(signedPayInvoiceMaterial(parseSignedPayInvoice(v,id)),originalMaterial(v));
     const result=verifySignedPayInvoice(v,id,policy,()=>{},now);
