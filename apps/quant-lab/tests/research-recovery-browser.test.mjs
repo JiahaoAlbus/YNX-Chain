@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp} from 'node:fs/promises';
+import {mkdtemp,readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
@@ -13,7 +14,7 @@ import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-op
 
 // Controlled local tape -> actual Go research engine -> actual browser. This is
 // intentionally not a public market, real account, Relay or transaction proof.
-test('actual Go saved backtest lost-return recovers once after service restart and browser reload',{timeout:45000},async()=>{
+test('actual Go saved backtest lost-return recovers once after service restart and browser reload',{timeout:45000},async t=>{
   const root=fileURLToPath(new URL('../../../',import.meta.url)),work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-research-recovery-'));
   const binary=path.join(work,'ynx-quant');
   await promisify(execFile)('go',['build','-o',binary,'./apps/quant-lab/server'],{cwd:root,timeout:20000});
@@ -25,13 +26,25 @@ test('actual Go saved backtest lost-return recovers once after service restart a
   await new Promise(resolve=>tape.listen(0,'127.0.0.1',resolve));
   const tapeURL=`http://127.0.0.1:${tape.address().port}`;
   const reservation=net.createServer();await new Promise(resolve=>reservation.listen(0,'127.0.0.1',resolve));const port=reservation.address().port;await new Promise(resolve=>reservation.close(resolve));
-  const base=`http://127.0.0.1:${port}`;let child,browser,firstReceipt,posts=0;
+  const base=`http://127.0.0.1:${port}`;let child,browser,firstReceipt,posts=0,cleanStops=0;
   async function start(){
     child=spawn(binary,[],{cwd:root,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json'),YNX_QUANT_EXCHANGE_URL:tapeURL},stdio:'ignore'});
     let ready=false;for(let i=0;i<80;i++){if(child.exitCode!==null)throw Error('Research process exited before readiness');try{if((await fetch(base+'/api/health',{signal:AbortSignal.timeout(500)})).ok){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,50));}
     assert.equal(ready,true,'local research service startup');
   }
-  async function stop(){if(child&&child.exitCode===null){const done=new Promise(resolve=>child.once('exit',resolve));child.kill('SIGTERM');await done;}}
+  async function stop(){
+    if(child&&child.exitCode===null){
+      let timer;
+      const done=new Promise((resolve,reject)=>{
+        timer=setTimeout(()=>reject(Error('Local Quant did not drain after SIGTERM')),12000);
+        child.once('exit',(code,signal)=>{clearTimeout(timer);resolve({code,signal});});
+      });
+      assert.equal(child.kill('SIGTERM'),true);
+      const terminal=await done;
+      assert.deepEqual(terminal,{code:0,signal:null},'normal shutdown must run lifecycle defers');
+      cleanStops++;
+    }
+  }
   try{
     await start();browser=await chromium.launch(await financeBrowserLaunchOptions());const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
     const errors=[],bodies=[];page.on('pageerror',error=>errors.push(error.message));
@@ -54,4 +67,7 @@ test('actual Go saved backtest lost-return recovers once after service restart a
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
     await page.reload({waitUntil:'networkidle'});assert.equal(posts,2);assert.match(await page.locator('#experiment-rows').textContent(),/Controlled lost-return research/);
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
+  assert.equal(cleanStops,2,'both first and second service launches drain successfully');
+  const binaryBytes=await readFile(binary);
+  t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
 });
