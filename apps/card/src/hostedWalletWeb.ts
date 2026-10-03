@@ -1,9 +1,12 @@
-import {createHostedWalletAdapter, type HostedWalletAdapter} from "../vendor/hosted-wallet-adapter-19d8a9a2.js";
+import type {HostedWalletAdapter as LegacyHostedWalletAdapter} from '../vendor/hosted-wallet-adapter-19d8a9a2.js';
+type HostedWalletAdapter=Omit<LegacyHostedWalletAdapter,'revoke'> & {revoke():Promise<unknown>};
+import {createHostedWalletAdapter,HOSTED_CARD_APPROVAL_METHOD,type HostedWalletAdapter as CardRPCAdapter} from '../vendor/hosted-wallet-adapter-card-9555.js';
+import type {HostedCardApprovalReservation} from './hostedCardApproval';
 
 const CHAIN_ID="0x1917";
 const ACCOUNT=/^0x[0-9a-f]{40}$/i;
 export type CardHostedState=Readonly<{status:"disconnected"|"connecting"|"connected"|"rejected"|"unavailable"|"wrong-chain";account:string|null;chainId:string|null;error:string|null}>;
-export type CardHostedWalletController=Readonly<{connect:()=>Promise<CardHostedState>;switchAccount:()=>Promise<CardHostedState>;disconnect:()=>Promise<CardHostedState>;getState:()=>CardHostedState;requestProductSessionV2:(authorizeURL:string)=>Promise<unknown>}>;
+export type CardHostedWalletController=(Readonly<{connect:()=>Promise<CardHostedState>;switchAccount:()=>Promise<CardHostedState>;disconnect:()=>Promise<CardHostedState>;getState:()=>CardHostedState;requestProductSessionV2:(authorizeURL:string)=>Promise<unknown>}>) & {reserveCardApplicationApproval():Promise<HostedCardApprovalReservation>};
 type AdapterFactory=(input:{window:Window})=>HostedWalletAdapter;
 
 function codeOf(error:unknown):string {
@@ -90,5 +93,18 @@ export function createCardHostedWalletController(input:{window:Window;onState?:(
     if(token!==generation||adapter!==selected||state.status!=="connected"||state.account!==account||state.chainId!==CHAIN_ID)throw Object.assign(Error("CARD_WEB_PRIVATE_CONTEXT_CHANGED"),{code:"CARD_WEB_PRIVATE_CONTEXT_CHANGED"});
     return result;
   };
-  return Object.freeze({connect,switchAccount,disconnect,getState:()=>state,requestProductSessionV2});
+  return Object.freeze({
+    reserveCardApplicationApproval():Promise<HostedCardApprovalReservation>{
+      const selected=adapter as CardRPCAdapter|null,epoch=generation;
+      if(!selected?.connected||!selected.account||selected.supportsCardApplicationApproval!==true)throw Error('CARD_WEB_APPLICATION_APPROVAL_TRANSPORT_UNAVAILABLE');
+      const account=selected.account;
+      const assertCurrent=()=>{if(adapter!==selected||generation!==epoch||!selected.connected||selected.account!==account||selected.supportsCardApplicationApproval!==true||selected.selection?.chainId!=='0x1917')throw Error('CARD_HOSTED_APPROVAL_CONTEXT_CHANGED')};
+      // This call is synchronous in the user's gesture, before challenge I/O.
+      const reservation=selected.reserve();
+      return reservation.then(()=>{assertCurrent();return Object.freeze({account,assertCurrent,request:async(url:string)=>{
+        assertCurrent();const parsed=new URL(url);
+        if(url.length>24000||parsed.protocol!=='ynxwallet:'||parsed.hostname!=='card-application-approval'||parsed.pathname||parsed.username||parsed.password||parsed.hash||parsed.searchParams.getAll('request').length!==1||!parsed.searchParams.get('request')||Array.from(parsed.searchParams.keys()).some(key=>key!=='request'))throw Error('CARD_APPLICATION_APPROVAL_REQUEST_INVALID');
+        const result=await selected.request({method:HOSTED_CARD_APPROVAL_METHOD,params:[url]});assertCurrent();return result;
+      }})});
+    },connect,switchAccount,disconnect,getState:()=>state,requestProductSessionV2});
 }

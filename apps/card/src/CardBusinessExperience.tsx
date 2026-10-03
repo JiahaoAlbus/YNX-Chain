@@ -1,3 +1,5 @@
+import {CoreCardApplicationExperience} from './CoreCardApplicationExperience';
+import type {HostedCardApprovalTransport} from './hostedCardApproval';
 import React,{useCallback,useEffect,useRef,useState}from 'react';
 import{Pressable,StyleSheet,View}from 'react-native';
 import type{Locale}from './i18n';
@@ -19,12 +21,12 @@ const labels:Record<Locale,readonly string[]>={
   id:['Catatan Testnet Anda','Sandbox hanya baca. Bukan kartu bank atau pembayaran nyata.','Otorisasi pribadi Card terpisah diperlukan.','Memuat catatan terverifikasi…','Muat ulang','Permohonan','Kartu Testnet','Permintaan isi saldo YNXT','Tidak ada catatan. Tidak ada kartu atau saldo dibuat.','Lihat laporan','Laporan dan audit','Hanya rekonsiliasi buku; tanpa verifikasi jaringan.','Catatan pribadi tidak tersedia. Tamu dan Wallet standar tetap tersedia.','YNXT tersedia (hanya Testnet)'],
 };
 function amount(value:string):string{const raw=value.padStart(19,'0');return `${raw.slice(0,-18)}.${raw.slice(-18)}`.replace(/\.?0+$/,'');}
-type Props={client:CardBusinessClient|null;identity:CardPrivateIdentity|null;locale:Locale;clientError?:string};
+type Props={client:CardBusinessClient|null;identity:CardPrivateIdentity|null;locale:Locale;clientError?:string;providerApprovalTransport?:HostedCardApprovalTransport|null};
 type Result={client:CardBusinessClient;key:string;snapshot:CardBusinessSnapshot};
 type Detail={client:CardBusinessClient;key:string;statement:CardStatementView;reconciliation:CardReconciliationView};
 
 /** Reads existing owner records only. Standard Wallet access is not a private grant. */
-export function CardBusinessExperience({client,identity,locale,clientError}:Props){
+export function CardBusinessExperience({client,identity,locale,clientError,providerApprovalTransport}:Props){
   const copy=labels[locale],key=identity?JSON.stringify([identity.owner,identity.sessionBinding,identity.expiresAt]):'';
   const valid=Boolean(identity&&Date.parse(identity.expiresAt)>Date.now());
   const[result,setResult]=useState<Result|null>(null),[detail,setDetail]=useState<Detail|null>(null);
@@ -56,7 +58,7 @@ export function CardBusinessExperience({client,identity,locale,clientError}:Prop
     <Text accessibilityRole="header" style={s.title}>{copy[0]}</Text>
     <Text style={s.body}>{copy[1]}</Text>
     {!valid?<Text style={s.body}>{copy[2]}</Text>:<>
-      <Text selectable style={s.identifier}>{identity?.owner}</Text>
+      <Text selectable style={s.identifier}>{identity?.owner}</Text>{client&&identity?<CoreCardApplicationExperience client={client} identity={identity} locale={locale} transport={providerApprovalTransport??null}/>:null}
       <Pressable accessibilityRole="button" accessibilityLabel={copy[4]} disabled={busy||!client} onPress={()=>void refresh()} style={[s.button,(busy||!client)&&s.disabled]}><Text style={s.buttonText}>{copy[4]}</Text></Pressable>
       {busy?<Text accessibilityLiveRegion="polite" style={s.body}>{copy[3]}</Text>:null}
       {failure||clientError?<View accessibilityRole="alert"><Text style={s.body}>{copy[12]}</Text><Text style={s.identifier}>{failure||'CARD_API_SOURCE_UNAVAILABLE'}</Text></View>:null}

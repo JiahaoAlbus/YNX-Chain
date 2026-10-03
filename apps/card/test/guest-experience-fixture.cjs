@@ -5,10 +5,10 @@ const React = rendererRequire("react"), Renderer = require("react-test-renderer"
 const {act} = Renderer;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const root = path.join(__dirname, "..");
-function evaluate(file, modules, source=fs.readFileSync(file, "utf8")) {
+function evaluate(file, modules, source=fs.readFileSync(file, "utf8"), globals={}) {
   const js = ts.transpileModule(source, {fileName:file,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
   const exports = {};
-  vm.runInNewContext(js, {exports,module:{exports},require(name){if(name.endsWith(".png"))return name;if(Object.hasOwn(modules,name))return modules[name];throw Error("Unexpected Guest dependency: "+name)},console,Date,Promise,setTimeout,clearTimeout,requestAnimationFrame:callback=>{callback();return 1},cancelAnimationFrame:()=>{},fetch:()=>{throw Error("Network prohibited in Guest fixture")}}, {filename:file});
+  vm.runInNewContext(js, {...globals,exports,module:{exports},require(name){if(name.endsWith(".png"))return name;if(Object.hasOwn(modules,name))return modules[name];throw Error("Unexpected Guest dependency: "+name)},console,Date,Promise,setTimeout,clearTimeout,requestAnimationFrame:callback=>{callback();return 1},cancelAnimationFrame:()=>{},fetch:()=>{throw Error("Network prohibited in Guest fixture")}}, {filename:file});
   return exports;
 }
 const tick = () => new Promise(setImmediate);
@@ -23,7 +23,7 @@ async function mountGuest({platform="android",locale="en",width=412,fontScale=2,
   const rn={Platform:{OS:platform},StyleSheet:{create:x=>x},useWindowDimensions:()=>dimensions,Linking:{openURL:()=>{throw Error("Real OS operation prohibited")}},...Object.fromEntries(["Image","Pressable","ScrollView","Switch","Text","TextInput","View"].map(x=>[x,x]))};
   const icons=new Proxy({},{get:(_,k)=>k==="__esModule"?false:()=>null});
   const registration=evaluate(path.join(root,"src/RegistrationExperience.tsx"),{"react":React,"react-native":rn,"./i18n":require("../src/i18n.ts"),"./registration":require("../src/registration.ts"),"./registrationCopy":require("../src/registrationCopy.ts"),"./secureState":secureState,"./cardTypography":{CardText:rn.Text,CardTextInput:rn.TextInput}});
-  const business=evaluate(path.join(root,"src/CardBusinessExperience.tsx"),{"react":React,"react-native":rn,"./cardBusinessClient":require("../src/cardBusinessClient.ts"),"./cardTypography":{CardText:rn.Text,CardTextInput:rn.TextInput}});
+  const business=evaluate(path.join(root,"src/CardBusinessExperience.tsx"),{"react":React,"react-native":rn,"./CoreCardApplicationExperience":{CoreCardApplicationExperience:()=>null},"./cardBusinessClient":require("../src/cardBusinessClient.ts"),"./cardTypography":{CardText:rn.Text,CardTextInput:rn.TextInput}});
   const component=evaluate(path.join(root,"src/GuestExperience.tsx"),{"react":React,"react-native":rn,"lucide-react-native":icons,"./wallet":{METAMASK_CARD_DEEP_LINK:"https://example.invalid/metamask",METAMASK_INSTALL_URL:"https://example.invalid/install"},"./i18n":require("../src/i18n.ts"),"./guestCopy":require("../src/guestCopy.ts"),"./cardTypography":{CardText:rn.Text,CardTextInput:rn.TextInput},"./providerGuestCopy":require("../src/providerGuestCopy.ts"),"./hostedWalletCopy":require("../src/hostedWalletCopy.ts"),"./privateServiceCopy":require("../src/privateServiceCopy.ts"),"./RegistrationExperience":registration,"./ProviderExperience":{ProviderExperience:()=>null},"./CardBusinessExperience":business,"@ynx-chain/wallet-auth":{createStandardWalletConnectState:()=>({status:"disconnected",chooserOpen:false})}}).GuestExperience;
   const initial={locale,connectWallet:async()=>{calls.chooser++},connectMetaMaskWallet:async()=>{calls.metamask++},connectYNXWallet:async()=>{calls.native++;return "wallet-opened"},enablePrivateServices:async()=>{},retryNativeWallet:async()=>{calls.retry++},disconnectNativeWallet:async()=>{calls.disconnectNative++},nativeAuthorizationPending:false,walletSession:null,walletBusy:false,walletError:"",privateSession:null,standardWalletState:{status:"disconnected",chooserOpen:false},selectedWalletKind:null,closeWalletChooser:()=>{},disconnectWallet:async()=>{},switchWalletAccount:async()=>{},...props};
   let renderer;const commits=[];
@@ -45,4 +45,4 @@ async function mountLanguage(locale="en") {
   await act(async()=>{renderer=Renderer.create(React.createElement(Envelope));await tick()});
   return {renderer,get closes(){return closes},async press(node){await act(async()=>{node.props.onPress();await tick()})},async unmount(){await act(async()=>{renderer.unmount();await tick()})}};
 }
-module.exports={mountGuest,mountLanguage,flattenStyle,textOf};
+module.exports={mountGuest,mountLanguage,flattenStyle,textOf,evaluate};
