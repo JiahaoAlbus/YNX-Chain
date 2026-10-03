@@ -28,13 +28,14 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
       await cdp.send('Fetch.fulfillRequest',{requestId,responseCode:response.status,responseHeaders,body:Buffer.from(await response.arrayBuffer()).toString('base64')});
     }catch{await cdp.send('Fetch.failRequest',{requestId,errorReason:'Failed'}).catch(()=>{});}});
     await page.goto(origin+'/fixture');
-    await page.evaluate(async()=>{
+    const installController=()=>page.evaluate(async()=>{
       const {createPrivateAccountController}=await import('/controller.js');let nonce=0,who='alice';
       const fixture=async()=>await(await fetch('/__qa/proof?who='+who+'&nonce='+String(++nonce).padStart(24,'0'))).json();
       const adapter={client:{restore:async()=>({status:'connected',session:(await fixture()).session})},createIntrospectionProof:fixture,close(){}};
       window.boundary={setWho:value=>who=value,controller:createPrivateAccountController({origin:location.origin,createAdapter:async()=>adapter,fetchImpl:fetch.bind(window)})};
-      await fetch('/__qa/signin?who=alice');
     });
+    await installController();
+    await page.evaluate(async()=>{await fetch('/__qa/signin?who=alice')});
     const read=()=>page.evaluate(async()=>{const value=await window.boundary.controller.start(location.origin+'/');return {phase:value.phase,account:value.account,amount:value.snapshot?.balances?.find(row=>row.asset==='YUSD_TEST')?.availableMicro}});
     const owned=await read();assert.equal(owned.phase,'connected');assert.match(owned.account,/^ynx1/u);assert.equal(owned.amount,17000000);
     const count=await page.evaluate(async()=>await(await fetch('/__qa/bindings')).json());
@@ -44,6 +45,12 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
     await page.evaluate(()=>window.boundary.setWho('alice'));assert.equal((await read()).account,owned.account);
     await page.evaluate(async()=>{await fetch('/__qa/signin?who=bob')});assert.equal((await read()).phase,'authorization-required');
     await page.evaluate(()=>window.boundary.setWho('bob'));const ownedB=await read();assert.equal(ownedB.amount,31000000);assert.notEqual(ownedB.account,owned.account);
+    // Recreate the actual controller after a real navigation. The HttpOnly
+    // browser identity must survive, without a fresh signin or native approval.
+    await page.reload();await installController();
+    assert.equal((await read()).phase,'authorization-required','restored Bob cookie must not authorize default Alice native fixture');
+    await page.evaluate(()=>window.boundary.setWho('bob'));
+    assert.deepEqual(await read(),ownedB,'reload must recover only the matching Bob account and balance');
     await page.evaluate(async()=>{await fetch('/__qa/global-logout',{method:'POST'})});assert.equal((await read()).phase,'authorization-required');
     // Independent native sessions use no browser identity and retain their old
     // approved read channel. This is an authority fixture, not Wallet E2E.
