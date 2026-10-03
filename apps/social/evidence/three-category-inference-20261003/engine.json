@@ -1,0 +1,85 @@
+{
+  "status": "ACTUAL_THREE_CATEGORY_COMPOSITION_QA_ONLY",
+  "pins": {
+    "xs": {
+      "repository": "OwenElliott/image-safety-classifier-xs",
+      "revision": "54f4560bd9c5ee92d45dc30418a8f8680e80de6d",
+      "bytes": 13137569,
+      "sha256": "8c28c49d9075f3ad15ebdc2961f02d5b3f99be944815b848b49c9f0e6f3fb689"
+    },
+    "encoder256": {
+      "repository": "onnx-community/siglip2-base-patch16-256-ONNX",
+      "revision": "d1114256522a37ffa257a0a58017348ab0058db2",
+      "bytes": 63451786,
+      "sha256": "712064dae0cce3fb4c94497c7dfd65d11f4ad34eadafe09442208474068cf777"
+    },
+    "violenceHead": {
+      "repository": "khasinski/siglip2-moderation-heads",
+      "revision": "b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5",
+      "bytes": 869,
+      "sha256": "268b8702e8e373ab0fea4de55250f506650ff87be532d1809ba70513bd5fa5b4"
+    },
+    "violenceData": {
+      "bytes": 788480,
+      "sha256": "433df42d2b884d598a65f41d1cb16e2c44b60000f0f46da6b7c380f3851ce2ef"
+    }
+  },
+  "runtime": "1.30.0",
+  "loadMs": 340.5145,
+  "checks": [
+    {
+      "sample": "solid-gray",
+      "scores": {
+        "gore": 0.026861755177378654,
+        "explicit_violence": 0.1919000265742721,
+        "sexual_content": 0.053573668003082275
+      },
+      "xsMs": 49.13454200000001,
+      "encoderMs": 1063.0369999999998,
+      "headMs": 0.1877919999999449,
+      "normalizedEmbeddingNorm": 0.9999999748846554,
+      "allThreeNumericalOutputsPresent": true,
+      "safetyConclusion": "NOT_EVALUATED"
+    },
+    {
+      "sample": "original-public-logo",
+      "scores": {
+        "gore": 0.03726654127240181,
+        "explicit_violence": 0.15660492571578372,
+        "sexual_content": 0.04060399532318115
+      },
+      "xsMs": 37.1401249999999,
+      "encoderMs": 1097.6432499999999,
+      "headMs": 0.11054100000001199,
+      "normalizedEmbeddingNorm": 1.0000000029827731,
+      "allThreeNumericalOutputsPresent": true,
+      "safetyConclusion": "NOT_EVALUATED"
+    },
+    {
+      "sample": "original-public-logo-repeat",
+      "scores": {
+        "gore": 0.03726654127240181,
+        "explicit_violence": 0.15660492571578372,
+        "sexual_content": 0.04060399532318115
+      },
+      "xsMs": 35.83654200000001,
+      "encoderMs": 1045.609708,
+      "headMs": 0.10404100000005201,
+      "normalizedEmbeddingNorm": 1.0000000029827731,
+      "allThreeNumericalOutputsPresent": true,
+      "safetyConclusion": "NOT_EVALUATED"
+    }
+  ],
+  "publicImageSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "publicImageDimensions": [
+    798,
+    420
+  ],
+  "encoderQuantization": "q4; fp32 parity/calibration NOT_VERIFIED",
+  "fetchAttempts": 0,
+  "osNetworkIsolation": "NOT_VERIFIED",
+  "realContentCalibration": "NOT_RUN",
+  "signedArtifactAdmission": "NOT_ADMITTED",
+  "productMount": "NOT_MOUNTED",
+  "timestamp": "2026-10-03T12:44:26.074Z"
+}

@@ -1,0 +1,5 @@
+ba86a789f47dde48aa0aecad34bf982922885901b0c176d29825b518bbe9f911  apps/social/scripts/three-category-inference-qa.mjs
+f22cd0636d98cec092ab6a4e3e743b9e5b6c3f9c1485144fea746027422eccb6  apps/social/evidence/three-category-inference-20261003/engine.json
+d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff  apps/social/evidence/three-category-inference-20261003/encoder-preprocessor.json
+29c0baf3145b8f8380e0109b38009903f35598a8229ef4f47369b43f019c8391  apps/social/evidence/three-category-inference-20261003/head-publisher-tree.json
+944b2ab04937064dc0228661a315039393376b1240b0d7304375910c22d0e717  apps/social/evidence/three-category-inference-20261003/wrong-encoder-rejected.log

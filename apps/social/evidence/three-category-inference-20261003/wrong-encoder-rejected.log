@@ -1,0 +1,21 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Pinned artifact size mismatch: apps/social/evidence/local-inference-preflight-20261003/model-cache/sha256/03e61be280fb24114facd87a1e1e6b2b654aad49845686da2f930c72740914aa/vision_model_q4.onnx
++ actual - expected
+
++ 63267466
+- 63451786
+
+    at verified (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/three-category-inference-qa.mjs:26:10)
+    at async file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/three-category-inference-qa.mjs:31:22 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 63267466,
+  expected: 63451786,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v26.7.0
