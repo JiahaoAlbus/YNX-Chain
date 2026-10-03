@@ -8,6 +8,20 @@ const start=app.indexOf('function validateFinanceOverview(')>=0?app.indexOf('fun
 const views=app.slice(start,app.indexOf('const formSaves='));
 const formatters=app.slice(app.indexOf('const fmt='),app.indexOf('\n\nconst wait='));
 const overview=()=>({portfolio:{account:'owned-render-fixture',balanceYnxt:0,stakedYnxt:0,asOf:'2026-10-04T00:00:00Z',activity:[],payReceipts:[],explorerStatus:{available:true},payStatus:{available:true}},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true}},alerts:[],budgetProgress:[],support:{}});
+test('actual statement controller binds owner and selected period before rendering and recovers on retry',async()=>{
+  const f=await fixture();try{
+    const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf("$('#statement-form').addEventListener"));
+    await f.page.addScriptTag({content:`let browserSSOIntentGeneration=1;state.overview={portfolio:{account:'owned-render-fixture'}};const statementCalls=[];function formDraft(form){return JSON.stringify(Array.from(new FormData(form)))}function api(path){return new Promise(resolve=>statementCalls.push({path,resolve}))}${controller}\nwindow.statementQA={read:()=>loadStatement($('#statement-form')),reply(patch={}){const call=statementCalls.at(-1),url=new URL(call.path,'https://finance.invalid');call.resolve({schemaVersion:'finance-statement-v2',account:state.overview.portfolio.account,network:'ynx_6423-1',symbol:'YNXT',from:url.searchParams.get('from'),toExclusive:url.searchParams.get('to'),activity:[],totals:{incomingYnxt:null,outgoingYnxt:null,feesYnxt:null},coverageComplete:false,openingBalance:'unavailable',...patch})},inspect:()=>({calls:statementCalls.length,statement:state.statement,error:state.statementError})};`});
+    await f.page.locator('#statement-form [name=from]').fill('2026-09-01');await f.page.locator('#statement-form [name=to]').fill('2026-09-30');
+    for(const patch of [{account:'other-owner'},{toExclusive:'2026-09-30T00:00:00Z'}]){
+      await f.page.evaluate(()=>{window.statementPending=statementQA.read()});await f.page.evaluate(patch=>statementQA.reply(patch),patch);await f.page.evaluate(()=>statementPending);
+      assert.equal(await f.page.locator('#statement').textContent(),'unavailable');assert.equal((await f.page.evaluate(()=>statementQA.inspect())).statement,null);
+    }
+    await f.page.evaluate(()=>{window.statementPending=statementQA.read();statementQA.reply()});await f.page.evaluate(()=>statementPending);
+    assert.match(await f.page.locator('#statement').textContent(),/fullPeriodTotals: unknown/);assert.equal((await f.page.evaluate(()=>statementQA.inspect())).statement.account,'owned-render-fixture');assert.equal(await f.page.locator('#statement').getAttribute('aria-busy'),null);
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 async function fixture(){
   const browser=await chromium.launch(await financeBrowserLaunchOptions()),context=await browser.newContext(),page=await context.newPage();
   const errors=[];let requests=0;page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',route=>{requests++;return route.abort()});

@@ -699,16 +699,25 @@ function renderStatement(s){
   $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} ${esc(financeText('statementThrough'))} ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><p><strong>${esc(financeText('fullPeriodTotals'))}: ${esc(financeText('unknown'))}</strong><br>${esc(s.coverage||financeText('completeHistoryMissing'))}</p><div class="statement-grid"><div class="stat"><small>${esc(financeText('observedIncoming'))}</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedOutgoing'))}</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedFees'))}</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>${esc(financeText('returnedRecords'))}</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. ${esc(financeText('notBankStatement'))}</small></p>`;
 }
 let statementOperation=null;
+function statementDate(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))throw new Error(financeText('statementCoverageInvalid'));
+  const parsed=new Date(`${value}T00:00:00Z`);
+  if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==value)throw new Error(financeText('statementCoverageInvalid'));
+  return parsed;
+}
 function retireOwnedStatementView(){statementOperation=null;$('#statement').removeAttribute('aria-busy');$('#statement-form').removeAttribute('aria-busy')}
 function loadStatement(form){
-  const context=state.context,identityRevision=browserSSOIntentGeneration,draft=formDraft(form),previous=statementOperation;
-  if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.draft===draft)return previous.promise;
-  const operation={context,identityRevision,draft,promise:null};statementOperation=operation;
-  const current=()=>statementOperation===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision;
+  const context=state.context,identityRevision=browserSSOIntentGeneration,account=state.overview?.portfolio?.account,draft=formDraft(form),previous=statementOperation;
+  if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.account===account&&previous.draft===draft)return previous.promise;
+  const operation={context,identityRevision,account,draft,promise:null};statementOperation=operation;
+  const current=()=>statementOperation===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision&&state.overview?.portfolio?.account===account;
   $('#statement').setAttribute('aria-busy','true');form.setAttribute('aria-busy','true');
   operation.promise=(async()=>{try{
-    const f=new FormData(form),from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);
-    const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);if(!current()||formDraft(form)!==draft)return;
+    const f=new FormData(form),fromDate=statementDate(f.get('from')),toDate=statementDate(f.get('to'));
+    if(typeof account!=='string'||!account.trim()||fromDate>toDate)throw new Error(financeText('statementCoverageInvalid'));
+    const from=fromDate.toISOString();toDate.setUTCDate(toDate.getUTCDate()+1);const toExclusive=toDate.toISOString();
+    const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toExclusive)}`);if(!current()||formDraft(form)!==draft)return;
+    if(candidate?.account!==account||typeof candidate.from!=='string'||typeof candidate.toExclusive!=='string'||Date.parse(candidate.from)!==fromDate.getTime()||Date.parse(candidate.toExclusive)!==toDate.getTime())throw new Error(financeText('statementCoverageInvalid'));
     renderStatement(candidate);state.statement=candidate;state.statementError=false;
   }catch(error){if(!current()||formDraft(form)!==draft)return;state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable');
   }finally{if(statementOperation===operation){statementOperation=null;$('#statement').removeAttribute('aria-busy');form.removeAttribute('aria-busy');}}})();
