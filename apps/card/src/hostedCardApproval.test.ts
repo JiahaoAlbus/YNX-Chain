@@ -22,7 +22,7 @@ function setup(){
  let response:unknown={kind:'card-application-approval',version:request.version,returnUrl:resultURL};
  let rpc=0,prepare=0;
  const consumer=()=>createHostedCardApprovalConsumer({registry,now:()=>time,context:()=>context,storage:{getItem:async key=>storage.get(key)??null,setItem:async(key,value)=>{order.push('persist');storage.set(key,value)}}});
- const transport={reserveCardApplicationApproval(){order.push('reserve');return Promise.resolve({account:'0x0000000000000000000000000000000000000001',assertCurrent(){},async request(_url:string){order.push('rpc');rpc++;assert.equal(JSON.parse([...storage.values()][0]).state,'pending');return response}})}};
+ const transport={reserveCardApplicationApproval(){order.push('reserve');return Promise.resolve({account:evmAddressFromYNX(qaAccount),assertCurrent(){},async request(_url:string){order.push('rpc');rpc++;assert.equal(JSON.parse([...storage.values()][0]).state,'pending');return response}})}};
  const input={applicationId:request.challenge.applicationId,transport,readRecord:async()=>record,prepare:async()=>{order.push('prepare');prepare++;return request},operationId:'operation-one',resultOperationId:'result-one'};
  return {consumer,input,storage,order,setContext:(next:typeof context)=>{context=next},setTime:(next:Date)=>{time=next},setResponse:(next:unknown)=>{response=next},setRecord:(next:Record<string,unknown>)=>{record=next},counts:()=>({rpc,prepare})};
 }
@@ -44,7 +44,7 @@ test('V1 YNXT application consumes an exact approval separately from Provider V2
  const signed=createSignedCardApplicationApproval({accountSecret:qaScalar,challenge:pending.challenge,details:pending.details},at),returnUrl=createCardApplicationApprovalReturnURL(registry,pending,{status:'approved',approval:signed},at);
  const saved=new Map<string,string>(),record={id:pending.challenge.applicationId,owner:qaAccount,details,challenge:pending.challenge,status:'APPROVAL_REQUIRED'};
  const consumer=createHostedCardApprovalConsumer({registry,now:()=>at,context:()=>({owner:qaAccount,contextKey:'private-v1-device-proof-context'}),storage:{getItem:async key=>saved.get(key)??null,setItem:async(key,value)=>{saved.set(key,value)}}});
- const result=await consumer.review({applicationId:record.id,operationId:'core-submit-one',resultOperationId:'core-result-one',readRecord:async()=>record,prepare:async()=>pending,transport:{reserveCardApplicationApproval:()=>Promise.resolve({account:'0x0000000000000000000000000000000000000001',assertCurrent(){},request:async()=>({kind:'card-application-approval',version:'1',returnUrl})})}});
+ const result=await consumer.review({applicationId:record.id,operationId:'core-submit-one',resultOperationId:'core-result-one',readRecord:async()=>record,prepare:async()=>pending,transport:{reserveCardApplicationApproval:()=>Promise.resolve({account:evmAddressFromYNX(qaAccount),assertCurrent(){},request:async()=>({kind:'card-application-approval',version:'1',returnUrl})})}});
  assert.equal(result.result.version,'1');assert.equal(result.entry.operationId,'core-submit-one');assert.equal((await consumer.beforeSubmit(record.id,async()=>record)).approval.version,'1');
 });
 test('new private session requires explicit fresh review and retains the old context without reusing approval',async()=>{
@@ -55,4 +55,9 @@ test('new private session requires explicit fresh review and retains the old con
  await assert.rejects(h.consumer().review(h.input));
  const archived=[...h.storage.entries()].find(([key])=>key.includes('.history.'));
  assert.ok(archived);assert.equal(JSON.parse(archived![1]).state,'approved');assert.equal(JSON.parse(archived![1]).contextKey,'private-session-device-binding');
+});
+test('wrong selected Hosted account cannot prepare a challenge or dispatch approval',async()=>{
+ const h=setup(),original=h.input.transport.reserveCardApplicationApproval;
+ h.input.transport.reserveCardApplicationApproval=()=>original().then(value=>({...value,account:'0x0000000000000000000000000000000000000002'}));
+ await assert.rejects(h.consumer().review(h.input),/ACCOUNT_MISMATCH/);assert.deepEqual(h.counts(),{rpc:0,prepare:0});
 });

@@ -1,5 +1,6 @@
 import {
   encodeCardApplicationApprovalWalletURL,parseCardApplicationApprovalWalletURL,
+  evmAddressFromYNX,
   type CardApplicationApprovalRequest,type CardApplicationApprovalResult,
 } from '@ynx-chain/wallet-auth-card-provider-v2';
 import {hostedApprovalJournalKey,readHostedApprovalJournal,type HostedApprovalJournalEntry} from './providerApprovalJournal';
@@ -15,6 +16,10 @@ export type ApprovalStorage={getItem(key:string):Promise<string|null>;setItem(ke
 type Context={owner:string;contextKey:string};
 type Options={registry:unknown;storage:ApprovalStorage;context:()=>Context|null;now?:()=>Date};
 function fail(code:string):never{throw Error(code)}
+const failureCode=(error:unknown)=>{
+  const candidate=error&&typeof error==='object'&&'code' in error?(error as {code:unknown}).code:error instanceof Error?error.message:null;
+  return typeof candidate==='string'&&/^[A-Z0-9_]{3,80}$/.test(candidate)?candidate:'CARD_APPROVAL_UNKNOWN';
+};
 const recordBinding=(input:unknown,applicationId:string)=>{
   if(!input||typeof input!=='object')return fail('CARD_APPROVAL_RECORD_INVALID');
   const record=input as Record<string,unknown>;
@@ -47,6 +52,8 @@ export function createHostedCardApprovalConsumer(options:Options){
       // Invoke reserve synchronously before any journal or backend await.
       const reserved=input.transport.reserveCardApplicationApproval();
       const reservation=await reserved;assertContext(context);reservation.assertCurrent();
+      const ownerAccount=/^0x[0-9a-f]{40}$/i.test(context.owner)?context.owner:evmAddressFromYNX(context.owner);
+      if(reservation.account.toLowerCase()!==ownerAccount.toLowerCase())fail('CARD_APPROVAL_ACCOUNT_MISMATCH');
       const old=await read(context,input.applicationId,true);
       if(old?.contextKey===context.contextKey&&old.state==='pending'&&Date.parse(old.request.expiresAt)>now().getTime())fail('CARD_APPROVAL_ALREADY_PENDING');
       if(old){
@@ -79,7 +86,7 @@ export function createHostedCardApprovalConsumer(options:Options){
       }catch(error){
         // Never overwrite a verified terminal result after a backend read failed.
         const saved=await read(context,input.applicationId);
-        if(saved?.state==='pending')await save({...entry,state:'failed',failure:error instanceof Error?error.message:'CARD_APPROVAL_UNKNOWN'},context);
+        if(saved?.state==='pending')await save({...entry,state:'failed',failure:failureCode(error)},context);
         throw error;
       }
     },
