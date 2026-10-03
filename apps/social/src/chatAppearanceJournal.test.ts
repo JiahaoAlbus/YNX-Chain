@@ -82,3 +82,45 @@ test('oversized nested preference is rejected before hashing', async () => {
   await assert.rejects(journal.read(slot), /NEEDS_RECOVERY/);
   assert.equal(hashes, 0);
 });
+test('newer valid setting hash infrastructure failure propagates instead of returning the older setting', async () => {
+  const original = JSON.stringify(defaultChatAppearance());
+  const latest = JSON.stringify({ ...defaultChatAppearance(), theme: 'dark' });
+  const disk = new Map([
+    ['a', JSON.stringify({ sequence: 1, raw: original, sha256: await hash(original) })],
+    ['b', JSON.stringify({ sequence: 2, raw: latest, sha256: await hash(latest) })],
+  ]);
+  const failure = new Error('SHA provider unavailable'); let writes = 0;
+  const journal = createChatAppearanceJournal({
+    read: async (_, side) => disk.get(side) ?? null,
+    write: async () => { writes++; },
+    hash: async raw => { if (raw === latest) throw failure; return hash(raw); },
+  });
+  await assert.rejects(journal.read(slot), error => error === failure);
+  await assert.rejects(journal.write(slot, original), error => error === failure);
+  assert.equal(writes, 0);
+  assert.equal(JSON.parse(disk.get('b')!).raw, latest);
+});
+test('invalid hash-provider output is not treated as a corrupt side or confirmed as saved', async () => {
+  const original = JSON.stringify(defaultChatAppearance());
+  const valid = JSON.stringify({ sequence: 1, raw: original, sha256: await hash(original) });
+  let writes = 0;
+  for (const digest of ['', 'x'.repeat(64), 'A'.repeat(64)]) {
+    const journal = createChatAppearanceJournal({
+      read: async (_, side) => side === 'a' ? valid : null,
+      write: async () => { writes++; }, hash: async () => digest,
+    });
+    await assert.rejects(journal.read(slot), /HASH_PROVIDER_INVALID/);
+    await assert.rejects(journal.write(slot, original), /HASH_PROVIDER_INVALID/);
+  }
+  const empty = createChatAppearanceJournal({ read: async () => null,
+    write: async () => { writes++; }, hash: async () => 'invalid' });
+  await assert.rejects(empty.write(slot, original), /HASH_PROVIDER_INVALID/);
+  assert.equal(writes, 0);
+});
+test('persistence errors propagate without an acknowledgment or automatic retry', async () => {
+  const failure = new Error('disk write failed'); let writes = 0;
+  const journal = createChatAppearanceJournal({ read: async () => null,
+    write: async () => { writes++; throw failure; }, hash });
+  await assert.rejects(journal.write(slot, JSON.stringify(defaultChatAppearance())), error => error === failure);
+  assert.equal(writes, 1);
+});

@@ -1,0 +1,8 @@
+PASS generic read errors from either side propagate with valid opposite side and zero writes
+FAIL asynchronous hash failure cannot silently return older valid settings AssertionError Missing expected rejection.
+PASS exact source reader accepts200000 bytes and refuses multi-byte200001 before text read
+PASS two byte-limited realFS sides hold read and save without writes
+PASS envelope200001 chars rejects beforeJSONparse or SHA and preserves valid side
+PASS postwrite readback failure is not acknowledged or retried automatically
+PASS late presentation write stays in original account slot and replacement view does not publish
+RESULT 6PASS 1FAIL; frozen portable source and exact extracted reader body with controlled NodeFS metadata, not Expo installed runtime/device

@@ -1,0 +1,84 @@
+{
+  "kind": "SOCIAL_LOCAL_APPEARANCE_BINDINGS_HASH_JS_NOT_RELEASE",
+  "baseCommit": "d6c9b9fe697ff0b51338302d96e714ebef37c5ad",
+  "sourceDelta": [
+    {
+      "path": "apps/social/src/ChatAppearanceSettings.tsx",
+      "bytes": 15560,
+      "sha256": "e65a4aef71d5ed3c9d4ddd16501a2ee04bfdd459f37d3abaa1d1ecae6d59ab7e"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceJournal.ts",
+      "bytes": 3768,
+      "sha256": "6fdadca8f21d65dd7f987354a0f666a4c8adafd440a16310b4142986de49a4bb"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceJournal.test.ts",
+      "bytes": 7899,
+      "sha256": "b86201c77e4a5109bebccfc2d9082d770fdb5d3c93d88acfb5c34c50db4d91be"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceBindings.ts",
+      "bytes": 1348,
+      "sha256": "39189ba3eec5ea0ecb315591b2634c925764813aca158c45b190f914a23f7686"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceBindings.test.ts",
+      "bytes": 3771,
+      "sha256": "b2a4cf1c4766e3b5bdde3e164328aeafdc1be931629e3e9dd834e82205eabac0"
+    }
+  ],
+  "artifact": {
+    "path": "apps/social/evidence/chat-appearance-bindings-hash-20261004/local-js-bundles.tar.gz",
+    "bytes": 4355839,
+    "sha256": "8e201625444aee226ff51a72d9a8df5862b3b627ba04288b656b3a0177a151b9"
+  },
+  "exported": [
+    {
+      "path": "/tmp/social-appearance-bindings-hash-20261004.Kk7Jfx/bundle/_expo/static/js/android/index-f05436009862e55ab0c5c711bd98a652.hbc",
+      "bytes": 5848624,
+      "sha256": "1a9e2725bbf4a23ab0d7de63854403cb23968f8820c3641ccad32068a714ad87"
+    },
+    {
+      "path": "/tmp/social-appearance-bindings-hash-20261004.Kk7Jfx/bundle/_expo/static/js/ios/index-cf106a96e025cb6eadfa066b157ca658.hbc",
+      "bytes": 5841799,
+      "sha256": "985df504628c1f171389c405881e9f93cd8b5ab883a301f067f2dabf461b14e6"
+    },
+    {
+      "path": "/tmp/social-appearance-bindings-hash-20261004.Kk7Jfx/bundle/metadata.json",
+      "bytes": 368,
+      "sha256": "adf145d5c247d8aed4984992592e6b9d7a61349bdc46d356f78535649aabb863"
+    }
+  ],
+  "inheritedOriginalFailure": {
+    "path": "apps/social/evidence/chat-appearance-bindings-hash-20261004/inherited-independent-fail.txt",
+    "bytes": 770,
+    "sha256": "cefdbfa1de284346ae6c64e566f61b001a6f13acbf07d25a9b59398f1373ba45"
+  },
+  "checks": {
+    "focusedTests": 18,
+    "typecheckExit": 0,
+    "expoAndroidIosExportExit": 0,
+    "originalIndependentProbeRerun": false,
+    "independentSourceAdmitted": false,
+    "installedUi": "NOT_RUN",
+    "publicSourceBound": "NOT_RUN",
+    "dotAcceptance": "NOT_RUN",
+    "signedNativePackage": false,
+    "deployed": false,
+    "cryptoActivated": false
+  },
+  "semantics": [
+    "guest room uses r_slot within guest preferences, not global override",
+    "account and room identifiers are validated before hash/open; no guest fallback",
+    "Unicode is not normalized",
+    "parsing invalid JSON/shape is separate from hash infrastructure failures",
+    "valid digest mismatch remains invalid side",
+    "invalid hash output and persistence failures propagate"
+  ],
+  "remaining": [
+    "independent reviewer reproduces original 8c hash negative on successor",
+    "Root-scheduled actual guest/room/settings native UI cold/retry/account-switch checks",
+    "full Social and crypto gates remain incomplete"
+  ]
+}

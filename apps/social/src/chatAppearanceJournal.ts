@@ -11,6 +11,12 @@ export function createChatAppearanceJournal(port: {
   write(slot: string, side: 'a' | 'b', raw: string): Promise<void>;
   hash(raw: string): Promise<string>;
 }): ChatAppearancePort {
+  async function checkedHash(raw: string): Promise<string> {
+    const digest = await port.hash(raw);
+    if (typeof digest !== 'string' || !/^[a-f0-9]{64}$/.test(digest))
+      throw new Error('CHAT_APPEARANCE_HASH_PROVIDER_INVALID');
+    return digest;
+  }
   async function inspect(slot: string) {
     checkedChatSlot(slot);
     const records: { side: 'a' | 'b'; saved: Saved | null; present: boolean }[] = [];
@@ -24,6 +30,7 @@ export function createChatAppearanceJournal(port: {
       }
       let saved: Saved | null = null;
       if (raw !== null && raw.length <= chatAppearanceEnvelopeLimit) {
+        let candidate: Saved | null = null;
         try {
           const value: unknown = JSON.parse(raw);
           if (value && typeof value === 'object') {
@@ -31,11 +38,11 @@ export function createChatAppearanceJournal(port: {
             if (Object.keys(entry).length === 3 && Number.isSafeInteger(entry.sequence) && Number(entry.sequence) > 0 &&
                 typeof entry.raw === 'string' && typeof entry.sha256 === 'string' && /^[a-f0-9]{64}$/.test(entry.sha256)) {
               parseChatAppearance(entry.raw);
-              if (await port.hash(entry.raw) === entry.sha256)
-                saved = { sequence: Number(entry.sequence), raw: entry.raw, sha256: entry.sha256 };
+              candidate = { sequence: Number(entry.sequence), raw: entry.raw, sha256: entry.sha256 };
             }
           }
-        } catch { /* Keep the other ORIGINAL valid slot, never repair blindly. */ }
+        } catch { /* Invalid JSON/shape only. Never catch asynchronous provider failure. */ }
+        if (candidate && await checkedHash(candidate.raw) === candidate.sha256) saved = candidate;
       }
       records.push({ side, saved, present: raw !== null });
     }
@@ -53,7 +60,7 @@ export function createChatAppearanceJournal(port: {
       const sequence = (latest?.saved?.sequence ?? 0) + 1;
       if (!Number.isSafeInteger(sequence)) throw new Error('CHAT_APPEARANCE_STORAGE_NEEDS_RECOVERY');
       const target = latest ? records.find(record => record.side !== latest.side)! : records[0]!;
-      const envelope = JSON.stringify({ sequence, raw, sha256: await port.hash(raw) });
+      const envelope = JSON.stringify({ sequence, raw, sha256: await checkedHash(raw) });
       await port.write(slot, target.side, envelope);
       if (await port.read(slot, target.side) !== envelope) throw new Error('CHAT_APPEARANCE_WRITE_NOT_CONFIRMED');
     },

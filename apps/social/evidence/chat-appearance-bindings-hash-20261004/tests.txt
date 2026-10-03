@@ -1,0 +1,26 @@
+✔ guest global appearance needs no identifier or hashing (0.597542ms)
+✔ guest conversation appearance has its own room slot, not the global destination (0.523333ms)
+✔ account and room bindings remain isolated from guest and other accounts (0.09625ms)
+✔ malformed or empty identifiers refuse before hashing without guest fallback (0.29325ms)
+✔ valid Unicode and emoji identifiers retain distinct bytes without normalization (0.071125ms)
+✔ hash failures and invalid hash values do not redirect identifiers to guest (0.07725ms)
+✔ partial inactive slot preserves the prior valid preference and next save recovers without destroying it (1.009541ms)
+✔ both corrupt slots fail closed instead of resetting account preferences (0.14275ms)
+✔ modified bytes without their exact SHA are not accepted as the current setting (0.125041ms)
+✔ theme arrays and objects cannot impersonate a stored primitive theme (0.10125ms)
+✔ oversized inactive envelope preserves exact valid settings without hashing its contents (0.374666ms)
+✔ native pre-read resource limit preserves the other valid journal side (0.112625ms)
+✔ both native resource-limited sides require recovery without a reset or write (0.26525ms)
+✔ generic journal I/O errors remain errors instead of silently selecting an old side (0.105667ms)
+✔ oversized nested preference is rejected before hashing (0.241792ms)
+✔ newer valid setting hash infrastructure failure propagates instead of returning the older setting (0.27275ms)
+✔ invalid hash-provider output is not treated as a corrupt side or confirmed as saved (0.237042ms)
+✔ persistence errors propagate without an acknowledgment or automatic retry (0.079458ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 137.163291

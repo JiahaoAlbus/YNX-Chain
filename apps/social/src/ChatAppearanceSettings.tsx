@@ -9,6 +9,7 @@ import { useSocialAppearance } from './SocialAppearance';
 import { ChatAppearanceStore, chatBackgrounds, chatCanvas, checkedChatSlot, defaultChatAppearance, effectiveChatBackground,
   type ChatAppearance, type ChatBackground, type ChatTheme } from './chatAppearance';
 import { ChatAppearanceStorageLimitError, chatAppearanceEnvelopeLimit, createChatAppearanceJournal } from './chatAppearanceJournal';
+import { deriveChatAppearanceSlots } from './chatAppearanceBindings';
 
 const directory = () => new Directory(Paths.document, 'ynx-social-chat-appearance-v1');
 const accountDirectory = (slot: string) => new Directory(directory(), checkedChatSlot(slot));
@@ -36,8 +37,7 @@ export function useNativeChatAppearance(account: string | null, room: string | n
   useEffect(() => {
     let alive = true, unsubscribe: (() => void) | undefined; setError(null);
     void (async () => {
-      const slot = account ? 'a_' + await hash(account) : 'guest';
-      const roomSlot = account && room ? 'r_' + await hash(room) : null;
+      const { slot, roomSlot } = await deriveChatAppearanceSlots(account, room, hash);
       if (!alive) return;
       await store.open(slot); if (!alive) return;
       const publish = () => { if (alive) setSaved({ account, room, slot, roomSlot, value: store.snapshot(slot)! }); };
