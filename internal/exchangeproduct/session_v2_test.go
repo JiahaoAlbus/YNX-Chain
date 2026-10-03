@@ -222,6 +222,9 @@ func TestBrowserV2FailClosedWithoutLegacyOrWriteFallback(t *testing.T) {
 		status       int
 	}{
 		{"POST", "/v1/orders", 403}, {"PUT", "/v1/security", 403}, {"POST", "/v1/quant-adapter/account", 403},
+		{"POST", "/v1/support", 403}, {"POST", "/v1/ai/drafts", 403},
+		{"POST", "/v1/orders/test-order/cancel", 403}, {"POST", "/v1/deposits", 403},
+		{"POST", "/v1/withdrawals/review", 403},
 		{"GET", "/v1/ws/user", 403}, {"GET", "/v1/unknown", 403},
 	} {
 		w := httptest.NewRecorder()
