@@ -30,6 +30,29 @@ const walletActions=app.slice(app.indexOf('function disconnectWallet('),app.inde
 const walletFailure=app.slice(app.indexOf('function walletConnectionFailure('),app.indexOf('async function connectWallet('));
 const controlsRender=app.slice(app.indexOf('function renderOwnedControls('),app.indexOf('function renderBook('));
 const publicRender=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
+const bookRender=app.slice(app.indexOf('function renderBook('),app.indexOf('function renderAccount('));
+
+test('actual market workspace localizes headers and depth source without changing returned amounts, network or controls',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={book:null};const display=${formatMicro.toString()};${bookRender}\nwindow.bookLocaleQA={render(book){state.book=book;renderBook()},source:()=>JSON.stringify(state.book)};`});
+    const book={asks:[{priceMicro:2000001,amountMicro:3000001,filledMicro:1000000}],bids:[]};
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const [id,key] of [['chart-title','Market activity'],['book-title','Order book'],['order-title','Limit order'],['market-retry','Reconnect market data'],['refresh','Refresh']])assert.equal(await page.locator('#'+id).textContent(),catalogs[locale][key]);
+      assert.deepEqual(await page.locator('.market-strip dt').allTextContents(),['Last matched','Your volume','Venue source','Network:'].map(key=>catalogs[locale][key]));
+      assert.equal(await page.locator('#market-title').textContent(),'YNXT / YUSD_TEST');assert.equal(await page.locator('.market-strip dl div').last().locator('dd').textContent(),'ynx_6423-1');
+      for(const [id,keys] of [['public-trades',['Time','Price','Amount','Source','Proof digest']],['orders',['Time','Side','Price','Amount / Filled','Status','Action']]])assert.deepEqual(await page.locator('#'+id).evaluate(el=>Array.from(el.closest('section').querySelectorAll('thead th'),th=>th.textContent)),keys.map(key=>catalogs[locale][key]));
+      await page.evaluate(()=>window.bookLocaleQA.render({asks:[],bids:[]}));assert.equal(await page.locator('#spread').textContent(),catalogs[locale]['No public market depth']);
+      await page.evaluate(book=>window.bookLocaleQA.render(book),book);assert.equal(await page.locator('#spread').textContent(),catalogs[locale]['Owned venue open orders']);assert.deepEqual(await page.locator('#asks .rows span, #asks > div > span').allTextContents(),[formatMicro(2000001),formatMicro(2000001),formatMicro(4000004)]);
+      assert.equal(await page.evaluate(()=>window.bookLocaleQA.source()),JSON.stringify(book));assert.equal(await page.locator('#market').isVisible(),true);assert.equal(await page.locator('#private-refresh').evaluate(el=>el.hidden),true);
+    }
+    assert.equal(requests,0,'language and controlled depth display cannot request authorization or create an order');
+  }finally{await browser.close()}
+});
 
 test('actual public trade chart switches SVG visibility from real returned rows and clears without fabricated prices',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
