@@ -1,0 +1,6 @@
+[0.015s][info][class,load] com.ynx.social.matrix.VeilContextEncodingCheck source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/
+[0.452s][info][class,load] com.ynx.social.matrix.VeilSignalOutbox source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/
+[0.454s][info][class,load] com.ynx.social.matrix.VeilSignalAddress source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/
+[0.462s][info][class,load] com.ynx.social.matrix.VeilContextEncoding source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/
+[0.463s][info][class,load] com.ynx.social.matrix.VeilSignalInbox source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/
+[0.482s][info][class,load] com.ynx.social.matrix.VeilRecordKind source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/native-port.jar

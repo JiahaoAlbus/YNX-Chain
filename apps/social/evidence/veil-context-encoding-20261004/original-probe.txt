@@ -1,0 +1,7 @@
+PASS normal retry digest binds both full addresses identities operation conversation and plaintext
+FAIL different malformed conversation strings cannot share a retry fingerprint InvocationTargetException null
+PASS decoded receipt clones output and rejects changed context
+PASS malformed receipt lengths magic type and body size fail closed
+PASS expired transaction and group-sized unsupported inputs refuse before store reads
+PASS malformed conversation refuses before protected reads
+RESULT 5PASS 1FAIL; actual frozen outbox codec/digest and early guards, public-only identities, no SessionCipher encryption/private record/device/Host

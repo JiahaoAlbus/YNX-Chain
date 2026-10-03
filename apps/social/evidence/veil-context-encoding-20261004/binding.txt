@@ -1,0 +1,17 @@
+7c15e49c4cc232869c17a759d2b5cc6ba2ed35b12f981263a7bd44603917b58c  apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeStore.kt
+88bfa2ce0ea7f0009ed209e0826ab425b15e67e0b7c4ba28d88f17eb3851b575  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java
+8a03ab70dcc7e2f12c22c02b5c86f4cd4d8372a852a5542aa78ef831b1c7f039  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java
+45b9e310a0ed4880c4bfa6a20c5da5185d17cb026fef84d5110692d9e92bb5a3  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilContextEncoding.java
+281096ff38e89ec881e55ccd9294188ecc55065b179cc226f85ffbab4aee986b  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalAddress.java
+ae76c3372b7422b158c17531c8d89642a47ab3d4107bb8d1a36835b26084a911  apps/social/scripts/veil-libsignal-qa/VeilInboxCheck.java
+622a9cae2fa8384b815500e9c41d3538e582a0007a45b2cc9f6228f74095d64a  apps/social/scripts/veil-libsignal-qa/VeilContextEncodingCheck.java
+935571dd03f0c3601a48738a81915a0206beef9b333525dc5fb2ea2a34d526ef  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/native-port.jar
+5e409098a7c9434251c6de5b732d0fd5ec37532f4401f9a10a28ac94b4a1ba9d  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/com/ynx/social/matrix/VeilSignalInbox.class
+fad4fe9b646415d63c6d9dd633be7c0782d7b1a2023a78dbdce083a442b17f88  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/com/ynx/social/matrix/VeilSignalOutbox.class
+b0b2c8cfba76175dfed9771619862a431142807a1a2482cf32beb2451efe2bd6  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/com/ynx/social/matrix/VeilSignalAddress.class
+8f87671d8a66fa3717658873b76024995a8bfb7de5f2c11a9ea50a99a8939470  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/classes/com/ynx/social/matrix/VeilContextEncoding.class
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+final_java_compile_exit=0
+strict_utf8_keyless_exit=0
+final_outbox_sdk_exit=0
+final_inbox_sdk_exit=0

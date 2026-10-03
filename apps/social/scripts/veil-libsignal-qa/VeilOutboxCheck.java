@@ -27,11 +27,12 @@ import org.signal.libsignal.protocol.util.KeyHelper;
 
 /** Real SDK cipher; controlled atomic-memory transaction, not Android persistence. */
 public final class VeilOutboxCheck {
-  private interface Action<T> { T run() throws Exception; }
-  private static final class Port implements VeilRecordTransaction {
+  interface Action<T> { T run() throws Exception; }
+  static final class Port implements VeilRecordTransaction {
     Map<String, byte[]> rows = new LinkedHashMap<>();
     boolean live = true;
     boolean failOutbox;
+    VeilRecordKind failKind;
     static String key(VeilRecordKind kind, String id) { return kind.name() + "/" + id; }
     public void checkLive() { if (!live) throw new IllegalStateException("expired"); }
     public byte[] read(VeilRecordKind kind, String id) {
@@ -41,6 +42,7 @@ public final class VeilOutboxCheck {
     public void write(VeilRecordKind kind, String id, byte[] value) {
       checkLive();
       if (failOutbox && kind == VeilRecordKind.OUTBOX) throw new IllegalStateException("fault-outbox");
+      if (kind == failKind) throw new IllegalStateException("fault-" + kind.name());
       rows.put(key(kind, id), value.clone());
     }
     public void remove(VeilRecordKind kind, String id) { checkLive(); rows.remove(key(kind, id)); }

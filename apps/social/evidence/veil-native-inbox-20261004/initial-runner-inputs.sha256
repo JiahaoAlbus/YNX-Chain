@@ -1,0 +1,15 @@
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+d9eb9da824d9e247a352f570f01e1169e725b2954bca9e283a71786c59b59f9a  /Users/huangjiahao/Library/Android/sdk/platforms/android-36/android.jar
+1bcc74e8ce84e2c25eaafde10f1248349cce3062b6e36978cbeec610db1e930a  /Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.1.20/aa8ca79cd50578314f6d1180c47cbe14c0fee567/kotlin-stdlib-2.1.20.jar
+8046bf367afff10a637e311aa3c12c08b437133415b4cdb89ec65e359b0cb606  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeAuthority.kt
+7c15e49c4cc232869c17a759d2b5cc6ba2ed35b12f981263a7bd44603917b58c  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeStore.kt
+57b4baefb57bec77281cb21c914d9b6a2acd7abf005e5e5c67d1a7114e413634  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilRecordTransaction.kt
+e085f14c0e19ec10e8d841aaa40891995d49dfec6e411bd0d5cee5e9811e7535  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java
+69c09328990ad63550c34c1d5edf97adcc5c865ade3c3b65ca6582cd4cf1c71a  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java
+aef1380fd7b49bff142d08de45dab497ccc21985560261dd2932a3e9090dd6e5  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java
+45b9e310a0ed4880c4bfa6a20c5da5185d17cb026fef84d5110692d9e92bb5a3  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/crypto-engine/java/com/ynx/social/matrix/VeilContextEncoding.java
+d9b29c266bf610586fa43b7fb7fd165047c363b3e1c0baf760b5fced9dfd20d4  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/veil-libsignal-qa/VeilKeylessAdapterCheck.java
+9e469c7fa2d0dd719f1c5d15632675bd9cab4d8ee52b628e766d6ba5450ed3ca  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/veil-libsignal-qa/VeilPrekeyLifecycleCheck.java
+ccc5822987cd5ba75d4721f4fb41b1b28df11c790835f7a13e3daf388666ff54  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java
+ae76c3372b7422b158c17531c8d89642a47ab3d4107bb8d1a36835b26084a911  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/veil-libsignal-qa/VeilInboxCheck.java
+c667bd26f8c87b04ec506f89fe4a8f69405a08c17f1f8fe5fd43e82077cdf663  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/veil-libsignal-qa/VeilContextEncodingCheck.java

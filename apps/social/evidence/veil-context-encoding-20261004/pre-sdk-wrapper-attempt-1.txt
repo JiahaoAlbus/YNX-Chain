@@ -1,0 +1,21 @@
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS legitimate Unicode and emoji retain exact UTF8 bytes
+PASS different legitimate strings remain distinct without normalization
+PASS legitimate Unicode dotted SDK address remains supported
+Exception in thread "main" java.lang.IllegalStateException: VEIL_LOCAL_ADDRESS_NOT_ADMITTED
+	at com.ynx.social.matrix.VeilSignalOutbox.requireLocalAddress(VeilSignalOutbox.java:126)
+	at com.ynx.social.matrix.VeilSignalOutbox.encryptInTransaction(VeilSignalOutbox.java:78)
+	at com.ynx.social.matrix.VeilContextEncodingCheck.lambda$main$3(VeilContextEncodingCheck.java:76)
+	at com.ynx.social.matrix.VeilContextEncodingCheck.rejects(VeilContextEncodingCheck.java:26)
+	at com.ynx.social.matrix.VeilContextEncodingCheck.main(VeilContextEncodingCheck.java:76)

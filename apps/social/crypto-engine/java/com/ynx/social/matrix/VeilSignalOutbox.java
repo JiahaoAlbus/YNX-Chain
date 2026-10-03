@@ -1,7 +1,6 @@
 package com.ynx.social.matrix;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Objects;
@@ -26,15 +25,19 @@ final class VeilSignalOutbox {
   private final IdentityKey admittedIdentity;
   private final SignalProtocolAddress local;
 
-  VeilSignalOutbox(VeilNativeStore store, IdentityKey identity, SignalProtocolAddress local) {
+  VeilSignalOutbox(VeilNativeStore store, IdentityKey identity, VeilSignalAddress local) {
     this.nativeStore = Objects.requireNonNull(store);
     this.admittedIdentity = Objects.requireNonNull(identity);
-    this.local = Objects.requireNonNull(local);
+    this.local = Objects.requireNonNull(local).sdk();
   }
 
   /** Returns only after the native transaction, including its checkpoint, commits. */
   PendingCiphertext encrypt(UUID operation, String conversation,
-      SignalProtocolAddress remote, byte[] plaintext) {
+      VeilSignalAddress remoteAddress, byte[] plaintext) {
+    Objects.requireNonNull(operation);
+    Objects.requireNonNull(conversation);
+    SignalProtocolAddress remote = Objects.requireNonNull(remoteAddress).sdk();
+    VeilContextEncoding.validate(conversation);
     Objects.requireNonNull(plaintext);
     if (plaintext.length == 0 || plaintext.length > MAX_PLAINTEXT) {
       throw new IllegalArgumentException("VEIL_MESSAGE_SIZE_UNSUPPORTED");
@@ -72,6 +75,10 @@ final class VeilSignalOutbox {
         local.equals(remote) || plaintext.length == 0 || plaintext.length > MAX_PLAINTEXT) {
       throw new IllegalArgumentException("VEIL_SEND_CONTEXT_UNSUPPORTED");
     }
+    VeilContextEncoding.validate(conversation);
+    VeilContextEncoding.validate(operation.toString());
+    VeilContextEncoding.validateAddress(local);
+    VeilContextEncoding.validateAddress(remote);
     requireLocalAddress(tx, local);
     // Independently enrolled own-public and remote-public pins are mandatory even
     // for retries. Do not release a saved ciphertext after a peer identity change.
@@ -113,10 +120,11 @@ final class VeilSignalOutbox {
     }
   }
 
-  private static void requireLocalAddress(VeilRecordTransaction tx, SignalProtocolAddress local) {
+  static void requireLocalAddress(VeilRecordTransaction tx, SignalProtocolAddress local) {
     tx.checkLive();
+    VeilContextEncoding.validateAddress(local);
+    byte[] requested = VeilContextEncoding.encode(local.toString());
     byte[] admitted = tx.read(VeilRecordKind.SOCIAL_IDENTITY, "signal-address");
-    byte[] requested = local.toString().getBytes(StandardCharsets.UTF_8);
     try {
       if (admitted == null || !MessageDigest.isEqual(admitted, requested)) {
         throw new IllegalStateException("VEIL_LOCAL_ADDRESS_NOT_ADMITTED");
@@ -135,7 +143,7 @@ final class VeilSignalOutbox {
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     for (String field : new String[] { "ynx.social.veil.single-device.outbox.v1",
         local.toString(), remote.toString(), operation.toString(), conversation }) {
-      byte[] bytes = field.getBytes(StandardCharsets.UTF_8);
+      byte[] bytes = VeilContextEncoding.encode(field);
       digest.update(ByteBuffer.allocate(4).putInt(bytes.length).array());
       digest.update(bytes);
     }

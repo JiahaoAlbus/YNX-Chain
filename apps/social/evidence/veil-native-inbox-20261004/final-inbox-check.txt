@@ -1,0 +1,11 @@
+PASS receipt write failure rolls back SDK/prekey/message changes in atomic memory
+PASS real SDK prekey receive recovers after injected receipt failure
+PASS successful receive consumes actual one-time curve and KEM slots
+PASS same receive retry reads retained message without re-decrypt or session changes
+PASS same receive operation cannot move ciphertext to another conversation
+PASS same receive operation rejects altered ciphertext before SDK state changes
+PASS orphan receipt requires recovery rather than replay decryption or auto-reset
+PASS missing peer pin prevents saved plaintext release
+PASS legacy sender-key type is refused without fallback or mutation
+PASS closed native message refuses access and caller ciphertext stays unchanged
+PASS 10 actual SDK inbox checks; synthetic admission/atomic-memory port; no Android, node, or fresh SPQR proof

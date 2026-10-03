@@ -1,0 +1,20 @@
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS invalid send conversation rejected before protected reads
+PASS invalid receive conversation rejected before protected reads
+PASS legitimate Unicode and emoji retain exact UTF8 bytes
+PASS different legitimate strings remain distinct without normalization
+PASS legitimate Unicode dotted SDK address remains supported
+PASS actual SDK constructor already loses malformed raw name before typed consumer
+PASS production raw-name wrapper rejects before SDK construction or protected read
+PASS production pre-SDK wrapper preserves valid Unicode dotted name
+PASS valid Unicode context reaches normal missing-admission boundary
+PASS strict UTF8 send/receive/address/fingerprint probes; public-only keyless controlled port
