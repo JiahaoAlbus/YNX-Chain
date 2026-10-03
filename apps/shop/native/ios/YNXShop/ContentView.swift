@@ -4,15 +4,17 @@ let supportedLanguages=["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","
 
 struct ContentView:View {
     @EnvironmentObject var model:ShopModel
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var selectedTab=0
     @AppStorage("shop-text-size") private var textSize="standard"
     @ScaledMetric(relativeTo:.body) private var bodySize:CGFloat=16
     private var textScale:CGFloat{textSize=="compact" ? 0.925 : textSize=="larger" ? 1.15 : 1}
-    var body:some View {TabView{
-        NavigationStack{CatalogView()}.tabItem{Label("nav_catalog",systemImage:"sparkle.magnifyingglass")}
-        NavigationStack{CartView()}.tabItem{Label("nav_cart",systemImage:"cart")}.badge(model.cart.count)
-        NavigationStack{OrdersView()}.tabItem{Label("nav_orders",systemImage:"shippingbox")}
-        NavigationStack{AccountView()}.tabItem{Label("nav_account",systemImage:"person.crop.circle")}
-    }.font(.system(size:bodySize*textScale)).tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){VStack(spacing:0){
+    var body:some View {TabView(selection:$selectedTab){
+        NavigationStack{CatalogView()}.tabItem{Label("nav_catalog",systemImage:"sparkle.magnifyingglass")}.tag(0)
+        NavigationStack{CartView()}.tabItem{Label("nav_cart",systemImage:"cart")}.tag(1).badge(model.cart.count)
+        NavigationStack{OrdersView()}.tabItem{Label("nav_orders",systemImage:"shippingbox")}.tag(2)
+        NavigationStack{AccountView()}.tabItem{Label("nav_account",systemImage:"person.crop.circle")}.tag(3)
+    }.onChange(of:selectedTab){model.cancelInvoicePresentation()}.onChange(of:scenePhase){if scenePhase != .active{model.cancelInvoicePresentation()}}.font(.system(size:bodySize*textScale)).tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){VStack(spacing:0){
         HStack(spacing:10){Image("YNXLogo").resizable().scaledToFit().frame(width:45.6,height:24).accessibilityLabel("YNX");Text("app_name").font(.system(size:bodySize*textScale,weight:.semibold)).fixedSize(horizontal:false,vertical:true);Spacer(minLength:8);Menu{Link("seller_console",destination:URL(string:"https://shop.ynxweb4.com/seller/")!);Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}label:{Label("commerce_services",systemImage:"square.grid.2x2").labelStyle(.iconOnly).frame(minWidth:44,minHeight:44)}.accessibilityLabel("commerce_services")}.padding(.horizontal,16).padding(.vertical,8).background(.regularMaterial)
         if !model.state.isEmpty{Text(LocalizedStringKey(model.state)).font(.caption).frame(maxWidth:.infinity).padding(6).background(.thinMaterial).accessibilityLabel("accessibility_status")}
     }}}

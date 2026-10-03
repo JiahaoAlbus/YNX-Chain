@@ -1,0 +1,11 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/commerce [github.com/JiahaoAlbus/YNX-Chain/internal/commerce.test]
+internal/commerce/business_invoice_recovery_test.go:17:23: cannot use 601 (untyped int constant) as byte value in argument to actor (overflows)
+internal/commerce/business_invoice_recovery_test.go:18:23: cannot use 602 (untyped int constant) as byte value in argument to actor (overflows)
+internal/commerce/business_invoice_recovery_test.go:36:19: s.s.Audit undefined (type Snapshot has no field or method Audit)
+internal/commerce/business_invoice_recovery_test.go:37:18: o.Events undefined (type Order has no field or method Events)
+internal/commerce/business_invoice_recovery_test.go:43:45: s.s.Audit undefined (type Snapshot has no field or method Audit)
+internal/commerce/business_invoice_recovery_test.go:43:85: s.s.Orders[o.ID].Events undefined (type Order has no field or method Events)
+internal/commerce/business_invoice_recovery_test.go:77:23: cannot use 603 (untyped int constant) as byte value in argument to actor (overflows)
+internal/commerce/business_invoice_recovery_test.go:78:23: cannot use 604 (untyped int constant) as byte value in argument to actor (overflows)
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce [build failed]
+FAIL

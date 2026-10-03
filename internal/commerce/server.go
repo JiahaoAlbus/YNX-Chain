@@ -510,6 +510,13 @@ func (s *Server) payHandoff(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
+	if original, recoveryErr := boundInvoiceHandoff(o); recoveryErr == nil {
+		write(w, 201, invoiceEffectResponse(o, original))
+		return
+	} else if !errors.Is(recoveryErr, errInvoiceNotBound) {
+		fail(w, status(recoveryErr), recoveryErr)
+		return
+	}
 	handoff, err := s.cfg.Pay.CreateInvoice(r.Context(), o, in.IdempotencyKey)
 	if err != nil {
 		fail(w, status(err), err)

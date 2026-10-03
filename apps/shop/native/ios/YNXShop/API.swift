@@ -54,6 +54,9 @@ struct Order: Codable, Identifiable {
     let refundStatus: String?
     let trustStatus: String?
     let payDeepLink: String?
+    let buyer: String?
+    let storeID: String?
+    let currency: String?
     var id: String { orderID }
 
     enum CodingKeys: String, CodingKey {
@@ -63,6 +66,9 @@ struct Order: Codable, Identifiable {
         case refundStatus = "RefundStatus"
         case trustStatus = "TrustStatus"
         case payDeepLink = "PayDeepLink"
+        case buyer = "Buyer"
+        case storeID = "StoreID"
+        case currency = "Currency"
     }
 }
 struct CatalogResponse:Codable { let products:[Product] }

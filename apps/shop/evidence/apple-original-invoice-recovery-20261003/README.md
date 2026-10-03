@@ -1,0 +1,3 @@
+Apple and owned Commerce backend now recover original invoice handoffs without creating another invoice for an already bound order.
+
+36 actual journal/queue boundary checks, 22 current API/session checks, actual Apple core compile, Swift parse/locales, full Commerce Go regression and targeted race checks passed. Current full SwiftUI typecheck failure and initial Go fixture compile failure remain in raw logs. These are source/controlled QA results, not canonical Native SDK, real Wallet, Keychain, installed application or public business acceptance. Original user/legacy records and external unknown effect receipts remain protected. No internal/pay, shared SDK/Auth/registry/Host or formal release writes.

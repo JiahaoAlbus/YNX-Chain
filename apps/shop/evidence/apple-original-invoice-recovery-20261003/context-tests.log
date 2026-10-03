@@ -1,0 +1,23 @@
+PASS bare token cannot create active session
+PASS actual typed account and expiry context
+PASS expired context rejected
+PASS unbound legacy pending cannot be silently adopted
+PASS signed-out original callback remains cancelled after restart
+PASS fresh explicit pending remains distinct from cancelled original
+PASS restart retains exact original wire request and key
+PASS changed request cannot replace unresolved original
+PASS new account cannot replay original account request
+PASS confirmation removes only exact original target
+PASS storage failure preserves original evidence
+PASS malformed records are retained and never silently emptied
+PASS public catalog sends no bearer
+PASS private request uses only validated typed context
+PASS late response after account change rejected
+PASS late response after logout rejected
+PASS authoritative 401 remains signout signal
+PASS missing account context prevents private dispatch
+PASS route boundary ../orders
+PASS route boundary https://foreign.invalid/api/orders
+PASS route boundary /orders
+PASS redirect cannot forward credentials or private body
+22 boundary checks PASS; controlled compatibility transport, not canonical Native approval or installed app acceptance

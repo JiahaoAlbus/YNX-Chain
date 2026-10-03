@@ -1,0 +1,85 @@
+{
+  "schema": "ynx-commerce-apple-and-server-original-invoice-recovery/v1",
+  "baseCommit": "aeb643a7a32f6ebddda790e29e8803c14ee09073",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "changes": [
+    "Apple invoice preparation moved out of batch/offline replay into account/order/amount/currency-bound opaque protected journal. Persist original key before dispatch; malformed evidence, changed order and contradictory inherited key refuse replacement.",
+    "Explicit original-order click can reuse exact historical account-bound offline handoff key. Historical envelope stays intact until exact receipt plus OS opener success. Legacy unbound data is not adopted. No automatic Wallet invocation or payment authority.",
+    "Review URL requires exact original Buyer/StoreID/ID/amount/currency, original invoice ID and literal ynxpay invoice URI without query/fragment/authority additions. OS opener failure preserves pending record. Account/logout/page/background presentation cancellation fences late opening; privacy deletion preserves unresolved original handoffs.",
+    "V2 backend original bound invoice read runs under existing nonce transaction, current actor resolution/fences and original buyer permission. Return stored invoice/intent/merchant/payout without Pay POST; original unbound order leaves nonce untouched for existing durable external admission. Compatibility handler also returns existing original invoice without additional Pay creation. Closed/incomplete/unsafe invoices refused."
+  ],
+  "verification": {
+    "appleProductionCore": "PASS actual Security/API/ShopModel/WalletAuth emit-module with MainActor/AppKit source",
+    "appleInvoiceBoundaries": {
+      "status": "PASS",
+      "checks": 36,
+      "scope": "Actual journal/queue/Order source, memory storage; no real Keychain writes or OS Wallet invocation"
+    },
+    "applePriorContextBoundaries": {
+      "status": "PASS",
+      "checks": 22,
+      "scope": "Current actual Security/API source and controlled URLProtocol; no canonical Native signature or public actor authority"
+    },
+    "allSwiftParse": "PASS",
+    "nativeStatic12Locales": "PASS",
+    "goCommerceFull": "PASS GOPROXY=off go test ./internal/commerce -count=1",
+    "goRecoveryRace": "PASS selected original-invoice recovery, original Pay per-dispatch fence and received/restart recovery",
+    "sourceDiffCheck": "PASS",
+    "fullSwiftUITypecheck": {
+      "status": "FAIL",
+      "diagnostics": "Current full source missing SwiftUIMacros.StateMacro plugin with binding/ForEach diagnostics. Raw failure retained; full UI/build/install not verified."
+    },
+    "initialRepairs": [
+      "Core compile missing second try in throwing guard fixed; diagnostic was retained in tool transcript.",
+      "Initial Go test used byte-overflow fixture actor IDs and wrong Audits/Timeline field names; raw compile failure preserved, fixture corrected."
+    ]
+  },
+  "realGates": {
+    "canonicalNativeSDK": false,
+    "installedMacOS": false,
+    "installedIOS": false,
+    "realWalletApproval": false,
+    "realKeychain": false,
+    "publicNativeAPI": false,
+    "AIntegration": false,
+    "MerchantCanonicalMembership": false
+  },
+  "sourcePins": [
+    {
+      "path": "apps/shop/native/ios/YNXShop/API.swift",
+      "sha256": "de9ba327cc1d129fbeb257fbe8640ab6329180a71bd6a178eb06189819104af7"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/ContentView.swift",
+      "sha256": "0b05b4b010ccea309de794a6bc56e148427410f0c79e9b5d3d4ef324cf3290c9"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/Security.swift",
+      "sha256": "c1c7bb6f7be78b340627003e1c7241de90e8b75d01693fe758a972411eb9e2f9"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/ShopModel.swift",
+      "sha256": "ec7910ba7f7ef5da126247bd6ecb48f12b7c45096f766d4a09fe6c3cfd39bc30"
+    },
+    {
+      "path": "internal/commerce/business_effect_plans.go",
+      "sha256": "8d6f86c127ea3573b9fd8fa81053272de985c391d82b107896a524be3399cb51"
+    },
+    {
+      "path": "internal/commerce/server.go",
+      "sha256": "b77a60bd212d2ad6f24c123f452e5feb05f6dbbf26eab2c21f0edacbabbe1ec1"
+    },
+    {
+      "path": "internal/commerce/business_invoice_recovery.go",
+      "sha256": "ba4a8ed370a67abbfcd70738e916dee0badf62c6cf5c64b4f4c9cbf6455ce948"
+    },
+    {
+      "path": "internal/commerce/business_invoice_recovery_test.go",
+      "sha256": "96efed9e21241233f79b9de5da1adb062e4519913fb2864a9b5d84853b74490e"
+    }
+  ],
+  "contextTestSource": {
+    "path": "apps/shop/evidence/apple-account-context-20261003/BoundaryTests.swift",
+    "sha256": "0eac9aada8fae3dfa82c2e2632fea24443664f158617732a3493c2314bd55461"
+  }
+}

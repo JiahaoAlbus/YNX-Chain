@@ -1,0 +1,37 @@
+PASS restart keeps original opaque request key
+PASS journal contains only opaque target key and digest
+PASS another actor cannot prepare original order
+PASS changed amount cannot rotate unknown original
+PASS refused changes preserve original evidence
+PASS actors retain independent original keys
+PASS mismatched receipt/link 0 refused
+PASS mismatched receipt 0 preserves original
+PASS mismatched receipt/link 1 refused
+PASS mismatched receipt 1 preserves original
+PASS mismatched receipt/link 2 refused
+PASS mismatched receipt 2 preserves original
+PASS mismatched receipt/link 3 refused
+PASS mismatched receipt 3 preserves original
+PASS mismatched receipt/link 4 refused
+PASS mismatched receipt 4 preserves original
+PASS mismatched receipt/link 5 refused
+PASS mismatched receipt 5 preserves original
+PASS mismatched receipt/link 6 refused
+PASS mismatched receipt 6 preserves original
+PASS exact original invoice receipt accepted for explicit review
+PASS review alone never clears original; failed OS open remains recoverable
+PASS failed clear remains unresolved
+PASS failed clear preserves opaque evidence
+PASS confirmation removes only original account intent
+PASS malformed journal refuses adoption
+PASS malformed journal evidence retained
+PASS historical handoff retained but excluded from batch retry
+PASS explicit original order retrieves exact inherited account-bound envelope
+PASS new handoff cannot enter offline queue
+PASS another actor cannot retrieve inherited key
+PASS explicit original order preserves inherited wire request key
+PASS contradictory inherited key cannot replace journal
+PASS handoff journal preparation leaves inherited recovery intact
+PASS exact explicit receipt cleanup removes both original recovery records
+PASS unbound historical order cannot prepare invoice
+36 boundary checks PASS; memory storage and original source, no Wallet or canonical Native authority

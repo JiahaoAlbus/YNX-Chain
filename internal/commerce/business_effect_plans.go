@@ -219,6 +219,21 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 	var err error
 	switch pattern {
 	case "POST /api/orders/{id}/pay-handoff":
+		// Read the original bound invoice before preparing an external effect.
+		// An unbound order leaves the nonce untouched for durable admission.
+		response, recoveryErr := s.recoverBusinessInvoice(r.Context(), verified, r.PathValue("id"), body)
+		if recoveryErr == nil {
+			if err := verified.current(r.Context()); err != nil {
+				failBusiness(w, err)
+				return
+			}
+			write(w, 201, response)
+			return
+		}
+		if !errors.Is(recoveryErr, errInvoiceNotBound) {
+			failBusiness(w, recoveryErr)
+			return
+		}
 		plan, err = s.payInvoiceEffect(r.PathValue("id"), body)
 	case "POST /api/orders/{id}/confirm-payment":
 		plan, err = s.settlementEffect(r.PathValue("id"), body, verified.proof)
