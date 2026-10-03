@@ -1766,6 +1766,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     remove:key=>SecureStore.deleteItemAsync(key),
   },async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[]);
   const momentSending=useRef(false),momentMounted=useRef(true),momentCancellation=useRef<AbortController|null>(null);
+  const momentNewPublication=useRef(false);
   const closeMomentComposer=()=>{momentCancellation.current?.abort();setCompose(false)};
   useEffect(()=>{
     momentMounted.current=true;
@@ -1851,18 +1852,19 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     }
   };
   const restoreOriginalMoment=async()=>{
+    momentNewPublication.current=false;
     const authority=api.authorizationGuard();
-    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media);setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
+    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}if(original.publishedRecordId){setCompose(false);await load();if(momentMounted.current&&authority())setError('The original publication already returned a record. It was not sent again.');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media);setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
   };
   const publish = () => {
     momentCancellation.current?.abort();
     const controller=new AbortController();momentCancellation.current=controller;
     const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&!controller.signal.aborted;
-    const account=session.session.account,snapshot={text,visibility,media:media.map(item=>({...item}))};
+    const account=session.session.account,snapshot={text,visibility,media:media.map(item=>({...item}))},newPublication=momentNewPublication.current;
     const sendOriginal=async()=>{
       if(!current()||momentSending.current)return;momentSending.current=true;
       try{
-        const confirmed=await publishOriginalNativeMoment(momentIntents,account,snapshot,current,payload=>api.publishMoment(payload),30000,controller.signal);
+        const confirmed=await publishOriginalNativeMoment(momentIntents,account,snapshot,current,payload=>api.publishMoment(payload),30000,controller.signal,newPublication);
         if(!confirmed)return;setCompose(false);setText('');setMedia([]);await load();
       }catch(caught){if(current())setError(message(caught))}finally{momentSending.current=false;if(momentCancellation.current===controller)momentCancellation.current=null}
     };
@@ -1981,7 +1983,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       action={
         <Pressable
           accessibilityLabel="Create moment"
-          onPress={() => setCompose(true)}
+          onPress={() => {momentNewPublication.current=true;setCompose(true)}}
           style={styles.iconButton}
         >
           <Plus color={BLUE} size={20} />

@@ -6,7 +6,7 @@ test('unknown publication response is checked, not asserted into success',()=>{
  for(const value of [null,{},true,{record:{}},{record:{id:''}},{record:{id:123}}])assert.throws(()=>publishedMomentRecordId(value),/not confirmed/);
  assert.equal(publishedMomentRecordId({record:{id:'actual-record'}}),'actual-record');
 });
-function fixture(){const rows=new Map<string,string>();let nonces=0;const storage={read:async(key:string)=>rows.get(key)??null,write:async(key:string,value:string)=>{rows.set(key,value)},remove:async(key:string)=>{rows.delete(key)}};return {rows,storage,queue:new NativeMomentIntents(storage,async()=>{nonces++;return 'a'.repeat(32)}),nonces:()=>nonces}}
+function fixture(){const rows=new Map<string,string>();let nonces=0;const storage={read:async(key:string)=>rows.get(key)??null,write:async(key:string,value:string)=>{rows.set(key,value)},remove:async(key:string)=>{rows.delete(key)}};return {rows,storage,queue:new NativeMomentIntents(storage,async()=>{nonces++;return nonces.toString(16).padStart(32,'0')}),nonces:()=>nonces}}
 test('original publication survives a new controller and retains payload/key',async()=>{
  const f=fixture(),first=await f.queue.prepare(account,draft,()=>true);const restarted=new NativeMomentIntents(f.storage,async()=>{throw new Error('no replacement nonce')});assert.deepEqual(await restarted.load(account),first);assert.deepEqual(await restarted.prepare(account,draft,()=>true),first);assert.equal(f.nonces(),1);
 });
@@ -22,8 +22,8 @@ test('malformed existing storage is retained, not reset',async()=>{
 test('stale authority cannot create, acknowledge or remove original carrier',async()=>{
  const f=fixture();await assert.rejects(f.queue.prepare(account,draft,()=>false),/original account/);assert.equal(f.rows.size,0);const intent=await f.queue.prepare(account,draft,()=>true);assert.equal(await f.queue.acknowledge(intent,'actual-record',()=>false),false);assert.equal(f.rows.size,1);
 });
-test('only original current successful readback clears its pending carrier',async()=>{
- const f=fixture(),intent=await f.queue.prepare(account,draft,()=>true);await assert.rejects(f.queue.acknowledge(intent,'',()=>true),/not confirmed/);assert.equal(f.rows.size,1);assert.equal(await f.queue.acknowledge(intent,'actual-record',()=>true),true);assert.equal(f.rows.size,0);
+test('original successful readback preserves body and nonce with returned record',async()=>{
+ const f=fixture(),intent=await f.queue.prepare(account,draft,()=>true);await assert.rejects(f.queue.acknowledge(intent,'',()=>true),/not confirmed/);assert.equal(f.rows.size,1);assert.equal(await f.queue.acknowledge(intent,'actual-record',()=>true),true);assert.equal(f.rows.size,1);assert.deepEqual(await f.queue.load(account),{...intent,publishedRecordId:'actual-record'});
 });
 test('account mismatch and unrecognized schema cannot be adopted',async()=>{
  const f=fixture(),intent=await f.queue.prepare(account,draft,()=>true);assert.throws(()=>checkedNativeMomentIntent(JSON.stringify(intent),other),/recovery/);assert.throws(()=>checkedNativeMomentIntent(JSON.stringify({...intent,grant:'fake'}),account),/recovery/);
@@ -47,7 +47,7 @@ test('account changes while server is replying preserve carrier and discard UI s
 test('current server receipt completes exactly original request',async()=>{
  const f=fixture();let sends=0;
  assert.equal(await publishOriginalNativeMoment(f.queue,account,draft,()=>true,async()=>{sends++;return {record:{id:'actual-record'}}}),true);
- assert.equal(sends,1);assert.equal(f.rows.size,0);
+ assert.equal(sends,1);assert.equal(f.rows.size,1);assert.equal((await f.queue.load(account))?.publishedRecordId,'actual-record');
 });
 test('closing the composer bounds local wait and late success cannot clear original',async()=>{
  const f=fixture(),close=new AbortController();let finish!:(value:unknown)=>void,started!:()=>void;
@@ -66,4 +66,30 @@ test('already closed review sends nothing and creates no carrier',async()=>{
  const f=fixture(),close=new AbortController();close.abort();let sends=0;
  assert.equal(await publishOriginalNativeMoment(f.queue,account,draft,()=>true,async()=>{sends++;return {}},1000,close.signal),false);
  assert.equal(sends,0);assert.equal(f.rows.size,0);
+});
+test('late native storage completion after authority change cannot erase nonce',async()=>{
+ const f=fixture(),intent=await f.queue.prepare(account,draft,()=>true);let current=true,release!:()=>void,started!:()=>void;
+ const ready=new Promise<void>(resolve=>{started=resolve}),blocked=new Promise<void>(resolve=>{release=resolve}),write=f.storage.write;
+ f.storage.write=async(key,value)=>{started();await blocked;await write(key,value)};
+ const pending=f.queue.acknowledge(intent,'actual-returned-record',()=>current);await ready;current=false;release();assert.equal(await pending,false);
+ const restored=await new NativeMomentIntents(f.storage,async()=>{throw new Error('must not create replacement nonce')}).prepare(account,draft,()=>true);
+ assert.equal(restored.idempotencyKey,intent.idempotencyKey);assert.equal(restored.publishedRecordId,'actual-returned-record');
+});
+test('same original recorded publication never sends a replacement request',async()=>{
+ const f=fixture();let sends=0;const send=async()=>{sends++;return {record:{id:'original-server-record'}}};
+ assert.equal(await publishOriginalNativeMoment(f.queue,account,draft,()=>true,send),true);
+ assert.equal(await publishOriginalNativeMoment(f.queue,account,draft,()=>true,send),true);
+ assert.equal(sends,1);assert.equal(f.nonces(),1);
+});
+test('different explicitly reviewed draft may follow a confirmed original, not an uncertain one',async()=>{
+ const f=fixture(),intent=await f.queue.prepare(account,draft,()=>true);await assert.rejects(f.queue.prepare(account,{...draft,text:'New'},()=>true),/original pending/);await f.queue.acknowledge(intent,'original-record',()=>true);
+ const next=await f.queue.prepare(account,{...draft,text:'New'},()=>true);assert.equal(next.text,'New');assert.equal(next.publishedRecordId,undefined);assert.notEqual(next.idempotencyKey,intent.idempotencyKey);assert.equal(f.nonces(),2);
+});
+test('explicit new publication can repeat confirmed text, but cannot replace uncertain intent',async()=>{
+ const f=fixture(),first=await f.queue.prepare(account,draft,()=>true);assert.deepEqual(await f.queue.prepare(account,draft,()=>true,true),first);
+ await f.queue.acknowledge(first,'first-record',()=>true);const second=await f.queue.prepare(account,draft,()=>true,true);assert.notEqual(second.idempotencyKey,first.idempotencyKey);assert.equal(second.text,first.text);assert.equal(second.publishedRecordId,undefined);
+});
+test('nonce collision cannot replace an already recorded original',async()=>{
+ const f=fixture(),first=await f.queue.prepare(account,draft,()=>true);await f.queue.acknowledge(first,'first-record',()=>true);
+ const collision=new NativeMomentIntents(f.storage,async()=>first.idempotencyKey.slice('native-moment-'.length));await assert.rejects(collision.prepare(account,draft,()=>true,true),/distinct publication/);assert.equal((await collision.load(account))?.idempotencyKey,first.idempotencyKey);
 });
