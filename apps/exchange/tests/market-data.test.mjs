@@ -195,3 +195,59 @@ test('micro-unit display does not round large order notional through floating po
   assert.equal(formatMicro(1), '0.000001'); assert.equal(formatMicro(2_000_000), '2.00');
   assert.throws(() => formatMicro(Number.MAX_SAFE_INTEGER + 1));
 });
+
+test('HTTP ambiguous or oversized market documents cannot become verified data', async t => {
+  const valid=JSON.stringify(snapshot());
+  for(const [name,body,headers] of [
+    ['duplicate-revision',valid.replace('"revision":1','"revision":900,"revision":1'),{}],
+    ['duplicate-price',valid.replace('"priceMicro":2000000','"priceMicro":9000000,"priceMicro":2000000'),{}],
+    ['escaped-duplicate',valid.replace('"revision":1','"revision":900,"revis\\u0069on":1'),{}],
+    ['oversized-body',valid+' '.repeat(8*1024*1024),{}],
+    ['oversized-declared-body',valid,{'content-length':String(8*1024*1024+1)}]
+  ]) await t.test(name,async()=>{
+    const h=harness(async()=>new Response(body,{headers:{'content-type':'application/json',...headers}}));
+    try { await h.feed.start(); assert.equal(h.received.length,0); assert.equal(h.sources.length,0); assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID'); }
+    finally { h.feed.stop(); }
+  });
+});
+
+test('ambiguous stream frame preserves prior verified snapshot and retires the stream',async()=>{
+  const h=harness(); await h.feed.start(); const old=h.sources[0];
+  old.events.reconciled({data:JSON.stringify(snapshot()).replace('"revision":1','"revision":900,"revision":1')});
+  assert.equal(h.received.length,1); assert.equal(h.feed.snapshot().revision,1);
+  assert.equal(old.closed,true); assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');
+  h.feed.stop();
+});
+
+test('valid additive audit fields and split UTF-8 remain compatible',async()=>{
+  const value=snapshot(); value.audit={note:'quotes " braces } comma , slash \\ α العربية',optional:null,rows:[{label:'source'}]};
+  const encoded=new TextEncoder().encode(JSON.stringify(value)+' \n\t');
+  const cut=encoded.findIndex(byte=>byte>127)+1;
+  const body=new ReadableStream({start(controller){controller.enqueue(encoded.slice(0,cut));controller.enqueue(encoded.slice(cut));controller.close();}});
+  const h=harness(async()=>new Response(body,{headers:{'content-type':'application/json'}}));
+  await h.feed.start(); assert.deepEqual(h.received,[value]); h.feed.stop();
+});
+
+test('nested duplicates, deep documents and malformed UTF-8 fail before snapshots',async()=>{
+  const valid=JSON.stringify(snapshot());
+  for(const body of [
+    valid.replace('"priceMicro":2000000','"priceMicro":9000000,"priceMicro":2000000'),
+    valid.slice(0,-1)+',"audit":'+'['.repeat(65)+'0'+']'.repeat(65)+'}',
+    new Uint8Array([0xff,0xfe]), valid+'{}', valid+'trailing'
+  ]) {
+    const h=harness(async()=>new Response(body,{headers:{'content-type':'application/json'}}));
+    await h.feed.start(); assert.equal(h.received.length,0); assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID'); h.feed.stop();
+  }
+});
+
+test('stalled body is cancelled and retired on deadline, offline and stop',async()=>{
+  for(const action of ['deadline','offline','stop']) {
+    let cancelled=0;
+    const stream=new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('{"schemaVersion":'));},cancel(){cancelled++;}});
+    const h=harness(async()=>new Response(stream,{headers:{'content-type':'application/json'}}));
+    const waiting=h.feed.start(); await new Promise(setImmediate);
+    if(action==='deadline')h.timer(10000);else h.feed[action]();
+    await waiting; assert.equal(cancelled,1,action); assert.equal(h.received.length,0); assert.equal(h.sources.length,0);
+    h.feed.stop(); assert.equal(h.timers.size,0);
+  }
+});

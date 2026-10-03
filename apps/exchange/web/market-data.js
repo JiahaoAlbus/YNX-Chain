@@ -5,6 +5,84 @@ export const STREAM_PATH = '/api/v1/market-data/stream';
 const invalid = () => Object.assign(new Error('The venue returned invalid market data.'), {code: 'MARKET_DATA_INVALID'});
 const integer = (n, min = 0) => Number.isSafeInteger(n) && n >= min;
 const date = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+const MAX_MARKET_DOCUMENT_BYTES = 8 * 1024 * 1024;
+
+// Keep additive venue audit fields, but do not silently choose the last value
+// of a duplicated JSON key. Scan before materializing deeply nested documents.
+function parseMarketDocument(text) {
+  if (typeof text !== 'string' || text.length > MAX_MARKET_DOCUMENT_BYTES || new TextEncoder().encode(text).byteLength > MAX_MARKET_DOCUMENT_BYTES) throw invalid();
+  let cursor = 0;
+  const whitespace = () => { while (/[\t\n\r ]/.test(text[cursor] ?? '\0')) cursor++; };
+  const stringToken = () => {
+    const start = cursor++;
+    while (cursor < text.length) {
+      if (text[cursor] === '\\') { cursor += 2; continue; }
+      if (text[cursor++] === '"') return text.slice(start, cursor);
+    }
+    throw invalid();
+  };
+  const scan = depth => {
+    if (depth > 64) throw invalid();
+    whitespace();
+    if (text[cursor] === '"') { stringToken(); return; }
+    if (text[cursor] === '{' || text[cursor] === '[') {
+      const object = text[cursor++] === '{', close = object ? '}' : ']', keys = new Set();
+      whitespace();
+      if (text[cursor] === close) { cursor++; return; }
+      while (cursor < text.length) {
+        if (object) {
+          if (text[cursor] !== '"') throw invalid();
+          const key = JSON.parse(stringToken());
+          if (keys.has(key)) throw invalid();
+          keys.add(key); whitespace();
+          if (text[cursor++] !== ':') throw invalid();
+        }
+        scan(depth + 1); whitespace();
+        if (text[cursor] === close) { cursor++; return; }
+        if (text[cursor++] !== ',') throw invalid();
+        whitespace();
+      }
+      throw invalid();
+    }
+    const start = cursor;
+    while (cursor < text.length && !/[\t\n\r ,}\]]/.test(text[cursor])) cursor++;
+    if (cursor === start) throw invalid();
+  };
+  try {
+    scan(0); whitespace();
+    if (cursor !== text.length) throw invalid();
+    return JSON.parse(text);
+  } catch { throw invalid(); }
+}
+
+async function readMarketDocument(response, signal) {
+  const length = response.headers.get('content-length');
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_MARKET_DOCUMENT_BYTES)) throw invalid();
+  const reader = response.body?.getReader();
+  if (!reader) throw invalid();
+  const cancel = () => { void reader.cancel().catch(() => {}); };
+  signal.addEventListener('abort', cancel, {once:true});
+  let size = 0;
+  const decoder = new TextDecoder('utf-8', {fatal:true}), parts = [];
+  try {
+    if (signal.aborted) throw invalid();
+    while (true) {
+      const {done,value} = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_MARKET_DOCUMENT_BYTES) throw invalid();
+      parts.push(decoder.decode(value, {stream:true}));
+    }
+    parts.push(decoder.decode());
+    return parseMarketDocument(parts.join(''));
+  } catch (error) {
+    if (error?.code === 'MARKET_DATA_INVALID') throw error;
+    throw invalid();
+  } finally {
+    signal.removeEventListener('abort', cancel); cancel();
+    try { reader.releaseLock(); } catch {}
+  }
+}
 
 export const CANDLE_INTERVALS = Object.freeze([60_000, 300_000, 3_600_000]);
 
@@ -123,7 +201,7 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       stream = new EventSourceImpl(STREAM_PATH, {withCredentials: false});
       const receive = event => {
         if (token !== epoch || stopped) return;
-        try { apply(JSON.parse(event.data)); attempts = 0; report('live'); armWatchdog(token); }
+        try { apply(parseMarketDocument(event.data)); attempts = 0; report('live'); armWatchdog(token); }
         catch { reconnect('MARKET_DATA_INVALID'); }
       };
       stream.addEventListener('snapshot', receive);
@@ -131,7 +209,7 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
       stream.addEventListener('heartbeat', event => {
         if (token !== epoch || stopped) return;
         try {
-          const body = JSON.parse(event.data);
+          const body = parseMarketDocument(event.data);
           if (!integer(body.revision) || body.revision < snapshot.revision) throw invalid();
           // A heartbeat carries no depth/trades. A newer revision means the
           // full reconciliation was missed; never promote cached data to live.
@@ -167,7 +245,7 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
         const response = await fetchImpl(SNAPSHOT_PATH, {method: 'GET', credentials: 'omit', redirect: 'error', cache: 'no-store', headers: {Accept: 'application/json'}, signal: controller.signal});
         if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE'});
         if (!/^application\/json\b/i.test(response.headers.get('content-type') || '')) throw invalid();
-        return response.json();
+        return readMarketDocument(response, controller.signal);
       })(),aborted]);
       if (token !== epoch || stopped) return;
       apply(body); report('live'); subscribe(token);
