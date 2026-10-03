@@ -32,6 +32,9 @@ type productSessionBinding struct {
 	SessionID          string    `json:"sessionId"`
 	SealedBrowserGrant string    `json:"sealedBrowserGrant,omitempty"`
 	BrowserGrantDigest string    `json:"browserGrantDigest,omitempty"`
+	AuthorityDigest    string    `json:"authorityDigest,omitempty"`
+	ChatSigningKey     string    `json:"chatSigningKey,omitempty"`
+	ChatEncryptionKey  string    `json:"chatEncryptionKey,omitempty"`
 	ExpiresAt          time.Time `json:"expiresAt"`
 }
 type productDeviceRegistration struct {
@@ -60,12 +63,43 @@ func (s *Server) liveProductSession(r *http.Request, required []string) (product
 		return productsessionv2.Session{}, ErrUnauthorized
 	}
 	var hint struct {
-		Platform string `json:"platform"`
+		Platform      string  `json:"platform"`
+		ProductID     string  `json:"productId"`
+		ClientID      string  `json:"clientId"`
+		ApplicationID string  `json:"applicationId"`
+		Origin        string  `json:"origin"`
+		Callback      string  `json:"callback"`
+		BundleID      *string `json:"bundleId"`
+		PackageID     *string `json:"packageId"`
 	}
 	if json.Unmarshal(raw, &hint) != nil {
 		return productsessionv2.Session{}, ErrUnauthorized
 	}
-	authorizer := s.service.cfg.ProductSessions[hint.Platform]
+	authorizer := s.service.cfg.ProductSessionAuthority
+	platform := hint.Platform
+	if authorizer == nil {
+		// The original signed 19-field proof has no platform. Route only by
+		// the immutable public registration; the shared verifier is authority.
+		if hint.ApplicationID != "" {
+			platform = ""
+			if hint.ProductID != RequestingProduct || hint.ClientID != ProductClientID {
+				return productsessionv2.Session{}, ErrUnauthorized
+			}
+			if hint.ApplicationID == BundleID+".web" && hint.Origin == Origin && hint.Callback == Origin+"/wallet-auth/callback" && hint.BundleID == nil && hint.PackageID == nil {
+				platform = "web"
+			} else if hint.ApplicationID == BundleID && hint.Callback == Callback {
+				if hint.Origin == "app://android/"+BundleID && hint.PackageID != nil && *hint.PackageID == BundleID && hint.BundleID == nil {
+					platform = "android"
+				} else if hint.Origin == "app://ios/"+BundleID && hint.BundleID != nil && *hint.BundleID == BundleID && hint.PackageID == nil {
+					platform = "ios"
+				}
+			}
+			if platform == "" || (hint.Platform != "" && hint.Platform != platform) {
+				return productsessionv2.Session{}, ErrUnauthorized
+			}
+		}
+		authorizer = s.service.cfg.ProductSessions[platform]
+	}
 	if authorizer == nil {
 		return productsessionv2.Session{}, ErrUnauthorized
 	}
@@ -74,7 +108,7 @@ func (s *Server) liveProductSession(r *http.Request, required []string) (product
 	if err != nil {
 		return productsessionv2.Session{}, err
 	}
-	if session.Platform != hint.Platform || session.ProductID != RequestingProduct || session.ClientID != ProductClientID {
+	if (platform != "" && session.Platform != platform) || session.ProductID != RequestingProduct || session.ClientID != ProductClientID {
 		return productsessionv2.Session{}, ErrUnauthorized
 	}
 	return session, nil
@@ -135,6 +169,10 @@ func (s *Server) bindProductSession(w http.ResponseWriter, r *http.Request) {
 	if !decodeRequest(w, r, &in, 16*1024) {
 		return
 	}
+	if r.Context().Err() != nil {
+		writeBridgeError(w, ErrUnauthorized)
+		return
+	}
 	actor, err := s.service.bindProductDevice(session, in, sealed, digest)
 	if err != nil {
 		writeBridgeError(w, err)
@@ -166,11 +204,12 @@ func (s *Service) bindProductDevice(session productsessionv2.Session, in product
 
 	defer s.mu.Unlock()
 	if previous, exists := s.state.ProductBindings[key]; exists {
-		if previous.Account != session.Account || previous.Platform != session.Platform || previous.ProductDeviceID != session.DeviceID || previous.ProductDeviceKey != session.DeviceKey || previous.ChatDeviceID != in.DeviceID || previous.BrowserGrantDigest != grantDigest {
+		device := s.state.Devices[in.DeviceID]
+		if !bindingMatchesSession(previous, session) || previous.ChatDeviceID != in.DeviceID || previous.BrowserGrantDigest != grantDigest || device.Status != "active" || device.Account != session.Account || device.SigningPublicKey != in.SigningPublicKey || device.EncryptionPublicKey != in.EncryptionPublicKey || (previous.ChatSigningKey != "" && previous.ChatSigningKey != in.SigningPublicKey) || (previous.ChatEncryptionKey != "" && previous.ChatEncryptionKey != in.EncryptionPublicKey) {
 			return Session{}, ErrUnauthorized
 		}
 		actor, ok := s.state.Sessions["psv2:"+key]
-		if !ok || actor.RevokedAt != nil || !actor.ExpiresAt.After(now) {
+		if !ok || actor.ID != previous.SessionID || actor.Account != session.Account || actor.DeviceID != in.DeviceID || actor.RevokedAt != nil || !actor.ExpiresAt.After(now) {
 			return Session{}, ErrUnauthorized
 		}
 		return actor, nil
@@ -222,7 +261,7 @@ func (s *Service) bindProductDevice(session productsessionv2.Session, in product
 			delete(s.state.ProductBindings, key)
 		}
 	}
-	s.state.ProductBindings[key] = productSessionBinding{session.Account, session.Platform, session.DeviceID, session.DeviceKey, in.DeviceID, actor.ID, sealed, grantDigest, expires}
+	s.state.ProductBindings[key] = productSessionBinding{Account: session.Account, Platform: session.Platform, ProductDeviceID: session.DeviceID, ProductDeviceKey: session.DeviceKey, ChatDeviceID: in.DeviceID, SessionID: actor.ID, SealedBrowserGrant: sealed, BrowserGrantDigest: grantDigest, AuthorityDigest: objectDigest(session), ChatSigningKey: in.SigningPublicKey, ChatEncryptionKey: in.EncryptionPublicKey, ExpiresAt: expires}
 	s.state.Sessions["psv2:"+key] = actor
 	device := s.state.Devices[in.DeviceID]
 	if device.ID == "" {
@@ -246,13 +285,26 @@ func (s *Server) authorizeProductActor(r *http.Request, scope string) (Session, 
 	actor, active := s.service.state.Sessions["psv2:"+key]
 	device := s.service.state.Devices[binding.ChatDeviceID]
 	s.service.mu.Unlock()
-	if !exists || !active || binding.Account != session.Account || binding.Platform != session.Platform || binding.ProductDeviceID != session.DeviceID || binding.ProductDeviceKey != session.DeviceKey || actor.Account != session.Account || actor.RevokedAt != nil || !actor.ExpiresAt.After(s.service.cfg.Now()) || !contains(actor.Scopes, scope) || device.Status != "active" || device.Account != actor.Account {
+	if !exists || !active || !bindingMatchesSession(binding, session) || actor.ID != binding.SessionID || actor.DeviceID != binding.ChatDeviceID || actor.Account != session.Account || actor.RevokedAt != nil || !actor.ExpiresAt.After(s.service.cfg.Now()) || !contains(actor.Scopes, scope) || device.Status != "active" || device.Account != actor.Account || (binding.ChatSigningKey != "" && binding.ChatSigningKey != device.SigningPublicKey) || (binding.ChatEncryptionKey != "" && binding.ChatEncryptionKey != device.EncryptionPublicKey) {
 		return Session{}, ErrUnauthorized
 	}
 	if _, _, err := s.browserProductBinding(r, session, &binding); err != nil {
 		return Session{}, err
 	}
+	// Browser identity verification awaits external authority. Never return the
+	// old snapshot after a local revoke/device replacement during that await.
+	s.service.mu.Lock()
+	defer s.service.mu.Unlock()
+	currentBinding, exists := s.service.state.ProductBindings[key]
+	currentActor, active := s.service.state.Sessions["psv2:"+key]
+	currentDevice := s.service.state.Devices[binding.ChatDeviceID]
+	if r.Context().Err() != nil || !exists || !active || objectDigest(currentBinding) != objectDigest(binding) || objectDigest(currentActor) != objectDigest(actor) || objectDigest(currentDevice) != objectDigest(device) || !actor.ExpiresAt.After(s.service.cfg.Now()) {
+		return Session{}, ErrUnauthorized
+	}
 	return actor, nil
+}
+func bindingMatchesSession(binding productSessionBinding, session productsessionv2.Session) bool {
+	return binding.Account == session.Account && binding.Platform == session.Platform && binding.ProductDeviceID == session.DeviceID && binding.ProductDeviceKey == session.DeviceKey && (binding.AuthorityDigest == "" || binding.AuthorityDigest == objectDigest(session))
 }
 func writeBridgeError(w http.ResponseWriter, err error) {
 	var authority *productsessionv2.Error
