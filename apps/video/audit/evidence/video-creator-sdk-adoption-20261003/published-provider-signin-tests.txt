@@ -1,0 +1,156 @@
+✔ Video dispatches exact V2 URL and accepts only SDK-verified product return (0.645292ms)
+✔ Video cancelled preparation never opens approval; late approval cannot consume callback (1.302375ms)
+✔ Video rejects malformed return and allows explicit retry after rejection (0.162417ms)
+✔ Creator dispatches exact V2 URL and accepts only SDK-verified product return (0.109291ms)
+✔ Creator cancelled preparation never opens approval; late approval cannot consume callback (0.363417ms)
+✔ Creator rejects malformed return and allows explicit retry after rejection (0.090916ms)
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (0.726292ms)
+✖ Video choose-another and account-change discard a late approval without private activation (0.11325ms)
+✔ Video cancellation during SDK completion revokes the persisted late session before flight release (1.47125ms)
+✔ Video failed cancellation keeps revocation pending, never reports a connected return (0.724042ms)
+✔ Creator cancellation during SDK completion revokes the persisted late session before flight release (0.224041ms)
+✔ Creator failed cancellation keeps revocation pending, never reports a connected return (0.13725ms)
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.335167ms)
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.262125ms)
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.202583ms)
+✖ Video without an injected extension still offers Web, phone and native choices (0.048584ms)
+✖ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (0.204ms)
+✖ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.074167ms)
+✖ Video unknown wallet failures do not expose internal exception text (0.0515ms)
+✖ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.077042ms)
+✖ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.084084ms)
+✖ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.076417ms)
+✖ Video focus before native callback completion stays waiting, not a network error (0.053417ms)
+✖ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (0.084708ms)
+✖ Video empty library Go to sign in opens chooser in one click and closes player overlays (0.069459ms)
+✔ Video top connected account entry retains account focus without opening a new sign-in (0.050959ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 11
+ℹ fail 15
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.531709
+
+✖ failing tests:
+
+test at apps/video/provider-signin.test.mjs:51:1
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (0.726292ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:53:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at apps/video/provider-signin.test.mjs:56:1
+✖ Video choose-another and account-change discard a late approval without private activation (0.11325ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:60:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:83:1
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.335167ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:86:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:88:1
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.262125ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:93:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:96:1
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.202583ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:98:103)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:101:1
+✖ Video without an injected extension still offers Web, phone and native choices (0.048584ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:102:183)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:105:1
+✖ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (0.204ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:108:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:117:1
+✖ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.074167ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:119:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:122:1
+✖ Video unknown wallet failures do not expose internal exception text (0.0515ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:123:128)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:126:1
+✖ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.077042ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:128:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:131:1
+✖ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.084084ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:132:391)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:136:1
+✖ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.076417ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:137:374)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:140:1
+✖ Video focus before native callback completion stays waiting, not a network error (0.053417ms)
+  ReferenceError: invalidateProductRequests is not defined
+      at Object.prepareVideoSignIn (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:67:2)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:141:269)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:144:1
+✖ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (0.084708ms)
+  ReferenceError: productState is not defined
+      at Element.focusSignIn [as onclick] (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:8:30)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:146:37)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:150:1
+✖ Video empty library Go to sign in opens chooser in one click and closes player overlays (0.069459ms)
+  ReferenceError: productState is not defined
+      at Element.focusSignIn [as onclick] (eval at videoUI (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:48:25), <anonymous>:8:30)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:151:154)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)

@@ -9,13 +9,15 @@ if(!packageDirectory||!outputDirectory||!esbuildModule)throw Error('Usage: expli
 const base=resolve(packageDirectory),output=resolve(outputDirectory),sha=data=>createHash('sha256').update(data).digest('hex');
 if(existsSync(output))throw Error('Candidate output must be new');
 const manifestBytes=readFileSync(join(base,'freeze-manifest.json'));
-if(sha(manifestBytes)!=='cb6a6262f1d0468e5f9192465c25d6d93480ca7ca7828895ad4f39b92ca6ef5a')throw Error('Wrong frozen complete16195 package');
+const packages={'cb6a6262f1d0468e5f9192465c25d6d93480ca7ca7828895ad4f39b92ca6ef5a':['16195c6663525b0965725a922f46f38cf7b0a004','13c7016a8bbb13cc61912633f9787ef9fc9b69d2'],'91212923c02e9ca213b628a1793e4d6b4cb435dd3f3eda6e817c0e598d6869b7':['5c5e8a234206e306b6044deb6e938c1763ac7005','4742a47562040898a503702f413fd4a87a3d38c0']};
+const pin=packages[sha(manifestBytes)];if(!pin)throw Error('Wrong frozen SDK package');
+const [sdkSourceCommit,sdkSourceTree]=pin;
 const manifest=JSON.parse(manifestBytes);
 for(const [name,pin] of Object.entries(manifest.files)){const data=readFileSync(join(base,name));if(data.length!==pin.bytes||sha(data)!==pin.sha256)throw Error('Frozen input changed: '+name)}
 const source=join(base,'source'),sdk=join(source,'packages/wallet-auth');
 const entry='export {createBrowserProductSessionClient} from "./src/product-session-browser.js";\nexport {ProductSessionGatewayFetchAdapter} from "./src/product-session-gateway-client.js";\nexport {encodeProductSessionWalletURL} from "./src/product-session-router.js";\nexport {WalletAuthError} from "./src/canonical.js";\n';
 const esbuild=createRequire(import.meta.url)(resolve(esbuildModule));
-const result=await esbuild.build({stdin:{contents:entry,sourcefile:'media-sdk-entry.js',resolveDir:sdk,loader:'js'},absWorkingDir:source,bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true,write:false,metafile:true,logLevel:'silent',banner:{js:'// YNX Wallet/Auth browser SDK: 16195c6663525b0965725a922f46f38cf7b0a004'}});
+const result=await esbuild.build({stdin:{contents:entry,sourcefile:'media-sdk-entry.js',resolveDir:sdk,loader:'js'},absWorkingDir:source,bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true,write:false,metafile:true,logLevel:'silent',banner:{js:'// YNX Wallet/Auth browser SDK: '+sdkSourceCommit}});
 const inputs=[];
 for(const path of Object.keys(result.metafile.inputs)){
  if(path===relative(source,join(sdk,'media-sdk-entry.js')).replaceAll('\\','/'))continue;
@@ -27,6 +29,6 @@ for(const path of Object.keys(result.metafile.inputs)){
 mkdirSync(output,{recursive:true});
 const bundle=result.outputFiles[0].contents;writeFileSync(join(output,'product-session-sdk.js'),bundle);
 writeFileSync(join(output,'package.json'),JSON.stringify({type:'module',private:true})+'\n');
-const metadata={schema:'ynx.media.frozen-browser-sdk-candidate.v1',sdkSourceCommit:'16195c6663525b0965725a922f46f38cf7b0a004',sdkSourceTree:'13c7016a8bbb13cc61912633f9787ef9fc9b69d2',frozenPackageManifestSHA256:sha(manifestBytes),entrySHA256:sha(entry),bundlerVersion:esbuild.version,bundlerModuleSHA256:sha(readFileSync(resolve(esbuildModule))),verifiedGraphInputs:inputs,output:{path:'product-session-sdk.js',bytes:bundle.length,sha256:sha(bundle)},securityLevel:'webcrypto-nonextractable',osProtected:false,hardwareBacked:false,actualWalletApprovalVerified:false,productionInstalled:false};
+const metadata={schema:'ynx.media.frozen-browser-sdk-candidate.v1',sdkSourceCommit,sdkSourceTree,frozenPackageManifestSHA256:sha(manifestBytes),entrySHA256:sha(entry),bundlerVersion:esbuild.version,bundlerModuleSHA256:sha(readFileSync(resolve(esbuildModule))),verifiedGraphInputs:inputs,output:{path:'product-session-sdk.js',bytes:bundle.length,sha256:sha(bundle)},securityLevel:'webcrypto-nonextractable',osProtected:false,hardwareBacked:false,actualWalletApprovalVerified:false,productionInstalled:false};
 writeFileSync(join(output,'candidate-source.json'),JSON.stringify(metadata,null,2)+'\n');
 console.log(JSON.stringify({inputs:inputs.length,bytes:bundle.length,sha256:sha(bundle),sdkSourceCommit:metadata.sdkSourceCommit,bundlerVersion:esbuild.version,productionInstalled:false}));

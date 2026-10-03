@@ -1,0 +1,31 @@
+{
+  "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "sdkPackageTree": "726f45aa1a66709cfd9711012c6166780a0399be",
+  "sourceArchive": {
+    "bytes": 1679360,
+    "sha256": "68a4d192c2a7d82d1ea3f69fe6fe6e7d9c670ce7e4ca29b06fea0341ca4e0e18"
+  },
+  "packageLock": {
+    "bytes": 1470,
+    "sha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606"
+  },
+  "authPublicSourceCommit": "8dad0bab8f6f711e6ca6037201eec5725f9a6a02",
+  "registrySubset": "creator-studio",
+  "bundlerVersion": "0.28.1",
+  "files": [
+    {
+      "path": "product-session-sdk.js",
+      "bytes": 119091,
+      "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
+    },
+    {
+      "path": "product-session-registry.json",
+      "bytes": 838,
+      "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
+    }
+  ],
+  "securityLevel": "webcrypto-nonextractable",
+  "osProtected": false,
+  "hardwareBacked": false,
+  "installedWalletApprovalVerified": false
+}

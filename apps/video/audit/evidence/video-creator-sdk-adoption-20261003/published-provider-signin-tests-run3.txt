@@ -1,0 +1,34 @@
+✔ Video dispatches exact V2 URL and accepts only SDK-verified product return (0.80975ms)
+✔ Video cancelled preparation never opens approval; late approval cannot consume callback (1.434792ms)
+✔ Video rejects malformed return and allows explicit retry after rejection (0.169208ms)
+✔ Creator dispatches exact V2 URL and accepts only SDK-verified product return (0.129333ms)
+✔ Creator cancelled preparation never opens approval; late approval cannot consume callback (0.406875ms)
+✔ Creator rejects malformed return and allows explicit retry after rejection (0.103834ms)
+✔ Video shipped chooser routes the chosen YNX button to approval and the original library (0.9655ms)
+✔ Video choose-another and account-change discard a late approval without private activation (0.773ms)
+✔ Video cancellation during SDK completion revokes the persisted late session before flight release (0.358667ms)
+✔ Video failed cancellation keeps revocation pending, never reports a connected return (0.681292ms)
+✔ Creator cancellation during SDK completion revokes the persisted late session before flight release (0.279416ms)
+✔ Creator failed cancellation keeps revocation pending, never reports a connected return (0.145375ms)
+✔ Video Web Wallet click opens transport synchronously before preparing private approval (0.537083ms)
+✔ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.460708ms)
+✔ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.444042ms)
+✔ Video without an injected extension still offers Web, phone and native choices (0.101542ms)
+✔ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (1.578875ms)
+✔ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.249375ms)
+✔ Video unknown wallet failures do not expose internal exception text (0.122083ms)
+✔ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.1735ms)
+✔ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.726292ms)
+✔ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.130875ms)
+✔ Video focus before native callback completion stays waiting, not a network error (0.074625ms)
+✔ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (0.097875ms)
+✔ Video empty library Go to sign in opens chooser in one click and closes player overlays (0.079625ms)
+✔ Video top connected account entry retains account focus without opening a new sign-in (0.036917ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 61.729209

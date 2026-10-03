@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {dispatchPreparedProductRequest as video} from './product-session.js';
 import {dispatchPreparedProductRequest as creator} from '../creator-studio/product-session.js';
+import {connectMediaWallet} from './session-events.js';
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
 for(const [name,dispatch] of [['Video',video],['Creator',creator]]){
  test(name+' dispatches exact V2 URL and accepts only SDK-verified product return',async()=>{
@@ -36,6 +37,7 @@ const videoSource=await readFile(new URL('./app.js',import.meta.url),'utf8');
 const entrySource=videoSource.slice(videoSource.indexOf('function focusSignIn()'),videoSource.indexOf('async function restoreVideoAccount()'));
 const entryBindings=videoSource.match(/\$\("#product-signin"\)\.onclick = focusSignIn;\n\$\("#product-connect"\)\.onclick = prepareVideoSignIn;/)[0];
 const controllerSource=videoSource.slice(videoSource.indexOf('let videoSignInIntent = 0;'),videoSource.indexOf('async function refreshLibraryView()'));
+const requestGenerationSource=videoSource.slice(videoSource.indexOf('let productRequestAbort = new AbortController();'),videoSource.indexOf('let productSignOutPending = false;'));
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 class Element {
  constructor(){this.children=[];this.listeners=new Map();this.hidden=false;this.disabled=false;this.open=false;}
@@ -44,8 +46,8 @@ class Element {
 async function videoUI(provider,finish,overrides={}){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  const calls=[];
- const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),...overrides};
- const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0,currentVideo=null,returnPlayerVideo=null;'+entrySource+controllerSource+entryBindings+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn,renderAccountRequired};')(...Object.values(dependencies));
+ const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},connectMediaWallet,discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),...overrides};
+ const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0,productState={status:"guest"},currentVideo=null,returnPlayerVideo=null;'+requestGenerationSource+entrySource+controllerSource+entryBindings+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn,renderAccountRequired};')(...Object.values(dependencies));
  return {...controller,$,calls};
 }
 test('Video shipped chooser routes the chosen YNX button to approval and the original library',async()=>{

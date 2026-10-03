@@ -63,7 +63,11 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                 out.write_bytes(data)
                 pins.append(dict(owner='Media', path=str(relative), bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     if fixture_package_receipt is not None and successor:
-        browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs']
+        browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs']
+        for product in ['video', 'creator-studio']:
+            for path in (owned / 'apps' / product).rglob('*'):
+                if path.is_file() and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
+                    browser_inputs.append(path)
         for path in sorted(browser_inputs):
             if path.is_file():
                 relative = path.relative_to(owned)
@@ -85,6 +89,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     if args.central_source_package:
         build_env['YNX_QA_CENTRAL_SOURCE'] = str(candidate / 'source')
         build_env['YNX_QA_MEDIA_MUSIC_EXTENDED'] = '1' if successor else '0'
+        if successor:
+            build_env['YNX_QA_MEDIA_SCREENSHOT_DIRECTORY'] = str(evidence)
     subprocess.run(['go', 'mod', 'edit', '-go=1.25.13', '-require=golang.org/x/sys@v0.47.0'], cwd=target, env=build_env, check=True)
     shared_sum = git('show', commit + ':go.sum')
     foundation_sums = b'\n'.join(line for line in shared_sum.splitlines() if line.startswith(b'golang.org/x/sys v0.47.0')) + b'\n'
@@ -103,14 +109,16 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
         results.append(dict(command=command, exitCode=result.returncode, log=name))
         if result.returncode:
             break
-    protected_browser_pass = any(event.get('Action') == 'pass' and event.get('Test') == 'TestMusicProtectedBrowserAndOriginalBusiness'
-                                 for line in (evidence / 'combined-go-race.jsonl').read_text().splitlines()
-                                 if line.startswith('{') for event in [json.loads(line)])
+    pass_events = [event for line in (evidence / 'combined-go-race.jsonl').read_text().splitlines()
+                   if line.startswith('{') for event in [json.loads(line)] if event.get('Action') == 'pass']
+    protected_browser_pass = any(event.get('Test') == 'TestMusicProtectedBrowserAndOriginalBusiness' for event in pass_events)
+    protected_video_creator_pass = any(event.get('Test') == 'TestVideoCreatorProtectedBrowserAndOriginalBusiness' for event in pass_events)
     receipt = dict(sharedSourceCommit=commit, sharedSourceTree=tree, inputPins=pins, results=results,
                    toolchain=toolchain, dependency=dependency, temporaryModulePins=staged_modules,
                    fixturePackage=fixture_package_receipt,
                    actualNodeAuthorityProtocol=fixture_package_receipt is not None and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
                    actualProtectedBrowserOriginalMusicBusiness=protected_browser_pass and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
+                   actualProtectedBrowserOriginalVideoCreatorBusiness=protected_video_creator_pass and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
                    actualSDKActionCrypto=all(r['exitCode'] == 0 for r in results) and len(results) == 2, actualWalletConsent=False, productionInstalled=False,
                    note='Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation.')
     (evidence / 'combined-source-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

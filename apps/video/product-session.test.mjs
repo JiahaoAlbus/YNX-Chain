@@ -11,7 +11,7 @@ const ok = body => ({ok: true, status: 200, json: async () => body});
 
 test('Video uses the frozen browser SDK with exact Video registration and honest browser storage', async () => {
   const source = JSON.parse(await readFile(new URL('./product-session-sdk-source.json', import.meta.url)));
-  assert.equal(source.sdkSourceCommit, '529471f3822d2bac43ea47a1ab8004fa2ae79885');
+  assert.equal(source.sdkSourceCommit, '5c5e8a234206e306b6044deb6e938c1763ac7005');
   assert.equal(source.securityLevel, 'webcrypto-nonextractable');
   assert.equal(source.osProtected, false);
   assert.equal(source.hardwareBacked, false);
@@ -19,6 +19,12 @@ test('Video uses the frozen browser SDK with exact Video registration and honest
     const bytes = await readFile(new URL(item.path, import.meta.url));
     assert.equal(bytes.length, item.bytes);
     assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
+  }
+  assert.equal(source.legacyRecovery.storageTouched, false);
+  for (const item of source.legacyRecovery.files) {
+    const bytes=await readFile(new URL(item.path,import.meta.url));
+    assert.equal(bytes.length,item.bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),item.sha256);
   }
   assert.equal(registry.products.length, 1);
   const product = registry.products[0];

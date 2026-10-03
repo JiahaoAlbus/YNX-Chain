@@ -207,42 +207,5 @@
   "osProtected": false,
   "hardwareBacked": false,
   "actualWalletApprovalVerified": false,
-  "productionInstalled": false,
-  "registrySubset": "creator-studio",
-  "registrySourceSHA256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5",
-  "files": [
-    {
-      "path": "product-session-sdk.js",
-      "bytes": 137281,
-      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
-    },
-    {
-      "path": "product-session-registry.json",
-      "bytes": 838,
-      "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
-    }
-  ],
-  "installedWalletApprovalVerified": false,
-  "legacyRecovery": {
-    "directory": "legacy-sdk529",
-    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
-    "files": [
-      {
-        "path": "legacy-sdk529/product-session-sdk.js",
-        "bytes": 119091,
-        "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
-      },
-      {
-        "path": "legacy-sdk529/product-session-registry.json",
-        "bytes": 838,
-        "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
-      },
-      {
-        "path": "legacy-sdk529/product-session-sdk-source.json",
-        "bytes": 1006,
-        "sha256": "0696f7013843875e229800bb40337c1d05a1bbc55c1699443fc2de6a75541950"
-      }
-    ],
-    "storageTouched": false
-  }
+  "productionInstalled": false
 }

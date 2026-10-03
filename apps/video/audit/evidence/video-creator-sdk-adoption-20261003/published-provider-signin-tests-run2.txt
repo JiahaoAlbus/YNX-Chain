@@ -1,0 +1,124 @@
+✔ Video dispatches exact V2 URL and accepts only SDK-verified product return (0.708375ms)
+✔ Video cancelled preparation never opens approval; late approval cannot consume callback (1.548916ms)
+✔ Video rejects malformed return and allows explicit retry after rejection (0.175083ms)
+✔ Creator dispatches exact V2 URL and accepts only SDK-verified product return (0.120458ms)
+✔ Creator cancelled preparation never opens approval; late approval cannot consume callback (0.506541ms)
+✔ Creator rejects malformed return and allows explicit retry after rejection (0.103833ms)
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (1.468042ms)
+✖ Video choose-another and account-change discard a late approval without private activation (0.86375ms)
+✔ Video cancellation during SDK completion revokes the persisted late session before flight release (0.936083ms)
+✔ Video failed cancellation keeps revocation pending, never reports a connected return (0.354625ms)
+✔ Creator cancellation during SDK completion revokes the persisted late session before flight release (0.205541ms)
+✔ Creator failed cancellation keeps revocation pending, never reports a connected return (0.193375ms)
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.54325ms)
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.506042ms)
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.496875ms)
+✔ Video without an injected extension still offers Web, phone and native choices (0.091708ms)
+✔ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (2.378208ms)
+✔ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.210917ms)
+✔ Video unknown wallet failures do not expose internal exception text (0.081459ms)
+✔ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.182ms)
+✔ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (0.989834ms)
+✔ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.1655ms)
+✔ Video focus before native callback completion stays waiting, not a network error (0.093459ms)
+✔ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (0.117292ms)
+✔ Video empty library Go to sign in opens chooser in one click and closes player overlays (0.071333ms)
+✔ Video top connected account entry retains account focus without opening a new sign-in (0.058167ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 21
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 73.279458
+
+✖ failing tests:
+
+test at apps/video/provider-signin.test.mjs:52:1
+✖ Video shipped chooser routes the chosen YNX button to approval and the original library (1.468042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   {
+  -     method: 'ynx_requestProductSessionV2',
+  -     params: [
+  -       'video-fixture'
+  -     ]
+  -   }
+  - ]
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:55:68)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ { method: 'ynx_requestProductSessionV2', params: [Array] } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at apps/video/provider-signin.test.mjs:57:1
+✖ Video choose-another and account-change discard a late approval without private activation (0.86375ms)
+  TypeError: listeners.get(...) is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:62:34)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at apps/video/provider-signin.test.mjs:84:1
+✖ Video Web Wallet click opens transport synchronously before preparing private approval (0.54325ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   'popup-open'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:87:106)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'popup-open' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at apps/video/provider-signin.test.mjs:89:1
+✖ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (0.506042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:94:106)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/video/provider-signin.test.mjs:97:1
+✖ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.496875ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /expired/. Input:
+  
+  'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/provider-signin.test.mjs:99:190)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.',
+    expected: /expired/,
+    operator: 'match',
+    diff: 'simple'
+  }

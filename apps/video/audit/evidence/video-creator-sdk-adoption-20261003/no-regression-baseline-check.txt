@@ -1,0 +1,95 @@
+{
+  "sources": [
+    {
+      "product": "video",
+      "frontendDeclaredSourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "frontendDeclaredSourceTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+      "inheritedAncestor": false,
+      "sampledActualPublicGitPins": [
+        {
+          "path": "product-session-sdk.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "product-session-registry.json",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "app.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "index.html",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        }
+      ]
+    },
+    {
+      "product": "creator-studio",
+      "frontendDeclaredSourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "frontendDeclaredSourceTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+      "inheritedAncestor": false,
+      "sampledActualPublicGitPins": [
+        {
+          "path": "product-session-sdk.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "product-session-registry.json",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "app.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "index.html",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        }
+      ]
+    }
+  ],
+  "unchangedNormalProductUI": [
+    {
+      "path": "apps/video/app.js",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/video/index.html",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/video/styles.css",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/app.js",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/index.html",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/styles.css",
+      "unchangedFromInheritedFreeze": true
+    }
+  ],
+  "sampledPublicSourcePinsMatch": true
+}

@@ -1,0 +1,102 @@
+{
+  "schema": "ynx.media.no-regression-baseline.v1",
+  "sources": [
+    {
+      "product": "video",
+      "frontendDeclaredSourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "frontendDeclaredSourceTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+      "inheritedAncestor": false,
+      "sampledActualPublicGitPins": [
+        {
+          "path": "product-session-sdk.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "product-session-registry.json",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "app.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "index.html",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        }
+      ]
+    },
+    {
+      "product": "creator-studio",
+      "frontendDeclaredSourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "frontendDeclaredSourceTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+      "inheritedAncestor": false,
+      "sampledActualPublicGitPins": [
+        {
+          "path": "product-session-sdk.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "product-session-registry.json",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "app.js",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        },
+        {
+          "path": "index.html",
+          "publicEqualsDeclaredHash": true,
+          "publicEqualsDeclaredBytes": true,
+          "publicEqualsExactGitSource": true
+        }
+      ]
+    }
+  ],
+  "unchangedNormalProductUI": [
+    {
+      "path": "apps/video/app.js",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/video/index.html",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/video/styles.css",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/app.js",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/index.html",
+      "unchangedFromInheritedFreeze": true
+    },
+    {
+      "path": "apps/creator-studio/styles.css",
+      "unchangedFromInheritedFreeze": true
+    }
+  ],
+  "publicBackendSourceCommit": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+  "publicBackendSourceTree": "56b5ccc5194c971e78ec8f6614ee691122bc2941",
+  "officialSDK529BytesPreserved": true,
+  "actualInstalledAppBaselineVerified": false,
+  "actualWalletApproval": false,
+  "note": "Do not infer public source from a version label alone. Keep sampled hash and Git mismatches explicit; preserve actual SDK529 bytes and inherited normal UI. Final Host/API/frontend/install About version and branding must align before public acceptance.",
+  "sampledPublicSourcePinsMatch": true
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "ynx.media.published-capability-retention.v1",
+  "publishedCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+  "publishedCommitTree": "5464672bfef250e97e99ae51bcbb973a8eb63e05",
+  "graphAncestor": false,
+  "scopedPublishedChangedPathsRetained": [
+    "apps/creator-studio/app.js",
+    "apps/creator-studio/index.html",
+    "apps/creator-studio/signout.test.mjs",
+    "apps/creator-studio/styles.css",
+    "apps/video/app.js",
+    "apps/video/index.html",
+    "apps/video/provider-signin.test.mjs",
+    "apps/video/styles.css"
+  ],
+  "normalControlRetention": [
+    {
+      "product": "video",
+      "missingPublishedNormalControls": {
+        "id": [],
+        "data-view": [],
+        "data-panel": [],
+        "name": []
+      }
+    },
+    {
+      "product": "creator-studio",
+      "missingPublishedNormalControls": {
+        "id": [],
+        "data-view": [],
+        "data-panel": [],
+        "name": []
+      }
+    }
+  ],
+  "publishedProviderJourneyTests": 26,
+  "creatorChecks": 70,
+  "videoChecksBeforeProviderAddition": 126,
+  "ownedNormalUIFromInheritedB14Unchanged": true,
+  "actualInstalledAppBaselineVerified": false,
+  "note": "Branches diverge. Preserve the actual published scoped abilities in inherited owned source; do not reset it to the published tree. Runtime hashes separately verify d56 as formal frontend,48fe as formal API. SDK529 legacy devices/pending are verified in protected-browser QA."
+}
