@@ -1,0 +1,160 @@
+{
+  "schema": "ynx.media.apple-native-state.checkpoint.v1",
+  "createdAt": "2026-10-03T15:49:14.074338+00:00",
+  "sourceCommit": "5a663c605cf021a2697f8708f7c7e54c0647fd1d",
+  "sourceTree": "532c2ca11df58e2f56f6166d1bfdd13370ede984",
+  "previousWebDelivery": {
+    "path": "apps/video/audit/media-account-transition-checkpoint-20261003.json",
+    "bytes": 3784,
+    "sha256": "3e1996d5af551ce4bcf52fe8d322eeb7b1e8c7743be9bc6205a972c079e348e4"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/media-apple-state-20261003/media-owned-source-5a663c60.tar.gz",
+    "bytes": 3709659,
+    "sha256": "2c4729806a5517d6265095b05c6d059d9cc529e2dce9cc146b2b17d18b3b1c74",
+    "fileCount": 556,
+    "everyMemberGitByteExact": true
+  },
+  "scope": "Apple native protected state/custody/signing and iOS/macOS source target build. SDK executor and original private business UI are NOT integrated yet.",
+  "toolchain": {
+    "xcode": "27.0",
+    "build": "27A266a",
+    "developerDir": "/Applications/Xcode.app/Contents/Developer",
+    "initialLicenseUnavailable": true,
+    "laterVersionReadSucceeded": true,
+    "licenseAcceptedByThisOwner": false
+  },
+  "verified": {
+    "appleInjectedProtectedState": "PASS ios+macos",
+    "originalKeyPreservationAndDERSigning": "PASS injected original key only",
+    "existingModelBoundary": "PASS",
+    "iOSSimulatorBuild": "PASS generic unsigned no boot",
+    "macOSBuild": "PASS unsigned no app launch",
+    "finalMacOSAutomaticLaunchServicesRegistration": false,
+    "originalKeychainService": "com.ynxweb4.video.product-device",
+    "originalKeychainAccount": "wallet-auth-v1",
+    "metadataOnlyService": "com.ynxweb4.video.product-session.v2"
+  },
+  "remaining": [
+    "Pinned native SDK executor and actual original account readback",
+    "Apple same-own private library and playback",
+    "actual device Keychain and Wallet callbacks",
+    "iOS simulator runtime acceptance",
+    "formal team signing entitlements TestFlight",
+    "production Host and public same-own business"
+  ],
+  "inputs": [
+    {
+      "path": "apps/video/i18n/catalog.json",
+      "bytes": 19604,
+      "sha256": "c8e191037a33b4c69137fbbabc9d92e08351d01102f55808aae4306bd5cbd3cb"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo.xcodeproj/project.pbxproj",
+      "bytes": 6274,
+      "sha256": "74d992894fad1074f2786a0735607c8e98bc424f6efa410ecf91cf9179bf3216"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ContentView.swift",
+      "bytes": 7514,
+      "sha256": "d8df101e15fed56b08435983a5498ddb2b117a3ae7aa1acb6ec266030252a570"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/Info.plist",
+      "bytes": 1296,
+      "sha256": "97193ab758e0d94786e87de099d9fc6d9e7c616ef119f7ae3394170f4474458a"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/MacInfo.plist",
+      "bytes": 1165,
+      "sha256": "c1893ff3a0eb0492e2e6ccd008a13e8b5ec4594b9d41fb3ed1ae8a8bebe502cf"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ProductDeviceKey.swift",
+      "bytes": 4083,
+      "sha256": "c92aa14c65b119c8dd7f7701635ec2a9ac0029a8c9d25093671ecce51f9f1801"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoModel.swift",
+      "bytes": 8176,
+      "sha256": "f631ed9b02ca2aa6fc3173a0d7ae5f0ebf7f9c9b767ed172bf6f34ca806bfc6f"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCore.swift",
+      "bytes": 3010,
+      "sha256": "782e0a0164f2a42081e19b02fbe277d7a309b438a1c3841951f3108d33de67db"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCustody.swift",
+      "bytes": 2503,
+      "sha256": "0c078a1b30ad44d1f6a8cd3ed59e0c3e45906fc80ba1a77dcd3c3e5bc2990c54"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeState.swift",
+      "bytes": 18052,
+      "sha256": "1900724b432a619e808e267d78b5881c05969247932cab7e7b07796e35ffa65f"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/YNXVideoApp.swift",
+      "bytes": 252,
+      "sha256": "6329b46f32bdc4c33b568fc1be2b861a2516600bb1adc6b298d0d8fd03fd6682"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/video/scripts/apple-state-check.mjs",
+      "bytes": 836,
+      "sha256": "c793414caf35ce0662aba9a5f5a6c799de7b498bead7dc30b864917009f22c1e"
+    },
+    {
+      "path": "apps/video/scripts/apple-state-check.swift",
+      "bytes": 7485,
+      "sha256": "990e369b3dd8d3350b6dadd68171d5b9042dbe7d8050ff6bb506f4213cef1610"
+    },
+    {
+      "path": "apps/video/scripts/native-key-check.swift",
+      "bytes": 6568,
+      "sha256": "cbd3c6b6e4cab769f080c72f8b03fd3f8083706e5ad2d8e2ab9b5b0f7321ca9f"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/apple-boundary-check.txt",
+      "bytes": 274,
+      "sha256": "a113278612e4619ac52b8bb224478bf3753c073f8c8de80604e5020a799de21f"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/apple-key-check.txt",
+      "bytes": 151,
+      "sha256": "979e78dabfa5dc9b042582a3cf3148b7f34b2db7673e24374d63e1c36e3aad60"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/apple-state-check.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/ios-build-final.txt",
+      "bytes": 49523,
+      "sha256": "60c6eecccf915380c8cc7146ed1dad91f130d0fbd1b080744efbd2663087dc65"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/ios-initial-invocation-failed.txt",
+      "bytes": 290,
+      "sha256": "efd604ab907e26acc6b5bf25b306f85eb5522a2d7616a1a64f6b8d3c188aa58c"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/macos-build-final.txt",
+      "bytes": 25573,
+      "sha256": "d2db1bc0abb8cf7013032d526c75eb6d8d4056b98d709cf98e550d1e5731453a"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-state-20261003/macos-initial-invocation-failed.txt",
+      "bytes": 290,
+      "sha256": "003d99e7e83af5cf6453134b94a7220e9feaf0b349d64407c51358ca53572eca"
+    }
+  ]
+}
