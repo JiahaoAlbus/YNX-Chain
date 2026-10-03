@@ -5,6 +5,7 @@ Reads the shared repository through git show only. Does not install a runtime.
 import argparse, hashlib, json, os, pathlib, shutil, subprocess, tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--shared-repository', required=True)
+parser.add_argument('--apple-music-engine', help='Isolated actual Music Swift model/engine QA binary with source pin sidecar')
 parser.add_argument('--apple-video-engine', help='Compiled isolated Apple Swift/WebKit QA binary with exact source pin sidecar; no installed/OS storage claim')
 parser.add_argument('--packaged-video-engine', action='store_true', help='Exercise actual packaged Android Video driver with disposable software ports')
 parser.add_argument('--packaged-music-engine', action='store_true', help='Exercise actual packaged Android Music driver with disposable software ports; no installed/OS claim')
@@ -95,7 +96,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                 pins.append(dict(owner='Media', path=str(relative), bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     if fixture_package_receipt is not None and successor:
         browser_inputs = [owned / 'apps/music/scripts/packaged-native-engine-fixture.mjs'] + [owned / name for name in sorted(visible_owned_paths) if name.startswith(('apps/music/android/','apps/video/android/')) and not any(part in ['build','.gradle'] for part in pathlib.PurePosixPath(name).parts)] + list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs', owned / 'apps/video/scripts/media-apple-authority-check.mjs']
-        for product in ['video', 'creator-studio']:
+        browser_inputs.append(owned / 'apps/music/scripts/apple-native-authority-check.mjs')
+        for product in ['video', 'creator-studio', 'music']:
             for path in (owned / 'apps' / product).rglob('*'):
                 if path.is_file() and str(path.relative_to(owned)) in visible_owned_paths and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] or part.startswith('.') for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
                     browser_inputs.append(path)
@@ -126,6 +128,14 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
         for pin in apple_receipt['sourcePins']:
             assert hashlib.sha256((owned / pin['path']).read_bytes()).hexdigest() == pin['sha256']
         build_env['YNX_QA_APPLE_VIDEO_ENGINE_BIN'] = str(binary)
+    apple_music_receipt = None
+    if args.apple_music_engine:
+        binary = pathlib.Path(args.apple_music_engine).resolve()
+        apple_music_receipt = json.loads(pathlib.Path(str(binary)+'.json').read_text())
+        assert hashlib.sha256(binary.read_bytes()).hexdigest()==apple_music_receipt['sha256']
+        for pin in apple_music_receipt['sourcePins']:
+            assert hashlib.sha256((owned / pin['path']).read_bytes()).hexdigest()==pin['sha256']
+        build_env['YNX_QA_APPLE_MUSIC_ENGINE_BIN']=str(binary)
     if args.packaged_video_engine or args.packaged_music_engine:
         assert fixture_package_receipt is not None and successor, 'Actual packaged engine requires frozen approved registration package'
         if args.packaged_music_engine:
@@ -173,6 +183,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                    actualNativePortsOriginalVideoCreatorMusicBusiness=all(any(event.get('Test') == name for event in pass_events) for name in ['TestVideoCreatorNativeConsumerAndOriginalBusiness','TestMusicNativeConsumerAndOriginalBusiness']) and all(r['exitCode'] == 0 for r in results) and len(results) == 2,
                    actualAppleSwiftWebKitEngine=bool(apple_receipt) and all(any(event.get('Test') == 'TestVideoCreatorNativeConsumerAndOriginalBusiness/video:' + platform for event in pass_events) for platform in ['ios','macos']) and all(r['exitCode'] == 0 for r in results),
                    appleCompiledSource=apple_receipt,
+                   actualAppleMusicSwiftWebKitEngine=bool(apple_music_receipt) and all(any(event.get('Test')=='TestMusicNativeConsumerAndOriginalBusiness/'+platform for event in pass_events) for platform in ['ios','macos']) and all(r['exitCode']==0 for r in results),
+                   appleMusicCompiledSource=apple_music_receipt,
                    actualNativeOSStorage=False,
                    actualSDKActionCrypto=all(r['exitCode'] == 0 for r in results) and len(results) == 2, actualWalletConsent=False, productionInstalled=False,
                    note='Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation.')

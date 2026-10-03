@@ -1,0 +1,89 @@
+{
+  "schema": "ynx.music.apple.native-engine.v1",
+  "sdkSourceCommit": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "sdkSourceTree": "4742a47562040898a503702f413fd4a87a3d38c0",
+  "sdkArtifactSHA256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575",
+  "bundlerVersion": "0.25.4",
+  "bundlerModuleSHA256": "65d0d94eb0e3944040f808c81f597c014f65c0c8d5a7a3d4f749f18dbccb0b5f",
+  "consumerInputs": [
+    {
+      "path": "apps/video/business-wire.js",
+      "bytes": 3938,
+      "sha256": "b78251453977e9c6c71b09f0532b35db061c5ae9f936bca435d49a25804e7389"
+    },
+    {
+      "path": "apps/video/session-events.js",
+      "bytes": 4383,
+      "sha256": "3ef91d94f71fa0cba6190bac447bed5ae936c70dd1c43ce87053b6e944d35fe0"
+    },
+    {
+      "path": "apps/video/product-session-sdk.js",
+      "bytes": 137281,
+      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
+    },
+    {
+      "path": "apps/video/product-session.js",
+      "bytes": 8238,
+      "sha256": "89d5d1854814f47bc924066e0918fae83e1fd7f3cc057dc41448caa8b8334a84"
+    },
+    {
+      "path": "apps/creator-studio/business-wire.js",
+      "bytes": 3938,
+      "sha256": "b78251453977e9c6c71b09f0532b35db061c5ae9f936bca435d49a25804e7389"
+    },
+    {
+      "path": "apps/creator-studio/session-events.js",
+      "bytes": 4383,
+      "sha256": "3ef91d94f71fa0cba6190bac447bed5ae936c70dd1c43ce87053b6e944d35fe0"
+    },
+    {
+      "path": "apps/creator-studio/product-session-sdk.js",
+      "bytes": 137281,
+      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
+    },
+    {
+      "path": "apps/creator-studio/product-session.js",
+      "bytes": 6656,
+      "sha256": "f968c3e31b6af6dab573ab629c74241ea8255120d249df330b776149b721c523"
+    },
+    {
+      "path": "apps/music/web/canonical-request.js",
+      "bytes": 5716,
+      "sha256": "77008e99770eea46aec39cd753ef1134b483a3923514ef3e40fadf0e246f5653"
+    },
+    {
+      "path": "apps/video/native/media-session.mjs",
+      "bytes": 9868,
+      "sha256": "b4b435325a424d6b5d4fbacb1599c09b1f4eb597106db05bfab3936218a61f38"
+    }
+  ],
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "path": "client.mjs",
+      "bytes": 3341,
+      "sha256": "347f8f43ec1dcee92b802a60d070f80e85b8a66db73546d056797f5e406760d8"
+    },
+    {
+      "path": "media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+    },
+    {
+      "path": "wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "path": "registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    }
+  ],
+  "actualOSAcceptance": false,
+  "actualWalletAcceptance": false
+}

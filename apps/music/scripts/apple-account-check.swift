@@ -45,6 +45,23 @@ final class FixtureProtocol:URLProtocol {
         let existing=credentials({_ in (errSecSuccess,retainedEncoded)})
         try require(try existing.deviceKey().rawRepresentation==retained.rawRepresentation,"legacy device key changed")
         try require(writes.isEmpty && creates==0,"existing key triggered creation/write")
+        let inheritedSigner=MusicDeviceSigner(credentials:credentials({account in
+            account=="device-p256" ? (errSecSuccess,retainedEncoded):(errSecSuccess,Data("corrupt legacy session".utf8))
+        }))
+        _ = try inheritedSigner.compressedPublicKey()
+        let signedBytes=Data("YNX_PRODUCT_SESSION_HTTP_PROOF_V2\nfixture".utf8)
+        let encodedSignature=try inheritedSigner.signProtocolBytes(signedBytes)
+        var signatureBase64=encodedSignature.replacingOccurrences(of:"-",with:"+").replacingOccurrences(of:"_",with:"/")
+        signatureBase64+=String(repeating:"=",count:(4-signatureBase64.count%4)%4)
+        let signature=try P256.Signing.ECDSASignature(derRepresentation:Data(base64Encoded:signatureBase64)!)
+        try require(retained.publicKey.isValidSignature(signature,for:signedBytes),"native signer did not retain inherited identity")
+        let missingKey=credentials({_ in (errSecItemNotFound,nil)})
+        try rejected("restoration silently created a key") { _ = try missingKey.deviceKey(allowCreation:false) }
+        try rejected("proof signing silently created a key") { _ = try MusicDeviceSigner(credentials:missingKey).signProtocolBytes(signedBytes) }
+        let orphanedSession=credentials({account in account=="device-p256" ? (errSecItemNotFound,nil):(errSecSuccess,Data(String(repeating:"a",count:64).utf8))})
+        try rejected("inherited session with missing key silently replaced identity") { _ = try MusicDeviceSigner(credentials:orphanedSession).compressedPublicKey() }
+        try require(writes.isEmpty && deletes.isEmpty && creates==0,"native signer changed inherited key/session")
+        print("PASS native signer: original DER signature, corrupt legacy session isolation, missing-key restoration/signing hold; no storage writes")
         let locked=credentials({_ in (errSecInteractionNotAllowed,nil)})
         try rejected("locked key became first use") { _ = try locked.deviceKey() }
         let denied=credentials({_ in (errSecAuthFailed,nil)})

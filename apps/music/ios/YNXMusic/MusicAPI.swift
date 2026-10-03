@@ -6,11 +6,12 @@ actor MusicAPI {
     private let fence:MusicSessionFence
     private let transport:URLSession
     private let deviceKey:String
+    private let native:MusicNativeEngine?
 
     init(context:MusicSessionContext, fence:MusicSessionFence, deviceKey:String,
          base:URL = URL(string:"https://web4.ynxweb4.com/music")!,
-         transport:URLSession? = nil) {
-        self.context=context; self.fence=fence; self.deviceKey=deviceKey; self.base=base
+         transport:URLSession? = nil,native:MusicNativeEngine? = nil) {
+        self.native=native; self.context=context; self.fence=fence; self.deviceKey=deviceKey; self.base=base
         if let transport { self.transport=transport }
         else {
             let configuration=URLSessionConfiguration.ephemeral
@@ -21,6 +22,11 @@ actor MusicAPI {
         }
     }
     func request(_ path:String,method:String="GET",body:Data?=nil,contentType:String="application/json",idempotency:String?=nil)async throws->Data {
+        if let native {
+            try fence.requireCurrent(context,authenticated:true)
+            let data=try await native.request(path:path,method:method.uppercased(),body:body,contentType:contentType,idempotency:idempotency)
+            try fence.requireCurrent(context,authenticated:true);return data
+        }
         let authorizationPath = ["api/auth/wallet-v1/challenge","api/auth/wallet-v1/session"].contains(path)
         try fence.requireCurrent(context, authenticated:!authorizationPath)
         var r=URLRequest(url:base.appending(path:path))

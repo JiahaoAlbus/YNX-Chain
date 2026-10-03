@@ -46,23 +46,25 @@ struct MusicOperation {
     private let store:MusicAccountStore
     private var account:MusicAccountContext?
     private var api:MusicAPI
-    let player=NativePlayer()
+    private var native:MusicNativeEngine?
+    private let makeNative: @MainActor () throws -> MusicNativeEngine
+    private var authRevision:UInt64=0
+    private let nativeNegativeRead: () -> Bool
+    private let nativeNegativeWrite: (Bool) -> Void
+    @Published var authBusy=false
+    @Published var revokePending=false
+    let player:NativePlayer
 
-    init() {
-        var binding:String?
-        var deviceKey=""
-        var credentialsReady=true
-        do {
-            if !UserDefaults.standard.bool(forKey:"music-session-disabled") { binding=try MusicCredentials.shared.session() }
-            if binding != nil { deviceKey=try WalletLink.productDeviceKey() }
-        } catch { credentialsReady=false }
-        let fence=MusicSessionFence(binding:binding)
+    init(makeNative: @escaping @MainActor () throws -> MusicNativeEngine = MusicNativeEngine.live,storeRoot:URL?=nil,autoRestore:Bool=true,systemMediaControls:Bool=true,nativeNegativeRead: @escaping () -> Bool = {UserDefaults.standard.bool(forKey:"music-native-session-disabled-v2")},nativeNegativeWrite: @escaping (Bool) -> Void = {UserDefaults.standard.set($0,forKey:"music-native-session-disabled-v2")}) {
+        self.nativeNegativeRead=nativeNegativeRead;self.nativeNegativeWrite=nativeNegativeWrite
+        self.makeNative=makeNative;self.player=NativePlayer(systemControls:systemMediaControls)
+        let fence=MusicSessionFence(binding:nil)
         self.fence=fence
-        let root=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
+        let root=storeRoot ?? FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0]
         store=MusicAccountStore(root:root)
-        api=MusicAPI(context:fence.capture(),fence:fence,deviceKey:deviceKey)
-        // Private local state stays hidden until this session's /api/me succeeds.
-        if credentialsReady { Task { await refresh() } } else { status="retry" }
+        api=MusicAPI(context:fence.capture(),fence:fence,deviceKey:"")
+        status="offline_mode"
+        if autoRestore { Task { await restoreNative() } }
         player.onPosition={ [weak self] id,position in
             guard let self,let operation=self.captureOperation() else { return }
             self.state.trackId=id; self.state.position=position; self.saveLocal()
@@ -90,7 +92,7 @@ struct MusicOperation {
         }
     }
     var signedIn:Bool { captureOperation() != nil }
-    var canSignOut:Bool { api.context.binding != nil }
+    var canSignOut:Bool { api.context.binding != nil || revokePending }
     func captureOperation()->MusicOperation? {
         guard let account,api.context.binding != nil,fence.isCurrent(api.context) else { return nil }
         return MusicOperation(api:api,session:api.context,account:account)
@@ -142,59 +144,81 @@ struct MusicOperation {
             else { status="offline_mode" }
         }
     }
-    func beginSignIn()->URL? {
-        signOut()
-        do { return try WalletLink.make() }
-        catch { status="auth_rejected"; return nil }
+    private func engine() throws -> MusicNativeEngine {
+        if let native { return native }
+        let created=try makeNative();native=created
+        created.onChange={ [weak self,weak created] in
+            guard let self,let created,self.native === created else { return }
+            if created.identity==nil { self.withdraw() }
+        }
+        return created
+    }
+    private func withdraw() {
+        player.stop();let context=fence.replace(binding:nil)
+        api=MusicAPI(context:context,fence:fence,deviceKey:"",native:native)
+        store.detach();account=nil;state=LocalState();snapshot=Snapshot();query="";viewGeneration=UUID()
+    }
+    private func installNative(_ engine:MusicNativeEngine) async {
+        guard let identity=engine.identity else { status="offline_mode";return }
+        let context=fence.replace(binding:identity.binding)
+        api=MusicAPI(context:context,fence:fence,deviceKey:identity.context.deviceKey,native:engine)
+        await refresh(api:api,context:context)
+    }
+    func restoreNative() async {
+        guard !authBusy else { return };authRevision &+= 1;let revision=authRevision;authBusy=true;defer{if revision==authRevision {authBusy=false}}
+        do {
+            let active=try engine()
+            if nativeNegativeRead() {
+                withdraw();revokePending=true;let reply=try await active.dispatch("disconnect")
+                guard revision==authRevision else {return}
+                if ["disconnected","expired"].contains(reply["status"] as? String ?? "") {nativeNegativeWrite(false);revokePending=false};status="offline_mode";return
+            }
+            let reply=try await active.dispatch("restore");guard revision==authRevision else { return };revokePending=reply["revocationPending"] as? Bool ?? false;await installNative(active) }
+        catch { if revision==authRevision {status="retry"} }
+    }
+    func beginSignIn() async {
+        guard !authBusy,!revokePending else { return };authRevision &+= 1;let revision=authRevision;authBusy=true;defer{if revision==authRevision {authBusy=false}}
+        do {
+            nativeNegativeWrite(true);withdraw();let active=try engine();try active.retireLocally();revokePending=true
+            let retired=try await active.dispatch("disconnect")
+            guard revision==authRevision else { return }
+            guard ["disconnected","expired"].contains(retired["status"] as? String ?? "") else { status="retry";return }
+            nativeNegativeWrite(false);revokePending=false;_ = try await active.dispatch("connect");if revision==authRevision {status="loading"}
+        } catch { if revision==authRevision {status="retry"} }
     }
     func acceptCallback(_ url:URL) {
-        let items=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems ?? []
-        guard url.scheme=="ynxmusic",url.host=="auth",url.path=="/callback",url.user==nil,url.password==nil,
-              url.port==nil,url.fragment==nil,items.count==1,items.first?.name=="response",
-              Date().timeIntervalSince1970<UserDefaults.standard.double(forKey:"walletExpires"),
-              let response=items.first?.value,let raw=UserDefaults.standard.string(forKey:"walletRequest"),
-              let data=raw.data(using:.utf8),let request=try? JSONSerialization.jsonObject(with:data) as? [String:Any]
-        else { return }
-        UserDefaults.standard.removeObject(forKey:"walletRequest")
-        UserDefaults.standard.removeObject(forKey:"walletExpires")
-        let requestAPI=api,context=api.context
-        Task {
-            do {
-                let binding=try await requestAPI.walletSession(response:response,request:request)
-                guard fence.isCurrent(context) else { return }
-                let deviceKey=try WalletLink.productDeviceKey()
-                try MusicCredentials.shared.saveSession(binding)
-                UserDefaults.standard.set(false,forKey:"music-session-disabled")
-                let installed=fence.replace(binding:binding)
-                api=MusicAPI(context:installed,fence:fence,deviceKey:deviceKey)
-                await refresh(api:api,context:installed)
-            } catch {
-                guard fence.isCurrent(context) else { return }
-                status="auth_rejected"
-            }
+        guard !nativeNegativeRead(),url.scheme=="ynxmusic",url.host=="auth",url.path=="/callback",url.user==nil,url.password==nil,url.port==nil,url.fragment==nil,url.absoluteString.count<=32768 else { return }
+        authRevision &+= 1;let revision=authRevision;authBusy=true
+        Task { @MainActor in
+            defer{if revision==authRevision {authBusy=false}}
+            do { let active=try engine();_ = try await active.dispatch("handleReturn",["url":url.absoluteString]);guard revision==authRevision else {return};await installNative(active) }
+            catch { if revision==authRevision {status="retry"} }
         }
     }
     func signOut() {
-        player.stop()
-        // A failed/locked Keychain deletion must not restore this session on
-        // next launch. This marker contains no credential and is cleared only
-        // after a new session has been persisted successfully.
-        UserDefaults.standard.set(true,forKey:"music-session-disabled")
-        let removalFailed:Bool
-        do { try MusicCredentials.shared.clearSession(); removalFailed=false }
-        catch { removalFailed=true }
-        let context=fence.replace(binding:nil)
-        api=MusicAPI(context:context,fence:fence,deviceKey:"")
-        store.detach(); account=nil; state=LocalState(); snapshot=Snapshot(); query=""
-        viewGeneration=UUID(); status=removalFailed ? "retry":"offline_mode"
-        UserDefaults.standard.removeObject(forKey:"walletRequest")
-        UserDefaults.standard.removeObject(forKey:"walletExpires")
+        authRevision &+= 1;let revision=authRevision;authBusy=false;nativeNegativeWrite(true)
+        do { try native?.retireLocally() } catch { if revision==authRevision {status="retry"} }
+        withdraw();revokePending=true
+        Task { @MainActor in
+            do { let active=try engine(),reply=try await active.dispatch("disconnect");guard revision==authRevision else {return};revokePending = !["disconnected","expired"].contains(reply["status"] as? String ?? "");if !revokePending {nativeNegativeWrite(false)};status=revokePending ? "retry":"offline_mode" }
+            catch { if revision==authRevision {status="retry"} }
+        }
     }
+    func suspendNative() { authRevision &+= 1;authBusy=false;withdraw();native?.suspend() }
     func play(_ track:Track) {
         guard let operation=captureOperation(),snapshot.catalog.contains(where:{$0.id==track.id}) else { return }
-        let offline=(try? store.audioURL(track:track,for:operation.account)) ?? nil
-        let url=offline ?? operation.api.base.appending(path:"api/tracks/\(track.id)/media")
-        player.play(track:track,url:url,position:state.trackId==track.id ? state.position:0,context:operation.session,fence:fence)
+        if let url=(try? store.audioURL(track:track,for:operation.account)) ?? nil {
+            player.play(track:track,url:url,position:state.trackId==track.id ? state.position:0,context:operation.session,fence:fence);return
+        }
+        Task { @MainActor in
+            guard let data=await perform(operation,{try await $0.download(track)}),isCurrent(operation) else { return }
+            do {
+                let url=try store.storeAudio(data,track:track,for:operation.account)
+                guard isCurrent(operation) else { return }
+                state.downloads[track.id]="available";saveLocal()
+                player.play(track:track,url:url,position:state.trackId==track.id ? state.position:0,context:operation.session,fence:fence)
+            } catch { if isCurrent(operation) { status="retry" } }
+        }
     }
     func favorite(_ id:String) {
         guard captureOperation() != nil else { return }
@@ -299,7 +323,8 @@ struct MusicOperation {
     var onPosition:((String,Double)->Void)?
     var onComplete:((String,Double)->Void)?
 
-    init() {
+    init(systemControls:Bool=true) {
+        guard systemControls else { return }
         #if os(iOS)
         try? AVAudioSession.sharedInstance().setCategory(.playback,mode:.default,options:[])
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -361,7 +386,7 @@ struct MusicOperation {
 
 struct TrackDetail:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;let t:Track;@State var reason="";@State var evidence="";var body:some View{Form{Section(t.title){Text(t.artistName);if let album=t.album,!album.isEmpty{Text(album)};Text("\(l.t("rights")): \(t.rights.basis) · \(t.rights.evidenceRef)");Text("\(l.t("provenance")): \(t.provenance["audio"] ?? "")")};Section(l.t("rights")){TextField(l.t("rights_declaration"),text:$reason);TextField(l.t("rights_evidence"),text:$evidence);ForEach(["report","dispute","appeal"],id:\.self){kind in Button(kind.capitalized){guard let operation=m.captureOperation() else{return};let reason=reason,evidence=evidence;Task{guard await m.perform(operation,{try await $0.openCase(kind:kind,track:t.id,reason:reason,evidence:evidence)}) != nil else{return};await m.refresh(operation)}}.disabled(reason.count<5||evidence.isEmpty)}}}.navigationTitle(t.title)}}
 struct TrackRow:View { @EnvironmentObject var m:MusicModel;let t:Track;@EnvironmentObject var l:I18n;var body:some View{VStack(alignment:.leading,spacing:8){NavigationLink{TrackDetail(t:t)}label:{VStack(alignment:.leading){Text(t.title).font(.headline);Text(t.artistName+(t.album.map{" · "+$0} ?? "")).font(.subheadline)}};Text("\(l.t("rights")): \(t.rights.basis) · \(l.t("provenance")): \(t.provenance["audio"] ?? "")").font(.caption).foregroundStyle(.secondary);HStack{Button(l.t("play")){m.play(t)};Button(l.t("favorite")){m.favorite(t.id)};Button(l.t("add_queue")){m.enqueue(t.id)};Button(l.t("download")){m.download(t.id)}}}.accessibilityElement(children:.contain).padding(.vertical,6)}}
-struct HomeView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;var body:some View{NavigationStack{List{if m.filtered.isEmpty{ContentUnavailableView(l.t("empty_catalog"),systemImage:"music.note",description:Text(l.t("retry")))}else{ForEach(m.filtered){TrackRow(t:$0)}}}.searchable(text:$m.query,prompt:l.t("search_hint")).navigationTitle(l.t("app_name")).toolbar{Button(l.t("sign_in_wallet")){if let u=m.beginSignIn(){openURL(u)}}}.refreshable{await m.refresh()}}}}
+struct HomeView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;var body:some View{NavigationStack{List{if m.filtered.isEmpty{ContentUnavailableView(l.t("empty_catalog"),systemImage:"music.note",description:Text(l.t("retry")))}else{ForEach(m.filtered){TrackRow(t:$0)}}}.searchable(text:$m.query,prompt:l.t("search_hint")).navigationTitle(l.t("app_name")).toolbar{Button(l.t("sign_in_wallet")){Task{await m.beginSignIn()}}.disabled(m.authBusy || m.revokePending)}.refreshable{await m.restoreNative()}}}}
 struct LibraryView:View {
     @EnvironmentObject var m:MusicModel
     @EnvironmentObject var l:I18n
@@ -467,7 +492,7 @@ struct MusicPlaylistEditor:View {
 struct CreatorView:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@Environment(\.openURL)var openURL;@State var importing=false;@State var importOperation:MusicOperation?;@State var title="";@State var artist="";@State var evidence="";@State var provenance="";@State var proposal:AIProposal?;@State var proposalOperation:MusicOperation?;@State var aiStatus="";var body:some View{NavigationStack{Form{Text(l.t("creator_truth"));TextField(l.t("track_title"),text:$title);TextField(l.t("artist_name"),text:$artist);TextField(l.t("rights_evidence"),text:$evidence);TextField(l.t("provenance"),text:$provenance);Button(l.t("upload_owned_audio")){importOperation=m.captureOperation();importing=importOperation != nil}.fileImporter(isPresented:$importing,allowedContentTypes:[.wav]){result in guard let operation=importOperation,m.isCurrent(operation) else{return};importOperation=nil;if case .success(let url)=result{let title=title,artist=artist,evidence=evidence,provenance=provenance;Task{let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}};guard await m.perform(operation,{try await $0.uploadOwnedWAV(url,title:title,artist:artist,evidence:evidence,provenance:provenance)}) != nil else{return};await m.refresh(operation)}}};Section(l.t("creator")){ForEach(m.snapshot.creatorTracks){track in HStack{Text(track.title+" · "+track.rights.basis);Spacer();if !m.snapshot.catalog.contains(where:{$0.id==track.id}){Button(l.t("upload")){guard let operation=m.captureOperation() else{return};Task{guard await m.perform(operation,{try await $0.release(track.id)}) != nil else{return};await m.refresh(operation)}}}}}};Section(l.t("usage_records")){Text(l.number(m.snapshot.usage.count));Text("YNX Pay: \(l.number(m.snapshot.settlements.count)) · YNX Trust: \(l.number(m.snapshot.cases.count))")};Text(l.t("revenue_truth")).font(.footnote);ForEach(m.snapshot.allocations){allocation in Button("YNX Pay · \(allocation.amountMicros) µYNXT"){guard let operation=m.captureOperation() else{return};let payTo=operation.account.account;Task{if let settlement=await m.perform(operation,{try await $0.settlement(allocation.id,payTo:payTo)}),m.isCurrent(operation),let url=URL(string:settlement.reviewUri){openURL(url)};await m.refresh(operation)}}};Button(l.t("ai_enabled")){guard m.state.aiEnabled,let operation=m.captureOperation() else{return};let ids=m.state.favorites,language=l.aiLanguage == "system" ? l.resolved : l.aiLanguage;Task{guard let result=await m.perform(operation,{try await $0.createAI(ids:ids,language:language)}),m.isCurrent(operation) else{return};proposal=result;proposalOperation=operation;aiStatus="YNX AI · \(result.status) · \(result.estimatedUnits) units\n\(result.result ?? "")"}}.disabled(!m.state.aiEnabled||m.state.favorites.isEmpty);if let proposal{HStack{Button(l.t("upload")){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"apply")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}};Button(l.t("cancel"),role:.destructive){guard let operation=proposalOperation,m.isCurrent(operation) else{return};Task{guard await m.perform(operation,{try await $0.reviewAI(id:proposal.id,action:"reject")}) != nil else{return};self.proposal=nil;proposalOperation=nil;await m.refresh(operation)}}}};Text(aiStatus.isEmpty ? l.t("ai_explanation"):aiStatus).font(.footnote)}.navigationTitle(l.t("creator"))}}}
 struct SettingsView:View{@AppStorage("ynx.media.display.text") private var displayMode=1;@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;@State private var clearing=false;@State private var clearOperation:MusicOperation?;var body:some View{NavigationStack{Form{Picker(musicDisplayLabels(l.resolved)[0],selection:$displayMode){ForEach(0..<3,id:\.self){Text(musicDisplayLabels(l.resolved)[$0+1]).tag($0)}};Section{NavigationLink(destination:CreatorView()){Label(l.t("creator"),systemImage:"waveform")};Text(l.t("creator_truth")).font(.footnote).foregroundStyle(.secondary)};Picker(l.t("language"),selection:Binding(get:{l.tag},set:l.set)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Section(l.t("profile")){Toggle(l.t("explicit_content"),isOn:Binding(get:{m.snapshot.profile.explicitAllowed},set:{m.setProfile(explicit:$0,privateHistory:m.snapshot.profile.privateHistory)}));Toggle(l.t("private_history"),isOn:Binding(get:{m.snapshot.profile.privateHistory},set:{m.setProfile(explicit:m.snapshot.profile.explicitAllowed,privateHistory:$0)}))};Toggle(l.t("ai_enabled"),isOn:Binding(get:{m.state.aiEnabled},set:m.setAI));Picker(l.t("ai_output_language"),selection:Binding(get:{l.aiLanguage},set:l.setAI)){Text("System").tag("system");ForEach(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self){Text($0).tag($0)}};Text(l.t("ai_explanation"));Button(l.t("sign_out")){m.signOut()}.disabled(!m.canSignOut);Button(l.t("clear_private_data"),role:.destructive){clearOperation=m.captureOperation();clearing=clearOperation != nil}.disabled(!m.signedIn).confirmationDialog(l.t("clear_confirm"),isPresented:$clearing,titleVisibility:.visible){Button(l.t("clear_private_data"),role:.destructive){if let operation=clearOperation{m.clearPrivate(operation)};clearOperation=nil};Button(l.t("cancel"),role:.cancel){clearOperation=nil}}}.navigationTitle(l.t("settings"))}}}
 
-@main struct YNXMusicApp:App{@AppStorage("ynx.media.display.text") private var displayMode=1;@ScaledMetric(relativeTo:.body) private var displayPoints:CGFloat=15;private var displayScale:CGFloat {[0.9333333,1,1.1333333][max(0,min(displayMode,2))]};@StateObject var model=MusicModel();@StateObject var l=I18n.shared;var body:some Scene{WindowGroup{VStack(spacing:0){HStack(spacing:12){Image("ynx-brand-original").resizable().scaledToFit().frame(width:46,height:24).padding(4).background(Color.white).clipShape(RoundedRectangle(cornerRadius:6)).accessibilityLabel("YNX");Text(l.t("app_name")).font(.headline.bold());Spacer()}.environment(\.layoutDirection,.leftToRight).padding(.horizontal).padding(.vertical,8);TabView{HomeView().tabItem{Label(l.t("home"),systemImage:"music.note.house")};LibraryView().tabItem{Label(l.t("library"),systemImage:"books.vertical")};SettingsView().tabItem{Label(l.t("settings"),systemImage:"gear")}}}.font(.system(size:displayPoints*displayScale)).environmentObject(model).environmentObject(l).environment(\.locale,Locale(identifier:l.resolved)).environment(\.layoutDirection,l.rtl ? .rightToLeft:.leftToRight).tint(Color(red:0,green:47/255,blue:167/255)).onOpenURL{model.acceptCallback($0)}.id(model.viewGeneration)}}}
+@main struct YNXMusicApp:App{@AppStorage("ynx.media.display.text") private var displayMode=1;@ScaledMetric(relativeTo:.body) private var displayPoints:CGFloat=15;private var displayScale:CGFloat {[0.9333333,1,1.1333333][max(0,min(displayMode,2))]};@Environment(\.scenePhase) private var scenePhase;@StateObject var model=MusicModel();@StateObject var l=I18n.shared;var body:some Scene{WindowGroup{VStack(spacing:0){HStack(spacing:12){Image("ynx-brand-original").resizable().scaledToFit().frame(width:46,height:24).padding(4).background(Color.white).clipShape(RoundedRectangle(cornerRadius:6)).accessibilityLabel("YNX");Text(l.t("app_name")).font(.headline.bold());Spacer()}.environment(\.layoutDirection,.leftToRight).padding(.horizontal).padding(.vertical,8);TabView{HomeView().tabItem{Label(l.t("home"),systemImage:"music.note.house")};LibraryView().tabItem{Label(l.t("library"),systemImage:"books.vertical")};SettingsView().tabItem{Label(l.t("settings"),systemImage:"gear")}}}.font(.system(size:displayPoints*displayScale)).environmentObject(model).environmentObject(l).environment(\.locale,Locale(identifier:l.resolved)).environment(\.layoutDirection,l.rtl ? .rightToLeft:.leftToRight).tint(Color(red:0,green:47/255,blue:167/255)).onOpenURL{model.acceptCallback($0)}.onChange(of:scenePhase){_,phase in if phase == .background { model.suspendNative() } else if phase == .active { Task{await model.restoreNative()} }}.id(model.viewGeneration)}}}
 
 private func musicDisplayLabels(_ tag:String)->[String] {
  switch Locale(identifier:tag).languageCode ?? "en" {

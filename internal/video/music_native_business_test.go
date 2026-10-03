@@ -33,7 +33,11 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 	if source == "" || os.Getenv("YNX_QA_MEDIA_MUSIC_EXTENDED") != "1" {
 		t.Skip("requires independently verified Music successor package")
 	}
-	for _, platform := range []string{"android", "macos"} {
+	platforms := []string{"android", "macos"}
+	if os.Getenv("YNX_QA_APPLE_MUSIC_ENGINE_BIN") != "" {
+		platforms = append(platforms, "ios")
+	}
+	for _, platform := range platforms {
 		t.Run(platform, func(t *testing.T) {
 			public, key, err := ed25519.GenerateKey(rand.Reader)
 			if err != nil {
@@ -140,7 +144,12 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			defer server.Close()
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
-			cmd := exec.CommandContext(ctx, "node", "../../apps/video/scripts/media-native-authority-check.mjs", source, "music", platform)
+			script := "../../apps/video/scripts/media-native-authority-check.mjs"
+			apple := platform != "android" && os.Getenv("YNX_QA_APPLE_MUSIC_ENGINE_BIN") != ""
+			if apple {
+				script = "../../apps/music/scripts/apple-native-authority-check.mjs"
+			}
+			cmd := exec.CommandContext(ctx, "node", script, source, "music", platform)
 			cmd.Env = append(os.Environ(), "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
 			var output, diagnostic bytes.Buffer
 			cmd.Stdout = &output
@@ -150,9 +159,11 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			}
 			var receipt struct {
 				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
+				ActualAppleSwiftWebKitEngine bool `json:"actualAppleSwiftWebKitEngine"`
+				ActualOriginalAppleModelFlow bool `json:"actualOriginalAppleModelFlow"`
 				ActualWalletConsent          bool `json:"actualWalletConsent"`
 			}
-			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent {
+			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("browser receipt gate invalid")
 			}
 			mu.Lock()

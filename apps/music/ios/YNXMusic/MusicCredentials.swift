@@ -29,10 +29,17 @@ final class MusicCredentials {
          create:@escaping ()->P256.Signing.PrivateKey={ P256.Signing.PrivateKey() }) {
         self.read=read; self.add=add; self.update=update; self.remove=remove; self.create=create
     }
-    func deviceKey()throws->P256.Signing.PrivateKey {
+    func hasDeviceKey() throws -> Bool {
+        let stored=read("device-p256")
+        if stored.status==errSecItemNotFound { return false }
+        guard stored.status==errSecSuccess else { throw StorageError.readFailed(stored.status) }
+        _ = try decodeDevice(stored.data);return true
+    }
+    func deviceKey(allowCreation:Bool=true)throws->P256.Signing.PrivateKey {
         let existing=read("device-p256")
         if existing.status==errSecSuccess { return try decodeDevice(existing.data) }
         guard existing.status==errSecItemNotFound else { throw StorageError.readFailed(existing.status) }
+        guard allowCreation else { throw StorageError.invalidDeviceKey }
         let candidate=create()
         let encoded=Data(candidate.rawRepresentation.base64EncodedString().utf8)
         let status=add("device-p256",encoded)

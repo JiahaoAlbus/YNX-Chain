@@ -11,7 +11,7 @@ function run(command, args) {
   if(result.status !== 0) throw new Error(`${command} failed (${result.status})`);
 }
 try {
-  const swift = ['MusicAccountState.swift','MusicAPI.swift','MusicCredentials.swift'].map(name=>path.join(product,'ios/YNXMusic',name));
+  const swift = ['MusicAccountState.swift','MusicAPI.swift','MusicCredentials.swift','MusicNativeEngine.swift','MusicNativeState.swift','MusicNativeCustody.swift','MusicNativeTransport.swift','MusicDeviceSigner.swift'].map(name=>path.join(product,'ios/YNXMusic',name));
   run('xcrun',['swiftc','-swift-version','5',...swift,path.join(product,'scripts/apple-account-check.swift'),'-o',path.join(stage,'check')]);
   run(path.join(stage,'check'),[]);
   run('xcrun',['swiftc','-frontend','-parse',...swift,path.join(product,'ios/YNXMusic/YNXMusicApp.swift')]);
