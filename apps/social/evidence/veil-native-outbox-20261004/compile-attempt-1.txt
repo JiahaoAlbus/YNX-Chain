@@ -1,0 +1,26 @@
+apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java:15: error: cannot find symbol
+import org.signal.libsignal.protocol.ecc.Curve;
+                                        ^
+  symbol:   class Curve
+  location: package org.signal.libsignal.protocol.ecc
+apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java:97: error: cannot find symbol
+    ECKeyPair pre = Curve.generateKeyPair();
+                    ^
+  symbol:   variable Curve
+  location: class VeilOutboxCheck
+apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java:98: error: cannot find symbol
+    ECKeyPair signed = Curve.generateKeyPair();
+                       ^
+  symbol:   variable Curve
+  location: class VeilOutboxCheck
+apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java:100: error: cannot find symbol
+    byte[] signedSignature = Curve.calculateSignature(recipient.getPrivateKey(), signed.getPublicKey().serialize());
+                             ^
+  symbol:   variable Curve
+  location: class VeilOutboxCheck
+apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java:101: error: cannot find symbol
+    byte[] kemSignature = Curve.calculateSignature(recipient.getPrivateKey(), kem.getPublicKey().serialize());
+                          ^
+  symbol:   variable Curve
+  location: class VeilOutboxCheck
+5 errors

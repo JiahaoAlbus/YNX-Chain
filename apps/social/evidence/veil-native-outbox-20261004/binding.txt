@@ -1,0 +1,9 @@
+ecc4cb2dbb17833ff413e5642e0185c914565b4cf51c78021379a45a54c936d8  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java
+e085f14c0e19ec10e8d841aaa40891995d49dfec6e411bd0d5cee5e9811e7535  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java
+db2379d777157e158ed3a9264c0f8cddf7199293af5a34a78c24a81da14a259f  apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java
+af39d0d45e79c7ca5fa3388e58cd7c8718191f12ee1d1eadfae1625e5f584b52  /tmp/social-veil-native-outbox-20261004.1h2j84/classes/com/ynx/social/matrix/VeilSignalOutbox.class
+fa49fd677fbe16229eaaefc7e6630357e07b3fa51c6a1cd8823477a1c2219d67  /tmp/social-veil-native-outbox-20261004.1h2j84/classes/com/ynx/social/matrix/VeilOutboxCheck.class
+2dbd1be0867639d7cee8b9433b60809a4e0a2e109463021af8fb3cea174bd2ad  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.Lz7905/native-port.jar
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+final_javac_release21_exit=0
+actual_outbox_sdk_check_exit=0

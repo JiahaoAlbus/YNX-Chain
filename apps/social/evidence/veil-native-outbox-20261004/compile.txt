@@ -1,0 +1,2 @@
+outbox_compile_exit=0
+stage=/tmp/social-veil-native-outbox-20261004.1h2j84

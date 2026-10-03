@@ -1,0 +1,11 @@
+PASS real SDK first send stores a prekey ciphertext alongside its session
+PASS real SDK receiver decrypts the committed-memory outbox ciphertext
+PASS exact retry returns byte-identical ciphertext without advancing session
+PASS changed plaintext under same operation rejects without mutation
+PASS changed conversation under same operation rejects without mutation
+PASS same-address peer key change cannot release old ciphertext
+PASS outbox write fault rolls back SDK session in controlled atomic memory
+PASS post-fault retry produces a decryptable message from retained session state
+PASS absent native local address admission refuses even saved retry
+PASS caller QA plaintext array remains unchanged
+PASS 10 real SDK outbox checks; synthetic admission/atomic-memory port only; no Android or fresh SPQR proof
