@@ -4,6 +4,11 @@ import {resolve} from "node:path";
 import {verifyCardBuildSourceFreeze} from "./card-build-source-freeze.mjs";
 
 const root=resolve(import.meta.dirname,"..");
+const packageVersion=JSON.parse(readFileSync(resolve(root,"package.json"),"utf8")).version;
+const appVersion=JSON.parse(readFileSync(resolve(root,"app.json"),"utf8")).expo.version;
+if(packageVersion!==appVersion)throw new Error("Card package and application versions must match before export");
+const releaseChannel=process.env.YNX_CARD_RELEASE_CHANNEL||"qa";
+if(!["qa","testnet-release"].includes(releaseChannel))throw new Error("Unknown Card release channel");
 const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim();
 const sourceTree=execFileSync("git",["rev-parse","HEAD^{tree}"],{cwd:root,encoding:"utf8"}).trim();
 const compatibility=JSON.parse(readFileSync(resolve(root,"card-source-compatibility.json"),"utf8"));
@@ -17,4 +22,4 @@ const indexPath=resolve(root,"dist-web/index.html");
 const index=readFileSync(indexPath,"utf8");
 if(!index.includes("/manifest.webmanifest"))writeFileSync(indexPath,index.replace("</head>","  <meta name=\"google\" content=\"notranslate\" />\n  <link rel=\"manifest\" href=\"/manifest.webmanifest\" />\n  <meta name=\"theme-color\" content=\"#002FA7\" />\n  <meta name=\"description\" content=\"YNX Card Testnet payment simulation. No fiat, real card payments, PAN, CVV, or merchant acceptance.\" />\n  <script>document.documentElement.lang=\"en\";document.documentElement.setAttribute(\"translate\",\"no\");document.documentElement.classList.add(\"notranslate\");</script>\n  <script defer src=\"/pwa-register.js\"></script>\n</head>"));
 writeFileSync(resolve(root,"dist-web/package.json"),readFileSync(resolve(root,"static-deploy-package.json"),"utf8"));
-writeFileSync(resolve(root,"dist-web/runtime-identity.json"),`${JSON.stringify({schemaVersion:"ynx.card.runtime-identity.v1",productId:"ynx-card",sourceCommit,sourceTree,environment:"testnet",evmChainId:6423,evmChainHex:"0x1917",paymentNetwork:"simulation",productionRealPayments:false,cardApiCompatibility:{schemaVersion:compatibility.schemaVersion,frontendSourceBase:compatibility.frontendSourceBase,frontendSourceCommit:sourceCommit,frontendSourceTree:sourceTree,backendSourceCommit:compatibility.backendSourceCommit,backendVersionSchema:compatibility.backendVersionSchema}},null,2)}\n`);
+writeFileSync(resolve(root,"dist-web/runtime-identity.json"),`${JSON.stringify({schemaVersion:"ynx.card.runtime-identity.v1",productId:"ynx-card",sourceCommit,sourceTree,appVersion,releaseChannel,environment:"testnet",evmChainId:6423,evmChainHex:"0x1917",paymentNetwork:"simulation",productionRealPayments:false,cardApiCompatibility:{schemaVersion:compatibility.schemaVersion,frontendSourceBase:compatibility.frontendSourceBase,frontendSourceCommit:sourceCommit,frontendSourceTree:sourceTree,backendSourceCommit:compatibility.backendSourceCommit,backendVersionSchema:compatibility.backendVersionSchema}},null,2)}\n`);
