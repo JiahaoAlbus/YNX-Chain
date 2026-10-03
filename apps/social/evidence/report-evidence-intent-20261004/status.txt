@@ -1,0 +1,2 @@
+original_counterexample_exit=1
+full_social_race_repair_exit=0

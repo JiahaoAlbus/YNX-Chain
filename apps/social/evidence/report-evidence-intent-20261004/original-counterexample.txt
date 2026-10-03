@@ -1,0 +1,5 @@
+--- FAIL: TestOriginalReportKeyCannotAcceptChangedEvidence (0.17s)
+    report_evidence_intent_test.go:31: changed evidence was accepted under original key: <nil>
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	0.620s
+FAIL

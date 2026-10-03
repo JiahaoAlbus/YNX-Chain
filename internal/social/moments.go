@@ -361,12 +361,14 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 	if !identifierPattern.MatchString(idempotencyKey) || !contains([]string{"moment", "comment", "profile", "message"}, targetType) || !contains([]string{"spam", "harassment", "hate", "violence", "sexual", "misinformation", "other"}, category) || len(detail) > 2000 || len(evidence) > 10 {
 		return SocialReport{}, false, ErrInvalid
 	}
+	evidence = append([]string(nil), evidence...)
 	for _, hash := range evidence {
 		if !evidenceHashPattern.MatchString(hash) {
 			return SocialReport{}, false, ErrInvalid
 		}
 	}
-	digest := objectDigest(struct{ T, I, C, D, A string }{targetType, targetID, category, detail, actor.Account})
+	digest := reportIntentDigest(actor.Account, idempotencyKey, targetType, targetID, category, detail, evidence)
+	legacyDigest := objectDigest(struct{ T, I, C, D, A string }{targetType, targetID, category, detail, actor.Account})
 	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
 	if err := s.lockAfterProductRevalidation(actor, "social.feed"); err != nil {
 		return SocialReport{}, false, err
@@ -388,18 +390,21 @@ func (s *Service) CreateSocialReport(actor Session, idempotencyKey, targetType, 
 		}
 	}
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
-		if previous.Action != "social_report" || previous.Digest != digest {
+		validDigest := previous.Action == "social_report_v2" && previous.Digest == digest
+		validLegacy := previous.Action == "social_report" && previous.Digest == legacyDigest
+		record, exists := s.state.Reports[previous.ObjectID]
+		if (!validDigest && !validLegacy) || !exists || !originalReportMatches(record, previous.ObjectID, actor.Account, targetType, targetID, category, detail, evidence) {
 			return SocialReport{}, false, ErrConflict
 		}
-		return s.state.Reports[previous.ObjectID], true, nil
+		return copyReportResult(record), true, nil
 	}
 	now := s.cfg.Now().UTC()
 	record := SocialReport{ID: "report_" + digest[:24], Reporter: actor.Account, TargetType: targetType, TargetID: targetID, Category: category, Detail: detail, EvidenceHashes: append([]string(nil), evidence...), Status: "submitted", Outcome: "pending", Explanation: "Trust review is pending. No penalty is applied automatically.", CreatedAt: now, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.Reports[record.ID] = record
-	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "social_report", Digest: digest, ObjectID: record.ID}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "social_report_v2", Digest: digest, ObjectID: record.ID}
 	s.appendAuditLocked("social_report_submitted", "report", record.ID, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
+	return copyReportResult(record), false, s.saveOrRollbackProductActorLocked(before, actor, "social.feed")
 }
 
 func (s *Service) SocialReport(actor Session, id string) (SocialReport, error) {
@@ -417,7 +422,7 @@ func (s *Service) SocialReport(actor Session, id string) (SocialReport, error) {
 	if record.Reporter != actor.Account {
 		return SocialReport{}, ErrUnauthorized
 	}
-	return record, nil
+	return copyReportResult(record), nil
 }
 
 func (s *Service) AppealSocialReport(actor Session, id, correction string) (SocialReport, error) {
