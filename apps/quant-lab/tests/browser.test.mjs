@@ -170,6 +170,26 @@ test('actual Chrome requires explicit Paper preview confirmation and preserves a
     assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
   }finally{await context.close()}
 });
+test('actual Chrome localizes a daily-loss rejection and refreshes the persisted risk without resubmission',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const hash='d'.repeat(64);let posts=0;
+    await context.route('**/api/v1/snapshot',async route=>{
+      const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};
+      if(posts)body.paper.DailyRisk={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-03',Loss:1000000000,Limit:1000000000,Breached:true};
+      await route.fulfill({response,json:body});
+    });
+    await context.route('**/api/v1/paper/orders',async route=>{posts++;await route.fulfill({status:403,contentType:'application/json',body:'{"error":"paper_daily_loss_limit","errorId":"controlled-daily-error"}'})});
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);
+    const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await (await dialog).accept();await click;
+    await page.waitForFunction(()=>document.querySelector('#paper-state').textContent.includes('1000000000 / 1000000000'));
+    assert.equal(posts,1);assert.match(await page.locator('#toast').textContent(),/first accepted market mark/);
+    assert.equal(await page.evaluate(()=>Object.keys(localStorage).some(key=>key.startsWith('ynx.quant.paper.pending'))),false);
+    await page.selectOption('#locale','ar');assert.match(await page.locator('#toast').textContent(),/خسارة/);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.ok((await page.locator('#paper-state').textContent()).includes('1000000000 / 1000000000'));assert.equal(posts,1);
+  }finally{await context.close()}
+});
+
 test('actual Chrome keeps a malformed Paper receipt pending and retries only the same confirmed intent',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

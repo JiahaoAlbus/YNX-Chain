@@ -612,6 +612,23 @@ test('Paper confirmation binds exact inputs, discloses missing execution-cost mo
   accept=true;app.context.confirm=()=>{app.ids.get('paper-amount').value='100';return true};await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal([...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending')),false);
 });
 
+test('typed Paper daily-loss rejection clears the rejected intent, refreshes risk and stays localized without auto-retry',async()=>{
+  const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};let posts=0;
+  const app=harness({snapshot,confirmAction:()=>true,apiStatus:url=>url.endsWith('/paper/orders')?403:200,apiResponse:url=>{
+    if(url.endsWith('/paper/orders')){posts++;return {error:'paper_daily_loss_limit',errorId:'controlled-error-id'}}
+    return {...snapshot,paper:posts?{DailyRisk:{Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-03',Loss:1000000000,Limit:1000000000,Breached:true}}:{}};
+  }});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';
+  await app.submit('paper-order');assert.equal(posts,1);
+  assert.equal([...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending')),false);
+  assert.ok(app.ids.get('paper-state').innerHTML.includes('1000000000 / 1000000000'));
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("paperDailyLossLead")',app.context));
+  }
+  assert.equal(posts,1);assert.equal(app.proofs(),0);
+});
+
 test('cancelled retry preserves the original durable uncertain intent without a new request',async()=>{
   const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
   const original=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();original.ids.get('paper-strategy').value=hash;original.ids.get('side').value='buy';original.ids.get('paper-amount').value='100';await original.submit('paper-order');

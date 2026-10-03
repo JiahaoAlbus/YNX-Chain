@@ -515,7 +515,9 @@ const api = async (path, opt = {}) => {
   const {response:r,body:b} = result;
   if (!r.ok) {
     const researchError = b?.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
-    throw Object.assign(new Error(researchError ? t("researchInputInvalid") : b?.error || `HTTP ${r.status}`), {status: r.status, code: b?.error, localeKey: researchError ? "researchInputInvalid" : null});
+    const dailyLossError = path === '/v1/paper/orders' && r.status === 403 && b?.error === 'paper_daily_loss_limit';
+    const localeKey = dailyLossError ? 'paperDailyLossLead' : researchError ? 'researchInputInvalid' : null;
+    throw Object.assign(new Error(localeKey ? t(localeKey) : b?.error || `HTTP ${r.status}`), {status: r.status, code: b?.error, localeKey});
   }
   return b;
 };
@@ -1001,7 +1003,8 @@ $("#paper-order").onsubmit = async (e) => {
       pendingPaperIntent = null;
       try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
     }
-    toast(e.message);
+    if(e.code === 'paper_daily_loss_limit') { try { await refresh(); } catch { /* Keep the precise rejection; no automatic order retry. */ } }
+    toast(e.message,e.localeKey ?? null);
   } finally {
     paperSubmitting = false;
     $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;

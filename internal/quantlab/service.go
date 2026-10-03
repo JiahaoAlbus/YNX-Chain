@@ -22,10 +22,11 @@ import (
 )
 
 var (
-	ErrInvalid     = errors.New("invalid request")
-	ErrConflict    = errors.New("conflict")
-	ErrForbidden   = errors.New("forbidden")
-	ErrUnavailable = errors.New("unavailable")
+	ErrInvalid        = errors.New("invalid request")
+	ErrConflict       = errors.New("conflict")
+	ErrForbidden      = errors.New("forbidden")
+	ErrPaperDailyLoss = fmt.Errorf("paper daily loss limit: %w", ErrForbidden)
+	ErrUnavailable    = errors.New("unavailable")
 )
 
 const (
@@ -1389,7 +1390,7 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 		if err := s.save(); err != nil {
 			return PaperOrder{}, err
 		}
-		return PaperOrder{}, ErrForbidden
+		return PaperOrder{}, ErrPaperDailyLoss
 	}
 	s.state.Paper.DailyRisk = dailyRisk
 	s.state.Sequence++

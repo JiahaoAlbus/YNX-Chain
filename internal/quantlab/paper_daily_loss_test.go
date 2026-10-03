@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -110,5 +112,41 @@ func TestPaperDailyRiskExactArithmeticLegacyAndClockFence(t *testing.T) {
 	}
 	if strings.Contains(string(encoded), "DailyRisk") {
 		t.Fatal("legacy integrity representation changed")
+	}
+}
+
+func TestPaperDailyLossHTTPReturnsPreciseRejectionWithoutOrder(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), MarketData: &submissionMarket{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	experiment, err := s.RunBacktest(request())
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := experiment.Strategy.StrategyHash
+	if _, err := s.ApplyPaperSignal(digest, "buy", 200_000_000, 10_000_000, 100_000_000); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"strategyHash":"` + digest + `","side":"sell","amount":1000000,"idempotencyKey":"typed-daily-rejection"}`
+	r := httptest.NewRequest(http.MethodPost, "/v1/paper/orders", strings.NewReader(body))
+	r.RemoteAddr = "127.0.0.1:23456"
+	r.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	w := httptest.NewRecorder()
+	NewServer(s).ServeHTTP(w, r)
+	var problem map[string]string
+	if err := json.Unmarshal(w.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != http.StatusForbidden || problem["error"] != "paper_daily_loss_limit" || problem["errorId"] == "" {
+		t.Fatalf("status=%d body=%v", w.Code, problem)
+	}
+	p := s.Snapshot()["paper"].(PaperState)
+	if len(p.Orders) != 1 || p.DailyRisk == nil || !p.DailyRisk.Breached {
+		t.Fatalf("unconfirmed order or missing risk: %+v", p)
+	}
+	if !errors.Is(ErrPaperDailyLoss, ErrForbidden) {
+		t.Fatal("forbidden compatibility lost")
 	}
 }

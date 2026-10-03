@@ -513,6 +513,8 @@ func respond(w http.ResponseWriter, r *http.Request, v any, e error, ok int) {
 	}
 	if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
 		errorCode = "request_cancelled"
+	} else if errors.Is(e, ErrPaperDailyLoss) {
+		errorCode = "paper_daily_loss_limit"
 	} else if errors.Is(e, ErrForbidden) {
 		errorCode = "forbidden"
 	} else if errors.Is(e, ErrConflict) {
