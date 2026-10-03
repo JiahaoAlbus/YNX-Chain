@@ -1,0 +1,5 @@
+--- FAIL: TestHistoricalVideoBackupDoesNotRewriteSource (0.01s)
+    historical_backup_regression_test.go:20: backup validation rewrote original historical state
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/apps/video/audit/.backup-baseline-probe-bhweekca	0.432s
+FAIL

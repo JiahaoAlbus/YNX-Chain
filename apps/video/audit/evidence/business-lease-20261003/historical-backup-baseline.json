@@ -1,0 +1,10 @@
+{
+  "baselineSource": "9f886ddd7451613d04ae1e7842371cc548f1d1fe",
+  "oldPackageFilesExported": 38,
+  "probeSHA256": "4222503f34a89aa1c0e81292f8e1251754857d180fc4c4ba52d3163d200b822d",
+  "command": "go test -count=1 -run ^TestHistoricalVideoBackupDoesNotRewriteSource$ <isolated original package>",
+  "exitCode": 1,
+  "actualOriginalFailure": "backup validation rewrote original historical state",
+  "isolation": "Original Git package+testdata exported into one new temporary owned directory; real historical backup regression run; removed only that directory afterward",
+  "sourceOrUserDataChanged": false
+}

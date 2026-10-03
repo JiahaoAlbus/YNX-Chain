@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]","Action":"build-output","Output":"internal/video/store.go:203:10: undefined: candidate\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]","Action":"build-fail"}
+{"Time":"2026-10-03T14:00:16.668139+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-03T14:00:16.668202+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/video [build failed]\n"}
+{"Time":"2026-10-03T14:00:16.668211+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":0,"FailedBuild":"github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]"}
