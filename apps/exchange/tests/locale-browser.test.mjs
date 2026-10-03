@@ -32,6 +32,26 @@ const controlsRender=app.slice(app.indexOf('function renderOwnedControls('),app.
 const publicRender=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const bookRender=app.slice(app.indexOf('function renderBook('),app.indexOf('function renderAccount('));
 
+test('actual security and support form labels preserve input nodes, raw values and user drafts across 12 languages',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.evaluate(()=>{document.querySelector('#controls').classList.add('active');window.originalControls=Array.from(document.querySelectorAll('#security-form input,#security-form select,#support-form select,#support-form textarea'));document.querySelector('#session-ttl').value='60';document.querySelector('#support-category').value='withdrawal';document.querySelector('#support-message').value='Exact draft · 原始内容 · <img> preserved';document.querySelector('#withdraw-lock').checked=true;document.querySelector('#withdraw-lock').disabled=true;document.querySelector('#session-ttl').disabled=true;window.unexpectedSubmit=0;for(const id of ['security-form','support-form'])document.getElementById(id).addEventListener('submit',event=>{event.preventDefault();window.unexpectedSubmit++})});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const [id,key] of [['session-ttl','Session lifetime'],['support-category','Category'],['support-message','What happened']])assert.equal(await page.locator('#'+id).evaluate(el=>Array.from(el.closest('label').childNodes).find(n=>n.nodeType===3&&n.textContent.trim()).textContent.trim()),catalogs[locale][key]);
+      assert.deepEqual(await page.locator('#session-ttl option').allTextContents(),['15 minutes','1 hour','8 hours'].map(key=>catalogs[locale][key]));assert.equal(await page.locator('#session-ttl').inputValue(),'60');assert.equal(await page.locator('#support-category').inputValue(),'withdrawal');assert.equal(await page.locator('#support-message').inputValue(),'Exact draft · 原始内容 · <img> preserved');
+      assert.equal(await page.locator('#withdraw-lock').isChecked(),true);assert.equal(await page.locator('#withdraw-lock').isDisabled(),true);assert.equal(await page.locator('#order-confirmation').isChecked(),true);assert.equal(await page.locator('#order-confirmation').isDisabled(),true);assert.equal(await page.locator('#session-ttl').isDisabled(),true);
+      assert.equal(await page.locator('#security-form button').textContent(),catalogs[locale]['Save controls']);assert.equal(await page.locator('#support-form button').textContent(),catalogs[locale]['Open support case']);
+      assert.equal(await page.locator('#security-form small').first().textContent(),catalogs[locale]['Blocks new withdrawal reviews']);assert.equal(await page.locator('#security-form small').last().textContent(),catalogs[locale]['Always review in Wallet']);
+      assert.equal(await page.evaluate(()=>window.originalControls.every(el=>el.isConnected&&document.getElementById(el.id)===el)),true,'translation preserves input identity and existing listeners');
+    }
+    assert.equal(requests,0);assert.equal(await page.evaluate(()=>window.unexpectedSubmit),0);
+  }finally{await browser.close()}
+});
+
 test('actual market workspace localizes headers and depth source without changing returned amounts, network or controls',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
