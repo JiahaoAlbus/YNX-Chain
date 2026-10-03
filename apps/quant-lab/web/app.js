@@ -32,6 +32,20 @@ try {
   if (localStorage.getItem(tenantKey) !== tenantId) throw new Error('STORAGE_READBACK_MISMATCH');
 } catch { tenantId = null; workspaceStorageAvailable = false; }
 const paperPendingKey = `ynx.quant.paper.pending.v1:${tenantId}`;
+const researchPendingKey = `ynx.quant.research.pending.v1:${tenantId}`;
+let pendingResearchInvalid = false, pendingResearchIntent = readPendingResearchIntent();
+function readPendingResearchIntent() {
+  if (!workspaceStorageAvailable) return null;
+  const raw = readPreference(researchPendingKey);
+  if (raw === null) return null;
+  try {
+    if (raw.length > 65536) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
+    const value = JSON.parse(raw), strategy = value?.strategy, costs = value?.assumptions;
+    if(Object.keys(strategy).sort().join(',')!=='family,id,license,limitations,name,params,seed,source,sourceCommit' || Object.keys(costs).sort().join(',')!=='feeBPS,latencyBars,participationBPS,seed,slippageBPS,trainEnd,walkForwardWindows' || strategy.source!=='quant://user/ma' || strategy.sourceCommit!=='local' || strategy.license!=='Apache-2.0' || typeof strategy.limitations!=='string')throw Error('INVALID_SAVED_RESEARCH_REQUEST');
+    if (Object.keys(value).sort().join(',') !== 'assumptions,idempotencyKey,strategy' || !/^quant-research-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.idempotencyKey) || !/^ma-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(strategy?.id) || strategy.family !== 'transparent' || typeof strategy.name !== 'string' || !strategy.name.trim() || strategy.name.length > 80 || !Number.isSafeInteger(strategy.seed) || Object.keys(strategy.params).sort().join(',') !== 'fast,slow' || !Number.isSafeInteger(strategy.params.fast) || strategy.params.fast < 2 || !Number.isSafeInteger(strategy.params.slow) || strategy.params.slow <= strategy.params.fast || !Number.isSafeInteger(costs.feeBPS) || costs.feeBPS < 0 || !Number.isSafeInteger(costs.slippageBPS) || costs.slippageBPS < 0 || costs.seed !== strategy.seed || costs.latencyBars !== 1 || costs.participationBPS !== 1000 || costs.trainEnd !== 24 || costs.walkForwardWindows !== 3) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
+    return value;
+  } catch { pendingResearchInvalid = true; return null; }
+}
 let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
@@ -363,6 +377,18 @@ function renderPaperRecords(paper) {
 }
 const localDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value)) : "—";
 const researchResultStatus = document.createElement("p");
+const researchForgetButton = document.createElement('button');
+researchForgetButton.type='button';researchForgetButton.id='research-forget-pending';
+$('#backtest').append(researchForgetButton);
+researchForgetButton.onclick=()=>{
+  if(researchSubmitting || !confirm(t('researchForgetConfirm'))) return;
+  try {
+    localStorage.removeItem(researchPendingKey);
+    if(localStorage.getItem(researchPendingKey)!==null) throw Error('STORAGE_READBACK_MISMATCH');
+    pendingResearchIntent=null;pendingResearchInvalid=false;
+    toast(t('researchForgotten'),'researchForgotten');renderResearchRequestState();
+  } catch { workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable'); }
+};
 researchResultStatus.id = "research-result-status";
 researchResultStatus.role = "status";
 $("#latest-result").append(researchResultStatus);
@@ -385,19 +411,44 @@ function applyLocale() {
   renderRiskControls();
   if (lastToastKey) $("#toast").textContent = t(lastToastKey) + lastToastSuffix;
 }
+// Product API transport only: no Wallet calls, automatic POST retry, or guessed
+// success. The deadline includes response parsing; unknown writes retain intent.
+async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
+  const controller = new AbortController();
+  let rejectDeadline;
+  const deadline = new Promise((_, reject) => { rejectDeadline = reject; });
+  const timeout = setTimer(() => {
+    rejectDeadline(Object.assign(new Error('Request outcome is unconfirmed'), {code:'QUANT_API_TIMEOUT', localeKey:'researchRequestUnconfirmed'}));
+    controller.abort();
+  }, 30000);
+  try {
+    return await Promise.race([(async () => {
+      const response = await fetchImpl('/api' + path, {...options, signal:controller.signal, credentials:'same-origin', redirect:'error', cache:'no-store'});
+      if (!/^application\/json(?:;|$)/i.test(response.headers.get('content-type') || '') || Number(response.headers.get('content-length')) > 8 * 1024 * 1024) throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+      const text = await response.text();
+      if (new TextEncoder().encode(text).byteLength > 8 * 1024 * 1024) throw Object.assign(new Error('Oversized product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+      let body;try { body = JSON.parse(text); } catch { throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'}); }
+      return {response,body};
+    })(),deadline]);
+  } finally { clearTimer(timeout); }
+}
 const api = async (path, opt = {}) => {
-  const r = await fetch("/api" + path, {
+  let result;
+  try { result = await quantHTTP(path, {
     ...opt,
     headers: {
       "content-type": "application/json",
       ...(tenantId && workspaceStorageAvailable ? {"x-ynx-preview-mode": "local-paper", "x-ynx-tenant-id": tenantId} : {}),
       ...(opt.headers || {}),
     },
-  });
-  const b = await r.json();
+  }); } catch (error) {
+    const key = error.localeKey || 'researchRequestUnconfirmed';
+    throw Object.assign(new Error(t(key)), {code:error.code || 'QUANT_API_UNAVAILABLE',localeKey:key});
+  }
+  const {response:r,body:b} = result;
   if (!r.ok) {
-    const researchError = b.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
-    throw Object.assign(new Error(researchError ? t("researchInputInvalid") : b.error || `HTTP ${r.status}`), {status: r.status, code: b.error, localeKey: researchError ? "researchInputInvalid" : null});
+    const researchError = b?.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
+    throw Object.assign(new Error(researchError ? t("researchInputInvalid") : b?.error || `HTTP ${r.status}`), {status: r.status, code: b?.error, localeKey: researchError ? "researchInputInvalid" : null});
   }
   return b;
 };
@@ -661,6 +712,7 @@ function researchRequestMatches(result, submitted) {
   // Source/data hashes are computed by the existing market-backed engine; this
   // check is a response consistency fence, not proof of engine/data authenticity.
   return verifiedResearchResult(result) && result.status === "completed_oos" &&
+    (submitted.idempotencyKey === undefined || result.researchRequestKey === submitted.idempotencyKey) &&
     result.strategy.ID === submitted.strategy.id &&
     result.strategy.Family === submitted.strategy.family && result.strategy.Seed === submitted.strategy.seed &&
     result.strategy.Params && Object.keys(result.strategy.Params).sort().join(",") === "fast,slow" &&
@@ -737,6 +789,21 @@ const researchInputCopy = {
   id:"Masukkan nama strategi (1–80 karakter) dan bilangan bulat aman. Jendela cepat minimal 2 dan lebih kecil dari jendela lambat; biaya dan slippage harus diisi eksplisit dengan nilai nonnegatif."
 };
 for (const [language,researchInputInvalid] of Object.entries(researchInputCopy)) Object.assign(businessCopy[language],{researchInputInvalid});
+const researchRecoveryCopy = {
+  en:['Request outcome is unconfirmed. Refresh saved history; retry the same saved inputs without creating another request.','A previous research request is unconfirmed. Restore its original inputs before retrying.','Forget pending request locally','Forget this pending research request on this browser? The service may already have saved it. This does not cancel or delete server research; a later submission is a separate run.','Pending request forgotten locally. Server records are unchanged.'],
+  'zh-CN':['请求结果未确认。请刷新已保存历史，并用原有输入重试，不要另建请求。','上次研究请求未确认。重试前请恢复原有输入。','仅在本地忘记待确认请求','要在此浏览器忘记待确认研究请求吗？服务端可能已保存。这不会取消或删除服务端研究；以后提交属于另一运行。','已在本地忘记请求，服务端记录未更改。'],
+  'zh-TW':['請求結果未確認。請重新整理已儲存歷史，並用原有輸入重試，不要另建請求。','上次研究請求未確認。重試前請還原原有輸入。','僅在本機忘記待確認請求','要在此瀏覽器忘記待確認研究請求嗎？服務端可能已儲存。這不會取消或刪除服務端研究；以後提交屬於另一執行。','已在本機忘記請求，服務端紀錄未更改。'],
+  ja:['リクエスト結果は未確認です。保存履歴を更新し、新規リクエストを作らず元の入力で再試行してください。','前の研究リクエストは未確認です。再試行前に元の入力を復元してください。','保留リクエストを端末だけで破棄','このブラウザの保留研究リクエストを破棄しますか？サーバーには保存済みかもしれません。サーバーの研究は取消・削除されず、次の送信は別の実行になります。','端末の保留リクエストを破棄しました。サーバー記録は未変更です。'],
+  ko:['요청 결과가 확인되지 않았습니다. 저장된 기록을 새로 고치고 새 요청 없이 원래 입력으로 재시도하세요.','이전 연구 요청이 확인되지 않았습니다. 재시도 전에 원래 입력을 복원하세요.','이 브라우저의 대기 요청 삭제','이 브라우저의 대기 연구 요청을 지울까요? 서버에 이미 저장되었을 수 있습니다. 서버 연구는 취소되거나 삭제되지 않으며 다음 제출은 별도 실행입니다.','브라우저의 대기 요청을 지웠습니다. 서버 기록은 변경되지 않았습니다.'],
+  es:['Resultado no confirmado. Actualice el historial y reintente las mismas entradas guardadas sin crear otra solicitud.','La investigación anterior no está confirmada. Restaure sus entradas antes de reintentar.','Olvidar solicitud solo aquí','¿Olvidar esta solicitud en este navegador? El servicio puede haberla guardado. No cancela ni borra la investigación del servidor; el siguiente envío será otra ejecución.','Solicitud olvidada localmente. Los registros del servidor no cambiaron.'],
+  fr:['Résultat non confirmé. Actualisez l’historique et réessayez les mêmes données sauvegardées sans nouvelle demande.','La recherche précédente est non confirmée. Rétablissez ses données avant de réessayer.','Oublier la demande localement','Oublier cette demande dans ce navigateur ? Le service peut déjà l’avoir sauvegardée. Cela n’annule ni ne supprime la recherche serveur ; le prochain envoi sera distinct.','Demande oubliée localement. Les données serveur sont inchangées.'],
+  de:['Ergebnis unbestätigt. Gespeicherten Verlauf aktualisieren und dieselben Eingaben ohne neue Anfrage erneut senden.','Die frühere Forschungsanfrage ist unbestätigt. Vor erneutem Senden ursprüngliche Eingaben wiederherstellen.','Anfrage nur lokal vergessen','Diese Anfrage in diesem Browser vergessen? Der Dienst könnte sie bereits gespeichert haben. Server-Forschung wird nicht gelöscht oder abgebrochen; die nächste Einsendung ist ein anderer Lauf.','Anfrage lokal vergessen. Serverdaten bleiben unverändert.'],
+  pt:['Resultado não confirmado. Atualize o histórico e repita os mesmos dados salvos sem criar outro pedido.','A pesquisa anterior não foi confirmada. Restaure os dados originais antes de repetir.','Esquecer pedido apenas aqui','Esquecer este pedido neste navegador? O serviço pode já tê-lo salvo. Isso não cancela nem apaga a pesquisa no servidor; o próximo envio será outra execução.','Pedido esquecido localmente. Registros do servidor não mudaram.'],
+  ru:['Результат не подтверждён. Обновите историю и повторите те же сохранённые данные без нового запроса.','Предыдущий запрос исследования не подтверждён. Восстановите исходные данные перед повтором.','Забыть запрос только локально','Забыть запрос в этом браузере? Сервис мог его сохранить. Это не отменяет и не удаляет исследование на сервере; следующая отправка — новый запуск.','Запрос забыт локально. Серверные записи не изменены.'],
+  ar:['نتيجة الطلب غير مؤكدة. حدّث السجل وأعد المحاولة بالمدخلات المحفوظة نفسها دون إنشاء طلب جديد.','طلب البحث السابق غير مؤكد. استعد مدخلاته الأصلية قبل إعادة المحاولة.','نسيان الطلب محليًا فقط','هل تريد نسيان الطلب في هذا المتصفح؟ قد يكون الخادم حفظه بالفعل. لا يُلغى البحث ولا يُحذف من الخادم؛ الإرسال التالي تشغيل مستقل.','نُسي الطلب محليًا. سجلات الخادم لم تتغير.'],
+  id:['Hasil belum terkonfirmasi. Segarkan riwayat dan ulangi masukan tersimpan yang sama tanpa membuat permintaan baru.','Permintaan riset sebelumnya belum terkonfirmasi. Pulihkan masukan awal sebelum mencoba lagi.','Lupakan permintaan hanya lokal','Lupakan permintaan di browser ini? Layanan mungkin telah menyimpannya. Riset server tidak dibatalkan atau dihapus; pengiriman berikutnya adalah proses terpisah.','Permintaan dilupakan secara lokal. Catatan server tidak berubah.'],
+};
+for(const [language,[researchRequestUnconfirmed,researchPendingMismatch,researchForget,researchForgetConfirm,researchForgotten]] of Object.entries(researchRecoveryCopy))Object.assign(businessCopy[language],{researchRequestUnconfirmed,researchPendingMismatch,researchForget,researchForgetConfirm,researchForgotten});
 function researchIntegerInput(id) {
   const raw = $("#" + id).value;
   if (typeof raw !== "string" || !raw.trim() || !Number.isSafeInteger(Number(raw))) throw Error(t("researchInputInvalid"));
@@ -760,7 +827,7 @@ $("#backtest").onsubmit = async (e) => {
   const savedWorkspace = statefulPreview;
   try {
     const draft = researchDraftInputs();
-    const body = {
+    let body = {
       strategy: {
         id: "ma-" + crypto.randomUUID(),
         name: draft.name,
@@ -782,14 +849,36 @@ $("#backtest").onsubmit = async (e) => {
         walkForwardWindows: 3,
       },
     };
+    if(pendingResearchInvalid || (pendingResearchIntent && !savedWorkspace)) throw Object.assign(Error(t('researchRequestUnconfirmed')),{localeKey:'researchRequestUnconfirmed'});
+    if(savedWorkspace){
+      if(pendingResearchIntent){
+        const prior=pendingResearchIntent;
+        if(prior.strategy.name!==draft.name || prior.strategy.seed!==draft.seed || prior.strategy.params.fast!==draft.fast || prior.strategy.params.slow!==draft.slow || prior.assumptions.feeBPS!==draft.fee || prior.assumptions.slippageBPS!==draft.slippage) throw Object.assign(Error(t('researchPendingMismatch')),{localeKey:'researchPendingMismatch'});
+        body=prior;
+      }else{
+        body.idempotencyKey='quant-research-'+crypto.randomUUID();
+        pendingResearchIntent=body;
+        persistWorkspaceValue(researchPendingKey,JSON.stringify(body));
+      }
+    }
     const result = await api(savedWorkspace ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
     if (!researchRequestMatches(result, body)) throw Error(t("researchInvalid"));
+    if(savedWorkspace){
+      try{
+        localStorage.removeItem(researchPendingKey);
+        if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
+        pendingResearchIntent=null;
+      }catch{workspaceStorageAvailable=false;statefulPreview=false;}
+    }
     renderResult(result, savedWorkspace);
     const resultMessage = savedWorkspace ? "researchSaved" : "researchTemporary";
     toast(t(resultMessage), resultMessage);
     if (savedWorkspace) await refresh();
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
+    if(e.status>=400&&e.status<500&&![408,409,429].includes(e.status)){
+      try{localStorage.removeItem(researchPendingKey);if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');pendingResearchIntent=null;}catch{workspaceStorageAvailable=false;statefulPreview=false;}
+    }
     toast(e.message, e.localeKey ?? null);
   } finally {
     researchSubmitting = false;
@@ -800,8 +889,11 @@ $("#backtest").onsubmit = async (e) => {
 function renderResearchRequestState() {
   $('#research-submit').disabled = researchSubmitting;
   $('#backtest').ariaBusy = String(researchSubmitting);
-  $('#research-request-status').hidden = !researchSubmitting;
-  $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : '';
+  $('#research-request-status').hidden = !researchSubmitting && !pendingResearchIntent && !pendingResearchInvalid;
+  $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : pendingResearchIntent || pendingResearchInvalid ? t('researchRequestUnconfirmed') : '';
+  researchForgetButton.hidden=!pendingResearchIntent&&!pendingResearchInvalid;
+  researchForgetButton.disabled=researchSubmitting;
+  researchForgetButton.textContent=t('researchForget');
 }
 $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
@@ -1042,10 +1134,14 @@ $("#kill").onclick = async () => {
     riskWrites.delete('kill');renderRiskControls();
   }
 };
+if(pendingResearchIntent){
+  const previous=pendingResearchIntent;
+  for(const [id,value] of Object.entries({strategy:previous.strategy.name,seed:previous.strategy.seed,fast:previous.strategy.params.fast,slow:previous.strategy.params.slow,fee:previous.assumptions.feeBPS,slippage:previous.assumptions.slippageBPS}))$('#'+id).value=String(value);
+}
 applyLocale();
 // A return URL only reveals the existing account controls. The private-session
 // controller still validates the callback and grants no authority from this UI.
 if (window.location?.pathname === "/wallet-auth/callback") $("#account-panel").open = true;
 window.addEventListener("ynx:quant-wallet-state", event => handleWalletState(event.detail));
 handleWalletState(window.YNXQuantWallet?.getStandardWalletState?.());
-refresh().catch((e) => toast("Service unavailable: " + e.message));
+refresh().catch((e) => toast(e.message,e.localeKey??null));

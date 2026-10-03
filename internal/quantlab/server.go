@@ -334,13 +334,25 @@ func (s *Server) backtest(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		Strategy    StrategySpec `json:"strategy"`
-		Assumptions Assumptions  `json:"assumptions"`
+		Strategy       StrategySpec    `json:"strategy"`
+		Assumptions    Assumptions     `json:"assumptions"`
+		IdempotencyKey json.RawMessage `json:"idempotencyKey"`
 	}
 	if !decodeResearch(w, r, &q) {
 		return
 	}
-	v, e := s.service.RunBacktestFromMarket(q.Strategy, q.Assumptions)
+	var v Experiment
+	var e error
+	if len(q.IdempotencyKey) == 0 {
+		v, e = s.service.RunBacktestFromMarket(q.Strategy, q.Assumptions)
+	} else {
+		var key string
+		if json.Unmarshal(q.IdempotencyKey, &key) != nil {
+			e = ErrInvalid
+		} else {
+			v, e = s.service.RunBacktestFromMarketOnce(q.Strategy, q.Assumptions, key)
+		}
+	}
 	respond(w, r, v, e, 201)
 }
 func (s *Server) stage(w http.ResponseWriter, r *http.Request) {

@@ -161,10 +161,12 @@ type LifecycleApproval struct {
 	Actor          string `json:"actor"`
 }
 type BacktestRequest struct {
-	Strategy      StrategySpec `json:"strategy"`
-	Bars          []Bar        `json:"bars"`
-	Assumptions   Assumptions  `json:"assumptions"`
-	scheduleRunID string
+	Strategy              StrategySpec `json:"strategy"`
+	Bars                  []Bar        `json:"bars"`
+	Assumptions           Assumptions  `json:"assumptions"`
+	scheduleRunID         string
+	researchRequestKey    string
+	researchRequestDigest string
 }
 type Metrics struct {
 	ReturnBPS, BuyHoldBPS, MaxDrawdownBPS int64
@@ -199,23 +201,25 @@ type PnLAttribution struct {
 	UnsupportedComponents    []string `json:"unsupportedComponents"`
 }
 type Experiment struct {
-	ID                   string             `json:"id"`
-	Strategy             StrategySpec       `json:"strategy"`
-	Assumptions          Assumptions        `json:"assumptions"`
-	Metrics              Metrics            `json:"metrics"`
-	Attribution          PnLAttribution     `json:"attribution"`
-	LookAheadRejected    bool               `json:"lookAheadRejected"`
-	LeakageChecksPassed  bool               `json:"leakageChecksPassed"`
-	WalkForward          []Metrics          `json:"walkForward"`
-	Sensitivity          map[string]Metrics `json:"sensitivity"`
-	SensitivitySpreadBPS int64              `json:"sensitivitySpreadBPS"`
-	Regimes              map[string]Metrics `json:"regimes"`
-	NoTradeReturnBPS     int64              `json:"noTradeReturnBPS"`
-	EquityCurve          []EquityPoint      `json:"equityCurve"`
-	MetricDefinitions    map[string]string  `json:"metricDefinitions"`
-	Status               string             `json:"status"`
-	CreatedAt            time.Time          `json:"createdAt"`
-	AuditDigest          string             `json:"auditDigest"`
+	ID                    string             `json:"id"`
+	Strategy              StrategySpec       `json:"strategy"`
+	Assumptions           Assumptions        `json:"assumptions"`
+	Metrics               Metrics            `json:"metrics"`
+	Attribution           PnLAttribution     `json:"attribution"`
+	LookAheadRejected     bool               `json:"lookAheadRejected"`
+	LeakageChecksPassed   bool               `json:"leakageChecksPassed"`
+	WalkForward           []Metrics          `json:"walkForward"`
+	Sensitivity           map[string]Metrics `json:"sensitivity"`
+	SensitivitySpreadBPS  int64              `json:"sensitivitySpreadBPS"`
+	Regimes               map[string]Metrics `json:"regimes"`
+	NoTradeReturnBPS      int64              `json:"noTradeReturnBPS"`
+	EquityCurve           []EquityPoint      `json:"equityCurve"`
+	MetricDefinitions     map[string]string  `json:"metricDefinitions"`
+	Status                string             `json:"status"`
+	CreatedAt             time.Time          `json:"createdAt"`
+	AuditDigest           string             `json:"auditDigest"`
+	ResearchRequestKey    string             `json:"researchRequestKey,omitempty"`
+	ResearchRequestDigest string             `json:"researchRequestDigest,omitempty"`
 }
 type RiskLimits struct {
 	MaxOrderNotional int64 `json:"maxOrderNotional"`
@@ -809,6 +813,11 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		return Experiment{}, lockErr
 	}
 	defer release()
+	if req.researchRequestKey != "" {
+		if previous, found, err := s.researchReplayLocked(req.researchRequestKey, req.researchRequestDigest); found || err != nil {
+			return previous, err
+		}
+	}
 	if req.scheduleRunID != "" {
 		current, exists := s.state.Strategies[strategy.ID]
 		if !exists || !current.Runtime.Enabled || current.Runtime.RunID != req.scheduleRunID {
@@ -826,6 +835,8 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		"sharpeMilli":    "mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero",
 		"volatilityBPS":  "sample standard deviation of OOS period returns × 10,000; not annualized",
 	}, Status: "completed_oos", CreatedAt: now}
+	e.ResearchRequestKey = req.researchRequestKey
+	e.ResearchRequestDigest = req.researchRequestDigest
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy

@@ -9,7 +9,7 @@ const accountA = `0x${'a'.repeat(40)}`, accountB = `0x${'b'.repeat(40)}`;
 const connected = account => ({status: 'connected', providerKind: 'metamask', chainId: '0x1917', account});
 const receipt = (account, balance = '1000000000000000000') => ({...connected(account), asset: 'YNXT', decimals: 18, balanceBaseUnits: balance, blockNumber: '42', source: 'selected-wallet-provider', asOf: '2026-09-12T00:00:00.000Z'});
 const deferred = () => {let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); return {promise, resolve, reject};};
-const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
+const settle = async () => {await new Promise(setImmediate);};
 const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
@@ -139,9 +139,9 @@ function harness({snapshot = {}, portfolioRead, apiResponse, apiStatus = () => 2
     readPortfolio: () => {reads++; return portfolioRead ? portfolioRead(current) : Promise.resolve(receipt(current.account));},
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
-  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
+  const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy && body.strategy.ID === undefined) body = {...body, strategy:{...body.strategy, ID:JSON.parse(options.body).strategy.id}}; const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
+fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy) {const research=JSON.parse(options.body);body={...body,strategy:{...body.strategy,ID:body.strategy.ID??research.strategy.id},researchRequestKey:body.researchRequestKey??research.idempotencyKey};} const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, headers:new Headers({'content-type':'application/json'}), text:async()=>JSON.stringify(url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body)};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -249,10 +249,50 @@ test('one in-flight research request preserves its submitted inputs and mode acr
   }
 });
 
-test('failed research unlocks a new explicit request without fabricating an experiment or automatic replay',async()=>{
+test('failed temporary research unlocks an explicit retry without fabricating an experiment or automatic replay',async()=>{
   let posts=0;const app=harness({snapshot:{access:{statefulPreview:false}},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:(posts++,Promise.reject(Error('Exact bounded source failure')))});await settle();
-  await app.submit('backtest');assert.equal(posts,1);assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('research-request-status').hidden,true);assert.equal(app.ids.get('latest-result').hidden,true);assert.match(app.ids.get('toast').textContent,/Exact bounded source failure/);
+  await app.submit('backtest');assert.equal(posts,1);assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('research-request-status').hidden,true);assert.equal(app.ids.get('latest-result').hidden,true);assert.match(app.ids.get('toast').textContent,/outcome is unconfirmed/);
   await app.submit('backtest');assert.equal(posts,2);assert.equal(app.proofs(),0);assert.equal(vm.runInContext('Object.keys(publicExperiments).length',app.context),0);
+});
+test('saved research retains one exact request across unknown outcome, reload, locale change and retry',async()=>{
+  const failed=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();
+  failed.ids.get('strategy').value='Exact saved retry';failed.ids.get('fee').value='17';await failed.submit('backtest');
+  const first=failed.calls.find(call=>call.options.method==='POST'),body=JSON.parse(first.options.body);
+  assert.match(body.idempotencyKey,/^quant-research-/);assert.equal(failed.ids.get('research-request-status').hidden,false);
+  assert.equal(failed.calls.filter(call=>call.options.method==='POST').length,1);
+  failed.ids.get('fee').value='18';await failed.submit('backtest');assert.equal(failed.calls.filter(call=>call.options.method==='POST').length,1);
+  const receipt=researchFixture('same-durable-result');receipt.assumptions.FeeBPS=17;
+  const retry=harness({savedStorage:failed.storage,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:receipt});await settle();
+  assert.equal(retry.ids.get('strategy').value,'Exact saved retry');assert.equal(retry.ids.get('fee').value,'17');
+  retry.ids.get('locale').onchange({target:{value:'ar'}});await retry.submit('backtest');
+  assert.equal(retry.calls.find(call=>call.options.method==='POST').options.body,first.options.body);
+  assert.equal(retry.ids.get('research-request-status').hidden,true);assert.equal(researchStatus(retry),vm.runInContext('businessCopy.ar.researchSaved',retry.context));
+  assert.equal([...retry.storage.keys()].filter(key=>key.startsWith('ynx.quant.research.pending.v1:')).length,0);
+  assert.equal(retry.proofs(),0);
+});
+test('unbound saved research key never clears an unknown request; explicit local forgetting does not change service records',async()=>{
+  const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:{...researchFixture('wrong-key'),researchRequestKey:'quant-research-ffffffff-ffff-ffff-ffff-ffffffffffff'}});await settle();
+  await app.submit('backtest');assert.equal(app.ids.get('latest-result').hidden,true);assert.equal(app.ids.get('research-request-status').hidden,false);
+  const button=app.ids.get('backtest').children.find(item=>item.id==='research-forget-pending');assert.equal(button.hidden,false);
+  const before=app.calls.length;button.onclick();assert.equal(app.calls.length,before);assert.equal(app.ids.get('research-request-status').hidden,true);
+  assert.match(app.ids.get('toast').textContent,/Server records are unchanged/);
+});
+test('invalid persisted research intent is retained and cannot silently create a new run',async()=>{
+  const id='a'.repeat(64),key='ynx.quant.research.pending.v1:'+id,raw='{"strategy":null}';
+  const app=harness({savedStorage:[["ynx.quant.tenant.v1",id],[key,raw]]});await settle();await app.submit('backtest');
+  assert.equal(app.storage.get(key),raw);assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.ids.get('research-request-status').hidden,false);
+});
+test('real shipped Quant HTTP deadline covers non-cooperative response and body without replaying a write',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
+  for(const stage of ['response','body']){
+    const timers=new Map();let calls=0,settled=false;const never=new Promise(()=>{});
+    const options={fetchImpl:async(_path,options)=>{calls++;assert.equal(options.method,'POST');assert.equal(options.redirect,'error');assert.equal(options.credentials,'same-origin');return stage==='response'?never:{headers:new Headers({'content-type':'application/json'}),text:()=>never}},setTimer:(fn,ms)=>{timers.set(1,{fn,ms});return 1},clearTimer:id=>timers.delete(id)};
+    const result=transport('/v1/backtests/from-market',{method:'POST',body:'{}'},options).catch(error=>{settled=true;return error});await settle();assert.equal(timers.get(1).ms,30000);timers.get(1).fn();await settle();
+    assert.equal(settled,true);assert.equal((await result).code,'QUANT_API_TIMEOUT');assert.equal(calls,1);assert.equal(timers.size,0);
+  }
+  for(const response of [new Response('<html>fallback</html>',{headers:{'content-type':'text/html'}}),new Response('{invalid',{headers:{'content-type':'application/json'}}),new Response('{}',{headers:{'content-type':'application/json','content-length':'999999999'}})]){
+    await assert.rejects(transport('/v1/snapshot',{}, {fetchImpl:async()=>response}),{code:'QUANT_API_RESPONSE_INVALID'});
+  }
 });
 
 test('risk outcomes use confirmed zero or exact nonzero receipts without false zero-difference claims',async()=>{

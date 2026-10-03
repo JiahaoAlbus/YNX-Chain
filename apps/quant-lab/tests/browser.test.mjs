@@ -10,7 +10,7 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
       posts++;const submitted=route.request().postDataJSON();
       const assumptions=Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]));
       if(posts===2)assumptions.FeeBPS++;
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
@@ -164,7 +164,7 @@ test('real research form coalesces a delayed request without displaying unconfir
     assert.equal(await page.locator('#research-submit').isDisabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'true');
     await page.evaluate(()=>{document.getElementById('backtest').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))});
     await page.selectOption('#locale','ar');assert.match(await page.locator('#research-request-status').textContent(),/قيد الانتظار/);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(posts,1);
-    complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),false);assert.equal(posts,1);
+    complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
   }finally{await context.close()}
 });
 test('actual local Go reconciliation reports a controlled stale-snapshot difference and persistent kill switch',async()=>{
