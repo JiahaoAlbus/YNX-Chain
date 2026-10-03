@@ -64,6 +64,9 @@ public final class VeilMatrixJournalCheck {
           "$event", "observed-sdk-txn", sender, entry.mediaUrl, entry.cipherSha256());
       check(observed.phase == VeilMatrixJournal.Phase.OBSERVED && observed.matrixTransaction.equals("observed-sdk-txn"));
       check(VeilMatrixJournal.readInTransaction(port, scope, operation).event.equals("$event"));
+      byte[] exported = VeilMatrixJournal.originalCipherInTransaction(port, scope, operation);
+      check(Arrays.equals(exported, cipher)); exported[0] ^= 1;
+      check(Arrays.equals(VeilMatrixJournal.originalCipherInTransaction(port, scope, operation), cipher));
       fails("VEIL_AUTHENTICATED_MESSAGE_REUSE", () -> VeilMatrixJournal.observeInTransaction(port, scope, operation,
           "$different", "observed-sdk-txn", sender, entry.mediaUrl, entry.cipherSha256()));
     });
@@ -77,6 +80,15 @@ public final class VeilMatrixJournalCheck {
     check(port.rows.keySet().equals(before.keySet())); current[0] = true;
     VeilMatrixJournal.Scope wrong = new VeilMatrixJournal.Scope(scope.homeserver, scope.self, scope.peer, "!elsewhere:example.org", () -> {});
     fails("VEIL_AUTHENTICATED_MESSAGE_REUSE", () -> port.run(() -> VeilMatrixJournal.readInTransaction(port, wrong, operation)));
+    byte[] fingerprint = new byte[32]; Arrays.fill(fingerprint, (byte) 3);
+    UUID fresh = UUID.fromString("33333333-3333-4333-8333-333333333333");
+    port.run(() -> VeilMatrixContextBinding.require(port, fresh, fingerprint, true));
+    port.run(() -> VeilMatrixContextBinding.require(port, fresh, fingerprint, false));
+    byte[] changed = fingerprint.clone(); changed[0] ^= 1;
+    fails("VEIL_AUTHENTICATED_CONTEXT_MISMATCH", () -> port.run(() -> VeilMatrixContextBinding.require(port, fresh, changed, false)));
+    fails("VEIL_NATIVE_RECOVERY_REQUIRED", () -> port.run(() -> VeilMatrixContextBinding.require(port, operation, fingerprint, true)));
+    UUID missing = UUID.fromString("44444444-4444-4444-8444-444444444444");
+    fails("VEIL_NATIVE_RECOVERY_REQUIRED", () -> port.run(() -> VeilMatrixContextBinding.require(port, missing, fingerprint, false)));
     String journal = "OUTBOX:matrix-v2:" + operation;
     byte[] saved = port.rows.get(journal).clone(); port.rows.put(journal, Arrays.copyOf(saved, saved.length - 1));
     fails("VEIL_NATIVE_RECOVERY_REQUIRED", () -> port.run(() -> VeilMatrixJournal.readInTransaction(port, scope, operation)));

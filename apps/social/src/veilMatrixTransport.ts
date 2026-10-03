@@ -11,7 +11,7 @@ export type VeilMatrixContent = Readonly<{
   ciphertext: Readonly<{ url: string; sha256: string; size: number }>;
 }>;
 export type VeilMatrixPending = Readonly<{
-  localOperationId: string; senderMessageId: string; matrixTransactionId: string;
+  localOperationId: string; senderMessageId: string; matrixTransactionId: string | null;
   roomId: string; senderUserId: string; contentJson: string;
   phase: 'prepared' | 'unknown' | 'observed'; eventId: string | null;
 }>;
@@ -96,7 +96,7 @@ export function selectVeilMatrixReader(eventType: string, rawContent: string): V
 export function prepareVeilMatrixPending(input: Omit<VeilMatrixPending, 'phase' | 'eventId'>): VeilMatrixPending {
   const localOperationId = uuid(input.localOperationId);
   const senderMessageId = uuid(input.senderMessageId);
-  const matrixTransactionId = text(input.matrixTransactionId);
+  const matrixTransactionId = input.matrixTransactionId === null ? null : text(input.matrixTransactionId);
   const roomId = text(input.roomId);
   const senderUserId = text(input.senderUserId);
   if (!roomId.startsWith('!') || !roomId.includes(':') || !senderUserId.startsWith('@') || !senderUserId.includes(':')) fail('VEIL_MATRIX_EVENT_INVALID');

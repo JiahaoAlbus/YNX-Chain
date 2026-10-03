@@ -1,0 +1,22 @@
+{
+  "sourceBase": "51c7074028f599ac3c999eccdcd18dfb7fcbaf49",
+  "kind": "DORMANT_LOCAL_COMPILE_CANDIDATE",
+  "artifacts": [
+    {
+      "name": "dormant-java-adapters.jar",
+      "bytes": 47377,
+      "sha256": "330fdfd05dce85fede3cd4f052a1b1df2fd809de85aea85e22f9ca9137fd2cec"
+    },
+    {
+      "name": "dormant-native-module.jar",
+      "bytes": 74617,
+      "sha256": "671b4e1b32fa003aec9243be35cfe9f9da06666bec0a2a49e4bb6c249ac6e465"
+    }
+  ],
+  "activationApproved": false,
+  "activated": false,
+  "runtimeVerified": false,
+  "installedVerified": false,
+  "publicVerified": false,
+  "MONSTER": "NOT_RUN"
+}

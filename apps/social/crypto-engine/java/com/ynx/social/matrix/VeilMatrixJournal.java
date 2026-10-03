@@ -134,6 +134,13 @@ final class VeilMatrixJournal {
     scope.recheck.run(); tx.checkLive();
     return result;
   }
+  static byte[] originalCipherInTransaction(VeilRecordTransaction tx, Scope scope, UUID operation) {
+    readInTransaction(tx, scope, operation);
+    try (Original original = original(tx, operation)) {
+      scope.recheck.run(); tx.checkLive();
+      return original.cipher.clone();
+    }
+  }
   static Entry uploadedInTransaction(VeilRecordTransaction tx, Scope scope, UUID operation, String mediaUrl) {
     checkedText(mediaUrl, 1024);
     if (!mediaUrl.matches("mxc://[A-Za-z0-9.\\[\\]:-]+/[A-Za-z0-9_-]+")) throw reuse();

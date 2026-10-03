@@ -1,0 +1,12 @@
+java_compile_exit=0
+journal_check_exit=0
+kotlin_compile_exit=1
+same_module_kotlin_compile_exit=0
+project_typecheck_exit=0
+ts_stage=/tmp/social-matrix-pipeline-ts-20261004.4nOwgz
+strict_test_compile_exit=0
+transport_tests_exit=0
+cold_java_stage=/tmp/social-matrix-pipeline-cold-20261004.NUmN3A
+cold_java_compile_exit=0
+cold_journal_check_exit=0
+final_event_gate_kotlin_compile_exit=0

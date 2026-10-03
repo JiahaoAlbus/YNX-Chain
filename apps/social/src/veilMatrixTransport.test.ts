@@ -68,6 +68,14 @@ test('unknown send must read original, not regenerate or repost', () => {
   assert.equal(attempted.matrixTransactionId, record.matrixTransactionId);
   assert.throws(() => markVeilMatrixAttempted(attempted), /READBACK_REQUIRED/);
 });
+test('unknown original SDK transaction stays null instead of borrowing another namespace', () => {
+  const prepared = prepareVeilMatrixPending({ ...pending(), matrixTransactionId: null });
+  const attempted = markVeilMatrixAttempted(prepared);
+  assert.equal(attempted.matrixTransactionId, null);
+  assert.equal(attempted.senderMessageId, sender);
+  assert.equal(attempted.localOperationId, operation);
+  assert.equal(veilMatrixRetryDecision(attempted), 'readback-only');
+});
 test('readback requires exact original room, sender, type and ciphertext reference', () => {
   const record = markVeilMatrixAttempted(pending());
   const event = { eventId: '$original', roomId: record.roomId, sender: record.senderUserId, type: VEIL_MATRIX_EVENT, contentJson: record.contentJson };
