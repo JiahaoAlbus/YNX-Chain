@@ -67,5 +67,15 @@ h3,.key-security h2{font-size:1.066667rem}
 #auth-origin,#auth-account,#proposal-origin,#proposal-account,#provider-origin,#provider-detail,#transfer-transaction,#contract-result,
 #balance-value,#asset-balance{direction:ltr;unicode-bidi:isolate;text-align:start}
 input[type="password"]{unicode-bidi:plaintext}
+#protected-pay-reference{direction:ltr;unicode-bidi:isolate;text-align:start}
+#protected-pay-sheet button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+#protected-pay-sheet .actions{flex-wrap:wrap;gap:10px}
+#protected-pay-sheet .actions button{flex:1 1 11rem;min-width:0;min-height:44px}
+#protected-pay-sheet .network-facts{grid-template-columns:minmax(0,9rem) minmax(0,1fr)}
+#protected-pay-sheet .network-facts dt,#protected-pay-sheet .network-facts dd{min-width:0;overflow-wrap:anywhere}
+#protected-pay-sheet .network-facts dd[dir]{unicode-bidi:isolate}
+#protected-pay-sheet .balance-heading{flex-wrap:wrap;gap:12px}
+#protected-pay-history-list p{padding-block:16px;border-block-end:1px solid var(--line);overflow-wrap:anywhere}
+@media(max-width:620px){#protected-pay-sheet .network-facts{grid-template-columns:1fr;gap:4px}#protected-pay-sheet .network-facts dd{margin-block-end:12px}}
 #transfer-summary dd{unicode-bidi:isolate}
 @media(max-width:620px){:root[dir="rtl"] .sidebar{border-left:0;border-bottom:1px solid var(--line)}}

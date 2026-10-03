@@ -1,3 +1,5 @@
+import {setWalletCopy} from "./wallet-locale.mjs";
+const payStateCopy=Object.freeze({transfer_unconfirmed:"Transfer outcome unconfirmed",settlement_pending:"Transfer verified — settlement pending",settlement_unknown:"Settlement outcome unknown — read original receipt",settled:"Settlement verified",archived:"Receipt archived"});
 const hash=value=>typeof value==="string"&&/^0x[0-9a-f]{64}$/.test(value);
 const invoice=value=>typeof value==="string"&&/^inv_[a-f0-9]{20}$/.test(value);
 const text=value=>typeof value==="string"&&value.length>0&&value.length<=256&&!/[\x00-\x1f\x7f]/.test(value);
@@ -65,9 +67,15 @@ export function mountDesktopPayUI({document,api,getContext}){
   const buttons={review:document.querySelector("#protected-pay-review"),approve:document.querySelector("#protected-pay-approve"),restore:document.querySelector("#protected-pay-restore"),check:document.querySelector("#protected-pay-check"),settle:document.querySelector("#protected-pay-settle"),receipt:document.querySelector("#protected-pay-receipt"),done:document.querySelector("#protected-pay-done"),history:document.querySelector("#protected-pay-history")};
   const history=document.querySelector("#protected-pay-history-list");
   const ui=createDesktopPayUI({getContext:()=>({...getContext(),open:sheet.open}),api,render:view=>{
-    status.textContent=view.error??view.notice??"";facts.replaceChildren();
+    setWalletCopy(status,view.error??view.notice??"");facts.replaceChildren();
     const item=view.review??view.original;
-    if(item){for(const [label,value] of [["Invoice",item.invoiceId],["Merchant",item.merchant],["Paying account",item.account],["Recipient",item.recipient],["Amount",`${item.amount} YNXT`],["Network fee",`${item.fee} YNXT`],["Total",`${item.total} YNXT`],...(view.review?[["Quote expires",item.expiresAt],["Quote digest",item.intentDigest]]:[["Original hash",item.hash],["Saved state",item.status],["Native local checkpoint",item.checkpointVerified?"Verified, not consensus finality":"Unconfirmed"],["Pay settlement receipt",item.settlementVerified?"Verified":"Not verified"]])]){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=String(value);facts.append(dt,dd)}}
+    if(item){for(const [label,value] of [["Invoice",item.invoiceId],["Merchant",item.merchant],["Paying account",item.account],["Recipient",item.recipient],["Amount",`${item.amount} YNXT`],["Network fee",`${item.fee} YNXT`],["Total",`${item.total} YNXT`],...(view.review?[["Quote expires",item.expiresAt],["Quote digest",item.intentDigest]]:[["Original hash",item.hash],["Saved state",item.status],["Native local checkpoint",item.checkpointVerified?"Verified, not consensus finality":"Unconfirmed"],["Pay settlement receipt",item.settlementVerified?"Verified":"Not verified"]])]){
+      const dt=document.createElement("dt"),dd=document.createElement("dd");setWalletCopy(dt,label);
+      if(label==="Saved state")setWalletCopy(dd,payStateCopy[value]);
+      else if(label==="Native local checkpoint"||label==="Pay settlement receipt")setWalletCopy(dd,value);
+      else {dd.textContent=String(value);dd.dir=label==="Merchant"?"auto":"ltr"}
+      facts.append(dt,dd);
+    }}
     buttons.review.disabled=view.busy||!view.available||!!view.original;reference.disabled=view.busy||!!view.original;
     buttons.approve.hidden=!view.review;buttons.approve.disabled=view.busy||!view.review;
     for(const action of ["check","settle","receipt","done"]){buttons[action].hidden=!view.original||view.original.status==="archived";buttons[action].disabled=view.busy||!view.original}
@@ -77,7 +85,7 @@ export function mountDesktopPayUI({document,api,getContext}){
     buttons.restore.disabled=view.busy||!view.available;buttons.history.disabled=view.busy||!view.available;
     document.querySelector("#protected-pay-older").hidden=view.historyCursor===null;document.querySelector("#protected-pay-older").disabled=view.busy;
     document.querySelector("#protected-pay-next").hidden=view.original?.status!=="archived";document.querySelector("#protected-pay-next").disabled=view.busy;
-    if(!item&&!view.error&&!view.notice&&view.available)status.textContent="Enter a signed invoice reference to review. Approval is a separate step; nothing is paid by scanning or checking.";
+    if(!item&&!view.error&&!view.notice&&view.available)setWalletCopy(status,"Enter a signed invoice reference to review. Approval is a separate step; nothing is paid by scanning or checking.");
   }});
   let qrIntent=null,qrRevision=0;
   document.querySelector("#open-protected-pay").addEventListener("click",()=>{qrRevision++;qrIntent=null;document.querySelector("#invoice-sheet").close();history.replaceChildren();sheet.showModal();reference.focus();void ui.open()});
@@ -86,7 +94,7 @@ export function mountDesktopPayUI({document,api,getContext}){
   buttons.approve.addEventListener("click",()=>void ui.approve());buttons.restore.addEventListener("click",()=>void ui.restore());
   document.querySelector("#protected-pay-next").addEventListener("click",()=>{qrRevision++;qrIntent=null;reference.value="";history.replaceChildren();void ui.open();reference.focus()});
   for(const action of ["check","settle","receipt","done"])buttons[action].addEventListener("click",()=>void ui.action(action));
-  const loadHistory=async more=>{if(!more)history.replaceChildren();const records=await ui.history(more);if(!records)return;history.replaceChildren();for(const item of records){const row=document.createElement("p");row.textContent=`${item.merchant} · ${item.amount} YNXT + ${item.fee} YNXT fee · ${item.invoiceId} · ${item.hash} · verified Pay settlement, local native checkpoint (not consensus finality)`;history.append(row)}if(records.length===0){const row=document.createElement("p");row.textContent="No verified Pay receipts saved for this account.";history.append(row)}};
+  const loadHistory=async more=>{if(!more)history.replaceChildren();const records=await ui.history(more);if(!records)return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};
   buttons.history.addEventListener("click",()=>loadHistory(false));document.querySelector("#protected-pay-older").addEventListener("click",()=>loadHistory(true));
   const qr=document.querySelector("#protected-pay-qr");
   qr.addEventListener("click",()=>{qrRevision++;const current=getContext();qrIntent=sheet.open&&!current.locked?{account:current.account,keyRevision:current.keyRevision,revision:qrRevision}:null;void ui.clear()});
@@ -94,8 +102,8 @@ export function mountDesktopPayUI({document,api,getContext}){
     const bound=qrIntent;qrIntent=null;const file=event.target.files?.[0];event.target.value="";
     const live=()=>{const current=getContext();return bound&&bound.revision===qrRevision&&sheet.open&&!current.locked&&bound.account===current.account&&bound.keyRevision===current.keyRevision};
     if(!live())return;
-    try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const result=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;if(!result?.ok||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())status.textContent="QR reference read locally. Choose Review signed invoice; scanning never signs or pays."}
-    catch{if(live())status.textContent="No supported Pay invoice QR was found. Nothing was uploaded or paid."}
+    try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const result=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;if(!result?.ok||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())setWalletCopy(status,"QR reference read locally. Choose Review signed invoice; scanning never signs or pays.")}
+    catch{if(live())setWalletCopy(status,"No supported Pay invoice QR was found. Nothing was uploaded or paid.")}
   });
   const invalidate=()=>{qrRevision++;qrIntent=null;history.replaceChildren();void ui.clear()};
   sheet.addEventListener("close",invalidate);sheet.addEventListener("cancel",invalidate);
