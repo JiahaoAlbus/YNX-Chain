@@ -1,0 +1,13 @@
+baseCommit=8c000a68cdc40915466d03546a0fb3d23890a046
+baseTree=d2ea28609c45d4cd6c1beda2319558aa4d7be07f
+88bfa2ce0ea7f0009ed209e0826ab425b15e67e0b7c4ba28d88f17eb3851b575  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java
+8a03ab70dcc7e2f12c22c02b5c86f4cd4d8372a852a5542aa78ef831b1c7f039  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java
+27284a6886e68f8124ca9f27656dea667ad7b290a794c26c31a11e88c0650fa5  apps/social/scripts/veil-libsignal-qa/VeilOutboxCheck.java
+fad4fe9b646415d63c6d9dd633be7c0782d7b1a2023a78dbdce083a442b17f88  /tmp/social-veil-cross-room-20261004.5wmXOl/classes/com/ynx/social/matrix/VeilSignalOutbox.class
+5e409098a7c9434251c6de5b732d0fd5ec37532f4401f9a10a28ac94b4a1ba9d  /tmp/social-veil-cross-room-20261004.5wmXOl/classes/com/ynx/social/matrix/VeilSignalInbox.class
+935571dd03f0c3601a48738a81915a0206beef9b333525dc5fb2ea2a34d526ef  /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/native-port.jar
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+[0.016s][info][class,load] com.ynx.social.matrix.VeilOutboxCheck source: file:/private/tmp/social-veil-cross-room-20261004.5wmXOl/classes/
+[0.476s][info][class,load] com.ynx.social.matrix.VeilRecordKind source: file:/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/social-veil-native-adapter.9I3Nu0/native-port.jar
+[0.502s][info][class,load] com.ynx.social.matrix.VeilSignalOutbox source: file:/private/tmp/social-veil-cross-room-20261004.5wmXOl/classes/
+[0.509s][info][class,load] com.ynx.social.matrix.VeilSignalInbox source: file:/private/tmp/social-veil-cross-room-20261004.5wmXOl/classes/

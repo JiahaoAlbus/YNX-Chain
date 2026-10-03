@@ -4,8 +4,8 @@ set -eu
 
 mode=${1:-}
 case "$mode" in
-  compile|keyless|lifecycle|independent|outbox|inbox|encoding) ;;
-  *) printf '%s\n' 'Usage: sh native-adapter-check.sh compile|keyless|lifecycle|independent|outbox|inbox|encoding' >&2; exit 2 ;;
+  compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room) ;;
+  *) printf '%s\n' 'Usage: sh native-adapter-check.sh compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room' >&2; exit 2 ;;
 esac
 
 : "${VEIL_LIBSIGNAL_JAR:?Supply the official pinned libsignal 0.104.0 JAR}"
@@ -56,6 +56,7 @@ runtime="$stage/classes:$stage/native-port.jar:$VEIL_LIBSIGNAL_JAR:$VEIL_SDK_CLA
   > "$stage/java-compile.txt" 2>&1
 printf '%s\n' 'PASS fresh dormant native port and adapter compilation'
 
+set --
 case "$mode" in
   compile) exit 0 ;;
   keyless) main=com.ynx.social.matrix.VeilKeylessAdapterCheck ;;
@@ -63,6 +64,7 @@ case "$mode" in
   outbox) main=com.ynx.social.matrix.VeilOutboxCheck ;;
   inbox) main=com.ynx.social.matrix.VeilInboxCheck ;;
   encoding) main=com.ynx.social.matrix.VeilContextEncodingCheck ;;
+  cross-room) main=com.ynx.social.matrix.VeilOutboxCheck; set -- cross-room ;;
   independent)
     : "${VEIL_INDEPENDENT_CLASSES:?Supply the unchanged controller probe classes directory}"
     probe="$VEIL_INDEPENDENT_CLASSES/com/ynx/social/matrix/KeylessAdapterProbe.class"
@@ -74,9 +76,14 @@ case "$mode" in
     ;;
 esac
 
+set +e
 "$VEIL_JAVA" --enable-native-access=ALL-UNNAMED -Xcheck:jni \
   -Djava.io.tmpdir="$stage/jni-temp" \
   -Xlog:class+load=info:file="$stage/class-load.txt" \
-  -cp "$runtime" "$main" > "$stage/check.txt" 2>&1
+  -cp "$runtime" "$main" "$@" > "$stage/check.txt" 2>&1
+result=$?
+set -e
 cat "$stage/check.txt"
+printf 'selected_qa_exit=%s\n' "$result"
 printf '%s\n' 'QA only: synthetic trust/memory port; no real device, durable anchor, or release approval.'
+exit "$result"

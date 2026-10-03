@@ -1,0 +1,6 @@
+PASS real SDK first send stores a prekey ciphertext alongside its session
+FAIL sender's real outbox ciphertext accepted under different conversation and fresh operation
+OBSERVED receiver persisted an inbox receipt for attacker-selected routing context in controlled memory
+Exception in thread "main" java.lang.AssertionError: VEIL_AUTHENTICATED_CONVERSATION_BINDING_MISSING
+	at com.ynx.social.matrix.VeilOutboxCheck.main(VeilOutboxCheck.java:144)
+cross_room_probe_exit=1

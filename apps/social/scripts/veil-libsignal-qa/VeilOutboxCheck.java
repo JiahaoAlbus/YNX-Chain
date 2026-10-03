@@ -122,6 +122,28 @@ public final class VeilOutboxCheck {
     require(first.type == CiphertextMessage.PREKEY_TYPE &&
         port.read(VeilRecordKind.OUTBOX, "signal:" + operation) != null,
         "real SDK first send stores a prekey ciphertext alongside its session");
+    if (args.length == 1 && args[0].equals("cross-room")) {
+      Port receiving = new Port();
+      receiving.write(VeilRecordKind.SOCIAL_IDENTITY, "public", recipient.getPublicKey().serialize());
+      receiving.write(VeilRecordKind.SOCIAL_IDENTITY, "identity", recipient.serialize());
+      receiving.write(VeilRecordKind.SOCIAL_IDENTITY, "registration", ByteBuffer.allocate(4).putInt(remoteRegistration).array());
+      receiving.write(VeilRecordKind.SOCIAL_IDENTITY, "signal-address", remote.toString().getBytes(StandardCharsets.UTF_8));
+      receiving.write(VeilRecordKind.IDENTITY_PIN, local.toString(), sender.getPublicKey().serialize());
+      VeilSignalProtocolStore incoming = new VeilSignalProtocolStore(receiving, recipient.getPublicKey());
+      incoming.storePreKey(11, new PreKeyRecord(11, pre));
+      incoming.storeSignedPreKey(12, new SignedPreKeyRecord(12, 0L, signed, signedSignature));
+      receiving.write(VeilRecordKind.KEM_PREKEY_MODE, "13", new byte[] { 0 });
+      incoming.storeKyberPreKey(13, new KyberPreKeyRecord(13, 0L, kem, kemSignature));
+      UUID replacement = UUID.fromString("55555555-5555-4555-8555-555555555555");
+      try (VeilSignalInbox.ReceivedMessage moved = receiving.atomic(() ->
+          VeilSignalInbox.decryptInTransaction(receiving, recipient.getPublicKey(), remote,
+              replacement, room + "-other", local, first.type, first.serialize()))) {
+        if (!Arrays.equals(moved.bytes(), plaintext)) throw new AssertionError("unexpected QA body");
+        System.out.println("FAIL sender's real outbox ciphertext accepted under different conversation and fresh operation");
+        System.out.println("OBSERVED receiver persisted an inbox receipt for attacker-selected routing context in controlled memory");
+        throw new AssertionError("VEIL_AUTHENTICATED_CONVERSATION_BINDING_MISSING");
+      }
+    }
     require(Arrays.equals(decrypt(receiverCipher, first), plaintext),
         "real SDK receiver decrypts the committed-memory outbox ciphertext");
     Map<String, byte[]> stable = port.snapshot();
