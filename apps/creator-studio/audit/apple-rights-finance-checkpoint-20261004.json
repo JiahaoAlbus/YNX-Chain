@@ -1,0 +1,405 @@
+{
+  "schema": "ynx.creator.apple.rights-finance.freeze.v1",
+  "createdAt": "2026-10-03T21:24:53.664429+00:00",
+  "sourceCommit": "c7329ee1fe401030cc46a0e9148659ff912e46ff",
+  "sourceTree": "872fe315c416ac73e8d51a4fe4814cf775857796",
+  "sourceArchive": {
+    "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/media-owned-source-c7329ee1.tar.gz",
+    "bytes": 4251358,
+    "sha256": "f2d3bbe3b0f32a3f12fabebc4e175ac29c1b676cf775946e992a4aef30b93295",
+    "fileCount": 625,
+    "everyMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "candidates": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreator-c7329ee1-unsigned.tar.gz",
+      "bytes": 1507756,
+      "sha256": "79577c46e936064b9d126ca38b6812763c80a8b1792634c0b3f49ad1349ca615",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreator",
+      "sdk": "iphonesimulator",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreatorMac-c7329ee1-unsigned.tar.gz",
+      "bytes": 882104,
+      "sha256": "75a175ab0d026037eb8a3819716515381435ec7ddb1d621e5f5dbb728987c551",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreatorMac",
+      "sdk": "macosx",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    }
+  ],
+  "buildSourcePinsGitExact": 21,
+  "compositionInputPins": 673,
+  "ownedCompositionPinsGitExact": 629,
+  "checks": {
+    "fullIOSSimulatorAndMacOSBuild": "PASS",
+    "originalCreatorIdentityAndCallback": "PASS",
+    "originalSDKAndRegistryPackagedGitExact": true,
+    "originalBrandPixels": true,
+    "actualOriginalCreatorSwiftWebKitSDKGo": "PASS all original upload/identity recovery and two distinct SDK/Swift device keys and actors; named invite/accept, owner self-review denied, independent original rights/publication review, schedule not-due veto, committed publish-due lost reply, cold legacy pending POST same-key replay with no new version, signed reviewer/public record readback, original team revoke 403, moderator sign-out preserves owner authority",
+    "actualOriginalOwnerAppealColdRecovery": "PASS original signed report/moderator takedown, stale-form veto, successful commit/lost response/cold same-key single appeal, duplicate-active veto, human accepted appeal remains private and requires fresh independent publication review; absent revenue cannot create a dispute",
+    "actualOriginalAssetColdRecovery": "PASS original PNG/VTT immutable multipart files with fresh original SDK proofs; lost successful reply/cold same-key no duplicate object or caption; original signed file byte hashes; stale/changed/invalid selection veto, damaged wire cannot send, original file retained, pending asset hidden on original account veto, moderator without editor role cannot upload, cancel preserves original wire and committed service asset",
+    "actualOriginalAIStreamAndRecovery": "PASS original private job prepare lost reply/cold same-key one task with no provider before explicit approval; actual NDJSON partial/typed terminal owner-id checks; lost result/cold exact original readback without rerunning isolated provider; running cancel lost reply durable separate cancel intent/cold source confirmed; accept/reject preserves original publication workflow; foreign owner/role and terminal job veto; explicit saved context/result deletion leaves video and rights; original Go final 3 provider starts and zero remaining jobs",
+    "actualNativeRightsFullFields": "PASS original declared license/territories, start/end, exclusivity, two contributors 70/30 with exact integer basis points; invalid split does not dispatch",
+    "actualDelegatedFinanceRecovery": "PASS original signed usage and independently approved monetization, original isolated testPay receipt record, finance visibility bound to original video owner and active role; payout 403; lost dispute reply/cold same-key one original record; retired role hides revenue/disputes and vetoes stale mutation",
+    "actualRealPayReceiptAcceptance": false,
+    "actualRealAIGatewayAcceptance": false,
+    "actualRevenueBackedDisputeAcceptance": false,
+    "originalProtectedStateIOSAndMacOSTuples": "PASS injected storage and generated key",
+    "goRacePassEvents": 447,
+    "goRaceFailEvents": 0,
+    "goVet": "PASS",
+    "actualWalletConsent": false,
+    "actualOSKeychain": false,
+    "actualIOSRuntime": false,
+    "actualRenderedNativeUI": false,
+    "formalPublicPair": false
+  },
+  "remaining": [
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Complete native reviewer rights disclosure, retained-Web version/schedule history, invite expiry/auth-version display and broader captured-revision form audit; see read-only follow-up evidence. Declaration fields and delegated financial visibility pass source and isolated original-service QA",
+    "New native texts fully English/zh-CN; ten other locales retain translated navigation with English fallback and need native workflow translations"
+  ],
+  "inheritedAIRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-ai-recovery-checkpoint-20261004.json",
+    "bytes": 18261,
+    "sha256": "c75630cc7c6363e222bb3e14a00c8c2b230b7a5b93a20ef7bada67f3fabd1f4c"
+  },
+  "inheritedAndroidMusicCheckpoint": {
+    "path": "apps/music/audit/android-upload-recovery-checkpoint-20261004.json",
+    "bytes": 11453,
+    "sha256": "ba3aafe89515b7082e2191daefac6721f0762429e9f6bcfedfc4a73edbf35620"
+  },
+  "inheritedAssetRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-asset-recovery-checkpoint-20261004.json",
+    "bytes": 16520,
+    "sha256": "c6a6fbe80ffb1f8deb8417a387755d4d353b759550c85d6e55d02ebff80abb95"
+  },
+  "inheritedAppealRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-appeal-recovery-checkpoint-20261004.json",
+    "bytes": 14425,
+    "sha256": "d6d4f0c57a3c12f55aed036076232072c7453339a8958ff08b4ee8cd4d09b201"
+  },
+  "inheritedIndependentReviewCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-independent-review-checkpoint-20261004.json",
+    "bytes": 13139,
+    "sha256": "40632735474c3617a7a9897405e5dd271d398b44f1acd864bac96cb99d63f50e"
+  },
+  "inheritedCreatorUploadCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-native-upload-checkpoint-20261004.json",
+    "bytes": 11376,
+    "sha256": "b717958db35e4f9f631964101d9b90012c66946adba3fcd8250f1d41be5c7792"
+  },
+  "QAAdmission": {
+    "ownerSample": "original SDK5c secp256k1 seed 1",
+    "independentModeratorSample": "original SDK5c secp256k1 seed 5",
+    "twoDistinctSwiftProcessesKeysAndCustody": true,
+    "originalServerModeratorPolicy": "explicit isolated sample roster, not deployed policy",
+    "realRolePolicyAccepted": false,
+    "aiProvider": "explicit isolated original-service QA streamer, not real AI Gateway",
+    "providerRunsGoReadback": 3,
+    "realAIProviderAccepted": false,
+    "payVerifier": "original service_test.go testPay receipt-1 amount 5; explicitly isolated QA, not a real Pay provider receipt",
+    "realPayProviderAccepted": false,
+    "assetJourneyQuotaBytes": 16777216,
+    "quotaPolicy": "explicit isolated service fixture replaces legacy 96-byte test quota only; production quota and original quota regressions unchanged"
+  },
+  "publicReadback": [
+    {
+      "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "checkedAt": "2026-10-03T21:24:53.049722+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/video-manifest-public.json",
+        "bytes": 4499,
+        "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+      }
+    },
+    {
+      "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "checkedAt": "2026-10-03T21:24:53.369033+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/creator-manifest-public.json",
+        "bytes": 3753,
+        "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+      }
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/health",
+      "checkedAt": "2026-10-03T21:24:53.662877+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": null,
+      "centralDeploymentVerified": false,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/video-health-public.json",
+        "bytes": 285,
+        "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreator-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreator-c7329ee1-unsigned.tar.gz",
+      "bytes": 1507756,
+      "sha256": "79577c46e936064b9d126ca38b6812763c80a8b1792634c0b3f49ad1349ca615"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreator-full-build.txt",
+      "bytes": 129983,
+      "sha256": "8ae863a1cf38d1d45513bc28dff091845c4f8a03b0c03d53bd5ef956eacd756c"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreatorMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreatorMac-c7329ee1-unsigned.tar.gz",
+      "bytes": 882104,
+      "sha256": "75a175ab0d026037eb8a3819716515381435ec7ddb1d621e5f5dbb728987c551"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/YNXCreatorMac-full-build.txt",
+      "bytes": 74927,
+      "sha256": "9ebe3554c3654cd9e9486a7b8849f15f04e1ec0569b6a3e5378cf91169e4c1ce"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/actual-swift-compile.txt",
+      "bytes": 1735,
+      "sha256": "b1283c1866926ec38de8c56b7444c469cf35e657cdec7a54ca3698220b13c971"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/actual-swift-compiled-source.json",
+      "bytes": 2077,
+      "sha256": "983be46d61d23c706599ddf50902ad40e47a7c4b2f4adebc728770137406037c"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/ai-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/asset-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/combined-go-race.jsonl",
+      "bytes": 430580,
+      "sha256": "3bb292855211b37e836c1380aa7745322e1359ca9d3c0332ae62c15f2393be14"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/combined-source-receipt.json",
+      "bytes": 185948,
+      "sha256": "f91d302329553add40e07136e69fc64cfb32de89e80f184d51ac79e782bb1b92"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/creator-manifest-public.json",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/dispute-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-address-only-alias-admission-failed.jsonl",
+      "bytes": 8139,
+      "sha256": "42ab57549b83ca84d1044202d044599eb50aecf4ccad89e46fc79fc1a0ad2bb7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-ai-model-actor-typecheck-failed.txt",
+      "bytes": 3681,
+      "sha256": "74d0368f7be4ef1f97ff8171ebf3cfb6b15c7120dea0abe0401062182f2ebae1"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-controller-typecheck-failed.txt",
+      "bytes": 10183,
+      "sha256": "8e2536f03b2b1d8807207bcebe91024c11e4798cbe11b65352caf0c0fa884d93"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-fixture-compile-failed.txt",
+      "bytes": 2809,
+      "sha256": "a8c3f664c7cdff2030213d4e9a418c38a8a9edc0c16b426bf5c8ac8ea30937a0"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-full-native-late-rejection-observation-failed.jsonl",
+      "bytes": 434530,
+      "sha256": "dd11a782c009c0818b937f3674418e3c7db3eecd6e005deaa77675c3adc383a7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-legacy-quota-failed.jsonl",
+      "bytes": 8148,
+      "sha256": "54fa6ccbc712b153795a9a85e5ada9648e5766c4412147ff3ea32092842cce86"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-private-public-readback-status-failed.jsonl",
+      "bytes": 15435,
+      "sha256": "7ab17768322aac5a5c200d21ba99e139b8978e4caf35fdaac4bacab836f6f642"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-test-pay-receipt-mismatch-failed.jsonl",
+      "bytes": 8597,
+      "sha256": "b5d62369098979284a85a60bd72957c1605764ddbb1729b4bc6810aba75c9dd3"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/first-view-typecheck-failed.txt",
+      "bytes": 8011,
+      "sha256": "712e2d3fb53392bcd30c2c5662e226cb6d73d6eb0ea46d992bd9702838bd0642"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/fixture-whitespace-compile-failed.txt",
+      "bytes": 2840,
+      "sha256": "22b059c6de4c80cbc72967e27188e25506ac9812cf0ce3cb43ed3ee7491ad2bb"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/focused-native-business-passed.jsonl",
+      "bytes": 9187,
+      "sha256": "355514812f6370862cccee5ffb810452fee6b01a1807e227703924d70cbf2cce"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/freeze-preparation.py",
+      "bytes": 15982,
+      "sha256": "9fbd6625405755f84f66014655efe223591f995e439a8a877a958b2f1be653d0"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/full-native-build-receipt.json",
+      "bytes": 9989,
+      "sha256": "57d94c351d0cddb50c5badd3a27f9c2e4f3ab7694cc83f270463b2480cae922b"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/initial-full-swift-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/legacy-quota-diagnosis-failed.jsonl",
+      "bytes": 8182,
+      "sha256": "ad21dc47443f87f58ed91397d1fe5ed281f0cc33bd3d978903b4de6f102b1cb7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/media-owned-source-c7329ee1.tar.gz",
+      "bytes": 4251358,
+      "sha256": "f2d3bbe3b0f32a3f12fabebc4e175ac29c1b676cf775946e992a4aef30b93295"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/native-parity-readonly-followup.md",
+      "bytes": 1874,
+      "sha256": "1e0f8c295d594b480cd24381fa66810646222da3d1770d99ade961aa3020f355"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/original-ai-stream-recovery-focused-passed.jsonl",
+      "bytes": 3674,
+      "sha256": "d7e3a21edc120839f99b8b62a27e84f8969f0567b1faadbc7544fc00c9306138"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/original-appeal-cold-recovery-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "ddcf64f8b2a4db4ba50dc36848a3603f147c018944767b00b41218500b9a0d22"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/original-asset-cold-recovery-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "9273afba44348019e7fe8287cd93485bb6096f568d13c304747ebb1ddca12b2a"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/original-asset-guard-cancel-focused-passed.jsonl",
+      "bytes": 3673,
+      "sha256": "4e973cc139b290583624dd399d89ff3c2cf36e71d32c38ccd4e1b89c55c9dcf6"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/original-rights-finance-cold-recovery-focused-passed.jsonl",
+      "bytes": 3687,
+      "sha256": "3aa001967f7a9641c603e5bc9a8ddc2c27d2a428086fb9fc3aec3786891ef962"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/protected-state-checks.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/public-projection-reviewer-check-failed.jsonl",
+      "bytes": 8741,
+      "sha256": "6806663bb39aa7509ea8f3ad6f9b05b8e56c81bde589cefc7a7eec60bb8f5c8c"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/rights-finance-full-view-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/rights-finance-model-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/stale-draft-controller-diagnosis.jsonl",
+      "bytes": 8145,
+      "sha256": "3006d044fc4220a2f7b57222c210d2e9a656449909c7bbe93c9f62589029b51a"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/stale-draft-controller-failed.jsonl",
+      "bytes": 18103,
+      "sha256": "e3970f6f3528ef5de4eb93649cee45986d3f38c8f068c162b76397dabc9ab9be"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/two-actor-independent-review-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "d347b45514ad75564eba65a4b14baddc65830032856a0928f81d14ee9afccbd3"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/video-health-public.json",
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-rights-finance-20261004/video-manifest-public.json",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    }
+  ]
+}
