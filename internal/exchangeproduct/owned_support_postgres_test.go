@@ -32,6 +32,7 @@ func TestPostgreSQLOwnedSupportTwoHTTPInstancesIsolationAndRestart(t *testing.T)
 	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is required")
 	}
+	databaseURL = isolatedExchangePostgresURL(t, databaseURL)
 	cfg := Config{StateDatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
 	seed := reopenSupportService(t, cfg)
 	a := accountSession(t, seed, alice, "pg-support-alice", "exchange:read")

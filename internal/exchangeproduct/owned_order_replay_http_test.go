@@ -2,10 +2,13 @@ package exchangeproduct
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -30,6 +33,35 @@ func (g orderReplayHTTPGateway) Authorize(proof, scope, clientID, bundleID strin
 }
 
 func TestTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T) {
+	testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, "")
+}
+
+func TestPostgreSQLTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T) {
+	databaseURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_POSTGRES_TEST_URL"))
+	if databaseURL == "" {
+		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
+	}
+	for _, layout := range []string{"integrity", "revision"} {
+		t.Run(layout, func(t *testing.T) {
+			isolatedURL := isolatedExchangePostgresURL(t, databaseURL)
+			if layout == "revision" {
+				db, err := sql.Open("postgres", isolatedURL)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = db.Exec(`CREATE TABLE ynx_exchange_state (id TEXT PRIMARY KEY, revision BIGINT NOT NULL, payload JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`)
+				db.Close()
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, isolatedURL)
+		})
+	}
+}
+
+func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T, databaseURL string) {
+	t.Helper()
 	seed, chain, _ := newTestService(t)
 	seller := accountSession(t, seed, alice, "replay-seller", "exchange:read", "exchange:trade")
 	buyer := accountSession(t, seed, bob, "replay-buyer", "exchange:read", "exchange:trade")
@@ -38,12 +70,19 @@ func TestTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 		t.Fatal(err)
 	}
 	cfg := seed.cfg
+	cfg.StateDatabaseURL = databaseURL
 	cfg.Gateway = orderReplayHTTPGateway{seller.token: seller.session, buyer.token: buyer.session}
 	cfg.GatewayClientID, cfg.GatewayBundleID = "ynx-exchange-v1", "com.ynxweb4.exchange"
 	open := func() *httptest.Server {
 		s, err := New(cfg)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if databaseURL != "" {
+			backend, multi := s.StorageStatus()
+			if backend != "postgresql" || !multi {
+				t.Fatal("real PostgreSQL repository not selected")
+			}
 		}
 		t.Cleanup(func() { _ = s.Close() })
 		server := httptest.NewServer(NewServer(s))
@@ -95,6 +134,15 @@ func TestTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 	for i := 0; i < 2; i++ {
 		r := <-results
 		if r.err != nil || r.status != 201 && r.status != 409 {
+			if databaseURL != "" {
+				repository, err := openStateRepository("", databaseURL)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, _, loadErr := repository.Load()
+				repository.(*postgresStateRepository).db.Close()
+				t.Logf("PostgreSQL authoritative read failure: %v", loadErr)
+			}
 			t.Fatalf("concurrent bid status=%d err=%v body=%s", r.status, r.err, r.body)
 		}
 		if r.status == 201 {

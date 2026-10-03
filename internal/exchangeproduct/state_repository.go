@@ -3,6 +3,7 @@ package exchangeproduct
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -164,7 +165,7 @@ func (repository *postgresStateRepository) Load() (persistentState, bool, error)
 		return persistentState{}, false, fmt.Errorf("load exchange database state: %w", err)
 	}
 	repository.bootstrapRetired.Store(true)
-	state, err := decodeStateBytes(raw)
+	state, err := decodePostgresStateBytes(raw)
 	if err != nil {
 		return persistentState{}, false, fmt.Errorf("decode exchange database state: %w", err)
 	}
@@ -179,6 +180,13 @@ func (repository *postgresStateRepository) Save(expectedIntegrity string, state 
 	}
 	state.IntegrityHash = hash
 	raw, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+	// jsonb normalizes RawMessage objects inside execution-event payloads.
+	// Their exact bytes participate in event and state integrity hashes, so
+	// retain the authenticated JSON as bytes in an explicit storage envelope.
+	raw, err = json.Marshal(postgresStateEnvelope{Encoding: "base64-json-v1", SchemaVersion: state.SchemaVersion, IntegrityHash: hash, StateBytes: base64.StdEncoding.EncodeToString(raw)})
 	if err != nil {
 		return err
 	}
@@ -213,4 +221,36 @@ func (repository *postgresStateRepository) Save(expectedIntegrity string, state 
 		state.Revision++
 	}
 	return nil
+}
+
+type postgresStateEnvelope struct {
+	Encoding      string `json:"stateEncoding"`
+	SchemaVersion int    `json:"schemaVersion"`
+	IntegrityHash string `json:"integrityHash"`
+	StateBytes    string `json:"stateBytes"`
+}
+
+func decodePostgresStateBytes(raw []byte) (persistentState, error) {
+	var envelope postgresStateEnvelope
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return persistentState{}, err
+	}
+	if envelope.Encoding == "" {
+		return decodeStateBytes(raw)
+	}
+	if envelope.Encoding != "base64-json-v1" {
+		return persistentState{}, errors.New("unsupported exchange database state encoding")
+	}
+	bytes, err := base64.StdEncoding.Strict().DecodeString(envelope.StateBytes)
+	if err != nil {
+		return persistentState{}, errors.New("invalid exchange database state bytes")
+	}
+	state, err := decodeStateBytes(bytes)
+	if err != nil {
+		return persistentState{}, err
+	}
+	if envelope.SchemaVersion != state.SchemaVersion || envelope.IntegrityHash != state.IntegrityHash {
+		return persistentState{}, errors.New("exchange database state envelope mismatch")
+	}
+	return state, nil
 }

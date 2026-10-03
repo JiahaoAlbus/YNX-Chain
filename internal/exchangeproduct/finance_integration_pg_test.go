@@ -17,6 +17,7 @@ func TestFinanceReadPostgresCrossInstanceNonceAndPersistedAccount(t *testing.T) 
 	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
 	}
+	databaseURL = isolatedExchangePostgresURL(t, databaseURL)
 	key := strings.Repeat("e", 32)
 	config := Config{StateDatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
 	firstService, err := New(config)

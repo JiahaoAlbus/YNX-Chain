@@ -14,6 +14,7 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
 	}
+	databaseURL = isolatedExchangePostgresURL(t, databaseURL)
 	config := Config{StateDatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
 	seed, err := New(config)
 	if err != nil {

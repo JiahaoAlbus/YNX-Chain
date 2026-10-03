@@ -106,8 +106,12 @@ func TestTwoServicesRefreshAuthorityAndRejectStaleMutation(t *testing.T) {
 func TestPostgresStateRepositoryBootstrapAndCAS(t *testing.T) {
 	databaseURL := os.Getenv("YNX_EXCHANGE_TEST_DATABASE_URL")
 	if databaseURL == "" {
+		databaseURL = os.Getenv("YNX_EXCHANGE_POSTGRES_TEST_URL")
+	}
+	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_TEST_DATABASE_URL is required for PostgreSQL integration")
 	}
+	databaseURL = isolatedExchangePostgresURL(t, databaseURL)
 	bootstrap := filepath.Join(t.TempDir(), "bootstrap.json")
 	state := newState()
 	state.Sequence = 7
