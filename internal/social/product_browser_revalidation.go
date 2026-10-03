@@ -43,8 +43,12 @@ func (s *Server) revalidateProductBrowser(r *http.Request, original productsessi
 	if err := r.Context().Err(); err != nil {
 		return productsessionv2.Session{}, err
 	}
-	sealed, localBrowser, err := s.service.cfg.BrowserSSO.Binding(r)
-	if err != nil || headers != objectDigest(r.Header) || sealed != binding.SealedBrowserGrant || objectDigest(localBrowser) != objectDigest(browser) {
+	// Binding deliberately reseals the same authenticated grant with a fresh
+	// AEAD nonce. Ciphertext equality would reject valid unchanged identities.
+	// The combined reader already opened the captured original sealed binding;
+	// compare the complete authenticated grant and original request headers.
+	_, localBrowser, err := s.service.cfg.BrowserSSO.Binding(r)
+	if err != nil || headers != objectDigest(r.Header) || objectDigest(localBrowser) != objectDigest(browser) {
 		return productsessionv2.Session{}, ErrUnauthorized
 	}
 	return current, nil
