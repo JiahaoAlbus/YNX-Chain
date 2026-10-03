@@ -1,0 +1,14 @@
+=== RUN   TestSocialCombinedAuthorityMountedHTTP
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/success
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/private-revoke-during-browser-read
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/browser-revoke-before-combined
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/cancel-after-combined
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/binding-replaced-after-combined
+--- PASS: TestSocialCombinedAuthorityMountedHTTP (1.59s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/success (0.37s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/private-revoke-during-browser-read (0.32s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/browser-revoke-before-combined (0.30s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/cancel-after-combined (0.30s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/binding-replaced-after-combined (0.30s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.472s

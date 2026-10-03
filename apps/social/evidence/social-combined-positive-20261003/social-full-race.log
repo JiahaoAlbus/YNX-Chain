@@ -1,0 +1,468 @@
+=== RUN   TestLocalSocialReadCapacityEvidence
+    capacity_test.go:60: local Social health capacity: requests=1200 concurrency=30 failures=0 throughput=11372.4 req/s p50=1.486333ms p95=4.519084ms p99=6.994209ms elapsed=105.518375ms
+--- PASS: TestLocalSocialReadCapacityEvidence (0.13s)
+=== RUN   TestCloudAuthorityLiveRevocationAndExactBinding
+--- PASS: TestCloudAuthorityLiveRevocationAndExactBinding (0.13s)
+=== RUN   TestCloudAuthorityDisabledAndBindingValidation
+--- PASS: TestCloudAuthorityDisabledAndBindingValidation (0.01s)
+=== RUN   TestCloudObjectRegistryPersistenceOwnershipAndIntegrity
+--- PASS: TestCloudObjectRegistryPersistenceOwnershipAndIntegrity (0.06s)
+=== RUN   TestCloudAuthorityPrimaryIdentifiers
+--- PASS: TestCloudAuthorityPrimaryIdentifiers (0.00s)
+=== RUN   TestContactDiscoverySourceSpecificPrivacy
+--- PASS: TestContactDiscoverySourceSpecificPrivacy (0.10s)
+=== RUN   TestSocialV2ContactIdempotencyCannotChangeTarget
+--- PASS: TestSocialV2ContactIdempotencyCannotChangeTarget (0.02s)
+=== RUN   TestSocialV2ContactOppositeRequestsCoalesceWithoutAutoConsent
+--- PASS: TestSocialV2ContactOppositeRequestsCoalesceWithoutAutoConsent (0.03s)
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/accept
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/reject
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/withdraw
+--- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend (0.09s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/accept (0.03s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/reject (0.03s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/withdraw (0.03s)
+=== RUN   TestSocialV2ContactAcceptWithdrawRaceHasOnePersistentWinner
+--- PASS: TestSocialV2ContactAcceptWithdrawRaceHasOnePersistentWinner (0.04s)
+=== RUN   TestSocialV2ContactRequestExpiresWithoutChangingLegacyPending
+--- PASS: TestSocialV2ContactRequestExpiresWithoutChangingLegacyPending (0.04s)
+=== RUN   TestContactMessageBoundToOriginalRequestAndRetry
+--- PASS: TestContactMessageBoundToOriginalRequestAndRetry (0.03s)
+=== RUN   TestContactMessageBoundsDoNotCreateRequests
+--- PASS: TestContactMessageBoundsDoNotCreateRequests (0.02s)
+=== RUN   TestContactConfirmationRejectsChangedResolvedIdentity
+--- PASS: TestContactConfirmationRejectsChangedResolvedIdentity (0.05s)
+=== RUN   TestContactPreviewDoesNotGrantRelationshipAndRequiresAuthentication
+--- PASS: TestContactPreviewDoesNotGrantRelationshipAndRequiresAuthentication (0.01s)
+=== RUN   TestContactHTTPRejectsRawInvalidUTF8WithoutStateOrReceipt
+--- PASS: TestContactHTTPRejectsRawInvalidUTF8WithoutStateOrReceipt (0.04s)
+=== RUN   TestContactHTTPUsesUnicodeCodepointBoundary
+--- PASS: TestContactHTTPUsesUnicodeCodepointBoundary (0.04s)
+=== RUN   TestResolveDiscoveryRejectsUnconfiguredContactsAndResolvesInvite
+--- PASS: TestResolveDiscoveryRejectsUnconfiguredContactsAndResolvesInvite (0.02s)
+=== RUN   TestResolveDiscoveryByHandleAndQR
+--- PASS: TestResolveDiscoveryByHandleAndQR (0.01s)
+=== RUN   TestEmptyQAWorkspaceOriginalAPIAndCryptoJourney
+--- PASS: TestEmptyQAWorkspaceOriginalAPIAndCryptoJourney (0.60s)
+=== RUN   TestContactPermissionIsNotInferredFromProfileAndMessaging
+--- PASS: TestContactPermissionIsNotInferredFromProfileAndMessaging (0.03s)
+=== RUN   TestFollowIsIndependentAndNotificationIsNotDuplicated
+--- PASS: TestFollowIsIndependentAndNotificationIsNotDuplicated (0.08s)
+=== RUN   TestFollowCancellationColdRetryKeepsOriginalIntentAndOneNotification
+--- PASS: TestFollowCancellationColdRetryKeepsOriginalIntentAndOneNotification (0.06s)
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/revoked
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/expired
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/key-replaced
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/missing-feed-scope
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/blocked
+=== RUN   TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/cancelled
+--- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch (0.24s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/revoked (0.04s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/expired (0.04s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/key-replaced (0.04s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/missing-feed-scope (0.04s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/blocked (0.04s)
+    --- PASS: TestFollowRejectsStaleDeviceScopeBlockAndCancellationBeforeDispatch/cancelled (0.04s)
+=== RUN   TestIndependentAudienceUnknownIntentFreshNonceAfterRestart
+--- PASS: TestIndependentAudienceUnknownIntentFreshNonceAfterRestart (0.04s)
+=== RUN   TestIndependentAudienceUnknownExpiredLedgerAndCapacity
+--- PASS: TestIndependentAudienceUnknownExpiredLedgerAndCapacity (1.10s)
+=== RUN   TestIndependentAudienceBrowserGrantRevokedDuringObservation
+--- PASS: TestIndependentAudienceBrowserGrantRevokedDuringObservation (0.05s)
+=== RUN   TestIndependentAudienceUnknownIndexFreshNonceAfterRestart
+--- PASS: TestIndependentAudienceUnknownIndexFreshNonceAfterRestart (0.05s)
+=== RUN   TestIndependentAudienceLatePolicyChangeCannotReachPrivateEventRead
+--- PASS: TestIndependentAudienceLatePolicyChangeCannotReachPrivateEventRead (0.06s)
+=== RUN   TestIndependentAudienceWrongActorIndexCannotReachPrivateEventRead
+--- PASS: TestIndependentAudienceWrongActorIndexCannotReachPrivateEventRead (0.04s)
+=== RUN   TestIndependentAudienceMissingHSAdapterIsUnavailable
+--- PASS: TestIndependentAudienceMissingHSAdapterIsUnavailable (0.03s)
+=== RUN   TestIndependentC71BrowserRevokedInsideFinalReader
+--- PASS: TestIndependentC71BrowserRevokedInsideFinalReader (0.05s)
+=== RUN   TestIndependentC71BrowserRevokedInsideReader
+--- PASS: TestIndependentC71BrowserRevokedInsideReader (0.04s)
+=== RUN   TestInvitationOriginalIntentCoalescesConcurrentRetriesAndReadback
+--- PASS: TestInvitationOriginalIntentCoalescesConcurrentRetriesAndReadback (0.04s)
+=== RUN   TestInvitationHTTPUsesOriginalBoundDeviceAndPersistentReadback
+--- PASS: TestInvitationHTTPUsesOriginalBoundDeviceAndPersistentReadback (0.06s)
+=== RUN   TestInvitationUnknownOriginalIntentNeverBecomesAFakeReceipt
+--- PASS: TestInvitationUnknownOriginalIntentNeverBecomesAFakeReceipt (0.02s)
+=== RUN   TestInviteRevokeOwnerOnlyIdempotentAndPersistent
+--- PASS: TestInviteRevokeOwnerOnlyIdempotentAndPersistent (0.03s)
+=== RUN   TestInviteRevokeHTTPAndNoPlaceholderEndpoint
+--- PASS: TestInviteRevokeHTTPAndNoPlaceholderEndpoint (0.06s)
+=== RUN   TestMatrixAudienceFeedOriginalIndexMetadataOnly
+    matrix_audience_feed_test.go:64: syntheticFeed={"indexes":[{"protocol":"ynx-social-matrix-moment/v1","kind":"contacts","revision":"287f0cb05c7bfa32951c37c674ac740a38f7371b76fd1452e04b20208461102b","owner":"@alice:example.invalid","roomId":"!synthetic:example.invalid","members":["@alice:example.invalid","@bob:example.invalid"],"actor":"ynx12q8zhxa7kwj77tfa47klrrxsf2zajsjrvjkt0l","eventId":"$original-feed-event","transactionId":"original_feed_index_transaction_001","sender":"@alice:example.invalid"}]}
+--- PASS: TestMatrixAudienceFeedOriginalIndexMetadataOnly (0.06s)
+=== RUN   TestMatrixAudienceFeedAcceptedFriendThenDeleteContact
+--- PASS: TestMatrixAudienceFeedAcceptedFriendThenDeleteContact (0.07s)
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2
+=== RUN   TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3
+--- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS (0.17s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/1 (0.06s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/2 (0.06s)
+    --- PASS: TestMatrixAudienceFeedRevocationBeforeAndAfterHS/3 (0.06s)
+=== RUN   TestMatrixAudienceFeedRejectsDifferentObservedSender
+--- PASS: TestMatrixAudienceFeedRejectsDifferentObservedSender (0.05s)
+=== RUN   TestMatrixAudienceMissingConfidentialReaderCannotObserveOrReserveNonce
+--- PASS: TestMatrixAudienceMissingConfidentialReaderCannotObserveOrReserveNonce (0.04s)
+=== RUN   TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent
+=== RUN   TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Unauthorized
+=== RUN   TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Forbidden
+=== RUN   TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Service_Unavailable
+--- PASS: TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent (0.14s)
+    --- PASS: TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Unauthorized (0.05s)
+    --- PASS: TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Forbidden (0.05s)
+    --- PASS: TestMatrixAudienceAfterAwaitConfidentialReadRejectionKeepsOriginalUnknownIntent/Service_Unavailable (0.05s)
+=== RUN   TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew
+=== RUN   TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/actor
+=== RUN   TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/binding
+=== RUN   TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/scope
+=== RUN   TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/expiry
+--- PASS: TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew (0.15s)
+    --- PASS: TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/actor (0.04s)
+    --- PASS: TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/binding (0.04s)
+    --- PASS: TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/scope (0.04s)
+    --- PASS: TestMatrixAudienceConfidentialReaderCannotRelinkWidenOrRenew/expiry (0.04s)
+=== RUN   TestMatrixAudienceMountedRoutePreservesExactProofBodyAndRejectsOldGrant
+--- PASS: TestMatrixAudienceMountedRoutePreservesExactProofBodyAndRejectsOldGrant (0.05s)
+=== RUN   TestMatrixAudienceCancelledConfirmationDoesNotPersistRoomBinding
+--- PASS: TestMatrixAudienceCancelledConfirmationDoesNotPersistRoomBinding (0.04s)
+=== RUN   TestMatrixAudienceNonceReservationSurvivesRestartAndBlocksSecondObservation
+--- PASS: TestMatrixAudienceNonceReservationSurvivesRestartAndBlocksSecondObservation (0.05s)
+=== RUN   TestMatrixAudienceNonceClockRollbackAndStorageUncertaintyFailClosed
+--- PASS: TestMatrixAudienceNonceClockRollbackAndStorageUncertaintyFailClosed (0.05s)
+=== RUN   TestMatrixAudienceDuplicateBusinessProofHeaderRejectedBeforeNonceOrRoom
+--- PASS: TestMatrixAudienceDuplicateBusinessProofHeaderRejectedBeforeNonceOrRoom (0.04s)
+=== RUN   TestMatrixAudienceOriginalStoreDurableBindingIndexAndReaderGate
+--- PASS: TestMatrixAudienceOriginalStoreDurableBindingIndexAndReaderGate (0.06s)
+=== RUN   TestMatrixAudiencePolicyEpochRejectsRemoveRestoreABA
+--- PASS: TestMatrixAudiencePolicyEpochRejectsRemoveRestoreABA (0.06s)
+=== RUN   TestMatrixAudienceConcurrentPolicyChangeDuringRoomConfirmationFailsClosed
+--- PASS: TestMatrixAudienceConcurrentPolicyChangeDuringRoomConfirmationFailsClosed (0.05s)
+=== RUN   TestMatrixAudienceStrictMountedRoutesRejectMalformedAndUnapprovedRequests
+--- PASS: TestMatrixAudienceStrictMountedRoutesRejectMalformedAndUnapprovedRequests (0.04s)
+=== RUN   TestMatrixAudienceSelectedAndGroupComeFromOriginalState
+--- PASS: TestMatrixAudienceSelectedAndGroupComeFromOriginalState (0.06s)
+=== RUN   TestMatrixAudienceSchemaSixUpgradePreservesOriginalRelationships
+--- PASS: TestMatrixAudienceSchemaSixUpgradePreservesOriginalRelationships (0.06s)
+=== RUN   TestMatrixBridgeMissingHistoricalIdentityNeverDerivesOrIssues
+--- PASS: TestMatrixBridgeMissingHistoricalIdentityNeverDerivesOrIssues (0.00s)
+=== RUN   TestMatrixBridgeRejectsResolverRetargetBeforeCredentialIssue
+--- PASS: TestMatrixBridgeRejectsResolverRetargetBeforeCredentialIssue (0.00s)
+=== RUN   TestMatrixBridgeBindingAndRejection
+--- PASS: TestMatrixBridgeBindingAndRejection (0.00s)
+=== RUN   TestMatrixContactSelectionPreservesExistingIdentity
+--- PASS: TestMatrixContactSelectionPreservesExistingIdentity (0.05s)
+=== RUN   TestMatrixContactSelectionRejectsAmbiguousQueryBeforeAuthority
+--- PASS: TestMatrixContactSelectionRejectsAmbiguousQueryBeforeAuthority (0.02s)
+=== RUN   TestRelationshipControlsUseExistingOpaqueIdentity
+--- PASS: TestRelationshipControlsUseExistingOpaqueIdentity (0.06s)
+=== RUN   TestMatrixDirectoryPreservesExistingIdentityAndRejectsCollisions
+--- PASS: TestMatrixDirectoryPreservesExistingIdentityAndRejectsCollisions (0.00s)
+=== RUN   TestMatrixMetadataMountedTokenFreeAndPreservesPersistentState
+--- PASS: TestMatrixMetadataMountedTokenFreeAndPreservesPersistentState (0.02s)
+=== RUN   TestMatrixMetadataRejectsMalformedInputsBeforeAuthority
+--- PASS: TestMatrixMetadataRejectsMalformedInputsBeforeAuthority (0.02s)
+=== RUN   TestMatrixMetadataRequiresFreshExplicitScopesAndExistingMapping
+--- PASS: TestMatrixMetadataRequiresFreshExplicitScopesAndExistingMapping (0.02s)
+=== RUN   TestMatrixPeerRequiresAcceptedContactAndSupportsAnotherHomeserver
+--- PASS: TestMatrixPeerRequiresAcceptedContactAndSupportsAnotherHomeserver (0.03s)
+=== RUN   TestMatrixWebMetadataRequiresCookieCSRFAndLiveBrowserIdentity
+--- PASS: TestMatrixWebMetadataRequiresCookieCSRFAndLiveBrowserIdentity (0.02s)
+=== RUN   TestMessagePageAppendOrdering
+--- PASS: TestMessagePageAppendOrdering (0.00s)
+=== RUN   TestMountedMomentListPreservesCurrentAuthorityError
+--- PASS: TestMountedMomentListPreservesCurrentAuthorityError (0.04s)
+=== RUN   TestOriginalProductBindingCannotBeReplacedAfterCurrentRead
+--- PASS: TestOriginalProductBindingCannotBeReplacedAfterCurrentRead (0.04s)
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-private
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-public
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/delete
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comment
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comments-read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/reaction
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report-read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/appeal
+--- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState (0.70s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-private (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-public (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/delete (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/read (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comment (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comments-read (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/reaction (0.08s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report (0.09s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report-read (0.08s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/appeal (0.07s)
+=== RUN   TestPublicMomentUnknownEffectRetainsOriginalIntentForExplicitRetry
+--- PASS: TestPublicMomentUnknownEffectRetainsOriginalIntentForExplicitRetry (0.06s)
+=== RUN   TestMixedOriginStatePreservesAuthenticatedEncoding
+--- PASS: TestMixedOriginStatePreservesAuthenticatedEncoding (0.01s)
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/revoked
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/expired
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/device-disabled
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/key-replaced
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/scope-removed
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/actor-replaced
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-missing
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-expired
+=== RUN   TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-ambiguous
+--- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay (0.63s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/revoked (0.08s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/expired (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/device-disabled (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/key-replaced (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/scope-removed (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/actor-replaced (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-missing (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-expired (0.07s)
+    --- PASS: TestProductActorBusinessCommitRejectsStaleSnapshotBeforeReplay/binding-ambiguous (0.07s)
+=== RUN   TestMountedSettingsRouteRejectsRevokeAfterAuthorizationBeforeBody
+--- PASS: TestMountedSettingsRouteRejectsRevokeAfterAuthorizationBeforeBody (0.05s)
+=== RUN   TestCurrentProductActorContactSettingsInvitationAndRetryRemainUsable
+--- PASS: TestCurrentProductActorContactSettingsInvitationAndRetryRemainUsable (0.08s)
+=== RUN   TestMountedSettingsCancellationPreservesSessionAndAllowsNewRequest
+--- PASS: TestMountedSettingsCancellationPreservesSessionAndAllowsNewRequest (0.05s)
+=== RUN   TestRequestContextCannotChangeDurableSessionBytes
+--- PASS: TestRequestContextCannotChangeDurableSessionBytes (0.04s)
+=== RUN   TestCancellationWhilePreparingContactEffectRollsBackOriginalTransaction
+--- PASS: TestCancellationWhilePreparingContactEffectRollsBackOriginalTransaction (0.04s)
+=== RUN   TestProductRevalidationMountedProfile
+=== RUN   TestProductRevalidationMountedProfile/success
+=== RUN   TestProductRevalidationMountedProfile/authority-unavailable
+=== RUN   TestProductRevalidationMountedProfile/revoked
+=== RUN   TestProductRevalidationMountedProfile/device-replaced
+=== RUN   TestProductRevalidationMountedProfile/scope-replaced
+=== RUN   TestProductRevalidationMountedProfile/expired-after-read
+=== RUN   TestProductRevalidationMountedProfile/cancel-after-read
+=== RUN   TestProductRevalidationMountedProfile/busy-after-read
+--- PASS: TestProductRevalidationMountedProfile (0.35s)
+    --- PASS: TestProductRevalidationMountedProfile/success (0.07s)
+    --- PASS: TestProductRevalidationMountedProfile/authority-unavailable (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/revoked (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/device-replaced (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/scope-replaced (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/expired-after-read (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/cancel-after-read (0.04s)
+    --- PASS: TestProductRevalidationMountedProfile/busy-after-read (0.05s)
+=== RUN   TestProductRevalidationWebRequiresJointCurrentProducer
+--- PASS: TestProductRevalidationWebRequiresJointCurrentProducer (0.02s)
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/settings
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/request
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/withdraw
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/invite-create
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/invite-revoke
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/invite-read
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/block
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/mute
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/unmute
+=== RUN   TestProductBusinessMutationsUseOriginalCurrentReader/delete-contact
+--- PASS: TestProductBusinessMutationsUseOriginalCurrentReader (0.39s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/settings (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/request (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/withdraw (0.05s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/invite-create (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/invite-revoke (0.05s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/invite-read (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/block (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/mute (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/unmute (0.04s)
+    --- PASS: TestProductBusinessMutationsUseOriginalCurrentReader/delete-contact (0.04s)
+=== RUN   TestProductCurrentReaderMountedPrivacySettings
+=== RUN   TestProductCurrentReaderMountedPrivacySettings/success
+=== RUN   TestProductCurrentReaderMountedPrivacySettings/revoked
+=== RUN   TestProductCurrentReaderMountedPrivacySettings/unavailable
+=== RUN   TestProductCurrentReaderMountedPrivacySettings/cancelled
+=== RUN   TestProductCurrentReaderMountedPrivacySettings/busy
+--- PASS: TestProductCurrentReaderMountedPrivacySettings (0.18s)
+    --- PASS: TestProductCurrentReaderMountedPrivacySettings/success (0.04s)
+    --- PASS: TestProductCurrentReaderMountedPrivacySettings/revoked (0.04s)
+    --- PASS: TestProductCurrentReaderMountedPrivacySettings/unavailable (0.04s)
+    --- PASS: TestProductCurrentReaderMountedPrivacySettings/cancelled (0.04s)
+    --- PASS: TestProductCurrentReaderMountedPrivacySettings/busy (0.03s)
+=== RUN   TestPublicIdentityCandidateHasNoIndependentEffect
+--- PASS: TestPublicIdentityCandidateHasNoIndependentEffect (0.02s)
+=== RUN   TestProfileAvatarDeniedReadKeepsPreparedOriginalIntentOnly
+--- PASS: TestProfileAvatarDeniedReadKeepsPreparedOriginalIntentOnly (0.04s)
+=== RUN   TestProfileCrossStoreCancellationRetainsOriginalIntentAndColdRetry
+--- PASS: TestProfileCrossStoreCancellationRetainsOriginalIntentAndColdRetry (0.07s)
+=== RUN   TestProfileCrossStoreRejectsStaleActorAndInvalidAvatarBeforeSquareEffect
+--- PASS: TestProfileCrossStoreRejectsStaleActorAndInvalidAvatarBeforeSquareEffect (0.04s)
+=== RUN   TestDefinitiveInvalidProfileSettlesWithoutBlockingCorrectedNewIntent
+--- PASS: TestDefinitiveInvalidProfileSettlesWithoutBlockingCorrectedNewIntent (0.08s)
+=== RUN   TestProfileAvatarCommitPreservesPrivacyChangedAfterSquareEffect
+--- PASS: TestProfileAvatarCommitPreservesPrivacyChangedAfterSquareEffect (0.07s)
+=== RUN   TestOpaquePreviewConfirmationUsesOriginalPrivateAccountOverHTTP
+--- PASS: TestOpaquePreviewConfirmationUsesOriginalPrivateAccountOverHTTP (0.18s)
+=== RUN   TestPublicIdentityPrivateBindingStableWithoutRelationshipRewrite
+--- PASS: TestPublicIdentityPrivateBindingStableWithoutRelationshipRewrite (0.05s)
+=== RUN   TestPublicPreviewAndQRSurviveRenameAndDoNotExposeFunds
+--- PASS: TestPublicPreviewAndQRSurviveRenameAndDoNotExposeFunds (0.08s)
+=== RUN   TestServerStrictParserDiscoveryBoundaryAndAuthorization
+--- PASS: TestServerStrictParserDiscoveryBoundaryAndAuthorization (0.05s)
+=== RUN   TestServerExposesPublicPathHealthAlias
+--- PASS: TestServerExposesPublicPathHealthAlias (0.01s)
+=== RUN   TestServerRejectsLegacyWalletQueryFieldAuthorization
+--- PASS: TestServerRejectsLegacyWalletQueryFieldAuthorization (0.01s)
+=== RUN   TestServerConversationMemberMutationResolvesDiscoveryAndEnforcesAuthorization
+--- PASS: TestServerConversationMemberMutationResolvesDiscoveryAndEnforcesAuthorization (0.21s)
+=== RUN   TestServerDeviceRotationRevokesOldSessionAndRecoversExactRetry
+--- PASS: TestServerDeviceRotationRevokesOldSessionAndRecoversExactRetry (0.06s)
+=== RUN   TestOriginalProofRoutesWithoutAddingPlatform
+=== RUN   TestOriginalProofRoutesWithoutAddingPlatform/web
+=== RUN   TestOriginalProofRoutesWithoutAddingPlatform/android
+=== RUN   TestOriginalProofRoutesWithoutAddingPlatform/ios
+--- PASS: TestOriginalProofRoutesWithoutAddingPlatform (0.05s)
+    --- PASS: TestOriginalProofRoutesWithoutAddingPlatform/web (0.01s)
+    --- PASS: TestOriginalProofRoutesWithoutAddingPlatform/android (0.02s)
+    --- PASS: TestOriginalProofRoutesWithoutAddingPlatform/ios (0.02s)
+=== RUN   TestProductBindingRejectsReplacedOriginalDeviceAndTuple
+--- PASS: TestProductBindingRejectsReplacedOriginalDeviceAndTuple (0.04s)
+=== RUN   TestScopedBridgeReusesDevicePersistsAndRequiresLiveAuthority
+--- PASS: TestScopedBridgeReusesDevicePersistsAndRequiresLiveAuthority (0.06s)
+=== RUN   TestScopedBridgeRejectsIdentityAndDeviceSubstitution
+--- PASS: TestScopedBridgeRejectsIdentityAndDeviceSubstitution (0.02s)
+=== RUN   TestWebBridgeRequiresExactCookieCSRFAndLiveIdentity
+--- PASS: TestWebBridgeRequiresExactCookieCSRFAndLiveIdentity (0.02s)
+=== RUN   TestLoginDoesNotElevateIdentityIntoPrivateScopes
+--- PASS: TestLoginDoesNotElevateIdentityIntoPrivateScopes (0.03s)
+=== RUN   TestLoginRetainsOnlyExplicitRegisteredSocialScopes
+--- PASS: TestLoginRetainsOnlyExplicitRegisteredSocialScopes (0.03s)
+=== RUN   TestWalletScopesRejectUnregisteredOrAmbiguousPermissions
+--- PASS: TestWalletScopesRejectUnregisteredOrAmbiguousPermissions (0.00s)
+=== RUN   TestSocialCombinedAuthorityMountedHTTP
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/success
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/private-revoke-during-browser-read
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/browser-revoke-before-combined
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/cancel-after-combined
+=== RUN   TestSocialCombinedAuthorityMountedHTTP/binding-replaced-after-combined
+--- PASS: TestSocialCombinedAuthorityMountedHTTP (1.72s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/success (0.35s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/private-revoke-during-browser-read (0.32s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/browser-revoke-before-combined (0.41s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/cancel-after-combined (0.32s)
+    --- PASS: TestSocialCombinedAuthorityMountedHTTP/binding-replaced-after-combined (0.32s)
+=== RUN   TestWalletLoginRejectsReplayWrongBindingAndWrongAccount
+--- PASS: TestWalletLoginRejectsReplayWrongBindingAndWrongAccount (0.04s)
+=== RUN   TestWalletLoginRegistersOneBoundProductDeviceWithChatAndSquare
+--- PASS: TestWalletLoginRegistersOneBoundProductDeviceWithChatAndSquare (0.05s)
+=== RUN   TestWalletGatewayChallengeSurvivesRestartAndRejectsTamper
+--- PASS: TestWalletGatewayChallengeSurvivesRestartAndRejectsTamper (0.03s)
+=== RUN   TestContactLifecycleIsolationBlockAndRateLimit
+--- PASS: TestContactLifecycleIsolationBlockAndRateLimit (0.12s)
+=== RUN   TestDirectMessageContractSendReplayReadAndRestart
+--- PASS: TestDirectMessageContractSendReplayReadAndRestart (0.15s)
+=== RUN   TestGroupConversationPersistentE2EEAuthorizationAndTamper
+--- PASS: TestGroupConversationPersistentE2EEAuthorizationAndTamper (0.17s)
+=== RUN   TestModifyGroupMembersOwnerAuthorizationAndReplay
+--- PASS: TestModifyGroupMembersOwnerAuthorizationAndReplay (0.19s)
+=== RUN   TestMomentsVisibilityMediaInteractionsReportingAndTamper
+--- PASS: TestMomentsVisibilityMediaInteractionsReportingAndTamper (0.20s)
+=== RUN   TestAINativePermissionReviewCancelRetryAndProviderFailure
+--- PASS: TestAINativePermissionReviewCancelRetryAndProviderFailure (0.12s)
+=== RUN   TestAIStreamsOnlyAfterPermissionAndPersistsReviewUsage
+--- PASS: TestAIStreamsOnlyAfterPermissionAndPersistsReviewUsage (0.09s)
+=== RUN   TestAIPromptBindsExplicitOutputLanguageAndForbidsSideEffects
+--- PASS: TestAIPromptBindsExplicitOutputLanguageAndForbidsSideEffects (0.00s)
+=== RUN   TestPersistenceRestartTamperMigrationExportAndDelete
+--- PASS: TestPersistenceRestartTamperMigrationExportAndDelete (0.08s)
+=== RUN   TestIdempotencyKeysAreAccountIsolated
+--- PASS: TestIdempotencyKeysAreAccountIsolated (0.08s)
+=== RUN   TestActualStateCheckCLIUpgradeRecoveryAndReadOnlyGate
+--- PASS: TestActualStateCheckCLIUpgradeRecoveryAndReadOnlyGate (3.17s)
+=== RUN   TestStateReplacementFailureBoundariesAndForwardRecovery
+=== RUN   TestStateReplacementFailureBoundariesAndForwardRecovery/rename
+=== RUN   TestStateReplacementFailureBoundariesAndForwardRecovery/directory-sync
+--- PASS: TestStateReplacementFailureBoundariesAndForwardRecovery (0.03s)
+    --- PASS: TestStateReplacementFailureBoundariesAndForwardRecovery/rename (0.01s)
+    --- PASS: TestStateReplacementFailureBoundariesAndForwardRecovery/directory-sync (0.02s)
+=== RUN   TestSchemaFiveUpgradePreservesRelationshipsAndOpaqueBindings
+--- PASS: TestSchemaFiveUpgradePreservesRelationshipsAndOpaqueBindings (0.05s)
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AcknowledgeConversationMessage
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AcknowledgeGroupMessage
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AppealSocialReport
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/BeginAI
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Block
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateDirectConversation
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateGroupConversation
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateInvite
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateMoment
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateMomentComment
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreatePublicPost
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateSocialReport
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateWalletChallenge
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteAccount
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteContact
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteMoment
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/FollowTarget
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Login
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/MarkContractNotificationRead
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/MarkNotificationRead
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/ModifyGroupMembers
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Mute
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RequestContact
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RevokeInvite
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RevokeSession
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RotateConversationDevice
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SendConversationMessage
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SendGroupMessage
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SetMomentReaction
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SetSettings
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/StoreMedia
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/StreamAI
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/TransitionAI
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/TransitionRequest
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/UpdateContractProfile
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/ResolveMatrixAudience
+=== RUN   TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AuthorizeMatrixAudience
+--- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay (0.09s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AcknowledgeConversationMessage (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AcknowledgeGroupMessage (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AppealSocialReport (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/BeginAI (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Block (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateDirectConversation (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateGroupConversation (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateInvite (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateMoment (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateMomentComment (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreatePublicPost (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateSocialReport (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/CreateWalletChallenge (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteAccount (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteContact (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/DeleteMoment (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/FollowTarget (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Login (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/MarkContractNotificationRead (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/MarkNotificationRead (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/ModifyGroupMembers (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/Mute (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RequestContact (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RevokeInvite (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RevokeSession (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/RotateConversationDevice (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SendConversationMessage (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SendGroupMessage (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SetMomentReaction (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/SetSettings (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/StoreMedia (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/StreamAI (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/TransitionAI (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/TransitionRequest (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/UpdateContractProfile (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/ResolveMatrixAudience (0.00s)
+    --- PASS: TestUnconfirmedCommittedStateRejectsAllWriteEntriesAndReplay/AuthorizeMatrixAudience (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	16.809s
