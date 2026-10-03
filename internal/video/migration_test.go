@@ -25,7 +25,7 @@ func TestLegacyStateMigratesAndPersistsSchemaVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schema_version": 3`) {
+	if !strings.Contains(string(persisted), `"schema_version": 4`) {
 		t.Fatalf("migrated state did not persist schema version: %s", persisted)
 	}
 	if _, err = OpenStore(root, key); err != nil {
@@ -68,12 +68,12 @@ func persistStateFixture(t *testing.T, root string, key []byte, state State) {
 	if err := os.MkdirAll(filepath.Join(root, "objects"), 0700); err != nil {
 		t.Fatal(err)
 	}
-	store := &Store{
+	store := &Store{videoStateStore: &videoStateStore{
 		root:         root,
 		statePath:    filepath.Join(root, "state.json"),
 		integrityKey: append([]byte(nil), key...),
 		state:        state,
-	}
+	}}
 	if err := store.persistLocked(); err != nil {
 		t.Fatal(err)
 	}

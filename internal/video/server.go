@@ -49,21 +49,24 @@ type rateEntry struct {
 	count  int
 }
 type Server struct {
-	service      *Service
-	auth         Authenticator
-	mu           sync.Mutex
-	rates        map[string]rateEntry
+	service *Service
+	auth    Authenticator
+	*videoServerControls
 	maxPerMinute int
 	build        buildinfo.Info
+}
+type videoServerControls struct {
+	mu    sync.Mutex
+	rates map[string]rateEntry
 }
 
 func NewServer(s *Service, a Authenticator) *Server {
 	return NewServerWithBuild(s, a, buildinfo.Info{})
 }
 func NewServerWithBuild(s *Service, a Authenticator, build buildinfo.Info) *Server {
-	return &Server{service: s, auth: a, rates: map[string]rateEntry{}, maxPerMinute: 120, build: buildinfo.Normalize(build)}
+	return &Server{service: s, auth: a, videoServerControls: &videoServerControls{rates: map[string]rateEntry{}}, maxPerMinute: 120, build: buildinfo.Normalize(build)}
 }
-func (s *Server) Handler() http.Handler { return http.HandlerFunc(s.serve) }
+func (s *Server) Handler() http.Handler { return http.HandlerFunc(s.serveBusinessBoundary) }
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -72,7 +75,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	if origin == "http://127.0.0.1:4173" || origin == "http://127.0.0.1:4174" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-Product-Session-Proof")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-Product-Session-Proof, X-YNX-Product-Session-Proof-V2, X-YNX-Product-Session-Action-Proof-V2")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {

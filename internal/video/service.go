@@ -38,10 +38,14 @@ type Config struct {
 	MinMonetizationWatchSeconds       int64
 	MinMonetizationSubscribers        int64
 	Now                               func() time.Time
+	BusinessAuthority                 VideoBusinessAuthority
 }
 type Service struct {
-	store     *Store
-	cfg       Config
+	store *Store
+	cfg   Config
+	*videoServiceControls
+}
+type videoServiceControls struct {
 	aiMu      sync.Mutex
 	aiCancels map[string]context.CancelFunc
 	quotaMu   sync.Mutex
@@ -88,7 +92,7 @@ func NewService(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Service{store: store, cfg: cfg, aiCancels: map[string]context.CancelFunc{}}
+	s := &Service{store: store, cfg: cfg, videoServiceControls: &videoServiceControls{aiCancels: map[string]context.CancelFunc{}}}
 	if err = s.backfillMediaVariantIntegrity(); err != nil {
 		return nil, err
 	}

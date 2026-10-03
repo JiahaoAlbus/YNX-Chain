@@ -44,7 +44,7 @@ func TestLegacyStateMigratesAfterIntegrityVerification(t *testing.T) {
 	if err != nil {
 		t.Fatalf("legacy integrity was checked after schema mutation: %v", err)
 	}
-	if store.state.SchemaVersion != 3 || store.state.TeamInvites == nil || store.state.TeamMembers == nil || store.state.Rights == nil {
+	if store.state.SchemaVersion != currentStateSchemaVersion || store.state.TeamInvites == nil || store.state.TeamMembers == nil || store.state.Rights == nil {
 		t.Fatalf("legacy state was not normalized: %+v", store.state)
 	}
 	migrated := store.state.Videos["vid_legacy"]

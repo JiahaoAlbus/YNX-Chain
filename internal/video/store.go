@@ -14,13 +14,17 @@ import (
 )
 
 type Store struct {
+	*videoStateStore
+	business *videoBusinessLease
+}
+type videoStateStore struct {
 	mu              sync.RWMutex
 	root, statePath string
 	integrityKey    []byte
 	state           State
 }
 
-const currentStateSchemaVersion = 3
+const currentStateSchemaVersion = 4
 
 type stateMigration struct {
 	from int
@@ -30,6 +34,14 @@ type stateMigration struct {
 }
 
 var stateMigrations = []stateMigration{
+	{from: 3, to: 4, up: func(state *State) error { state.SchemaVersion = 4; return nil }, down: func(state *State) error {
+		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+			return errors.New("cannot discard Video business replay protection")
+		}
+		state.BusinessNonces = nil
+		state.SchemaVersion = 3
+		return nil
+	}},
 	{
 		from: 0,
 		to:   1,
@@ -81,16 +93,21 @@ var stateMigrations = []stateMigration{
 }
 
 func OpenStore(root string, integrityKey []byte) (*Store, error) {
+	return openVideoStore(root, integrityKey, true)
+}
+func openVideoStore(root string, integrityKey []byte, writable bool) (*Store, error) {
 	if root == "" {
 		return nil, errors.New("video store root is required")
 	}
-	if err := os.MkdirAll(filepath.Join(root, "objects"), 0700); err != nil {
-		return nil, err
+	if writable {
+		if err := os.MkdirAll(filepath.Join(root, "objects"), 0700); err != nil {
+			return nil, err
+		}
 	}
 	if len(integrityKey) < 32 {
 		return nil, errors.New("video store integrity key must be at least 32 bytes")
 	}
-	s := &Store{root: root, statePath: filepath.Join(root, "state.json"), integrityKey: append([]byte(nil), integrityKey...), state: emptyState()}
+	s := &Store{videoStateStore: &videoStateStore{root: root, statePath: filepath.Join(root, "state.json"), integrityKey: append([]byte(nil), integrityKey...), state: emptyState()}}
 	b, err := os.ReadFile(s.statePath)
 	if err == nil {
 		var loaded State
@@ -106,12 +123,12 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 			return nil, migrationErr
 		}
 		normalize(&s.state)
-		if migrated {
+		if migrated && writable {
 			if err = s.persistLocked(); err != nil {
 				return nil, fmt.Errorf("persist migrated video state: %w", err)
 			}
 		}
-	} else if !os.IsNotExist(err) {
+	} else if !os.IsNotExist(err) || !writable {
 		return nil, err
 	}
 	return s, nil
@@ -182,11 +199,37 @@ func normalize(s *State) {
 	}
 }
 func (s *Store) read(fn func(State) error) error {
+	if s.business != nil {
+		if s.business.readOnly && !s.business.consumed.Load() {
+			if err := s.update(func(*State) error { return nil }); err != nil {
+				return err
+			}
+		}
+		if err := s.business.check(); err != nil {
+			return err
+		}
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return fn(s.state)
+	if s.business != nil {
+		if err := s.business.checkState(s.state); err != nil {
+			return err
+		}
+	}
+	if err := fn(s.state); err != nil {
+		return err
+	}
+	if s.business != nil {
+		return s.business.check()
+	}
+	return nil
 }
 func (s *Store) update(fn func(*State) error) error {
+	if s.business != nil {
+		if err := s.business.check(); err != nil {
+			return err
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	encoded, err := json.Marshal(s.state)
@@ -198,11 +241,29 @@ func (s *Store) update(fn func(*State) error) error {
 		return err
 	}
 	normalize(&candidate)
+	if s.business != nil {
+		if err = s.business.admit(&candidate); err != nil {
+			return err
+		}
+	}
 	if err = fn(&candidate); err != nil {
 		return err
 	}
 	if err = validateAuditChain(candidate.Audit); err != nil {
 		return err
+	}
+	if s.business != nil {
+		if len(candidate.Audit) < len(s.state.Audit) {
+			return ErrUnauthorized
+		}
+		for _, event := range candidate.Audit[len(s.state.Audit):] {
+			if event.Actor != s.business.grant.Actor {
+				return ErrUnauthorized
+			}
+		}
+		if err = s.business.check(); err != nil {
+			return err
+		}
 	}
 	candidate.Integrity = ""
 	previous := s.state
@@ -210,6 +271,9 @@ func (s *Store) update(fn func(*State) error) error {
 	if err = s.persistLocked(); err != nil {
 		s.state = previous
 		return err
+	}
+	if s.business != nil {
+		s.business.consumed.Store(true)
 	}
 	return nil
 }
@@ -310,7 +374,10 @@ func (s *Store) verifyIntegrity() error {
 		return errors.New("video state integrity verification failed")
 	}
 	s.state.Integrity = provided
-	return validateAuditChain(s.state.Audit)
+	if err := validateAuditChain(s.state.Audit); err != nil {
+		return err
+	}
+	return validateVideoBusinessState(s.state)
 }
 
 func validateAuditChain(events []AuditEvent) error {

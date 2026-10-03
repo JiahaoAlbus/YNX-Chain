@@ -31,7 +31,7 @@ func CreateBackup(root string, integrityKey []byte, destination io.Writer, now t
 	if destination == nil {
 		return errors.New("backup destination is required")
 	}
-	if _, err := OpenStore(root, integrityKey); err != nil {
+	if _, err := openVideoStore(root, integrityKey, false); err != nil {
 		return fmt.Errorf("verify source state: %w", err)
 	}
 	statePath := filepath.Join(root, "state.json")
