@@ -54,11 +54,11 @@ type BrowserSSO struct {
 	now                                                                           func() time.Time
 }
 
-// NewBrowserSSO uses the original six clients plus approved Cloud/Docs/Calendar/Mail
-// Web identity clients. Callers cannot supply a new
+// NewBrowserSSO uses the approved thirteen-product ecosystem identity roster.
+// Private scopes and Merchant role eligibility are separate. Callers cannot supply a new
 // origin, audience, scope or issuer, and must opt in at their existing server.
 func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string, transport http.RoundTripper) (*BrowserSSO, error) {
-	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com", "cloud": "https://web4.ynxweb4.com", "docs": "https://docs.ynxweb4.com", "calendar": "https://calendar.ynxweb4.com", "mail": "https://mail.ynxweb4.com"}[product]
+	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com", "cloud": "https://web4.ynxweb4.com", "docs": "https://docs.ynxweb4.com", "calendar": "https://calendar.ynxweb4.com", "mail": "https://mail.ynxweb4.com", "shop": "https://shop.ynxweb4.com", "video": "https://video.ynxweb4.com", "creator-studio": "https://creator.ynxweb4.com"}[product]
 	if origin == "" || len(cookieKey) < 32 || len(targets) == 0 {
 		return nil, errors.New("browser SSO policy invalid")
 	}
@@ -80,6 +80,10 @@ func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string
 		clientID = "ynx-cloud-web-v1-sso-v1"
 	} else if product == "docs" {
 		clientID = "ynx-docs-mobile-v1-sso-v1"
+	} else if product == "video" {
+		clientID = "ynx-video-mobile-v1-sso-v1"
+	} else if product == "creator-studio" {
+		clientID = "ynx-creator-studio-web-v1-sso-v1"
 	}
 	s := &BrowserSSO{product: product, origin: origin, clientID: clientID, audience: "ynx:" + product + ":identity", authority: authority, identityCookie: "__Host-ynx-" + product + "-identity", pendingCookie: "__Host-ynx-" + product + "-signin", aead: aead, client: &http.Client{Timeout: 5 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, targets: map[string]bool{}, now: time.Now}
 	for _, target := range targets {

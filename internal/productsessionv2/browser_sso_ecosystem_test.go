@@ -94,7 +94,7 @@ func TestBrowserSSOWorkspaceRealCentralHTTP(t *testing.T) {
 		var result map[string]any
 		control("/__qa/mode", map[string]string{"mode": value}, &result)
 	}
-	for _, product := range []string{"cloud", "docs", "calendar", "mail"} {
+	for _, product := range []string{"cloud", "docs", "calendar", "mail", "shop", "video", "creator-studio"} {
 		t.Run(product, func(t *testing.T) {
 			s, err := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("k", 32)), []string{"overview", "editor"}, transport)
 			if err != nil {
@@ -285,7 +285,7 @@ func TestBrowserSSOWorkspaceCookieAndConstructorBoundaries(t *testing.T) {
 			t.Fatal("Cloud cookie crossed product AES/AAD boundary")
 		}
 	}
-	for _, product := range []string{"music", "card", "shop", "video", "creator-studio", "mail-web", "mail-mobile", "ynx-mail-v1", "unknown"} {
+	for _, product := range []string{"music", "card", "pay-merchant", "merchant-console", "seller-console", "mail-web", "mail-mobile", "ynx-mail-v1", "unknown"} {
 		if _, err := NewBrowserSSO(product, browserIssuer, key, []string{"home"}, nil); err == nil {
 			t.Fatal("unimplemented/unapproved constructor product admitted", product)
 		}
