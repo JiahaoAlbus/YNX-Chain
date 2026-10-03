@@ -1,0 +1,22 @@
+
+> @ynx-chain/social@1.0.0 bundle-check
+> expo export --platform android --platform ios --output-dir dist
+
+Starting Metro Bundler
+
+Android Bundled 6112ms index.ts (2130 modules)
+iOS Bundled 11239ms index.ts (2761 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-bfb56d47c99a65f3e6b56aef18480139.hbc (5.8MB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-31f33579f76c27cbf98c1f813fddaf31.hbc (5.8MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: dist

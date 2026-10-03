@@ -1,0 +1,4 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
