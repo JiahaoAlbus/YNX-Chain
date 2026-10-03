@@ -66,6 +66,10 @@ import Foundation
                             value=["json":try JSONSerialization.jsonObject(with:bytes)]
                         case "uiSignIn":await model.beginSignIn();value=["busy":model.authBusy,"pending":model.revokePending]
                         case "uiRefresh":await model.refresh();value=["status":model.status,"count":model.snapshot.playlists.count]
+                        case "cacheWritePermission":
+                            guard let operation=model.captureOperation() else {throw MusicNativeEngine.Failure.retired}
+                            let dir=directory.appendingPathComponent("MusicAccounts/"+MusicAccountStore.accountKey(operation.account.account))
+                            try FileManager.default.setAttributes([.posixPermissions:command["enabled"] as? Bool==true ? 0o700 : 0o500],ofItemAtPath:dir.path);value=["changedIsolatedQAStore":true]
                         case "uiRenamePlaylist":
                             guard let operation=model.captureOperation(),var playlist=model.snapshot.playlists.first else {throw MusicNativeEngine.Failure.retired}
                             playlist.name=command["title"] as! String

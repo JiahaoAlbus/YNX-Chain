@@ -130,16 +130,16 @@ struct MusicOperation {
             // instruction; it requires a fresh authorization.
             if let account,account.account != received.profile.account { throw URLError(.userAuthenticationRequired) }
             let (selected,cached)=try store.select(verifiedAccount:received.profile.account)
-            if account != selected { state=cached }
-            account=selected; snapshot=received
-            state.favorites=received.listener.favorites
-            state.queue=received.listener.queue
+            var candidate=account != selected ? cached : state
+            candidate.favorites=received.listener.favorites
+            candidate.queue=received.listener.queue
             // Availability is local and verified; remote download markers must
             // not claim that a file exists in this account's device directory.
-            state.downloads=Dictionary(uniqueKeysWithValues:received.catalog.compactMap { track in
+            candidate.downloads=Dictionary(uniqueKeysWithValues:received.catalog.compactMap { track in
                 ((try? store.audioURL(track:track,for:selected)) ?? nil) == nil ? nil : (track.id,"available")
             })
-            saveLocal(); status="ready"
+            try store.save(candidate,for:selected)
+            account=selected;state=candidate;snapshot=received;status="ready"
         } catch {
             guard fence.isCurrent(context),readGeneration==snapshotReadGeneration else { return }
             if (error as? URLError)?.code == .userAuthenticationRequired { signOut(); status="auth_rejected" }
