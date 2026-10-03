@@ -1,0 +1,48 @@
+- banner:
+  - link "YNX Social home":
+    - /url: /
+    - img "YNX"
+    - generic: YNX Social
+  - navigation "Primary":
+    - link "Chats":
+      - /url: "#matrix-social-workspace"
+    - link "Moments":
+      - /url: "#social-moments"
+    - link "Contacts":
+      - /url: "#people-panel"
+    - link "Settings":
+      - /url: "#profile-form"
+  - button "Connect wallet"
+- main:
+  - region "Your private workspace":
+    - group "Text size":
+      - generic: Text size
+      - radio "90%"
+      - text: 90%
+      - radio "100%" [checked]
+      - text: 100%
+      - radio "115%"
+      - text: 115%
+      - radio "130%"
+      - text: 130%
+    - button "Chat appearance and background" [active]
+    - heading "Your private workspace" [level=2]
+    - paragraph: Sign in with YNX, then choose whether to allow Social to manage your profile, contacts and encrypted chat on this device. Review each permission in Wallet.
+    - link "Sign in with YNX identity":
+      - /url: /sso/start?target=conversations
+    - button "Allow my Social profile, contacts and chat"
+    - button "Continue my workspace"
+    - button "Sign out of private workspace"
+    - status: Private workspace is locked. Guest access makes no authorization request.
+  - region "Private Social identity":
+    - heading "Private Social identity" [level=2]
+    - paragraph: Sign in to use your identity in Social. Access to contacts and chat is a separate choice.
+    - paragraph: No confirmed private identity link.
+    - status: Private identity has not been checked. Guest browsing sends no private authorization request.
+    - button "Sign in to Social"
+    - button "Continue identity sign-in"
+    - button "Revoke private session"
+    - paragraph:
+      - link "Install or update YNX Wallet":
+        - /url: https://www.ynxweb4.com/dapp/download
+      - text: . Installation alone does not prove the browser can open the Wallet link.
