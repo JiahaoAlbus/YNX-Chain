@@ -1,0 +1,4 @@
+stage=/tmp/social-secretstream-20261004.ZhhjjC
+libsodium=1.0.20
+compile_exit=0
+check_exit=0

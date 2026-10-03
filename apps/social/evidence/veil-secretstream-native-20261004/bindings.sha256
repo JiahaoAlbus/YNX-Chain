@@ -1,0 +1,6 @@
+f1c1d954637846e1c8d5edb1707e6eacb4fd52927e3fb9cf5bff57ba1f2079ea  apps/social/crypto-engine/sodium/veil_attachment.h
+6d2ec37277349e1fba8fd3f23e6f8c1bd98e38803be1a8e8beb5d246bc28ede6  apps/social/crypto-engine/sodium/veil_attachment.c
+6089f70515ba5c47b577688973ce1b7013facacd7ab9e6450dcf72eff0454b27  apps/social/crypto-engine/sodium/veil_attachment_check.c
+b58e7d73d836b7f9392e426dbbdb04cbef39e673911c348e41a0668d1ba0dbeb  /opt/homebrew/Cellar/libsodium/1.0.20/lib/libsodium.dylib
+84f514317b7feb33b644b2c3fc45b9f012dd5cbda98aeb8086ec8f6d7029851f  /opt/homebrew/Cellar/libsodium/1.0.20/include/sodium/crypto_secretstream_xchacha20poly1305.h
+943250f654c105030f39c8210312db8bceace046105133f22010212347b730be  /tmp/social-secretstream-20261004.ZhhjjC/check
