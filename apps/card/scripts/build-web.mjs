@@ -1,6 +1,7 @@
 import {execFileSync} from "node:child_process";
 import {readFileSync,rmSync,writeFileSync} from "node:fs";
 import {resolve} from "node:path";
+import {verifyCardBuildSourceFreeze} from "./card-build-source-freeze.mjs";
 
 const root=resolve(import.meta.dirname,"..");
 const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim();
@@ -8,7 +9,7 @@ const sourceTree=execFileSync("git",["rev-parse","HEAD^{tree}"],{cwd:root,encodi
 const compatibility=JSON.parse(readFileSync(resolve(root,"card-source-compatibility.json"),"utf8"));
 if(compatibility.schemaVersion!=="ynx.card.source-compatibility.v1"||compatibility.frontendSourceBase!=="7f9ea9af369c61fcb358c9e80500fdd30c66cbbb"||compatibility.backendSourceCommit!=="e95fcf443228d0db97c139dfa5e8ad6fbb7aa675"||compatibility.backendVersionSchema!==1||compatibility.productionRealPayments!==false)throw new Error("Card source compatibility requires the accepted exact source identities");
 execFileSync("git",["merge-base","--is-ancestor",compatibility.frontendSourceBase,"HEAD"],{cwd:root});
-execFileSync("git",["diff","--quiet","HEAD","--","."],{cwd:root});
+verifyCardBuildSourceFreeze(root);
 if(!/^[0-9a-f]{40}$/.test(sourceCommit)||!/^[0-9a-f]{40}$/.test(sourceTree))throw new Error("Card static runtime identity requires an exact Git source commit and tree");
 rmSync(resolve(root,"dist-web"),{recursive:true,force:true});
 execFileSync(process.platform==="win32"?"npx.cmd":"npx",["expo","export","--platform","web","--output-dir","dist-web"],{cwd:root,stdio:"inherit",env:{...process.env,EXPO_PUBLIC_CARD_SOURCE_COMMIT:sourceCommit,EXPO_PUBLIC_CARD_SOURCE_TREE:sourceTree}});
