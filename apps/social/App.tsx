@@ -111,6 +111,7 @@ import { NativeSessionPanel } from "./src/NativeSessionPanel";
 import { nativeSocialSession, nativeChatDevice } from "./src/nativeSessionRuntime";
 import { bindScopedSocialSession } from "./src/scopedSessionBridge";
 import {ContactRequestFlow,socialProfileQR,requireSocialProfileQR,socialDiscoveryEntry,type SocialDiscoveryEntry,type ContactReview} from "./src/contactRequestFlow";
+import {runCurrentContactAction} from './src/contactActionGuard';
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -189,6 +190,7 @@ export default function App() {
 function SocialApp() {
   const { t, isRTL } = useI18n();
   const [discovery,setDiscovery]=useState<SocialDiscoveryEntry|null>(null);
+  const consumeDiscovery=useCallback(()=>setDiscovery(null),[]);
   useEffect(()=>{
     let active=true,received=false;
     const accept=(value:string)=>{const entry=socialDiscoveryEntry(value);if(active&&entry)setDiscovery(entry)};
@@ -512,7 +514,7 @@ function SocialApp() {
       </View>
       <View style={styles.body}>
         {tab === "contacts" ? (
-          <Contacts key={api.authorizationGeneration} api={api} discovery={discovery} />
+          <Contacts key={api.authorizationGeneration} api={api} discovery={discovery} onDiscoveryConsumed={consumeDiscovery} />
         ) : tab === "messages" ? (
           <Messages api={api} session={session} />
         ) : tab === "moments" ? (
@@ -624,7 +626,7 @@ function LanguagePicker({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Contacts({ api,discovery }: { api: SocialAPI;discovery?:SocialDiscoveryEntry|null }) {
+function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discovery?:SocialDiscoveryEntry|null;onDiscoveryConsumed?:()=>void }) {
   type Source = "handle" | "contacts" | "qr" | "invite" | "recommendation";
   const flow=useMemo(()=>new ContactRequestFlow(api,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,"0")).join("")),[api]);
   const requestGeneration=useRef(0);
@@ -645,7 +647,8 @@ function Contacts({ api,discovery }: { api: SocialAPI;discovery?:SocialDiscovery
   useEffect(()=>{
     if(!discovery)return;
     requestGeneration.current++;flow.cancel();setRequesting(false);setReview(null);setRequestMessage('');setSource(discovery.source);setValue(discovery.value);setAdd(true);
-  },[discovery,flow]);
+    onDiscoveryConsumed?.();
+  },[discovery,flow,onDiscoveryConsumed]);
   const load = async () => {
     const current=api.authorizationGuard();
     setLoading(true);
@@ -691,8 +694,7 @@ function Contacts({ api,discovery }: { api: SocialAPI;discovery?:SocialDiscovery
     if(relationshipPending.current.has(key))return;
     relationshipPending.current.add(key);
     try {
-      await api.transitionRequest(item.id, action);
-      if(!mounted.current||!authority())return;
+      if(!await runCurrentContactAction(()=>mounted.current&&authority(),()=>api.transitionRequest(item.id,action)))return;
       await load();
     } catch (caught) {
       if(mounted.current&&authority())setError(message(caught));
@@ -700,36 +702,40 @@ function Contacts({ api,discovery }: { api: SocialAPI;discovery?:SocialDiscovery
       relationshipPending.current.delete(key);
     }
   };
-  const changeRelationship=async(person:Person,action:'mute'|'remove'|'block')=>{
+  const changeRelationship=async(person:Person,action:'mute'|'remove'|'block',reviewCurrent:()=>boolean)=>{
     const authority=api.authorizationGuard(),key=`person:${person.id}`;
     if(relationshipPending.current.has(key))return;
     relationshipPending.current.add(key);
     try{
-      if(action==='mute')await api.mute(person.id,true);
-      else if(action==='remove')await api.deleteContact(person.id);
-      else await api.block(person.id);
+      if(!await runCurrentContactAction(()=>reviewCurrent()&&mounted.current&&authority(),async()=>{
+       if(action==='mute')await api.mute(person.id,true);
+       else if(action==='remove')await api.deleteContact(person.id);
+       else await api.block(person.id);
+      }))return;
       if(mounted.current&&authority())await load();
     }catch(caught){if(mounted.current&&authority())setError(message(caught))}
     finally{relationshipPending.current.delete(key)}
   };
-  const manage = (person: Person) =>
+  const manage = (person: Person) => {
+    const reviewedAuthority=api.authorizationGuard(),reviewCurrent=()=>mounted.current&&reviewedAuthority();
     Alert.alert(person.displayName, `@${person.handle}`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Mute",
-        onPress: () => void changeRelationship(person,'mute'),
+        onPress: () => void changeRelationship(person,'mute',reviewCurrent),
       },
       {
         text: "Delete contact",
         style: "destructive",
-        onPress: () => void changeRelationship(person,'remove'),
+        onPress: () => void changeRelationship(person,'remove',reviewCurrent),
       },
       {
         text: "Block",
         style: "destructive",
-        onPress: () => void changeRelationship(person,'block'),
+        onPress: () => void changeRelationship(person,'block',reviewCurrent),
       },
     ]);
+  };
   const pending = data.requests.filter((item) => item.status === "pending"),
     requestHeader = (
       <View>

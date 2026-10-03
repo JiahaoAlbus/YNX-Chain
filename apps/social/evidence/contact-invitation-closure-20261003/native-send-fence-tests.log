@@ -1,0 +1,33 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+✔ stale reviewed alert cannot send under a newer account (0.3965ms)
+✔ current explicit action sends once and confirms current readback eligibility (0.17825ms)
+✔ late success cannot refresh the next account (0.0775ms)
+✔ late failure cannot replace the next account status (0.073417ms)
+✔ current failure is not hidden as success (0.211625ms)
+✔ ignored abort is bounded without claiming server rollback (4.929833ms)
+✔ camera decoding releases stream and only returns QR content (1.571291ms)
+✔ unrelated QR is rejected without dispatch and valid invitation can be scanned next (0.257ms)
+✔ cancel before permission resolves releases late stream without attaching (0.088792ms)
+✔ unsupported scanner never requests camera permission (0.088459ms)
+✔ denied camera permission gives retry guidance and can retry (0.183666ms)
+✔ account invalidation during decode stops camera and discards result (0.17275ms)
+✔ superseding a camera attempt cannot reattach the older stream (0.10325ms)
+✔ Native initial and live discovery URLs carry business intent only (1.175125ms)
+✔ Native preview sends nothing until explicit confirmation of stable target (0.659542ms)
+✔ Native same-account new generation rejects old review (0.226459ms)
+✔ Native cancellation and logout reject old review without submitting (0.229333ms)
+✔ Native failed retry preserves identity, key and message (0.182958ms)
+✔ Native late preview after account change cannot become a review (0.090042ms)
+✔ Native QR contract accepts opaque canonical locator, rejects legacy and funding values (0.306041ms)
+✔ Native preview rejects stale-server funding IDs and foreign invitation URLs (0.114625ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.95675

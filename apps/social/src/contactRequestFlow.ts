@@ -31,11 +31,15 @@ export class ContactRequestFlow{
     if(source==="handle"||source==="recommendation")value=value.replace(/^@/,"");
     if(/^ynx1/i.test(value))throw new Error("Wallet addresses cannot be used to add friends");
     if(source==="qr")value=requireSocialProfileQR(value);
-    if(source==="invite"&&value.startsWith("https:")){const link=new URL(value);if(link.origin!=="https://social.ynxweb4.com"||link.username||link.password||link.search||link.hash||!/^\/invite\/[A-Za-z0-9_-]+$/.test(link.pathname))throw new Error("Use an exact YNX Social invitation link");value=link.pathname.slice("/invite/".length)}
+    if(source==='invite'){
+      if(value.startsWith('https:')){const entry=socialDiscoveryEntry(value);if(!entry||entry.source!=='invite')throw new Error('Use an exact YNX Social invitation link');value=value.slice('https://social.ynxweb4.com/invite/'.length)}
+      if(!/^[A-Za-z0-9_-]{32}$/.test(value))throw new Error('Use an exact YNX Social invitation link');
+    }
     if(!value||value.length>2048)throw new Error("Enter a valid person discovery value");
     const result=await this.operation.run(()=>this.api.previewContact(source,value));
     if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; review the person again");
     if(!/^sp_[A-Za-z0-9_-]{32}$/.test(result.person?.id??"")||typeof result.person.handle!=="string"||typeof result.person.displayName!=="string")throw new Error("A stable Social profile could not be verified");
+    if(source==='qr'&&result.person.id!==value.slice('https://social.ynxweb4.com/people/'.length))throw new Error('The original personal code does not match this profile');
     const entropy=await this.operation.run(()=>this.randomId());if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; old preview discarded");
     if(!/^[A-Za-z0-9_-]{16,64}$/.test(entropy))throw new Error("Request identity could not be created");
     const review=Object.freeze({source,value,person:Object.freeze({...result.person}),idempotencyKey:`native-contact-${entropy}`});this.review=review;this.guard=guard;return review;
