@@ -50,10 +50,13 @@ func mediaSDKJSON(t *testing.T, v any) []byte {
 
 // These tests use ephemeral QA signing keys and an isolated authority response.
 // Actual SDK action signatures are verified; this is not actual Wallet consent.
-func mediaSDKProof(t *testing.T, s productsessionv2.Session, key *ecdsa.PrivateKey, method, path, body, nonce string, life time.Duration) string {
+func mediaSDKProof(t *testing.T, s productsessionv2.Session, key *ecdsa.PrivateKey, method, path, body, nonce string, life time.Duration, issued ...time.Time) string {
 	t.Helper()
 	sum := sha256.Sum256([]byte(body))
 	now := time.Now().UTC().Truncate(time.Millisecond).Add(-time.Second)
+	if len(issued) > 0 {
+		now = issued[0].UTC().Truncate(time.Millisecond)
+	}
 	p := map[string]any{"version": "2", "sessionBinding": s.SessionBinding, "productId": s.ProductID, "clientId": s.ClientID, "applicationId": s.ApplicationID, "bundleId": s.BundleID, "packageId": s.PackageID, "origin": s.Origin, "callback": s.Callback, "account": s.Account, "deviceId": s.DeviceID, "deviceKey": s.DeviceKey, "method": method, "path": path, "bodyDigest": hex.EncodeToString(sum[:]), "nonce": nonce, "issuedAt": now.Format("2006-01-02T15:04:05.000Z"), "expiresAt": now.Add(life).Format("2006-01-02T15:04:05.000Z")}
 	signed := sha256.Sum256(append([]byte("YNX_PRODUCT_SESSION_HTTP_PROOF_V2\n"), mediaSDKJSON(t, p)...))
 	sig, e := ecdsa.SignASN1(rand.Reader, key, signed[:])

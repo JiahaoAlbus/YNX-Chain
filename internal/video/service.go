@@ -22,10 +22,11 @@ import (
 )
 
 var (
-	ErrUnauthorized = errors.New("unauthorized")
-	ErrForbidden    = errors.New("forbidden")
-	ErrNotFound     = errors.New("not found")
-	ErrQuota        = errors.New("storage quota exceeded")
+	ErrUnauthorized              = errors.New("unauthorized")
+	ErrVideoAuthorityUnavailable = errors.New("Video business authority temporarily unavailable")
+	ErrForbidden                 = errors.New("forbidden")
+	ErrNotFound                  = errors.New("not found")
+	ErrQuota                     = errors.New("storage quota exceeded")
 )
 
 type Config struct {

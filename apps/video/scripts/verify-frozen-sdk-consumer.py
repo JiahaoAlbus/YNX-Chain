@@ -5,6 +5,7 @@ Reads the shared repository through git show only. Does not install a runtime.
 import argparse, hashlib, json, os, pathlib, shutil, subprocess, tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--shared-repository', required=True)
+parser.add_argument('--test-run', help='Optional Go test name filter for focused repair; receipt retains exact command')
 parser.add_argument('--evidence', required=True)
 parser.add_argument('--central-source-package', help='Exact A complete16195 or Music successor frozen fixture package; enables actual loopback authority tests')
 parser.add_argument('--browser-roster-overlay', help='Exact A approved258 BrowserSSO source freeze; requires matching combined641 source package')
@@ -130,8 +131,11 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     staged_modules = [dict(path=name, sha256=hashlib.sha256((target / name).read_bytes()).hexdigest()) for name in ['go.mod', 'go.sum']]
     toolchain = subprocess.check_output(['go', 'version'], cwd=target, env=build_env).decode().strip()
     dependency = json.loads(subprocess.check_output(['go', 'list', '-m', '-json', 'golang.org/x/sys'], cwd=target, env=build_env))
-    commands = [(['go', 'test', '-race', '-count=1', '-tags=ynx_canonical_media', '-json', './internal/video', './internal/music'], 'combined-go-race.jsonl'),
-                (['go', 'vet', '-tags=ynx_canonical_media', './internal/video', './internal/music'], 'combined-go-vet.txt')]
+    tags = 'ynx_canonical_media,ynx_media_combined_authority' if combined and overlay_receipt else 'ynx_canonical_media'
+    commands = [(['go', 'test', '-race', '-count=1', '-tags='+tags, '-json', './internal/video', './internal/music'], 'combined-go-race.jsonl'),
+                (['go', 'vet', '-tags='+tags, './internal/video', './internal/music'], 'combined-go-vet.txt')]
+    if args.test_run:
+        commands[0][0].insert(5, '-run='+args.test_run)
     results = []
     for command, name in commands:
         with (evidence / name).open('xb') as log:

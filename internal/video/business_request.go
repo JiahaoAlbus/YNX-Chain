@@ -122,7 +122,11 @@ func (s *Server) serveBusinessBoundary(w http.ResponseWriter, r *http.Request) {
 	}
 	expected := hex.EncodeToString(hash.Sum(nil))
 	_, parseErr := time.Parse(time.RFC3339Nano, claimed.ExpiresAt)
-	if err != nil || parseErr != nil || grant.Actor != claimed.Account || grant.ProductID != claimed.ProductID || grant.Scope != scope || grant.SessionBinding != claimed.SessionBinding || grant.BodyDigest != expected || grant.SessionExpiresAt.IsZero() || grant.ExpiresAt.After(grant.SessionExpiresAt) {
+	if err != nil {
+		problem(w, videoBusinessErrorStatus(err), err)
+		return
+	}
+	if parseErr != nil || grant.Actor != claimed.Account || grant.ProductID != claimed.ProductID || grant.Scope != scope || grant.SessionBinding != claimed.SessionBinding || grant.BodyDigest != expected || grant.SessionExpiresAt.IsZero() || grant.ExpiresAt.After(grant.SessionExpiresAt) {
 		problem(w, 401, ErrUnauthorized)
 		return
 	}
@@ -132,7 +136,7 @@ func (s *Server) serveBusinessBoundary(w http.ResponseWriter, r *http.Request) {
 	}
 	scoped, err := s.service.withBusinessGrant(ctx, grant, r.Method == http.MethodGet)
 	if err != nil {
-		problem(w, 401, err)
+		problem(w, videoBusinessErrorStatus(err), err)
 		return
 	}
 	request := r.Clone(ctx)
@@ -249,8 +253,13 @@ func (w *videoBusinessResponse) reject(err error) {
 	if !w.written {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		w.ResponseWriter.WriteHeader(401)
-		json.NewEncoder(w.ResponseWriter).Encode(map[string]string{"error": "Video business authorization is no longer current"})
+		status := videoBusinessErrorStatus(err)
+		w.ResponseWriter.WriteHeader(status)
+		message := "Video business authorization is no longer current"
+		if status == 503 {
+			message = ErrVideoAuthorityUnavailable.Error()
+		}
+		json.NewEncoder(w.ResponseWriter).Encode(map[string]string{"error": message})
 		w.written = true
 	}
 }
@@ -281,4 +290,11 @@ func (w *videoBusinessResponse) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+func videoBusinessErrorStatus(err error) int {
+	if errors.Is(err, ErrVideoAuthorityUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return http.StatusServiceUnavailable
+	}
+	return http.StatusUnauthorized
 }
