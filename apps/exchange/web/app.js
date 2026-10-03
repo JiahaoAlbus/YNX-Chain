@@ -1,6 +1,7 @@
 import {createMarketFeed,formatMicro} from './market-data.js?v=53ccbb3def98b0bbdedfb99ae9e69ee1698ea777fd369baa96a484f01ad4af1d';
 import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
+import {installExchangeLocale} from './locale.js';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');
@@ -49,7 +50,11 @@ async function initializeBrowserIdentity(){try{const {response,data}=await brows
 }catch{/* Opt-in unavailable; keep existing native/private and public routes. */}}
 
 const marketFeed=createMarketFeed({onSnapshot(value){state.book=value.orderBook;state.publicTrades=value.trades;state.rules=value.tradingRules;state.source=value.sourceMetadata;renderBook();renderPublicMarket()},onStatus(value){state.marketPhase=value.phase;renderMarketStatus(value);estimate()}});
-async function boot(){bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Separate approved deposit workflow required';$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()])}
+async function boot(){
+  let languageStorage;try{languageStorage=window.localStorage}catch{}
+  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot)renderAccount();estimate()}});
+  bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Separate approved deposit workflow required';$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
+}
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
   $('#connect').addEventListener('click',openWalletChooser);
@@ -98,7 +103,7 @@ function estimate(){
 function withdrawEstimate(){const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;$('#withdraw-receive').textContent='—';if(!Number.isSafeInteger(fee)||fee<0)return;try{const amount=parseMicro($('#withdraw-amount').value);if(amount>BigInt(fee))$('#withdraw-receive').textContent=`${display(amount-BigInt(fee))} YNXT`}catch{}}
 
 async function refreshAll(){await marketFeed.retry();if(privateAccount.state().phase==='connected')await privateAccount.refresh()}
-function renderMarketStatus({phase,source}){const cached=!!source;$('#market-connection').textContent=({loading:'Loading venue market data…',live:source?.status==='degraded_single_host'?'Connected · single-host test data':'Connected · venue market data',polling:'Connected · periodic market snapshots',reconnecting:'Market connection interrupted · reconnecting',offline:'Offline · reconnect when your network returns',unavailable:'Market data unavailable · retrying'})[phase];$('#market-source').textContent=source?`${source.authority} · ${source.coverage} · snapshot ${new Date(source.asOf).toLocaleString()} · ${source.version}`:'No verified market snapshot received.';$('#market-source').dataset.stale=String(cached&&!['live','polling'].includes(phase));$('#market-stale').hidden=!cached||['live','polling'].includes(phase);if(!cached&&['offline','unavailable'].includes(phase)){$('#spread').textContent='Market depth unavailable';$('#public-trades').innerHTML='<tr><td colspan="5" class="empty-cell">Market source unavailable. Reconnect to load actual matches.</td></tr>';$('#chart-empty').querySelector('strong').textContent='Market source unavailable'}}
+function renderMarketStatus({phase,source}){const cached=!!source;$('#market-connection').textContent=({loading:'Loading venue market data…',live:source?.status==='degraded_single_host'?'Connected · single-host test data':'Connected · venue market data',polling:'Connected · periodic market snapshots',reconnecting:'Market connection interrupted · reconnecting',offline:'Offline · reconnect when your network returns',unavailable:'Market data unavailable · retrying'})[phase];window.YNXExchangeLocale?.write($('#market-connection'),phase==='live'?(source?.status==='degraded_single_host'?'market-single':'market-live'):`market-${phase}`);$('#market-source').textContent=source?`${source.authority} · ${source.coverage} · snapshot ${new Date(source.asOf).toLocaleString(document.documentElement.lang)} · ${source.version}`:'No verified market snapshot received.';$('#market-source').dataset.stale=String(cached&&!['live','polling'].includes(phase));$('#market-stale').hidden=!cached||['live','polling'].includes(phase);if(!cached&&['offline','unavailable'].includes(phase)){$('#spread').textContent='Market depth unavailable';$('#public-trades').innerHTML='<tr><td colspan="5" class="empty-cell">Market source unavailable. Reconnect to load actual matches.</td></tr>';$('#chart-empty').querySelector('strong').textContent='Market source unavailable'}}
 async function refreshBook(){await refreshAll()}
 async function refreshAccount(){return privateAccount.refresh()}
 function renderPrivateAccount(value){
@@ -106,6 +111,7 @@ function renderPrivateAccount(value){
   state.privatePhase=value.phase;state.account=value.account;state.snapshot=value.snapshot;
   const messages={guest:'Guest mode. Private venue data is hidden; standard Wallet and public markets are independent.',loading:'Verifying the Exchange private account…',connected:'Read-only Exchange account verified by the private authority and Product API. No order or withdrawal permission.', 'approval-pending':'Request saved. Click Open YNX Wallet to review read-only access. Native installation is unverified; returning here alone is not approval.',degraded:'Private account unavailable. Retry can recover its protected state; your standard Wallet remains unchanged.','authorization-required':'Private account authorization expired or was rejected. Retry or start a new explicit approval.',closed:'Private account is closed.'};
   $('#private-status').textContent=`${value.phase==='approval-pending'&&value.installation==='selected-provider'?'Review Exchange read-only access in the selected Wallet. No venue data is available until its approved return is verified.':messages[value.phase]||messages.degraded}${value.code?' ('+value.code+')':''}`;
+  window.YNXExchangeLocale?.write($('#private-status'),value.phase==='approval-pending'&&value.installation==='selected-provider'?'selected-pending':Object.hasOwn(messages,value.phase)?value.phase:'degraded',value.code?' ('+value.code+')':'');
   const open=$('#private-open');open.hidden=!value.route;if(value.route)open.href=value.route;else open.removeAttribute('href');
   $('#private-details').hidden=value.phase!=='connected';$('#private-native-account').textContent=value.account||'—';$('#private-expiry').textContent=value.expiresAt?new Date(value.expiresAt).toLocaleString():'—';
   for(const id of ['private-begin','private-retry','private-refresh','private-disconnect'])$('#'+id).disabled=value.phase==='loading';
