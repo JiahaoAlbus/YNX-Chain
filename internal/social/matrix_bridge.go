@@ -19,6 +19,7 @@ type MatrixBridge struct {
 	AllowPeer func(context.Context, string, string) error
 	Authorize func(*http.Request, []string) (string, error)
 	Resolve   func(context.Context, string) (MatrixServer, error)
+	Directory *MatrixDirectory
 	Issue     func(context.Context, string, string, MatrixServer) (MatrixCredential, error)
 	LocalQA   bool
 }
@@ -52,7 +53,7 @@ func (b *MatrixBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		_, _ = io.WriteString(w, `{"error":"verified Matrix binding unavailable"}`)
 	}
-	if b.Authorize == nil || b.Resolve == nil {
+	if b.Authorize == nil || b.Directory == nil {
 		deny(http.StatusServiceUnavailable)
 		return
 	}
@@ -90,12 +91,24 @@ func (b *MatrixBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		deviceID = input.DeviceID
 	}
-	server, err := b.Resolve(r.Context(), account)
-	if err != nil || b.validateServer(server) != nil {
+	identity, err := b.Directory.Resolve(account)
+	if err != nil || identity.Account != account || !validMatrixUserID(identity.UserID, identity.ServerName) {
 		deny(http.StatusServiceUnavailable)
 		return
 	}
-	result := MatrixBinding{Protocol: "ynx-social-matrix/v1", Account: account, Homeserver: server.BaseURL, ServerName: server.ServerName, UserID: "@" + account + ":" + server.ServerName, DeviceID: deviceID}
+	server := MatrixServer{BaseURL: identity.Homeserver, ServerName: identity.ServerName}
+	if b.Resolve != nil {
+		resolved, err := b.Resolve(r.Context(), account)
+		if err != nil || strings.TrimRight(resolved.BaseURL, "/") != strings.TrimRight(server.BaseURL, "/") || resolved.ServerName != server.ServerName {
+			deny(http.StatusServiceUnavailable)
+			return
+		}
+	}
+	if b.validateServer(server) != nil {
+		deny(http.StatusServiceUnavailable)
+		return
+	}
+	result := MatrixBinding{Protocol: "ynx-social-matrix/v1", Account: account, Homeserver: server.BaseURL, ServerName: server.ServerName, UserID: identity.UserID, DeviceID: deviceID}
 	if !peer {
 		if b.Issue == nil {
 			deny(http.StatusServiceUnavailable)

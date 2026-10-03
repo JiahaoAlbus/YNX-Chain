@@ -13,7 +13,8 @@ import (
 
 func TestMatrixBridgeBindingAndRejection(t *testing.T) {
 	account := "ynx1" + strings.Repeat("a", 38)
-	user := "@" + account + ":qa.test"
+	const historicalUser = "@original-historical-user:qa.test"
+	user := historicalUser
 	device := "YNX-test-device"
 	granted := true
 	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,8 @@ func TestMatrixBridgeBindingAndRejection(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"user_id": user, "device_id": device})
 	}))
 	defer hs.Close()
-	bridge := MatrixBridge{LocalQA: true, Authorize: func(r *http.Request, scopes []string) (string, error) {
+	directory := &MatrixDirectory{identities: map[string]MatrixIdentity{account: {Account: account, Homeserver: hs.URL + "/", ServerName: "qa.test", UserID: historicalUser}}}
+	bridge := MatrixBridge{LocalQA: true, Directory: directory, Authorize: func(r *http.Request, scopes []string) (string, error) {
 		if len(scopes) != 2 || !granted {
 			return "", errors.New("denied")
 		}
@@ -44,7 +46,7 @@ func TestMatrixBridgeBindingAndRejection(t *testing.T) {
 	if w := call(`{"deviceId":"YNX-test-device"}`); w.Code != 401 || strings.Contains(w.Body.String(), "synthetic-local-test-token") {
 		t.Fatal("issuer substitution accepted or token disclosed")
 	}
-	user = "@" + account + ":qa.test"
+	user = historicalUser
 	granted = false
 	if w := call(`{"deviceId":"YNX-test-device"}`); w.Code != 401 {
 		t.Fatal("unapproved identity accepted")

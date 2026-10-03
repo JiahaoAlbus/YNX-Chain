@@ -172,17 +172,19 @@ func (s *Service) UpdateContractProfile(actor Session, idempotencyKey, handle, d
 	if s.cfg.Square == nil {
 		return ProfileView{}, false, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
-	result, err := s.cfg.Square.SetProfile(square.Device{ID: actor.DeviceID, Account: actor.Account}, square.SetProfileRequest{IdempotencyKey: idempotencyKey, Handle: handle, DisplayName: displayName, Bio: bio})
+	request := square.SetProfileRequest{IdempotencyKey: idempotencyKey, Handle: handle, DisplayName: displayName, Bio: bio}
+	if err := s.prepareProfileContract(actor, request, avatarURL); err != nil {
+		return ProfileView{}, false, err
+	}
+	result, err := s.dispatchProfileContract(actor, request, avatarURL)
 	if err != nil {
 		return ProfileView{}, false, socialSquareError(err)
 	}
-	current := s.currentSettings(actor.Account)
-	settingsKey := idempotencyKey + "-privacy"
-	if len(settingsKey) > 95 {
-		settingsKey = "profile-settings-" + objectDigest(idempotencyKey)[:24]
-	}
-	_, _, err = s.SetSettings(actor, ProfileSettingsInput{IdempotencyKey: settingsKey, DiscoverableByHandle: current.DiscoverableByHandle, ContactsMatching: current.ContactsMatching, AllowRecommendations: current.AllowRecommendations, AllowRequestsFrom: defaultRequestPrivacy(current.AllowRequestsFrom), AvatarURL: avatarURL})
+	err = s.setProfileContractAvatar(actor, idempotencyKey, avatarURL)
 	if err != nil {
+		return ProfileView{}, false, err
+	}
+	if err := s.completeProfileContract(actor, request, avatarURL); err != nil {
 		return ProfileView{}, false, err
 	}
 	view, err := s.ContractProfile(actor)
