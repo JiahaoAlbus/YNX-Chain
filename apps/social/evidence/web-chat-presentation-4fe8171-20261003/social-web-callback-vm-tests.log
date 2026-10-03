@@ -1,0 +1,26 @@
+✔ already-scrubbed bootstrap snapshot is delivered once with the exact Social origin (1.009666ms)
+✔ invalid synthetic callback is scrubbed without delivery:  (0.105708ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce (0.076708ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?loginToken=fixture (0.068459ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=invalid&loginToken=fixture (0.073584ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&state=nonce&loginToken=fixture (0.068666ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&loginToken=fixture&loginToken=duplicate (0.076458ms)
+✔ orphan callback keeps branded retry page and never delivers credentials (0.079916ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://other.example.test/matrix/login/callback (0.096375ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://social.ynxweb4.com/other (0.099917ms)
+✔ delivery exception is sanitized and cannot replay the credential (0.125125ms)
+✔ missing snapshot produces only a safe retry message (0.061917ms)
+✔ callback inherits explicit same-origin Social language without locale storage or query flags (0.106791ms)
+✔ foreign opener language does not override the English default or token origin (0.065291ms)
+✔ actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture) (4.05075ms)
+✔ bootstrap scrub failure navigates to a fixed clean URL without importing or delivering (0.617166ms)
+✔ bootstrap module failure shows a branded sanitized retry without delivery (0.606458ms)
+✔ callback-only build closes over two small owned modules without SDK/vendor/WASM in isolated output (12.226708ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76.183583

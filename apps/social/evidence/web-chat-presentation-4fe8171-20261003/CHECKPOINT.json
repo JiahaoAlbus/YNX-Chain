@@ -1,0 +1,90 @@
+{
+  "qualification": "OWNED_SOURCE_AND_DIRECT_COMPONENT_QA_NOT_PUBLIC_RELEASE_OR_FULL_SOCIAL_ACCEPTANCE",
+  "source": {
+    "commit": "4fe8171ec977c62524219b89b1d463ff29e2de3b",
+    "tree": "b350f1b3c983d465b8e469b1a9358dea45bb890a",
+    "parent": "74a8e1afd999baabfb5246cc3522d4d98a51c889",
+    "branch": "codex/social-wallet-chooser-20261001"
+  },
+  "tests": {
+    "typecheck": "PASS",
+    "native": 223,
+    "webChat": 99,
+    "webFullWithExperimentalVmModules": 193,
+    "originalWithoutVmFlag": "FAIL_1_RETAINED",
+    "fullWebBuild": "FAIL_SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH"
+  },
+  "directBrowser": {
+    "component": "http://127.0.0.1:8873/",
+    "noFixtureSessionRoomProvider": true,
+    "phone": {
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "pane": "list",
+      "conversationVisible": false
+    },
+    "navigation": "Chats_Settings_Moments_Contacts_observed",
+    "textScale": "130_percent_refresh_restored_then_reset_100",
+    "protectedMoments": "guest_controls_disabled",
+    "console": "empty_error_warn_observation_window_only",
+    "public": "https://social.ynxweb4.com/",
+    "publicResult": "OLD_MARKETING_Y_LETTER_LOGO_NOT_SOURCE_BOUND",
+    "sensitiveRequests": "NONE"
+  },
+  "notVerified": [
+    "actual_authenticated_conversation_browser_journey",
+    "public_source_bound_business",
+    "native_MainApp_canonical_Matrix_enrollment",
+    "real_MONSTER_invocation",
+    "full_Wallet_lifecycle",
+    "release_build"
+  ],
+  "files": [
+    {
+      "name": "social-web-chat-first-failure.log",
+      "bytes": 12824,
+      "sha256": "508dde601e6d42c8167b246287c047621db2fb72d68c2e1e4d7695d64bc6b427"
+    },
+    {
+      "name": "social-web-chat-tests.log",
+      "bytes": 8614,
+      "sha256": "c072a9da17f043fada8bdf0376c13176169b26c8d05e4245fd43dbf19f66b02e"
+    },
+    {
+      "name": "social-web-chat-native-typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "name": "social-web-chat-native-tests.log",
+      "bytes": 21878,
+      "sha256": "3346ed2d4daabef5939e5fcfa4be44dce155ea3c7d24ff3b60e5217388f171a6"
+    },
+    {
+      "name": "social-web-chat-all-tests.log",
+      "bytes": 17945,
+      "sha256": "3c47cda216e31dc508ffd06e2e2f675917bcc0c46e0f0f0a7897a28b0d500f57"
+    },
+    {
+      "name": "social-web-callback-vm-tests.log",
+      "bytes": 1935,
+      "sha256": "57fe8fd55e7ff0d4d51211853d8b162faabae45a8055447d9b09f921050c049f"
+    },
+    {
+      "name": "social-web-chat-all-vm-tests.log",
+      "bytes": 17102,
+      "sha256": "52e03971a88949dfb237459e7240850633125c9699555922b0ec9038554dab46"
+    },
+    {
+      "name": "social-web-chat-build.log",
+      "bytes": 903,
+      "sha256": "fc1b930b2ee4b2537d2ffbf32b6ad017003e9fe7c994c235651a27ac794c08c5"
+    },
+    {
+      "name": "social-web-chat-desktop-20261003.jpg",
+      "bytes": 64460,
+      "sha256": "50942e415b330d0d98f94da0e1202939a95666169af10fc8721a2d904e335667"
+    }
+  ]
+}
