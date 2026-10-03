@@ -953,7 +953,9 @@ func validateBacktest(r BacktestRequest) error {
 		return ErrInvalid
 	}
 	for i, b := range r.Bars {
-		if b.Close <= 0 || b.High < b.Low || b.Volume < 0 || (i > 0 && !b.Time.After(r.Bars[i-1].Time)) {
+		if b.Time.IsZero() || b.Open <= 0 || b.Low <= 0 || b.Close <= 0 || b.High < b.Low ||
+			b.Open < b.Low || b.Open > b.High || b.Close < b.Low || b.Close > b.High ||
+			b.Volume < 0 || (i > 0 && !b.Time.After(r.Bars[i-1].Time)) {
 			return fmt.Errorf("bar %d: %w", i, ErrInvalid)
 		}
 	}
