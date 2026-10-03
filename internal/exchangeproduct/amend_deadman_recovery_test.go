@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-func TestAmendExactReplayAfterDeadManExpiryPreservesTerminalEffect(t *testing.T) {
+func expiredAmendRecoveryFixture(t *testing.T) (*Service, testAccount, testAccount, AmendOrderRequest, Order) {
+	t.Helper()
 	s, chain, _ := newTestService(t)
 	owner := accountSession(t, s, alice, "amend-recovery-owner", "exchange:read", "exchange:trade")
 	other := accountSession(t, s, bob, "amend-recovery-other", "exchange:read", "exchange:trade")
@@ -35,6 +36,12 @@ func TestAmendExactReplayAfterDeadManExpiryPreservesTerminalEffect(t *testing.T)
 	if terminal.Status != "cancelled" || terminal.ReservedMicro != 0 {
 		t.Fatal("terminal settlement missing")
 	}
+	return s, owner, other, req, terminal
+}
+
+func TestAmendExactReplayAfterDeadManExpiryPreservesTerminalEffect(t *testing.T) {
+	s, owner, other, req, terminal := expiredAmendRecoveryFixture(t)
+	order := terminal
 	before := digest(s.state)
 	check := func(service *Service) {
 		t.Helper()
