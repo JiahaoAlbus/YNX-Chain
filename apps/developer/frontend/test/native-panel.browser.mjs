@@ -202,6 +202,46 @@ try {
     checks.push('Account refresh retires a missing old private project and re-reads an available project; it never offers to import another private project as guest data');
     await page.close();
   }
+  for (const mode of (!scenario || scenario === 'create') ? ['normal', 'lost-response', 'switched-account'] : []) {
+    const page = await browser.newPage(); page.on('pageerror', e => errors.push(e.message));
+    let created, key = 'identity-A'; const creates = [];
+    await page.route('**/runtime/**', async route => {
+      const req = route.request(), url = new URL(req.url());
+      if (url.pathname === '/runtime/identity/projects') {
+        const body = req.postDataJSON(); creates.push({body,key:req.headers()['x-ynx-agent-identity']});
+        if (creates.at(-1).key !== key) return answer(route,{error:'The displayed Wallet session changed.',code:'core_consumer_identity_changed'},401);
+        created = {projectId:'wallet-'+body.approvalId,name:body.name,revision:1};
+        if (mode === 'lost-response' && creates.length === 1) return answer(route,{error:'Creation confirmation was interrupted.'},503);
+        return answer(route,{created:true,projectId:created.projectId,revision:1,replayed:creates.length > 1},creates.length > 1 ? 200 : 201);
+      }
+      const id = url.searchParams.get('projectId') || 'A';
+      return answer(route,{...catalog(id,id === created?.projectId ? created.name : 'Current '+id),walletProjects:[{projectId:'A',name:'Current A',revision:1},...(created ? [created] : [])]});
+    });
+    await page.goto(fixtureURL); await page.getByText('Wallet identity: account-A',{exact:true}).waitFor();
+    await page.getByText('New Wallet project',{exact:true}).click();
+    await page.getByLabel('New project name',{exact:true}).fill(' My new project ');
+    assert.equal(await page.getByRole('button',{name:'Create Wallet project',exact:true}).isDisabled(),true);
+    await page.getByRole('checkbox',{name:'Create an empty project for account-A.',exact:true}).check();
+    if (mode === 'switched-account') key = 'identity-B';
+    await page.getByRole('button',{name:'Create Wallet project',exact:true}).click();
+    if (mode === 'switched-account') {
+      await page.getByRole('link',{name:'Sign in with YNX Wallet',exact:true}).waitFor();
+      assert.equal(created,undefined); assert.equal(await page.getByLabel('New project name',{exact:true}).count(),0);
+    } else {
+      if (mode === 'lost-response') {
+        await page.getByRole('alert').filter({hasText:'Creation confirmation was interrupted.'}).waitFor();
+        await page.getByRole('button',{name:'Create Wallet project',exact:true}).click();
+        assert.deepEqual(creates[0],creates[1]);
+      }
+      await page.locator('strong').filter({hasText:'My new project'}).waitFor();
+      assert.equal(await page.getByLabel('Native Wallet projects',{exact:true}).inputValue(),created.projectId);
+      assert.equal(await page.getByLabel('New project name',{exact:true}).inputValue(),'');
+      assert.equal(await page.getByRole('button',{name:'Create Wallet project',exact:true}).isDisabled(),true);
+    }
+    assert.equal(creates[0].body.name,'My new project'); assert.equal(creates[0].key,'identity-A');
+    checks.push(`new Wallet project (${mode}): explicit displayed-account approval, scoped creation, no automatic retry, durable UUID on manual retry`);
+    await page.close();
+  }
   assert.deepEqual(errors,[]); passed = true;
 } finally {
   await browser.close();

@@ -1,0 +1,59 @@
+✔ real Central Developer family renews beyond access TTL; restart retries lost response; global revoke and other browser isolation (481.4275ms)
+✔ logout during actual Central redemption installs only a fenced revoke target; independent browser survives (285.990417ms)
+✔ only reviewed activity extends finite idle; passive requests cannot renew absolute deadline; pending logout recovers (272.069084ms)
+✔ unconfirmed revoke response retains the original durable retry target across restart (143.677916ms)
+✔ isolated core cookie remains parent-bound across access expiry and rejects parent logout immediately (197.430041ms)
+✔ passive traffic cannot extend idle and explicit activity never resets original absolute end (493.388875ms)
+✔ native catalog binds its displayed account and rejects the old view after cookie switch before launch or Stop (117.324417ms)
+✔ guest copy approval cannot change recipients when the current cookie changes before POST (51.565958ms)
+✖ new Wallet projects use the displayed account, durable replay and an immutable reviewed name (97.196917ms)
+✔ logout during the launch HTTP body prevents late journal, driver or workspace writes (46.943084ms)
+✔ logout during the copy HTTP body prevents late journal, driver or workspace writes (45.690292ms)
+✔ logout during the create HTTP body prevents late journal, driver or workspace writes (50.179708ms)
+✔ revocation during launch URL admission cannot create a writer or session after the awaited preflight (59.521ms)
+✔ more than 100 stopped sessions cannot hide a live or recovery writer or expose another owner (142.570208ms)
+✔ remote revocation after driver start settles into protected recovery without recursively waiting for its own launch (87.149583ms)
+✔ normal HTTP launch binds current project; binary/empty/nested files remain lossless and reopen same volume (133.415625ms)
+✔ DELETE waits for delayed launch; no late running revival or released writer (72.653959ms)
+✔ live child or wrong runtime proof retains writer and allows actual Stop retry (61.056458ms)
+✔ owner drain rejects unconfirmed stop and preserves the writer until explicit retry (70.831709ms)
+✔ browser-scoped logout preserves an independent same-account runtime (130.417167ms)
+✔ owner/generation isolation, hard owner capacity, duplicate project and durable restart (79.234542ms)
+✔ preflight failure never permanently adopts guest import; precise never-started cancellation releases writer (59.379125ms)
+✔ a renewed same-identity lease does not stop the native runtime at the old short grant deadline (65.668959ms)
+✔ timer renewal survives restart but never moves the original runtime hard deadline (67.278333ms)
+✔ transient central outage denies access without releasing the writer; fresh verification recovers (45.827834ms)
+✔ changed owner/account/generation cannot renew another runtime (146.274458ms)
+✔ concurrent timer checks are single-flight and a late result cannot revive an explicitly stopped runtime (43.862875ms)
+✔ legacy identity adapters keep their original short cutoff (54.629583ms)
+✔ legacy schema migration preserves the original deadline, writer and native files (54.879875ms)
+✔ logout during actual driver start cannot publish a late running session (56.197958ms)
+✔ actual consumer HTTP PKCE callback seals grants, binds stable owner, explicitly copies guest, and exchanges one-use isolated cookie (56.542459ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 30
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1962.239041
+
+✖ failing tests:
+
+test at services/codeoss-service/test/native-consumer-binding.test.mjs:82:1
+✖ new Wallet projects use the displayed account, durable replay and an immutable reviewed name (97.196917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 403
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/native-consumer-binding.test.mjs:102:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

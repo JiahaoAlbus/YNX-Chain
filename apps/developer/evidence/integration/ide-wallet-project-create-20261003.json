@@ -1,0 +1,20 @@
+{
+  "serviceChecks": 31,
+  "panelBrowserChecks": 17,
+  "typescript": "PASS",
+  "frontendBuild": "PASS",
+  "staticCheck": "PASS",
+  "realStorage": true,
+  "authority": "controlled canonical identity fixture",
+  "nativeDriver": "controlled; not OpenVSCode",
+  "fullWorkbench": "NOT_RUN",
+  "nativeTerminal": "NOT_RUN",
+  "formalPublication": false,
+  "realWalletBusinessOperation": "NOT_RUN",
+  "capacityVerified": false,
+  "rejectedScopesStillStopped": [
+    "network",
+    "package-egress",
+    "LXD"
+  ]
+}

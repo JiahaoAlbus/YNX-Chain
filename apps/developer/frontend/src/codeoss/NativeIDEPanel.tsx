@@ -28,12 +28,14 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
   const [catalog, setCatalog] = useState<Catalog>(), [busy, setBusy] = useState(false), [reviewed, setReviewed] = useState(false), [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [exitPending, setExitPending] = useState(false);
+  const [newProjectName, setNewProjectName] = useState(''), [createReviewed, setCreateReviewed] = useState(false);
+  const createIntent = useRef<{ name: string; identityKey: string; approvalId: string } | undefined>(undefined);
   const currentProject = useRef(projectId); currentProject.current = projectId;
   const query = `?projectId=${encodeURIComponent(projectId)}`;
   const current = (captured: number) => mounted.current && requests.current(captured);
   const retire = (cause: unknown) => {
     requests.invalidate(); verified.current = false; actor.current = ""; identityActivity.reset();
-    setCatalog(undefined); setReviewed(false); setBusy(false); setLoading(false);
+    setCatalog(undefined); setReviewed(false); setCreateReviewed(false); createIntent.current = undefined; setBusy(false); setLoading(false);
     setError(cause instanceof Error ? cause.message : String(cause));
   };
   const reload = async (message = "") => {
@@ -42,7 +44,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     setLoading(true); setBusy(false); setReviewed(false); setError(message);
     try {
       const value: Catalog = await coreRequest(query); if (!current(captured) || currentProject.current !== selected) return;
-      if (actor.current !== value.identityKey) identityActivity.reset();
+      if (actor.current !== value.identityKey) { identityActivity.reset(); setCreateReviewed(false); createIntent.current = undefined; }
       if (selected !== guestProjectId && !value.walletProjects.some(project => project.projectId === selected)) {
         actor.current = value.identityKey; setCatalog(value); selectProject(value.walletProjects[0]?.projectId || guestProjectId); return;
       }
@@ -100,6 +102,22 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     } catch (cause) { await recoverOperation(cause, captured); }
     finally { if (current(captured)) setBusy(false); }
   };
+  const createProject = async () => {
+    const value = context(), name = newProjectName.trim();
+    if (!value || !createReviewed || !name || name.length > 160 || /[\u0000-\u001f\u007f]/.test(name)) return;
+    const { captured, identityKey } = value;
+    if (!createIntent.current || createIntent.current.name !== name || createIntent.current.identityKey !== identityKey)
+      createIntent.current = { name, identityKey, approvalId: crypto.randomUUID() };
+    const approvalId = createIntent.current.approvalId;
+    setBusy(true); setError('');
+    try {
+      const saved = await privateRequest('/runtime/identity/projects', { method: 'POST', body: JSON.stringify({ name, approvalId, approval: 'create-wallet-project-once' }) }, identityKey);
+      if (!current(captured)) return;
+      setNewProjectName(''); setCreateReviewed(false); createIntent.current = undefined;
+      if (saved.projectId === projectId) await reload(); else selectProject(saved.projectId);
+    } catch (cause) { await recoverOperation(cause, captured); }
+    finally { if (current(captured)) setBusy(false); }
+  };
   const stop = async (session: Session) => {
     const value = context(); if (!value) return;
     const { captured, identityKey } = value; setBusy(true); setError("");
@@ -111,7 +129,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
   };
   const native = catalog?.nativeProjects.includes(projectId), sessions = catalog?.sessions.filter(row => row.projectId === projectId && row.status !== "stopped") || [];
   const signOut = async () => {
-    requests.invalidate(); verified.current = false; actor.current = ""; identityActivity.reset(); setCatalog(undefined); setReviewed(false); setExitPending(true);
+    requests.invalidate(); verified.current = false; actor.current = ""; identityActivity.reset(); setCatalog(undefined); setReviewed(false); setCreateReviewed(false); createIntent.current = undefined; setExitPending(true);
     setBusy(true);
     try {
       const response = await fetch("/runtime/identity/logout", { method: "POST" }), result = await response.json();
@@ -132,6 +150,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     {(account || exitPending) && <Button disabled={busy} onClick={() => void signOut()}>{exitPending ? 'Retry sign-out' : 'Sign out on this device'}</Button>}
     {account && <Button disabled={disabled} onClick={event => { const captured = requests.capture(); void identityActivity.attest(event.nativeEvent, 'edit').then(ok => { if (current(captured) && !ok) setError('Sign in again if this session has reached its fixed end. Your project files are preserved.'); }).catch(() => { if (current(captured)) setError('The connection is unavailable. Your project files are preserved.'); }); }}>Continue editing</Button>}
     {account && <label>Wallet projects<select aria-label="Native Wallet projects" value={projectId} disabled={disabled} onChange={event => { verified.current = false; requests.invalidate(); selectProject(event.target.value); }}>{!catalog?.walletProjects.some(row => row.projectId === guestProjectId) && <option value={guestProjectId}>Current guest project — copy to Wallet</option>}{catalog?.walletProjects.map(row => <option key={row.projectId} value={row.projectId}>{row.name}</option>)}</select></label>}
+    {account && <details><summary>New Wallet project</summary><label>New project name<input value={newProjectName} maxLength={160} disabled={disabled} onChange={event => { setNewProjectName(event.target.value); setCreateReviewed(false); createIntent.current = undefined; }} /></label><label className="native-review"><input type="checkbox" checked={createReviewed} disabled={disabled} onChange={event => setCreateReviewed(event.target.checked)} /> Create an empty project for {account}.</label><Button disabled={disabled || !createReviewed || !newProjectName.trim() || /[\u0000-\u001f\u007f]/.test(newProjectName)} onClick={() => void createProject()}>Create Wallet project</Button></details>}
     {account && catalog && projectId === guestProjectId && !catalog.walletProjectExists && <><p>Copy this saved project into your Wallet workspace. The original project stays available.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Copy this project to the account shown above.</label><Button disabled={disabled || !admitted || !reviewed} onClick={() => void copy()}>Copy project</Button></>}
     {account && catalog?.walletProjectExists && !native && <><p>Open this project in the full editor. Its files and libraries stay in a persistent workspace; the original text copy is retained.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Use the native workspace for this project.</label></>}
     {account && catalog?.walletProjectExists && !sessions.length && <Button disabled={disabled || !catalog.configured || (!native && !reviewed)} onClick={event => void launch(event.nativeEvent)}>{busy ? "Opening…" : "Open project"}</Button>}

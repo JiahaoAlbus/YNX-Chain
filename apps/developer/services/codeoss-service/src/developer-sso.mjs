@@ -145,7 +145,7 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
 
   async function handler(request, response) {
     const url = new URL(request.url, PARENT), path = url.pathname;
-    if (!["/sso/start", "/sso/callback", "/sso/core-open", "/sso/core-admit", "/runtime/identity", "/runtime/identity/activity", "/runtime/identity/import", "/runtime/identity/logout"].includes(path)) return false;
+    if (!["/sso/start", "/sso/callback", "/sso/core-open", "/sso/core-admit", "/runtime/identity", "/runtime/identity/activity", "/runtime/identity/import", "/runtime/identity/projects", "/runtime/identity/logout"].includes(path)) return false;
     try {
       if (path === "/sso/start" && request.method === "GET") {
         parentOnly(request);
@@ -194,6 +194,27 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         parentOnly(request); const id = await verifyIdentity(request);
         const grant = await grantForRequest(request);
         json(response, 200, { connected: true, account: id.account, generation: id.generation, expiresAt: id.expiresAt, permissions: ["identity:read"], ...(grant?.csrf ? { csrf: grant.csrf } : {}) }); return true;
+      }
+      if (path === "/runtime/identity/projects" && request.method === "POST") {
+        sameOrigin(request); const id = await verifyIdentity(request);
+        assertExpectedIdentity(request, id);
+        const expected = consumerIdentityBinding(id), input = await bodyJSON(request);
+        if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).sort().join(',') !== 'approval,approvalId,name' ||
+          input.approval !== 'create-wallet-project-once' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.approvalId || '') ||
+          typeof input.name !== 'string' || !input.name.trim() || input.name !== input.name.trim() || input.name.length > 160 || /[\u0000-\u001f\u007f]/.test(input.name))
+          throw fault("Review a project name for the current Wallet account first.", "developer_project_approval_required", 400);
+        const current = await verifyIdentity(request);
+        assertExpectedIdentity(request, current);
+        if (consumerIdentityBinding(current) !== expected)
+          throw fault("Wallet identity changed. Review the new project again.", "core_consumer_identity_changed", 401);
+        const projectId = `wallet-${input.approvalId}`;
+        // The reviewed UUID determines one new project, not an existing target.
+        // Store replay binds the exact name and expected zero revision. There is
+        // no await between final current-identity check and durable transaction.
+        const saved = workspaceStore.put(current.workspaceOwner, projectId, { expectedRevision: 0,
+          idempotencyKey: `identity-create-${input.approvalId}`,
+          payload: { name: input.name, files: {}, folders: [], open: [], active: '' } });
+        json(response, saved.replayed ? 200 : 201, { created: true, projectId, revision: saved.revision, replayed: saved.replayed }); return true;
       }
       if (path === "/runtime/identity/import" && request.method === "POST") {
         sameOrigin(request); const id = await verifyIdentity(request);

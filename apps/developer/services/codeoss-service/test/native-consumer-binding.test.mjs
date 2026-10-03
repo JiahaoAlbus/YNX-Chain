@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request as rawRequest } from 'node:http';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -79,10 +79,37 @@ test('guest copy approval cannot change recipients when the current cookie chang
   assert.equal(f.store.get(a.identity.workspaceOwner, 'guest-copy'), null);
 });
 
-for (const kind of ['launch', 'copy']) test(`logout during the ${kind} HTTP body prevents late journal, driver or workspace writes`, async t => {
+test('new Wallet projects use the displayed account, durable replay and an immutable reviewed name', async t => {
+  const f = await fixture(t), a = await f.login('a'), b = await f.login('b');
+  const body = { name: 'New private project', approvalId: randomUUID(), approval: 'create-wallet-project-once' }, projectId = `wallet-${body.approvalId}`;
+  assert.equal((await f.call('/runtime/identity/projects', { ...b, identityKey: a.identityKey, method: 'POST', body })).status, 401);
+  assert.equal(f.store.get(b.identity.workspaceOwner, projectId), null);
+  const created = await f.call('/runtime/identity/projects', { ...a, method: 'POST', body });
+  assert.equal(created.status, 201); assert.equal(created.value.projectId, projectId); assert.equal(created.value.replayed, false);
+  assert.deepEqual(f.store.get(a.identity.workspaceOwner, projectId).files, {});
+  const replay = await f.call('/runtime/identity/projects', { ...a, method: 'POST', body });
+  assert.equal(replay.status, 200); assert.equal(replay.value.replayed, true); assert.equal(replay.value.revision, 1);
+  assert.equal((await f.call('/runtime/identity/projects', { ...a, method: 'POST', body: { ...body, name: 'Changed approval' } })).status, 409);
+  assert.equal(f.store.get(a.identity.workspaceOwner, projectId).name, body.name);
+  assert.equal(f.store.get(b.identity.workspaceOwner, projectId), null);
+  assert.ok((await f.call('/runtime/codeoss?projectId='+projectId, a)).value.walletProjects.some(row => row.projectId === projectId));
+  for (const invalid of [null, [], { ...body, name: '' }, { ...body, name: ' bad ' }, { ...body, name: 'bad\nname' }, { ...body, name: 'x'.repeat(161) }, { ...body, projectId: 'project' }, { ...body, approval: 'other' }])
+    assert.equal((await f.call('/runtime/identity/projects', { ...a, method: 'POST', body: invalid || 'null' })).status, 400);
+  const opened = await f.call('/runtime/codeoss', { ...a, method: 'POST', body: { ...launchBody, projectId } });
+  assert.equal(opened.status, 201);
+  const sessionId = opened.value.session.sessionId, directory = f.starts.at(-1).projectDirectory;
+  await writeFile(join(directory, 'saved.txt'), 'New project saved bytes');
+  assert.equal((await f.call(`/runtime/codeoss/${sessionId}`, { ...b, method: 'DELETE' })).status, 404);
+  assert.equal((await f.call(`/runtime/codeoss/${sessionId}`, { ...a, method: 'DELETE' })).status, 200);
+  const reopened = await f.call('/runtime/codeoss', { ...a, method: 'POST', body: { ...launchBody, projectId, expectedRevision: f.store.get(a.identity.workspaceOwner, projectId).revision } });
+  assert.equal(reopened.status, 201); assert.equal(f.starts.at(-1).projectDirectory, directory);
+  assert.equal(await readFile(join(directory, 'saved.txt'), 'utf8'), 'New project saved bytes');
+});
+
+for (const kind of ['launch', 'copy', 'create']) test(`logout during the ${kind} HTTP body prevents late journal, driver or workspace writes`, async t => {
   const f = await fixture(t), a = await f.login('a'), before = f.verifications();
-  const path = kind === 'launch' ? '/runtime/codeoss' : '/runtime/identity/import';
-  const body = JSON.stringify(kind === 'launch' ? launchBody : { projectId: 'guest-copy', expectedGuestRevision: 1, approval: 'copy-guest-project-once', approvalId: randomUUID() });
+  const approvalId = randomUUID(), path = kind === 'launch' ? '/runtime/codeoss' : kind === 'create' ? '/runtime/identity/projects' : '/runtime/identity/import';
+  const body = JSON.stringify(kind === 'launch' ? launchBody : kind === 'create' ? { name: 'Canceled new project', approval: 'create-wallet-project-once', approvalId } : { projectId: 'guest-copy', expectedGuestRevision: 1, approval: 'copy-guest-project-once', approvalId });
   let request;
   const pending = new Promise((resolve, reject) => {
     request = rawRequest({ hostname: '127.0.0.1', port: f.port, path, method: 'POST', headers: {
@@ -98,6 +125,7 @@ for (const kind of ['launch', 'copy']) test(`logout during the ${kind} HTTP body
   assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
   assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM codeoss_sessions').get().n, 0);
   assert.equal(f.store.get(a.identity.workspaceOwner, 'guest-copy'), null);
+  assert.equal(f.store.get(a.identity.workspaceOwner, `wallet-${approvalId}`), null);
   assert.deepEqual(f.store.get(f.guest, 'guest-copy').files, snapshot.files);
 });
 
