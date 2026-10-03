@@ -1,0 +1,80 @@
+{
+  "url": "http://localhost:19091/",
+  "checks": [
+    {
+      "step": "standard",
+      "radios": [
+        {
+          "checked": "false",
+          "height": 44,
+          "name": "Compact"
+        },
+        {
+          "checked": "true",
+          "height": 44,
+          "name": "Standard"
+        },
+        {
+          "checked": "false",
+          "height": 44,
+          "name": "Larger"
+        }
+      ]
+    },
+    {
+      "step": "larger",
+      "radios": [
+        {
+          "checked": "false",
+          "name": "Compact"
+        },
+        {
+          "checked": "false",
+          "name": "Standard"
+        },
+        {
+          "checked": "true",
+          "name": "Larger"
+        }
+      ]
+    },
+    {
+      "step": "larger-after-reload",
+      "radios": [
+        {
+          "checked": "false",
+          "name": "Compact"
+        },
+        {
+          "checked": "false",
+          "name": "Standard"
+        },
+        {
+          "checked": "true",
+          "name": "Larger"
+        }
+      ]
+    },
+    {
+      "step": "compact",
+      "radios": [
+        {
+          "checked": "true",
+          "name": "Compact"
+        },
+        {
+          "checked": "false",
+          "name": "Standard"
+        },
+        {
+          "checked": "false",
+          "name": "Larger"
+        }
+      ]
+    }
+  ],
+  "localOnly": true,
+  "accountRequested": false,
+  "signature": false,
+  "transaction": false
+}

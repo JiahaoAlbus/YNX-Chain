@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "status": "OWNED_TYPOGRAPHY_WIP_AWAITING_USER_ARIA_FIX_DECISION",
+  "baseCommit": "5609db40067432daa1b566dfb393219e3d9a3552",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "sourceSnapshot": {
+    "committed": false,
+    "atomic": false,
+    "files": [
+      {
+        "path": "apps/card/index.ts",
+        "bytes": 295,
+        "sha256": "983cdc224c802eb2a250e6e4440db785dcbca17455fad7351fc43b07e7311fcd"
+      },
+      {
+        "path": "apps/card/App.tsx",
+        "bytes": 89162,
+        "sha256": "cfe8496cc8e3b0edb2c84bcb34776232f7af7739259bd872a7a57b960e886c1d"
+      },
+      {
+        "path": "apps/card/src/YNXBrandLogo.tsx",
+        "bytes": 543,
+        "sha256": "de0ff18dec7a1f1e869f3771980030743dd035afe782aaad61deb8915619d0b5"
+      },
+      {
+        "path": "apps/card/src/GuestExperience.tsx",
+        "bytes": 44144,
+        "sha256": "d31de36baade0bbcd70b24d619500f74781e08f6405f7b68324ef72be49fe7b2"
+      },
+      {
+        "path": "apps/card/src/ProviderExperience.tsx",
+        "bytes": 32886,
+        "sha256": "6a6b2da0e66d22db271e3ab1e3679d208779c5b050eaf2c5940d6c13093fe072"
+      },
+      {
+        "path": "apps/card/src/RegistrationExperience.tsx",
+        "bytes": 8952,
+        "sha256": "c18b52b1fcf0748116188cd68f462d487e3d073360138314312d475f4a0ee69f"
+      },
+      {
+        "path": "apps/card/src/CardBusinessExperience.tsx",
+        "bytes": 13582,
+        "sha256": "dd2cf264b91ce56e23ff52815ce118cb69df6161893833606ec0e035f6cf91e6"
+      },
+      {
+        "path": "apps/card/src/cardTypography.tsx",
+        "bytes": 4610,
+        "sha256": "e5ce9180dec7faab8be22a17cdab2e4edf18a4d35ea378e6f923b6429fc35e1e"
+      },
+      {
+        "path": "apps/card/src/cardTypographyCopy.ts",
+        "bytes": 2539,
+        "sha256": "cd10843fa8acaa91bc737c8ec74edc35f6d3e9ba4b05725b81a204a8955a30e2"
+      },
+      {
+        "path": "apps/card/test/card-typography.test.cjs",
+        "bytes": 5924,
+        "sha256": "a5d36eb8f2b5f79245f761f5ba527a0e3234bab07c320c40d25786e5b5384163"
+      },
+      {
+        "path": "apps/card/test/card-native-callback-fixture.cjs",
+        "bytes": 8128,
+        "sha256": "e32d1631ff7a62086c496bd7d9ae18e323212006ad895acef27e368010fa4504"
+      },
+      {
+        "path": "apps/card/test/provider-experience-race.test.cjs",
+        "bytes": 18667,
+        "sha256": "d5c489bcc5e062edb580d7cb2884790e5604b4a869963bdf4ddd46d34cedcc61"
+      }
+    ]
+  },
+  "originalArtworkUnmodified": true,
+  "localDefaults": {
+    "logoHeight": 24,
+    "logoWidth": 45.6,
+    "productName": 18,
+    "pageTitle": 24
+  },
+  "textModes": {
+    "compact": 0.9,
+    "standard": 1,
+    "larger": 1.2
+  },
+  "preference": {
+    "key": "ynx.card.text-size.v1",
+    "accountDataAccess": false,
+    "saveSerializationTested": true,
+    "lateRestoreFenced": true,
+    "failedSaveNotice": true
+  },
+  "tests": {
+    "tests": 47,
+    "pass": 47,
+    "fail": 0,
+    "skipped": 0,
+    "typecheck": "PASS",
+    "syntheticNotInstalled": true
+  },
+  "browser": {
+    "readback": {
+      "url": "http://localhost:19090/",
+      "logo": {
+        "height": 24,
+        "width": 45.59375
+      },
+      "standard": {
+        "fontSize": "18px"
+      },
+      "compact": {
+        "fontSize": "16.2px"
+      },
+      "largerAfterReload": {
+        "fontSize": "21.6px"
+      },
+      "webAriaChecked": null,
+      "webAriaGate": false,
+      "accountRequested": false,
+      "sign": false,
+      "transaction": false
+    },
+    "normal": true,
+    "largerReload": true,
+    "compact": true,
+    "english": true,
+    "chinese320": true,
+    "arabic390": true,
+    "desktop1440": true,
+    "privateAuthorizationClicked": false
+  },
+  "a11y": {
+    "systemScalingDefaultEnabledSource": true,
+    "actualNativeOSScaling": false,
+    "webCheckedState": false,
+    "issue": "RNWeb renders role radio and aria-label but omits aria-checked from accessibilityState.checked; user async decision requested before correcting this newly written defect"
+  },
+  "auditSteps": [
+    {
+      "step": 1,
+      "name": "Current Guest mobile/desktop",
+      "finding": "40px brand image and 25px product name oversized",
+      "screenshots": [
+        "01-before-mobile.jpg",
+        "02-before-desktop.jpg"
+      ]
+    },
+    {
+      "step": 2,
+      "name": "Moderate default",
+      "finding": "24px image and 18px name; no image distortion",
+      "screenshots": [
+        "03-after-mobile-standard.jpg",
+        "09-desktop-standard.jpg"
+      ]
+    },
+    {
+      "step": 3,
+      "name": "Larger setting and reload",
+      "finding": "Choice persists, product name 21.6px; missing web checked semantic remains open",
+      "screenshots": [
+        "04-settings-larger.jpg",
+        "05-mobile-larger-reload.jpg"
+      ]
+    },
+    {
+      "step": 4,
+      "name": "320 Chinese / 390 RTL larger",
+      "finding": "Text wraps; no obvious lateral crop in captured guest view; screenshots do not prove installed accessibility",
+      "screenshots": [
+        "06-320-chinese-larger.jpg",
+        "08-arabic-mobile-larger.jpg"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/design-preflight.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/design-preflight-successor.json",
+      "bytes": 314,
+      "sha256": "7ce12793569b6ebd47027c0d57132f08c59f2f13f88b39fe3073d28bd5d9b72f"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/ui-tests.log",
+      "bytes": 8464,
+      "sha256": "81122ab305cde217831e35cfbf19f6cfc9c62ac664b3e0e34624ee34cd2b6a15"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/local-preview.log",
+      "bytes": 3018,
+      "sha256": "deacdd0002614ea2b04c01d73a75d2ddb9410d3d67944613110e4ec7e6df7851"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/01-before-mobile.jpg",
+      "bytes": 44432,
+      "sha256": "c5aa638ec7424b4d311035e23b98f6c6ca999748e4d1b6a611eec735b0246a17"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/02-before-desktop.jpg",
+      "bytes": 129711,
+      "sha256": "3651d9bd0aa1e76dfb9fffe0338b8cb09815db5c7261d19f12afb30232dc8ce4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/03-after-mobile-standard.jpg",
+      "bytes": 43869,
+      "sha256": "c68c9697ca93bd021c8ace1d6789b444787d8c5c176a4648b4e925a69164278c"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/04-settings-larger.jpg",
+      "bytes": 26830,
+      "sha256": "0d84c044662b69fba37aa3afcf57dbdb94f7e2362fc39874518331dbb0b03b01"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/05-mobile-larger-reload.jpg",
+      "bytes": 46969,
+      "sha256": "b73836e6be1976fcbbdebaf28b559c97b251a1cf7d9bc4e0d4744cead0270b0d"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/06-320-chinese-larger.jpg",
+      "bytes": 38692,
+      "sha256": "408ec4feb52004aed0e3ea15d237aaf38f747cabe8f688c419d61cd180d78764"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/07-arabic-settings-larger.jpg",
+      "bytes": 22199,
+      "sha256": "d04e5f22973e1a5ef5b55289bcccac4caeaffbcf9bcc0da40db72cfc8fd3f934"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/08-arabic-mobile-larger.jpg",
+      "bytes": 40285,
+      "sha256": "29b9b1b075abe0e4092abd7fd4b51a38501e280c05570b20c990768ac68617d4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/09-desktop-standard.jpg",
+      "bytes": 127887,
+      "sha256": "e4e7282ad31fea9fc3bb5125bd11cdd9fc0b0d8e794d757cc00b2d7ccbc1b292"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/browser-console.json",
+      "bytes": 1342,
+      "sha256": "dc8adad5d712acb9fad9ed530fab27c671deeb5c0a55c213997f4497c7633a39"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/browser-observations.json",
+      "bytes": 359,
+      "sha256": "5c9d915b0e42afdff1d88edf7c00fc31a2783a42a7d4d5c958a9233f2790d5ba"
+    }
+  ],
+  "truth": {
+    "sourceFrozen": false,
+    "formalBuild": false,
+    "deployed": false,
+    "publicVerified": false,
+    "installedVerified": false,
+    "authenticatedVerified": false,
+    "realApproval": false,
+    "activeCard": false,
+    "realYNXT": false,
+    "realCard": false,
+    "panCvv": false,
+    "fiat": false,
+    "productionRealPayments": false,
+    "fullProductComplete": false
+  }
+}

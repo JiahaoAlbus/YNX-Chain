@@ -1,0 +1,11 @@
+{
+  "plugin": "product-design",
+  "state_dir": "/Users/huangjiahao/.codex/state/plugins/product-design",
+  "user_context": {
+    "path": "/Users/huangjiahao/.codex/state/plugins/product-design/user-context.md",
+    "exists": false,
+    "status": "missing",
+    "entries": [],
+    "unresolved_categories": []
+  }
+}

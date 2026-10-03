@@ -1,0 +1,243 @@
+{
+  "schema": "ynx.card.typography-freeze.v1",
+  "sourceCommit": "78dd01762931b053029a4c2baf71a020e5702116",
+  "sourceTree": "34a0ef357843a8fbabe9f97c5d75a846adafe913",
+  "baseCommit": "5609db40067432daa1b566dfb393219e3d9a3552",
+  "humanDecision": "User explicitly requested accessible text-size state and continued development in this thread.",
+  "source": [
+    {
+      "path": "apps/card/App.tsx",
+      "blob": "b549879eb999fba0e05244fa4f66a5161be41483",
+      "bytes": 89162,
+      "sha256": "cfe8496cc8e3b0edb2c84bcb34776232f7af7739259bd872a7a57b960e886c1d"
+    },
+    {
+      "path": "apps/card/index.ts",
+      "blob": "40b760bc52a1e373307d4cab2818f665dbe0237a",
+      "bytes": 295,
+      "sha256": "983cdc224c802eb2a250e6e4440db785dcbca17455fad7351fc43b07e7311fcd"
+    },
+    {
+      "path": "apps/card/src/CardBusinessExperience.tsx",
+      "blob": "483e513c9baf83d83ed1de715d85068130676f6b",
+      "bytes": 13582,
+      "sha256": "dd2cf264b91ce56e23ff52815ce118cb69df6161893833606ec0e035f6cf91e6"
+    },
+    {
+      "path": "apps/card/src/GuestExperience.tsx",
+      "blob": "005f81349e0ebdc58bc33af38dc5a51ee228f7a6",
+      "bytes": 44144,
+      "sha256": "d31de36baade0bbcd70b24d619500f74781e08f6405f7b68324ef72be49fe7b2"
+    },
+    {
+      "path": "apps/card/src/ProviderExperience.tsx",
+      "blob": "b294ef8f10c9b2e5bb44f70355dd357f5d1752db",
+      "bytes": 32886,
+      "sha256": "6a6b2da0e66d22db271e3ab1e3679d208779c5b050eaf2c5940d6c13093fe072"
+    },
+    {
+      "path": "apps/card/src/RegistrationExperience.tsx",
+      "blob": "f06bff005d4edeb377ee0fc637fe8a2acb31d4a2",
+      "bytes": 8952,
+      "sha256": "c18b52b1fcf0748116188cd68f462d487e3d073360138314312d475f4a0ee69f"
+    },
+    {
+      "path": "apps/card/src/YNXBrandLogo.tsx",
+      "blob": "187a53720c14de19fbc39c472b18cceecab8a6ae",
+      "bytes": 543,
+      "sha256": "de0ff18dec7a1f1e869f3771980030743dd035afe782aaad61deb8915619d0b5"
+    },
+    {
+      "path": "apps/card/src/cardTypography.tsx",
+      "blob": "b13db67d3f972815fa7b62f391de2551d5d7e4e5",
+      "bytes": 4670,
+      "sha256": "1f72d5a8f83aa683bc12c4faf4d94eb23307583941c831f31dce7d24349aebde"
+    },
+    {
+      "path": "apps/card/src/cardTypographyCopy.ts",
+      "blob": "4673a94c89fac2c36444c6bc5a00c0dcbffa7d5b",
+      "bytes": 2539,
+      "sha256": "cd10843fa8acaa91bc737c8ec74edc35f6d3e9ba4b05725b81a204a8955a30e2"
+    },
+    {
+      "path": "apps/card/test/card-native-callback-fixture.cjs",
+      "blob": "a08e3fc61061694735dba22ffca5e23b70080c2a",
+      "bytes": 8128,
+      "sha256": "e32d1631ff7a62086c496bd7d9ae18e323212006ad895acef27e368010fa4504"
+    },
+    {
+      "path": "apps/card/test/card-typography.test.cjs",
+      "blob": "2a7994a08472de498cb4f34192d7c1ced5f4e4bf",
+      "bytes": 7167,
+      "sha256": "b2c096dba75f894159ee0d39fff0f2f1c90bce9b2753fd62459355d569d11e55"
+    },
+    {
+      "path": "apps/card/test/provider-experience-race.test.cjs",
+      "blob": "b79b59b9b2c96c2ad25f90adf508481e162153ad",
+      "bytes": 18667,
+      "sha256": "d5c489bcc5e062edb580d7cb2884790e5604b4a869963bdf4ddd46d34cedcc61"
+    }
+  ],
+  "inventory": [
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/01-before-mobile.jpg",
+      "bytes": 44432,
+      "sha256": "c5aa638ec7424b4d311035e23b98f6c6ca999748e4d1b6a611eec735b0246a17"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/02-before-desktop.jpg",
+      "bytes": 129711,
+      "sha256": "3651d9bd0aa1e76dfb9fffe0338b8cb09815db5c7261d19f12afb30232dc8ce4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/03-after-mobile-standard.jpg",
+      "bytes": 43869,
+      "sha256": "c68c9697ca93bd021c8ace1d6789b444787d8c5c176a4648b4e925a69164278c"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/04-settings-larger.jpg",
+      "bytes": 26830,
+      "sha256": "0d84c044662b69fba37aa3afcf57dbdb94f7e2362fc39874518331dbb0b03b01"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/05-mobile-larger-reload.jpg",
+      "bytes": 46969,
+      "sha256": "b73836e6be1976fcbbdebaf28b559c97b251a1cf7d9bc4e0d4744cead0270b0d"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/06-320-chinese-larger.jpg",
+      "bytes": 38692,
+      "sha256": "408ec4feb52004aed0e3ea15d237aaf38f747cabe8f688c419d61cd180d78764"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/07-arabic-settings-larger.jpg",
+      "bytes": 22199,
+      "sha256": "d04e5f22973e1a5ef5b55289bcccac4caeaffbcf9bcc0da40db72cfc8fd3f934"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/08-arabic-mobile-larger.jpg",
+      "bytes": 40285,
+      "sha256": "29b9b1b075abe0e4092abd7fd4b51a38501e280c05570b20c990768ac68617d4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/09-desktop-standard.jpg",
+      "bytes": 127887,
+      "sha256": "e4e7282ad31fea9fc3bb5125bd11cdd9fc0b0d8e794d757cc00b2d7ccbc1b292"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/10-aria-selected.jpg",
+      "bytes": 23364,
+      "sha256": "5b6d936002d3d4432947523d7bfcff22cd26a566165915faa8719e72301c7f04"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/aria-browser-observations.json",
+      "bytes": 1432,
+      "sha256": "11b66c3f6381eaf1365cdea926c6289f1e279eefd2b4ac2fe5577ceb2f759c64"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/aria-console.json",
+      "bytes": 672,
+      "sha256": "8e43666a452c737d1f03e9bb4cfc682cb2f3842bba309b60550baa0ad0d82683"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/aria-preview.log",
+      "bytes": 1239,
+      "sha256": "d84358578822c0cfa88efe2653cf0ca4dad1820041b065d26bdb86cef46c8b15"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/aria-tests.log",
+      "bytes": 1745,
+      "sha256": "4a67a5ed81a90fb3d4bc536d8ca26e18f998979155fa835332a68b42e1c9e439"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/aria-typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/browser-console.json",
+      "bytes": 1342,
+      "sha256": "dc8adad5d712acb9fad9ed530fab27c671deeb5c0a55c213997f4497c7633a39"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/browser-observations.json",
+      "bytes": 359,
+      "sha256": "5c9d915b0e42afdff1d88edf7c00fc31a2783a42a7d4d5c958a9233f2790d5ba"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/design-preflight-successor.json",
+      "bytes": 314,
+      "sha256": "7ce12793569b6ebd47027c0d57132f08c59f2f13f88b39fe3073d28bd5d9b72f"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/design-preflight.json",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/local-preview.log",
+      "bytes": 3018,
+      "sha256": "deacdd0002614ea2b04c01d73a75d2ddb9410d3d67944613110e4ec7e6df7851"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/manifest-wip.json",
+      "bytes": 8796,
+      "sha256": "76258d353a8a1a4d3ad2e39266ce06e7269656551a154ba630d938a2e7337dbd"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-compact-typography/ui-tests.log",
+      "bytes": 8464,
+      "sha256": "81122ab305cde217831e35cfbf19f6cfc9c62ac664b3e0e34624ee34cd2b6a15"
+    }
+  ],
+  "changes": {
+    "originalLogo": "45.6x24 contain; original asset unchanged",
+    "productWordmark": 18,
+    "textSize": [
+      "compact",
+      "standard",
+      "larger"
+    ],
+    "systemFontScaling": true,
+    "persistence": "owned ynx.card.text-size.v1 only",
+    "webAriaChecked": "Explicit true/false; Native accessibilityState retained"
+  },
+  "gates": {
+    "priorFocusedTests": {
+      "passed": 47,
+      "rerun": false
+    },
+    "correctedTypographyTests": {
+      "passed": 10,
+      "failed": 0
+    },
+    "typecheck": true,
+    "actualLocalBrowser": true,
+    "standardChecked": true,
+    "largerChecked": true,
+    "compactChecked": true,
+    "largerRestoredAfterReload": true,
+    "minimumTouchTarget44": true,
+    "earlierEnglishChineseArabic3203901440Screenshots": true,
+    "installedScreenReaderSpeechVerified": false,
+    "allProductAccessibilityPassed": false,
+    "publicDeployment": false,
+    "formalBuild": false,
+    "walletAccountApproval": false,
+    "signature": false,
+    "activeCard": false,
+    "ynxtTopup": false,
+    "realPayments": false
+  },
+  "limitations": [
+    "Local Expo preview only; not current public Card proof.",
+    "Earlier WIP manifest and failed preflight preserved, not superseded as passing evidence.",
+    "Language selector checked-state is a pre-existing separate accessibility gap observed during QA; not changed in this text-size patch.",
+    "Shared accepted Hosted transport and formal release remain outside Card ownership."
+  ]
+}

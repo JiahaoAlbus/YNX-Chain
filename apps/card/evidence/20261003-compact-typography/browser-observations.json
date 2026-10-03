@@ -1,0 +1,21 @@
+{
+  "url": "http://localhost:19090/",
+  "logo": {
+    "height": 24,
+    "width": 45.59375
+  },
+  "standard": {
+    "fontSize": "18px"
+  },
+  "compact": {
+    "fontSize": "16.2px"
+  },
+  "largerAfterReload": {
+    "fontSize": "21.6px"
+  },
+  "webAriaChecked": null,
+  "webAriaGate": false,
+  "accountRequested": false,
+  "sign": false,
+  "transaction": false
+}
