@@ -680,6 +680,18 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	d := digest(req)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Exact replay reconciles an existing effect; current admission/risk gates
+	// below apply only to a new order, never reopen a cancelled prior order.
+	if prev, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if prev.Action != "order_place" || prev.Digest != d {
+			return Order{}, ErrConflict
+		}
+		order, exists := s.state.Orders[prev.ObjectID]
+		if !exists || order.Account != session.Account {
+			return Order{}, ErrForbidden
+		}
+		return order, nil
+	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return Order{}, ErrForbidden
 	}
@@ -688,12 +700,6 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	}
 	if !s.quantCapitalAllowsLocked(session.Account, req.QuantNonceDomain, req.QuantCapitalMicro, mulDiv(req.PriceMicro, req.AmountMicro, AmountScale), "") {
 		return Order{}, ErrForbidden
-	}
-	if prev, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
-		if prev.Action != "order_place" || prev.Digest != d {
-			return Order{}, ErrConflict
-		}
-		return s.state.Orders[prev.ObjectID], nil
 	}
 	operationBefore := cloneState(s.state)
 	now := s.cfg.Now().UTC()
