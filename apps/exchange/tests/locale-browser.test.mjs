@@ -18,6 +18,49 @@ const previewSource=await readFile(new URL('../web/order-preview.js',import.meta
 const activityRender=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
 const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
+const walletRender=app.slice(app.indexOf('function renderStandardWallet('),app.indexOf('function disconnectWallet('));
+const walletChooser=app.slice(app.indexOf('function openWalletChooser('),app.indexOf('async function restoreStandardWallet('));
+const walletConnect=app.slice(app.indexOf('async function connectWallet('),app.indexOf('function showView('));
+
+test('actual Wallet display keeps selected identity and fallback destinations while late states use the current locale',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={standardWallet:null};let browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityEpoch=0;const toast=()=>{};function showWalletFallback(value){$('#wallet-fallback').hidden=!value}let calls=[];window.YNXExchangeWebWallet={connectYNX:async()=>{calls.push('ynx');return {status:'provider-absent'}},connectMetaMask:async()=>{calls.push('metamask');return {status:'provider-absent'}},connectHosted:async()=>{calls.push('hosted');return {status:'approval-pending'}}};${walletRender}\n${walletChooser}\n${walletConnect}\nwindow.walletLocaleQA={state,calls,renderStandardWallet,renderWalletState,openWalletChooser,connectWallet};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    const account='0x'+'1'.repeat(40);
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      await page.evaluate(()=>window.walletLocaleQA.openWalletChooser());
+      assert.equal(await page.locator('#wallet-state').innerText(),catalogs[locale]['wallet-chooser']);
+      assert.equal(await page.locator('#wallet-retry').innerText(),catalogs[locale]['Reconnect selected wallet']);
+      for(const kind of ['ynx','metamask','hosted']){
+        await page.evaluate(kind=>window.walletLocaleQA.connectWallet(kind),kind);
+        assert.equal(await page.locator('#wallet-fallback').isVisible(),true);
+        assert.ok((await page.locator('#wallet-state').innerText()).startsWith(catalogs[locale]['wallet-unavailable']));
+        assert.equal(await page.locator('#wallet-fallback a').first().getAttribute('href'),'https://www.ynxweb4.com/dapp/download');
+        assert.equal(await page.locator('#wallet-fallback a').last().getAttribute('href'),'https://metamask.io/download/');
+      }
+      await page.evaluate(value=>window.walletLocaleQA.renderStandardWallet(value),{status:'standard-connected',providerKind:'metamask',account,chainId:'0x1917'});
+      assert.equal(await page.locator('#wallet-dialog').evaluate(e=>e.open),false);assert.equal(await page.locator('#connect').evaluate(e=>e===document.activeElement),true);
+      assert.equal(await page.locator('#connect').innerText(),catalogs[locale]['Wallet details']);assert.equal(await page.locator('#wallet-provider').innerText(),'MetaMask');
+      assert.equal(await page.locator('#wallet-account').innerText(),account);assert.equal(await page.locator('#wallet-chain').innerText(),'0x1917');
+      await page.evaluate(()=>window.walletLocaleQA.openWalletChooser());
+      assert.equal(await page.locator('#wallet-details p').last().innerText(),catalogs[locale]['wallet-local-boundary']);
+      await page.evaluate(()=>window.walletLocaleQA.renderWalletState({status:'transport-unavailable'}));
+      assert.equal(await page.locator('#wallet-state').innerText(),catalogs[locale]['wallet-transport']);assert.equal(await page.locator('#connect').innerText(),catalogs[locale]['Reconnect Wallet']);
+      await page.evaluate(()=>window.walletLocaleQA.renderWalletState({status:'wrong-chain'}));assert.equal(await page.locator('#wallet-state').innerText(),catalogs[locale]['wallet-wrong-chain']);
+      await page.evaluate(()=>window.walletLocaleQA.renderWalletState({status:'disconnected'}));assert.equal(await page.locator('#wallet-state').innerText(),catalogs[locale]['wallet-disconnected']);
+      await page.locator('#wallet-dialog .close').click();
+    }
+    const calls=await page.evaluate(()=>window.walletLocaleQA.calls);assert.equal(calls.length,36);assert.deepEqual(calls,Array.from({length:12},()=>['ynx','metamask','hosted']).flat());
+    await page.evaluate(value=>window.walletLocaleQA.renderStandardWallet(value),{status:'standard-connected',providerKind:'ynx',transport:'hosted-wallet-web',account,chainId:'0x1917'});
+    await page.locator('#exchange-language').selectOption('ar');assert.equal(await page.locator('#connect').innerText(),catalogs.ar['Wallet details']);assert.equal(await page.locator('#wallet-provider').innerText(),'YNX Wallet Web');assert.equal(await page.locator('#wallet-account').innerText(),account);
+    assert.equal(await page.locator('#wallet-revoke').evaluate(e=>e.hidden),true,'localization must not enable unsupported Hosted permission revocation');
+    assert.equal(requests,0,'controlled UI test performs no real account/Wallet/network action');
+  }finally{await browser.close()}
+});
 
 test('real order preview preserves exact financial values while form and dialog labels change languages',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
