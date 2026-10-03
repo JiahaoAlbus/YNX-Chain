@@ -1,0 +1,87 @@
+import { mkdtemp, mkdir, writeFile, realpath, readFile } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
+import { dirname, resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+
+// A real, OS-contained single-session test of this runtime. This is deliberately
+// not the public/multi-owner admission path and never selects a user profile.
+if (process.platform !== 'darwin') throw Error('The isolated QA launcher currently requires macOS.');
+const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
+const pluginInput = process.argv[2];
+if (!pluginInput || !pluginInput.startsWith('/')) throw Error('Provide the owned staged extension directory.');
+const plugins = await realpath(pluginInput);
+if (!plugins.startsWith(resolve(root, '../../.ynx-developer-candidates') + '/')) throw Error('Only owned candidate plugin inputs are allowed.');
+const dapInput = process.argv[3];
+const dapRoot = dapInput ? await realpath(dapInput) : undefined;
+if (dapRoot && !dapRoot.startsWith(resolve(root, '../../.ynx-developer-candidates') + '/')) throw Error('Only owned debugger candidate inputs are allowed.');
+if (dapRoot && JSON.parse(await readFile(join(dapRoot, 'receipt.json'), 'utf8')).sha256 !== '27dab92937ec1ab35821ae955aac867544fe06a1b6307229049f2d789af10968') throw Error('Unexpected debugger artifact pin.');
+// Keep debugger Unix socket names below macOS's sockaddr_un path limit.
+const qa = await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
+const workspace = join(qa, 'project'), profile = join(qa, 'profile'), temporary = join(qa, 'tmp');
+for (const path of [workspace, profile, temporary]) await mkdir(path, { mode: 0o700 });
+await writeFile(join(workspace, 'main.js'), 'const wallet = { address: "ynx-public-test", balance: 42 };\nwallet.\n', { mode: 0o600 });
+await writeFile(join(workspace, 'debug.js'), 'const marker = "YNX debugger reference";\nconsole.log(marker);\nrequire("node:fs").writeFileSync("debug-proof.txt", marker);\n', { mode: 0o600 });
+await writeFile(join(workspace, 'package.json'), JSON.stringify({ name: 'ynx-public-runtime-reference', private: true }), { mode: 0o600 });
+const reservations = [];
+for (let index = 0; index < (dapRoot ? 3 : 1); index++) {
+  const reserve = createServer();
+  await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(0, '127.0.0.1', ok); });
+  reservations.push(reserve);
+}
+const [port, adapterPort, inspectorPort] = reservations.map(server => server.address().port);
+await Promise.all(reservations.map(server => new Promise(ok => server.close(ok))));
+const node = await realpath(process.execPath);
+if (dapRoot) {
+  await mkdir(join(workspace, '.vscode'), { mode: 0o700 });
+  await writeFile(join(workspace, '.vscode/launch.json'), JSON.stringify({ version: '0.2.0', configurations: [{
+    name: 'YNX JavaScript reference', type: 'pwa-node', request: 'launch', program: '${workspaceFolder}/debug.js', cwd: '${workspaceFolder}',
+    runtimeExecutable: node, runtimeArgs: [`--inspect-brk=127.0.0.1:${inspectorPort}`], attachSimplePort: inspectorPort,
+    autoAttachChildProcesses: false, stopOnEntry: false, console: 'internalConsole', debugServer: adapterPort,
+  }] }, null, 2), { mode: 0o600 });
+}
+const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/opt/homebrew', '/Library/Developer/CommandLineTools', root, plugins, qa, ...dapRoot ? [dapRoot] : []];
+const ancestors = new Set();
+for (const path of [root, plugins, qa]) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
+const profileText = ['(version 1)', '(allow default)', '(deny network*)', '(deny file-read*)', '(deny file-write*)',
+  // macOS dyld enumerates the volume root before loading Node. Permit only
+  // that directory, not a recursive read of the volume or another profile.
+  '(allow file-read* (literal "/"))',
+  ...reads.map(path => `(allow file-read* (subpath "${escape(path)}"))`),
+  ...[...ancestors].map(path => `(allow file-read-metadata (literal "${escape(path)}"))`),
+  ...[workspace, profile, temporary, '/dev'].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
+  ...[port, ...dapRoot ? [adapterPort, inspectorPort] : []].flatMap(value => [
+    `(allow network-bind (local ip "localhost:${value}"))`, `(allow network-inbound (local ip "localhost:${value}"))`]),
+  ...dapRoot ? [adapterPort, inspectorPort].map(value => `(allow network-outbound (remote ip "localhost:${value}"))`) : [],
+  ...dapRoot ? [
+    `(allow network-bind (local unix-socket (subpath "${escape(temporary)}")))`,
+    `(allow network-inbound (local unix-socket (subpath "${escape(temporary)}")))`,
+    `(allow network-outbound (remote unix-socket (subpath "${escape(temporary)}")))`,
+  ] : [],
+].join('\n');
+await writeFile(join(qa, 'sandbox.sb'), profileText, { mode: 0o600 });
+const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root, 'lib/backend/main.js'), workspace,
+  '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
+  cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  env: { PATH: `${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
+    THEIA_CONFIG_DIR: profile, NODE_OPTIONS: '--max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
+});
+child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
+const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, url: `http://127.0.0.1:${port}`, pid: child.pid,
+  isolation: 'macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener',
+  acceptance: 'single-session controlled QA, not public or multi-owner production admission' };
+await writeFile(join(qa, 'runtime.json'), JSON.stringify(receipt, null, 2), { mode: 0o600 });
+console.log(`YNX_THEIA_QA ${JSON.stringify(receipt)}`);
+let killTimer;
+function stop() {
+  try { process.kill(-child.pid, 'SIGTERM'); } catch {}
+  if (!killTimer && child.exitCode === null && child.signalCode === null) killTimer = setTimeout(() => {
+    if (child.exitCode === null && child.signalCode === null) try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+  }, 2000);
+}
+process.once('SIGINT', stop); process.once('SIGTERM', stop);
+child.once('error', error => { console.error(error); process.exitCode = 1; });
+child.once('exit', (code, signal) => { clearTimeout(killTimer); console.log(`YNX_THEIA_QA_EXIT ${JSON.stringify({ code, signal })}`); stop(); process.exitCode = code ?? (signal === 'SIGTERM' ? 0 : 1); });

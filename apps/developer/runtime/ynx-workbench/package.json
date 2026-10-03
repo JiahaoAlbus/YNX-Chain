@@ -1,0 +1,9 @@
+{
+  "name": "@ynx/developer-workbench",
+  "version": "0.2.4",
+  "private": true,
+  "dependencies": { "@theia/core": "1.76.0" },
+  "theiaExtensions": [
+    { "frontend": "lib/frontend-module", "backend": "lib/backend-module" }
+  ]
+}

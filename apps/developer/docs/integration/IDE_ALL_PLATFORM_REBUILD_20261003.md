@@ -18,19 +18,45 @@ The human now explicitly requires rebuilding all YNX IDE platforms around the co
 
 Read only public installed application metadata on 2026-10-03: `/Applications/Visual Studio Code.app/Contents/Resources/app/package.json` version **1.140.0**; `product.json` commit **07f806f999227108933c2e30515b26eecc1fda74**, stable, date `2026-09-30T10:38:38+02:00`. No user settings or extension credentials were read.
 
-Existing YNX server core pin is **OpenVSCode 1.109.5**, commit **072586267e68ece9a47aa43f8c108e0dcbf44622** in `services/codeoss-service/src/upstream.mjs`. Installing that existing pin alone cannot prove parity with the actual current reference. Obtain the approved exact newer open-source core artifact/source and license/notices/version/hash inputs through A's existing build/release role; review and update derived-runtime entry/manifest checks together. Do not merely change a version label, substitute Microsoft's installed distribution, or restart rejected network/package-egress/LXD operations.
+Existing YNX server core pin is **OpenVSCode 1.109.5**, commit **072586267e68ece9a47aa43f8c108e0dcbf44622** in `services/codeoss-service/src/upstream.mjs`. Installing that existing pin alone cannot prove parity with the actual current reference. This is the inherited server route, not a requirement to obtain a newer complete core before developing. The new composition has its own source/lock/native/extension artifact identity. Do not merely change a version label, substitute Microsoft's installed distribution, or restart rejected network/package-egress/LXD operations.
+
+## Real composed runtime checkpoint, 2026-10-04
+
+`runtime/theia` now runs an actual Theia 1.76.0 frontend/backend and VS Code
+extension host, with the owned `runtime/ynx-workbench` contribution. Official
+Open VSX JavaScript and TypeScript basics/language features 1.95.3 provide real
+IntelliSense and input pairing. Official Microsoft JS debug 1.140.0 provides
+actual Node breakpoint, variable and step behavior. The product header uses the
+inherited YNX logo; Command+W closes the real editor tab.
+
+The controlled macOS browser run passed **9 actual runtime journeys with 0 page
+errors**, including saved disk readback, installed Node execution through the
+PTY, breakpoint on line 2, real `marker` variable, F10 to line 3 while disk output
+is still absent, then F5 and actual program output on disk. Another synthetic
+project's read/write and outbound TCP are refused by OS permission errors.
+The unprivileged descendant-process cleanup helper passed its actual process
+test. No frontend, editor, language service, terminal or debugger is mocked.
+Receipts: `/private/tmp/ynx-theia-extension-qa-WwlQss/actual-host-browser.json`,
+`/private/tmp/ynx-ide-theia-debug-disk-ready-browser.log` and
+`/private/tmp/ynx-ide-theia-process-helper-final.log`. Failed attempts remain
+separate; the earlier breakpoint-on-empty-line and UI readiness/label assumptions
+were corrected instead of accepting a successful program exit as debug proof.
+
+This runtime is not yet the formal project-home entry, installed desktop/mobile
+product, complete extension lifecycle or Chain/Wallet/AI journey. See
+`runtime/README.md` for reproduction and the existing admission boundary.
 
 ## Platform delivery and required extension hosts
 
 | Surface | Required result | Current authoritative source | Remaining gate |
 | --- | --- | --- | --- |
-| macOS desktop | Full upstream desktop workbench and applicable local/web/remote extension hosts, native files, terminal, Git and debug; YNX theme and ecosystem additions | `desktop/macos` is a WebKit preview shell; the 33000 DMG is a compatibility preview | Full desktop core integration, actual native extension hosts, preserved profile migration, install/normal-use verification and formal signing |
-| Windows desktop | Same complete workbench and extension mechanisms, file dialogs, shortcuts and native behavior | `desktop/windows` is an inherited WebView2 preview with host/profile protections | Complete core, actual Windows runtime/compiler/debug/extensions, preserved profile migration and formal installer verification |
-| Linux desktop | Same upstream desktop coding workflow and extensions | Existing `package-linux-server.sh` packages the server, not a verified full Linux desktop application | Full desktop core/build/install evidence and normal user flow |
-| Web | Full upstream browser workbench with web extension host and approved remote Node extension host, persistent isolated projects | Existing OpenVSCode broker/SSO/proxy and YNX project home/tools consumer | Actual approved execution origin/runtime/identity, compatible extensions and real terminal/debug/Git in the same project |
-| iOS/Android entry | Same projects and mature core through an applicable mobile entry; usable layout, touch/keyboard, file recovery and Wallet continuity | No complete owned native mobile IDE engineering/build evidence has been established | Actual applicable mobile workbench entry and device acceptance; do not treat installed TestFlight/Xcode or a new wrapper as full IDE proof |
+| macOS desktop | Mature workbench and applicable local/web/remote extension hosts, native files, terminal, Git and debug; YNX UI and ecosystem additions | Existing WebKit shell plus real composed macOS QA runtime; the 33000 DMG predates this work | Production runtime integration, preserved profile migration, install/normal-use verification and formal signing |
+| Windows desktop | Same coding workflow and extension mechanisms, file dialogs, shortcuts and native behavior | Inherited WebView2 preview with host/profile protections | Actual Windows runtime/compiler/debug/extensions, preserved profile migration and formal installer verification |
+| Linux desktop | Same coding workflow and applicable extensions | Existing server package; composed runtime has not been verified on Linux desktop | Desktop build/install evidence and normal user flow |
+| Web | Mature browser workbench with applicable extension hosts and persistent isolated projects | Existing broker/SSO/proxy and YNX tools consumer; composed runtime passes controlled macOS browser QA | Approved execution origin/runtime/identity, compatible extension lifecycle and Git in the same project |
+| iOS/Android entry | Same projects through an applicable mobile entry; usable layout, touch/keyboard, file recovery and Wallet continuity | No complete owned native mobile IDE build evidence | Actual mobile workbench entry and device acceptance |
 
-Reference: [official extension hosts](https://code.visualstudio.com/api/advanced-topics/extension-host). Desktop local Node, web worker and remote Node hosts have different capabilities. A remote Linux workspace cannot prove execution of a desktop UI/device extension or another platform's native extension binary. Preserve the complete upstream mechanism instead of replacing it with a fixed YNX extension allowlist or fake plugin tiles.
+Reference: [official extension hosts](https://code.visualstudio.com/api/advanced-topics/extension-host). Desktop local Node, web worker and remote Node hosts have different capabilities. A remote Linux workspace cannot prove execution of a desktop UI/device extension or another platform's native extension binary. Integrate actual applicable extension mechanisms and verify behavior rather than using fake plugin tiles. The pinned QA set is a test input, not the product's complete extension catalog.
 
 ## Coding and extension acceptance
 

@@ -1,0 +1,19 @@
+.ynx-workbench-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 13px;
+  border-bottom: 1px solid var(--theia-panel-border);
+  font-size: 13px;
+  color: var(--theia-foreground);
+  background: var(--theia-titleBar-activeBackground);
+}
+.ynx-workbench-brand img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.ynx-workbench-brand strong {
+  font-weight: 600;
+  letter-spacing: .1px;
+}

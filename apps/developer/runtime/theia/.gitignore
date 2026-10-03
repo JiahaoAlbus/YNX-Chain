@@ -1,0 +1,10 @@
+node_modules/
+lib/
+src-gen/
+esbuild.mjs
+esbuild.config.js
+gen-webpack.config.js
+gen-esbuild.browser.mjs
+gen-esbuild.node.mjs
+webpack.config.js
+.theia/

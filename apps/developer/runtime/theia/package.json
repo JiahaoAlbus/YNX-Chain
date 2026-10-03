@@ -1,0 +1,52 @@
+{
+  "name": "@ynx/developer-extension-runtime",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Owned YNX Developer workbench and VS Code extension runtime composition",
+  "scripts": {
+    "build": "theia build --mode production",
+    "start": "theia start --hostname 127.0.0.1"
+  },
+  "dependencies": {
+    "@theia/core": "1.76.0",
+    "@theia/debug": "1.76.0",
+    "@theia/editor": "1.76.0",
+    "@theia/filesystem": "1.76.0",
+    "@theia/markers": "1.76.0",
+    "@theia/messages": "1.76.0",
+    "@theia/monaco": "1.76.0",
+    "@theia/navigator": "1.76.0",
+    "@theia/plugin-ext-vscode": "1.76.0",
+    "@theia/preferences": "1.76.0",
+    "@theia/process": "1.76.0",
+    "@theia/scm": "1.76.0",
+    "@theia/search-in-workspace": "1.76.0",
+    "@theia/task": "1.76.0",
+    "@theia/terminal": "1.76.0",
+    "@theia/vsx-registry": "1.76.0",
+    "@theia/workspace": "1.76.0",
+    "@ynx/developer-workbench": "file:../ynx-workbench"
+  },
+  "devDependencies": {
+    "@theia/cli": "1.76.0"
+  },
+  "theia": {
+    "target": "browser",
+    "frontend": {
+      "config": {
+        "applicationName": "YNX Developer",
+        "defaultTheme": "light",
+        "defaultIconTheme": "theia-file-icons",
+        "preferences": {
+          "telemetry.telemetryLevel": "off",
+          "files.autoSave": "off",
+          "editor.fontSize": 13,
+          "terminal.integrated.defaultProfile.osx": "YNX Bash",
+          "terminal.integrated.profiles.osx": {
+            "YNX Bash": { "path": "/bin/bash", "args": ["--noprofile", "--norc"], "env": { "BASH_SILENCE_DEPRECATION_WARNING": "1" } }
+          }
+        }
+      }
+    }
+  }
+}
