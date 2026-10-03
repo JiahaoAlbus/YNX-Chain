@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
 import {formatMicro} from '../web/market-data.js';
+import {locales} from '../web/locale.js';
 
 // Actual product HTML/render functions, controlled account read input only.
 // No Wallet approval, authenticated API or public acceptance is claimed here.
@@ -16,6 +17,35 @@ const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf(
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
+const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
+const localeSetup=app.split('\n').find(line=>line.includes('window.YNXExchangeLocale=installExchangeLocale({document'));
+
+test('private account read timestamps follow the chosen language without requests or source mutation',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const context=await browser.newContext({locale:'zh-CN',viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];let requests=0;
+    page.setDefaultTimeout(3000);
+    page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,snapshot:null};let currentRead;const privateAccount={state:()=>currentRead};const languageStorage={getItem:()=>null,setItem(){}};function renderAccount(){}function renderBook(){}function renderPublicMarket(){}function estimate(){}function resumeDeferredBrowserIdentity(){};${ownedTimes};${controls};window.privateTimeQA={set(value){currentRead=value;renderPrivateAccount(value)},source(){return JSON.stringify(currentRead)}};`});
+    await page.addScriptTag({type:'module',content:`${localeSource}\n${localeSetup}`});
+    try{await page.waitForFunction(()=>window.YNXExchangeLocale,{},{timeout:3000})}catch(error){assert.deepEqual(errors,[]);throw error}
+    const value={phase:'connected',account:'controlled-A',expiresAt:'2026-10-03T10:00:00+09:00',snapshot:{security:{updatedAt:'2026-10-03T01:00:00Z'},support:[],sourceMetadata:{status:'controlled_read',coverage:'owned_records_fixture',asOf:'2026-10-03T01:00:00Z'}}};
+    await page.evaluate(value=>window.privateTimeQA.set(value),value);const original=JSON.stringify(value);
+    for(const language of locales){
+      await page.locator('#exchange-language').selectOption(language);
+      const expected=await page.evaluate(()=>new Date('2026-10-03T01:00:00Z').toLocaleString(document.documentElement.lang));
+      assert.equal(await page.locator('#private-expiry').textContent(),expected);
+      assert.equal(await page.locator('#private-source').textContent(),`controlled_read · owned_records_fixture · ${expected}`);
+      assert.equal(await page.evaluate(()=>window.privateTimeQA.source()),original);
+    }
+    for(const invalid of [null,'0','2026-02-30T00:00:00Z']){
+      value.expiresAt=invalid;value.snapshot.sourceMetadata.asOf=invalid;await page.evaluate(value=>window.privateTimeQA.set(value),value);
+      assert.equal(await page.locator('#private-expiry').textContent(),'—');assert.match(await page.locator('#private-source').textContent(),/ · —$/);
+    }
+    assert.deepEqual(errors,[]);assert.equal(requests,0);assert.equal(context.pages().length,1);
+  }finally{await browser.close()}
+});
 
 test('owned order timestamps sort by actual instants and missing dates cannot crash open orders',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());

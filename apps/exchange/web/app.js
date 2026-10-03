@@ -67,7 +67,7 @@ async function initializeBrowserIdentity(){try{const {response,data}=await brows
 const marketFeed=createMarketFeed({onSnapshot(value){state.book=value.orderBook;state.publicTrades=value.trades;state.rules=value.tradingRules;state.source=value.sourceMetadata;renderBook();renderPublicMarket()},onStatus(value){state.marketPhase=value.phase;renderMarketStatus(value);estimate()}});
 async function boot(){
   let languageStorage;try{languageStorage=window.localStorage}catch{}
-  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot)renderAccount();estimate()}});
+  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot)renderAccount();renderPrivateReadMetadata(privateAccount.state());estimate()}});
   bind();renderBook();renderPublicMarket();renderAIState();$('#custody-address').textContent='Separate approved deposit workflow required';window.YNXExchangeLocale?.write($('#custody-address'),'Separate approved deposit workflow required');$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
 }
 function bind(){
@@ -144,14 +144,22 @@ function renderPrivateAccount(value){
   $('#private-status').textContent=`${value.phase==='approval-pending'&&value.installation==='selected-provider'?'Review Exchange read-only access in the selected Wallet. No venue data is available until its approved return is verified.':messages[value.phase]||messages.degraded}${value.code?' ('+value.code+')':''}`;
   window.YNXExchangeLocale?.write($('#private-status'),value.phase==='approval-pending'&&value.installation==='selected-provider'?'selected-pending':Object.hasOwn(messages,value.phase)?value.phase:'degraded',value.code?' ('+value.code+')':'');
   const open=$('#private-open');open.hidden=!value.route;if(value.route)open.href=value.route;else open.removeAttribute('href');
-  $('#private-details').hidden=value.phase!=='connected';$('#private-native-account').textContent=value.account||'—';$('#private-expiry').textContent=value.expiresAt?new Date(value.expiresAt).toLocaleString():'—';
+  $('#private-details').hidden=value.phase!=='connected';$('#private-native-account').textContent=value.account||'—';renderPrivateReadMetadata(value);
   for(const id of ['private-begin','private-retry','private-refresh','private-disconnect'])$('#'+id).disabled=value.phase==='loading';
   $('#private-refresh').hidden=value.phase!=='connected';
-  if(value.snapshot){window.YNXExchangeLocale?.forget($('#balances'));window.YNXExchangeLocale?.forget($('#private-source'));renderAccount();$('#private-source').textContent=`${value.snapshot.sourceMetadata.status} · ${value.snapshot.sourceMetadata.coverage} · ${new Date(value.snapshot.sourceMetadata.asOf).toLocaleString()}`}
+  if(value.snapshot){window.YNXExchangeLocale?.forget($('#balances'));window.YNXExchangeLocale?.forget($('#private-source'));renderAccount()}
   else{for(const id of ['balances','orders','activity-head','activity-body'])$('#'+id).replaceChildren();$('#balances').textContent='Private balances are not currently verified.';window.YNXExchangeLocale?.write($('#balances'),'private-no-balances');$('#owned-volume').textContent='—';$('#private-source').textContent='No verified account snapshot.';window.YNXExchangeLocale?.write($('#private-source'),'private-no-snapshot')}
   renderOwnedControls();
   if(location.pathname==='/wallet-auth/callback'&&(value.phase==='connected'||value.code==='PRIVATE_SESSION_DISCONNECTED'))history.replaceState(null,'','/');
   resumeDeferredBrowserIdentity();
+}
+function renderPrivateReadMetadata(value){
+  $('#private-expiry').textContent=ownedRecordTime(value.expiresAt);
+  if(value.snapshot){
+    window.YNXExchangeLocale?.forget($('#private-source'));
+    const source=value.snapshot.sourceMetadata;
+    $('#private-source').textContent=`${source.status} · ${source.coverage} · ${ownedRecordTime(source.asOf)}`;
+  }
 }
 const supportDrafts=new Map();
 function rememberSupportDraft(previous,next){

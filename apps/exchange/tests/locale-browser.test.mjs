@@ -11,7 +11,7 @@ const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
 const marketSource=await readFile(new URL('../web/market-data.js',import.meta.url),'utf8');
-const privateRender=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
+const privateRender=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('))+app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
 const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
 const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showWalletFallback('));
@@ -142,7 +142,7 @@ test('actual controls statuses localize without write enablement or stale placeh
     const page=await browser.newPage();let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
     await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
-    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',snapshot:null};${controlsRender}\nwindow.controlsQA={render(snapshot){state.snapshot=snapshot;renderOwnedControls()}};`});
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',snapshot:null};${ownedTimes}${controlsRender}\nwindow.controlsQA={render(snapshot){state.snapshot=snapshot;renderOwnedControls()}};`});
     const createdAt='2026-10-03T00:00:00Z';
     const cases=[{account:'A',id:'owned-case',category:'order',status:'open',createdAt,message:'<img src=x onerror=alert(1)> exact user text'},{account:'B',id:'foreign-case',category:'security',status:'closed',createdAt,message:'FOREIGN_ONLY'}];
     for(const locale of locales){
