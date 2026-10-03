@@ -34,7 +34,7 @@ func (s *Service) RevokeInvite(actor Session, id string) (Invite, error) {
 	record.RevokedAt = &now
 	s.state.Invites[id] = record
 	s.appendAuditLocked("invite_revoked", "invite", id, actor.Account, objectDigest(record), now)
-	if err := s.saveOrRollbackLocked(before); err != nil {
+	if err := s.saveOrRollbackProductActorLocked(before, actor, "social.contacts"); err != nil {
 		return Invite{}, err
 	}
 	return record, nil

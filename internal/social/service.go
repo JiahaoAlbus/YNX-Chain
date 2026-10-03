@@ -351,7 +351,7 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 	s.state.Settings[actor.Account] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{"settings", digest, actor.Account}
 	s.appendAuditLocked("profile_privacy_updated", "settings", actor.Account, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.profile")
 }
 
 func (s *Service) CreateInvite(actor Session, ttl time.Duration) (Invite, string, error) {
@@ -476,7 +476,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 		// original recipient must still explicitly accept; never auto-consent.
 		before := cloneState(s.state)
 		s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, existing.ID}
-		return existing, true, s.saveOrRollbackLocked(before)
+		return existing, true, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 	}
 	id := "request_" + objectDigest(struct{ A, B, K string }{actor.Account, target, in.IdempotencyKey})[:24]
 	expires := now.Add(7 * 24 * time.Hour)
@@ -486,7 +486,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, id}
 	s.notifyLocked(target, actor.Account, "contact_request", id, now)
 	s.appendAuditLocked("contact_request_created", "contact_request", id, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackLocked(before)
+	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 }
 
 func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRequest, error) {
@@ -524,7 +524,7 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 		before := cloneState(s.state)
 		s.state.Requests[id] = expired
 		s.appendAuditLocked("contact_request_expired", "contact_request", id, actor.Account, objectDigest(expired), now)
-		if err := s.saveOrRollbackLocked(before); err != nil {
+		if err := s.saveOrRollbackProductActorLocked(before, actor, "social.contacts"); err != nil {
 			return ContactRequest{}, err
 		}
 		return ContactRequest{}, ErrConflict
@@ -549,7 +549,7 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 		s.notifyLocked(record.From, actor.Account, "contact_accepted", id, now)
 	}
 	s.appendAuditLocked("contact_request_"+record.Status, "contact_request", id, actor.Account, objectDigest(record), now)
-	return record, s.saveOrRollbackLocked(before)
+	return record, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 }
 
 func (s *Service) DeleteContact(actor Session, target string) error {
@@ -631,7 +631,7 @@ func (s *Service) relationshipAction(actor Session, target, action string) error
 		return ErrInvalid
 	}
 	s.appendAuditLocked(action, "relationship", key, actor.Account, objectDigest(struct{ Target string }{target}), now)
-	return s.saveOrRollbackLocked(before)
+	return s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 }
 
 func (s *Service) Contacts(actor Session) []Contact {

@@ -82,7 +82,7 @@ func TestProductBindingRejectsReplacedOriginalDeviceAndTuple(t *testing.T) {
 	r := bridgeRequest("android", "/social/v1/profile", http.MethodGet, nil)
 	ctx, cancel := context.WithCancel(r.Context())
 	cancel()
-	if _, err := NewServer(s, s).authorizeProductActor(r.WithContext(ctx), "social.profile"); !errors.Is(err, ErrUnauthorized) {
+	if _, err := NewServer(s, s).authorizeProductActor(r.WithContext(ctx), "social.profile"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled request accepted: %v", err)
 	}
 	s.mu.Lock()

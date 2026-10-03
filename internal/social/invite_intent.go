@@ -83,7 +83,7 @@ func (s *Service) createInvite(actor Session, ttl time.Duration, key string) (In
 		s.state.Idempotency[stateKey] = idempotencyRecord{"invite_create", digest, id}
 	}
 	s.appendAuditLocked("invite_created", "invite", id, actor.Account, objectDigest(record), now)
-	if err := s.saveOrRollbackLocked(before); err != nil {
+	if err := s.saveOrRollbackProductActorLocked(before, actor, "social.contacts"); err != nil {
 		return Invite{}, "", err
 	}
 	return record, token, nil

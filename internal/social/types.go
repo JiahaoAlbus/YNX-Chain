@@ -1,6 +1,7 @@
 package social
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -128,13 +129,15 @@ type PendingWalletChallenge struct {
 }
 
 type Session struct {
-	ID        string     `json:"id"`
-	Account   string     `json:"account"`
-	DeviceID  string     `json:"deviceId"`
-	Scopes    []string   `json:"scopes"`
-	CreatedAt time.Time  `json:"createdAt"`
-	ExpiresAt time.Time  `json:"expiresAt"`
-	RevokedAt *time.Time `json:"revokedAt,omitempty"`
+	// Request-local only: never serialized, persisted or supplied by a caller.
+	requestContext context.Context
+	ID             string     `json:"id"`
+	Account        string     `json:"account"`
+	DeviceID       string     `json:"deviceId"`
+	Scopes         []string   `json:"scopes"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	ExpiresAt      time.Time  `json:"expiresAt"`
+	RevokedAt      *time.Time `json:"revokedAt,omitempty"`
 }
 
 type SessionRotation struct {

@@ -54,6 +54,9 @@ func productDeviceProofPayload(session productsessionv2.Session, in productDevic
 	return []byte(strings.Join([]string{"ynx-social-session-device-v2", session.Account, session.SessionBinding, session.DeviceID, session.DeviceKey, in.DeviceID, in.SigningPublicKey, in.EncryptionPublicKey}, "\n"))
 }
 func (s *Server) liveProductSession(r *http.Request, required []string) (productsessionv2.Session, error) {
+	if err := r.Context().Err(); err != nil {
+		return productsessionv2.Session{}, err
+	}
 	values := r.Header.Values(productsessionv2.ProofHeader)
 	if len(values) != 1 || len(values[0]) > 16384 {
 		return productsessionv2.Session{}, ErrUnauthorized
@@ -105,6 +108,9 @@ func (s *Server) liveProductSession(r *http.Request, required []string) (product
 	}
 	// Untrusted metadata only selects an exact verifier; that verifier checks it.
 	session, err := authorizer.Authorize(r.Context(), r, required)
+	if contextErr := r.Context().Err(); contextErr != nil {
+		return productsessionv2.Session{}, contextErr
+	}
 	if err != nil {
 		return productsessionv2.Session{}, err
 	}
@@ -114,6 +120,9 @@ func (s *Server) liveProductSession(r *http.Request, required []string) (product
 	return session, nil
 }
 func (s *Server) browserProductBinding(r *http.Request, session productsessionv2.Session, stored *productSessionBinding) (string, string, error) {
+	if err := r.Context().Err(); err != nil {
+		return "", "", err
+	}
 	if session.Platform != "web" {
 		return "", "", nil
 	}
@@ -134,7 +143,11 @@ func (s *Server) browserProductBinding(r *http.Request, session productsessionv2
 			return "", "", ErrUnauthorized
 		}
 	}
-	if _, status := bridge.VerifyBinding(r.Context(), encoded, session.Account); status != 200 {
+	_, status := bridge.VerifyBinding(r.Context(), encoded, session.Account)
+	if err := r.Context().Err(); err != nil {
+		return "", "", err
+	}
+	if status != 200 {
 		if status >= 500 {
 			return "", "", &productsessionv2.Error{Code: "AUTHORITY_UNAVAILABLE", Status: 503}
 		}
@@ -170,7 +183,7 @@ func (s *Server) bindProductSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Context().Err() != nil {
-		writeBridgeError(w, ErrUnauthorized)
+		writeBridgeError(w, r.Context().Err())
 		return
 	}
 	actor, err := s.service.bindProductDevice(session, in, sealed, digest)
@@ -298,9 +311,13 @@ func (s *Server) authorizeProductActor(r *http.Request, scope string) (Session, 
 	currentBinding, exists := s.service.state.ProductBindings[key]
 	currentActor, active := s.service.state.Sessions["psv2:"+key]
 	currentDevice := s.service.state.Devices[binding.ChatDeviceID]
-	if r.Context().Err() != nil || !exists || !active || objectDigest(currentBinding) != objectDigest(binding) || objectDigest(currentActor) != objectDigest(actor) || objectDigest(currentDevice) != objectDigest(device) || !actor.ExpiresAt.After(s.service.cfg.Now()) {
+	if err := r.Context().Err(); err != nil {
+		return Session{}, err
+	}
+	if !exists || !active || objectDigest(currentBinding) != objectDigest(binding) || objectDigest(currentActor) != objectDigest(actor) || objectDigest(currentDevice) != objectDigest(device) || !actor.ExpiresAt.After(s.service.cfg.Now()) {
 		return Session{}, ErrUnauthorized
 	}
+	actor.requestContext = r.Context()
 	return actor, nil
 }
 func bindingMatchesSession(binding productSessionBinding, session productsessionv2.Session) bool {

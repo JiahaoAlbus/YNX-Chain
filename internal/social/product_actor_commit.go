@@ -7,6 +7,9 @@ import "strings"
 // Legacy domain callers retain their existing authorization contract; an HTTP
 // Product Session actor always has the server-generated psv2_ identifier.
 func (s *Service) requireCurrentProductActorLocked(actor Session, scope string) error {
+	if actor.requestContext != nil && actor.requestContext.Err() != nil {
+		return actor.requestContext.Err()
+	}
 	if !strings.HasPrefix(actor.ID, "psv2_") {
 		return nil
 	}
@@ -39,4 +42,19 @@ func (s *Service) requireCurrentProductActor(actor Session, scope string) error 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.requireCurrentProductActorLocked(actor, scope)
+}
+
+// Recheck at persistence after preparing the effect under the same mutex.
+// On cancellation/expiry restore the original transaction, including receipts
+// and audit entries; never publish a partial in-memory effect or new nonce store.
+func (s *Service) saveOrRollbackProductActorLocked(before persistentState, actor Session, scope string) error {
+	if err := s.requireCurrentProductActorLocked(actor, scope); err != nil {
+		s.state = before
+		return err
+	}
+	if actor.requestContext != nil && actor.requestContext.Err() != nil {
+		s.state = before
+		return actor.requestContext.Err()
+	}
+	return s.saveOrRollbackLocked(before)
 }

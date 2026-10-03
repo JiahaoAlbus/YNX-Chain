@@ -1,6 +1,7 @@
 package social
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -861,6 +862,8 @@ func decodeRequest(w http.ResponseWriter, r *http.Request, out any, limit int) b
 func writeServiceError(w http.ResponseWriter, err error) {
 	status := 500
 	switch {
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		status = http.StatusRequestTimeout
 	case errors.Is(err, ErrInvalid):
 		status = 400
 	case errors.Is(err, ErrUnauthorized):
