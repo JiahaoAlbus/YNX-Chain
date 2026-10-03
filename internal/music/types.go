@@ -184,19 +184,20 @@ type AuditEvent struct {
 }
 
 type persistentState struct {
-	BusinessNonces map[string]MusicBusinessNonce `json:"businessNonces,omitempty"`
-	BusinessClock  *time.Time                    `json:"businessClock,omitempty"`
-	SchemaVersion  int                           `json:"schemaVersion"`
-	Profiles       map[string]Profile            `json:"profiles"`
-	Tracks         map[string]Track              `json:"tracks"`
-	Playlists      map[string]Playlist           `json:"playlists"`
-	Listeners      map[string]ListenerState      `json:"listeners"`
-	Usage          map[string]UsageRecord        `json:"usage"`
-	Allocations    map[string]RevenueAllocation  `json:"allocations"`
-	Settlements    map[string]SettlementIntent   `json:"settlements"`
-	Cases          map[string]Case               `json:"cases"`
-	AIProposals    map[string]AIProposal         `json:"aiProposals"`
-	Idempotency    map[string]string             `json:"idempotency"`
-	Audit          []AuditEvent                  `json:"audit"`
-	IntegrityHash  string                        `json:"integrityHash"`
+	BusinessEffects map[string]MusicBusinessEffect `json:"businessEffects,omitempty"`
+	BusinessNonces  map[string]MusicBusinessNonce  `json:"businessNonces,omitempty"`
+	BusinessClock   *time.Time                     `json:"businessClock,omitempty"`
+	SchemaVersion   int                            `json:"schemaVersion"`
+	Profiles        map[string]Profile             `json:"profiles"`
+	Tracks          map[string]Track               `json:"tracks"`
+	Playlists       map[string]Playlist            `json:"playlists"`
+	Listeners       map[string]ListenerState       `json:"listeners"`
+	Usage           map[string]UsageRecord         `json:"usage"`
+	Allocations     map[string]RevenueAllocation   `json:"allocations"`
+	Settlements     map[string]SettlementIntent    `json:"settlements"`
+	Cases           map[string]Case                `json:"cases"`
+	AIProposals     map[string]AIProposal          `json:"aiProposals"`
+	Idempotency     map[string]string              `json:"idempotency"`
+	Audit           []AuditEvent                   `json:"audit"`
+	IntegrityHash   string                         `json:"integrityHash"`
 }

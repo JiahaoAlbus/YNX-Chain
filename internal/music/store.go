@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const currentStateSchemaVersion = 3
+const currentStateSchemaVersion = 4
 
 type stateDocumentHeader struct {
 	SchemaVersion int `json:"schemaVersion"`
@@ -26,6 +26,7 @@ type stateMigration func(json.RawMessage) (json.RawMessage, error)
 var stateMigrationRegistry = map[int]stateMigration{
 	1: migrateStateV1ToV2,
 	2: migrateStateV2ToV3,
+	3: migrateStateV3ToV4,
 }
 
 func newState() persistentState {
@@ -69,6 +70,29 @@ func loadStateMode(path, mediaDir string, persistMigration bool) (persistentStat
 		actor, actorErr := normalizeActor(entry.Actor)
 		if len(parts) != 2 || !digestPattern.MatchString(parts[0]) || !musicProofNonce.MatchString(parts[1]) || actorErr != nil || actor != entry.Actor || !validSHA256Hex(entry.BodyDigest) || entry.ExpiresAt.IsZero() {
 			return persistentState{}, false, errors.New("music business replay entry is invalid")
+		}
+	}
+	if len(state.BusinessEffects) > 2048 {
+		return persistentState{}, false, errors.New("music external effect capacity is invalid")
+	}
+	for key, e := range state.BusinessEffects {
+		if key != effectKey(e.Actor, e.Kind, e.ObjectID) || !digestPattern.MatchString(key) || !validSHA256Hex(e.WireDigest) || !validSHA256Hex(e.EndpointDigest) || e.AdmittedAt.IsZero() || effectObject(&state, e.Actor, e.Kind, e.ObjectID) != nil {
+			return persistentState{}, false, errors.New("music external effect identity is invalid")
+		}
+		if e.Status == "dispatch_admitted" && len(e.Receipt) == 0 {
+			continue
+		}
+		if e.Status != "receipt" || len(e.Receipt) > 1<<20 {
+			return persistentState{}, false, errors.New("music external effect receipt state is invalid")
+		}
+		var err error
+		if e.Kind == "pay" {
+			err = validatePayReceipt(e.Receipt)
+		} else {
+			err = validateTrustReceipt(e.Receipt)
+		}
+		if err != nil {
+			return persistentState{}, false, errors.New("music external effect receipt is invalid")
 		}
 	}
 	for id, track := range state.Tracks {
@@ -302,6 +326,26 @@ func migrateStateV2ToV3(raw json.RawMessage) (json.RawMessage, error) {
 		return nil, err
 	}
 	original.SchemaVersion = 3
+	original.IntegrityHash, err = stateIntegrity(original)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(original)
+}
+
+func migrateStateV3ToV4(raw json.RawMessage) (json.RawMessage, error) {
+	var original persistentState
+	if err := json.Unmarshal(raw, &original); err != nil || original.SchemaVersion != 3 || original.IntegrityHash == "" {
+		return nil, errors.New("music state schema v3 document is invalid")
+	}
+	expected, err := stateIntegrity(original)
+	if err != nil || expected != original.IntegrityHash {
+		return nil, errors.New("music state schema v3 integrity verification failed")
+	}
+	if err = verifyAuditChain(original.Audit); err != nil {
+		return nil, err
+	}
+	original.SchemaVersion = 4
 	original.IntegrityHash, err = stateIntegrity(original)
 	if err != nil {
 		return nil, err

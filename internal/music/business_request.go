@@ -44,10 +44,12 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
 	if l == nil || l.ctx == nil || l.ctx.Err() != nil || l.grant.Revalidate == nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
 	}
-	if err := l.grant.Revalidate(l.ctx); err != nil {
+	checkCtx, cancel := context.WithTimeout(l.ctx, 15*time.Second)
+	defer cancel()
+	if err := l.grant.Revalidate(checkCtx); err != nil {
 		return fmt.Errorf("%w: original Music authority changed", ErrUnauthorized)
 	}
-	if l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+	if checkCtx.Err() != nil || l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
 	}
 	return nil
@@ -57,7 +59,7 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
 // the real business change. Failed validation/save cannot consume a nonce.
 func (l *musicBusinessLease) commit(actor string, st *persistentState, clock func() time.Time) error {
 	now := clock().UTC()
-	if actor != l.grant.Actor || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
+	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
 		return ErrUnauthorized
 	}
 	if err := l.check(clock); err != nil {
@@ -109,9 +111,9 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 		writeErr(w, ErrUnauthorized)
 		return
 	}
-	// These original handlers dispatch external effects. Their V2 admission
-	// needs durable effect receipts/recovery, beyond a local write transaction.
-	if r.URL.Path == "/api/cases" || r.URL.Path == "/api/creator/settlements" || strings.HasPrefix(r.URL.Path, "/api/ai/proposals/") && strings.HasSuffix(r.URL.Path, "/stream") {
+	// Streaming AI still needs its durable stream/result recovery protocol.
+	// Pay and Trust use the admitted dispatch/receipt journal.
+	if strings.HasPrefix(r.URL.Path, "/api/ai/proposals/") && strings.HasSuffix(r.URL.Path, "/stream") {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Music V2 external-effect recovery is not installed"})
 		return
 	}

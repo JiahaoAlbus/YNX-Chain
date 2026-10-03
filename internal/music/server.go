@@ -387,11 +387,15 @@ func (s *Server) openCase(w http.ResponseWriter, r *http.Request, a string) {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "YNX Trust idempotency tamper rejected"})
 		return
 	}
-	input := map[string]any{"type": "open_case", "idempotencyKey": idempotency, "subject": q.TrackID, "requestScope": "music.rights", "purpose": q.Reason, "requestedAction": q.Kind, "evidence": []map[string]any{{"source": "ynx-music", "digest": q.EvidenceRef, "summary": q.Reason, "collectedAt": s.service.cfg.Now().UTC(), "visibleToSubject": true}}}
+	if s.service.business != nil && v.CentralCaseID != "" {
+		resultStatus(w, v, nil, http.StatusCreated)
+		return
+	}
+	input := map[string]any{"type": "open_case", "idempotencyKey": idempotency, "subject": q.TrackID, "requestScope": "music.rights", "purpose": q.Reason, "requestedAction": q.Kind, "evidence": []map[string]any{{"source": "ynx-music", "digest": q.EvidenceRef, "summary": q.Reason, "collectedAt": v.CreatedAt, "visibleToSubject": true}}}
 	var central struct {
 		ID string `json:"id"`
 	}
-	if err := s.service.centralJSON(r.Context(), s.service.cfg.TrustGatewayURL, s.service.cfg.TrustGatewayKey, input, &central); err != nil {
+	if err := s.service.centralBusinessEffect(r.Context(), a, "trust", v.ID, s.service.cfg.TrustGatewayURL, s.service.cfg.TrustGatewayKey, input, &central, validateTrustReceipt); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Trust unavailable", "localCase": v, "central": true})
 		return
 	}
@@ -429,13 +433,17 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request, a string) {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "YNX Pay idempotency tamper rejected"})
 		return
 	}
+	if s.service.business != nil && v.CentralIntentID != "" {
+		resultStatus(w, v, nil, http.StatusCreated)
+		return
+	}
 	input := map[string]any{"type": "music_creator_settlement", "idempotencyKey": idempotency, "productIntentId": v.ID, "asset": "YNXT", "amountMicros": v.AmountMicros, "payTo": v.PayTo, "status": "requires_wallet_review"}
 	var central struct {
 		ID        string `json:"id"`
 		ReviewURI string `json:"reviewUri"`
 		Status    string `json:"status"`
 	}
-	if err := s.service.centralJSON(r.Context(), s.service.cfg.PayGatewayURL, s.service.cfg.PayGatewayKey, input, &central); err != nil {
+	if err := s.service.centralBusinessEffect(r.Context(), a, "pay", v.ID, s.service.cfg.PayGatewayURL, s.service.cfg.PayGatewayKey, input, &central, validatePayReceipt); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Pay unavailable; intent is not paid", "localIntent": v, "central": true})
 		return
 	}

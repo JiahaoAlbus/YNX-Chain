@@ -20,6 +20,9 @@ import (
 )
 
 func testBusinessLease(actor, nonce string, clock func() time.Time) *musicBusinessLease {
+	if len(nonce) < 16 {
+		nonce += strings.Repeat("0", 16-len(nonce))
+	}
 	return &musicBusinessLease{ctx: context.Background(), grant: MusicBusinessGrant{Actor: actor, Nonce: nonce, SessionBinding: strings.Repeat("a", 64), BodyDigest: strings.Repeat("b", 64), ExpiresAt: clock().Add(time.Minute), Revalidate: func(context.Context) error { return nil }}}
 }
 func TestBusinessNonceIsAtomicAndSurvivesRestart(t *testing.T) {
@@ -276,7 +279,7 @@ func TestBusinessV2ExternalEffectsAndUnsignedQueriesStayClosed(t *testing.T) {
 		called = true
 		return MusicBusinessGrant{}, ErrUnauthorized
 	})
-	for _, target := range []string{"/api/cases", "/api/creator/settlements", "/api/ai/proposals/proposal/stream", "/api/me?account=other", "/api/catalog?q=a&q=b", "/api/catalog?owner=other"} {
+	for _, target := range []string{"/api/ai/proposals/proposal/stream", "/api/me?account=other", "/api/catalog?q=a&q=b", "/api/catalog?owner=other"} {
 		r := httptest.NewRequest("POST", target, nil)
 		r.Header.Set("X-YNX-Product-Session-Proof-V2", "fixture")
 		r.Header.Set("X-YNX-Music-Business-Proof-V2", "fixture")
@@ -305,14 +308,14 @@ func TestSchemaV2MigrationPreservesOriginalProfileAndIdempotency(t *testing.T) {
 		t.Fatal(err)
 	}
 	p, _ := recovered.Profile(actor)
-	if p.DisplayName != "retained" || !p.PrivateHistory || recovered.state.Idempotency["original-request"] != "original-result" || len(recovered.state.Audit) != len(original.Audit) || recovered.state.SchemaVersion != 3 {
+	if p.DisplayName != "retained" || !p.PrivateHistory || recovered.state.Idempotency["original-request"] != "original-result" || len(recovered.state.Audit) != len(original.Audit) || recovered.state.SchemaVersion != currentStateSchemaVersion {
 		t.Fatal("migration lost original business")
 	}
 	if len(recovered.state.BusinessNonces) != 0 || recovered.state.BusinessClock != nil {
 		t.Fatal("migration invented authorization")
 	}
 	policy := StateCompatibility()
-	if len(policy.ReadableSchemaVersions) != 3 || policy.ReadableSchemaVersions[1] != 2 || len(policy.AutoMigratedSchemaVersions) != 2 {
+	if len(policy.ReadableSchemaVersions) != currentStateSchemaVersion || policy.ReadableSchemaVersions[1] != 2 || len(policy.AutoMigratedSchemaVersions) != currentStateSchemaVersion-1 {
 		t.Fatal("schema2 compatibility omitted")
 	}
 }

@@ -24,37 +24,34 @@ func StateCompatibility() StateCompatibilityPolicy {
 		CurrentSchemaVersion:         currentStateSchemaVersion,
 		MinimumReadableSchemaVersion: 1,
 		MinimumWritableSchemaVersion: currentStateSchemaVersion,
-		ReadableSchemaVersions:       []int{1, 2, currentStateSchemaVersion},
+		ReadableSchemaVersions:       []int{1, 2, 3, currentStateSchemaVersion},
 		WritableSchemaVersions:       []int{currentStateSchemaVersion},
-		AutoMigratedSchemaVersions:   []int{1, 2},
+		AutoMigratedSchemaVersions:   []int{1, 2, 3},
 		DowngradeSupported:           false,
 		RollbackStrategy:             "restore a verified pre-upgrade backup with the matching older binary; in-place schema downgrade is unsupported",
 	}
 }
 
-func validStateCompatibility(policy StateCompatibilityPolicy) bool {
-	return policy.PolicyVersion == "1.0" &&
-		policy.CurrentSchemaVersion == currentStateSchemaVersion &&
-		policy.MinimumReadableSchemaVersion == 1 &&
-		policy.MinimumWritableSchemaVersion == currentStateSchemaVersion &&
-		len(policy.ReadableSchemaVersions) == 3 &&
-		policy.ReadableSchemaVersions[0] == 1 &&
-		policy.ReadableSchemaVersions[1] == 2 &&
-		policy.ReadableSchemaVersions[2] == currentStateSchemaVersion &&
-		len(policy.WritableSchemaVersions) == 1 &&
-		policy.WritableSchemaVersions[0] == currentStateSchemaVersion &&
-		len(policy.AutoMigratedSchemaVersions) == 2 &&
-		policy.AutoMigratedSchemaVersions[0] == 1 &&
-		policy.AutoMigratedSchemaVersions[1] == 2 &&
-		!policy.DowngradeSupported &&
-		policy.RollbackStrategy != ""
+func validStateCompatibility(p StateCompatibilityPolicy) bool {
+	return p.CurrentSchemaVersion == currentStateSchemaVersion && validBackupStateCompatibility(p)
 }
 
-// Historic schema2 backup descriptors remain verifiable as written. They are
-// not current writable policies and must never be rewritten inside a backup.
+// Validate each original descriptor at its original version, including historic
+// schema2/3 backups. Backup verification never rewrites that descriptor.
 func validBackupStateCompatibility(p StateCompatibilityPolicy) bool {
-	if validStateCompatibility(p) {
-		return true
+	v := p.CurrentSchemaVersion
+	if v < 2 || v > currentStateSchemaVersion || p.PolicyVersion != "1.0" || p.MinimumReadableSchemaVersion != 1 || p.MinimumWritableSchemaVersion != v || len(p.ReadableSchemaVersions) != v || len(p.WritableSchemaVersions) != 1 || p.WritableSchemaVersions[0] != v || len(p.AutoMigratedSchemaVersions) != v-1 || p.DowngradeSupported || p.RollbackStrategy == "" {
+		return false
 	}
-	return p.PolicyVersion == "1.0" && p.CurrentSchemaVersion == 2 && p.MinimumReadableSchemaVersion == 1 && p.MinimumWritableSchemaVersion == 2 && len(p.ReadableSchemaVersions) == 2 && p.ReadableSchemaVersions[0] == 1 && p.ReadableSchemaVersions[1] == 2 && len(p.WritableSchemaVersions) == 1 && p.WritableSchemaVersions[0] == 2 && len(p.AutoMigratedSchemaVersions) == 1 && p.AutoMigratedSchemaVersions[0] == 1 && !p.DowngradeSupported && p.RollbackStrategy != ""
+	for i, n := range p.ReadableSchemaVersions {
+		if n != i+1 {
+			return false
+		}
+	}
+	for i, n := range p.AutoMigratedSchemaVersions {
+		if n != i+1 {
+			return false
+		}
+	}
+	return true
 }
