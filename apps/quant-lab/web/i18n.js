@@ -524,6 +524,23 @@ const researchBoundaries = {
   id: "Riset publik tidak menyimpan status dan memakai riwayat pasar terlacak. Strategi tersimpan, jadwal dan dana simulasi memerlukan ruang kerja berizin lokal; login privat Wallet tidak memberikan wewenang itu. Eksekusi dana nyata dinonaktifkan.",
 };
 for (const [language, researchBoundary] of Object.entries(researchBoundaries)) Q[language].researchBoundary = researchBoundary;
+// Display only: stage values and signed strategy hashes remain source records.
+const strategyLabels=['strategyName','strategyFamily','strategyStage','strategySourceHash','strategyLicense','strategySchedule','strategyLifecycle'];
+const strategyCatalogs={
+  en:['Name','Family','Stage','Source hash','License','Research schedule','Draft → Research → Backtest → Walk-forward → Paper → Shadow → Candidate → Wallet-approved Bounded Testnet → Paused / Retired → Archived. Risk approval and evidence are required at every transition; Wallet approval is required before Testnet.'],
+  'zh-CN':['名称','策略类型','阶段','来源哈希','许可证','研究计划','草稿 → 研究 → 回测 → 滚动前推 → 模拟盘 → 影子运行 → 候选 → 钱包批准的限额测试网 → 暂停／退役 → 归档。每次阶段转换都需要风险批准与证据；进入测试网前必须获得钱包批准。'],
+  'zh-TW':['名稱','策略類型','階段','來源雜湊','授權條款','研究排程','草稿 → 研究 → 回測 → 滾動前推 → 模擬盤 → 影子執行 → 候選 → 錢包核准的限額測試網 → 暫停／退役 → 封存。每次階段轉換都需要風險核准與證據；進入測試網前必須獲得錢包核准。'],
+  ja:['名前','戦略の種類','段階','ソースハッシュ','ライセンス','研究スケジュール','草案 → 研究 → バックテスト → ウォークフォワード → 模擬取引 → シャドー実行 → 候補 → Wallet 承認済みの制限付きテストネット → 一時停止／廃止 → アーカイブ。すべての段階移行にリスク承認と証拠が必要です。テストネットに進む前に Wallet の承認が必要です。'],
+  ko:['이름','전략 유형','단계','소스 해시','라이선스','연구 일정','초안 → 연구 → 백테스트 → 워크포워드 → 모의 거래 → 섀도 실행 → 후보 → Wallet 승인 한도형 테스트넷 → 일시 중지／폐기 → 보관. 모든 단계 전환에는 위험 승인과 증거가 필요하며 테스트넷 진입 전에 Wallet 승인이 필요합니다.'],
+  es:['Nombre','Tipo de estrategia','Etapa','Hash de origen','Licencia','Programación de investigación','Borrador → Investigación → Backtest → Walk-forward → Simulación → Ejecución sombra → Candidato → Testnet limitada aprobada por Wallet → Pausa / Retiro → Archivo. Cada transición requiere aprobación de riesgo y evidencia; antes de Testnet se requiere aprobación de Wallet.'],
+  fr:['Nom','Type de stratégie','Étape','Hash de source','Licence','Planification de recherche','Brouillon → Recherche → Backtest → Walk-forward → Simulation → Exécution fantôme → Candidat → Testnet limitée approuvée par Wallet → Pause / Retrait → Archivage. Chaque transition exige une approbation des risques et des preuves ; Wallet doit approuver avant le Testnet.'],
+  de:['Name','Strategietyp','Phase','Quell-Hash','Lizenz','Forschungszeitplan','Entwurf → Forschung → Backtest → Walk-forward → Simulation → Schattenbetrieb → Kandidat → Wallet-genehmigtes begrenztes Testnet → Pausiert / Stillgelegt → Archiviert. Jeder Übergang erfordert Risikogenehmigung und Nachweise; vor dem Testnet ist eine Wallet-Genehmigung erforderlich.'],
+  pt:['Nome','Tipo de estratégia','Etapa','Hash da origem','Licença','Agenda de pesquisa','Rascunho → Pesquisa → Backtest → Walk-forward → Simulação → Execução sombra → Candidato → Testnet limitada aprovada pela Wallet → Pausa / Retirada → Arquivo. Cada transição exige aprovação de risco e evidências; antes da Testnet é necessária a aprovação da Wallet.'],
+  ru:['Название','Тип стратегии','Этап','Хеш источника','Лицензия','Расписание исследований','Черновик → Исследование → Бэктест → Скользящая проверка → Симуляция → Теневой запуск → Кандидат → Ограниченная тестовая сеть с одобрением Wallet → Пауза / Вывод → Архив. Каждый переход требует одобрения риска и доказательств; перед тестовой сетью требуется одобрение Wallet.'],
+  ar:['الاسم','نوع الاستراتيجية','المرحلة','بصمة المصدر','الترخيص','جدول البحث','مسودة ← بحث ← اختبار تاريخي ← اختبار متحرك ← تداول افتراضي ← تشغيل ظل ← مرشح ← شبكة اختبار محدودة بموافقة Wallet ← إيقاف مؤقت / تقاعد ← أرشفة. يتطلب كل انتقال موافقة على المخاطر وأدلة؛ وتلزم موافقة Wallet قبل شبكة الاختبار.'],
+  id:['Nama','Jenis strategi','Tahap','Hash sumber','Lisensi','Jadwal riset','Draf → Riset → Backtest → Walk-forward → Simulasi → Eksekusi bayangan → Kandidat → Testnet terbatas dengan persetujuan Wallet → Dijeda / Dihentikan → Diarsipkan. Setiap transisi memerlukan persetujuan risiko dan bukti; persetujuan Wallet wajib sebelum Testnet.'],
+};
+for(const [language,values] of Object.entries(strategyCatalogs))Object.assign(Q[language],Object.fromEntries(strategyLabels.map((key,index)=>[key,values[index]])));
 window.QuantI18n = {
   catalogs: Q,
   locales: Object.keys(Q),

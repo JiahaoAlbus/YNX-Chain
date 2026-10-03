@@ -8,7 +8,8 @@ test('actual Chrome translates research fields and experiment columns in every l
     const page=await context.newPage();let writes=0;page.on('request',request=>{if(request.method()==='POST')writes++});
     await page.goto(base,{waitUntil:'networkidle'});
     await page.locator('#strategy').fill('Preserved research draft');await page.locator('#fee').fill('34');
-    const keys=['researchBoundary','researchName','fastWindow','slowWindow','created','tradeCount','partialFills','sensitivity','dataGaps','netPnl','realized','unrealized','tradingFee','researchSharpe'];
+    const sourceSnapshot=await page.evaluate(()=>JSON.stringify(snapshot));
+    const keys=['researchBoundary','researchName','fastWindow','slowWindow','created','tradeCount','partialFills','sensitivity','dataGaps','netPnl','realized','unrealized','tradingFee','researchSharpe','strategyLifecycle','strategyName','strategyFamily','strategyStage','strategySourceHash','strategyLicense','strategySchedule'];
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);
       const result=await page.evaluate(keys=>({lang:document.documentElement.lang,dir:document.documentElement.dir,labels:keys.map(key=>({key,expected:window.QuantI18n.catalogs[document.documentElement.lang][key],actual:[...document.querySelectorAll(`[data-i18n="${key}"]`)].map(node=>node.textContent)}))}),keys);
@@ -16,6 +17,7 @@ test('actual Chrome translates research fields and experiment columns in every l
       for(const label of result.labels){assert.ok(label.expected,label.key);assert.ok(label.actual.length,label.key);assert.ok(label.actual.every(value=>value===label.expected),label.key)}
       assert.equal(await page.locator('#strategy').inputValue(),'Preserved research draft');assert.equal(await page.locator('#fee').inputValue(),'34');
       assert.equal(await page.locator('#backtest input').count(),6);
+      assert.equal(await page.evaluate(()=>JSON.stringify(snapshot)),sourceSnapshot);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }
     assert.equal(writes,0);assert.equal(context.pages().length,1);
@@ -241,9 +243,10 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
     assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
   }finally{await context.close()}
 });
-test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenced until readback',async()=>{
+test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenced until readback',async t=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
+    const screenshots=await mkdtemp(path.join(evidence,'schedule-recovery-'));
     const strategy={ID:'controlled-schedule-outage',Name:'Controlled schedule outage',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
     let puts=0;const errors=[];
     await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
@@ -252,16 +255,17 @@ test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenc
     await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
     const confirmation=page.waitForEvent('dialog'),click=page.locator('.schedule-toggle').click();await (await confirmation).accept();await click;
     await page.waitForFunction(()=>document.querySelector('#toast').textContent===t('scheduleUnknown'));
-    await page.screenshot({path:path.join(evidence,'schedule-unconfirmed-en.png'),fullPage:true});
+    await page.screenshot({path:path.join(screenshots,'schedule-unconfirmed-en.png'),fullPage:true});
     const locales=await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value));assert.equal(locales.length,12);
     for(const language of locales){
       await page.selectOption('#locale',language);
       assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('scheduleUnknown')));
       assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);
-      if(language==='ar')await page.screenshot({path:path.join(evidence,'schedule-unconfirmed-ar.png'),fullPage:true});
+      if(language==='ar')await page.screenshot({path:path.join(screenshots,'schedule-unconfirmed-ar.png'),fullPage:true});
     }
     assert.equal(puts,1);await page.evaluate(()=>refresh());assert.equal(await page.locator('.schedule-toggle').isEnabled(),true);
     assert.equal(puts,1);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+    t.diagnostic(JSON.stringify({classification:'LOCAL_CONTROLLED_SCHEDULE_READBACK_NOT_PUBLIC',screenshots,publicVerified:false}));
   }finally{await context.close()}
 });
 
