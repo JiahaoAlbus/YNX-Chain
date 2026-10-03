@@ -1,0 +1,21 @@
+import React, { useEffect } from 'react';
+import { requireNativeModule } from 'expo-modules-core';
+import MainApp from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/App';
+import type { NativeMatrixBridge } from './src/nativeMatrix';
+// Isolated installed-native guard probe, not a product import or media fixture.
+// Always renders the real MainApp; never seeds an account or a file/lease DTO.
+export default function GuardProbeWithActualMainApp() {
+  useEffect(() => { void (async () => {
+    const native = requireNativeModule<NativeMatrixBridge>('YNXSocialMatrix');
+    const result = { open: typeof native.openReceivedMedia, release: typeof native.releaseReceivedMedia,
+      noSession: 'NOT_RUN', retiredRelease: 'NOT_RUN' };
+    try {
+      if (!native.openReceivedMedia || !native.releaseReceivedMedia) throw new Error('NATIVE_EXPORT_MISSING');
+      try { await native.openReceivedMedia(0, '!guard:example.test', '@guard:example.test', '$guard'); result.noSession = 'FAIL_ACCEPTED_WITHOUT_SESSION'; }
+      catch (error) { result.noSession = error instanceof Error && error.message.includes('MATRIX_NATIVE_SESSION_REQUIRED') ? 'PASS_MATRIX_NATIVE_SESSION_REQUIRED' : 'FAIL_' + String(error); }
+      await native.releaseReceivedMedia(0, '12345678-1234-1234-1234-123456789abc'); result.retiredRelease = 'PASS_IDEMPOTENT';
+    } catch (error) { result.retiredRelease = 'FAIL_' + String(error); }
+    console.info('YNX_MATRIX_MEDIA_INSTALLED_GUARD ' + JSON.stringify(result));
+  })(); }, []);
+  return <MainApp />;
+}

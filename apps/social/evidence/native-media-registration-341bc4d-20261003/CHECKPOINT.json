@@ -1,0 +1,184 @@
+{
+  "schema": "ynx-social-installed-native-media-guard/v1",
+  "source": "341bc4d32a933ec6def0b1e291b4f006b87de20b",
+  "tree": "bb7283b8b3c9297cf302d25e4fe6efeb629b155c",
+  "parent": "220cb7756dde8664120fc1a9beef444210c83010",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sourcePins": [
+    {
+      "file": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt",
+      "blob": "c49bb65b0c2a039aee62e4502201924005228ced",
+      "bytes": 22955,
+      "sha256": "423e27700451a37534d934afa7e074bcbed34eee2fbd7b6f4615e899bcf5f3ff"
+    },
+    {
+      "file": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixReceivedMedia.kt",
+      "blob": "381c1b348ebe8d3aa157ca4f0947dad622c7fc49",
+      "bytes": 6026,
+      "sha256": "56b3edd5c9500f3d7b6ea5234f8d4f5d38e941be1fc9a62abb4e5af9d8eaa948"
+    },
+    {
+      "file": "apps/social/modules/native-matrix/ios/YNXSocialMatrixModule.swift",
+      "blob": "d4cf8b69a521b56da659b8681df61589f02575ea",
+      "bytes": 26966,
+      "sha256": "446d07468004bff1a0474a52e31afb52ccd0a2097d13193c59bb665ba3fb4c4f"
+    },
+    {
+      "file": "apps/social/modules/native-matrix/ios/MatrixReceivedMedia.swift",
+      "blob": "d4d9983afa0ff7366cc4c259b331d72dcdc3c599",
+      "bytes": 6049,
+      "sha256": "d2b127619d6bd4f93bd540101bf1e443d26a5c2731f01856ebc1974b01b440da"
+    },
+    {
+      "file": "apps/social/src/nativeMatrix.ts",
+      "blob": "db1b9cbb34da04374f0b2517ab620c216e328881",
+      "bytes": 20120,
+      "sha256": "0074a5f845990f9f5791256e0a2c4186445e38d4f0d1e40f66d68d8ce1da17c9"
+    },
+    {
+      "file": "apps/social/src/NativeMatrixReceivedAttachment.tsx",
+      "blob": "c1c1ead1e68b652a239b40c4a4f552ae98b5cd1b",
+      "bytes": 3451,
+      "sha256": "59348f0cc6ddc6da3341b29f1c4752f58c182c7d9be030d4c8941854042b9036"
+    },
+    {
+      "file": "apps/social/src/NativeMatrixWorkspace.tsx",
+      "blob": "0020b826643914fcc8173c534c2e8535a4ddfc6b",
+      "bytes": 13313,
+      "sha256": "4ee1da60df80b8af46b24a0cc972d755f7ed18394098a9a4a13f25862eca7230"
+    },
+    {
+      "file": "apps/social/src/nativeMatrixReceivedMedia.test.ts",
+      "blob": "c56e3b664d1b3a5461f1f56e33e909d5d4155a46",
+      "bytes": 6101,
+      "sha256": "bce32cf293e3f97af375a09f07c3276918bf2bbe5374c83b046922f715789c63"
+    },
+    {
+      "file": "apps/social/App.tsx",
+      "blob": "afd554f0861f1f5bbfe4c05141f199ccc8ff7bcc",
+      "bytes": 154116,
+      "sha256": "1b4908adffc8b3aa1de55691892d0cd5d6fd66fe2f1bd60c6c96c335fe842157"
+    },
+    {
+      "file": "apps/social/index.ts",
+      "blob": "6668782c49b47e754fba67914564b1dda217cd2c",
+      "bytes": 182,
+      "sha256": "d6ce93e2f7e2957a62c82b2595dbb07a7906f619b764413ef8abff4b5728dcd3"
+    }
+  ],
+  "raw": [
+    {
+      "file": "raw/native-media-guard-installed.log",
+      "bytes": 103475,
+      "sha256": "4c35a0410ee9b9520650f79d61726ec8ce9435c166ea4eb9ba987244eee82624"
+    },
+    {
+      "file": "raw/native-media-guard-mainapp.xml",
+      "bytes": 17666,
+      "sha256": "a28b6a23d0409976fd831952b7112c3f3a0863f70b7298dad167585832421e0b"
+    },
+    {
+      "file": "raw/native-media-guard-mainapp.png",
+      "bytes": 25622,
+      "sha256": "132dc8f209daaaca087d852ee18535f87567ac33a4195e6585f6d30a68fece47"
+    },
+    {
+      "file": "raw/native-media-guard-embed.log",
+      "bytes": 362,
+      "sha256": "ed1fba2bba9effa5e0fc3b52b2aa70e02a08b4425b8829e928ba6f926d8cf716"
+    },
+    {
+      "file": "raw/native-media-guard-build.log",
+      "bytes": 21852,
+      "sha256": "a4f218efb1313efcd8dcaec3a08eec639577fb6016fd6220906def486ba89390"
+    },
+    {
+      "file": "raw/native-media-mainapp-embed.log",
+      "bytes": 194,
+      "sha256": "30ca0b1e450afafadab7db321a5909559337d92c1017ce740cf2a578414632b3"
+    },
+    {
+      "file": "raw/native-media-mainapp-build.log",
+      "bytes": 21809,
+      "sha256": "3fcd1b3422ee94f7f8d5611a76ffe8de21fdf9504818a056db28c05d8160433f"
+    },
+    {
+      "file": "raw/media-registration-before.xml",
+      "bytes": 11032,
+      "sha256": "5dd11e735014d76b7886686378231c8eaba93d986e3cc9be950b9fe7f8cdbf72"
+    },
+    {
+      "file": "raw/TEMPORARY_INSTALLED_GUARD_App.tsx.txt",
+      "bytes": 1556,
+      "sha256": "a9202c4ba29028d20635347a6c79c68a8f67267b4c25bf0e62dff4ca90bbf5b8"
+    },
+    {
+      "file": "raw/TEMPORARY_INSTALLED_GUARD_index.ts.txt",
+      "bytes": 182,
+      "sha256": "d6ce93e2f7e2957a62c82b2595dbb07a7906f619b764413ef8abff4b5728dcd3"
+    },
+    {
+      "file": "raw/typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "file": "raw/tests.log",
+      "bytes": 21889,
+      "sha256": "723d5c7a408018fd42c5b5dd1b983e17dc8ca2e9fffa1fcfb2f44c53714ff467"
+    },
+    {
+      "file": "raw/bundle.log",
+      "bytes": 523,
+      "sha256": "a41e1cd5aa0329939aee200ddcde3c035a79eb223a9ab4e09eb43bf71eb15ebf"
+    },
+    {
+      "file": "raw/swift-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "raw/kotlin.log",
+      "bytes": 8008,
+      "sha256": "7743a502d4598eab448e9b1a3b45c8af8469088f9d9764d23615e241d557482b"
+    }
+  ],
+  "artifact": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/native-media-registration-341bc4d-isolated-guard.apk",
+    "bytes": 134016210,
+    "sha256": "805336af3fcc550b82be1c7c09181d92fc26f28ee96ba3a9e1a9af1944902d8b",
+    "qualification": "Isolated debug installed guard wrapper renders actual MainApp; temporary silent no-session native checks, embedded ReactHost and offline SDK probe remain outside owner product source. NOT formal product/release/download."
+  },
+  "embedded": {
+    "bytes": 3863873,
+    "sha256": "2b789982a4c5fe4ab34a1fb6da6446bf7b8407d03ff5f829306cadf5880f3abf"
+  },
+  "previousFailure": "raw/media-registration-before.xml proves former undefined exports; retained, not relabeled as current.",
+  "directInstalled": {
+    "openExport": "function",
+    "releaseExport": "function",
+    "downloadNoSession": "PASS MATRIX_NATIVE_SESSION_REQUIRED",
+    "oldGenerationRelease": "PASS idempotent; no lease/file exists",
+    "actualUI": "Actual owned MainApp guest still renders; no visible synthetic/fault/undefined port UI"
+  },
+  "local": {
+    "typecheck": "PASS",
+    "tests": "223/223 controller/unit tests, not crypto business E2E",
+    "lockedAndroidSDKCompile": "PASS",
+    "androidDebugAPK": "PASS",
+    "androidIOSScriptExport": "PASS (export before final peer pin changes; typecheck/tests current)",
+    "apple": "Swift parse PASS only; no Apple SDK compile/link/install"
+  },
+  "boundaries": {
+    "accountGrantSignTx": "NOT_RUN",
+    "credentialsPrivateKeys": "NONE collected or generated",
+    "nativeSDKNetworkDownload": "NOT_RUN; rejected before native session/SDK operation",
+    "encryptedFileHashDecryptActualCleanupRestart": "NOT_VERIFIED",
+    "mainAppMatureSDKMount": "NOT_DONE; canonical original enrollment/accepted-peer contract required from A; legacy custom crypto not relabeled Matrix",
+    "webRegisteredScopeCarrier": "FAIL SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH",
+    "publicInstalledABC": "NOT_RUN",
+    "monster": "NOT_RUN actual callable channel absent",
+    "deployments": []
+  },
+  "continuation": "Full Social C01-C07/V01-V17 active; only unique A 接续测试网生态审计工作 coordinates shared/native enrollment and formal compatible releases. Source/native negative guard is not full completion."
+}
