@@ -1,0 +1,654 @@
+{
+  "schemaVersion": 1,
+  "reviewedSource": {
+    "commit": "2b821773e90cf5434b734f1c59681546633cf72b",
+    "tree": "b0d1794434e813b4a86909e56dabed6a4b4dc05a",
+    "branch": "codex/exchange-sso-cookie-binding-20261002"
+  },
+  "scope": "Owned ordinary business deltas; final Wallet/Auth graph and publication are release-owner inputs, not changed here.",
+  "inventoryKind": "tracked-web-build-inputs-not-served-runtime-or-transitive-graph",
+  "inventory": [
+    {
+      "path": "apps/exchange/web/app.js",
+      "blob": "42be8be7e37aa67afe16b7ed7cc6a12000326e21",
+      "bytes": 41774,
+      "sha256": "21b03f43ab87a248c7be7cee3887318ff7a97ce7b6e9f981d073965f4862d234"
+    },
+    {
+      "path": "apps/exchange/web/index.html",
+      "blob": "f72648edee54a6b2d32ff86f38df69bed1965b18",
+      "bytes": 20037,
+      "sha256": "ce4050efbce3c948f6e80a8b12b18c9549801cf902daf6f05d30d369f8f2ad7f"
+    },
+    {
+      "path": "apps/exchange/web/locale.js",
+      "blob": "12b135fa0cdc4bab9f142694641a49124137df44",
+      "bytes": 168373,
+      "sha256": "ed0876789062d19f84366d83b0ac1f786c17462af135c621ac0a470b99a0d6a2"
+    },
+    {
+      "path": "apps/exchange/web/market-data.js",
+      "blob": "4144105228a6964cd01411cd9c492cd2782611a5",
+      "bytes": 10301,
+      "sha256": "c6c388a871432d8c5289e7ae7e82ddcd3637138c488dc94ee7d2e58929d56117"
+    },
+    {
+      "path": "apps/exchange/web/order-preview.js",
+      "blob": "2a9e61fe5ee8df4ddefc82ac7ffb8a68ab1aa139",
+      "bytes": 4550,
+      "sha256": "5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3"
+    },
+    {
+      "path": "apps/exchange/web/package-lock.json",
+      "blob": "441155125b1ba2f65f78aac9d884a74650a922fa",
+      "bytes": 16249,
+      "sha256": "960754192e1223735b0a48250283b380662553e85a591bf8ee5bd4b3ffed53c8"
+    },
+    {
+      "path": "apps/exchange/web/package.json",
+      "blob": "d345dcc8b76c70d4f68f9c37ddb1cb8ce410e6e2",
+      "bytes": 621,
+      "sha256": "06297061661f1ae20997b1782029aa7a76d6d6a2ed8400e6c149f2511e4b968e"
+    },
+    {
+      "path": "apps/exchange/web/private-account-controller.js",
+      "blob": "9cab07fd98d4cae6e94d6f1219684c223419da89",
+      "bytes": 14209,
+      "sha256": "d81121210d1dda4aa3daef0492ec8924f35357af6cb808cad36bdbcb2284323c"
+    },
+    {
+      "path": "apps/exchange/web/private-session-entry.js",
+      "blob": "7ba937e75f6ce4913c576a90ec7a3181910725ab",
+      "bytes": 1275,
+      "sha256": "17d5fab286841735509247bfa66ba5755d320ec1d302c413c94e787a8c4331cf"
+    },
+    {
+      "path": "apps/exchange/web/private-session.js",
+      "blob": "e698528d5a4d20b7efb175546486d1c7736fcfeb",
+      "bytes": 136529,
+      "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "blob": "0f069a50737d0871b7c0402880f9a49ccb09805e",
+      "bytes": 13302,
+      "sha256": "05cc5bb35872b4f3c33182bc25a9055760fabde6d548a999ebcca3992626f198"
+    },
+    {
+      "path": "apps/exchange/web/ui-preferences.js",
+      "blob": "bc9afab56074071d45d1d3f225364b37254b6c61",
+      "bytes": 2241,
+      "sha256": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    },
+    {
+      "path": "apps/exchange/web/vendor/hosted-wallet-adapter-19d8a9a2.js",
+      "blob": "769c3f0db5d82357e426c7a41443fab0b1f827c3",
+      "bytes": 11468,
+      "sha256": "96da4fe51649b237fa26efa7253a6efc9f6695a35c588ba192f03e0bec7d2126"
+    },
+    {
+      "path": "apps/exchange/web/vendor/product-session-browser-9840ef87.mjs",
+      "blob": "e05bdb0738759a282c7e4d61773cabf6e34ff3f3",
+      "bytes": 214746,
+      "sha256": "5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0"
+    },
+    {
+      "path": "apps/exchange/web/vendor/product-session-registry-9840ef87.json",
+      "blob": "172d456ea3f6251dd6aaaa3462d76f9164817cfa",
+      "bytes": 7546,
+      "sha256": "85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3"
+    },
+    {
+      "path": "apps/exchange/web/vendor/standard-wallet-browser-c97f85e9.mjs",
+      "blob": "d8302b40e6b0c35786272fe15f4666f59db0ff47",
+      "bytes": 22417,
+      "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+    },
+    {
+      "path": "apps/exchange/web/vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+      "blob": "1512d695da68e4534420c2a9a54de9ea8c0dbe1e",
+      "bytes": 526435,
+      "sha256": "115f775cae49b124c882cb9ac4103c52da6bb1b64a91062b45f8e8e6ab949eb2"
+    },
+    {
+      "path": "apps/exchange/web/vendor/ynx-chain-wallet-auth-1.1.0-safe-launcher-v2.tgz",
+      "blob": "4dc289d1e698b997d94abe45c796788a59516135",
+      "bytes": 192419,
+      "sha256": "fe55665d3bf05f1288728dd3d0528e58bd0fc6dbee4d7ea3b962a14bed3427a4"
+    },
+    {
+      "path": "apps/exchange/web/verify-versioned-assets.mjs",
+      "blob": "6a39b8aae3bff56fe7d9ffa260ff7b0007508eca",
+      "bytes": 2600,
+      "sha256": "43281ee5d07e445921845b0d188f82de61df0a6365ebf513858a0589e50d8754"
+    },
+    {
+      "path": "apps/exchange/web/verify-wallet-connect.mjs",
+      "blob": "1c5ed83bb31988af131ab452a163b5a77108a634",
+      "bytes": 3271,
+      "sha256": "527536708c3475b53ec688737c2cb70817a7eeed2739e156f3e923bf0cc95022"
+    },
+    {
+      "path": "apps/exchange/web/wallet-connect-entry.js",
+      "blob": "9563c8f41a09d66580aa04f78e17473878790aa0",
+      "bytes": 12540,
+      "sha256": "ab5dca98afdd1cd840645fe8db6b7eab32a5e2ba92b011366912934a58994b20"
+    },
+    {
+      "path": "apps/exchange/web/wallet-connect.js",
+      "blob": "ad04fe2768b68bb46285ba92ceb785d6396365d0",
+      "bytes": 37764,
+      "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6"
+    },
+    {
+      "path": "apps/exchange/web/ynx-logo.png",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/finance/web/app.js",
+      "blob": "8431c780df82182eab9af2d5298088c729d84f8e",
+      "bytes": 107207,
+      "sha256": "8da2e98bb1c51cbdff3401885df57c895bb164235db45ea0b82ed1a7521dc4ec"
+    },
+    {
+      "path": "apps/finance/web/endpoint-authority-entry.js",
+      "blob": "9e3b512129c0d556733db94d3621fb0e4464d96f",
+      "bytes": 6240,
+      "sha256": "c1d7c471495fb90f17b2059309333cbc67f55339a967fe1793a246358063b30c"
+    },
+    {
+      "path": "apps/finance/web/endpoint-authority-store.js",
+      "blob": "8e4b44064997b18b5068ae8e254378cf5667a9a5",
+      "bytes": 3308,
+      "sha256": "946ea4f997396e0bd1f6c4eb8de5ab0249828c1d0b0c4a3bb6755293a5de4d29"
+    },
+    {
+      "path": "apps/finance/web/evm-read-session.js",
+      "blob": "2f3a27b51dad9a1537cc5e5caf56dee101099838",
+      "bytes": 80122,
+      "sha256": "e5473d622a2e0ceb7e478b4f4d43ae53660f58349f6c87e755622abe9d6fbe24"
+    },
+    {
+      "path": "apps/finance/web/evm-subject.js",
+      "blob": "1cf3473fc2433c8938176e12c355631e65b79b05",
+      "bytes": 61937,
+      "sha256": "8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161"
+    },
+    {
+      "path": "apps/finance/web/finance-locale.js",
+      "blob": "790b71931dbd2b969b601d770bfc99b8a295ef86",
+      "bytes": 459376,
+      "sha256": "9b1f7b66b0dc62657d0816361114f4536f3f14bf97dac70d2df275983837e4d9"
+    },
+    {
+      "path": "apps/finance/web/health.json",
+      "blob": "5998d99500ba7ba8b7a296e2ff0db4b420d38f18",
+      "bytes": 283,
+      "sha256": "74ab15485c24722bac5cee3ba23766e7e5a8d02012815d64f0f71700adde3282"
+    },
+    {
+      "path": "apps/finance/web/hosted-wallet-controller.js",
+      "blob": "723388a9545f65a24a72f6940eeab433aabdc62c",
+      "bytes": 10300,
+      "sha256": "9f4ba9feadfb0dd3174d7e4595f2026f5c5f2b44b3341c9fee5d320ac0fcdc10"
+    },
+    {
+      "path": "apps/finance/web/index.html",
+      "blob": "12673544a4163cb18f467f430cacd5ff7f1220bb",
+      "bytes": 37500,
+      "sha256": "03f9fc55a086026f996b1d40cc06fde6bfa52984be07809303ba0ebed0911121"
+    },
+    {
+      "path": "apps/finance/web/manifest.webmanifest",
+      "blob": "845f08bbf333b3baaa7d62883aa259866f74db00",
+      "bytes": 241,
+      "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"
+    },
+    {
+      "path": "apps/finance/web/order-opaque.js",
+      "blob": "9b904a7072b3e02214ff21539469e6a0750068d9",
+      "bytes": 10618,
+      "sha256": "c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0"
+    },
+    {
+      "path": "apps/finance/web/order-wallet-entry.js",
+      "blob": "990cee889f95a20cac76502e44232f9533ffa28e",
+      "bytes": 3096,
+      "sha256": "7cce3977bc37def6e8ab72b51763634795a5c660f8bb85bddf8b63baa68c1609"
+    },
+    {
+      "path": "apps/finance/web/order-wallet.js",
+      "blob": "2cfdf4054caca03e0ab54c7ca6cec8b73591c0d2",
+      "bytes": 103577,
+      "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"
+    },
+    {
+      "path": "apps/finance/web/package-lock.json",
+      "blob": "9604eed5c2bea1366a70880073a60fbc7008cb6b",
+      "bytes": 28770,
+      "sha256": "e65eecdd990b2fb4030f9aad45026b0a50a30a0c18e2b932feef346d3b1319ae"
+    },
+    {
+      "path": "apps/finance/web/package.json",
+      "blob": "644f1a3d20beef2b18e074568f5f59fe16923aab",
+      "bytes": 1016,
+      "sha256": "03081e84bc5e120ec123d3e9b12d3b8b1bb4b5e9f4edb33ac437756870f73dfe"
+    },
+    {
+      "path": "apps/finance/web/private-subject-boundary.js",
+      "blob": "9145253609ea264546f3c0ba300630f8b1fbb063",
+      "bytes": 912,
+      "sha256": "76d55653acdfb3741ffba21ee76a36671dedce9c06cd473204c6e5c442bbafc0"
+    },
+    {
+      "path": "apps/finance/web/private-wallet-entry.js",
+      "blob": "8b50d8ffc74d876d6bca47efa82146b78f2b3480",
+      "bytes": 10561,
+      "sha256": "95943f6eb2c4e6004a7dc44b1f8f4cf575a5bf5bba6d86a981d0982c2301c65c"
+    },
+    {
+      "path": "apps/finance/web/product-catalog.js",
+      "blob": "faa195d808f08c61c982be9d0641506f982ed345",
+      "bytes": 7281,
+      "sha256": "dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088"
+    },
+    {
+      "path": "apps/finance/web/read-sources.js",
+      "blob": "5edaafbf3a582e781f835e1cef9ebfb569f4acd7",
+      "bytes": 18348,
+      "sha256": "a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d"
+    },
+    {
+      "path": "apps/finance/web/styles.css",
+      "blob": "047a81b9ab5ceb12398da389bac4727b20eb72c2",
+      "bytes": 29808,
+      "sha256": "3387c087e410e1cbef2bf9b7a3bfc3c57677bd2cab2ee83a130064e7e562db5e"
+    },
+    {
+      "path": "apps/finance/web/ui-preferences.js",
+      "blob": "bc9afab56074071d45d1d3f225364b37254b6c61",
+      "bytes": 2241,
+      "sha256": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    },
+    {
+      "path": "apps/finance/web/vendor/hosted-wallet-adapter-19d8a9a2.js",
+      "blob": "769c3f0db5d82357e426c7a41443fab0b1f827c3",
+      "bytes": 11468,
+      "sha256": "96da4fe51649b237fa26efa7253a6efc9f6695a35c588ba192f03e0bec7d2126"
+    },
+    {
+      "path": "apps/finance/web/vendor/product-session-browser-a7dad7ec.mjs",
+      "blob": "c73306f91bbf3c71e9e9e3b1479d4f686e265604",
+      "bytes": 223235,
+      "sha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336"
+    },
+    {
+      "path": "apps/finance/web/vendor/product-session-registry-a7dad7ec.json",
+      "blob": "277627744ac27d52c49eec64e2a6a4de8d19d493",
+      "bytes": 7590,
+      "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08"
+    },
+    {
+      "path": "apps/finance/web/vendor/standard-wallet-browser-c97f85e9.mjs",
+      "blob": "9f7d172fbf24b7b7ff5d9c8972c6891037e7411e",
+      "bytes": 24624,
+      "sha256": "9bab403c5515c65562f2bb3a77e0c28978b64e56983158a1e9b23e77d0ecf365"
+    },
+    {
+      "path": "apps/finance/web/vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz",
+      "blob": "8c697a2bce2857c8870b70090441ab41ab8b2e05",
+      "bytes": 141893,
+      "sha256": "8ae596ab4099123b55d273698704bfe1150e571328b08dd6e50dd8bb3d658d6e"
+    },
+    {
+      "path": "apps/finance/web/vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+      "blob": "0092a06647da9fbd8e4a6054a46b8981e8aec7f5",
+      "bytes": 526434,
+      "sha256": "d1135878e01dc4e8f9bbf8fa5bc67adb54b25179871d9efee1a106ef4abde06c"
+    },
+    {
+      "path": "apps/finance/web/vendor/ynx-chain-wallet-auth-1.1.0.tgz",
+      "blob": "5352c1fb9f02f6596db7cbcaac03f48de21af745",
+      "bytes": 240311,
+      "sha256": "e23a2c55f4319c4ae39d856895669ce5fc3b1226f189a5abdb3bb25df92ec220"
+    },
+    {
+      "path": "apps/finance/web/vercel.json",
+      "blob": "77d16339c21928fce3436fda44f7aaa797f0e218",
+      "bytes": 835,
+      "sha256": "86441e575e772f5325deec0c95e73be18fd40b895704cca08de0781981851302"
+    },
+    {
+      "path": "apps/finance/web/verify-evm-read-candidate.mjs",
+      "blob": "30a37ed42375af547dd08867a12119a5cdb6b7ac",
+      "bytes": 15954,
+      "sha256": "d738da11e02bf360b50452ae93706989f19bd8d55912144168e7e45f71a028df"
+    },
+    {
+      "path": "apps/finance/web/verify-product-wallet-migration-evidence.mjs",
+      "blob": "b272437d8d6f4cd9eeccb5d02be93531eee10c3b",
+      "bytes": 639,
+      "sha256": "223d1b0610e13eb7f871a4a3448ac2f6ff6cfc9955259dd1978ee9bd34dfdc23"
+    },
+    {
+      "path": "apps/finance/web/verify-versioned-assets.mjs",
+      "blob": "57938ad397d57c24f0ba3e010a0751f6eddee026",
+      "bytes": 1290,
+      "sha256": "8d755331f4f9391b5fca87a3334a381be256a150afe1698134dc7440e0af48fb"
+    },
+    {
+      "path": "apps/finance/web/verify-wallet-connect.mjs",
+      "blob": "2d5cd6069c5effe0a82842a2bcad51721e121961",
+      "bytes": 14721,
+      "sha256": "50b92f6029d3558450ed28316b6f08621ee0993efc5c76cc87d61a029b06de5f"
+    },
+    {
+      "path": "apps/finance/web/wallet-auth-entry.js",
+      "blob": "c47318f0aff9ab67e2e36ce38b5cb11fe79901f9",
+      "bytes": 23525,
+      "sha256": "c9c7e1db29a80e824147436baefad7cd7b4257beebf5d4216f9c619af90d3e2e"
+    },
+    {
+      "path": "apps/finance/web/wallet-auth.js",
+      "blob": "0d7bdd441e258f3377b558c5c8f19f6c3ffb5b62",
+      "bytes": 211423,
+      "sha256": "17803bda66618d155d931060c06b32d43e02f49f88f89d83bbe43de2aa53e142"
+    },
+    {
+      "path": "apps/finance/web/wallet-verifier-manifest.json",
+      "blob": "b9958091d6d5c5896b030b0b1d33ed5f94d35ff4",
+      "bytes": 9087,
+      "sha256": "5b8cfbd5fc822448cd71206c1e95601ccd330c094f4f7d41a5a4616e341fa7f2"
+    },
+    {
+      "path": "apps/finance/web/ynx-logo.png",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/quant-lab/web/app.js",
+      "blob": "f09fcf5a8c290485f82f92d4dc2baf27c90acdd4",
+      "bytes": 117294,
+      "sha256": "8bf963410640eceda8a0a9a92f4e7615bd05044ccdd8cc88b061c329318ee23b"
+    },
+    {
+      "path": "apps/quant-lab/web/browser-sso.js",
+      "blob": "8e3df9fb738f22d4f71f742c672133d13863a9fc",
+      "bytes": 4690,
+      "sha256": "3c5c939faa700540bb1d510aa36a57c9c08ab5a813d4d5d912a88b4f5d312096"
+    },
+    {
+      "path": "apps/quant-lab/web/i18n.js",
+      "blob": "f494c458ee6249b778e688c60df1b440bd64f0b6",
+      "bytes": 25372,
+      "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"
+    },
+    {
+      "path": "apps/quant-lab/web/index.html",
+      "blob": "b02de38f974a74c844bc536d01fd1f75acf1a2ac",
+      "bytes": 27659,
+      "sha256": "c8b26c0dbf2532dc759c9ee9db88196b35769fc7992c2f230264303f546dbc42"
+    },
+    {
+      "path": "apps/quant-lab/web/private-session-copy.js",
+      "blob": "ff642fc5bcbff3ed6bbc084f6ebb42ab1a61adb2",
+      "bytes": 15858,
+      "sha256": "6f7cafd14c99219c4c40c5d6564bbc74bc17f3a59ba4d7a4a02bc74ba2f54670"
+    },
+    {
+      "path": "apps/quant-lab/web/private-session.js",
+      "blob": "2559b375f700109b0fdc5f059bb2a2c90ce04ad4",
+      "bytes": 11940,
+      "sha256": "530cad188dfb6491fd2f30c8d930bf14ee718ef8a86d11336f57c98cfc783e8f"
+    },
+    {
+      "path": "apps/quant-lab/web/product-session-registry.js",
+      "blob": "52cbf5233926bf745afc6e1f0e1ed9fc859962f3",
+      "bytes": 612,
+      "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a"
+    },
+    {
+      "path": "apps/quant-lab/web/records-session.js",
+      "blob": "08b76537a6ac86f78bd8276ba95edc561da8a24e",
+      "bytes": 10932,
+      "sha256": "a424c470f8c962f893f565428d74c3041b78e540b8083cae9897e98a043be594"
+    },
+    {
+      "path": "apps/quant-lab/web/styles.css",
+      "blob": "09f75f1fa1f632f26e006a04b1e52f4967864352",
+      "bytes": 12284,
+      "sha256": "994b8aaa5a21213b1e4b12e11b75a7b1a6c98cf52794b00e583d6e56b38b6263"
+    },
+    {
+      "path": "apps/quant-lab/web/ui-preferences.js",
+      "blob": "bc9afab56074071d45d1d3f225364b37254b6c61",
+      "bytes": 2241,
+      "sha256": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    },
+    {
+      "path": "apps/quant-lab/web/wallet-auth-entry.js",
+      "blob": "765a8ecc02165cc25a44daa231055e759a476a73",
+      "bytes": 21415,
+      "sha256": "24f54892c61b12e2e74a62327bc3dd1e2b4fa14794231871978a4818c958d5bd"
+    },
+    {
+      "path": "apps/quant-lab/web/wallet-auth.js",
+      "blob": "0cf185d0650377678856b59093d5db1adfb88233",
+      "bytes": 368613,
+      "sha256": "3b8c2afa35f3af7e1810c4101af8457277dc603960526ee1f6b10f80aaec1ac0"
+    },
+    {
+      "path": "apps/quant-lab/web/wallet-provider-lifecycle.js",
+      "blob": "d110d855a88896703c13793b90fdcede74669f05",
+      "bytes": 734,
+      "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f"
+    },
+    {
+      "path": "apps/quant-lab/web/ynx-brand-logo.png",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/quant-lab/web/ynx-logo.png",
+      "blob": "104a2773172d2b22192271b1ac2c1c16969be2f9",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "path": "apps/quant-lab/web/ynx-testnet.js",
+      "blob": "1b1857c60c7d72cf2f56a231b2c2cfea16b7df83",
+      "bytes": 1019,
+      "sha256": "78e6a9acbeabe021602e7ae269d38721fadd7b1b2c7249150f2aefe6830cef7a"
+    }
+  ],
+  "mismatches": [
+    {
+      "path": "apps/finance/web/styles.css",
+      "declared": "88dd04c3ea908e6ef50a777ba5856fdfcf80beafc56f78e3b1f3a34679d31c44",
+      "expected": "3387c087e410e1cbef2bf9b7a3bfc3c57677bd2cab2ee83a130064e7e562db5e"
+    },
+    {
+      "path": "apps/finance/web/finance-locale.js",
+      "declared": "bfbf26d35f04786229928b72ae485f1537b3f734d2f1de874c4478599f1499ab",
+      "expected": "9b1f7b66b0dc62657d0816361114f4536f3f14bf97dac70d2df275983837e4d9"
+    },
+    {
+      "path": "apps/finance/web/wallet-auth.js",
+      "declared": "7dbb57de7de4f944e62b78e518583b87a390b990aa853d9f161f2b7ec1a5d01c",
+      "expected": "17803bda66618d155d931060c06b32d43e02f49f88f89d83bbe43de2aa53e142"
+    },
+    {
+      "path": "apps/finance/web/evm-read-session.js",
+      "declared": "d5827e89f3c3ef9b92fe8bfa187b67e2c8f71b26866ca417b9f93cc6ec53e0e3",
+      "expected": "e5473d622a2e0ceb7e478b4f4d43ae53660f58349f6c87e755622abe9d6fbe24"
+    },
+    {
+      "path": "apps/finance/web/app.js",
+      "declared": "6038c02a3e20d144f8f887d9f8cff9d4c91ae6541342496f9a8e0e0a0925e390",
+      "expected": "8da2e98bb1c51cbdff3401885df57c895bb164235db45ea0b82ed1a7521dc4ec"
+    },
+    {
+      "path": "apps/finance/web/ui-preferences.js",
+      "declared": null,
+      "expected": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "declared": "4282c2f68785230be3acc6a39108f6e7af7ea5995c91256f40849dde24f4f666",
+      "expected": "05cc5bb35872b4f3c33182bc25a9055760fabde6d548a999ebcca3992626f198"
+    },
+    {
+      "path": "apps/exchange/web/app.js",
+      "declared": "92d641cbe0e8000161cc6333dc3a0d61295a368083c602abdca0ea83da4a0185",
+      "expected": "21b03f43ab87a248c7be7cee3887318ff7a97ce7b6e9f981d073965f4862d234"
+    },
+    {
+      "path": "apps/exchange/web/ui-preferences.js",
+      "declared": null,
+      "expected": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    },
+    {
+      "path": "apps/quant-lab/web/styles.css",
+      "declared": "37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5",
+      "expected": "994b8aaa5a21213b1e4b12e11b75a7b1a6c98cf52794b00e583d6e56b38b6263"
+    },
+    {
+      "path": "apps/quant-lab/web/app.js",
+      "declared": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc",
+      "expected": "8bf963410640eceda8a0a9a92f4e7615bd05044ccdd8cc88b061c329318ee23b"
+    },
+    {
+      "path": "apps/quant-lab/web/ui-preferences.js",
+      "declared": null,
+      "expected": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+    }
+  ],
+  "builds": [
+    {
+      "path": "/tmp/ynx-financial-owner-release-inputs.1ALy72/ynx-finance",
+      "bytes": 29895867,
+      "sha256": "706b899b2844d19d36569eeae66dd84635c6f1b2b42466828297d387f6767422",
+      "format": "ELF64-x86-64",
+      "installed": false,
+      "published": false
+    },
+    {
+      "path": "/tmp/ynx-financial-owner-release-inputs.1ALy72/ynx-exchange-source-bound",
+      "bytes": 13301331,
+      "sha256": "55a381aa4f99043abbbec7b9c9a612158bdd0afb6e0abfec60cfcaf0a374119f",
+      "format": "ELF64-x86-64",
+      "installed": false,
+      "published": false
+    },
+    {
+      "path": "/tmp/ynx-financial-owner-release-inputs.1ALy72/ynx-quant-source-bound",
+      "bytes": 11708852,
+      "sha256": "f3618963a695553cd7a0e6d67ef991554b409f364edaf646e961c15b538cfa43",
+      "format": "ELF64-x86-64",
+      "installed": false,
+      "published": false
+    }
+  ],
+  "publicReadback": {
+    "observedAt": "2026-10-03T06:32:51.245Z",
+    "responses": [
+      {
+        "url": "https://finance.ynxweb4.com/version",
+        "status": 200,
+        "bytes": 140,
+        "sha256": "4f29004ada07b1460807d189a4cc7c394bd704038fb12212268ee854777654d3",
+        "mime": "application/json; charset=utf-8",
+        "commit": "81e08b49d1eec3d901433e54d6b35227be43b6b3",
+        "release": "finance-authority-diagnostic-81e08b49d"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/health",
+        "status": 200,
+        "bytes": 557,
+        "sha256": "438bdb4da5eaf42fe8256dba0970eb6ad7fc72b7e618da81572eed4b517f3268",
+        "mime": "application/json; charset=utf-8",
+        "commit": null,
+        "release": null
+      },
+      {
+        "url": "https://exchange.ynxweb4.com/api/version",
+        "status": 200,
+        "bytes": 107,
+        "sha256": "b4c022607d648d184914ec7e9041fc4e7c5c2ce5fcc13392f18350bfc2a6d8a8",
+        "mime": "application/json; charset=utf-8",
+        "commit": "91c1a40587d28ad4c931d4a4d601766bd467ea20",
+        "release": null
+      },
+      {
+        "url": "https://exchange.ynxweb4.com/api/health",
+        "status": 200,
+        "bytes": 307,
+        "sha256": "9d16623ea43cc49bd257b1043c14bd1f1cd1d68a8df4b8e754a1ff2c5dbdc7de",
+        "mime": "application/json; charset=utf-8",
+        "commit": "91c1a40587d28ad4c931d4a4d601766bd467ea20",
+        "release": null
+      },
+      {
+        "url": "https://quant.ynxweb4.com/version",
+        "status": 404,
+        "bytes": 19,
+        "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "mime": "text/plain; charset=utf-8",
+        "commit": null,
+        "release": null
+      },
+      {
+        "url": "https://quant.ynxweb4.com/health",
+        "status": 404,
+        "bytes": 19,
+        "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "mime": "text/plain; charset=utf-8",
+        "commit": null,
+        "release": null
+      }
+    ]
+  },
+  "buildEnvironment": {
+    "go": "go1.25.13",
+    "CGO_ENABLED": "0",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "flags": [
+      "-trimpath",
+      "-buildvcs=false"
+    ],
+    "linuxExecutionVerified": false
+  },
+  "rebuildCommands": [
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags '-X main.buildCommit=2b821773e90cf5434b734f1c59681546633cf72b -X main.buildRelease=owner-input-not-published-2b821773e' -o <fresh-output>/ynx-finance ./apps/finance/cmd/server",
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags '-X github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct.BuildCommit=2b821773e90cf5434b734f1c59681546633cf72b' -o <fresh-output>/ynx-exchange-source-bound ./apps/exchange/server",
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags '-X github.com/JiahaoAlbus/YNX-Chain/internal/quantlab.BuildCommit=2b821773e90cf5434b734f1c59681546633cf72b' -o <fresh-output>/ynx-quant-source-bound ./apps/quant-lab/server"
+  ],
+  "gates": {
+    "sourceInputOnly": true,
+    "finalSdkGraphVerified": false,
+    "deployable": false,
+    "publicSourceBound": false,
+    "installed": false,
+    "walletApproval": false,
+    "transactions": false,
+    "goalComplete": false
+  },
+  "nextActions": [
+    "Release owner assembles coherent accepted Wallet/Auth transitive graph and page pins; do not replace complete app files with stale snapshots.",
+    "Bind per-product executor, current runtime and rollback under current deployment authority before publication.",
+    "Verify actual public version/assets and real browser flows after deployment; do not equate controlled Chrome fixtures with public Wallet approval.",
+    "These ELF service binaries are not end-user DMG/EXE/MSIX/APK packages and must not become ZIP installer download claims."
+  ],
+  "previousFocusedTests": {
+    "financeExport": "30/30",
+    "financeReminder": "25/25",
+    "exchangeRevision": "35/35",
+    "quantTimeIntegrity": "65/65",
+    "qualification": "Previous exact checkpoints record controlled local fixtures; not fresh public lifecycle proof."
+  }
+}
