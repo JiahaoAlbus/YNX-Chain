@@ -1,0 +1,781 @@
+
+> check
+> node --check display-settings.js && node --check app.js && node --check wallet-auth.js && node --check standard-wallet-connect-state.js && node --check build.mjs && node --test *.test.mjs
+
+✔ studio exposes recovery, team, rights, revenue and bounded AI workflows (4.797708ms)
+✔ Creator serves its complete runtime but does not expose source receipts or build scripts (88.8ms)
+✖ sign out releases a private request whose proof provider never settles (8.856834ms)
+✖ multipart upload is sent once when its network result is unknown (0.123ms)
+✖ caller cancellation aborts the request and cannot trigger automatic retry (0.401875ms)
+✖ upload hashes a stable form snapshot and cancel while hashing sends no request (0.171834ms)
+✖ a saved failed upload recovers its original content record without resending the file (0.111667ms)
+✖ upload proof failure never claims a matching historical file is this saved upload (0.104625ms)
+▶ upload recovery requires the exact service ID, source hash and authorized channel
+  ✖ missing service ID (0.09325ms)
+  ✖ invalid service ID (0.078667ms)
+  ✖ different record ID (0.099459ms)
+  ✖ different source hash (0.118125ms)
+  ✖ different channel (0.07275ms)
+✖ upload recovery requires the exact service ID, source hash and authorized channel (0.771458ms)
+▶ an old AI stream fallback cannot replace a newly selected job
+  ✖ stream-error (0.142125ms)
+  ✖ stream-ended (0.090208ms)
+✖ an old AI stream fallback cannot replace a newly selected job (0.61025ms)
+▶ late AI cancel, review and delete replies cannot alter a newer selection
+  ✖ ai-cancel after selecting another ID (0.117625ms)
+  ✖ ai-cancel after reselecting the old ID (0.08025ms)
+  ✖ ai-accept after selecting another ID (0.064709ms)
+  ✖ ai-accept after reselecting the old ID (0.288583ms)
+  ✖ ai-reject after selecting another ID (0.044083ms)
+  ✖ ai-reject after reselecting the old ID (0.057834ms)
+  ✖ ai-delete after selecting another ID (0.048667ms)
+  ✖ ai-delete after reselecting the old ID (0.046708ms)
+✖ late AI cancel, review and delete replies cannot alter a newer selection (0.949792ms)
+✖ newer AI preparation wins when earlier creation completes late (0.1035ms)
+✖ sign out immediately clears every private view and form while revocation is pending (0.087542ms)
+✖ a 401 with no studio snapshot still permits complete sign out (0.0775ms)
+✖ a studio response arriving after sign out cannot restore account data or replace its status (0.07575ms)
+✖ an old account response cannot overwrite a newly signed-in account (0.086791ms)
+✖ proof creation completing after sign out never sends an authenticated business request (0.084459ms)
+✖ a late channel mutation response cannot refill channel output and upload forms (0.089709ms)
+✖ AI stream chunks after sign out are discarded and their reader is cancelled (0.097416ms)
+✖ a restored session arriving after sign out cannot reconnect the page (0.079917ms)
+✖ missing analytics and nullable audit lists render empty values without throwing (0.076083ms)
+✖ failed revocation keeps private views empty and offers an explicit sign-out retry (0.263292ms)
+✖ prepared Wallet link becomes visible and focused after its exact URL is set (0.69675ms)
+✖ a stored pending logout stays explicit after page restore and blocks new Creator approval (0.091292ms)
+✖ a Creator sign-in racing initial restore retains explicit SDK pending logout controls (0.099125ms)
+✖ normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace (0.095958ms)
+✖ Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection (0.25425ms)
+✖ Switch Creator account finishes original revocation before offering a new approval (0.150042ms)
+✖ ordinary Cancel during Creator callback verification revokes the late stored grant before reconnect (0.147875ms)
+✖ Creator Web Wallet opens from the user click and uses only the product V2 method (0.71025ms)
+✖ Creator Mobile shows a QR and returns through product verification, not standard account discovery (0.63325ms)
+✖ Creator native launch stays in its own step and blocks duplicate, cancelled and expired clicks (0.090667ms)
+✖ Creator cancelled preparation never opens a late native request and preserves revoke failure (0.076792ms)
+✖ Creator unknown wallet errors show a next step without raw diagnostics (0.06375ms)
+✖ Creator native return restores the launched request then reads studio and closes without revoke (0.069542ms)
+✖ Creator cancelled native return and another signed request never reconnect the old chooser (0.070917ms)
+✖ Creator actual focus hook waits for backend verification and does not revive an expired request (0.264458ms)
+✖ Creator focus before completed native callback remains waiting without network failure (0.067625ms)
+✖ reload restores authorized team channels through the real nested ChannelView and preserves drafts (0.08875ms)
+✖ empty team never invents a channel and invalidates an earlier channel read (0.067875ms)
+✖ late channel metadata after account switch cannot refill the old account (0.065916ms)
+✖ wrong channel identity and rejected channel reads fail closed (0.086333ms)
+✖ shipped Creator controller sends exactly its signed multipart bytes with original boundary (0.0825ms)
+✔ Creator consumes the exact shared Standard Wallet reducer boundary (2.231625ms)
+✔ late legacy injection is re-read after ethereum#initialized (251.141333ms)
+✔ empty accountsChanged disconnects instead of becoming an invalid-account error (0.444625ms)
+✔ wallet UI uses distinct image assets and same-tab provider flow (3.06175ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 6
+ℹ fail 56
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 307.306125
+
+✖ failing tests:
+
+test at signout.test.mjs:88:1
+✖ sign out releases a private request whose proof provider never settles (8.856834ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:90:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+
+test at signout.test.mjs:99:1
+✖ multipart upload is sent once when its network result is unknown (0.123ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:101:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at signout.test.mjs:108:1
+✖ caller cancellation aborts the request and cannot trigger automatic retry (0.401875ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:110:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:121:1
+✖ upload hashes a stable form snapshot and cancel while hashing sends no request (0.171834ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:123:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:141:1
+✖ a saved failed upload recovers its original content record without resending the file (0.111667ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:143:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:166:1
+✖ upload proof failure never claims a matching historical file is this saved upload (0.104625ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:169:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:191:13
+✖ missing service ID (0.09325ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:193:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:191:13)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+
+test at signout.test.mjs:191:13
+✖ invalid service ID (0.078667ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:193:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:191:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:191:13
+✖ different record ID (0.099459ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:193:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:191:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:191:13
+✖ different source hash (0.118125ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:193:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:191:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:191:13
+✖ different channel (0.07275ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:193:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:191:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:206:61
+✖ stream-error (0.142125ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:208:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:206:61)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+
+test at signout.test.mjs:206:61
+✖ stream-ended (0.090208ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:208:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:206:61)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-cancel after selecting another ID (0.117625ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+
+test at signout.test.mjs:227:46
+✖ ai-cancel after reselecting the old ID (0.08025ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-accept after selecting another ID (0.064709ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-accept after reselecting the old ID (0.288583ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-reject after selecting another ID (0.044083ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-reject after reselecting the old ID (0.057834ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-delete after selecting another ID (0.048667ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:227:46
+✖ ai-delete after reselecting the old ID (0.046708ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:229:30)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at TestContext.test (node:internal/test_runner/test:399:20)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:227:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:245:1
+✖ newer AI preparation wins when earlier creation completes late (0.1035ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:247:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:261:1
+✖ sign out immediately clears every private view and form while revocation is pending (0.087542ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:263:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:282:1
+✖ a 401 with no studio snapshot still permits complete sign out (0.0775ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:283:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:292:1
+✖ a studio response arriving after sign out cannot restore account data or replace its status (0.07575ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:295:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:309:1
+✖ an old account response cannot overwrite a newly signed-in account (0.086791ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:312:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:326:1
+✖ proof creation completing after sign out never sends an authenticated business request (0.084459ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:329:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:339:1
+✖ a late channel mutation response cannot refill channel output and upload forms (0.089709ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:341:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:352:1
+✖ AI stream chunks after sign out are discarded and their reader is cancelled (0.097416ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:356:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:372:1
+✖ a restored session arriving after sign out cannot reconnect the page (0.079917ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:375:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:384:1
+✖ missing analytics and nullable audit lists render empty values without throwing (0.076083ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:385:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:393:1
+✖ failed revocation keeps private views empty and offers an explicit sign-out retry (0.263292ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:395:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:412:1
+✖ prepared Wallet link becomes visible and focused after its exact URL is set (0.69675ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:414:28)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:429:1
+✖ a stored pending logout stays explicit after page restore and blocks new Creator approval (0.091292ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:431:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:443:1
+✖ a Creator sign-in racing initial restore retains explicit SDK pending logout controls (0.099125ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:445:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:454:1
+✖ normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace (0.095958ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:457:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:463:1
+✖ Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection (0.25425ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:466:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:475:1
+✖ Switch Creator account finishes original revocation before offering a new approval (0.150042ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:477:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:482:1
+✖ ordinary Cancel during Creator callback verification revokes the late stored grant before reconnect (0.147875ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:484:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:490:1
+✖ Creator Web Wallet opens from the user click and uses only the product V2 method (0.71025ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:492:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:494:1
+✖ Creator Mobile shows a QR and returns through product verification, not standard account discovery (0.63325ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:496:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:499:1
+✖ Creator native launch stays in its own step and blocks duplicate, cancelled and expired clicks (0.090667ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:500:80)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:505:1
+✖ Creator cancelled preparation never opens a late native request and preserves revoke failure (0.076792ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:506:55)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:509:1
+✖ Creator unknown wallet errors show a next step without raw diagnostics (0.06375ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:510:34)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:513:1
+✖ Creator native return restores the launched request then reads studio and closes without revoke (0.069542ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:514:49)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:516:1
+✖ Creator cancelled native return and another signed request never reconnect the old chooser (0.070917ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:517:57)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:521:1
+✖ Creator actual focus hook waits for backend verification and does not revive an expired request (0.264458ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:522:80)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:525:1
+✖ Creator focus before completed native callback remains waiting without network failure (0.067625ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:526:16)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:529:1
+✖ reload restores authorized team channels through the real nested ChannelView and preserves drafts (0.08875ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:530:40)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:545:1
+✖ empty team never invents a channel and invalidates an earlier channel read (0.067875ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:546:72)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:552:1
+✖ late channel metadata after account switch cannot refill the old account (0.065916ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:553:47)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:559:1
+✖ wrong channel identity and rejected channel reads fail closed (0.086333ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:561:26)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at signout.test.mjs:565:1
+✖ shipped Creator controller sends exactly its signed multipart bytes with original boundary (0.0825ms)
+  ReferenceError: Cannot access 'payoutFlight' before initialization
+      at eval (eval at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:28), <anonymous>:7:15)
+      at app (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:69:238)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:565:152)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)

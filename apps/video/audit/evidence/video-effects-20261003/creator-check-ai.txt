@@ -1,0 +1,77 @@
+
+> check
+> node --check display-settings.js && node --check app.js && node --check wallet-auth.js && node --check standard-wallet-connect-state.js && node --check build.mjs && node --test *.test.mjs
+
+✔ studio exposes recovery, team, rights, revenue and bounded AI workflows (7.500625ms)
+✔ Creator serves its complete runtime but does not expose source receipts or build scripts (210.893625ms)
+✔ sign out releases a private request whose proof provider never settles (26.554167ms)
+✔ multipart upload is sent once when its network result is unknown (4.423542ms)
+✔ caller cancellation aborts the request and cannot trigger automatic retry (6.381125ms)
+✔ upload hashes a stable form snapshot and cancel while hashing sends no request (6.310917ms)
+✔ a saved failed upload recovers its original content record without resending the file (5.604208ms)
+✔ upload proof failure never claims a matching historical file is this saved upload (3.627291ms)
+▶ upload recovery requires the exact service ID, source hash and authorized channel
+  ✔ missing service ID (3.2435ms)
+  ✔ invalid service ID (2.082916ms)
+  ✔ different record ID (1.858542ms)
+  ✔ different source hash (2.534041ms)
+  ✔ different channel (1.200375ms)
+✔ upload recovery requires the exact service ID, source hash and authorized channel (11.980833ms)
+▶ an old AI stream fallback cannot replace a newly selected job
+  ✔ stream-error (1.581916ms)
+  ✔ stream-ended (1.761667ms)
+✔ an old AI stream fallback cannot replace a newly selected job (3.812833ms)
+▶ late AI cancel, review and delete replies cannot alter a newer selection
+  ✔ ai-cancel after selecting another ID (1.795166ms)
+  ✔ ai-cancel after reselecting the old ID (1.370291ms)
+  ✔ ai-accept after selecting another ID (0.520458ms)
+  ✔ ai-accept after reselecting the old ID (0.788459ms)
+  ✔ ai-reject after selecting another ID (0.439292ms)
+  ✔ ai-reject after reselecting the old ID (0.586458ms)
+  ✔ ai-delete after selecting another ID (0.691875ms)
+  ✔ ai-delete after reselecting the old ID (0.620083ms)
+✔ late AI cancel, review and delete replies cannot alter a newer selection (7.733875ms)
+✔ newer AI preparation wins when earlier creation completes late (2.016666ms)
+✔ sign out immediately clears every private view and form while revocation is pending (0.741ms)
+✔ a 401 with no studio snapshot still permits complete sign out (0.218667ms)
+✔ a studio response arriving after sign out cannot restore account data or replace its status (0.819291ms)
+✔ an old account response cannot overwrite a newly signed-in account (1.026667ms)
+✔ proof creation completing after sign out never sends an authenticated business request (0.439292ms)
+✔ a late channel mutation response cannot refill channel output and upload forms (0.911292ms)
+✔ AI stream chunks after sign out are discarded and their reader is cancelled (1.111083ms)
+✔ a restored session arriving after sign out cannot reconnect the page (1.094875ms)
+✔ missing analytics and nullable audit lists render empty values without throwing (0.283916ms)
+✔ failed revocation keeps private views empty and offers an explicit sign-out retry (0.130542ms)
+✔ prepared Wallet link becomes visible and focused after its exact URL is set (2.434875ms)
+✔ a stored pending logout stays explicit after page restore and blocks new Creator approval (0.4895ms)
+✔ a Creator sign-in racing initial restore retains explicit SDK pending logout controls (0.340542ms)
+✔ normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace (2.89075ms)
+✔ Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection (5.609125ms)
+✔ Switch Creator account finishes original revocation before offering a new approval (0.572125ms)
+✔ ordinary Cancel during Creator callback verification revokes the late stored grant before reconnect (1.207209ms)
+✔ Creator Web Wallet opens from the user click and uses only the product V2 method (3.7365ms)
+✔ Creator Mobile shows a QR and returns through product verification, not standard account discovery (4.490375ms)
+✔ Creator native launch stays in its own step and blocks duplicate, cancelled and expired clicks (1.012583ms)
+✔ Creator cancelled preparation never opens a late native request and preserves revoke failure (0.578625ms)
+✔ Creator unknown wallet errors show a next step without raw diagnostics (0.479416ms)
+✔ Creator native return restores the launched request then reads studio and closes without revoke (1.031333ms)
+✔ Creator cancelled native return and another signed request never reconnect the old chooser (1.009958ms)
+✔ Creator actual focus hook waits for backend verification and does not revive an expired request (1.261167ms)
+✔ Creator focus before completed native callback remains waiting without network failure (0.926334ms)
+✔ reload restores authorized team channels through the real nested ChannelView and preserves drafts (1.0035ms)
+✔ empty team never invents a channel and invalidates an earlier channel read (0.530833ms)
+✔ late channel metadata after account switch cannot refill the old account (0.505625ms)
+✔ wrong channel identity and rejected channel reads fail closed (0.388792ms)
+✔ shipped Creator controller sends exactly its signed multipart bytes with original boundary (2.135166ms)
+✔ Creator consumes the exact shared Standard Wallet reducer boundary (2.218959ms)
+✔ late legacy injection is re-read after ethereum#initialized (251.477541ms)
+✔ empty accountsChanged disconnects instead of becoming an invalid-account error (0.4435ms)
+✔ wallet UI uses distinct image assets and same-tab provider flow (2.519125ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 62
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 341.362459

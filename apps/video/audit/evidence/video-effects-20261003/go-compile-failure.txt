@@ -1,0 +1,4 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]
+internal/video/integrations.go:10:2: "io" imported and not used
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video [build failed]
+FAIL
