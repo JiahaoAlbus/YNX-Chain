@@ -15,17 +15,19 @@ import Foundation
             defer {try? FileManager.default.removeItem(at:root)}
             var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,dropStream=false,foreignStream=false,streamLines=0,legacyCancelledDelta=false,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
+            var networkTrace=[[String:Any]]()
+            func trace(_ path:String,_ status:Int,_ mocked:Bool=false) {networkTrace.append(["path":path,"status":status,"mockedMismatch":mocked]);if networkTrace.count>64 {networkTrace.removeFirst(networkTrace.count-64)}}
             let network=CreatorNativeTransport()
             let sender: CreatorNativeEngine.Sender = { request,limit in
                 let url=request.url!
                 if url.host=="creator.ynxweb4.com" && hold { hold=false;await withCheckedContinuation { held=$0 } }
-                if url.absoluteString==CreatorHTTP.api.absoluteString+"/v1/account" && mismatch { return (Data("{\"schemaVersion\":1,\"account\":\"wrong-account\"}".utf8),HTTPURLResponse(url:url,statusCode:200,httpVersion:nil,headerFields:["Content-Type":"application/json"])!) }
+                if url.absoluteString==CreatorHTTP.api.absoluteString+"/v1/account" && mismatch {trace(url.path,200,true); return (Data("{\"schemaVersion\":1,\"account\":\"wrong-account\"}".utf8),HTTPURLResponse(url:url,statusCode:200,httpVersion:nil,headerFields:["Content-Type":"application/json"])!) }
                 let target: URL
                 if url.host=="wallet-auth.ynxweb4.com" { target=URL(string:gateway.absoluteString+url.path)! }
                 else if url.host=="creator.ynxweb4.com",url.path.hasPrefix("/video/api/") { target=URL(string:backend.absoluteString+url.path.dropFirst("/video/api".count))! }
                 else { throw CreatorNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
-                let (bytes,response)=try await network.send(redirected,limit)
+                let (bytes,response)=try await network.send(redirected,limit);trace(url.path,response.statusCode)
                 if dropMutation,url.host=="creator.ynxweb4.com",url.path=="/video/api/v1/uploads",["POST","DELETE"].contains(request.httpMethod ?? "") { dropMutation=false;throw CreatorHTTP.Failure.unexpectedResponse }
                 if !dropOperation.isEmpty,url.path=="/video/api"+dropOperation,(200..<300).contains(response.statusCode),request.httpMethod=="POST" {dropOperation="";throw CreatorHTTP.Failure.unexpectedResponse}
                 var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
@@ -143,7 +145,7 @@ import Foundation
                         }
                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
                         value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message;value["assetPending"]=model.pendingAssetKind
-                        value["submitQueued"]=queuedSubmit != nil;value["submitCompletions"]=submitCompletions;value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
+                        value["submitQueued"]=queuedSubmit != nil;value["submitCompletions"]=submitCompletions;value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure;value["sdkStatus"]=engine.lastStatus;value["sdkFailure"]=engine.lastFailure;value["networkTail"]=Array(networkTrace.suffix(8))
                         value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"title":$0.title,"description":$0.description,"sha256":$0.sha256,"uploadExpiry":$0.rights?.expires_at ?? "","bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? "","scheduledAt":$0.scheduled_at ?? "","versions":($0.versions ?? []).map{["sequence":$0.sequence,"actor":$0.actor,"kind":$0.kind,"at":$0.recorded_at,"contentHash":$0.content_sha256] as [String:Any]},"thumbnail":$0.thumbnail_key ?? "","captions":($0.captions ?? []).map{["key":$0.object_key,"language":$0.language,"label":$0.label,"aiProposed":$0.ai_proposed,"humanApproved":$0.human_approved] as [String:Any]}] as [String:Any]}
                         value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
                         value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"authVersion":team.auth_version ?? 0,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state,"expires":$0.expires_at ?? ""]}] as [String:Any]}
