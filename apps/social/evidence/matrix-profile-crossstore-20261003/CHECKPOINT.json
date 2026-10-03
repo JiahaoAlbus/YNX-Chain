@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "source": "0585c1177c3fa77cec8a662cf456e334fe9bb803",
+  "tree": "920d1c021ccc3731dc84ac4ffd5402691a5b792d",
+  "parent": "7b209a99299602bf4f1c96b716e94e1030eef2cc",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sharedValidationSource": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "stage": "/tmp/social-backend-16195.enQ7Rc",
+  "sharedLiveChanged": false,
+  "moduleLiveChanged": false,
+  "coverage": {
+    "historicalIdentity": "Bridge requires original parsed directory MXID; no chain-address derivation, missing identity no Issue, resolver retarget denied before Issue, WhoAmI substitution rejected",
+    "profileIntent": "Original Social idempotency store prepared/rejected/completed statuses; original request/account/device/key bound; ambiguous operation cannot be replaced by another key",
+    "crossStoreCancellation": "Square effect occurs once, cancellation before Social avatar/settings completion retains original prepared intent; cold reopen and same-key/body retry settles without changing Square bytes",
+    "invalidRecovery": "Invalid avatar and stale actor do not dispatch Square; known invalid Square profile body settles as rejected and corrected new intent works",
+    "privacyMerge": "Privacy changes after Square effect are preserved; profile commits only avatar and original identity QR",
+    "context": "Original request context is not persisted; no remote revalidation under store lock"
+  },
+  "gates": {
+    "ownedSocialRegression": "PASS",
+    "isolatedSocialAndDaemonRace": "PASS",
+    "isolatedDaemonBuild": "PASS",
+    "realMatrixProducerMount": "NOT_CONFIGURED",
+    "sharedLiveAdoption": "PENDING_ROOT",
+    "publicSourceBoundBusiness": "NOT_VERIFIED",
+    "nativeCanonicalEnrollment": "NOT_VERIFIED",
+    "ABCThreeJourneys": "NOT_VERIFIED",
+    "MONSTER": "NOT_RUN",
+    "socialCompleted": false,
+    "deployed": false,
+    "sensitiveWalletRequests": false
+  },
+  "limitations": [
+    "Authority and local HS HTTP server in tests are explicitly software QA, not a real user/HS or public acceptance.",
+    "Actual MatrixAudienceAuthority is absent from current daemon wiring; Directory alone does not make the service usable.",
+    "Source bridge is not newly mounted; credential provenance/enrollment remains an existing protected producer requirement.",
+    "Generic action proofs, original action nonce effect commitment, other cross-store mutations and cross-device uncertain-intent recovery remain required.",
+    "First full race/build logs before the privacy merge are preserved separately and are not relabeled as final source validation."
+  ]
+}
