@@ -152,14 +152,19 @@ async function updateBrokerWatchlist(asset,selected){
   if(result?.schema!=='ynx-finance-broker-watchlist-v1'||result.providerWriteAttempted!==false)throw new Error(financeText('brokerWatchlistInvalid'));
   renderBrokerWatchlist(result.watchlist);await refreshBrokerWorkspace();notify(financeText(selected?'watchlistAdded':'watchlistRemoved'));
 }
+let brokerSnapshotRevision=0;
 async function refreshBrokerSnapshot(){
+  const revision=++brokerSnapshotRevision,context=state.context;
+  const current=()=>revision===brokerSnapshotRevision&&context===state.context&&state.connected;
   if(!state.connected){brokerSnapshotState={kind:'guest'};renderBrokerSnapshot();return}
   try{
     const result=await api('/api/broker/snapshot');
+    if(!current())return;
     const snapshot=result?.schema==='ynx-finance-broker-snapshot-v1'?result.snapshot:null;
     if(!snapshot||snapshot.provider!=='alpaca_broker'||snapshot.environment!=='sandbox'||!Array.isArray(snapshot.orders)||!Array.isArray(snapshot.positions)||snapshot.account?.currency!=='USD')throw Object.assign(new Error('Broker Sandbox returned an invalid account snapshot.'),{nonRetryable:true});
     brokerSnapshotState={kind:'data',snapshot};renderBrokerSnapshot();
   }catch(error){
+    if(!current())return;
     brokerSnapshotState={kind:'unavailable'};renderBrokerSnapshot();
   }
 }
