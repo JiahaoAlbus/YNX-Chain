@@ -1,0 +1,51 @@
+{
+  "status": "QA_SIGNATURE_INTEGRITY_ONLY_NOT_RELEASE_ADMISSION",
+  "manifestSHA256": "76ff9e19b569a64a1dca5a0db9f0ccc80623b9f113ef65e96ca52901745c67ba",
+  "assets": [
+    {
+      "role": "gore-sexual-classifier",
+      "fileName": "image-safety-classifier-xs.onnx",
+      "sourceURL": "https://huggingface.co/OwenElliott/image-safety-classifier-xs/resolve/54f4560bd9c5ee92d45dc30418a8f8680e80de6d/onnx/image-safety-classifier-xs.onnx",
+      "sourceRevision": "54f4560bd9c5ee92d45dc30418a8f8680e80de6d",
+      "license": "MIT",
+      "sha256": "8c28c49d9075f3ad15ebdc2961f02d5b3f99be944815b848b49c9f0e6f3fb689",
+      "bytes": 13137569
+    },
+    {
+      "role": "violence-encoder",
+      "fileName": "vision_model_q4.onnx",
+      "sourceURL": "https://huggingface.co/onnx-community/siglip2-base-patch16-256-ONNX/resolve/d1114256522a37ffa257a0a58017348ab0058db2/onnx/vision_model_q4.onnx",
+      "sourceRevision": "d1114256522a37ffa257a0a58017348ab0058db2",
+      "license": "Apache-2.0",
+      "sha256": "712064dae0cce3fb4c94497c7dfd65d11f4ad34eadafe09442208474068cf777",
+      "bytes": 63451786
+    },
+    {
+      "role": "violence-head",
+      "fileName": "violence_head.onnx",
+      "sourceURL": "https://huggingface.co/khasinski/siglip2-moderation-heads/resolve/b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5/violence_head.onnx",
+      "sourceRevision": "b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5",
+      "license": "Apache-2.0",
+      "sha256": "268b8702e8e373ab0fea4de55250f506650ff87be532d1809ba70513bd5fa5b4",
+      "bytes": 869
+    },
+    {
+      "role": "violence-head-data",
+      "fileName": "violence_head.onnx.data",
+      "sourceURL": "https://huggingface.co/khasinski/siglip2-moderation-heads/resolve/b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5/violence_head.onnx.data",
+      "sourceRevision": "b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5",
+      "license": "Apache-2.0",
+      "sha256": "433df42d2b884d598a65f41d1cb16e2c44b60000f0f46da6b7c380f3851ce2ef",
+      "bytes": 788480
+    }
+  ],
+  "totalBytes": 77378704,
+  "elapsedMs": 292.49112500000007,
+  "signer": "ephemeral-generated-software-fixture; secret not persisted",
+  "realCalibration": "NOT_CALIBRATED",
+  "licenseNotices": "NOT_APPROVED",
+  "officialReleaseKey": "NOT_PROVIDED",
+  "filterActivation": false,
+  "modelExecutionThisCheck": false,
+  "timestamp": "2026-10-03T13:07:25.848Z"
+}

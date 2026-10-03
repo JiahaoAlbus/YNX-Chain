@@ -1,0 +1,17 @@
+✔ exact signed four-asset fixture verifies integrity without claiming a usable classifier (30.496708ms)
+✔ caller mutation and returned-copy mutation cannot change verified model/calibration/notices (4.380667ms)
+✔ wrong signature, signer, manifest bytes and release identity are rejected (17.309958ms)
+✔ every actual asset is hashed; mixed and truncated external weights are rejected (19.080708ms)
+✔ calibration and notices must belong to the same signed release (5.136833ms)
+✔ signed malformed schemas, unknown fields, duplicate roles and unexpected filenames fail closed (10.485917ms)
+✔ graph and external weights cannot claim different source revisions or repositories (3.192459ms)
+✔ mutable, credentialed, scheme and unbound source metadata are denied without fetching anything (7.295ms)
+✔ missing trust and empty or oversized documents cannot create an integrity result (3.609125ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 269.540167

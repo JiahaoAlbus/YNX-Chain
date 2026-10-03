@@ -1,0 +1,7 @@
+92685360b72d63b807f343553a0df74fe2424d3cd65c4d2f473dcf2eae0bd6e8  apps/social/src/localModelBundle.ts
+997aaec19bf57a62d062534eb0fa46ec5f551fcc9b458e67e97f8d2f10ca4a3a  apps/social/src/localModelBundle.test.ts
+21b7ceb06eb8794d6642ab4360038cad488ffc285d0980f264abe0946e4a8223  apps/social/evidence/local-model-bundle-20261003/bundle-tests.log
+7bafacb082be0c4acbb17caecde1b1fa6201f80b3c6f73c97d34ea238425386f  apps/social/evidence/local-model-bundle-20261003/exact-model-integrity.json
+c21522100b24dec2bfa7d4f55c5a6edab83af4450b869824ee65024acc310baa  apps/social/evidence/local-model-bundle-20261003/full-tests.log
+6b8061aaefe3f9d803738dea2586613b8c0c9f39026c21df8c77ff6258eb812d  apps/social/evidence/local-model-bundle-20261003/full-typecheck.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  apps/social/evidence/local-model-bundle-20261003/scoped-typecheck.log

@@ -1,0 +1,20 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+src/localClassifierWorker.test.ts(20,65): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(21,5): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(28,19): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(29,46): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(30,16): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(30,46): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(32,31): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(36,16): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(36,58): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(37,30): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(54,16): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(54,58): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(60,16): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(67,60): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(69,43): error TS2532: Object is possibly 'undefined'.
+src/localClassifierWorker.test.ts(99,18): error TS2532: Object is possibly 'undefined'.
