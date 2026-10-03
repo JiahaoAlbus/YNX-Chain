@@ -141,7 +141,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     runInNewContext(`${copyHelper}\n${invoiceClear}\n${owners}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
-      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
+      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidateWalletConnectSessions(){},invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
@@ -194,7 +194,7 @@ async function sendEntryHarness() {
   const context = { document, window: { ynxWallet: api }, accountViewRevision:0, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
-    invalidatePaymentInput() { context.paymentDraftRevision++; },
+    invalidateWalletConnectSessions(){},invalidatePaymentInput() { context.paymentDraftRevision++; },
   };
   const extract = (startText, endText) => {
     const start = source.indexOf(startText), end = source.indexOf(endText, start);
