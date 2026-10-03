@@ -1,0 +1,5 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+App.tsx(1845,50): error TS18046: 'result' is of type 'unknown'.

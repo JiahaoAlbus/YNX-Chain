@@ -1,0 +1,15 @@
+✔ original publication survives a new controller and retains payload/key (0.935417ms)
+✔ changed visibility/text/media cannot replace uncertain publication (0.312875ms)
+✔ another account has a separate carrier and cannot read original (0.063458ms)
+✔ malformed existing storage is retained, not reset (0.068167ms)
+✔ stale authority cannot create, acknowledge or remove original carrier (0.130208ms)
+✔ only original current successful readback clears its pending carrier (0.094875ms)
+✔ account mismatch and unrecognized schema cannot be adopted (0.101541ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.22375

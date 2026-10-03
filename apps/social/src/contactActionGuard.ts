@@ -6,17 +6,19 @@ export async function runCurrentContactAction(
  current:()=>boolean,
  send:(signal:AbortSignal)=>Promise<unknown>,
  timeoutMs=30000,
+ parent?:AbortSignal,
 ):Promise<boolean>{
- if(!current())return false;
+ if(!current()||parent?.aborted)return false;
  const operation=new ContactOperation();
+ const cancel=()=>operation.cancel();parent?.addEventListener('abort',cancel,{once:true});
  try{
   await operation.run(signal=>{
-   if(!current())throw new Error('Review the contact action again');
+   if(!current()||parent?.aborted)throw new Error('Review the contact action again');
    return send(signal);
   },timeoutMs);
-  return current();
+  return current()&&!parent?.aborted;
  }catch(error){
-  if(!current())return false;
+  if(!current()||parent?.aborted)return false;
   throw error;
- }
+ }finally{parent?.removeEventListener('abort',cancel)}
 }

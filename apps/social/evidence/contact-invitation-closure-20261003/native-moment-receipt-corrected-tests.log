@@ -1,0 +1,20 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+✔ unknown publication response is checked, not asserted into success (0.491167ms)
+✔ original publication survives a new controller and retains payload/key (0.507167ms)
+✔ changed visibility/text/media cannot replace uncertain publication (0.183125ms)
+✔ another account has a separate carrier and cannot read original (0.070125ms)
+✔ malformed existing storage is retained, not reset (0.075792ms)
+✔ stale authority cannot create, acknowledge or remove original carrier (0.10625ms)
+✔ only original current successful readback clears its pending carrier (0.087208ms)
+✔ account mismatch and unrecognized schema cannot be adopted (0.082167ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93.9255

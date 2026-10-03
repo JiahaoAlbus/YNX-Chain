@@ -112,6 +112,7 @@ import { nativeSocialSession, nativeChatDevice } from "./src/nativeSessionRuntim
 import { bindScopedSocialSession } from "./src/scopedSessionBridge";
 import {ContactRequestFlow,socialProfileQR,requireSocialProfileQR,socialDiscoveryEntry,type SocialDiscoveryEntry,type ContactReview} from "./src/contactRequestFlow";
 import {runCurrentContactAction} from './src/contactActionGuard';
+import {NativeMomentIntents,publishOriginalNativeMoment} from './src/nativeMomentIntent';
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -1745,6 +1746,19 @@ function MessageThread({
 }
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
+  const momentIntents=useMemo(()=>new NativeMomentIntents({
+    read:key=>SecureStore.getItemAsync(key),
+    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
+    remove:key=>SecureStore.deleteItemAsync(key),
+  },async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[]);
+  const momentSending=useRef(false),momentMounted=useRef(true),momentCancellation=useRef<AbortController|null>(null);
+  const closeMomentComposer=()=>{momentCancellation.current?.abort();setCompose(false)};
+  useEffect(()=>{
+    momentMounted.current=true;
+    const subscription=AppState.addEventListener('change',state=>{if(state!=='active')momentCancellation.current?.abort()});
+    return()=>{momentMounted.current=false;momentCancellation.current?.abort();subscription.remove()};
+  },[]);
+  useEffect(()=>{momentCancellation.current?.abort()},[api.authorizationGeneration]);
   const [items, setItems] = useState<FeedPost[]>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState<string | null>(null),
@@ -1819,7 +1833,22 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       setError(message(caught));
     }
   };
-  const publish = () =>
+  const restoreOriginalMoment=async()=>{
+    const authority=api.authorizationGuard();
+    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media);setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
+  };
+  const publish = () => {
+    momentCancellation.current?.abort();
+    const controller=new AbortController();momentCancellation.current=controller;
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&!controller.signal.aborted;
+    const account=session.session.account,snapshot={text,visibility,media:media.map(item=>({...item}))};
+    const sendOriginal=async()=>{
+      if(!current()||momentSending.current)return;momentSending.current=true;
+      try{
+        const confirmed=await publishOriginalNativeMoment(momentIntents,account,snapshot,current,payload=>api.publishMoment(payload),30000,controller.signal);
+        if(!confirmed)return;setCompose(false);setText('');setMedia([]);await load();
+      }catch(caught){if(current())setError(message(caught))}finally{momentSending.current=false;if(momentCancellation.current===controller)momentCancellation.current=null}
+    };
     Alert.alert(
       "Publish this moment?",
       `Visibility: ${visibility}. You can delete it later.`,
@@ -1827,24 +1856,11 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
         { text: "Review", style: "cancel" },
         {
           text: "Publish",
-          onPress: () =>
-            void api
-              .publishMoment({
-                idempotencyKey: `moment-${Date.now()}`,
-                text,
-                visibility,
-                media: media.map((item) => item.id),
-              })
-              .then(() => {
-                setCompose(false);
-                setText("");
-                setMedia([]);
-                return load();
-              })
-              .catch((caught) => setError(message(caught))),
+          onPress: () => void sendOriginal(),
         },
       ],
     );
+  };
   const react = async (item: FeedPost) => {
     await api.react(
       item.id,
@@ -1949,6 +1965,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       }
       error={error}
     >
+      <Pressable accessibilityLabel="Restore original pending moment" onPress={()=>void restoreOriginalMoment()} style={styles.secondary}><Text style={styles.secondaryText}>Restore original pending publication</Text></Pressable>
       <FlatList
         refreshControl={
           <RefreshControl
@@ -2051,10 +2068,10 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
           </View>
         )}
       />
-      <Modal visible={compose} transparent animationType="slide">
+      <Modal visible={compose} transparent animationType="slide" onRequestClose={closeMomentComposer}>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <SheetTitle title="New moment" close={() => setCompose(false)} />
+            <SheetTitle title="New moment" close={closeMomentComposer} />
             <TextInput
               accessibilityLabel="Moment text"
               multiline
