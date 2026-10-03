@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-03T11:38:35.989Z",
+  "url": "https://social.ynxweb4.com/",
+  "chooser": "- banner:\n  - link \"YNX Social home\":\n    - /url: /\n    - generic: \"Y\"\n    - generic: YNX Social\n  - navigation \"Primary\":\n    - link \"Experience\":\n      - /url: \"#experience\"\n    - link \"Privacy\":\n      - /url: \"#privacy\"\n    - link \"Apps\":\n      - /url: \"#downloads\"\n  - button \"Connect wallet\"\n- main:\n  - generic: Private Social service degraded — guest preview is still available\n  - heading \"Close conversations. Clear control.\" [level=1]:\n    - text: Close conversations.\n    - text: Clear control.\n  - paragraph: Explore YNX Social without an account. Connect a standard EVM wallet only when you are ready to link a profile or approve a private session.\n  - button \"Connect wallet\"\n  - link \"Explore as guest\":\n    - /url: \"#experience\"\n  - paragraph: Guest access never creates a profile, wallet approval, Product Session, signature, or transaction.\n  - generic \"Product preview\":\n    - generic: Social\n    - generic: Private\n    - article:\n      - strong: Design Circle\n      - generic: Community preview\n      - paragraph: A calm place for people, projects and conversations you choose.\n  - text: Guest preview\n  - heading \"See the product before you connect.\" [level=2]\n  - paragraph: Public information remains readable while identity, contacts, messages and private actions stay locked.\n  - article:\n    - text: \"01\"\n    - heading \"Moments\" [level=3]\n    - paragraph: Share thoughtful updates with public, contacts-only or private visibility controls.\n  - article:\n    - text: \"02\"\n    - heading \"Encrypted chat\" [level=3]\n    - paragraph: Device-bound conversation keys, verified recovery states and explicit device rotation.\n  - article:\n    - text: \"03\"\n    - heading \"People you choose\" [level=3]\n    - paragraph: Discover by handle, invite or QR without exposing a wallet address as a public identity.\n  - text: Privacy boundary\n  - heading \"Your wallet is a key, not your public profile.\" [level=2]\n  - list:\n    - listitem: Standard wallet connection stays available if private YNX services are degraded.\n    - listitem: No recovery phrase or private key is requested or received.\n    - listitem: Private Social access requires a separate, explicit Product Session approval.\n    - listitem: Rejected or failed approval creates no local or canned session.\n  - text: Get the app\n  - heading \"Continue on mobile.\" [level=2]\n  - paragraph: The public Web surface is for discovery and standard wallet connection. Private conversations remain in the installed Social client.\n  - link \"Download YNX apps\":\n    - /url: https://www.ynxweb4.com/dapp/download\n  - generic: Android Testnet preview · other platforms require verified releases\n- dialog:\n  - text: Standard wallet connection\n  - heading \"Choose a wallet\" [level=2]\n  - button \"Close\" [active]: ×\n  - paragraph: Select the wallet you intend to use. YNX Social will not silently substitute another provider.\n  - button \"YNX Wallet logo YNX Wallet Independent YNX EIP-1193 provider Connect\":\n    - img \"YNX Wallet logo\"\n    - strong: YNX Wallet\n    - generic: Independent YNX EIP-1193 provider\n    - generic: Connect\n  - button \"MetaMask logo MetaMask MetaMask EIP-1193 provider Connect\":\n    - img \"MetaMask logo\"\n    - strong: MetaMask\n    - generic: MetaMask EIP-1193 provider\n    - generic: Connect\n  - status: No account request is sent until you choose a wallet.\n  - link \"Install wallet\":\n    - /url: \"#\"",
+  "logs": [],
+  "afterClose": {
+    "url": "https://social.ynxweb4.com/",
+    "dialogVisible": false
+  },
+  "afterRefresh": {
+    "url": "https://social.ynxweb4.com/",
+    "dialogVisible": false,
+    "console": []
+  },
+  "sameOriginTabs": [
+    {
+      "id": "8",
+      "url": "https://social.ynxweb4.com/"
+    }
+  ]
+}
