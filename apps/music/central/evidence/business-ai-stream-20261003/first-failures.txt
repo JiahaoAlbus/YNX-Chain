@@ -1,0 +1,3 @@
+Original tool-output transcripts:
+Build failed: internal/music/business_request.go:13:2: "strings" imported and not used. Removed obsolete import after replacing V2 hold.
+Original go test -race failure session52494: TestMusicV2MountCannotFallThroughLegacy business_ai_stream_test.go:127 legacy fallback allowed. Mounted V2 missing-proof branch returned403; changed actual source branch to canonical missing-auth401. Added explicit legacy transport counter so this test proves zero fallthrough calls, not just a401 status. Original negative expectation retained.

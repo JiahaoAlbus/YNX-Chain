@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "ynx-music-durable-ai-stream-source-checkpoint/v1",
+  "sourceCommit": "e54ca897445da8317257e16ba7f03417d5999dee",
+  "sourceTree": "5539b9c0834d07bd6dc47ceff04d14ea5efdf7e3",
+  "baseline": "3f7e5db55f039f4cb1fdad84f37c22d26edf1458",
+  "completeMediaInheritedFrom": "3f7e5db55f039f4cb1fdad84f37c22d26edf1458",
+  "sourceDeltaPins": [
+    {
+      "path": "internal/music/business_ai_stream.go",
+      "bytes": 8827,
+      "sha256": "3ff2a195191b4294dca4e049545bacf2e156ccfc7c6cbf515f32df6d29a76baf",
+      "gitBlob": "c10c50d77d5e55bfab6e4ceccc34d84f2d062926"
+    },
+    {
+      "path": "internal/music/business_ai_stream_test.go",
+      "bytes": 5650,
+      "sha256": "d4de855b2f5d4cc98488b74ed9cb785cdc1077644a0ac037435a8d97aa76c32d",
+      "gitBlob": "0b880adefe796d6accc8b97d7d98b659375199a2"
+    },
+    {
+      "path": "internal/music/business_effect.go",
+      "bytes": 7875,
+      "sha256": "d5c2ef8b624fdc0f3e9a06bb21b382fa59a1ffd5acd0781394fbecce03c80b96",
+      "gitBlob": "5f6d8bcc88370fdbea1a60d0350e754bd3f45b36"
+    },
+    {
+      "path": "internal/music/business_effect_test.go",
+      "bytes": 16631,
+      "sha256": "5ad98e8af6a4bb8fa383eed568101708d26716b9d14c27d443c4df67510dd7c9",
+      "gitBlob": "ddf6383a908f16ffe3a082e8b864c55f3b987333"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 8706,
+      "sha256": "8ac706cfcbbeaf9637adc96c232de9dd1efe0c12717de4ae38d7ab6cd6ccf91a",
+      "gitBlob": "226b9d4ca7545d16b3104cae617ef7b96e42c9f6"
+    },
+    {
+      "path": "internal/music/business_request_test.go",
+      "bytes": 13991,
+      "sha256": "ba5bbb3327fefdebd1b6a72e08446b78830be3a6bb4340f2de36cb8a9b3d8fd3",
+      "gitBlob": "13a5b5cecd096f1635124087ae6314dafe88a7a0"
+    },
+    {
+      "path": "internal/music/compatibility.go",
+      "bytes": 2752,
+      "sha256": "e67ec48b37d89c7b09eaf7a61a2721970a8d3eadb7e8e0b590736e20f7c8f0b6",
+      "gitBlob": "a0c1e53123cc3262eb05f5c8436c6e741c51e9a4"
+    },
+    {
+      "path": "internal/music/server.go",
+      "bytes": 25327,
+      "sha256": "36c082c5154a5989cbc96090f271b8fa93aaa808fb078c6a363e2fced1d98e7d",
+      "gitBlob": "93119f35d8e1cffe25fa71b7895c97efe4660078"
+    },
+    {
+      "path": "internal/music/store.go",
+      "bytes": 13638,
+      "sha256": "51fc5ef67d16db31e02b908f4be21625d2abf3eda486eee8e7af46acdf06d3c5",
+      "gitBlob": "2b1edcf78d7f907bab7624b4cb14fab0256a9e33"
+    }
+  ],
+  "implemented": [
+    "V2 original AI route dispatch admitted with original actor/proposal/context, business nonce and streaming state before network",
+    "configured HTTPS gateway, original bounded wire, server-only AI key, no redirect or consumer proof forwarding",
+    "15s original request context; original authority and current track/library permission before every emitted token",
+    "128KiB complete actual stream cap, 64KiB line cap, 12000byte result bound",
+    "strict complete token/metadata/done frames; missing done, malformed and postterminal streams not completed",
+    "gateway done withheld until actualEOF and durable receipt plus original proposal completed in one transaction",
+    "fresh authorized request after restart replays saved completed result without provider resend",
+    "admission without completed receipt remains unknown; no automatic resend",
+    "legacy stream also cannot turn plainEOF into completed result",
+    "V2 authority installed forbids V1 business fallback, zero legacy transport calls verified",
+    "schema1/2/3/4 verified migration to5, original store/media/keys retained"
+  ],
+  "checks": {
+    "command": "go test -race -count=1 -json ./internal/music ./apps/music",
+    "packages": {
+      "github.com/JiahaoAlbus/YNX-Chain/apps/music": "pass",
+      "github.com/JiahaoAlbus/YNX-Chain/internal/music": "pass"
+    },
+    "newAILeafPass": 13,
+    "newAILeaves": [
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/valid",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/CRLF_final",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/raw_cap_after_completion",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/missing_done",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/after_done",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/malformed_token",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/duplicate_data",
+      "TestMusicAIStreamRequiresCompleteBoundedTerminal/too_much",
+      "TestMusicAIActualV2StreamDurableRecoveryAndUnknown/complete",
+      "TestMusicAIActualV2StreamDurableRecoveryAndUnknown/incomplete",
+      "TestMusicAIActualV2StreamDurableRecoveryAndUnknown/revoked",
+      "TestMusicAIActualV2StreamDurableRecoveryAndUnknown/redirect",
+      "TestMusicV2MountCannotFallThroughLegacy"
+    ],
+    "vet": "PASS",
+    "diffCheck": "PASS",
+    "webConsumerSourceReview": "Existing actual streamAI performs authenticated final original proposal status/result readback and refuses non-completed status; unchanged."
+  },
+  "unknownReconciliation": "NOT_VERIFIED: no authoritative provider query/reconciliation contract supplied; durable incomplete admission preserved and not resent",
+  "release": {
+    "concreteSharedCryptoAdapterInstalled": false,
+    "protectedMount": false,
+    "formalArtifact": false,
+    "publicRuntimeVerified": false,
+    "actualWalletApproval": false,
+    "nativeInstalledUI": false,
+    "fullMediaGoalComplete": false
+  },
+  "remaining": [
+    "A exact admitted complete SDK and concrete liveActor/session adapter, registration/key/Host",
+    "formal Video approval to original actor business readback and recovery/isolation",
+    "unknown Pay/Trust/AI provider outcome reconciliation contract",
+    "native actual build/install and full-flow checks",
+    "Music Web full localization acceptance"
+  ],
+  "evidencePins": [
+    {
+      "path": "apps/music/central/evidence/business-ai-stream-20261003/first-failures.txt",
+      "bytes": 562,
+      "sha256": "6c2c4e3e7cb9ec92bfd9c151494c006a4f0a10fa22bce90e3ecf2a536dcac56a"
+    },
+    {
+      "path": "apps/music/central/evidence/business-ai-stream-20261003/go-race-final.jsonl",
+      "bytes": 155486,
+      "sha256": "b8f70137d1f4d0885a46a418faac99ad350eba11a51cda06f275bd3b72daf046"
+    },
+    {
+      "path": "apps/music/central/evidence/business-ai-stream-20261003/go-race-final2.jsonl",
+      "bytes": 155482,
+      "sha256": "31af2d72c7e9d51009068b2d21ed052154799fef425f01f35e16369549e02421"
+    },
+    {
+      "path": "apps/music/central/evidence/business-ai-stream-20261003/go-race-run2.jsonl",
+      "bytes": 154424,
+      "sha256": "0b16ff851d9bc8ecde4e9ba59e72da190f9261200c48cfcf4fe431a19d9b7269"
+    }
+  ]
+}
