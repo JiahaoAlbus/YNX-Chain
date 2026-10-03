@@ -6,7 +6,7 @@ import {cardOperationsCopy} from './cardOperationsCopy';
 test('YNXT amounts preserve exact 18 decimal places without floats',()=>{
   assert.equal(parseTestnetYnxt('0.000000000000000001'),'1');
   assert.equal(parseTestnetYnxt('1.123456789012345678'),'1123456789012345678');
-  assert.equal(parseTestnetYnxt('9007199254740993'),'9007199254740993000000000000000');
+  assert.equal(parseTestnetYnxt('9007199254740993'),'9007199254740993000000000000000000');
   for(const input of ['0','-1','1e18','01','1.',' 1','NaN','0.0000000000000000001'])assert.throws(()=>parseTestnetYnxt(input));
 });
 test('journal canonicalization binds immutable nested input and rejects unsafe values',()=>{
