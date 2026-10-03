@@ -22,6 +22,14 @@ test('Native malformed invitation is rejected before preview, while exact origin
  for(const value of [link+'?',link+'#',link+'?approved=1',link.replace('.com/','.com:443/'),link.replace('/invite/','/%69nvite/'),'B'.repeat(31),'ynxsocial://invite/'+'B'.repeat(32)])await assert.rejects(f.flow.preview('invite',value),/exact YNX/);
  assert.equal(reads,0);const review=await f.flow.preview('invite',link);assert.equal(review.value,'B'.repeat(32));assert.equal(reads,1);assert.equal(f.sent.length,0);
 });
+test('restoring original contact requires fresh preview and allocates no replacement nonce',async()=>{
+ const f=fixture(),original={source:'handle' as const,value:'bob',personId:id,idempotencyKey:'native-contact-'+'a'.repeat(32)};let reads=0;
+ f.api.previewContact=async()=>{reads++;return {person:{id,handle:'bob',displayName:'Current Bob'}}};
+ const restored=await f.flow.restore(original);assert.equal(reads,1);assert.equal(f.sent.length,0);assert.equal(restored.idempotencyKey,original.idempotencyKey);assert.equal(restored.person.displayName,'Current Bob');await f.flow.confirm(restored,'Original message');assert.equal(f.sent[0]?.[2],original.idempotencyKey);
+});
+test('restoring changed target refuses the request instead of retargeting original nonce',async()=>{
+ const f=fixture();f.api.previewContact=async()=>({person:{id:'sp_'+'B'.repeat(32),handle:'other',displayName:'Other'}});await assert.rejects(f.flow.restore({source:'handle',value:'bob',personId:id,idempotencyKey:'native-contact-'+'a'.repeat(32)}),/target changed/);assert.equal(f.sent.length,0);
+});
 test("Native failed retry preserves identity, key and message",async()=>{const f=fixture(),review=await f.flow.preview("handle","bob");f.setFail(true);await assert.rejects(f.flow.confirm(review,"original"),/offline/);await assert.rejects(f.flow.confirm(review,"changed"),/original/);f.setFail(false);await f.flow.confirm(review,"original");assert.deepEqual(f.sent[0],f.sent[1])});
 test("Native late preview after account change cannot become a review",async()=>{const f=fixture();let resolve!:(value:any)=>void;f.api.previewContact=()=>new Promise(done=>{resolve=done});const pending=f.flow.preview("handle","bob");f.api.setToken(null);resolve({person:{id,handle:"bob",displayName:"Bob"}});await assert.rejects(pending,/authorization changed/);assert.equal(f.sent.length,0)});
 test("Native QR contract accepts opaque canonical locator, rejects legacy and funding values",()=>{assert.equal(requireSocialProfileQR(qr),qr);for(const value of [`${qr}?x=1`,`${qr}#x`,"ynxsocial://profile/bob","https://social.ynxweb4.com/people/ynx1funding","https://example.invalid/people/"+id]){assert.equal(socialProfileQR(value),null);assert.throws(()=>requireSocialProfileQR(value))}});

@@ -27,6 +27,13 @@ export class ContactRequestFlow{
   get uncertainRequests(){this.uncertain=this.uncertain.filter(item=>item.guard());return this.uncertain.map(({review,message})=>({review,message}))}
   isCurrent(review:ContactReview){return this.review===review&&!!this.guard?.()}
   async preview(source:ContactReview["source"],input:string):Promise<ContactReview>{
+    return this.preparePreview(source,input);
+  }
+  async restore(original:{source:ContactReview['source'];value:string;personId:string;idempotencyKey:string}):Promise<ContactReview>{
+    if(!/^sp_[A-Za-z0-9_-]{32}$/.test(original.personId)||!/^native-contact-[A-Za-z0-9_-]{16,64}$/.test(original.idempotencyKey))throw new Error('Original contact request requires recovery');
+    return this.preparePreview(original.source,original.value,original.personId,original.idempotencyKey);
+  }
+  private async preparePreview(source:ContactReview['source'],input:string,expectedPersonId?:string,originalKey?:string):Promise<ContactReview>{
     this.cancel();const sequence=this.sequence,guard=this.api.authorizationGuard();let value=input.trim();
     if(source==="handle"||source==="recommendation")value=value.replace(/^@/,"");
     if(/^ynx1/i.test(value))throw new Error("Wallet addresses cannot be used to add friends");
@@ -40,6 +47,8 @@ export class ContactRequestFlow{
     if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; review the person again");
     if(!/^sp_[A-Za-z0-9_-]{32}$/.test(result.person?.id??"")||typeof result.person.handle!=="string"||typeof result.person.displayName!=="string")throw new Error("A stable Social profile could not be verified");
     if(source==='qr'&&result.person.id!==value.slice('https://social.ynxweb4.com/people/'.length))throw new Error('The original personal code does not match this profile');
+    if(expectedPersonId&&result.person.id!==expectedPersonId)throw new Error('The original pending contact target changed; request was not resent');
+    if(originalKey){const review=Object.freeze({source,value,person:Object.freeze({...result.person}),idempotencyKey:originalKey});this.review=review;this.guard=guard;return review}
     const entropy=await this.operation.run(()=>this.randomId());if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; old preview discarded");
     if(!/^[A-Za-z0-9_-]{16,64}$/.test(entropy))throw new Error("Request identity could not be created");
     const review=Object.freeze({source,value,person:Object.freeze({...result.person}),idempotencyKey:`native-contact-${entropy}`});this.review=review;this.guard=guard;return review;

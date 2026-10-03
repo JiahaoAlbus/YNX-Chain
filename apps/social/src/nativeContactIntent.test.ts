@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {NativeContactIntents,checkedNativeContactIntent,type NativeContactIntent} from './nativeContactIntent';
+const account='ynx1'+'a'.repeat(38),other='ynx1'+'b'.repeat(38),intent:NativeContactIntent={schemaVersion:1,account,source:'handle',value:'original',personId:'sp_'+'A'.repeat(32),idempotencyKey:'native-contact-'+'a'.repeat(32),message:'Original message'};
+function fixture(){const rows=new Map<string,string>();const storage={read:async(key:string)=>rows.get(key)??null,write:async(key:string,value:string)=>{rows.set(key,value)}};return {rows,storage,intents:new NativeContactIntents(storage)}}
+test('original unknown request survives a new consumer with same target/key/message',async()=>{const f=fixture();await f.intents.prepare(intent,()=>true);assert.deepEqual(await new NativeContactIntents(f.storage).load(account),intent)});
+test('changed original target/message/key cannot replace uncertain request',async()=>{const f=fixture();await f.intents.prepare(intent,()=>true);for(const changed of [{...intent,message:'Changed'},{...intent,personId:'sp_'+'B'.repeat(32)},{...intent,idempotencyKey:'native-contact-'+'b'.repeat(32)}])await assert.rejects(f.intents.prepare(changed,()=>true),/Restore/);assert.deepEqual(await f.intents.load(account),intent)});
+test('another account cannot adopt the old carrier',async()=>{const f=fixture();await f.intents.prepare(intent,()=>true);assert.equal(await f.intents.load(other),null);assert.throws(()=>checkedNativeContactIntent(intent,other),/recovery/)});
+test('malformed original is not reset or overwritten',async()=>{const f=fixture();f.rows.set(`ynx.social.contact.intent.v1.${account}`,'broken original');await assert.rejects(f.intents.prepare(intent,()=>true),/recovery/);assert.equal([...f.rows.values()][0],'broken original')});
+test('late secure-store completion does not erase original after account changes',async()=>{const f=fixture();await f.intents.prepare(intent,()=>true);let active=true,release!:()=>void,started!:()=>void;const ready=new Promise<void>(resolve=>{started=resolve}),blocked=new Promise<void>(resolve=>{release=resolve}),write=f.storage.write;f.storage.write=async(key,value)=>{started();await blocked;await write(key,value)};const pending=f.intents.returned(intent,()=>active);await ready;active=false;release();assert.equal(await pending,false);const original=await f.intents.load(account);assert.equal(original?.idempotencyKey,intent.idempotencyKey);assert.equal(original?.operationReturned,true)});
+test('returned operation permits a new explicit intent, never asserts accepted relationship',async()=>{const f=fixture();await f.intents.prepare(intent,()=>true);await f.intents.returned(intent,()=>true);const next={...intent,idempotencyKey:'native-contact-'+'b'.repeat(32),message:'New explicit message'};assert.deepEqual(await f.intents.prepare(next,()=>true),next);assert.equal('accepted' in next,false)});
+test('stale guard sends no replacement storage write',async()=>{const f=fixture();await assert.rejects(f.intents.prepare(intent,()=>false),/review changed/);assert.equal(f.rows.size,0)});
+test('a remounted consumer cannot replace original while native write is still running',async()=>{
+ const f=fixture();let release!:()=>void,started!:()=>void;const ready=new Promise<void>(resolve=>{started=resolve}),blocked=new Promise<void>(resolve=>{release=resolve}),write=f.storage.write;
+ f.storage.write=async(key,value)=>{started();await blocked;await write(key,value)};
+ const pending=f.intents.prepare(intent,()=>true);await ready;
+ const remounted=new NativeContactIntents(f.storage);await assert.rejects(remounted.prepare({...intent,idempotencyKey:'native-contact-'+'b'.repeat(32)},()=>true),/busy/);
+ release();await pending;assert.deepEqual(await remounted.load(account),intent);
+});

@@ -115,6 +115,8 @@ import {runCurrentContactAction} from './src/contactActionGuard';
 import {NativeMomentIntents,publishOriginalNativeMoment} from './src/nativeMomentIntent';
 import {NativeMomentActions} from './src/nativeMomentActions';
 import {NativeDiscoveryIntents,isOriginalDiscoveryReview} from './src/nativeDiscoveryIntent';
+import {NativeContactIntents} from './src/nativeContactIntent';
+import {ContactOperation} from './src/contactOperation';
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -528,7 +530,7 @@ function SocialApp() {
       </View>
       <View style={styles.body}>
         {tab === "contacts" ? (
-          <Contacts key={api.authorizationGeneration} api={api} discovery={discovery} onDiscoveryConsumed={consumeDiscovery} />
+          <Contacts key={api.authorizationGeneration} api={api} account={session.session.account} discovery={discovery} onDiscoveryConsumed={consumeDiscovery} />
         ) : tab === "messages" ? (
           <Messages api={api} session={session} />
         ) : tab === "moments" ? (
@@ -640,11 +642,13 @@ function LanguagePicker({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discovery?:SocialDiscoveryEntry|null;onDiscoveryConsumed?:(value:string)=>void }) {
+function Contacts({ api,account,discovery,onDiscoveryConsumed }: { api: SocialAPI;account:string;discovery?:SocialDiscoveryEntry|null;onDiscoveryConsumed?:(value:string)=>void }) {
   type Source = "handle" | "contacts" | "qr" | "invite" | "recommendation";
   const flow=useMemo(()=>new ContactRequestFlow(api,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,"0")).join("")),[api]);
   const requestGeneration=useRef(0);
   const relationshipPending=useRef(new Set<string>());
+  const contactIntents=useMemo(()=>new NativeContactIntents({read:key=>SecureStore.getItemAsync(key),write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY})}),[]);
+  const contactStorageWait=useMemo(()=>new ContactOperation(),[]);
   const mounted=useRef(true),scanGuard=useRef<()=>boolean>(()=>false);
   const [review,setReview]=useState<ContactReview|null>(null),[requesting,setRequesting]=useState(false),[requestMessage,setRequestMessage]=useState("");
   const [data, setData] = useState<{
@@ -657,7 +661,7 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
     [scan, setScan] = useState(false),
     [source, setSource] = useState<Source>("handle"),
     [value, setValue] = useState("");
-  const cancelRequest=()=>{requestGeneration.current++;flow.cancel();setRequesting(false)};
+  const cancelRequest=()=>{requestGeneration.current++;flow.cancel();contactStorageWait.cancel();setRequesting(false)};
   useEffect(()=>{
     if(!discovery)return;
     requestGeneration.current++;flow.cancel();setRequesting(false);setReview(null);setRequestMessage('');setSource(discovery.source);setValue(discovery.value);setAdd(true);
@@ -688,7 +692,10 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
     const authority=api.authorizationGuard();if(requesting)return;const generation=++requestGeneration.current;const current=()=>authority()&&requestGeneration.current===generation;setRequesting(true);
     try {
       if(!review){const next=await flow.preview(source,value);if(mounted.current&&current()){setReview(next);setError(null)}return}
-      await flow.confirm(review,requestMessage);if(!mounted.current||!current())return;
+      const intent=await contactStorageWait.run(signal=>contactIntents.prepare({schemaVersion:1,account,source:review.source,value:review.value,personId:review.person.id,idempotencyKey:review.idempotencyKey,message:requestMessage.trim()},()=>mounted.current&&current()&&!signal.aborted));
+      if(!mounted.current||!current())return;
+      if(!intent.operationReturned){await flow.confirm(review,intent.message);if(!mounted.current||!current())return;await contactStorageWait.run(signal=>contactIntents.returned(intent,()=>mounted.current&&current()&&!signal.aborted))}
+      if(!mounted.current||!current())return;
       setReview(null);setRequestMessage("");
       setAdd(false);
       if(discovery&&isOriginalDiscoveryReview(discovery,review))onDiscoveryConsumed?.(discovery.value);
@@ -699,6 +706,15 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
     } finally {
       if(mounted.current&&current())setRequesting(false);
     }
+  };
+  const restoreContactRequest=async()=>{
+    cancelRequest();const authority=api.authorizationGuard(),generation=++requestGeneration.current,current=()=>mounted.current&&authority()&&requestGeneration.current===generation;setRequesting(true);
+    try{
+      const original=await contactStorageWait.run(()=>contactIntents.load(account));if(!current())return;
+      if(!original){setError('No original pending contact request was found');return}
+      if(original.operationReturned){await load();if(current())setError('The original request API returned previously. Read the actual request status; acceptance remains separate.');return}
+      const next=await flow.restore(original);if(!current())return;setSource(next.source);setValue(next.value);setReview(next);setRequestMessage(original.message);setAdd(true);setError(null);
+    }catch(caught){if(current())setError(message(caught))}finally{if(current())setRequesting(false)}
   };
   const transition = async (
     item: ContactRequest,
@@ -753,6 +769,7 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
   const pending = data.requests.filter((item) => item.status === "pending"),
     requestHeader = (
       <View>
+        <Pressable accessibilityLabel="Restore original pending contact request" onPress={()=>void restoreContactRequest()} style={styles.secondary}><Text style={styles.secondaryText}>Restore original pending request</Text></Pressable>
         {pending.map((item) => (
           <View key={item.id} style={styles.request}>
             <Avatar person={item.person} />
