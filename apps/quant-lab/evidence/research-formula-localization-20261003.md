@@ -24,7 +24,10 @@ No raw HTML rendering: unknown text remains assigned through textContent.
   Added mobile 390px all-language formula test preserves numerical results,
   no horizontal overflow, no extra tabs and no extra request on locale change;
   a literal script-shaped unknown formula renders as text, not executable HTML.
-- Local screenshot: `tmp/quant-lab-evidence/research-localized-service-formulas.png`.
+- Local screenshot retained in owner Git evidence:
+  `apps/quant-lab/evidence/research-localized-service-formulas-local-qa-20261003.png`,
+  182721 bytes, SHA256
+  `261d7a2b38454c5be621c12af33dd0288ec66f07013558493e27336984abcffc`.
   UI receipts used by that browser test are explicitly controlled fixtures,
   not a public backtest, approved account or real transaction.
 - Full Quant npm test: 62 tests, 61 pass, 1 existing failure
