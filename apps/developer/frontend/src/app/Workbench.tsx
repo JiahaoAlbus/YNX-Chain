@@ -1,4 +1,4 @@
-import { applyPackageMetadata, persistTerminalWorkspace, terminalCommonBase, mergeTerminalFiles, stopSelectedTerminals } from "../terminal/admission";
+import { applyPackageMetadata, persistTerminalWorkspace, terminalCommonBase, mergeTerminalFiles, mergeStoppedTerminalWorkspace, stopSelectedTerminals } from "../terminal/admission";
 import { installHostCommands } from "../desktop/host-commands";
 import { desktopEditorReady } from "../editor/native-edit";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -140,6 +140,7 @@ export function Workbench() {
     [workspaceAdmitted, setWorkspaceAdmitted] = useState(false),
     [admissionAttempt, setAdmissionAttempt] = useState(0),
     [terminalActive, setTerminalActive] = useState(false),
+    [terminalSyncBlocked, setTerminalSyncBlocked] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
     [editorLocation, setEditorLocation] = useState<{ path: string; line: number; column: number; nonce: number }>(),
@@ -263,6 +264,7 @@ export function Workbench() {
     let cancelled = false;
     setWorkspaceAdmitted(false);
     setNativeReadOnly(false);
+    setTerminalSyncBlocked(false);
     if (baselineProject.current !== project.id) { lastSynced.current = ""; baselineProject.current = project.id; }
     (async () => {
       try {
@@ -321,7 +323,7 @@ export function Workbench() {
     return () => removeEventListener("online", handleOnline);
   }, [reconnect]);
   useEffect(() => {
-    if (!hydrated || nativeReadOnly || terminalActive || packageBusy || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
+    if (!hydrated || nativeReadOnly || terminalActive || terminalSyncBlocked || packageBusy || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
       const expected = project.remoteRevision;
       saveWorkspace(project.id, expected, workspace)
@@ -336,7 +338,7 @@ export function Workbench() {
         .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
     }, editorPreferences.autoSaveDelay);
     return () => clearTimeout(timer);
-  }, [nativeReadOnly, terminalActive, packageBusy, collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  }, [nativeReadOnly, terminalActive, terminalSyncBlocked, packageBusy, collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
   const collaborationReadOnly = nativeReadOnly || Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
@@ -400,6 +402,7 @@ export function Workbench() {
     try { await saveProject(project); }
     catch { setRuntime("Workspace recovery could not be saved"); return { saved: false, localSaved: false, remoteSaved: false }; }
     if (workspaceKeyRef.current !== workspaceKey) return { saved: false, localSaved: true, remoteSaved: false };
+    if (terminalSyncBlocked) return { saved: false, localSaved: true, remoteSaved: false };
     const clearActiveDirty = () =>
       setDirty((current) => {
         const next = new Set(current);
@@ -735,6 +738,27 @@ export function Workbench() {
     },
     [project.id],
   );
+  const refreshTerminalWorkspace = useCallback(async (revision: number) => {
+    setTerminalSyncBlocked(true);
+    try {
+      const remote = await loadWorkspace(project.id);
+      if (baselineProject.current !== project.id) return;
+      if (!remote || remote.revision !== revision || !lastSynced.current) throw new Error("Terminal synchronization could not establish the saved common base. Both copies are retained.");
+      const local = JSON.parse(workspaceKeyRef.current), base = JSON.parse(lastSynced.current);
+      const merged = mergeStoppedTerminalWorkspace(base, local, remote);
+      const remoteKey = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
+      // Publish the merged model and its actual server revision together before
+      // autosave resumes. Tab navigation is local UI state, not a file conflict.
+      lastSynced.current = remoteKey;
+      workspaceKeyRef.current = JSON.stringify(merged);
+      setProject(current => current.id === project.id ? { ...current, ...merged, remoteRevision: remote.revision, revision: current.revision + 1 } : current);
+      setRuntime("Terminal synchronized · local edits retained");
+      setTerminalSyncBlocked(false);
+    } catch (error) {
+      setRuntime(error instanceof Error ? error.message : "Terminal synchronization failed. Both copies are retained.");
+      setWorkspaceAdmitted(false);
+    }
+  }, [project.id]);
   const applyCollaborativeFiles = useCallback((files: Record<string, string>) => {
     setProject((current) => {
       if (JSON.stringify(current.files) === JSON.stringify(files)) return current;
@@ -1114,7 +1138,7 @@ export function Workbench() {
             <span className="spacer" />
             {bottom === "task" && <button onClick={() => setOutput("YNX Code task output\n")}>Clear</button>}
           </div>
-          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? (workspaceAdmitted && !packageBusy ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} onActive={setTerminalActive} /> : <div className="empty-state">{packageBusy ? "Stopping and synchronizing the terminal before package installation…" : "Save or retry the workspace connection before opening a terminal."}</div>) : problems.length ? <div className="problems-list" role="list" aria-label="Language server problems">{problems.map((problem, index) => <button type="button" role="listitem" key={`${problem.path}:${problem.line}:${problem.column}:${problem.code}:${index}`} onClick={() => open(problem.path)}>{problem.severity === "error" ? <CircleAlert className="problem-error" size={13} /> : problem.severity === "warning" ? <TriangleAlert className="problem-warning" size={13} /> : <Info className="problem-info" size={13} />}<span><strong>{problem.message}</strong><small>{problem.path}:{problem.line}:{problem.column} · {problem.source}{problem.code ? ` · ${problem.code}` : ""}</small></span></button>)}</div> : <div className="empty-state">No current language-server problems for opened files. Diagnostics are requested after edits and may be unavailable when that language server is not installed.</div>}</div>
+          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? (workspaceAdmitted && !packageBusy ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshTerminalWorkspace} onActive={setTerminalActive} /> : <div className="empty-state">{packageBusy ? "Stopping and synchronizing the terminal before package installation…" : "Save or retry the workspace connection before opening a terminal."}</div>) : problems.length ? <div className="problems-list" role="list" aria-label="Language server problems">{problems.map((problem, index) => <button type="button" role="listitem" key={`${problem.path}:${problem.line}:${problem.column}:${problem.code}:${index}`} onClick={() => open(problem.path)}>{problem.severity === "error" ? <CircleAlert className="problem-error" size={13} /> : problem.severity === "warning" ? <TriangleAlert className="problem-warning" size={13} /> : <Info className="problem-info" size={13} />}<span><strong>{problem.message}</strong><small>{problem.path}:{problem.line}:{problem.column} · {problem.source}{problem.code ? ` · ${problem.code}` : ""}</small></span></button>)}</div> : <div className="empty-state">No current language-server problems for opened files. Diagnostics are requested after edits and may be unavailable when that language server is not installed.</div>}</div>
         </section>
         <footer className="statusbar">
           <span>

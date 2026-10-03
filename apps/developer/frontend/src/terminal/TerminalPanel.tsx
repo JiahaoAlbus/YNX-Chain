@@ -10,7 +10,7 @@ export function TerminalPanel({ output, running }:{output:string;running:boolean
   return <div ref={host} className="h-full min-h-0 w-full bg-[#101114] p-2" aria-label="Task terminal output" />;
 }
 
-export function InteractiveTerminal({ projectId, runtimeId, onWorkspaceSync, onActive }: { projectId: string; runtimeId?: string; onWorkspaceSync: (revision: number) => void; onActive: (active: boolean) => void }) {
+export function InteractiveTerminal({ projectId, runtimeId, onWorkspaceSync, onActive }: { projectId: string; runtimeId?: string; onWorkspaceSync: (revision: number) => void | Promise<void>; onActive: (active: boolean) => void }) {
   const host = useRef<HTMLDivElement>(null), terminal = useRef<Terminal | null>(null), socket = useRef<WebSocket | null>(null);
   const [generation, setGeneration] = useState(0), [connection, setConnection] = useState<"connecting" | "connected" | "detached" | "stopping" | "stopped" | "recovery">("connecting");
   const storageKey = `ynx-code-terminal:${projectId}:${runtimeId || "local"}`;
@@ -21,6 +21,7 @@ export function InteractiveTerminal({ projectId, runtimeId, onWorkspaceSync, onA
     const fit = new FitAddon(); instance.loadAddon(fit); instance.open(host.current); fit.fit(); terminal.current = instance;
     setConnection("connecting"); instance.writeln("YNX Code workspace terminal · connecting…");
     let disposed = false, exited = false, ws: WebSocket | undefined;
+    let synchronization = Promise.resolve();
     const connect = async () => {
       try {
         await runtimeHealth(); if (disposed) return;
@@ -33,9 +34,9 @@ export function InteractiveTerminal({ projectId, runtimeId, onWorkspaceSync, onA
           const value = JSON.parse(String(event.data));
           if (value.type === "output" || value.type === "replay") instance.write(value.data);
           else if (value.type === "ready") { localStorage.setItem(storageKey, value.sessionId); setConnection("connected"); instance.writeln(`ready · ${value.sandbox.kind}`); }
-          else if (value.type === "workspace-synced") onWorkspaceSync(value.revision);
+          else if (value.type === "workspace-synced") synchronization = synchronization.then(() => onWorkspaceSync(value.revision));
           else if (value.type === "workspace-sync-conflict") { setConnection("recovery"); instance.writeln(`\r\nWorkspace cleanup ${value.stage || "failed"}: ${value.code} · ${value.message}`); }
-          else if (value.type === "exit") { exited = true; localStorage.removeItem(storageKey); setConnection("stopped"); onActive(false); instance.writeln("\r\nTerminal stopped and synchronized."); }
+          else if (value.type === "exit") { exited = true; void synchronization.then(() => { if (disposed) return; localStorage.removeItem(storageKey); setConnection("stopped"); onActive(false); instance.writeln("\r\nTerminal stopped; workspace synchronization reviewed."); }).catch(error => { if (!disposed) { setConnection("recovery"); instance.writeln(String(error)); } }); }
           else if (value.type === "error") { setConnection("recovery"); instance.writeln(value.message); }
         });
         ws.addEventListener("close", event => { if (socket.current === ws) socket.current = null; if (disposed || exited) return; setConnection("detached"); instance.writeln(`\r\nTerminal detached (${event.code}). Use Stop to verify and synchronize this session, or Reconnect.`); });
@@ -52,7 +53,7 @@ export function InteractiveTerminal({ projectId, runtimeId, onWorkspaceSync, onA
     setConnection("stopping");
     try {
       await stopTerminalSession(id);
-      const remote = await loadWorkspace(projectId); if (remote) onWorkspaceSync(remote.revision);
+      const remote = await loadWorkspace(projectId); if (remote) await onWorkspaceSync(remote.revision);
       localStorage.removeItem(storageKey); setConnection("stopped"); onActive(false);
       terminal.current?.writeln("\r\nTerminal stopped and synchronized.");
     } catch (error) { setConnection("recovery"); terminal.current?.writeln(error instanceof Error ? error.message : "Stop failed; recovery remains protected."); }

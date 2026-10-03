@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { applyPackageMetadata, mergeTerminalFiles, persistTerminalWorkspace, stopSelectedTerminals, terminalCommonBase } from "../src/terminal/admission.ts";
+import { applyPackageMetadata, mergeTerminalFiles, mergeStoppedTerminalWorkspace, persistTerminalWorkspace, stopSelectedTerminals, terminalCommonBase } from "../src/terminal/admission.ts";
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
 
 test("selected terminal stop and synchronization completes before package admission", async () => {
@@ -36,4 +36,21 @@ test("online admission keeps the original common base when remote revision advan
 test("disjoint edits merge while delete/edit conflicts retain both inputs", () => {
   assert.deepEqual(mergeTerminalFiles({ a: "1", b: "1" }, { a: "2", b: "1" }, { a: "1", b: "3" }), { a: "2", b: "3" });
   const ours = {}, theirs = { a: "changed" }; assert.throws(() => mergeTerminalFiles({ a: "before" }, ours, theirs), /conflict/); assert.deepEqual(theirs, { a: "changed" }); assert.deepEqual(ours, {});
+});
+test("terminal-created files and local tab navigation survive stop together", () => {
+  const base = { name: "project", files: { "main.cpp": "compiled", "README.md": "readme" }, folders: [], open: ["main.cpp"], active: "main.cpp" };
+  const local = { ...base, open: ["main.cpp", "README.md"], active: "README.md" };
+  const remote = { ...base, files: { ...base.files, "native-qa-note.txt": "PTY marker\n" } };
+  const merged = mergeStoppedTerminalWorkspace(base, local, remote);
+  assert.equal(merged.files["native-qa-note.txt"], "PTY marker\n");
+  assert.equal(merged.active, "README.md"); assert.deepEqual(merged.open, local.open);
+});
+test("stop merges disjoint unsaved edits and refuses same-file or project-name conflicts", () => {
+  const base = { name: "project", files: { a: "base", b: "base" }, folders: [], open: ["a"], active: "a" };
+  const local = { ...base, files: { ...base.files, a: "unsaved" } };
+  const remote = { ...base, files: { ...base.files, b: "terminal" } };
+  assert.deepEqual(mergeStoppedTerminalWorkspace(base, local, remote).files, { a: "unsaved", b: "terminal" });
+  assert.throws(() => mergeStoppedTerminalWorkspace(base, local, { ...remote, files: { ...remote.files, a: "terminal edit" } }), /conflict/);
+  assert.throws(() => mergeStoppedTerminalWorkspace(base, { ...local, name: "ours" }, { ...remote, name: "theirs" }), /names conflict/);
+  assert.equal(local.files.a, "unsaved"); assert.equal(remote.files.b, "terminal");
 });

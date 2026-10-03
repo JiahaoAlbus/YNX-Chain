@@ -11,6 +11,19 @@ export function mergeTerminalFiles(base: Record<string, string>, local: Record<s
   if (conflicts.length) throw new Error(`Local and terminal edits conflict: ${conflicts.join(", ")}. Both copies are retained; reconcile them before installing packages.`);
   return files;
 }
+type TerminalWorkspace = { name: string; files: Record<string, string>; folders: string[]; open: string[]; active: string };
+export function mergeStoppedTerminalWorkspace(base: TerminalWorkspace, local: TerminalWorkspace, remote: TerminalWorkspace): TerminalWorkspace {
+  const files = mergeTerminalFiles(base.files, local.files, remote.files);
+  if (local.name !== base.name && remote.name !== base.name && local.name !== remote.name) throw new Error("Local and terminal project names conflict. Both copies are retained.");
+  const folders = [...new Set([...base.folders, ...local.folders, ...remote.folders])].filter(path => {
+    const before = base.folders.includes(path), ours = local.folders.includes(path);
+    return ours === before ? remote.folders.includes(path) : ours;
+  }).sort();
+  const open = local.open.filter(path => Object.hasOwn(files, path));
+  const active = Object.hasOwn(files, local.active) ? local.active : open[0] || Object.keys(files)[0] || "";
+  if (active && !open.includes(active)) open.push(active);
+  return { name: local.name === base.name ? remote.name : local.name, files, folders, open, active };
+}
 export async function stopSelectedTerminals<T extends { sessionId: string; runtimeId?: string }>(runtimeId: string, list: () => Promise<T[]>, stop: (id: string) => Promise<unknown>) {
   const selected = (await list()).filter(value => value.runtimeId === runtimeId);
   for (const value of selected) await stop(value.sessionId);
