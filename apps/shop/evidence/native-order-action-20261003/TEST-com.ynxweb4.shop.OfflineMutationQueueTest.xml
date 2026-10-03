@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.OfflineMutationQueueTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-03T15:44:01.556Z" hostname="HuangJiahaoMacmini" time="0.011">
+  <properties/>
+  <testcase name="legacyAndAnotherAccountRemainStoredAndUnexecuted" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.002"/>
+  <testcase name="accountSwitchStopsTheWholeRestoreWithoutExecutingNewAccountsQueue" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.001"/>
+  <testcase name="guestAndPaymentExecutionCannotEnterQueue" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.002"/>
+  <testcase name="repeatedOfflineCheckoutKeepsOneExactIntent" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.001"/>
+  <testcase name="confirmedQueuedCheckoutReconcilesOnlyItsPersistedAccountCart" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.001"/>
+  <testcase name="firstFailureRetainsOriginalIntentAndDoesNotRunLaterActions" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.001"/>
+  <testcase name="orderActionAdmissionKeepsColdOriginalAndForeignRowsUnchanged" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.0"/>
+  <testcase name="enqueueDuringNetworkWaitReturnsAndPreservesTheNewIntent" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.002"/>
+  <testcase name="replacingSameAccountSessionAlsoStopsTheRestore" classname="com.ynxweb4.shop.OfflineMutationQueueTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
