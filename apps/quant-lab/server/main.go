@@ -71,7 +71,10 @@ func main() {
 	srv := http.Server{Addr: addr, Handler: headers(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	s.StartScheduler(ctx, 5*time.Second)
+	schedulerDone := s.StartScheduler(ctx, 5*time.Second)
+	// Registered after the service Close defer: cancel and join the research
+	// worker before its shared database pool is closed on normal shutdown.
+	defer func() { stop(); <-schedulerDone }()
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)

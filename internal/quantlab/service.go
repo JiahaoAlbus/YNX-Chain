@@ -1256,6 +1256,13 @@ type scheduledRunClaim struct {
 }
 
 func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
+	return s.claimDueSchedulesContext(context.Background())
+}
+
+func (s *Service) claimDueSchedulesContext(ctx context.Context) ([]scheduledRunClaim, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, err := s.lockAndReload()
@@ -1263,6 +1270,9 @@ func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
 		return nil, err
 	}
 	defer release()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	now := s.cfg.Now()
 	ids := make([]string, 0, len(s.state.Strategies))
 	for id := range s.state.Strategies {
@@ -1295,6 +1305,13 @@ func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
 }
 
 func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Experiment, runErr error) (ScheduledRunReceipt, error) {
+	return s.completeScheduledRunContext(context.Background(), claim, experiment, runErr)
+}
+
+func (s *Service) completeScheduledRunContext(ctx context.Context, claim scheduledRunClaim, experiment Experiment, runErr error) (ScheduledRunReceipt, error) {
+	if err := ctx.Err(); err != nil {
+		return ScheduledRunReceipt{}, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, err := s.lockAndReload()
@@ -1302,6 +1319,9 @@ func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Exper
 		return ScheduledRunReceipt{}, err
 	}
 	defer release()
+	if err := ctx.Err(); err != nil {
+		return ScheduledRunReceipt{}, err
+	}
 	strategy, ok := s.state.Strategies[claim.Strategy.ID]
 	if !ok || strategy.Runtime.RunID != claim.RunID {
 		return ScheduledRunReceipt{}, ErrConflict
@@ -1329,24 +1349,36 @@ func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Exper
 // run; a crashed claim becomes eligible again only at the next persisted due
 // time. Scheduled runs never submit Paper or Testnet orders.
 func (s *Service) RunDueSchedules() ([]ScheduledRunReceipt, error) {
-	claims, err := s.claimDueSchedules()
+	return s.RunDueSchedulesContext(context.Background())
+}
+
+// Cancellation after a persisted claim leaves that claim intact. Existing
+// next-due recovery, not an immediate replay or a widened mandate, handles it.
+func (s *Service) RunDueSchedulesContext(ctx context.Context) ([]ScheduledRunReceipt, error) {
+	claims, err := s.claimDueSchedulesContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	receipts := make([]ScheduledRunReceipt, 0, len(claims))
 	for _, claim := range claims {
+		if err := ctx.Err(); err != nil {
+			return receipts, err
+		}
 		var experiment Experiment
 		var runErr error
 		if s.cfg.MarketData == nil {
 			runErr = ErrUnavailable
-		} else if bars, source, marketErr := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); marketErr != nil || len(bars) < 20 {
+		} else if bars, source, marketErr := marketHistory(ctx, s.cfg.MarketData, "YNXT-YUSD_TEST", 10000); marketErr != nil || len(bars) < 20 {
 			runErr = ErrUnavailable
 		} else {
 			strategy := claim.Strategy
 			strategy.Source = source
-			experiment, runErr = s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: strategy.Runtime.Assumptions, scheduleRunID: claim.RunID})
+			experiment, runErr = s.RunBacktestContext(ctx, BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: strategy.Runtime.Assumptions, scheduleRunID: claim.RunID})
 		}
-		receipt, completeErr := s.completeScheduledRun(claim, experiment, runErr)
+		if err := ctx.Err(); err != nil {
+			return receipts, err
+		}
+		receipt, completeErr := s.completeScheduledRunContext(ctx, claim, experiment, runErr)
 		if completeErr != nil {
 			return receipts, completeErr
 		}

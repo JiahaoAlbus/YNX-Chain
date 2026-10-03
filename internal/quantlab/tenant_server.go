@@ -155,7 +155,7 @@ func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duratio
 					if ctx.Err() != nil {
 						return
 					}
-					_, _ = service.RunDueSchedules()
+					_, _ = service.RunDueSchedulesContext(ctx)
 				}
 			}
 		}
