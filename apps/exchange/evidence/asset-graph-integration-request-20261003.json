@@ -18,13 +18,14 @@
     {"path": "apps/exchange/web/private-session.js", "bytes": 136529, "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675"},
     {"path": "apps/exchange/web/locale.js", "bytes": 170803, "sha256": "b8b7ce7e1a7e3ea487c246f5cbdba733db88f2fd74a8442e764f9341bfae0781"},
     {"path": "apps/exchange/web/wallet-connect-entry.js", "bytes": 12540, "sha256": "ab5dca98afdd1cd840645fe8db6b7eab32a5e2ba92b011366912934a58994b20"},
-    {"path": "apps/exchange/web/wallet-connect.js", "bytes": 37764, "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6"}
+    {"path": "apps/exchange/web/wallet-connect.js", "bytes": 37764, "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6"},
+    {"path": "apps/exchange/web/ui-preferences.js", "blob": "bc9afab56074071d45d1d3f225364b37254b6c61", "bytes": 2241, "sha256": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"}
   ],
   "requestedIntegration": [
     "Consume current owner pages with the accepted matching shared runtime; do not copy stale bundles over owner fixes.",
-    "Refresh index.html styles.css and app.js cache identities from actual final bytes, after any authorized shared integration.",
+    "Refresh index.html styles.css, app.js and the retained ui-preferences.js cache identities from actual final bytes, after any authorized shared integration; preserve the existing display/text-size helper.",
     "Refresh app.js market-data.js import identity; add locale.js to the explicit module inventory and bind its actual bytes.",
-    "Verify pageAssets=3 and moduleAssets=4 including locale.js, reject unknown/dynamic/duplicate modules and stale asset hashes.",
+    "Verify pageAssets=4 (styles.css, wallet-connect.js, app.js, ui-preferences.js) and moduleAssets=4 (market-data.js, order-preview.js, private-session.js, locale.js), reject unknown/dynamic/duplicate modules and stale asset hashes.",
     "Refresh final app.js hash after import changes, then freeze coherent source/build/public version and rollback identity.",
     "Run full npm and browser suites, including cache-version browser test; old graph failures are not waived."
   ],
