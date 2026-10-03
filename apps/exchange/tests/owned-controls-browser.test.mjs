@@ -13,8 +13,35 @@ const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
 const identity=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
 const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
-const activity=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
+const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
+const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
+
+test('owned order timestamps sort by actual instants and missing dates cannot crash open orders',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const openOrders=app.slice(app.indexOf('function renderOrders('),app.indexOf('function renderBalances('));
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',activity:'orders',snapshot:null};const display=${formatMicro.toString()};const cancelOrder=()=>{throw Error('No write permitted')};${openOrders};${activity};window.timeQA={set(data){state.snapshot=data;renderOrders();renderActivity()},source(){return JSON.stringify(state.snapshot)}};`});
+    const row=(id,createdAt)=>({account:'A',id,createdAt,status:'open',market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:2000000,amountMicro:1000000,filledMicro:0});
+    const data={orders:[row('offset-earlier','2026-10-03T09:00:00+09:00'),row('utc-later','2026-10-03T01:00:00Z')]};
+    await page.evaluate(data=>window.timeQA.set(data),data);
+    assert.match(await page.locator('#activity-body tr').first().textContent(),/utc-later/);
+    data.orders.push(row('missing',undefined),row('numeric-looking','0'),row('impossible','2026-02-30T00:00:00Z'));
+    const original=JSON.stringify(data);await page.evaluate(data=>window.timeQA.set(data),data);
+    assert.equal(await page.locator('#orders tr').count(),5);
+    const rows=await page.locator('#activity-body tr').allTextContents();assert.match(rows[0],/utc-later/);assert.match(rows[1],/offset-earlier/);
+    for(const id of ['missing','numeric-looking','impossible'])assert.equal(await page.locator('#activity-body tr').filter({hasText:id}).locator('td').first().textContent(),'—');
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(({language,data})=>{document.documentElement.lang=language;window.timeQA.set(data)},{language,data});
+      const expected=await page.evaluate(()=>new Date('2026-10-03T01:00:00Z').toLocaleString(document.documentElement.lang));
+      assert.equal(await page.locator('#activity-body tr').first().locator('td').first().textContent(),expected);
+      assert.equal(await page.evaluate(()=>window.timeQA.source()),original);
+    }
+    assert.equal(JSON.stringify(data),original);assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
+});
 
 test('actual activity renderer exposes existing owned order history and signed ledger changes without write actions',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());

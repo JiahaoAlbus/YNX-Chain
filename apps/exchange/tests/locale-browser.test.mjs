@@ -16,7 +16,8 @@ const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.ind
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
 const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showWalletFallback('));
 const previewSource=await readFile(new URL('../web/order-preview.js',import.meta.url),'utf8');
-const activityRender=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
+const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
+const activityRender=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
 const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
 const walletRender=app.slice(app.indexOf('function renderStandardWallet('),app.indexOf('function disconnectWallet('));
@@ -369,7 +370,12 @@ test('actual activity tabs and all headers use 12 locales without mutating owned
     }
     await page.evaluate(()=>{window.activityLocaleQA.state.activity='orders';window.activityLocaleQA.state.snapshot={orders:[{account:'A',id:'exact-A',market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:1234567,amountMicro:2000000,filledMicro:0,status:'rejected',rejectReason:'EXACT_ENGINE_CODE',createdAt:'2026-10-03T00:00:00Z'},{account:'B',id:'foreign-B',createdAt:'2026-10-03T00:00:00Z'}]};window.activityLocaleQA.renderActivity()});
     const before=await page.locator('#activity-body').innerText(),cells=await page.locator('#activity-body td').allTextContents();
-    for(const locale of locales){await page.locator('#exchange-language').selectOption(locale);const current=await page.locator('#activity-body td').allTextContents();assert.deepEqual(current.filter((_,i)=>i!==6),cells.filter((_,i)=>i!==6));assert.equal(current[6],catalogs[locale]['record-order-rejected']+' (rejected)')}
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);const current=await page.locator('#activity-body td').allTextContents();
+      assert.deepEqual(current.filter((_,i)=>i!==0&&i!==6),cells.filter((_,i)=>i!==0&&i!==6));
+      assert.equal(current[0],await page.evaluate(()=>new Date('2026-10-03T00:00:00Z').toLocaleString(document.documentElement.lang)));
+      assert.equal(current[6],catalogs[locale]['record-order-rejected']+' (rejected)');
+    }
     assert.match(before,/exact-A/u);assert.match(before,/EXACT_ENGINE_CODE/u);assert.doesNotMatch(before,/foreign-B/u);assert.equal(requests,0);
   }finally{await browser.close()}
 });
