@@ -243,6 +243,7 @@ type Snapshot struct {
 	Orders                  map[string]Order
 	Idempotency             map[string]IdempotencyRecord
 	RetiredIdempotency      map[string]struct{}
+	BusinessNonces          map[string]struct{}
 	BuyerDeletions          map[string]BuyerDeletionRecord
 	PrivacyDeletionBoundary string
 	Audits                  []AuditEvent

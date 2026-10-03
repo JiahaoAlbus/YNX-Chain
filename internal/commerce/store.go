@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 10
+	CurrentPersistenceSchemaVersion = 11
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -143,7 +143,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, BusinessNonces: map[string]struct{}{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() (bool, error) {
@@ -156,6 +156,15 @@ func (s *Store) normalize() (bool, error) {
 	}
 	migrated := version != CurrentPersistenceSchemaVersion
 	s.s.Version = CurrentPersistenceSchemaVersion
+	if s.s.BusinessNonces == nil {
+		s.s.BusinessNonces = map[string]struct{}{}
+	}
+	for digest := range s.s.BusinessNonces {
+		decoded, err := hex.DecodeString(digest)
+		if err != nil || len(decoded) != sha256.Size || digest != strings.ToLower(digest) {
+			return false, errors.New("invalid business nonce digest")
+		}
+	}
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -238,7 +247,7 @@ func (s *Store) persistLocked() error {
 	var backup []byte
 	if current, readErr := os.ReadFile(s.path); readErr == nil {
 		backup = current
-		if hasPrivacyProtection(s.s) {
+		if hasPrivacyProtection(s.s) || len(s.s.BusinessNonces) > 0 {
 			var previous Snapshot
 			if decodePersisted(current, s.integrityKey, &previous) != nil || !containsRetiredIntents(previous, s.s) {
 				// A successful privacy deletion must not leave its normal recovery
@@ -248,7 +257,7 @@ func (s *Store) persistLocked() error {
 		}
 	} else if !errors.Is(readErr, os.ErrNotExist) {
 		return readErr
-	} else if hasPrivacyProtection(s.s) {
+	} else if hasPrivacyProtection(s.s) || len(s.s.BusinessNonces) > 0 {
 		backup = data
 	}
 	if backup != nil {
@@ -301,7 +310,10 @@ func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
 
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
-		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v9", ErrPersistenceVersion)
+		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v10", ErrPersistenceVersion)
+	}
+	if len(s.s.BusinessNonces) > 0 {
+		return nil, fmt.Errorf("%w: older snapshots cannot enforce consumed business proofs", ErrConflict)
 	}
 	if hasCartProtection(s.s) {
 		return nil, fmt.Errorf("%w: older snapshots cannot preserve cart revisions", ErrConflict)
@@ -335,6 +347,7 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
+	fields = omitRawFields(fields, "BusinessNonces")
 	if targetVersion < 8 {
 		fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
 	}
@@ -482,6 +495,11 @@ func RestoreCommerceBackup(path string, key []byte) error {
 }
 
 func containsRetiredIntents(candidate, current Snapshot) bool {
+	for digest := range current.BusinessNonces {
+		if _, ok := candidate.BusinessNonces[digest]; !ok {
+			return false
+		}
+	}
 	if current.PrivacyDeletionBoundary != "" && candidate.PrivacyDeletionBoundary != current.PrivacyDeletionBoundary {
 		return false
 	}
@@ -548,6 +566,9 @@ func RollbackCommercePersistence(path string, key []byte, targetVersion int) (Pe
 		return report, fmt.Errorf("verify commerce state for rollback: %w", err)
 	}
 	snapshot = probe.s
+	if len(snapshot.BusinessNonces) > 0 {
+		return report, fmt.Errorf("%w: older snapshots cannot enforce consumed business proofs", ErrConflict)
+	}
 	if hasCartProtection(snapshot) {
 		return report, fmt.Errorf("%w: older snapshots cannot preserve cart revisions", ErrConflict)
 	}
