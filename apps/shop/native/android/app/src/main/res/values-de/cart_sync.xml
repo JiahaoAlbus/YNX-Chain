@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Warenkorb synchronisieren</string>
+    <string name="cart_sync_working">Warenkorb wird synchronisiert…</string>
+    <string name="cart_sync_conflict">Warenkorb auf anderem Gerät geändert</string>
+    <string name="cart_sync_review">Wählen Sie einen Warenkorb. Beide Versionen bleiben im verschlüsselten Wiederherstellungsverlauf. Der lokale Entwurf wird erst nach erneuter Versionsprüfung gespeichert.</string>
+    <string name="cart_use_remote">Synchronisierten Warenkorb verwenden</string>
+    <string name="cart_use_local">Diesen Entwurf behalten</string>
+    <string name="cart_sync_unconfirmed">Synchronisierung unbestätigt. Ursprüngliche Anfrage und Schlüssel bleiben erhalten.</string>
+    <string name="cart_sync_local">Auf diesem Gerät gespeichert. Vor dem Kauf synchronisieren.</string>
+    <string name="cart_recover_checkout">Bestellung wiederherstellen</string>
+    <string name="cart_sync_required">Synchronisieren Sie vor dem Kauf den Warenkorb.</string>
+    <string name="cart_checkout_unconfirmed">Stellen Sie zuerst die vorherige Bestellung wieder her.</string>
+    <string name="cart_no_checkout">Keine Bestellung wartet auf Wiederherstellung.</string>
+    <string name="cart_remove">Entfernen</string>
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Sinkronkan keranjang</string>
+    <string name="cart_sync_working">Menyinkronkan keranjang…</string>
+    <string name="cart_sync_conflict">Keranjang berubah di perangkat lain</string>
+    <string name="cart_sync_review">Pilih keranjang. Kedua versi disimpan dalam riwayat pemulihan terenkripsi. Draf lokal disimpan setelah versi diperiksa kembali.</string>
+    <string name="cart_use_remote">Gunakan keranjang tersinkron</string>
+    <string name="cart_use_local">Simpan draf ini</string>
+    <string name="cart_sync_unconfirmed">Sinkronisasi belum dikonfirmasi. Permintaan dan kunci asli tetap disimpan.</string>
+    <string name="cart_sync_local">Disimpan di perangkat ini. Sinkronkan sebelum membeli.</string>
+    <string name="cart_recover_checkout">Pulihkan pesanan</string>
+    <string name="cart_sync_required">Sinkronkan keranjang sebelum membeli.</string>
+    <string name="cart_checkout_unconfirmed">Pulihkan pesanan sebelumnya sebelum mengubah isinya.</string>
+    <string name="cart_no_checkout">Tidak ada pesanan yang menunggu pemulihan.</string>
+    <string name="cart_remove">Hapus</string>
+</resources>

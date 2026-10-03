@@ -99,6 +99,7 @@ final class PrivacyLifecycle {
                 add(retired,entry);
             }
             if(waiting)return null;
+            String cartSync=store.get(NativeCart.key(account));if(!cartSync.isEmpty()){JSONObject syncState=new JSONObject(cartSync);if(!account.equals(syncState.optString("account")))throw new Blocked(BLOCKED);JSONObject pending=syncState.optJSONObject("pending");if(pending!=null)add(retired,validated("cart.save",pending.getJSONObject("body").optString("IdempotencyKey")));}
             String checkout=store.get("checkout:"+account);
             if(!checkout.isEmpty()){
                 JSONObject saved=new JSONObject(checkout);if(!account.equals(saved.optString("account")))throw new Blocked(BLOCKED);
@@ -114,7 +115,7 @@ final class PrivacyLifecycle {
             if(retired.size()>128){current.put("phase",BLOCKED).put("reason","TOO_MANY");write(all);throw new Blocked("TOO_MANY");}
             JSONArray entries=new JSONArray();for(JSONObject entry:retired.values())entries.put(entry);
             JSONObject request=new JSONObject().put("confirmation","DELETE_MY_SHOP_DATA").put("deletionRequestId",UUID.randomUUID().toString()).put("retiredIntents",entries);
-            JSONObject evidence=new JSONObject().put("capturedAt",Instant.now().toString()).put("account",account).put("checkout",checkout).put("queue",ownQueue).put("requests",new JSONObject(requests.toString()));
+            JSONObject evidence=new JSONObject().put("capturedAt",Instant.now().toString()).put("account",account).put("checkout",checkout).put("cartSync",cartSync).put("queue",ownQueue).put("requests",new JSONObject(requests.toString()));
             current.put("phase",SENDING).put("operation",new JSONObject().put("request",request).put("evidence",evidence));write(all);
             return new JSONObject(request.toString());
         }
@@ -148,7 +149,7 @@ final class PrivacyLifecycle {
             Set<String> frozen=new HashSet<>();for(int i=0;i<original.length();i++)frozen.add(WalletAuth.canonical(original.get(i)));
             for(int i=0;i<queue.length();i++){JSONObject item=queue.getJSONObject(i);if(!account.equals(item.optString("account"))||!frozen.contains(WalletAuth.canonical(item)))remaining.put(item);}
             current.getJSONArray("archives").put(operation);current.remove("operation");current.put("requests",new JSONObject()).put("phase",CONFIRMED).put("retiredBeforeGeneration",current.optLong("generation")+1);
-            Map<String,String> updates=new LinkedHashMap<>();updates.put(RECORD,all.toString());updates.put("offline_mutations",remaining.toString());updates.put("checkout:"+account,"");updates.put("cart:"+account,"[]");store.putAll(updates);store.notifyAll();
+            Map<String,String> updates=new LinkedHashMap<>();updates.put(RECORD,all.toString());updates.put("offline_mutations",remaining.toString());updates.put("checkout:"+account,"");updates.put("cart:"+account,"[]");updates.put(NativeCart.key(account),"");store.putAll(updates);store.notifyAll();
         }
     }
     void startNewShopping(String account)throws Exception{synchronized(store){JSONObject all=read(store),current=state(all,account);if(!CONFIRMED.equals(current.optString("phase")))throw new Blocked(current.optString("phase"));current.put("generation",current.optLong("generation")+1).put("phase",ACTIVE);write(all);}}
@@ -160,7 +161,9 @@ final class PrivacyLifecycle {
         return new JSONObject().put("route",route).put("key",key);
     }
     private static JSONObject retirement(String method,String path,JSONObject body)throws Exception{
-        if(!"POST".equals(method)||body==null)return null;String route;
+        if(body==null)return null;
+        if("PUT".equals(method)&&"/cart".equals(path)){try{return validated("cart.save",body.optString("IdempotencyKey"));}catch(Blocked invalid){return null;}}
+        if(!"POST".equals(method))return null;String route;
         if("/orders".equals(path))route="order.create";
         else if(path.matches("/orders/order_[a-f0-9]{24}/transition"))route="order.transition."+path.split("/")[2];
         else if("/ai/jobs".equals(path))route="ai.create";

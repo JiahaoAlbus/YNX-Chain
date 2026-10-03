@@ -14,6 +14,11 @@ func sameCartItems(a, b []CartItem) bool {
 	return true
 }
 func hasCartProtection(s Snapshot) bool {
+	for _, rec := range s.Idempotency {
+		if rec.Route == "cart.save" {
+			return true
+		}
+	}
 	for _, c := range s.Carts {
 		if c.Revision != "" {
 			return true

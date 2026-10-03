@@ -22,7 +22,7 @@ public final class SessionRevocationTest {
     @Test public void onlyPrivateAuthoritative401RejectsCredentials()throws Exception{
         ProductSession session=ProductSession.parse(record("one"),Instant.now());
         for(String path:new String[]{"/orders","/cart","/profile","/ai/jobs/a/run","/privacy/delete"})assertTrue(ApiClient.rejectsSession("POST",path,session,401));
-        assertFalse(ApiClient.rejectsSession("GET","/products",session,401));assertFalse(ApiClient.rejectsSession("GET","/stores/one",session,401));assertFalse(ApiClient.rejectsSession("POST","/auth/gateway/sessions",session,401));assertFalse(ApiClient.rejectsSession("GET","/orders",session,403));assertFalse(ApiClient.rejectsSession("GET","/orders",null,401));
+        assertFalse(ApiClient.rejectsSession("GET","/products",session,401));assertFalse(ApiClient.rejectsSession("GET","/products?q=tea",session,401));assertTrue(ApiClient.rejectsSession("GET","/orders?status=open",session,401));assertFalse(ApiClient.rejectsSession("GET","/stores/one",session,401));assertFalse(ApiClient.rejectsSession("POST","/auth/gateway/sessions",session,401));assertFalse(ApiClient.rejectsSession("GET","/orders",session,403));assertFalse(ApiClient.rejectsSession("GET","/orders",null,401));
     }
     @Test public void rejectionRecordsWriteOutcomeAndStopsAnAlreadyDispatchedLateRead()throws Exception{
         SessionRevocation revocation=new SessionRevocation();Memory store=new Memory();store.raw=record("live");ProductSession expected=ProductSession.parse(store.raw,Instant.now());PrivacyLifecycleTest.Memory journal=new PrivacyLifecycleTest.Memory();PrivacyLifecycle lifecycle=new PrivacyLifecycle(journal);

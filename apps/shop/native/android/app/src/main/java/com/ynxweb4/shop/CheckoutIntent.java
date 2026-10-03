@@ -16,6 +16,34 @@ final class CheckoutIntent {
         private Prepared(ProductSession session,JSONObject body){this.session=session;this.body=body;}
     }
     static final class EmptyCartException extends IllegalStateException {}
+    static final class UnresolvedException extends IllegalStateException { UnresolvedException(){super("CHECKOUT_UNRESOLVED");} }
+    static Prepared prepareSyncedCart(NativeCart.Storage store,JSONObject address,StoreResolver catalog)throws Exception{
+      synchronized(store){
+        ProductSession session=ProductSession.parse(store.get("commerce_session"),Instant.now());if(session==null)throw new SecurityException("Active Shop account required");PrivacyLifecycle.requireWritable(store,session.account);
+        JSONArray items=new JSONArray(store.get("cart:"+session.account));if(items.length()==0)throw new EmptyCartException();
+        String key="checkout:"+session.account,previous=store.get(key);JSONObject body=new JSONObject().put("StoreID",catalog.storeFor(items.getJSONObject(0).getString("ProductID"))).put("Items",items).put("Address",new JSONObject(address.toString()));
+        if(previous.isEmpty())body.put("CartRevision",NativeCart.checkoutRevision(store,session.account));
+        else{JSONObject saved=new JSONObject(previous),original=new JSONObject(saved.getString("fingerprint"));if(!original.has("CartRevision"))throw new UnresolvedException();body.put("CartRevision",original.getString("CartRevision"));if(!WalletAuth.canonical(body).equals(saved.getString("fingerprint")))throw new UnresolvedException();}
+        CheckoutIntent intent=prepare(session.account,body,previous);JSONObject saved=new JSONObject(intent.serialized);if(previous.isEmpty())saved.put("cartStamp",new JSONObject(store.get(NativeCart.key(session.account))).getString("stamp"));else if(new JSONObject(previous).has("cartStamp"))saved.put("cartStamp",new JSONObject(previous).getString("cartStamp"));
+        store.put(key,saved.toString());body.put("IdempotencyKey",intent.key);return new Prepared(session,body);
+      }
+    }
+    static boolean confirmedReceipt(NativeCart.Storage store,String account,JSONObject request,JSONObject order)throws Exception{
+      if(!account.equals(order.optString("Buyer"))||order.optString("ID").isEmpty())throw new SecurityException("Invalid order receipt");
+      if(request.has("CartRevision")){JSONObject consumed=order.optJSONObject("CartConsumption");if(consumed==null||!request.getString("CartRevision").equals(consumed.optString("PreviousRevision"))||consumed.optString("Revision").isEmpty())throw new SecurityException("Mismatched cart consumption receipt");}
+      synchronized(store){
+        String intentKey="checkout:"+account,raw=store.get(intentKey);if(raw.isEmpty())return false;
+        JSONObject saved=new JSONObject(raw),body=new JSONObject(request.toString());String intent=body.optString("IdempotencyKey");body.remove("IdempotencyKey");
+        if(!account.equals(saved.optString("account"))||intent.isEmpty()||!intent.equals(saved.optString("key"))||!WalletAuth.canonical(body).equals(saved.optString("fingerprint")))return false;
+        String cartKey="cart:"+account,cart=store.get(cartKey),metadata=store.get(NativeCart.key(account));JSONObject state=metadata.isEmpty()?null:new JSONObject(metadata);
+        boolean sameStamp=!saved.has("cartStamp")||(state!=null&&saved.getString("cartStamp").equals(state.optString("stamp")));
+        boolean cleared=sameStamp&&!cart.isEmpty()&&body.optJSONArray("Items")!=null&&WalletAuth.canonical(new JSONArray(cart)).equals(WalletAuth.canonical(body.getJSONArray("Items")));
+        java.util.Map<String,String> updates=new java.util.HashMap<>();updates.put(intentKey,"");if(cleared)updates.put(cartKey,"[]");
+        if(state!=null){state.put("ready",false).put("dirty",!cleared);updates.put(NativeCart.key(account),state.toString());}
+        // One durable commit keeps acknowledgement and recovery state consistent.
+        store.putAll(updates);return cleared;
+      }
+    }
     final String key, serialized;
     private CheckoutIntent(String key, String serialized) { this.key=key;this.serialized=serialized; }
     // Capture and persist under the same monitor used by confirmation. An old
@@ -57,7 +85,8 @@ final class CheckoutIntent {
             String key=body.optString("IdempotencyKey");body.remove("IdempotencyKey");
             if(!account.equals(saved.optString("account"))||key.isEmpty()||!key.equals(saved.optString("key"))||!WalletAuth.canonical(body).equals(saved.optString("fingerprint")))return false;
             String cartKey="cart:"+account,cart=store.get(cartKey);boolean cleared=false;
-            if(!cart.isEmpty()&&body.optJSONArray("Items")!=null&&WalletAuth.canonical(new org.json.JSONArray(cart)).equals(WalletAuth.canonical(body.getJSONArray("Items")))) {
+            boolean sameStamp=true;if(saved.has("cartStamp")){String state=store.get(NativeCart.key(account));sameStamp=!state.isEmpty()&&saved.getString("cartStamp").equals(new JSONObject(state).optString("stamp"));}
+            if(sameStamp&&!cart.isEmpty()&&body.optJSONArray("Items")!=null&&WalletAuth.canonical(new org.json.JSONArray(cart)).equals(WalletAuth.canonical(body.getJSONArray("Items")))) {
                 store.put(cartKey,"[]");cleared=true;
             }
             // Cart first: a failed write or process exit must retain the old

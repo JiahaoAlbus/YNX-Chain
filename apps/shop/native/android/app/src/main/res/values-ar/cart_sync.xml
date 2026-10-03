@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">مزامنة السلة</string>
+    <string name="cart_sync_working">جارٍ مزامنة السلة…</string>
+    <string name="cart_sync_conflict">تغيرت السلة على جهاز آخر</string>
+    <string name="cart_sync_review">اختر السلة التي تريد استخدامها. تُحفظ النسختان في سجل استرداد مشفر. يتطلب حفظ مسودة هذا الجهاز التحقق من الإصدار مجددًا.</string>
+    <string name="cart_use_remote">استخدام السلة المتزامنة</string>
+    <string name="cart_use_local">الاحتفاظ بهذه المسودة</string>
+    <string name="cart_sync_unconfirmed">لم تُؤكد المزامنة. تم الاحتفاظ بالطلب والمفتاح الأصليين.</string>
+    <string name="cart_sync_local">حُفظت على هذا الجهاز. زامن السلة قبل الشراء.</string>
+    <string name="cart_recover_checkout">استرداد الطلب</string>
+    <string name="cart_sync_required">زامن السلة قبل الشراء.</string>
+    <string name="cart_checkout_unconfirmed">استرد الطلب السابق قبل تغيير محتواه.</string>
+    <string name="cart_no_checkout">لا يوجد طلب ينتظر الاسترداد.</string>
+    <string name="cart_remove">إزالة</string>
+</resources>

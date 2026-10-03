@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">同步购物车</string>
+    <string name="cart_sync_working">正在同步购物车…</string>
+    <string name="cart_sync_conflict">其他设备修改了购物车</string>
+    <string name="cart_sync_review">请选择使用哪份购物车。两份数据均保留在加密恢复历史中。保留本机草稿需要重新校验版本并保存。</string>
+    <string name="cart_use_remote">使用已同步购物车</string>
+    <string name="cart_use_local">保留本机草稿</string>
+    <string name="cart_sync_unconfirmed">购物车同步尚未确认，原请求和键已保留。</string>
+    <string name="cart_sync_local">已保存到本机，请先同步再结账。</string>
+    <string name="cart_recover_checkout">恢复结账结果</string>
+    <string name="cart_sync_required">请先同步购物车再结账。</string>
+    <string name="cart_checkout_unconfirmed">请先恢复之前的结账结果，再修改内容。</string>
+    <string name="cart_no_checkout">没有等待恢复的结账记录。</string>
+    <string name="cart_remove">移除</string>
+</resources>

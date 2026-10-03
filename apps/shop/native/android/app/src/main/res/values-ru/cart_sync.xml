@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Синхронизировать корзину</string>
+    <string name="cart_sync_working">Синхронизация корзины…</string>
+    <string name="cart_sync_conflict">Корзина изменена на другом устройстве</string>
+    <string name="cart_sync_review">Выберите корзину. Обе версии сохраняются в зашифрованной истории. Перед сохранением локального черновика версия будет проверена повторно.</string>
+    <string name="cart_use_remote">Использовать синхронизированную корзину</string>
+    <string name="cart_use_local">Сохранить этот черновик</string>
+    <string name="cart_sync_unconfirmed">Синхронизация не подтверждена. Исходный запрос и ключ сохранены.</string>
+    <string name="cart_sync_local">Сохранено на этом устройстве. Синхронизируйте перед покупкой.</string>
+    <string name="cart_recover_checkout">Восстановить заказ</string>
+    <string name="cart_sync_required">Синхронизируйте корзину перед покупкой.</string>
+    <string name="cart_checkout_unconfirmed">Восстановите предыдущий заказ перед изменением его содержимого.</string>
+    <string name="cart_no_checkout">Нет заказов, ожидающих восстановления.</string>
+    <string name="cart_remove">Удалить</string>
+</resources>

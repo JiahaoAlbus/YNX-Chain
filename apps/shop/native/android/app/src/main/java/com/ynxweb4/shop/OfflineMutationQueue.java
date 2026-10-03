@@ -39,10 +39,10 @@ final class OfflineMutationQueue {
                 if(!account.equals(expected.account)||!PrivacyLifecycle.queueExecutable(secure,account,item))continue;
                 try{
                     JSONObject body=item.getJSONObject("body");String path=item.getString("path");
-                    api.requestForSession(item.getString("method"),path,body,expected,generation);
+                    JSONObject response=api.requestForSession(item.getString("method"),path,body,expected,generation);
                     synchronized(this){
                         synchronized(secure){
-                        if(path.equals("/orders"))CheckoutIntent.confirmed(secure,account,body);
+                        if(path.equals("/orders")){if(body.has("CartRevision")){if(!(secure instanceof NativeCart.Storage))throw new SecurityException("Atomic cart storage required");CheckoutIntent.confirmedReceipt((NativeCart.Storage)secure,account,body,response);}else CheckoutIntent.confirmed(secure,account,body);}
                         // Read again so requests added during the network call
                         // remain queued. No UI enqueue waits for the network.
                         JSONArray stored=read(),remaining=new JSONArray();

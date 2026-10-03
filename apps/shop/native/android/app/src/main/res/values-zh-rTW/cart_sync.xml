@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">同步購物車</string>
+    <string name="cart_sync_working">正在同步購物車…</string>
+    <string name="cart_sync_conflict">其他裝置修改了購物車</string>
+    <string name="cart_sync_review">請選擇使用哪份購物車。兩份資料均保留在加密復原歷史中。保留本機草稿需要重新驗證版本並儲存。</string>
+    <string name="cart_use_remote">使用已同步購物車</string>
+    <string name="cart_use_local">保留本機草稿</string>
+    <string name="cart_sync_unconfirmed">購物車同步尚未確認，原請求與金鑰已保留。</string>
+    <string name="cart_sync_local">已儲存至本機，請先同步再結帳。</string>
+    <string name="cart_recover_checkout">復原結帳結果</string>
+    <string name="cart_sync_required">請先同步購物車再結帳。</string>
+    <string name="cart_checkout_unconfirmed">請先復原之前的結帳結果，再修改內容。</string>
+    <string name="cart_no_checkout">沒有等待復原的結帳記錄。</string>
+    <string name="cart_remove">移除</string>
+</resources>

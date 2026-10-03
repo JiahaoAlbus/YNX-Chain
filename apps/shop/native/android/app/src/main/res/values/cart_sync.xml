@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Sync cart</string>
+    <string name="cart_sync_working">Syncing your cart…</string>
+    <string name="cart_sync_conflict">Cart changed on another device</string>
+    <string name="cart_sync_review">Choose which cart to use. Both versions remain encrypted in recovery history. Keeping this device’s draft requires a new version-checked save.</string>
+    <string name="cart_use_remote">Use synced cart</string>
+    <string name="cart_use_local">Keep this draft</string>
+    <string name="cart_sync_unconfirmed">Cart sync is unconfirmed. The original request and key are preserved.</string>
+    <string name="cart_sync_local">Saved on this device. Sync before checkout.</string>
+    <string name="cart_recover_checkout">Recover checkout</string>
+    <string name="cart_sync_required">Sync your cart before checkout.</string>
+    <string name="cart_checkout_unconfirmed">Recover the earlier checkout before changing its contents.</string>
+    <string name="cart_no_checkout">No saved checkout is awaiting recovery.</string>
+    <string name="cart_remove">Remove</string>
+</resources>

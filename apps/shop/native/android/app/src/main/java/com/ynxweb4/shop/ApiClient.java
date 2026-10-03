@@ -24,14 +24,14 @@ final class ApiClient {
         try{secure.rejectSession(expected);}finally{main.post(()->{if(!closed)sessionRejected.run();});}
     }
     static boolean rejectsSession(String method,String path,ProductSession expected,int status){return status==401&&expected!=null&&!publicRoute(method,path);}
-    private static boolean publicRoute(String method,String path){return path.startsWith("/auth/")||(method.equals("GET")&&(path.equals("/capabilities")||path.equals("/products")||path.startsWith("/products/")||path.startsWith("/stores/")));}
+    private static boolean publicRoute(String method,String path){path=path.split("\\?",2)[0];return path.startsWith("/auth/")||(method.equals("GET")&&(path.equals("/capabilities")||path.equals("/products")||path.startsWith("/products/")||path.startsWith("/stores/")));}
     ApiClient(SecureStore secure){this.secure=secure;}
     ProductSession session()throws Exception{secure.privacy();return ProductSession.parse(secure.get("commerce_session"),Instant.now());}
     PrivacyLifecycle privacy()throws Exception{return secure.privacy();}
     void requireWritable()throws Exception{ProductSession current=session();if(current!=null)PrivacyLifecycle.requireWritable(secure,current.account);}
     private boolean current(ProductSession expected)throws Exception{if(closed)return false;ProductSession actual=session();return expected==null?actual==null:expected.same(actual);}
     private boolean context(ProductSession expected,long generation)throws Exception{return current(expected)&&(expected==null||privacy().current(expected.account,generation));}
-    private static boolean businessMutation(String method,String path){return !method.equals("GET")&&!method.equals("HEAD")&&!path.startsWith("/auth/");}
+    private static boolean businessMutation(String method,String path){return !method.equals("GET")&&!method.equals("HEAD")&&!path.startsWith("/auth/")&&!path.equals("/orders/intent-lookup");}
     private PrivacyLifecycle.Ticket admit(String method,String path,JSONObject body,ProductSession expected)throws Exception{
         if(!businessMutation(method,path))return null;
         if(path.equals("/privacy/delete"))throw new SecurityException("Use the durable deletion lifecycle");
@@ -60,6 +60,7 @@ final class ApiClient {
     JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{
         if(expected==null)throw new SecurityException("Active Shop account required");
         JSONObject frozen=body==null?null:new JSONObject(body.toString());
+        if(!businessMutation(method,path))return executeTracked(privacy(),null,()->current(expected)&&privacy().current(expected.account,generation),()->network(method,path,frozen,expected),response->observeResponse(method,path,expected,response));
         PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);return execute(method,path,frozen,expected,ticket);
     }
     private JSONObject execute(String method,String path,JSONObject body,ProductSession expected,PrivacyLifecycle.Ticket ticket)throws Exception{
@@ -81,7 +82,7 @@ final class ApiClient {
             // destroyed or the current account changed while HTTP was running.
             try{if(ticket!=null){lifecycle.outcome(ticket,definitive(response.status));recorded=true;}}finally{observer.received(response);}
             if(!context.current())throw new SecurityException("Product session changed");
-            if(response.status<200||response.status>=300)throw new ApiException(response.status,response.value.optString("error","Request failed "+response.status));
+            if(response.status<200||response.status>=300)throw new ApiException(response.status,response.value.optString("error","Request failed "+response.status),response.value.optString("code"));
             return response.value;
         }catch(Exception error){
             if(ticket!=null&&!recorded)try{if(dispatched)lifecycle.outcome(ticket,false);else lifecycle.notSent(ticket);}catch(Exception storage){error.addSuppressed(storage);}
@@ -133,5 +134,5 @@ final class ApiClient {
             byte[] buffer=new byte[8192];int count,total=0;while((count=input.read(buffer))!=-1){total+=count;if(total>1_048_576)throw new IOException("response exceeds limit");out.write(buffer,0,count);}return out.toString(StandardCharsets.UTF_8);
         }
     }
-    static final class ApiException extends IOException{final int status;ApiException(int status,String message){super(message);this.status=status;}}
+    static final class ApiException extends IOException{final int status;final String code;ApiException(int status,String message){this(status,message,"");}ApiException(int status,String message,String code){super(message);this.status=status;this.code=code;}}
 }

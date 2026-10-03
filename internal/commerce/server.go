@@ -370,14 +370,11 @@ func (s *Server) saveCart(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var in struct {
-		Items            []CartItem
-		ExpectedRevision *string
-	}
+	var in CartInput
 	if !decode(w, r, &in) {
 		return
 	}
-	v, err := s.store.SaveCartRevision(sess.Account, in.Items, in.ExpectedRevision)
+	v, err := s.store.SaveCartIntent(sess.Account, in)
 	if err != nil {
 		fail(w, status(err), err)
 		return

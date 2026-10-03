@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">カートを同期</string>
+    <string name="cart_sync_working">カートを同期中…</string>
+    <string name="cart_sync_conflict">別の端末でカートが変更されました</string>
+    <string name="cart_sync_review">使用するカートを選択してください。両方の内容は暗号化された復元履歴に残ります。この端末の下書きを保存する際は、再度バージョンを確認します。</string>
+    <string name="cart_use_remote">同期済みカートを使用</string>
+    <string name="cart_use_local">この下書きを保持</string>
+    <string name="cart_sync_unconfirmed">同期結果は未確認です。元のリクエストとキーは保持されています。</string>
+    <string name="cart_sync_local">この端末に保存しました。購入前に同期してください。</string>
+    <string name="cart_recover_checkout">注文結果を復元</string>
+    <string name="cart_sync_required">購入前にカートを同期してください。</string>
+    <string name="cart_checkout_unconfirmed">内容を変更する前に、以前の注文結果を復元してください。</string>
+    <string name="cart_no_checkout">復元待ちの注文はありません。</string>
+    <string name="cart_remove">削除</string>
+</resources>

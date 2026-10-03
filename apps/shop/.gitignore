@@ -2,3 +2,5 @@ node_modules/
 dist/
 test-results/
 evidence/visible/
+
+evidence/source-checkpoint-*.json

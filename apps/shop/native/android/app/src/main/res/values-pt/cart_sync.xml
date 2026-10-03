@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Sincronizar carrinho</string>
+    <string name="cart_sync_working">Sincronizando carrinho…</string>
+    <string name="cart_sync_conflict">Carrinho alterado em outro dispositivo</string>
+    <string name="cart_sync_review">Escolha um carrinho. Ambas as versões ficam no histórico criptografado. Salvar o rascunho local exige nova verificação da versão.</string>
+    <string name="cart_use_remote">Usar carrinho sincronizado</string>
+    <string name="cart_use_local">Manter este rascunho</string>
+    <string name="cart_sync_unconfirmed">Sincronização não confirmada. A solicitação e a chave originais foram preservadas.</string>
+    <string name="cart_sync_local">Salvo neste dispositivo. Sincronize antes da compra.</string>
+    <string name="cart_recover_checkout">Recuperar pedido</string>
+    <string name="cart_sync_required">Sincronize o carrinho antes da compra.</string>
+    <string name="cart_checkout_unconfirmed">Recupere o pedido anterior antes de alterar seu conteúdo.</string>
+    <string name="cart_no_checkout">Nenhum pedido aguarda recuperação.</string>
+    <string name="cart_remove">Remover</string>
+</resources>

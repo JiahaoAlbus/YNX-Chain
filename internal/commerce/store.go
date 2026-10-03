@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 9
+	CurrentPersistenceSchemaVersion = 10
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -301,12 +301,12 @@ func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
 
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
-		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v8", ErrPersistenceVersion)
+		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v9", ErrPersistenceVersion)
 	}
 	if hasCartProtection(s.s) {
 		return nil, fmt.Errorf("%w: older snapshots cannot preserve cart revisions", ErrConflict)
 	}
-	if targetVersion < 8 && hasPrivacyProtection(s.s) {
+	if hasPrivacyProtection(s.s) {
 		return nil, fmt.Errorf("%w: Snapshot v%d cannot enforce retired idempotency keys", ErrConflict, targetVersion)
 	}
 	if targetVersion < 7 && len(s.s.ProviderConfigs) > 0 {

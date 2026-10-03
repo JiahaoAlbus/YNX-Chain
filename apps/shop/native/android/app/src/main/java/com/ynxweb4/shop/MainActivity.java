@@ -29,12 +29,23 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
+    private Object cartWork;
+    private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
+    private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
+    private void runCartTask(CartTask task,Runnable success){
+        if(cartWork!=null)return;final ProductSession expected;final long generation;final Object work=new Object();
+        try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);}catch(Exception error){status.setText(message(error));return;}
+        cartWork=work;status.setText(getString(R.string.cart_sync_working));
+        new Thread(()->{Exception failure=null;try{task.run(cartSender(),expected,generation);}catch(Exception error){failure=error;}final Exception error=failure;
+            runOnUiThread(()->{if(cartWork!=work)return;cartWork=null;if(!isCurrent(expected,generation))return;restoreCart();if(error instanceof NativeCart.Conflict){NativeCart.Conflict conflict=(NativeCart.Conflict)error;showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.cart_sync_conflict)).setMessage(getString(R.string.cart_sync_review)).setNegativeButton(getString(R.string.cancel),null).setNeutralButton(getString(R.string.cart_use_remote),(d,w)->runCartTask((sender,session,epoch)->NativeCart.resolve(secure,sender,session,epoch,conflict,true),this::showCart)).setPositiveButton(getString(R.string.cart_use_local),(d,w)->runCartTask((sender,session,epoch)->NativeCart.resolve(secure,sender,session,epoch,conflict,false),this::showCart)).create());return;}if(error!=null){status.setText(getString(R.string.cart_sync_unconfirmed)+" "+cartError(error));return;}success.run();});
+        },"shop-cart-sync").start();
+    }
     private ProductSession presentationSession;
     private long presentationPrivacyGeneration=-1;
     private String presentationPrivacyPhase="";
     private void showDialog(AlertDialog dialog){showDialog(dialog,()->{});}
     private void showDialog(AlertDialog dialog,Runnable dismissed){privateDialogs.add(dialog);dialog.setOnDismissListener(d->{privateDialogs.remove(dialog);dismissed.run();});dialog.show();}
-    private void clearPrivatePresentation(){clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void clearPrivatePresentation(){cartWork=null;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -122,24 +133,29 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(10),0,dp(10));card.setLayoutParams(params);return card;
     }
 
+    private JSONArray addedCart(JSONArray source,JSONObject product,JSONObject variant)throws Exception{
+        JSONArray next=new JSONArray(source.toString());for(int i=0;i<next.length();i++){JSONObject item=next.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){if(item.getInt("Quantity")>=20)throw new IllegalStateException("Maximum quantity is 20");item.put("Quantity",item.getInt("Quantity")+1);return next;}}
+        next.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));return next;
+    }
     private void addCart(JSONObject product,JSONObject variant)throws Exception{
-        synchronized(secure){
-            api.requireWritable();syncCartContext();
-            for(int i=0;i<cart.length();i++){JSONObject item=cart.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){item.put("Quantity",item.getInt("Quantity")+1);persistCart();return;}}
-            cart.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));persistCart();
-        }
+        if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();ProductSession session=api.session();JSONArray next=addedCart(cart,product,variant);if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();status.setText(getString(R.string.cart_sync_local));}return;}
+        runCartTask((sender,session,generation)->{NativeCart.refresh(secure,sender,session,generation);synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");String raw=secure.get("cart:"+session.account);NativeCart.edit(secure,session.account,addedCart(raw.isEmpty()?new JSONArray():new JSONArray(raw),product,variant));}NativeCart.sync(secure,sender,session,generation);},()->status.setText(getString(R.string.add_cart)));
     }
     private String cartKey()throws Exception{ProductSession session=api.session();return session==null?"cart:guest":("cart:"+session.account);}
     private void syncCartContext()throws Exception{String key=cartKey();if(!key.equals(loadedCartKey)||!secure.get(key).equals(loadedCartText))restoreCart();}
-    private void persistCart()throws Exception{synchronized(secure){api.requireWritable();syncCartContext();String saved=cart.toString();secure.put(loadedCartKey,saved);loadedCartText=saved;cartBadge.setText(String.valueOf(cart.length()));syncRemoteCart();status.setText(getString(R.string.add_cart));}}
-    private void syncRemoteCart()throws Exception{if(hasSession())api.request("PUT","/cart",new JSONObject().put("Items",new JSONArray(cart.toString())),(v,e)->{});}
     private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
     private void showCart(){clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),30,true));
+        if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
         if(cart.length()==0){content.addView(text(getString(R.string.cart_empty),15,false));return;}
-        long total=0;for(int i=0;i<cart.length();i++)try{JSONObject item=cart.getJSONObject(i),p=findProduct(item.getString("ProductID")),variant=findVariant(p,item.getString("VariantID"));long line=variant.getLong("PriceYNXT")*item.getLong("Quantity");total+=line;content.addView(text(p.getString("Title")+" × "+item.getLong("Quantity")+" · "+formatYNXT(line),15,false));}catch(Exception error){content.addView(text(getString(R.string.unavailable),14,false));}
+        long total=0;for(int i=0;i<cart.length();i++){
+            JSONObject item=cart.optJSONObject(i);if(item==null)continue;
+            try{JSONObject p=findProduct(item.getString("ProductID")),variant=findVariant(p,item.getString("VariantID"));long line=variant.getLong("PriceYNXT")*item.getLong("Quantity");total+=line;content.addView(text(p.getString("Title")+" × "+item.getLong("Quantity")+" · "+formatYNXT(line),15,false));}
+            catch(Exception error){content.addView(text(getString(R.string.unavailable),14,false));}
+            String productID=item.optString("ProductID"),variantID=item.optString("VariantID");content.addView(action(getString(R.string.cart_remove),()->removeCart(productID,variantID)));
+        }
         content.addView(text(formatYNXT(total),26,true));
         recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));
         for(EditText field:List.of(recipient,address,city,country))content.addView(field);
@@ -147,19 +163,32 @@ public final class MainActivity extends Activity {
         Button checkout=primary(getString(R.string.checkout));checkout.setOnClickListener(v->checkout());content.addView(checkout);
     }
 
+    private void recoverCheckout(){
+        runCartTask((sender,session,generation)->{String raw; synchronized(secure){raw=secure.get("checkout:"+session.account);}if(raw.isEmpty())throw new IllegalStateException("CART_NO_CHECKOUT");JSONObject intent=new JSONObject(raw);if(!session.account.equals(intent.optString("account")))throw new SecurityException("Foreign checkout");JSONObject order=sender.request("POST","/orders/intent-lookup",json("IdempotencyKey",intent.getString("key")),session,generation);JSONObject body=new JSONObject(intent.getString("fingerprint")).put("IdempotencyKey",intent.getString("key"));synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");CheckoutIntent.confirmedReceipt(secure,session.account,body,order);}},this::showOrders);
+    }
+
+    private String cartError(Exception error){String text=error.getMessage();if("CART_NO_CHECKOUT".equals(text))return getString(R.string.cart_no_checkout);if("CART_SYNC_REQUIRED".equals(text))return getString(R.string.cart_sync_required);if("CHECKOUT_UNRESOLVED".equals(text))return getString(R.string.cart_checkout_unconfirmed);return message(error);}
+    private void removeCart(String productID,String variantID){
+        if(cartWork!=null)return;
+        try{if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();JSONArray next=withoutCartItem(cart,productID,variantID);ProductSession session=api.session();if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();showCart();}return;}
+        runCartTask((sender,session,generation)->{NativeCart.refresh(secure,sender,session,generation);synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");String raw=secure.get("cart:"+session.account);NativeCart.edit(secure,session.account,withoutCartItem(raw.isEmpty()?new JSONArray():new JSONArray(raw),productID,variantID));}NativeCart.sync(secure,sender,session,generation);},this::showCart);
+        }catch(Exception error){status.setText(cartError(error));}
+    }
+    private JSONArray withoutCartItem(JSONArray original,String productID,String variantID)throws Exception{JSONArray next=new JSONArray();for(int i=0;i<original.length();i++){JSONObject item=original.getJSONObject(i);if(!(productID.equals(item.optString("ProductID"))&&variantID.equals(item.optString("VariantID"))))next.put(new JSONObject(item.toString()));}return next;}
     private void checkout(){
+        if(cartWork!=null)return;
         if(!hasSession()){signIn();return;}if(recipient.getText().toString().isBlank()||address.getText().toString().isBlank()||country.getText().toString().isBlank()){status.setText(getString(R.string.address));return;}
         try{
             final CheckoutIntent.Prepared prepared;
             synchronized(secure){
                 syncCartContext();if(cart.length()==0){showCart();return;}
                 JSONObject shipping=new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString());
-                prepared=CheckoutIntent.prepareCart(secure,shipping,id->findProduct(id).getString("StoreID"));
+                prepared=CheckoutIntent.prepareSyncedCart(secure,shipping,id->findProduct(id).getString("StoreID"));
             }
             ProductSession session=prepared.session;JSONObject body=prepared.body;
             if(!isOnline()){queue.enqueue("POST","/orders",body);status.setText(getString(R.string.queued_offline));return;}
-            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(message(error));return;}try{boolean cleared=CheckoutIntent.confirmed(secure,session.account,body);restoreCart();if(cleared)syncRemoteCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
-        }catch(Exception error){status.setText(message(error));}
+            status.setText(getString(R.string.loading));api.request("POST","/orders",body,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(message(error));return;}try{CheckoutIntent.confirmedReceipt(secure,session.account,body,value);restoreCart();status.setText(getString(R.string.payment_pending));showOrders();}catch(Exception e){status.setText(getString(R.string.security_error));}}));
+        }catch(Exception error){status.setText(cartError(error));}
     }
 
     private void showOrders(){clearAI();
@@ -217,7 +246,7 @@ public final class MainActivity extends Activity {
         try{expected=api.session();if(expected==null){signIn();return;}previousCart=secure.get("cart:"+expected.account);generation=api.privacy().generation(expected.account);}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         retry.setEnabled(false);status.setText(getString(R.string.loading));
         new Thread(()->{
-            try{int count=queue.flush(api,expected,generation);runOnUiThread(()->{if(!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();try{if(!previousCart.equals(loadedCartText))syncRemoteCart();}catch(Exception error){status.setText(getString(R.string.security_error));return;}status.setText(count+" "+getString(R.string.restore_pending));});}
+            try{int count=queue.flush(api,expected,generation);runOnUiThread(()->{if(!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();status.setText(count+" "+getString(R.string.restore_pending));});}
             catch(Exception error){runOnUiThread(()->{if(!isCurrent(expected,generation))return;retry.setEnabled(true);status.setText(message(error));});}
         }).start();
     }

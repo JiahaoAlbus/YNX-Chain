@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">Synchroniser le panier</string>
+    <string name="cart_sync_working">Synchronisation du panier…</string>
+    <string name="cart_sync_conflict">Panier modifié sur un autre appareil</string>
+    <string name="cart_sync_review">Choisissez un panier. Les deux versions restent dans le journal chiffré. Le brouillon local sera enregistré après une nouvelle vérification de version.</string>
+    <string name="cart_use_remote">Utiliser le panier synchronisé</string>
+    <string name="cart_use_local">Garder ce brouillon</string>
+    <string name="cart_sync_unconfirmed">Synchronisation non confirmée. La requête et la clé originales sont conservées.</string>
+    <string name="cart_sync_local">Enregistré sur cet appareil. Synchronisez avant de commander.</string>
+    <string name="cart_recover_checkout">Récupérer la commande</string>
+    <string name="cart_sync_required">Synchronisez le panier avant de commander.</string>
+    <string name="cart_checkout_unconfirmed">Récupérez la commande précédente avant de la modifier.</string>
+    <string name="cart_no_checkout">Aucune commande à récupérer.</string>
+    <string name="cart_remove">Retirer</string>
+</resources>

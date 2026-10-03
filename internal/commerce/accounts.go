@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -61,8 +62,38 @@ func (s *Store) SaveCart(actor string, items []CartItem) (Cart, error) {
 	return s.SaveCartRevision(actor, items, nil)
 }
 func (s *Store) SaveCartRevision(actor string, items []CartItem, expected *string) (Cart, error) {
+	return s.SaveCartIntent(actor, CartInput{Items: items, ExpectedRevision: expected})
+}
+
+type CartInput struct {
+	Items            []CartItem
+	ExpectedRevision *string
+	IdempotencyKey   string
+}
+
+func (s *Store) SaveCartIntent(actor string, in CartInput) (Cart, error) {
+	items, expected := in.Items, in.ExpectedRevision
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	var digest string
+	if in.IdempotencyKey != "" {
+		h, replay, err := s.idempotencyLocked(actor, "cart.save", in.IdempotencyKey, in)
+		if err != nil {
+			return Cart{}, err
+		}
+		digest = h
+		if replay {
+			var receipt Cart
+			if err := json.Unmarshal([]byte(h), &receipt); err != nil {
+				return Cart{}, ErrConflict
+			}
+			if receipt.Buyer != actor || receipt.Revision == "" {
+				return Cart{}, ErrConflict
+			}
+			receipt.Items = append([]CartItem(nil), receipt.Items...)
+			return receipt, nil
+		}
+	}
 	if expected != nil && *expected != s.s.Carts[actor].Revision {
 		return Cart{}, ErrCartRevisionConflict
 	}
@@ -104,6 +135,14 @@ func (s *Store) SaveCartRevision(actor string, items []CartItem, expected *strin
 	}
 	c := Cart{Revision: newID("cart"), Buyer: actor, Items: append([]CartItem(nil), items...), UpdatedAt: s.now()}
 	s.s.Carts[actor] = c
+	if in.IdempotencyKey != "" {
+		receipt, err := json.Marshal(c)
+		if err != nil {
+			s.s = before
+			return Cart{}, err
+		}
+		s.recordIdempotencyLocked(actor, "cart.save", in.IdempotencyKey, digest, string(receipt))
+	}
 	s.auditLocked(actor, "buyer", "cart_saved", "cart", actor, "approved", "persistent cart updated")
 	if err := s.persistLocked(); err != nil {
 		s.s = before
@@ -180,7 +219,7 @@ func validateRetiredIntents(intents []RetiredIntent) error {
 			return errors.New("retired intent key must contain 8 to 128 bytes")
 		}
 		switch intent.Route {
-		case "order.create", "ai.create":
+		case "order.create", "ai.create", "cart.save":
 		default:
 			const prefix = "order.transition.order_"
 			if !strings.HasPrefix(intent.Route, prefix) {
@@ -323,7 +362,7 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 		}
 	}
 	for key, record := range s.s.Idempotency {
-		if record.Actor == actor && (strings.HasPrefix(record.Route, "order.") || strings.HasPrefix(record.Route, "ai.")) {
+		if record.Actor == actor && (strings.HasPrefix(record.Route, "order.") || strings.HasPrefix(record.Route, "ai.") || record.Route == "cart.save") {
 			s.s.RetiredIdempotency[retiredIdempotencyDigest(record.Actor, record.Route, record.Key)] = struct{}{}
 			delete(s.s.Idempotency, key)
 			receipt.IdempotencyDeleted++

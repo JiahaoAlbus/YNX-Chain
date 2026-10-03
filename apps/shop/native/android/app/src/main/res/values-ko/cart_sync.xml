@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="cart_sync_button">장바구니 동기화</string>
+    <string name="cart_sync_working">장바구니 동기화 중…</string>
+    <string name="cart_sync_conflict">다른 기기에서 장바구니가 변경됨</string>
+    <string name="cart_sync_review">사용할 장바구니를 선택하세요. 두 버전 모두 암호화된 복구 기록에 보관됩니다. 이 기기의 초안을 저장하려면 버전을 다시 확인합니다.</string>
+    <string name="cart_use_remote">동기화된 장바구니 사용</string>
+    <string name="cart_use_local">이 초안 유지</string>
+    <string name="cart_sync_unconfirmed">동기화 결과가 확인되지 않았습니다. 원래 요청과 키를 보관합니다.</string>
+    <string name="cart_sync_local">이 기기에 저장했습니다. 결제 전에 동기화하세요.</string>
+    <string name="cart_recover_checkout">주문 결과 복구</string>
+    <string name="cart_sync_required">결제 전에 장바구니를 동기화하세요.</string>
+    <string name="cart_checkout_unconfirmed">내용을 변경하기 전에 이전 주문 결과를 복구하세요.</string>
+    <string name="cart_no_checkout">복구 대기 중인 주문이 없습니다.</string>
+    <string name="cart_remove">삭제</string>
+</resources>
