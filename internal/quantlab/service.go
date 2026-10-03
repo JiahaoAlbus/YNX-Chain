@@ -976,6 +976,15 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 	benchmarkStart := b[startIndex].Close
 	recordEquity := func(index int) {
 		equity := numbers.sum(cash, numbers.mulDiv(pos, b[index].Close, 1_000_000))
+		// Risk follows the marked equity curve, not only fill events. Holding
+		// periods, zero-volume rows and disclosed data gaps still carry risk.
+		if equity > peak {
+			peak = equity
+		}
+		dd := numbers.mulDiv(numbers.difference(peak, equity), 10000, peak)
+		if dd > maxDD {
+			maxDD = dd
+		}
 		periodReturn := int64(0)
 		if previousEquity != 0 {
 			periodReturn = numbers.mulDiv(numbers.difference(equity, previousEquity), 10000, previousEquity)
@@ -1064,14 +1073,6 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 		trades++
 		idleCapitalSum.Add(&idleCapitalSum, big.NewInt(cash))
 		idleCapitalSamples++
-		equity := numbers.sum(cash, numbers.mulDiv(pos, b[i].Close, 1_000_000))
-		if equity > peak {
-			peak = equity
-		}
-		dd := numbers.mulDiv(numbers.difference(peak, equity), 10000, peak)
-		if dd > maxDD {
-			maxDD = dd
-		}
 		recordEquity(i)
 	}
 	end := numbers.sum(cash, numbers.mulDiv(pos, b[endIndex-1].Close, 1_000_000))
