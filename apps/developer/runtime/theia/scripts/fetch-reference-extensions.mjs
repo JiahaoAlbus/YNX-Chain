@@ -11,6 +11,8 @@ const pins = [
   { namespace: 'vscode', name: 'javascript', version: '1.95.3' },
   { namespace: 'vscode', name: 'typescript', version: '1.95.3' },
   { namespace: 'vscode', name: 'typescript-language-features', version: '1.95.3' },
+  { namespace: 'vscode', name: 'git', version: '1.95.3' },
+  { namespace: 'vscode', name: 'git-base', version: '1.95.3' },
   { namespace: 'ms-vscode', name: 'js-debug', version: '1.140.0' },
 ];
 const receipts = [];

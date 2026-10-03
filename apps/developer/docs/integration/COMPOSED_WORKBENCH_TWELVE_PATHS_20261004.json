@@ -1,0 +1,40 @@
+{
+  "schema": "ynx-composed-workbench-checkpoint/v1",
+  "sourceBaseHead": "98a1253e5e34a0cf88337b73d8fd67755f693d6e",
+  "runtimeArtifact": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "58cc71339e2083b56ffef3b367528b6bb5717fba551571bc86d94234acd991e7",
+    "treeSha256": "7f3855b71ec4173f952a5141e078a12440986f80c700c65d31aa618d1ce85f73",
+    "manifestSha256": "db911f9674d8f816ad425b91c3aad026fc523c13b595771832df1821c2ea0c54"
+  },
+  "checks": [
+    "actual TypeScript VS Code extension provides wallet property IntelliSense in the real framework editor",
+    "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+    "actual editor save writes the selected project file, confirmed on disk",
+    "the inherited YNX logo and product name render in the actual framework workbench",
+    "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+    "closing and reopening the actual file restores saved disk content",
+    "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+    "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+    "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+    "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+    "continuing the actual debug session executes the target program, confirmed by its disk output",
+    "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+  ],
+  "pageErrors": [],
+  "boundary": {
+    "read": "EPERM",
+    "write": "EPERM",
+    "network": "EPERM"
+  },
+  "normalEntryContractTests": {
+    "pass": 36,
+    "fail": 0,
+    "log": "/private/tmp/ynx-ide-normal-entry-owned-final-tests.log"
+  },
+  "broaderSuite": "One retained Central-source missing-input failure; not labelled complete",
+  "evidence": "apps/developer/.ynx-developer-candidates/composed-workbench-twelve-real-paths-20261004",
+  "scope": "real controlled macOS candidate; no canonical Wallet, Chain deploy, AI provider, public Host, installed other platforms or capacity acceptance"
+}

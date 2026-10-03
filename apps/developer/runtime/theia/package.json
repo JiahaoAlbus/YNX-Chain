@@ -41,9 +41,19 @@
           "telemetry.telemetryLevel": "off",
           "files.autoSave": "off",
           "editor.fontSize": 13,
+          "workbench.colorTheme": "YNX Klein Light",
           "terminal.integrated.defaultProfile.osx": "YNX Bash",
           "terminal.integrated.profiles.osx": {
-            "YNX Bash": { "path": "/bin/bash", "args": ["--noprofile", "--norc"], "env": { "BASH_SILENCE_DEPRECATION_WARNING": "1" } }
+            "YNX Bash": {
+              "path": "/bin/bash",
+              "args": [
+                "--noprofile",
+                "--norc"
+              ],
+              "env": {
+                "BASH_SILENCE_DEPRECATION_WARNING": "1"
+              }
+            }
           }
         }
       }

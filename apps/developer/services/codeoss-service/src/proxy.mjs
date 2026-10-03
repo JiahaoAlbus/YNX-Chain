@@ -11,6 +11,7 @@ export function createCodeOSSProxy({ service, driver, sessionForHost, originForS
   const digest = value => createHash("sha256").update(value).digest("base64url");
   const marker = '__YNX_WORKBENCH_WINDOW_CAPABILITY_V1__';
   const reviewedHelper = recordActivity ? readFileSync(new URL('../../../native/ynx-brand/workbench-activity.js', import.meta.url), 'utf8') : null;
+  const reviewedComposedHelper = recordActivity ? readFileSync(new URL('../../../runtime/ynx-workbench/assets/workbench-activity.js', import.meta.url), 'utf8') : null;
   const topDocument = request => request.method === 'GET' && new URL(request.url, 'https://local.invalid').pathname === '/' &&
     request.headers['sec-fetch-dest'] === 'document' && request.headers['sec-fetch-mode'] === 'navigate';
   async function activity(request, response, admitted) {
@@ -117,6 +118,7 @@ export function createCodeOSSProxy({ service, driver, sessionForHost, originForS
         // runs in a Worker (no parent DOM), not in this bootstrap document.
         const pathname = new URL(request.url, admitted.origin).pathname;
         const untrustedDocument = pathname.startsWith('/vscode-remote-resource') || pathname.startsWith('/web-extension-resource/') ||
+          pathname.endsWith('/webview/pre/index.html') || pathname.endsWith('/webview/pre/fake.html') ||
           pathname.endsWith('/vs/workbench/contrib/webview/browser/pre/index.html') ||
           pathname.endsWith('/vs/workbench/contrib/webview/browser/pre/fake.html');
         if (recordActivity && untrustedDocument) {
@@ -132,8 +134,8 @@ export function createCodeOSSProxy({ service, driver, sessionForHost, originForS
               throw fault('Runtime does not contain the reviewed activity entry.', 'core_workbench_invalid', 503);
             const start = html.indexOf('<script data-ynx-workbench-activity="v1">');
             const before = html.slice(0, start).replace(/<!--[\s\S]*?-->/g, '').trim();
-            const expected = `<script data-ynx-workbench-activity="v1">${reviewedHelper}</script>`;
-            if (!/^(?:<!doctype html>\s*)?<html>\s*<head>$/i.test(before) || !html.slice(start).startsWith(expected))
+            const reviewedBootstrap = [reviewedHelper, reviewedComposedHelper].some(helper => html.slice(start).startsWith(`<script data-ynx-workbench-activity="v1">${helper}</script>`));
+            if (!/^(?:<!doctype html>\s*)?<html>\s*<head>$/i.test(before) || !reviewedBootstrap)
               throw fault('Activity bootstrap is not the first reviewed workbench script.', 'core_workbench_invalid', 503);
             for (const [key, value] of windows) if (value.expiresAt <= now()) windows.delete(key);
             if (windows.size >= 4096) throw fault('Workbench document capacity is temporarily unavailable.', 'core_activity_unavailable', 503);

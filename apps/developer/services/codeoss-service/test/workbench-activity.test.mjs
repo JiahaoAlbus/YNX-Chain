@@ -52,6 +52,19 @@ test('fixed top document gets a private per-window capability; fetch and iframe 
   assert.equal(f.events.length, 0);
 });
 
+test('composed workbench bootstrap preserves the existing private activity route and isolates Theia webview documents', async t => {
+  const f = await fixture(t);
+  const source = await readFile(new URL('../../../runtime/ynx-workbench/assets/workbench-activity.js', import.meta.url), 'utf8');
+  f.tamper(`<html><head><script data-ynx-workbench-activity="v1">${source}</script></head><body></body></html>`);
+  const doc = await f.document();
+  assert.equal((await f.call('/runtime/workbench-activity', {}, { capability: doc.capability, eventId: randomUUID(), action: 'terminal-input' })).status, 200);
+  for (const path of ['/webview/pre/index.html', '/webview/pre/fake.html']) {
+    const result = await f.call(path, { 'sec-fetch-dest': 'iframe' });
+    assert.ok(result.headers['content-security-policy'].includes('sandbox allow-scripts allow-downloads'));
+    assert.equal(result.headers['service-worker-allowed'], undefined);
+  }
+});
+
 test('activity is bound to verified parent reference and exact event; replay, wrong origin and passive action reject', async t => {
   const f = await fixture(t), doc = await f.document(), input = { capability: doc.capability, eventId: randomUUID(), action: 'edit' };
   assert.equal((await f.call('/runtime/workbench-activity', {}, input)).status, 200);

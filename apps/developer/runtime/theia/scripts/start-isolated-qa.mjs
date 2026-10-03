@@ -4,18 +4,25 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { verifyComposedRuntime } from '../../../services/codeoss-service/src/composed-runtime.mjs';
 
 // A real, OS-contained single-session test of this runtime. This is deliberately
 // not the public/multi-owner admission path and never selects a user profile.
 if (process.platform !== 'darwin') throw Error('The isolated QA launcher currently requires macOS.');
-const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
+const application = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
+const candidates = resolve(application, '../../.ynx-developer-candidates') + '/';
+const root = process.argv[4] ? await realpath(process.argv[4]) : application;
+if (root !== application) {
+  if (!root.startsWith(candidates)) throw Error('Only an owned composed runtime candidate is allowed.');
+  await verifyComposedRuntime(root, JSON.parse(await readFile(`${root}.pin.json`, 'utf8')));
+}
 const pluginInput = process.argv[2];
 if (!pluginInput || !pluginInput.startsWith('/')) throw Error('Provide the owned staged extension directory.');
 const plugins = await realpath(pluginInput);
-if (!plugins.startsWith(resolve(root, '../../.ynx-developer-candidates') + '/')) throw Error('Only owned candidate plugin inputs are allowed.');
+if (!plugins.startsWith(candidates)) throw Error('Only owned candidate plugin inputs are allowed.');
 const dapInput = process.argv[3];
 const dapRoot = dapInput ? await realpath(dapInput) : undefined;
-if (dapRoot && !dapRoot.startsWith(resolve(root, '../../.ynx-developer-candidates') + '/')) throw Error('Only owned debugger candidate inputs are allowed.');
+if (dapRoot && !dapRoot.startsWith(candidates)) throw Error('Only owned debugger candidate inputs are allowed.');
 if (dapRoot && JSON.parse(await readFile(join(dapRoot, 'receipt.json'), 'utf8')).sha256 !== '27dab92937ec1ab35821ae955aac867544fe06a1b6307229049f2d789af10968') throw Error('Unexpected debugger artifact pin.');
 // Keep debugger Unix socket names below macOS's sockaddr_un path limit.
 const qa = await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
@@ -65,8 +72,8 @@ await writeFile(join(qa, 'sandbox.sb'), profileText, { mode: 0o600 });
 const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root, 'lib/backend/main.js'), workspace,
   '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
-  env: { PATH: `${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
-    THEIA_CONFIG_DIR: profile, NODE_OPTIONS: '--max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+  env: { PATH: `${dirname(node)}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
+    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, NODE_OPTIONS: '--max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);

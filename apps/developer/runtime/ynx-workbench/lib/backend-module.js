@@ -22,6 +22,14 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   if (process.platform === 'darwin') rebind(ProcessUtils).to(YnxProcessUtils).inSingletonScope();
   let adapter;
   bind(BackendApplicationContribution).toConstantValue({
+    configure(app) {
+      app.use((request, response, next) => {
+        if (['/', '/index.html', '/secondary-window.html'].includes(request.path)) {
+          response.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; frame-src 'self'; object-src 'none'; base-uri 'self'");
+        }
+        next();
+      });
+    },
     onStart() {
       const entry = process.env.YNX_IDE_DAP_ENTRY, port = process.env.YNX_IDE_DAP_PORT;
       if (!entry && !port) return;

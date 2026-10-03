@@ -75,6 +75,16 @@ try {
   assert.ok(logoBounds && logoBounds.width >= 20 && logoBounds.height >= 20);
   assert.equal(await page.locator('.ynx-workbench-brand strong').innerText(), 'YNX Developer');
   checks.push('the inherited YNX logo and product name render in the actual framework workbench');
+  let brandExtension;
+  try { brandExtension = JSON.parse(await readFile(`${runtime.plugins}/ynx.ynx-developer-brand/package.json`, 'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (brandExtension) {
+    await page.waitForFunction(() => {
+      const status = document.getElementById('theia-statusBar');
+      return status && getComputedStyle(status).backgroundColor === 'rgb(0, 47, 167)';
+    });
+    checks.push('the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color');
+  }
   await page.keyboard.press('Meta+w');
   await page.locator('.monaco-editor').waitFor({ state: 'hidden' });
   await page.keyboard.press('Meta+p');
@@ -98,6 +108,45 @@ try {
   }
   assert.equal(marker, 'YNX real PTY');
   checks.push('actual integrated PTY executes installed Node in this project, confirmed by its disk output');
+  let gitExtension;
+  try { gitExtension = JSON.parse(await readFile(`${runtime.plugins}/vscode.git-1.95.3/package.json`, 'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (gitExtension) {
+    await terminal.focus();
+    await terminal.pressSequentially('export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1; git init --initial-branch=ynx-qa && git config --local user.name "YNX QA" && git config --local user.email "qa@example.invalid" && node -e "require(\'node:fs\').writeFileSync(\'git-ready.txt\',\'ready\')"');
+    await terminal.press('Enter');
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { if (await readFile(`${runtime.workspace}/git-ready.txt`, 'utf8') === 'ready') break; } catch {}
+      await page.waitForTimeout(50);
+    }
+    assert.equal(await readFile(`${runtime.workspace}/git-ready.txt`, 'utf8'), 'ready');
+    // Wait until the real extension has discovered the repository before
+    // opening a command list whose enabled entries are captured at creation.
+    await page.locator('#theia-statusBar').filter({ hasText: 'ynx-qa' }).waitFor();
+    await page.keyboard.press('F1');
+    await command.fill('>Git: Stage All Changes');
+    await page.getByText('Git: Stage All Changes', { exact: true }).first().waitFor();
+    await command.press('Enter');
+    let index;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { index = await readFile(`${runtime.workspace}/.git/index`); } catch {}
+      if (index?.length) break;
+      await page.waitForTimeout(50);
+    }
+    assert.ok(index?.length, 'The Git extension did not write the actual repository index');
+    await terminal.focus();
+    await terminal.pressSequentially('git diff --cached --name-only > git-staged.txt && git commit -m "YNX real workbench Git" && git log -1 --format=%s > git-commit-proof.txt');
+    await terminal.press('Enter');
+    let commit;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      try { commit = await readFile(`${runtime.workspace}/git-commit-proof.txt`, 'utf8'); } catch {}
+      if (commit) break;
+      await page.waitForTimeout(50);
+    }
+    assert.equal(commit?.trim(), 'YNX real workbench Git');
+    assert.match(await readFile(`${runtime.workspace}/git-staged.txt`, 'utf8'), /^main\.js$/m);
+    checks.push('official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output');
+  }
   const outside = await realpath(await mkdtemp(join(tmpdir(), 'ynx-other-project-boundary-')));
   const otherFile = join(outside, 'public-marker.txt'), otherWrite = join(outside, 'new-file.txt');
   await writeFile(otherFile, 'public other-project marker', { mode: 0o600 });
@@ -145,6 +194,19 @@ try {
     }
     assert.equal(debugProof, 'YNX debugger reference');
     checks.push('continuing the actual debug session executes the target program, confirmed by its disk output');
+  }
+  let ynxTools;
+  try { ynxTools = JSON.parse(await readFile(`${runtime.plugins}/ynx.ynx-tools/package.json`, 'utf8')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (ynxTools) {
+    assert.equal(ynxTools.publisher, 'ynx');
+    await page.keyboard.press('F1');
+    await command.fill('>YNX: Create Read-only Testnet SDK Starter');
+    await page.getByText('YNX: Create Read-only Testnet SDK Starter', { exact: true }).first().waitFor();
+    await command.press('Enter');
+    await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+    await assert.rejects(readFile(`${runtime.workspace}/ynx-testnet-readonly.mjs`), { code: 'ENOENT' });
+    checks.push('inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files');
   }
   await page.screenshot({ path: `${runtime.qa}/actual-language-editor.png` });
   await writeFile(`${runtime.qa}/actual-host-browser.json`, JSON.stringify({ runtime, checks, errors, boundary, outside }, null, 2));

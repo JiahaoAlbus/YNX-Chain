@@ -53,3 +53,20 @@ test("uncertain start/Stop and token-bearing listener results fail; rejected soc
   await assert.rejects(unsafe.driver.connect(context), { code: "core_isolation_invalid" });
   assert.equal(closed, true);
 });
+
+test('reviewed composed workbench uses the same normal admission and rejects a changed or legacy session artifact before execution', async () => {
+  const artifact = { kind: 'ynx-theia', version: '1.76.0', architecture: 'linux-x64', lockSha256: '1'.repeat(64), manifestSha256: '2'.repeat(64), treeSha256: '3'.repeat(64) };
+  const actual = driver({ runtimeArtifact: artifact });
+  const admission = createDeveloperCoreAdmission({ driver: actual, architecture: 'linux-x64', executionDomain: 'ynx-runtime.example', runtimeArtifact: artifact });
+  const value = { ...context, image: { ...artifact } };
+  await admission.driver.start(value); await admission.driver.connect(value); await admission.driver.stop(value);
+  assert.equal(actual.calls.length, 3);
+  for (const method of ['start', 'connect', 'stop']) {
+    await assert.rejects(admission.driver[method](context), { code: 'core_artifact_mismatch' });
+    await assert.rejects(admission.driver[method]({ ...value, image: { ...artifact, treeSha256: '4'.repeat(64) } }), { code: 'core_artifact_mismatch' });
+  }
+  assert.equal(actual.calls.length, 3);
+  assert.throws(() => compose(actual), TypeError);
+  assert.throws(() => createDeveloperCoreAdmission({ driver: actual, architecture: 'linux-arm64', executionDomain: 'ynx-runtime.example', runtimeArtifact: artifact }), TypeError);
+  await assert.rejects(compose().driver.stop(value), { code: 'core_artifact_mismatch' });
+});

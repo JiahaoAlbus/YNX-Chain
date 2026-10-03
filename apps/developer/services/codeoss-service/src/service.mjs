@@ -5,6 +5,7 @@ import { join, resolve, relative, sep } from "node:path";
 import { OPENVSCODE, CORE_LIMITS } from "./upstream.mjs";
 import { createCentralIdentityVerifier, fault } from "./central-identity.mjs";
 import { consumerIdentityBinding, assertExpectedIdentity } from "./identity-consumer-binding.mjs";
+import { validateRuntimeArtifact } from './composed-runtime.mjs';
 
 const ID = /^[A-Za-z0-9_-]{1,160}$/;
 const LIVE = "'preparing','running','stopping','recovery-required'";
@@ -14,6 +15,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   driver, launchURL, assertProjectQuiescent, limits = CORE_LIMITS, now = Date.now } = {}) {
   if (!workspaceStore || !root || !filename) throw new TypeError("CodeOSS durable store/root are required.");
   root = resolve(root);
+  const runtimeArtifact = driver?.runtimeArtifact ? validateRuntimeArtifact(driver.runtimeArtifact) : null;
   if (!workspaceStore.nativeJournalDatabase || !workspaceStore.claimWriterInTransaction)
     throw new TypeError("Native sessions and workspace writers require one shared SQLite journal.");
   const db = workspaceStore.nativeJournalDatabase();
@@ -48,6 +50,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   try {
     if (!columns.has("hard_deadline")) db.exec("ALTER TABLE codeoss_sessions ADD COLUMN hard_deadline INTEGER");
     if (!columns.has("identity_reference")) db.exec("ALTER TABLE codeoss_sessions ADD COLUMN identity_reference TEXT");
+    if (!columns.has("runtime_artifact")) db.exec("ALTER TABLE codeoss_sessions ADD COLUMN runtime_artifact TEXT");
     db.exec("UPDATE codeoss_sessions SET hard_deadline=expires_at WHERE hard_deadline IS NULL");
     db.exec("COMMIT");
   } catch (error) { db.exec("ROLLBACK"); throw error; }
@@ -114,9 +117,10 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       workspaceStore.claimWriterInTransaction(id.workspaceOwner, body.projectId, { writerToken: token, sessionId, expectedRevision: snapshot.revision });
       const startedAt = now(), runtimeDeadline = startedAt + limits.maxSessionMs;
       const hardDeadline = id.identityReference && typeof verifyIdentity.resolveReference === "function" ? runtimeDeadline : Math.min(id.expiresAt, runtimeDeadline);
-      db.prepare("INSERT INTO codeoss_sessions(id,owner,workspace_owner,project,generation,account,expires_at,revision,snapshot,writer_token,status,runtime,failure,created_at,hard_deadline,identity_reference) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(sessionId, id.owner, id.workspaceOwner,
+      db.prepare("INSERT INTO codeoss_sessions(id,owner,workspace_owner,project,generation,account,expires_at,revision,snapshot,writer_token,status,runtime,failure,created_at,hard_deadline,identity_reference,runtime_artifact) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(sessionId, id.owner, id.workspaceOwner,
         body.projectId, id.generation, id.account, Math.min(id.expiresAt, hardDeadline), snapshot.revision,
-        JSON.stringify(snapshot), token, "preparing", runtimeId, null, startedAt, hardDeadline, id.identityReference || null);
+        JSON.stringify(snapshot), token, "preparing", runtimeId, null, startedAt, hardDeadline, id.identityReference || null,
+        runtimeArtifact ? JSON.stringify(runtimeArtifact) : null);
       db.exec("COMMIT");
     } catch (error) { db.exec("ROLLBACK"); throw error; }
     const context = runtimeContext(get(sessionId));
@@ -170,7 +174,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   function runtimeContext(row) {
     const saved = db.prepare("SELECT directory FROM codeoss_projects WHERE workspace_owner=? AND project=?").get(row.workspace_owner, row.project);
     return Object.freeze({ sessionId: row.id, owner: row.owner, projectId: row.project, runtimeId: row.runtime,
-      directory: join(root, row.id), projectDirectory: nativeProjectDirectory(root, driver?.projectsRoot, row.workspace_owner, row.project, saved?.directory), image: driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
+      directory: join(root, row.id), projectDirectory: nativeProjectDirectory(root, driver?.projectsRoot, row.workspace_owner, row.project, saved?.directory), image: row.runtime_artifact ? validateRuntimeArtifact(JSON.parse(row.runtime_artifact)) : driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
         .update(`${row.owner}\n${row.project}\n${row.runtime}\n${row.id}`).digest("hex") });
   }
 
@@ -230,7 +234,8 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
         const live = db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND workspace_owner=? AND status IN (${LIVE}) ORDER BY created_at DESC`).all(id.owner, id.workspaceOwner);
         const history = db.prepare("SELECT * FROM codeoss_sessions WHERE owner=? AND workspace_owner=? AND status='stopped' ORDER BY created_at DESC LIMIT 100").all(id.owner, id.workspaceOwner);
         const sessions = [...live, ...history].map(publicSession);
-        json(response, 200, { kernel: OPENVSCODE.version, license: OPENVSCODE.license, limits,
+        json(response, 200, { kernel: runtimeArtifact ? `YNX / Theia ${runtimeArtifact.version}` : OPENVSCODE.version,
+          license: runtimeArtifact ? 'EPL-2.0 and component licenses' : OPENVSCODE.license, limits,
           account: id.account, generation: id.generation, identityKey,
           capacityScope: "single-durable-broker", capacityVerified: false, sessions,
           configured: Boolean(driver && launchURL), walletProjectExists: Boolean(project), projectRevision: project?.revision || 0,

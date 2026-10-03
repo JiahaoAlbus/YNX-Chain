@@ -18,7 +18,8 @@ async function fixture(t, overrides = {}) {
   const store = createWorkspaceStore({ filename: join(root, "workspace.sqlite") });
   store.put(ownerA, project, { expectedRevision: 0, idempotencyKey: "seed-owner-a", payload: snapshot });
   store.put(ownerB, project, { expectedRevision: 0, idempotencyKey: "seed-owner-b", payload: snapshot });
-  const driver = { upstream: OPENVSCODE_X64, async start(value) { context = value; return await overrides.start?.(value) || { running: true, runtimeId: value.runtimeId }; }, async stop(value) {
+  const driver = { upstream: OPENVSCODE_X64, ...(overrides.runtimeArtifact ? { runtimeArtifact: overrides.runtimeArtifact } : {}), async start(value) { context = value; return await overrides.start?.(value) || { running: true, runtimeId: value.runtimeId }; }, async stop(value) {
+    context = value;
     if (overrides.stop) return overrides.stop(value);
     return { stopped: true, runtimeId: value.runtimeId, identityDigest: value.identityDigest, neverStarted: false };
   }, connect: async () => { throw new Error("Contract test has no executable runtime listener."); } };
@@ -46,8 +47,21 @@ async function fixture(t, overrides = {}) {
   };
   const launch = () => call("", "POST", { projectId: project, expectedRevision: 1, approval: "launch-native-ide-once" });
   t.after(async () => { await new Promise(resolve => server.close(resolve)); service.close(); store.close(); });
-  return { root, store, call, launch, context: () => context, restart: () => { service.close(); service = make(); }, service: () => service };
+  return { root, store, driver, call, launch, context: () => context, restart: () => { service.close(); service = make(); }, service: () => service };
 }
+
+test('normal project entry reports the composed workbench and cold recovery retains its original artifact after configuration changes', async t => {
+  const artifact = { kind: 'ynx-theia', version: '1.76.0', architecture: 'linux-x64', lockSha256: '1'.repeat(64), manifestSha256: '2'.repeat(64), treeSha256: '3'.repeat(64) };
+  const f = await fixture(t, { runtimeArtifact: artifact });
+  assert.equal((await f.call()).value.kernel, 'YNX / Theia 1.76.0');
+  const launched = await f.launch(); assert.equal(launched.status, 201);
+  assert.deepEqual(f.context().image, artifact);
+  f.driver.runtimeArtifact = { ...artifact, treeSha256: '4'.repeat(64) };
+  f.restart();
+  const stopped = await f.call(`/${launched.value.session.sessionId}`, 'DELETE');
+  assert.equal(stopped.status, 200);
+  assert.deepEqual(f.context().image, artifact);
+});
 
 test("normal HTTP launch binds current project; binary/empty/nested files remain lossless and reopen same volume", async t => {
   const f = await fixture(t), launched = await f.launch(); assert.equal(launched.status, 201);

@@ -43,8 +43,8 @@ node scripts/fetch-debug-adapter.mjs /absolute/new-debugger-directory
 node scripts/start-isolated-qa.mjs /absolute/new-extension-directory /absolute/new-debugger-directory
 ```
 
-The extension script pins official Open VSX JavaScript/TypeScript basics and
-language service 1.95.3, and Microsoft's JS debug extension 1.140.0. It compares
+The extension script pins official Open VSX JavaScript/TypeScript basics,
+language service and Git/Git-base 1.95.3, and Microsoft's JS debug extension 1.140.0. It compares
 the official archive SHA256, bounds extracted content and runs no install hooks.
 The DAP script pins the official Microsoft standalone 1.140.0 release digest,
 retains its archive and records per-file hashes. Licenses/notices remain in the
@@ -67,6 +67,25 @@ an executable-line breakpoint, actual variables, stepping to the next source
 line, and continued execution by reading target output from disk. No editor,
 terminal or DAP response is mocked. Receipts and screenshots remain in the QA
 directory, including separate failed attempts.
+
+The standalone candidate builder also retains the existing YNX Tools and
+YNX Klein Light theme extensions, component license declarations and available
+legal notices, plus the reviewed activity bootstrap required by the normal
+session proxy:
+
+```sh
+node scripts/package-runtime.mjs /absolute/new-runtime-candidate /absolute/staged-extension-directory
+node scripts/start-isolated-qa.mjs /absolute/new-runtime-candidate/plugins /absolute/staged-debugger-directory /absolute/new-runtime-candidate
+```
+
+The adjacent `.pin.json` records manifest/tree/lock hashes and the actual native
+architecture. Build each platform's native dependencies on that platform;
+this macOS arm64 candidate is not a Linux artifact. The latest standalone
+candidate passes 12 real runtime journeys, including actual Git extension
+staging and PTY commit/readback, inherited YNX theme colors and YNX Tools
+activation with unbound-session refusal. Source contract tests pass 36 cases.
+See `docs/integration/COMPOSED_WORKBENCH_ADMISSION_20261004.md` for the exact
+normal-entry consumer contract and remaining A-owned integration.
 
 ## Integration boundary
 
