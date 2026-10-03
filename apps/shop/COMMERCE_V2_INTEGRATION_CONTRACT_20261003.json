@@ -755,6 +755,17 @@
         "shop:seller:operate"
       ],
       "businessAuthority": "Read original actor+route+key+typed-body request from the original Store; recheck current operation permission. Unknown/retired results stay unresolved. No mutation or provider retry."
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/{id}/transition-intent-lookup",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write",
+        "shop:profile:write"
+      ],
+      "businessAuthority": "Current own buyer order; exact original actor/order/action/idempotency key/typed request hash; pure original readback even at a later state. No transition, provider request, payment or replacement intent. A must mount this fixed owned route in its protected adapter; runtime not yet verified."
     }
   ],
   "merchantRoutes": [

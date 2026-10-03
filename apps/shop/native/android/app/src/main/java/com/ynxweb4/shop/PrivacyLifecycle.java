@@ -75,6 +75,12 @@ final class PrivacyLifecycle {
         if(ticket==null)return;
         synchronized(store){JSONObject all=read(store),requests=state(all,ticket.account).getJSONObject("requests");JSONObject request=requests.optJSONObject(ticket.id);if(request==null)return;if(definitive)requests.remove(ticket.id);else request.put("status","UNKNOWN");write(all);}
     }
+    void confirmOriginalTransition(String account,long generation,String id,JSONObject original)throws Exception{
+        synchronized(store){JSONObject all=read(store),current=state(all,account),requests=current.getJSONObject("requests"),saved=requests.optJSONObject(id);
+            if(!ACTIVE.equals(current.optString("phase"))||current.optLong("generation")!=generation||saved==null||!"UNKNOWN".equals(saved.optString("status"))||!saved.optString("path").matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition")||!WalletAuth.canonical(saved).equals(WalletAuth.canonical(original)))throw new SecurityException("Original order transition recovery changed");
+            requests.remove(id);write(all);
+        }
+    }
     void begin(String account)throws Exception{
         synchronized(store){
             JSONObject all=read(store),current=state(all,account);String phase=current.optString("phase");

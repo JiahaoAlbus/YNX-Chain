@@ -257,7 +257,7 @@ public final class MainActivity extends Activity {
         showDialog(dialog,()->{if(orderActionDialog==dialog)orderActionDialog=null;});dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             if(view!=viewRevision||!isCurrent(expected,generation)){dialog.dismiss();return;}
             try{BuyerOrderReadback.validate(order,expected);requireOrderActionAvailable(expected,order);JSONObject body=BuyerOrderActionInput.build(order.getString("Status"),action,review?(int)rating.getRating():0,resolution?reason.getText().toString():"",review||resolution?detail.getText().toString():"");body.put("IdempotencyKey",UUID.randomUUID().toString());
-                if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));}
+                if(!isOnline()){queue.enqueueForSession(expected,generation,"POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));}
                 else api.request("POST","/orders/"+order.getString("ID")+"/transition",body,()->view==viewRevision&&isCurrent(expected,generation),(value,failure)->{status.setText(failure==null?getString(R.string.loading):message(failure));if(failure==null)showOrders();});
                 dialog.dismiss();
             }catch(IllegalArgumentException invalid){error.setText(R.string.order_input_required);}catch(IllegalStateException pending){error.setText(R.string.order_request_pending);}catch(Exception rejected){error.setText(R.string.security_error);}
@@ -289,12 +289,12 @@ public final class MainActivity extends Activity {
     private boolean isCurrent(ProductSession expected){try{return !isFinishing()&&!isDestroyed()&&expected!=null&&expected.same(api.session());}catch(Exception error){return false;}}
     private boolean isCurrent(ProductSession expected,long generation){try{return isCurrent(expected)&&api.privacy().current(expected.account,generation);}catch(Exception error){return false;}}
     private void restorePending(Button retry){
-        final ProductSession expected;final String previousCart;final long generation;
+        final long view=viewRevision;final ProductSession expected;final String previousCart;final long generation;
         try{expected=api.session();if(expected==null){signIn();return;}previousCart=secure.get("cart:"+expected.account);generation=api.privacy().generation(expected.account);}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         retry.setEnabled(false);status.setText(getString(R.string.loading));
         new Thread(()->{
-            try{int count=queue.flush(api,expected,generation);runOnUiThread(()->{if(!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();status.setText(count+" "+getString(R.string.restore_pending));});}
-            catch(Exception error){runOnUiThread(()->{if(!isCurrent(expected,generation))return;retry.setEnabled(true);status.setText(message(error));});}
+            try{final int count=queue.flush(api,expected,generation)+BuyerTransitionRecovery.recoverTracked(api.privacy(),new OfflineMutationQueue.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session,long generation)throws Exception{return api.requestForSession(method,path,body,session,generation);}},expected,generation);runOnUiThread(()->{if(view!=viewRevision||!isCurrent(expected,generation))return;retry.setEnabled(true);restoreCart();status.setText(count+" "+getString(R.string.restore_pending));});}
+            catch(Exception error){runOnUiThread(()->{if(view!=viewRevision||!isCurrent(expected,generation))return;retry.setEnabled(true);status.setText(message(error));});}
         }).start();
     }
     private void renderPrivacyControls(){

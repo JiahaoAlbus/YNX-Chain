@@ -33,7 +33,7 @@ final class ApiClient {
     void requireWritable()throws Exception{ProductSession current=session();if(current!=null)PrivacyLifecycle.requireWritable(secure,current.account);}
     private boolean current(ProductSession expected)throws Exception{if(closed)return false;ProductSession actual=session();return expected==null?actual==null:expected.same(actual);}
     private boolean context(ProductSession expected,long generation)throws Exception{return current(expected)&&(expected==null||privacy().current(expected.account,generation));}
-    private static boolean businessMutation(String method,String path){return !method.equals("GET")&&!method.equals("HEAD")&&!path.startsWith("/auth/")&&!path.equals("/orders/intent-lookup");}
+    private static boolean businessMutation(String method,String path){return !method.equals("GET")&&!method.equals("HEAD")&&!path.startsWith("/auth/")&&!path.equals("/orders/intent-lookup")&&!path.matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition-intent-lookup");}
     private PrivacyLifecycle.Ticket admit(String method,String path,JSONObject body,ProductSession expected)throws Exception{
         if(!businessMutation(method,path))return null;
         if(path.equals("/privacy/delete"))throw new SecurityException("Use the durable deletion lifecycle");
@@ -125,7 +125,13 @@ final class ApiClient {
         },"shop-privacy-delete").start();
     }
     static final class Response{final int status;final JSONObject value;Response(int status,JSONObject value){this.status=status;this.value=value;}}
-    private NetworkCall networkCall(String method,String path,JSONObject body,ProductSession expected){return new NetworkCall(){private Prepared prepared;public void prepare()throws Exception{prepared=prepareNetwork(method,path,body,expected);}public Response send()throws Exception{if(prepared==null)throw new SecurityException("Request was not prepared");return sendPrepared(prepared);}};}
+    private NetworkCall networkCall(String method,String path,JSONObject body,ProductSession expected){return new NetworkCall(){private Prepared prepared;public void prepare()throws Exception{prepared=prepareNetwork(method,path,body,expected);}public Response send()throws Exception{if(prepared==null)throw new SecurityException("Request was not prepared");return validateTransitionResponse(sendPrepared(prepared),method,path,expected,body);}};}
+    static Response validateTransitionResponse(Response response,String method,String path,ProductSession expected,JSONObject body)throws Exception{
+        if(expected==null||!method.equals("POST")||response.status<200||response.status>=300)return response;
+        if(path.matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition")){BuyerOrderReadback.validate(response.value,expected);String target=path.substring(8,path.length()-11);if(!target.equals(response.value.getString("ID")))throw new SecurityException("Original transition target changed");}
+        else if(path.matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition-intent-lookup"))BuyerTransitionRecovery.receipt(response.value,expected,path.substring(0,path.length()-14),body);
+        return response;
+    }
     private Response network(String method,String path,JSONObject body,ProductSession expected)throws Exception{return sendPrepared(prepareNetwork(method,path,body,expected));}
     private static final class Prepared{final URL url;final String method;final byte[] bytes;final boolean hasBody;final JSONObject proof;Prepared(URL url,String method,byte[] bytes,boolean hasBody,JSONObject proof){this.url=url;this.method=method;this.bytes=bytes;this.hasBody=hasBody;this.proof=proof;}}
     private Prepared prepareNetwork(String method,String path,JSONObject body,ProductSession expected)throws Exception{

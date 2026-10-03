@@ -160,3 +160,9 @@ enum BuyerOrderActionInput {
         return ["Action":action,"Rating":rating,"Reason":reason,"Explanation":resolution ? detail:"","Body":review ? detail:""]
     }
 }
+
+enum BuyerTransitionRecovery {
+    static func receipt(_ value:[String:Any],session:ShopSession,item:OfflineEnvelope)throws->Order {
+        let parts=item.path.split(separator:"/");guard parts.count==3,parts[0]=="orders",parts[2]=="transition",let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let action=body["Action"] as? String,let key=body["IdempotencyKey"] as? String,value["Actor"] as? String==session.account,value["OrderID"] as? String==String(parts[1]),value["Action"] as? String==action,value["IdempotencyKey"] as? String==key,let raw=value["Order"] as? [String:Any] else{throw ShopError.security};let order=try AppleBuyerReceipt.decode(raw,account:session.account);guard order.orderID==String(parts[1]) else{throw ShopError.security};return order
+    }
+}

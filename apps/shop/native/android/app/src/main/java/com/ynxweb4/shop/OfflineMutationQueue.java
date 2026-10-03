@@ -11,14 +11,19 @@ final class OfflineMutationQueue {
     private final Storage secure;
     private boolean flushing;
     OfflineMutationQueue(Storage store){this.secure=store;}
-    synchronized String enqueue(String method,String path,JSONObject body) throws Exception{
-        synchronized(secure){
-        ProductSession session=ProductSession.parse(secure.get("commerce_session"),Instant.now());if(session==null)throw new SecurityException("An active account is required to save a pending request");long generation=PrivacyLifecycle.requireWritable(secure,session.account);if(!method.equals("POST")||!(path.equals("/orders")||path.matches("/orders/[^/]+/transition")))throw new SecurityException("Only reviewed order actions can be queued");if(path.endsWith("/transition")&&!java.util.Set.of("cancelled","delivered","return_requested","refund_requested","disputed","reviewed").contains(body.optString("Action")))throw new SecurityException("Queued action is not a buyer review action");String key=body.optString("IdempotencyKey");if(key.isBlank())throw new SecurityException("A purchase intent key is required");JSONArray queue=read();
+    synchronized String enqueue(String method,String path,JSONObject body)throws Exception{
+        synchronized(secure){return enqueueLocked(ProductSession.parse(secure.get("commerce_session"),Instant.now()),-1,method,path,body);}
+    }
+    synchronized String enqueueForSession(ProductSession expected,long generation,String method,String path,JSONObject body)throws Exception{
+        synchronized(secure){if(expected==null||!expected.nativeV2)throw new SecurityException("Original Native authority required");return enqueueLocked(expected,generation,method,path,body);}
+    }
+    private String enqueueLocked(ProductSession session,long generation,String method,String path,JSONObject body)throws Exception{
+        if(session==null)throw new SecurityException("An active account is required to save a pending request");long current=PrivacyLifecycle.requireWritable(secure,session.account);if(generation>=0&&generation!=current)throw new SecurityException("Original queue privacy generation changed");generation=current;
+        if(!method.equals("POST")||!(path.equals("/orders")||path.matches("/orders/[^/]+/transition")))throw new SecurityException("Only reviewed order actions can be queued");if(path.endsWith("/transition")&&!java.util.Set.of("cancelled","delivered","return_requested","refund_requested","disputed","reviewed").contains(body.optString("Action")))throw new SecurityException("Queued action is not a buyer review action");String key=body.optString("IdempotencyKey");if(key.isBlank())throw new SecurityException("A purchase intent key is required");JSONArray queue=read();
         for(int i=0;i<queue.length();i++){JSONObject existing=queue.getJSONObject(i),existingBody=existing.optJSONObject("body");if(session.account.equals(existing.optString("account"))&&method.equals(existing.optString("method"))&&path.equals(existing.optString("path"))&&existingBody!=null&&key.equals(existingBody.optString("IdempotencyKey"))){if(!WalletAuth.canonical(body).equals(WalletAuth.canonical(existingBody)))throw new SecurityException("A queued intent key cannot change its contents");return existing.getString("id");}}
         if(queue.length()>=100)throw new IllegalStateException("Pending request queue is full");String id=UUID.randomUUID().toString();
         queue.put(new JSONObject().put("id",id).put("method",method).put("path",path).put("body",new JSONObject(body.toString())).put("account",session.account).put("privacyGeneration",generation).put("queuedAt",Instant.now().toString()));
         secure.put("offline_mutations",queue.toString());return id;
-        }
     }
     synchronized boolean hasOriginalTransition(String account,String path)throws Exception{
         synchronized(secure){JSONArray rows=read();for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(path.equals(row.optString("path"))&&(account.equals(row.optString("account"))||row.optString("account").isEmpty()))return true;}return false;}
@@ -43,7 +48,7 @@ final class OfflineMutationQueue {
                 try{
                     JSONObject body=item.getJSONObject("body");String path=item.getString("path");
                     JSONObject response;
-                    if(expected.nativeV2){if(!path.equals("/orders"))continue;response=api.requestForSession("POST","/orders/intent-lookup",new JSONObject().put("IdempotencyKey",body.getString("IdempotencyKey")),expected,generation);}
+                    if(expected.nativeV2){if(path.equals("/orders"))response=api.requestForSession("POST","/orders/intent-lookup",new JSONObject().put("IdempotencyKey",body.getString("IdempotencyKey")),expected,generation);else if(path.matches("/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/transition")){response=api.requestForSession("POST",path+"-intent-lookup",body,expected,generation);BuyerTransitionRecovery.receipt(response,expected,path,body);}else continue;}
                     else response=api.requestForSession(item.getString("method"),path,body,expected,generation);
                     synchronized(this){
                         synchronized(secure){

@@ -18,7 +18,7 @@ run('native-contract-locales',process.execPath,[path.join(native,'scripts/verify
 if(mode==='--android'){
  if(!process.env.JAVA_HOME||!process.env.ANDROID_HOME)throw new Error('Use existing Java 17 JAVA_HOME and Android 36 ANDROID_HOME; this script installs nothing');
  const project=path.join(stage,'android');fs.cpSync(path.join(native,'android'),project,{recursive:true,filter:p=>!['.gradle','build'].includes(path.basename(p))});
- run('android-build-and-order-checks',path.join(project,'gradlew'),['-p',project,'--offline','--no-daemon',':app:assembleDebug',':app:testDebugUnitTest','--tests','com.ynxweb4.shop.BuyerOrderActionInputTest','--tests','com.ynxweb4.shop.OfflineMutationQueueTest','--tests','com.ynxweb4.shop.PrivacyLifecycleTest','--tests','com.ynxweb4.shop.BuyerJourneyTest']);
+ run('android-build-and-order-checks',path.join(project,'gradlew'),['-p',project,'--offline','--no-daemon',':app:assembleDebug',':app:testDebugUnitTest','--tests','com.ynxweb4.shop.BuyerOrderActionInputTest','--tests','com.ynxweb4.shop.OfflineMutationQueueTest','--tests','com.ynxweb4.shop.PrivacyLifecycleTest','--tests','com.ynxweb4.shop.BuyerJourneyTest','--tests','com.ynxweb4.shop.BuyerTransitionRecoveryTest']);
 }else{
  const developer=process.env.DEVELOPER_DIR;
  if(!developer||!fs.existsSync(path.join(developer,'usr/bin/xcodebuild')))throw new Error('Set process-local DEVELOPER_DIR to the installed, user-initialized Xcode Developer directory');
