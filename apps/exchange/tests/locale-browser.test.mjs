@@ -184,6 +184,7 @@ test('real order preview preserves exact financial values while form and dialog 
     for(const locale of locales){
       await page.locator('#exchange-language').selectOption(locale);
       assert.equal(await page.locator('#buy-tab').innerText(),catalogs[locale].Buy);
+      assert.equal(await page.locator('#order-limits').innerText(),catalogs[locale]['order-limits-description']+` ${formatMicro(100000000000)} YUSD_TEST.`);
       assert.equal(await page.locator('#review-order').innerText(),catalogs[locale]['Preview order · no submission']);
       await page.evaluate(()=>window.formQA.review());
       assert.deepEqual(await page.locator('#order-preview-values dt').allTextContents(),keys.map(key=>catalogs[locale][key]));
@@ -201,8 +202,13 @@ test('real order preview preserves exact financial values while form and dialog 
       assert.match(catalogs[locale]['preview-test-assets'],/YNXT/u);assert.match(catalogs[locale]['preview-test-assets'],/YUSD_TEST/u);
       assert.equal(await page.evaluate(()=>document.querySelector('#order-preview-dialog').scrollWidth<=document.querySelector('#order-preview-dialog').clientWidth),true,locale);
       await page.locator('#order-preview-dialog .wide').click();
+      await page.evaluate(()=>Object.assign(window.formQA.state,{privatePhase:'connected',snapshot:{balances:[{asset:'YUSD_TEST',availableMicro:1234567}]}}));
+      await page.evaluate(()=>window.formQA.review());
+      assert.equal(await page.locator('#order-preview-values dd').nth(7).innerText(),catalogs[locale]['balance-last-read']+` · ${formatMicro(1234567)} YUSD_TEST`);
+      await page.locator('#order-preview-dialog .wide').click();
+      await page.evaluate(()=>Object.assign(window.formQA.state,{privatePhase:'guest',snapshot:null}));
     }
-    assert.equal(await page.evaluate(()=>window.formQA.reads()),12,'each explicit review has only its existing single public refresh');
+    assert.equal(await page.evaluate(()=>window.formQA.reads()),24,'each explicit guest or account preview has only its existing single public refresh');
     assert.equal(requests,0,'controlled preview test never accesses a Wallet or submits an order');
     assert.equal(await page.locator('#price').inputValue(),'2.000001');assert.equal(await page.locator('#amount').inputValue(),'3.000001');
   }finally{await browser.close()}

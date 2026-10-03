@@ -153,6 +153,21 @@ const toastRows={
  ar:['اتصل Wallet القياسي. لم تُنشأ جلسة منتج Exchange أو صلاحية أمر.','انقطع Wallet المختار. مُسحت قراءته الخاصة المرتبطة؛ أوامر السوق وأذونات الرموز لم تتغير.','تأكد إلغاء إذن الحساب وقراءة حسابات فارغة. أذونات الرموز وأوامر السوق لم تتغير.','إلغاء إذن الحساب غير مؤكد. لم تتغير خدمة خاصة أو إذن رمز.','فشل إلغاء Wallet. إزالة الإذن غير مؤكدة.','رُفض اتصال Wallet بأمان. يبقى Exchange في هذه الصفحة.'],
  id:['Wallet standar terhubung. Sesi produk atau izin order Exchange tidak dibuat.','Wallet pilihan terputus. Akses baca privat terikat dihapus; order dan izin token tidak berubah.','Pencabutan izin akun dan paparan akun kosong dikonfirmasi. Izin token dan order tidak berubah.','Pencabutan izin akun belum dikonfirmasi. Layanan privat atau izin token tidak berubah.','Pencabutan Wallet gagal. Penghapusan izin belum dikonfirmasi.','Koneksi Wallet ditolak dengan aman. Exchange tetap di halaman ini.']
 };
+const quoteBoundaryKeys=['order-limits-description','balance-last-read'];
+const quoteBoundaryRows={
+ en:['6 decimals; price and amount 0.000001–1,000,000. Maximum notional:','At last account read; not reserved'],
+ 'zh-Hans':['6 位小数；价格和数量 0.000001–1,000,000。最大名义金额：','来自上次账户读取；尚未预留'],
+ 'zh-Hant':['6 位小數；價格及數量 0.000001–1,000,000。最大名義金額：','來自上次帳戶讀取；尚未預留'],
+ ja:['小数点以下6桁。価格・数量 0.000001–1,000,000。最大注文金額：','前回のアカウント読み取り時点。未確保'],
+ ko:['소수점 6자리; 가격과 수량 0.000001–1,000,000. 최대 주문 금액:','마지막 계정 조회 시점; 예약되지 않음'],
+ es:['6 decimales; precio y cantidad 0.000001–1,000,000. Nocional máximo:','En la última lectura de cuenta; no reservado'],
+ fr:['6 décimales ; prix et quantité 0.000001–1,000,000. Notionnel maximal :','À la dernière lecture du compte ; non réservé'],
+ de:['6 Dezimalstellen; Preis und Menge 0.000001–1,000,000. Maximaler Auftragswert:','Bei letzter Kontoabfrage; nicht reserviert'],
+ pt:['6 casas decimais; preço e quantidade 0.000001–1,000,000. Valor nocional máximo:','Na última leitura da conta; não reservado'],
+ ru:['6 десятичных знаков; цена и количество 0.000001–1,000,000. Максимальная стоимость ордера:','На момент последнего чтения счёта; не зарезервировано'],
+ ar:['6 منازل عشرية؛ السعر والكمية 0.000001–1,000,000. أقصى قيمة اسمية:','عند آخر قراءة للحساب؛ غير محجوز'],
+ id:['6 desimal; harga dan jumlah 0.000001–1,000,000. Nilai nosional maksimum:','Pada pembacaan akun terakhir; belum dicadangkan']
+};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale]];
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
@@ -165,7 +180,8 @@ export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   if(recordRows[locale].length!==recordKeys.length)throw new Error('EXCHANGE_RECORD_UI_CATALOG_INCOMPLETE');
   if(balanceRows[locale].length!==balanceKeys.length)throw new Error('EXCHANGE_BALANCE_UI_CATALOG_INCOMPLETE');
   if(toastRows[locale].length!==toastKeys.length)throw new Error('EXCHANGE_TOAST_UI_CATALOG_INCOMPLETE');
-  return [locale,Object.freeze(Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])))];
+  if(quoteBoundaryRows[locale].length!==quoteBoundaryKeys.length)throw new Error('EXCHANGE_QUOTE_BOUNDARY_CATALOG_INCOMPLETE');
+  return [locale,Object.freeze({...Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])),...Object.fromEntries(quoteBoundaryKeys.map((key,i)=>[key,quoteBoundaryRows[locale][i]]))})];
 })));
 export const normalizeLocale=value=>locales.includes(value)?value:'en';
 export const translate=(locale,key)=>catalogs[normalizeLocale(locale)][key]??key;
