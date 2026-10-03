@@ -280,6 +280,37 @@ const runMetricLabels = {
   id:["Imbal hasil di luar sampel","Beli dan tahan","Drawdown maksimum","Sharpe × 1,000","Volatilitas (bps)"],
 };
 for (const [language, [runReturn, runBuyHold, runDrawdown, runSharpe, runVolatility]] of Object.entries(runMetricLabels)) Object.assign(businessCopy[language], {runReturn, runBuyHold, runDrawdown, runSharpe, runVolatility});
+// Translate only byte-exact definitions reported by the existing engine. An
+// unknown historical/service formula must never be replaced by a guessed one.
+const reportedMetricDefinitions = {
+  returnBPS:"(ending equity - starting equity) / starting equity × 10,000",
+  buyHoldBPS:"(ending close - starting close) / starting close × 10,000",
+  maxDrawdownBPS:"maximum peak-to-trough equity loss / prior peak × 10,000",
+  sharpeMilli:"mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero",
+  volatilityBPS:"sample standard deviation of OOS period returns × 10,000; not annualized",
+};
+const metricFormulaCopy = {
+  en:Object.values(reportedMetricDefinitions),
+  "zh-CN":["（期末权益 − 期初权益）/ 期初权益 × 10,000","（期末收盘价 − 期初收盘价）/ 期初收盘价 × 10,000","权益从峰值到低谷的最大损失 / 此前峰值 × 10,000","样本外每期收益均值 / 样本外每期收益的样本标准差 × √期数 × 1,000；无风险利率假设为零","样本外每期收益的样本标准差 × 10,000；未年化"],
+  "zh-TW":["（期末權益 − 期初權益）/ 期初權益 × 10,000","（期末收盤價 − 期初收盤價）/ 期初收盤價 × 10,000","權益從峰值到低谷的最大損失 / 先前峰值 × 10,000","樣本外每期報酬均值 / 樣本外每期報酬的樣本標準差 × √期數 × 1,000；無風險利率假設為零","樣本外每期報酬的樣本標準差 × 10,000；未年化"],
+  ja:["（期末資産 − 期首資産）/ 期首資産 × 10,000","（期末終値 − 期首終値）/ 期首終値 × 10,000","資産のピークから谷までの最大損失 / 直前のピーク × 10,000","学習外の各期間リターンの平均 / その標本標準偏差 × √期間数 × 1,000；無リスク金利はゼロと仮定","学習外の各期間リターンの標本標準偏差 × 10,000；年率換算なし"],
+  ko:["(기말 자산 − 기초 자산) / 기초 자산 × 10,000","(기말 종가 − 기초 종가) / 기초 종가 × 10,000","자산의 고점 대비 최대 하락액 / 이전 고점 × 10,000","표본 외 기간 수익률 평균 / 해당 수익률의 표본 표준편차 × √기간 수 × 1,000; 무위험 이자율은 0으로 가정","표본 외 기간 수익률의 표본 표준편차 × 10,000; 연율화하지 않음"],
+  es:["(Patrimonio final − inicial) / patrimonio inicial × 10.000","(Cierre final − inicial) / cierre inicial × 10.000","Máxima pérdida del patrimonio de pico a valle / pico anterior × 10.000","Media del retorno por periodo fuera de muestra / desviación estándar muestral de esos retornos × √número de periodos × 1.000; tasa libre de riesgo supuesta cero","Desviación estándar muestral de los retornos por periodo fuera de muestra × 10.000; sin anualizar"],
+  fr:["(Capital final − initial) / capital initial × 10 000","(Clôture finale − initiale) / clôture initiale × 10 000","Perte maximale du capital entre sommet et creux / sommet précédent × 10 000","Moyenne des rendements par période hors échantillon / écart-type d'échantillon de ces rendements × √nombre de périodes × 1 000 ; taux sans risque supposé nul","Écart-type d'échantillon des rendements par période hors échantillon × 10 000 ; non annualisé"],
+  de:["(Endkapital − Anfangskapital) / Anfangskapital × 10.000","(Letzter Schlusskurs − erster Schlusskurs) / erster Schlusskurs × 10.000","Größter Kapitalverlust vom Hoch zum Tief / vorheriges Hoch × 10.000","Mittlere Periodenrendite außerhalb der Stichprobe / Stichprobenstandardabweichung dieser Renditen × √Periodenzahl × 1.000; risikofreier Zins als null angenommen","Stichprobenstandardabweichung der Periodenrenditen außerhalb der Stichprobe × 10.000; nicht annualisiert"],
+  pt:["(Patrimônio final − inicial) / patrimônio inicial × 10.000","(Fechamento final − inicial) / fechamento inicial × 10.000","Perda máxima do patrimônio do pico ao vale / pico anterior × 10.000","Média do retorno por período fora da amostra / desvio padrão amostral desses retornos × √número de períodos × 1.000; taxa livre de risco assumida zero","Desvio padrão amostral dos retornos por período fora da amostra × 10.000; não anualizado"],
+  ru:["(Конечный капитал − начальный капитал) / начальный капитал × 10 000","(Конечная цена закрытия − начальная) / начальная цена закрытия × 10 000","Максимальная потеря капитала от пика до минимума / предыдущий пик × 10 000","Средняя доходность периода вне обучающей выборки / выборочное стандартное отклонение этих доходностей × √число периодов × 1 000; безрисковая ставка принята равной нулю","Выборочное стандартное отклонение доходностей периода вне обучающей выборки × 10 000; без пересчёта в годовое значение"],
+  ar:["(قيمة النهاية − قيمة البداية) / قيمة البداية × 10,000","(إغلاق النهاية − إغلاق البداية) / إغلاق البداية × 10,000","أقصى خسارة للقيمة من القمة إلى القاع / القمة السابقة × 10,000","متوسط عائد الفترة خارج العينة / الانحراف المعياري للعينة لهذه العوائد × √عدد الفترات × 1,000؛ معدل العائد الخالي من المخاطر مفترض صفرًا","الانحراف المعياري للعينة لعوائد الفترات خارج العينة × 10,000؛ غير محوّل إلى معدل سنوي"],
+  id:["(Ekuitas akhir − awal) / ekuitas awal × 10.000","(Harga penutupan akhir − awal) / harga penutupan awal × 10.000","Kerugian ekuitas maksimum dari puncak ke lembah / puncak sebelumnya × 10.000","Rata-rata imbal hasil per periode di luar sampel / simpangan baku sampel imbal hasil tersebut × √jumlah periode × 1.000; suku bunga bebas risiko diasumsikan nol","Simpangan baku sampel imbal hasil per periode di luar sampel × 10.000; tidak disetahunkan"],
+};
+for (const [language, definitions] of Object.entries(metricFormulaCopy)) {
+  Object.keys(reportedMetricDefinitions).forEach((key,index) => { businessCopy[language]['formula' + key[0].toUpperCase() + key.slice(1)] = definitions[index]; });
+}
+function researchMetricDefinition(result, key) {
+  const text = result?.metricDefinitions?.[key];
+  if (typeof text !== 'string' || !text.trim()) return '—';
+  return text === reportedMetricDefinitions[key] ? t('formula' + key[0].toUpperCase() + key.slice(1)) : text;
+}
 const runPresentationCopy = {
   en:["Latest research result","Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns."],
   "zh-CN":["最新研究结果","蓝色：测得的策略权益；灰色：买入持有基准。成本按本次模型计算，收益并无承诺。"],
@@ -670,7 +701,7 @@ function renderRunDetails() {
   for (const [key, label] of [["returnBPS", "runReturn"], ["buyHoldBPS", "runBuyHold"], ["maxDrawdownBPS", "runDrawdown"], ["sharpeMilli", "runSharpe"], ["volatilityBPS", "runVolatility"]]) {
     const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
     term.textContent = t(label);
-    description.textContent = typeof result?.metricDefinitions?.[key] === "string" && result.metricDefinitions[key].trim() ? result.metricDefinitions[key] : "—";
+    description.textContent = researchMetricDefinition(result, key);
     row.append(term, description); definitions.append(row);
   }
 }

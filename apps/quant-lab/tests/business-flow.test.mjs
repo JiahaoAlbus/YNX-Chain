@@ -27,6 +27,30 @@ test('completed research must bind the exact submitted strategy ID, not another 
   }
 });
 
+test('known service metric formulas follow all languages without rewriting unknown or missing definitions',async()=>{
+  const app=harness();await settle();
+  app.context.reportedFormula='maximum peak-to-trough equity loss / prior peak × 10,000';
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const text=vm.runInContext('researchMetricDefinition({metricDefinitions:{maxDrawdownBPS:reportedFormula}},"maxDrawdownBPS")',app.context);
+    assert.equal(text,vm.runInContext('t("formulaMaxDrawdownBPS")',app.context));
+    if(language!=='en')assert.notEqual(text,app.context.reportedFormula);
+    assert.equal(vm.runInContext('researchMetricDefinition({metricDefinitions:{maxDrawdownBPS:"Different historical formula <script>"}},"maxDrawdownBPS")',app.context),'Different historical formula <script>');
+    assert.equal(vm.runInContext('researchMetricDefinition({},"maxDrawdownBPS")',app.context),'—');
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+});
+test('translated metric registry matches the actual current Go research definitions exactly',async()=>{
+  const go=await readFile(new URL('../../../internal/quantlab/service.go',import.meta.url),'utf8');
+  const app=harness();await settle();
+  const definitions=JSON.parse(vm.runInContext('JSON.stringify(reportedMetricDefinitions)',app.context));
+  assert.equal(Object.keys(definitions).length,5);
+  for(const [key,text] of Object.entries(definitions)){
+    const literal=go.match(new RegExp('"'+key+'"\\s*:\\s*("(?:[^"\\\\]|\\\\.)*")'))?.[1];
+    assert.ok(literal,key);assert.equal(JSON.parse(literal),text,key);
+  }
+});
+
 test('typed research HTTP rejection preserves prior results and localizes through all 12 languages without retry',async()=>{
   let rejected=false;
   const app=harness({apiStatus:url=>rejected&&!url.endsWith('/snapshot')?400:200,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:rejected?{error:'invalid_research_parameters',errorId:'fixture-error-id'}:researchFixture('confirmed')});
