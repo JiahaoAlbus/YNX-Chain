@@ -329,6 +329,22 @@ for (const [language,[runCostRounding,runCostRoundingRule]] of Object.entries(re
 function researchCostRoundingText(result) {
   return result?.attribution?.costRoundingPolicy === 'independent_cost_component_floor_micro_v1' ? t('runCostRoundingRule') : '—';
 }
+const researchIdleCopy = {
+  en:['Average idle cash','Mean cash over recorded bars, including warmup and no-fill bars, truncated toward zero in micro-units. Not time-weighted; missing bars are not invented and no interest is modeled.'],
+  'zh-CN':['平均闲置现金','按已记录的各根 K 线计算现金均值，包括预热和无成交时段，微单位向零截断。不是时间加权；不补造缺失 K 线，也不模拟利息。'],
+  'zh-TW':['平均閒置現金','依已記錄的各根 K 線計算現金均值，包括預熱和無成交時段，微單位向零截斷。不是時間加權；不補造缺失 K 線，也不模擬利息。'],
+  ja:['平均待機資金','記録済みバーの現金平均。準備期間と未約定バーも含み、マイクロ単位でゼロ方向に切り捨てます。時間加重ではなく、欠損バーや利息は作りません。'],
+  ko:['평균 유휴 현금','준비 기간과 미체결 봉을 포함한 기록된 봉의 현금 평균을 마이크로 단위에서 0 방향으로 절삭합니다. 시간 가중이 아니며 누락 봉과 이자는 생성하지 않습니다.'],
+  es:['Efectivo inactivo medio','Media de efectivo en barras registradas, incluidas preparación y barras sin ejecución; truncada hacia cero en microunidades. Sin ponderación temporal, barras inventadas ni intereses.'],
+  fr:['Trésorerie inactive moyenne','Moyenne du cash des barres enregistrées, préparation et barres sans exécution incluses, tronquée vers zéro en microunités. Sans pondération temporelle, barres inventées ni intérêts.'],
+  de:['Durchschnittlich freies Kapital','Barmittelmittelwert aller erfassten Balken einschließlich Vorlauf und Balken ohne Ausführung; auf Mikroeinheiten gegen null gekürzt. Keine Zeitgewichtung, erfundenen Balken oder Zinsen.'],
+  pt:['Caixa ocioso médio','Média de caixa nas barras registradas, incluindo preparação e barras sem execução, truncada em direção a zero em microunidades. Sem ponderação temporal, barras inventadas ou juros.'],
+  ru:['Средние свободные средства','Среднее денежных средств по записанным барам, включая прогрев и бары без сделок, с усечением к нулю в микроединицах. Без весов по времени, выдуманных баров и процентов.'],
+  ar:['متوسط النقد الخامل','متوسط النقد عبر الشموع المسجلة، بما فيها التهيئة والشموع بلا تنفيذ، مع حذف الكسور نحو الصفر بوحدات ميكرو. ليس مرجحاً بالزمن؛ لا تُختلق شموع مفقودة ولا تُحاكى فوائد.'],
+  id:['Rata-rata kas menganggur','Rata-rata kas pada bar tercatat, termasuk pemanasan dan bar tanpa eksekusi, dipotong menuju nol dalam satuan mikro. Bukan bobot waktu; tidak membuat bar hilang atau bunga.'],
+};
+for(const [language,[runIdleCash,runIdleCashRule]] of Object.entries(researchIdleCopy))Object.assign(businessCopy[language],{runIdleCash,runIdleCashRule});
+function researchIdleCashRule(result){return result?.attribution?.idleCapitalSamplingPolicy==='observed_bar_cash_mean_truncate_micro_v1'?t('runIdleCashRule'):'—';}
 const runPresentationCopy = {
   en:["Latest research result","Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns."],
   "zh-CN":["最新研究结果","蓝色：测得的策略权益；灰色：买入持有基准。成本按本次模型计算，收益并无承诺。"],
@@ -735,6 +751,8 @@ $("#strategy-rows").addEventListener("click", async event => {
 function renderRunDetails() {
   const result = latestResearchResult, strategy = result?.strategy;
   $("#research-cost-rounding").textContent = researchCostRoundingText(result);
+  $('#research-idle-cash').textContent = researchAmount(result?.attribution,'averageIdleCapital');
+  $('#research-idle-cash-rule').textContent = researchIdleCashRule(result);
   $("#research-source").textContent = typeof strategy?.Source === "string" && strategy.Source.trim() ? strategy.Source : "—";
   for (const [id, key] of [["data", "DataHash"], ["strategy", "StrategyHash"]]) $("#research-" + id + "-hash").textContent = /^[0-9a-f]{64}$/i.test(strategy?.[key] || "") ? strategy[key] : "—";
   for (const [id, key] of [["fee", "FeeBPS"], ["slippage", "SlippageBPS"], ["latency", "LatencyBars"], ["participation", "ParticipationBPS"], ["training", "TrainEnd"], ["windows", "WalkForwardWindows"], ["seed", "Seed"]]) $("#research-" + id).textContent = Number.isSafeInteger(result?.assumptions?.[key]) ? String(result.assumptions[key]) : "—";

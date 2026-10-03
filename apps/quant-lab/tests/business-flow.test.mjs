@@ -15,6 +15,26 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('idle cash amount stays source-bound and only known sampling policy receives localized explanation',async()=>{
+  const result=researchFixture('idle-cash-receipt');result.attribution={currency:'YUSD_TEST_MICRO',averageIdleCapital:99998989487,idleCapitalSamplingPolicy:'observed_bar_cash_mean_truncate_micro_v1'};
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{}:result});await settle();await app.submit('backtest');
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('research-idle-cash-rule').textContent,vm.runInContext('t("runIdleCashRule")',app.context));
+    assert.match(app.ids.get('research-idle-cash').textContent,/YUSD_TEST/);
+  }
+  for(const idleCapitalSamplingPolicy of [undefined,null,'fill_only_old','<script>']){
+    result.attribution.idleCapitalSamplingPolicy=idleCapitalSamplingPolicy;await app.submit('backtest');
+    assert.equal(app.ids.get('research-idle-cash-rule').textContent,'—');assert.match(app.ids.get('research-idle-cash').textContent,/YUSD_TEST/);
+  }
+  for(const amount of [undefined,null,NaN,Infinity,'99998989487',0.5,Number.MAX_SAFE_INTEGER+1]){
+    result.attribution.averageIdleCapital=amount;await app.submit('backtest');assert.equal(app.ids.get('research-idle-cash').textContent,'—');
+  }
+  for(const amount of [0,-7]){
+    result.attribution.averageIdleCapital=amount;await app.submit('backtest');assert.notEqual(app.ids.get('research-idle-cash').textContent,'—');
+  }
+});
+
 test('Paper daily loss shows only source-reported risk and explains the UTC first-mark model in all locales',async()=>{
   const app=harness();await settle();
   app.context.dailyFixture={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-03',Loss:1000000000,Limit:1000000000,Breached:true};

@@ -35,6 +35,9 @@ test('actual Chrome renders service-bound metric formulas in all locales and pre
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-drawdown').getByText('54 bps',{exact:true}).waitFor();
     await page.locator('#research-run-details summary').click();
+    await page.evaluate(()=>{latestResearchResult.attribution.currency='YUSD_TEST_MICRO';latestResearchResult.attribution.averageIdleCapital=99998989487;latestResearchResult.attribution.idleCapitalSamplingPolicy='observed_bar_cash_mean_truncate_micro_v1';renderRunDetails()});
+    const englishIdle=await page.locator('#research-idle-cash-rule').textContent();assert.match(englishIdle,/Not time-weighted/);
+    assert.match(await page.locator('#research-idle-cash').textContent(),/YUSD_TEST/);
     const english=await page.locator('#research-metric-definitions dd').allTextContents();
     const englishRounding=await page.locator('#research-cost-rounding').textContent();assert.match(englishRounding,/separately rounded down/);
     assert.equal(english.length,5);assert.match(english[3],/sample standard deviation/);assert.match(english[4],/not annualized/);
@@ -45,11 +48,13 @@ test('actual Chrome renders service-bound metric formulas in all locales and pre
       if(language==='en')assert.deepEqual(text,english);else for(let i=0;i<5;i++)assert.notEqual(text[i],english[i],language);
       assert.equal(await page.locator('#result-sharpe').textContent(),'1.500');assert.equal(posts,1);
       const rounding=await page.locator('#research-cost-rounding').textContent();assert.ok(rounding.length>30);if(language!=='en')assert.notEqual(rounding,englishRounding);
+      const idle=await page.locator('#research-idle-cash-rule').textContent();assert.ok(idle.length>30);if(language!=='en')assert.notEqual(idle,englishIdle);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }
     await page.locator('#research-submit').click();await page.locator('#research-metric-definitions dd').nth(2).getByText('Unknown historical formula <script>not executed</script>',{exact:true}).waitFor();
     assert.equal(await page.locator('#research-metric-definitions script').count(),0);assert.equal(context.pages().length,1);assert.equal(posts,2);
     assert.equal(await page.locator('#research-cost-rounding').textContent(),'—');
+    assert.equal(await page.locator('#research-idle-cash').textContent(),'—');assert.equal(await page.locator('#research-idle-cash-rule').textContent(),'—');
     await page.screenshot({path:path.join(evidence,'research-localized-service-formulas.png'),fullPage:true});
   }finally{await context.close()}
 });
