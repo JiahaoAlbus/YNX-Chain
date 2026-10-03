@@ -1,0 +1,48 @@
+{
+  "status": "OWNER_ENGINEERING_PASS_NOT_INDEPENDENT_SOURCE_ADMISSION",
+  "recordedAt": "2026-10-03T19:35:06.144619+00:00",
+  "baseCommit": "8a7ad4d0b0c7eed67cbfc6b02e59ac5cfd8df9cf",
+  "baseTree": "ad2a653b12c92643d22b23c4924c1413ea642a5d",
+  "files": [
+    {
+      "path": "internal/chaincrypto/committed_state.go",
+      "bytes": 6138,
+      "sha256": "7ade285d8e61e0020089090c49c4dce3680cb7bb857cd69d239b5d1c8837082d"
+    },
+    {
+      "path": "internal/chaincrypto/committed_state_test.go",
+      "bytes": 6726,
+      "sha256": "e547d15c9241ba427d3b332f81127898558a44abf5437c64615ea4cf48e18909"
+    },
+    {
+      "path": "experiments/chain-crypto-v2/README.md",
+      "bytes": 2411,
+      "sha256": "64e463d2f5903185749b77749c4b4b81f72298b7687c867a829474fd16f1a014"
+    },
+    {
+      "path": "experiments/chain-crypto-v2/atomic-policy-state/targeted-race-output.jsonl",
+      "bytes": 11074,
+      "sha256": "05adf4fcc5a9cbd451884c0a8cc87ac7d4ca3413527288fd932bca012ec08b31"
+    }
+  ],
+  "command": "env GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off go test -race -json -run ^TestCommittedMigration ./...",
+  "exitCode": 0,
+  "topLevelPass": 5,
+  "nestedPass": 6,
+  "leafPass": 10,
+  "fail": 0,
+  "skip": 0,
+  "capturedOutput": "resumed tool output includes all test run/pass and package terminal; first exec start event remains in original tool output",
+  "realCryptoProvider": "CIRCL v1.6.5 ML-DSA-87 AND secp256k1 v4.4.0 using ephemeral fixture keys",
+  "concurrencyAttempts": 16,
+  "successfulAtomicCommits": 1,
+  "durableLedgerImplemented": false,
+  "keyManagerImplemented": false,
+  "rootModuleChanged": false,
+  "onlineConsensusChanged": false,
+  "activationApproved": false,
+  "activated": false,
+  "hostExecutedForThisBatch": false,
+  "productionKeyRead": false,
+  "aiRuntimeGraphChanged": false
+}
