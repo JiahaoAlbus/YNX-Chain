@@ -1830,6 +1830,7 @@ function MessageThread({
 }
 
 import { DurableNativeMomentActions } from './src/durableNativeMomentActions';
+import { runCurrentMomentReport } from './src/currentMomentReport';
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
   const momentActions=useMemo(()=>new DurableNativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
@@ -2004,8 +2005,9 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     );
   };
   const submitReport = async (item: FeedPost) => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
     try {
-      const evidence = await digestStringAsync(
+      const result = await runCurrentMomentReport(current,()=>digestStringAsync(
           CryptoDigestAlgorithm.SHA256,
           [
             "ynx-social-trust-evidence-v1",
@@ -2014,19 +2016,19 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
             item.text,
             ...item.media.map((value) => value.sha256),
           ].join("\n"),
-        ),
-        result = await api.report({
+        ),evidence=>api.report({
           idempotencyKey: `report-${Date.now()}`,
           targetType: "moment",
           targetId: item.id,
           category: "other",
           detail: "User requested Trust review from the moment menu.",
           evidenceHashes: [evidence],
-        });
+        }));
+      if(!result)return;
       setReportRecord(result.record);
       setError(null);
     } catch (caught) {
-      setError(message(caught));
+      if(current())setError(message(caught));
     }
   };
   const report = (item: FeedPost) =>

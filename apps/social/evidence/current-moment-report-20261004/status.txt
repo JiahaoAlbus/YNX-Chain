@@ -1,0 +1,4 @@
+typecheck_exit=0
+report_and_action_test_exit=0
+native_build_exit=0
+native_build_stage=/tmp/social-current-report-native-20261004.jVyy7Z

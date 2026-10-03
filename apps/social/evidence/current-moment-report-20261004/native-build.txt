@@ -1,0 +1,22 @@
+Starting Metro Bundler
+
+| (node:59076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:59076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 7679ms index.ts (2455 modules)
+Android Bundled 13410ms index.ts (2764 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-2e20cc6fe3c06732a4bff2d23c8030d6.hbc (5.9MB)
+
+› android bundles (1):
+_expo/static/js/android/index-09d80e2d79ef9d5a0dee96536889ccb8.hbc (5.9MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: /tmp/social-current-report-native-20261004.jVyy7Z

@@ -1,0 +1,28 @@
+✔ already stale performs no fingerprint or send (0.368917ms)
+✔ authority loss while fingerprinting prevents submission (0.063708ms)
+✔ late committed response is not published to a stale view (0.077333ms)
+✔ normal current operation forwards exact fingerprint and receipt (0.083833ms)
+✔ invalid fingerprint never reaches backend (0.182667ms)
+✔ unknown backend outcome is not retried or turned into success (0.082416ms)
+✔ cold retry preserves exact unknown request identity (10.02025ms)
+✔ cold unknown action cannot silently become opposite action (0.455458ms)
+✔ storage failure blocks transport (0.189333ms)
+✔ authority loss after persistence retains original and sends nothing (0.179ms)
+✔ malformed retained record is not replaced or sent (0.281583ms)
+✔ completed explicit next action gets a new request identity (0.310709ms)
+✔ stale reviewed delete sends nothing and allocates no nonce (0.561125ms)
+✔ failed follow retry retains original action and nonce (0.87825ms)
+✔ uncertain follow cannot silently turn into unfollow (0.215917ms)
+✔ another account receives an independent original intent (0.2245ms)
+✔ timeout and late success cannot clear the retry ledger (6.640458ms)
+✔ changed authority discards late action success (0.189709ms)
+✔ duplicate pending action does not cause a second send (0.188417ms)
+✔ reactions retain exact original target/type/desired state (0.161458ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 180.211708
