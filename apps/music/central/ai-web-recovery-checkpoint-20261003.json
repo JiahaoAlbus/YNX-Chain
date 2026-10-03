@@ -1,0 +1,173 @@
+{
+  "schemaVersion": "ynx-music-ai-web-recovery-checkpoint/v1",
+  "sourceCommit": "1e51ea1de9039709b30d47ef9ae645aaa1a2faf9",
+  "sourceTree": "0aa4d2db8ccee9c7fa7b37b6bd82431e65a67dc4",
+  "baseline": "dee2431ec65df4db341aa77330af53855717d876",
+  "sourceDeltaPins": [
+    {
+      "path": "apps/music/scripts/ai-stream-web-check.cjs",
+      "bytes": 10034,
+      "sha256": "8cdd2132cc61dde555748f3bf9f7544c0606547122a2446ea85a48ce2b7cb128",
+      "gitBlob": "1364e7ae0de5323c51029cdb8348f8cc0af48d5e"
+    },
+    {
+      "path": "apps/music/web/ai-stream.js",
+      "bytes": 1781,
+      "sha256": "63bd633f9f6b07c12b212cc14493e73ef309a7226fa82bd9a0a9e45c4cb4da07",
+      "gitBlob": "f5a1fea8f0e3fd2f4cd23a05dcc1a70b4c6b7c35"
+    },
+    {
+      "path": "apps/music/web/business.js",
+      "bytes": 29566,
+      "sha256": "2cb2573470164eb608c2ae93938848b7d2d1d0b1ba37bb0ce200f0f941d783c5",
+      "gitBlob": "18574ae2d0828392a7257507c76f78bc0fef3622"
+    },
+    {
+      "path": "apps/music/web/index.html",
+      "bytes": 10180,
+      "sha256": "11c7e1c168426a8cb4b1595440ddcdb91a592ea10750b7b40aa548003a6ce6fe",
+      "gitBlob": "d1ea2d351a994fbe1d404071c67aa55e9ccfd8b3"
+    },
+    {
+      "path": "apps/music/web/styles.css",
+      "bytes": 14458,
+      "sha256": "2cc8b05d84496a53dccfb12e84533fd16a7e80e962b99a46667a93f75a3f86b2",
+      "gitBlob": "282d773547acebcc3f304231ce160d771b17f739"
+    }
+  ],
+  "implemented": [
+    "Shipped token stream decoded as bounded UTF8 plain text instead of raw SSE protocol; saved proposal GET remains completion authority",
+    "Cancel starts before initial response, all late tokens/result readbacks fenced by account and AI operation revision",
+    "Interrupted stream reads original proposal/status and retains unknown streaming outcome, no automatic generation retry",
+    "Existing completed proposal view and status check use GET-only original routes; reload does not generate new computation",
+    "Apply/reject remains explicit original business review",
+    "Mobile viewport grid reserves actual navigation/player rows, independently scrollable main, accessible normal pointer clicks",
+    "Existing duplicate mobile Wallet suffix removed; AI output follows rem text scaling"
+  ],
+  "checks": {
+    "newBrowserGroups": 8,
+    "browserPass": [
+      "PASS split UTF-8/CRLF tokens show plain partial text; original authenticated GET readback supplies final result",
+      "PASS missing done preserves original streaming proposal; status check is GET-only and never resends or exposes Apply",
+      "PASS transport done without saved completion cannot enable Apply",
+      "PASS cancel settles pending transport before response; late body cannot overwrite retained proposal",
+      "PASS cancellation after durable completion recovers saved result without applying it",
+      "PASS account replacement discards late A tokens and proposals",
+      "PASS fresh page reads existing streaming/completed records, shows saved result, zero generation redispatch",
+      "PASS 320/390 enlarged text: saved-result button receives actual pointer click, 32px result text, no horizontal overflow"
+    ],
+    "originalBrowserRegressionGroups": 13,
+    "originalBrowserPass": [
+      "PASS guest private action emits zero private requests",
+      "PASS title search permits legitimate punctuation in the query",
+      "PASS original playlist edit/reorder/add, failed draft retained, PUT then GET readback, Library view retained",
+      "PASS profile business save preserves explicit biography",
+      "PASS account replacement closes old draft and removes prior private content",
+      "PASS transport ignoring abort still cannot publish a late account snapshot",
+      "PASS never-returning adapter settles on account invalidation",
+      "PASS explicit AI context/cost consent, real stream readback, user review applies playlist",
+      "PASS Pay review link uses existing central intent, exact scheme/host/path; malformed link omitted",
+      "PASS never-ending AI body cancels promptly without applying output",
+      "PASS actual 30-second adapter deadline settles a never-returning request",
+      "PASS mobile layout, zero browser errors, zero browser credential storage",
+      "PASS Standard Wallet approve/reject create no private Music authority or requests"
+    ],
+    "goRacePackages": {
+      "github.com/JiahaoAlbus/YNX-Chain/apps/music": "pass",
+      "github.com/JiahaoAlbus/YNX-Chain/internal/music": "pass"
+    },
+    "goVet": "PASS",
+    "nodeSyntax": "PASS",
+    "diffCheck": "PASS",
+    "actualScreenshotInspection": [
+      "completed-320.png",
+      "interrupted-320.png",
+      "saved-large-320.png"
+    ],
+    "largeTextEvidence": "Root font set to 32px in isolated browser at widths320/390; actual pointer clicks and output font verified; not OS/chrome zoom acceptance"
+  },
+  "failuresPreserved": {
+    "browser-first.txt": "Harness returned to Creator view, second setup wrongly searched hidden home button; original failed assertion retained",
+    "browser-run2.txt": "Same harness navigation error before Home correction; raw redirected log retained",
+    "first-business-failure-tool-excerpt.txt": "Tool-output excerpt, not raw log; real existing mobile fixed nav/player intercepted playlist pointer clicks, corrected in product layout"
+  },
+  "evidencePins": [
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/browser-final.txt",
+      "bytes": 768,
+      "sha256": "2da2bda385be3f56bacda79436d4f96d2c7935da46bd1d103a9f82ab4b316b62"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/browser-first.txt",
+      "bytes": 531,
+      "sha256": "a74dd2232201657ccaeca3b53f267fb503487ecb6747f73dfd36b4e8e73ed326"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/browser-run2.txt",
+      "bytes": 531,
+      "sha256": "a74dd2232201657ccaeca3b53f267fb503487ecb6747f73dfd36b4e8e73ed326"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/browser-run3.txt",
+      "bytes": 648,
+      "sha256": "efb8a05d1eb3a616ef3893d55d3a7c1a393c95ed9da20d6dafecd1389a9f93b6"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/business-run2.txt",
+      "bytes": 976,
+      "sha256": "af29961ebdc5f4a668f7f711f5bf9449a2f788d3bb15cfccb88ad8393cda891a"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/completed-320.png",
+      "bytes": 46716,
+      "sha256": "a54eea5d14e7fcf1d2efc942c6dd5812d4d415fe2e27daf159688122ce204b4e"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/first-business-failure-tool-excerpt.txt",
+      "bytes": 838,
+      "sha256": "064a68019523ed12817bf2d33be3770d03a4f5c4599ec54f3fa505d9db2bf782"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/go-race-final.jsonl",
+      "bytes": 155479,
+      "sha256": "f8268ec04d536fc5c77679bce734f8db175a341223b402f8eddff0e6ff7ab2d4"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/go-race.jsonl",
+      "bytes": 155469,
+      "sha256": "7d025f410b9bd1e3ae2698b4a2a6d70cc25bda799dee1a3c9df1098a37fa39d9"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/interrupted-320.png",
+      "bytes": 49345,
+      "sha256": "de59214fb6e99412a46246cdfba752c2b055db2c4aabe18c120d4e417024d5e1"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/saved-large-320.png",
+      "bytes": 44804,
+      "sha256": "47dbeb4e41e8189d3bc0ce91f84602d892d7f7c5c8324c4234cb015b13c67189"
+    },
+    {
+      "path": "apps/music/central/evidence/ai-web-recovery-20261003/saved-large-390.png",
+      "bytes": 49025,
+      "sha256": "90a028429031df5978e3de01abf342f86fc798692fc19498b0c917dc42ddecb4"
+    }
+  ],
+  "release": {
+    "syntheticTransportOnly": true,
+    "realWalletAuthority": false,
+    "concreteSharedSDKCryptoAdapterInstalled": false,
+    "formalDeployment": false,
+    "nativeInstalledUI": false,
+    "publicRuntimeVerified": false,
+    "unknownProviderReconciliation": false,
+    "fullMediaGoalComplete": false
+  },
+  "remaining": [
+    "A precise admitted full SDK/adapter/tuple and protected mount",
+    "Formal Video actual account business readback and isolation/recovery",
+    "Unknown provider Pay/Trust/AI outcome authoritative query contract",
+    "Actual native install and user-flow acceptance",
+    "Full Music Web localization acceptance"
+  ]
+}

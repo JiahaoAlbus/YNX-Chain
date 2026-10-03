@@ -1,0 +1,8 @@
+PASS split UTF-8/CRLF tokens show plain partial text; original authenticated GET readback supplies final result
+PASS missing done preserves original streaming proposal; status check is GET-only and never resends or exposes Apply
+PASS transport done without saved completion cannot enable Apply
+PASS cancel settles pending transport before response; late body cannot overwrite retained proposal
+PASS cancellation after durable completion recovers saved result without applying it
+PASS account replacement discards late A tokens and proposals
+PASS fresh page reads existing streaming/completed records, shows saved result, zero generation redispatch
+PASS 320/390 enlarged text: saved-result button receives actual pointer click, 32px result text, no horizontal overflow

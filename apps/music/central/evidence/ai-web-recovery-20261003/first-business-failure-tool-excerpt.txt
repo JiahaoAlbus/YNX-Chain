@@ -1,0 +1,11 @@
+Evidence type: excerpt transcribed from exec session 87734 final tool output, not raw redirected assertion log.
+Original command: node apps/music/scripts/business-web-check.cjs
+Exit code: 1
+PASS guest private action emits zero private requests
+PASS title search permits legitimate punctuation in the query
+locator.click: Timeout 30000ms exceeded.
+waiting for getByRole('button', { name: 'Original playlist', exact: true })
+<a href="https://video.ynxweb4.com">Video</a> from <aside aria-label="Primary navigation"> intercepts pointer events
+<div class="buttons"> from <footer class="player" aria-label="Now playing"> intercepts pointer events
+Product correction: mobile layout reserves actual navigation/player rows in viewport grid; main scrolls independently.
+Original complete redirected regression after correction: business-run2.txt.
