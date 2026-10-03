@@ -1,0 +1,43 @@
+✔ only the selected merchant and its persisted records enter the page, regardless of map order (1.744084ms)
+✔ missing selection or missing/inactive/duplicate current membership cannot create a workspace (3.021ms)
+✔ a changed verified role requires fresh approval instead of silently promoting or downgrading (0.225292ms)
+✔ foreign and unbound collections or aggregate analytics cannot enter a selected workspace (0.2515ms)
+✔ canonical Wallet approval and product-device proof create only a short merchant session (57.630375ms)
+✔ cross-product callback and scope escalation fail closed (1.419041ms)
+✔ canonical Merchant launch requires a configured authority and preserves legacy recovery (0.195208ms)
+✔ standard connection prefers announced YNX Wallet and switches to YNX Testnet (2.137041ms)
+✔ missing provider returns real install choices and no fabricated connection (0.5895ms)
+✔ private service degradation preserves an established standard connection (0.092625ms)
+▶ cancelled and replaced approvals cannot complete or consume the next recovery record
+  ✔ cancel (3.926417ms)
+  ✔ replacement (3.910958ms)
+✔ cancelled and replaced approvals cannot complete or consume the next recovery record (8.067958ms)
+✔ duplicate callback is rejected while first completion is pending (4.178583ms)
+✔ Gateway session must match the approved account and selected merchant (4.419958ms)
+✔ late completion preserves a replacement approval instead of consuming its secret (4.94775ms)
+✔ form drafts survive replacement while acknowledgement resets only its form (0.517ms)
+✔ datetime-local displays the chosen local time without a UTC shift (1.019834ms)
+✔ all twelve locales have complete nonblank audited strings (1.755084ms)
+✔ payment, refund, dispute and AI strings preserve strict authority boundaries (1.052542ms)
+✔ locale detection, Arabic and plural formatting are deterministic (11.526334ms)
+✔ unknown outcome survives controller restart and rejects edits without issuing another request (1.632ms)
+✔ opaque journal contains no private input or identity and separate accounts/merchants remain independent (0.19525ms)
+✔ two competing pages serialize dispatch and cannot create replacement after the first confirmation (0.162292ms)
+✔ late successful response after logout preserves original recovery and is not adopted (0.142875ms)
+✔ storage failure or malformed original data prevents sending and retains original evidence (0.165458ms)
+✔ successful response whose durable cleanup fails retains its exact recovery key (0.1175ms)
+✔ a changed caller object cannot alter the original body during asynchronous admission (0.102ms)
+✔ release config consumes the accepted bundled endpoint boundary and fails private services closed (6.822167ms)
+✔ browser source contains no loopback, emulator, HTTP production or Node-only runtime dependency (2.949958ms)
+✔ English is the first-run primary language while saved user choice remains supported (2.0895ms)
+✔ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (2.339792ms)
+✔ merchant JSON and reconciliation export reject late records after logout or merchant switch (18.222458ms)
+✔ merchant mutation forwards the original idempotency key and JSON through the bounded product request (0.836833ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 212.9755

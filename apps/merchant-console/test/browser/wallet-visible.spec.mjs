@@ -74,18 +74,19 @@ test("Commerce roles and original logo remain usable on mobile",async({page})=>{
 
 // Controlled legacy API fixtures exercise product UI only. They are not an
 // installed Wallet, canonical v2 approval, public service, or true SSO receipt.
-async function installPrivateFixture(page,{role='owner',invoice}={}){
+async function installPrivateFixture(page,{role='owner',savedRole=role,invoice}={}){
   await page.addInitScript(({role})=>{
     sessionStorage.setItem('ynx-merchant-id','mrc_qa_original');sessionStorage.setItem('ynx-merchant-session','controlled-qa-session');sessionStorage.setItem('ynx-merchant-role',role);sessionStorage.setItem('ynx-merchant-account','ynx1'+'q'.repeat(38));
-  },{role});
+  },{role:savedRole});
   await page.route('**/runtime-config.js',route=>route.fulfill({contentType:'text/javascript',body:'globalThis.YNX_PAY_API_URL=location.origin;globalThis.YNX_APP_GATEWAY_URL="";'}));
-  const state={merchants:{mrc_qa_original:{id:'mrc_qa_original',displayName:'Controlled Merchant',payoutAddress:'ynx1'+'q'.repeat(38)}},invoices:{},audit:[]};
+  const state={merchants:{mrc_qa_original:{id:'mrc_qa_original',displayName:'Controlled Merchant',status:'active',payoutAddress:'ynx1'+'q'.repeat(38)}},merchantMembers:{current:{id:'mem_controlled',merchantId:'mrc_qa_original',account:'ynx1'+'q'.repeat(38),role,status:'active'}},invoices:{},audit:[]};
   await page.route('**/v1/merchant/**',async route=>{
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/invoices')&&invoice){await invoice(route);return}
-    const value=path.endsWith('/state')?state:{netYnxt:0,grossYnxt:0,refundedYnxt:0,committedCount:0,invoiceCount:0,refundRequestCount:0,disputeCount:0,failedWebhookCount:0};
+    const value=path.endsWith('/state')?state:{merchantId:'mrc_qa_original',netYnxt:0,grossYnxt:0,refundedYnxt:0,committedCount:0,invoiceCount:0,refundRequestCount:0,disputeCount:0,failedWebhookCount:0};
     await route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
   });
+  return state;
 }
 
 test('failed invoice retains input and retry identity; successful invoice keeps unrelated draft',async({page})=>{
@@ -139,4 +140,22 @@ test('reload retains opaque original invoice key and blocks replacement until ex
  const journal=await page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('ynx-merchant-mutation-v1:')));expect(journal).toHaveLength(1);expect(JSON.stringify(journal)).not.toContain('Original invoice');
  await page.reload();await page.getByRole('button',{name:'Create invoice',exact:true}).click();await page.locator('#description').fill('Different invoice');await page.locator('#amount').fill('9');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect(page.getByRole('alert')).toContainText('earlier merchant request');expect(sent).toHaveLength(1);
  await page.locator('#description').fill('Original invoice');await page.locator('#amount').fill('8');await page.getByRole('button',{name:'Create through central Pay API'}).click();await expect.poll(()=>sent.length).toBe(2);expect(sent[1]).toEqual(sent[0]);await expect.poll(()=>page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-merchant-mutation-v1:')).length)).toBe(0);
+});
+
+
+test('the selected merchant wins over a foreign first row and excludes foreign invoices',async({page})=>{
+ const state=await installPrivateFixture(page);state.merchants={foreign:{id:'mrc_foreign',displayName:'Foreign private merchant',status:'active'},...state.merchants};state.merchantMembers.foreign={merchantId:'mrc_foreign',account:'ynx1'+'q'.repeat(38),role:'owner',status:'active'};state.invoices.foreign={id:'foreign-secret-invoice',merchantId:'mrc_foreign',description:'Foreign order',amount:999,status:'pending'};
+ await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();await expect(page.getByText('Foreign private merchant')).toHaveCount(0);await expect(page.getByText('foreign-secret-invoice')).toHaveCount(0);await page.getByRole('button',{name:'Transactions',exact:true}).first().click();await expect(page.getByText('Foreign order')).toHaveCount(0);
+});
+
+test('a forged saved owner role cannot expose owner controls when current membership is viewer',async({page})=>{
+ await installPrivateFixture(page,{role:'viewer',savedRole:'owner'});await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();await expect(page.getByRole('button',{name:'Create invoice',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Settings',exact:true}).first().click();await expect(page.locator('#member-form')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-role'))).toBe('viewer');
+});
+
+for(const change of ['revoked','different-role'])test('current merchant membership '+change+' clears the old workspace and requires approval',async({page})=>{
+ const state=await installPrivateFixture(page);await page.goto('/');await expect(page.getByText('Controlled Merchant')).toBeVisible();if(change==='revoked')state.merchantMembers.current.status='revoked';else state.merchantMembers.current.role='viewer';await page.getByRole('button',{name:'Refresh',exact:true}).click();await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/selected merchant or membership changed/)).toBeVisible();await expect(page.getByText('Controlled Merchant')).toHaveCount(0);await expect(page.locator('#invoice-form')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
+});
+
+test('analytics for another merchant never enters the selected dashboard',async({page})=>{
+ await installPrivateFixture(page);await page.route('**/v1/merchant/analytics',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({merchantId:'mrc_other',netYnxt:999999,grossYnxt:999999})}));await page.goto('/');await expect(page.getByRole('heading',{name:'Merchant Console'})).toBeVisible();await expect(page.getByText(/selected merchant or membership changed/)).toBeVisible();await expect(page.getByText('999999')).toHaveCount(0);expect(await page.evaluate(()=>sessionStorage.getItem('ynx-merchant-session'))).toBeNull();
 });

@@ -1,0 +1,21 @@
+
+Running 14 tests using 1 worker
+
+(node:66986) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › test/browser/wallet-visible.spec.mjs:41:1 › approved deterministic YNX Wallet keeps public preview and private service separated (735ms)
+  ✓   2 [chromium] › test/browser/wallet-visible.spec.mjs:58:1 › rejected deterministic Wallet creates no account and public preview remains available (495ms)
+  ✓   3 [chromium] › test/browser/wallet-visible.spec.mjs:73:1 › Commerce roles and original logo remain usable on mobile (158ms)
+  ✓   4 [chromium] › test/browser/wallet-visible.spec.mjs:92:1 › failed invoice retains input and retry identity; successful invoice keeps unrelated draft (717ms)
+  ✓   5 [chromium] › test/browser/wallet-visible.spec.mjs:112:1 › logout during a mutation never restores private workspace from its late response (295ms)
+  ✓   6 [chromium] › test/browser/wallet-visible.spec.mjs:120:1 › viewer overview hides invoice creation and merchant forms (112ms)
+  ✓   7 [chromium] › test/browser/wallet-visible.spec.mjs:124:1 › authenticated mobile navigation reaches settings without document overflow (240ms)
+  ✓   8 [chromium] › test/browser/wallet-visible.spec.mjs:130:1 › authoritative session rejection clears private records and requires new approval (248ms)
+  ✓   9 [chromium] › test/browser/wallet-visible.spec.mjs:137:1 › reload retains opaque original invoice key and blocks replacement until exact retry (481ms)
+  ✓  10 [chromium] › test/browser/wallet-visible.spec.mjs:146:1 › the selected merchant wins over a foreign first row and excludes foreign invoices (162ms)
+  ✓  11 [chromium] › test/browser/wallet-visible.spec.mjs:151:1 › a forged saved owner role cannot expose owner controls when current membership is viewer (165ms)
+  ✓  12 [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership revoked clears the old workspace and requires approval (208ms)
+  ✓  13 [chromium] › test/browser/wallet-visible.spec.mjs:155:50 › current merchant membership different-role clears the old workspace and requires approval (228ms)
+  ✓  14 [chromium] › test/browser/wallet-visible.spec.mjs:159:1 › analytics for another merchant never enters the selected dashboard (96ms)
+
+  14 passed (4.9s)

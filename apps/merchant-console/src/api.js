@@ -5,4 +5,20 @@ async function request(path,{method="GET",body,headers={},raw=false,requests}={}
  if(!API_BASE)throw new Error("YNX Pay product service URL is not configured");
  return requests.fetchJSON(API_BASE+path,{method,headers:{...headers,...(body===undefined?{}:{"Content-Type":"application/json"})},body:body===undefined?undefined:JSON.stringify(body)},globalThis.fetch,raw?response=>response.ok?response.blob():response.json():undefined);
 }
-export function realRecords(snapshot){if(!snapshot||typeof snapshot!=="object")throw new Error("Invalid merchant state");return{merchant:Object.values(snapshot.merchants??{})[0]??null,members:Object.values(snapshot.merchantMembers??{}),catalog:Object.values(snapshot.catalog??{}),invoices:Object.values(snapshot.invoices??{}),recurringDrafts:Object.values(snapshot.recurringDrafts??{}),refunds:Object.values(snapshot.refunds??{}),disputes:Object.values(snapshot.disputes??{}),deliveries:Object.values(snapshot.deliveries??{}),aiRuns:Object.values(snapshot.aiRuns??{}),audit:Array.isArray(snapshot.audit)?snapshot.audit:[]}}
+const ROLES=new Set(['owner','finance','developer','support','viewer']);
+function rejected(){return Object.assign(new Error('The selected merchant, account or membership is no longer valid. Approve a new sign-in.'),{code:'MERCHANT_CONTEXT_REJECTED',status:401})}
+function records(value){if(value===undefined||value===null)return [];if(typeof value!=='object'||Array.isArray(value))throw rejected();const rows=Object.values(value);if(rows.some(row=>!row||typeof row!=='object'||Array.isArray(row)))throw rejected();return rows}
+// Original Pay snapshot fields identify every merchant-owned collection. Local
+// saved role/selection are navigation hints; they never establish membership.
+export function realRecords(snapshot,{merchantId,account,expectedRole=null}={}){
+ if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot)||typeof merchantId!=='string'||!merchantId||typeof account!=='string'||!account)throw rejected();
+ const selected=records(snapshot.merchants).filter(row=>row.id===merchantId);
+ if(selected.length!==1||selected[0].status!=='active')throw rejected();
+ const members=records(snapshot.merchantMembers),matches=members.filter(row=>row.merchantId===merchantId&&row.account===account);
+ if(matches.length!==1||matches[0].status!=='active'||!ROLES.has(matches[0].role)||expectedRole!==null&&matches[0].role!==expectedRole)throw rejected();
+ const scoped=value=>{const rows=records(value);if(rows.some(row=>typeof row.merchantId!=='string'))throw rejected();return rows.filter(row=>row.merchantId===merchantId)};
+ if(snapshot.audit!==undefined&&snapshot.audit!==null&&!Array.isArray(snapshot.audit))throw rejected();
+ const audit=snapshot.audit??[];if(audit.some(row=>!row||typeof row!=='object'||typeof row.merchantId!=='string'))throw rejected();
+ return {merchant:selected[0],role:matches[0].role,members:scoped(snapshot.merchantMembers),catalog:scoped(snapshot.catalog),invoices:scoped(snapshot.invoices),recurringDrafts:scoped(snapshot.recurringDrafts),refunds:scoped(snapshot.refunds),disputes:scoped(snapshot.disputes),deliveries:scoped(snapshot.deliveries),aiRuns:scoped(snapshot.aiRuns),audit:audit.filter(row=>row.merchantId===merchantId)};
+}
+export function merchantAnalytics(value,merchantId){if(!value||typeof value!=='object'||Array.isArray(value)||value.merchantId!==merchantId)throw rejected();return value}

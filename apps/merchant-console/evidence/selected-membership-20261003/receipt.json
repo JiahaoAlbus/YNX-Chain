@@ -1,0 +1,116 @@
+{
+  "schema": "ynx-commerce-selected-merchant-current-membership/v1",
+  "baseCommit": "2b4878c0d24a7749235008e151d65e4f4fb80fbf",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "originalReadonlyEvidence": {
+    "root": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
+    "sourcePins": [
+      {
+        "commit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+        "path": "internal/payproduct/model.go",
+        "bytes": 16003,
+        "sha256": "71036f997f57f69b75b30c1b5680764fd6841d92600d7150ea2c127278ea573f"
+      },
+      {
+        "commit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+        "path": "internal/payproduct/service.go",
+        "bytes": 39674,
+        "sha256": "2047f2f901bcb6d37a017f1612a95d79f00d14f1a1518abc32f730e2221e6b89"
+      },
+      {
+        "commit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+        "path": "internal/payproduct/console_auth.go",
+        "bytes": 9354,
+        "sha256": "8cfb671f4218c8230575075b73cd3d9a1a29a22346e0e8c07d265c2151481fb5"
+      },
+      {
+        "commit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+        "path": "internal/payproduct/server.go",
+        "bytes": 18969,
+        "sha256": "8b76ee251981a8dc6bb4e18626266f89827508f2a81a52d891760e61619a090d"
+      }
+    ],
+    "contract": [
+      "Merchant.id/status and MerchantMember.merchantId/account/role/status are inherited actual Pay schema, not fabricated successor fields.",
+      "SnapshotForMerchant filters all original merchant-owned collections and audit by MerchantID.",
+      "Original AuthenticateMerchantSession rejects missing/inactive member, changed role or inactive merchant; changed verified role requires a new approval.",
+      "Analytics.merchantId binds its aggregate to the original merchant."
+    ]
+  },
+  "changes": [
+    "Select the exact UI merchant ID, never the first map value. Require one active selected merchant and one active current-account membership with an original allowed role.",
+    "Saved sessionStorage role is presentation context only. First authenticated original state read supplies the current role; request contexts include its verified role and clear stale drafts before adoption.",
+    "Subsequent changed or revoked verified role rejects the whole workspace, clears private presentation and requires fresh approval, preserving original server behavior.",
+    "Original record collections and audit filter by selected merchantId; unbound/malformed data rejects rather than showing unrelated records.",
+    "Aggregate analytics must name the selected merchant before any dashboard is adopted."
+  ],
+  "verification": {
+    "unit": {
+      "tests": 34,
+      "pass": 34,
+      "fail": 0,
+      "skip": 0
+    },
+    "build": "PASS",
+    "chromium": {
+      "tests": 14,
+      "pass": 14,
+      "fail": 0,
+      "scope": "Registered HTTPS merchant origin intercepted to owned dist. Standard transport is real approved SDK with software EIP1193 provider; private operations are explicitly controlled original legacy bearer/state fixtures with inherited actual schema. This does not validate new canonical actor transport, live server policy, or actual user membership."
+    },
+    "sourceDiffCheck": "PASS"
+  },
+  "sourcePins": [
+    {
+      "path": "apps/merchant-console/src/api.js",
+      "bytes": 4715,
+      "sha256": "cf0a2df58b3f9797958e0ca3e3fc8a86e4717e97feb13bc0a9a8d669b363255e"
+    },
+    {
+      "path": "apps/merchant-console/src/app.js",
+      "bytes": 34910,
+      "sha256": "d571b37d51f7a2592f92a3cb47cfe39a84b8479ebe40d70c57b098b9ef268098"
+    },
+    {
+      "path": "apps/merchant-console/test/api.test.js",
+      "bytes": 2522,
+      "sha256": "75861dd010664473daf7ebe8018184dfa552bbf197ddf42f6c6b68bcda66e3f4"
+    },
+    {
+      "path": "apps/merchant-console/test/browser/wallet-visible.spec.mjs",
+      "bytes": 17125,
+      "sha256": "13e31ee0265bdf44da0ad16957d8d0d81f6059ae85b434877dbd65092481c1a3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/merchant-console/evidence/selected-membership-20261003/unit.log",
+      "bytes": 3453,
+      "sha256": "b1e6322200c62607d7fc3f8fc67dd90c565cb345b6f0f9204844ed194f91813e"
+    },
+    {
+      "path": "apps/merchant-console/evidence/selected-membership-20261003/build.log",
+      "bytes": 59,
+      "sha256": "455639f8d6e90adcbea9cb29b3cd58a2baa31385e22479946ff167e6a01ccbd4"
+    },
+    {
+      "path": "apps/merchant-console/evidence/selected-membership-20261003/browser.log",
+      "bytes": 2443,
+      "sha256": "6796da0d8124da16f3330f0d438cebbfeb22a18fbedbd8ee17490fae0f23c0dd"
+    }
+  ],
+  "remaining": [
+    "A canonical Merchant actor/current-context binder and exact selected-merchant carrier and per-role server policy; owned client cannot invent a header/query authority.",
+    "Approved Native SDK successor must be reviewed/adopted and real protected OS ports wired in actual Shop Android/macOS apps.",
+    "Real Wallet visible approval, registered public endpoints, business operation/readback and final installed Android/macOS/Web user journeys."
+  ],
+  "acceptance": {
+    "canonicalMerchantMembership": false,
+    "liveMerchantAuthorization": false,
+    "realWallet": false,
+    "finalAndroid": false,
+    "finalMacOS": false,
+    "publicFullFlow": false,
+    "goalComplete": false
+  }
+}
