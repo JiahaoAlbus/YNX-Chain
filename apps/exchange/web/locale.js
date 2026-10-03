@@ -318,8 +318,24 @@ const candleRows={
  ar:['فاصل الشموع','دقيقة واحدة','5 دقائق','ساعة واحدة','الصفقات المحفوظة فقط؛ تُحذف الفترات الفارغة. ليس سجلًا كاملًا.','OHLCV للصفقات المحفوظة','سجلات الشموع وبصمات الصفقات'],
  id:['Interval candle','1 menit','5 menit','1 jam','Hanya transaksi tersimpan; interval kosong dilewati. Bukan riwayat lengkap.','OHLCV transaksi bursa tersimpan','Catatan candle dan hash transaksi']
 };
+const matchTimeKeys=['market-match-time','market-match-boundary'];
+const matchTimeRows={
+ en:['Latest retained match time','Snapshot observation time is not a new trade. Last matched price is historical, not an executable quote.'],
+ 'zh-Hans':['最新保留成交时间','快照观测时间不代表新成交。最后成交价是历史价格，不是可执行报价。'],
+ 'zh-Hant':['最新保留成交時間','快照觀測時間不代表新成交。最後成交價是歷史價格，不是可執行報價。'],
+ ja:['保存された最新約定の時刻','スナップショットの観測時刻は新規約定ではありません。最終約定価格は履歴であり、執行可能な見積価格ではありません。'],
+ ko:['보존된 최신 체결 시간','스냅샷 관측 시간은 새 체결 시간이 아닙니다. 마지막 체결가는 과거 가격이며 실행 가능한 호가가 아닙니다.'],
+ es:['Hora de la última ejecución conservada','La hora de observación no es una nueva operación. El último precio ejecutado es histórico, no una cotización ejecutable.'],
+ fr:['Heure de la dernière exécution conservée','L’heure d’observation n’est pas une nouvelle transaction. Le dernier prix exécuté est historique, pas une cotation exécutable.'],
+ de:['Zeit des letzten gespeicherten Abschlusses','Die Beobachtungszeit ist kein neuer Trade. Der letzte Abschlusskurs ist historisch, kein ausführbares Angebot.'],
+ pt:['Horário da última execução retida','O horário da observação não é uma nova operação. O último preço executado é histórico, não uma cotação executável.'],
+ ru:['Время последней сохранённой сделки','Время наблюдения снимка не означает новую сделку. Последняя цена историческая, а не исполнимая котировка.'],
+ ar:['وقت آخر صفقة محفوظة','وقت رصد اللقطة لا يعني صفقة جديدة. سعر آخر صفقة تاريخي وليس عرض سعر قابلاً للتنفيذ.'],
+ id:['Waktu transaksi terakhir yang tersimpan','Waktu pengamatan snapshot bukan transaksi baru. Harga terakhir bersifat historis, bukan kuotasi yang dapat dieksekusi.']
+};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
-  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys,...candleKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale],...candleRows[locale]];
+  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys,...candleKeys,...matchTimeKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale],...candleRows[locale],...matchTimeRows[locale]];
+  if(matchTimeRows[locale].length!==matchTimeKeys.length)throw new Error('EXCHANGE_MATCH_TIME_CATALOG_INCOMPLETE');
   if(candleRows[locale].length!==candleKeys.length)throw new Error('EXCHANGE_CANDLE_CATALOG_INCOMPLETE');
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
   if(activityRows[locale].length!==activityKeys.length)throw new Error('EXCHANGE_ACTIVITY_CATALOG_INCOMPLETE');

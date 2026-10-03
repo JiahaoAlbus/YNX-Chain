@@ -37,12 +37,19 @@ test('conflicting revision keeps actual candle view stale until an explicit veri
       window.marketQA={next:null,reads:0};let transport;class Source{constructor(){transport=this;this.events={}}addEventListener(k,f){this.events[k]=f}close(){} }
       window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});
     const source={authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',asOf:'2026-10-03T00:00:00Z',classification:'testnet',status:'degraded_single_host',coverage:'stream-orderbook-matched-trades',stateBackend:'file_snapshot',multiInstance:false};
-    const snapshot={schemaVersion:'exchange-public-market-v1',revision:1,market:'YNXT-YUSD_TEST',sourceMetadata:source,orderBook:{market:'YNXT-YUSD_TEST',bids:[],asks:[]},trades:[{id:'local-match',market:'YNXT-YUSD_TEST',priceMicro:2000000,amountMicro:4000000,createdAt:source.asOf,sourceType:'deterministic_price_time_match',sourceDigest:'a'.repeat(64)}]};
+    const snapshot={schemaVersion:'exchange-public-market-v1',revision:1,market:'YNXT-YUSD_TEST',sourceMetadata:source,orderBook:{market:'YNXT-YUSD_TEST',bids:[],asks:[]},trades:[{id:'local-match',market:'YNXT-YUSD_TEST',priceMicro:2000000,amountMicro:4000000,createdAt:'2026-08-03T18:41:37.614045168Z',sourceType:'deterministic_price_time_match',sourceDigest:'a'.repeat(64)}]};
     await page.evaluate(async s=>{marketQA.next=s;await feed.start()},snapshot);
     const original=await page.locator('#candle-records').textContent();
+    const originalMatch=await page.locator('#market-last-match').textContent();
+    assert.ok(originalMatch.includes(snapshot.trades[0].createdAt));assert.ok(!originalMatch.includes(source.asOf));
+    const observed=structuredClone(snapshot);observed.sourceMetadata.asOf='2026-10-04T00:00:00Z';
+    await page.evaluate(s=>emitConflict(s),observed);
+    assert.equal(await page.locator('#market-last-match').textContent(),originalMatch,'a fresh snapshot cannot redate an old match');
+    assert.equal(await page.locator('#market-last-match').getAttribute('data-match-digest'),snapshot.trades[0].sourceDigest);
     const conflict=structuredClone(snapshot);conflict.trades[0].priceMicro=3000000;
     await page.evaluate(s=>emitConflict(s),conflict);
     assert.equal(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),false);assert.equal(await page.locator('#market-source').getAttribute('data-stale'),'true');
+    assert.equal(await page.locator('#market-last-match').textContent(),originalMatch);
     conflict.revision=2;await page.evaluate(async s=>{marketQA.next=s;await feed.retry()},conflict);
     assert.notEqual(await page.locator('#candle-records').textContent(),original);assert.equal(await page.locator('#market-stale').isHidden(),true);
     assert.equal(await page.evaluate(()=>marketQA.reads),2);assert.equal(page.context().pages().length,1);await page.evaluate(()=>feed.stop());
@@ -60,9 +67,13 @@ test('desktop/mobile candle controls and exact trace rows remain read-only, loca
       await page.addScriptTag({content:`${market.replace(/^export /gm,'')}\nconst $=s=>document.querySelector(s);const state={publicTrades:[]};const display=v=>formatMicro(v,document.documentElement.lang);${render}\nwindow.candleQA={render(trades){this.rows=trades;state.publicTrades=trades;renderPublicMarket()}};$('#chart-interval').addEventListener('change',renderPublicMarket);`});
       const trades=Array.from({length:20},(_,i)=>({id:`fixture-${i}`,market:'YNXT-YUSD_TEST',createdAt:new Date(Date.UTC(2026,9,3,0,i)).toISOString(),priceMicro:1000000+(i%5)*10000,amountMicro:2000000,sourceType:'deterministic_price_time_match',sourceDigest:i.toString(16).padStart(64,'0')}));
       await page.evaluate(trades=>window.candleQA.render(trades),trades);
-      for(const language of ['en','ar']){
+      for(const language of ['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
         await page.locator('#exchange-language').selectOption(language);
         await page.evaluate(()=>window.candleQA.render(window.candleQA.rows));
+        assert.equal(await page.locator('#market-last-match').getAttribute('data-match-time'),trades[19].createdAt);
+        assert.equal(await page.locator('#market-last-match').getAttribute('data-match-id'),trades[19].id);
+        assert.equal(await page.locator('#market-last-match').getAttribute('data-match-digest'),trades[19].sourceDigest);
+        assert.equal(await page.locator('[data-exchange-locale="market-match-boundary"]').textContent(),await page.evaluate(()=>YNXExchangeLocale.text('market-match-boundary')));
         for(const [period,count] of [['60000',20],['300000',4],['3600000',1]]){
           await page.locator('#chart-interval').selectOption(period);assert.equal(await page.locator('#chart-svg g').count(),count);assert.equal(await page.locator('#candle-records tr').count(),count);
           assert.ok(await page.locator('#chart-svg').evaluate(svg=>Number(svg.querySelector('text').getAttribute('font-size'))*svg.getBoundingClientRect().width/800>=12),'chart label must not shrink to unreadable SVG text');
@@ -75,6 +86,11 @@ test('desktop/mobile candle controls and exact trace rows remain read-only, loca
         if(language==='en')await page.screenshot({path:path.join(evidence,`candles-${width}.png`),fullPage:true});
         await page.locator('.chart summary').click();
       }
+      await page.evaluate(()=>window.candleQA.render([]));
+      assert.equal(await page.locator('#market-last-match').getAttribute('data-match-time'),null);
+      assert.equal(await page.locator('#market-last-match').getAttribute('data-match-id'),null);
+      assert.equal(await page.locator('#market-last-match').getAttribute('data-match-digest'),null);
+      assert.equal(await page.locator('#market-last-match').textContent(),await page.evaluate(()=>YNXExchangeLocale.text('market-no-matches')));
       assert.equal(requests,0,'local returned-data visualization must not fetch/sign/order');assert.equal(page.context().pages().length,1);await page.close();
     }
     t.diagnostic(`CONTROLLED LOCAL DISPLAY ONLY; screenshots=${evidence}`);

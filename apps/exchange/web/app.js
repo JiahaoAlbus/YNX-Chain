@@ -202,6 +202,14 @@ function renderPublicMarket(){
   const candles=aggregateRetainedCandles(state.publicTrades,Number($('#chart-interval').value));
   const byID=new Map(state.publicTrades.map(trade=>[trade.id,trade]));
   const trades=candles.flatMap(candle=>candle.trades.map(reference=>byID.get(reference.id)));
+  const matchTime=$('#market-last-match'),latestMatch=trades.at(-1);
+  if(matchTime){
+    matchTime.textContent=latestMatch?`Latest retained match time · ${latestMatch.createdAt}`:'No actual venue matches yet.';
+    window.YNXExchangeLocale?.write(matchTime,latestMatch?'market-match-time':'market-no-matches',latestMatch?` · ${latestMatch.createdAt}`:'');
+    for(const [key,value] of Object.entries({matchId:latestMatch?.id,matchTime:latestMatch?.createdAt,matchDigest:latestMatch?.sourceDigest})){
+      if(value)matchTime.dataset[key]=value;else delete matchTime.dataset[key];
+    }
+  }
   const body=$('#public-trades'),svg=$('#chart-svg');body.replaceChildren();svg.replaceChildren();
   let caption=$('#candle-caption');if(!caption){caption=document.createElement('p');caption.id='candle-caption';caption.className='source-note';svg.before(caption)}
   caption.textContent='OHLCV from retained venue matches';window.YNXExchangeLocale?.write(caption,'candle-chart-label');svg.setAttribute('aria-labelledby','chart-title candle-caption');
