@@ -681,6 +681,21 @@ test('shipped Quant HTTP streams fragmented UTF8 and cancels oversized bodies be
   await assert.rejects(transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response(new Uint8Array([123,34,120,34,58,34,255,34,125]),{headers:{'content-type':'application/json'}})}),{code:'QUANT_API_RESPONSE_INVALID'});
 });
 
+test('invalid response length declarations cancel before a body read and never replay a research request',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
+  for(const length of ['-1','1.5','1e3','NaN','Infinity','9007199254740993','8388609']){
+    let pulls=0,cancels=0,calls=0;
+    const body=new ReadableStream({pull(controller){pulls++;controller.enqueue(new TextEncoder().encode('{}'))},cancel(){cancels++}},{highWaterMark:0});
+    const response=new Response(body,{headers:{'content-type':'application/json','content-length':length}});
+    await assert.rejects(transport('/v1/backtests/from-market',{method:'POST',body:'exact-original-request'},{fetchImpl:async()=>{calls++;return response}}),{code:'QUANT_API_RESPONSE_INVALID'});
+    assert.equal(pulls,0,length);assert.equal(cancels,1,length);assert.equal(calls,1,length);
+  }
+  for(const length of [null,'2','0002']){
+    const headers={'content-type':'application/json'};if(length!==null)headers['content-length']=length;
+    assert.deepEqual(JSON.parse(JSON.stringify((await transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response('{}',{headers})})).body)),{});
+  }
+});
+
 test('actual stream stalled body is cancelled at deadline with one request and no unbounded read',async()=>{
   const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context),timers=new Map();let calls=0,cancels=0;
   const body=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{'));},cancel(){cancels++;}});

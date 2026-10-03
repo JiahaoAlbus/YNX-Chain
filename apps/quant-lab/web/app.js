@@ -652,7 +652,7 @@ async function quantResponseText(response,signal){
   try{
     while(true){
       if(signal.aborted)throw invalid();
-      const {done,value}=await reader.read();if(done)break;
+      const {done,value}=await reader.read();if(signal.aborted)throw invalid();if(done)break;
       if(!Number.isSafeInteger(value?.byteLength)||value.byteLength<0||value.byteLength>limit-bytes)throw invalid();
       bytes+=value.byteLength;parts.push(decoder.decode(value,{stream:true}));
     }
@@ -671,7 +671,11 @@ async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeou
   try {
     return await Promise.race([(async () => {
       const response = await fetchImpl('/api' + path, {...options, signal:controller.signal, credentials:'same-origin', redirect:'error', cache:'no-store'});
-      if (!/^application\/json(?:;|$)/i.test(response.headers.get('content-type') || '') || Number(response.headers.get('content-length')) > 8 * 1024 * 1024) throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+      const length=response.headers.get('content-length');
+      if (!/^application\/json(?:;|$)/i.test(response.headers.get('content-type') || '') || (length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>8*1024*1024))) {
+        try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}
+        throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+      }
       const text = await quantResponseText(response,controller.signal);
       let body;try { body = JSON.parse(text); } catch { throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'}); }
       return {response,body};

@@ -572,6 +572,36 @@ test('actual Chrome native response stream preserves split UTF8 and cancels at t
     assert.deepEqual(result,{label:'日本語 العربية 😀',amount:0,pulls:9,cancels:1,calls:1,code:'QUANT_API_RESPONSE_INVALID'});assert.equal(context.pages().length,1);
   }finally{await context.close()}
 });
+test('actual Chrome rejects invalid length before reading and retains one uncertain saved research intent',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true}})}));
+    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});
+    const observations=await page.evaluate(async()=>{
+      const results=[];
+      for(const length of ['-1','1.5','1e3','NaN','Infinity','9007199254740993','8388609']){
+        let pulls=0,cancels=0,calls=0,code;
+        const response=new Response(new ReadableStream({pull(controller){pulls++;controller.enqueue(new TextEncoder().encode('{}'))},cancel(){cancels++}},{highWaterMark:0}),{headers:{'content-type':'application/json','content-length':length}});
+        try{await quantHTTP('/v1/snapshot',{}, {fetchImpl:async()=>{calls++;return response}})}catch(error){code=error.code}
+        results.push({length,pulls,cancels,calls,code});
+      }
+      const original=window.fetch;window.invalidLengthResearchCalls=0;
+      window.fetch=(path,options)=>{
+        if(path==='/api/v1/backtests/from-market'){
+          window.invalidLengthResearchCalls++;
+          return Promise.resolve(new Response('{}',{headers:{'content-type':'application/json','content-length':'-1'}}));
+        }
+        return original(path,options);
+      };
+      return results;
+    });
+    for(const value of observations)assert.deepEqual(value,{length:value.length,pulls:0,cancels:1,calls:1,code:'QUANT_API_RESPONSE_INVALID'});
+    await page.locator('#research-submit').click();await page.waitForFunction(()=>!researchSubmitting&&lastToastKey==='researchRequestUnconfirmed');
+    const pending=await page.evaluate(()=>localStorage.getItem(researchPendingKey));assert.ok(pending);assert.equal(await page.evaluate(()=>invalidLengthResearchCalls),1);
+    await page.selectOption('#locale','ar');assert.equal(await page.evaluate(()=>localStorage.getItem(researchPendingKey)),pending);assert.equal(await page.evaluate(()=>invalidLengthResearchCalls),1);
+    assert.equal(await page.locator('#latest-result').isVisible(),false);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome reconciliation preview cancels in twelve locales without any write',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
