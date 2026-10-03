@@ -1,0 +1,1024 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-03",
+  "status": "OWNER_V2_INTEGRATION_CONTRACT; IMPLEMENTATION_AND_RUNTIME_NOT_VERIFIED",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "sourceBasis": "b36bb7ecd7ca34afe718aa54ffd7f2a7d9b9c580",
+  "authority": "Commerce owned product binding/role contract for A shared integration; no shared/Host/Pay source mutation",
+  "sessionDurationSeconds": 240,
+  "chain": {
+    "native": "ynx_6423-1",
+    "evm": 6423
+  },
+  "products": [
+    {
+      "productId": "ynx-shop",
+      "registryProductKey": "shop",
+      "productClientId": "ynx-shop-v1",
+      "baseAppId": "com.ynxweb4.shop",
+      "web": {
+        "platform": "web",
+        "appId": "com.ynxweb4.shop.web",
+        "origin": "https://shop.ynxweb4.com",
+        "callback": "https://shop.ynxweb4.com/wallet-auth/callback",
+        "entry": "https://shop.ynxweb4.com/",
+        "sellerEntry": "https://shop.ynxweb4.com/seller/"
+      },
+      "native": {
+        "platforms": [
+          "android",
+          "macos"
+        ],
+        "appId": "com.ynxweb4.shop",
+        "callback": "ynxshop://wallet-auth/callback",
+        "implementedSellerUI": false
+      },
+      "allowedScopeUnion": [
+        "account:read",
+        "shop:orders:write",
+        "shop:profile:write",
+        "shop:seller:operate"
+      ],
+      "capabilities": {
+        "buyer": {
+          "requestingProductCompatibility": "shop",
+          "scopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ]
+        },
+        "seller": {
+          "requestingProductCompatibility": "shop-seller",
+          "scopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "storeRoles": {
+            "owner": [
+              "seller.read",
+              "catalog.write",
+              "inventory.write",
+              "fulfillment.write",
+              "returns.resolve",
+              "refunds.approve",
+              "finance.read",
+              "team.read",
+              "audit.read"
+            ],
+            "admin": [
+              "seller.read",
+              "catalog.write",
+              "inventory.write",
+              "fulfillment.write",
+              "returns.resolve",
+              "refunds.approve",
+              "finance.read",
+              "team.read",
+              "audit.read"
+            ],
+            "catalog": [
+              "seller.read",
+              "catalog.write"
+            ],
+            "inventory": [
+              "seller.read",
+              "inventory.write"
+            ],
+            "fulfillment": [
+              "seller.read",
+              "fulfillment.write"
+            ],
+            "finance": [
+              "seller.read",
+              "finance.read",
+              "refunds.approve"
+            ],
+            "support": [
+              "seller.read",
+              "returns.resolve"
+            ],
+            "viewer": [
+              "seller.read",
+              "finance.read",
+              "team.read",
+              "audit.read"
+            ]
+          }
+        }
+      },
+      "decision": "Seller is a role in the existing Shop product/client/app, with one origin and callback. A adds the existing seller scope to Shop allowed scopes; approval requests only the chosen role scopes. Buyer approval never grants seller operate, and seller scope never creates owner/merchant membership. Entry role and selected store are navigation/authority context, not another account."
+    },
+    {
+      "productId": "pay-merchant",
+      "registryProductKey": "pay-merchant",
+      "productClientId": "ynx-merchant-console-v1",
+      "baseAppId": "com.ynxweb4.merchant-console",
+      "requestingProduct": "pay-merchant",
+      "web": {
+        "platform": "web",
+        "appId": "com.ynxweb4.merchant-console.web",
+        "origin": "https://pay.ynxweb4.com",
+        "callback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+        "entry": "https://pay.ynxweb4.com/merchant/"
+      },
+      "native": {
+        "platforms": [
+          "android",
+          "macos"
+        ],
+        "appId": "com.ynxweb4.merchant-console",
+        "callback": null,
+        "registration": "DEFERRED_NO_EXISTING_NATIVE_CALLBACK_SOURCE; no invented native grant; implement actual owned shell/return handling first"
+      },
+      "allowedScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "roles": [
+        "owner",
+        "finance",
+        "developer",
+        "support",
+        "viewer"
+      ],
+      "decision": "Preserve the actual original Merchant client tuple and merchantId binding. merchant-console disabled entry is not the client authority. This is the sole Product Session owner for pay.ynxweb4.com; consumer payment remains Wallet review/execution, so do not enable a second consumer Product Session product with the same origin. A reconciles any conflicting disabled legacy Pay entry instead of duplicating origin."
+    }
+  ],
+  "commerceRoutes": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/metrics",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/api/capabilities",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/config",
+      "authorization": "LEGACY_AUTH_ROUTE_RETIRED_IN_V2; use A canonical adapter"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/gateway/challenges",
+      "authorization": "LEGACY_AUTH_ROUTE_RETIRED_IN_V2; use A canonical adapter"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/gateway/sessions",
+      "authorization": "LEGACY_AUTH_ROUTE_RETIRED_IN_V2; use A canonical adapter"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/api/products/{id}",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stores/{id}",
+      "authorization": "PUBLIC_NO_PRODUCT_PROOF"
+    },
+    {
+      "method": "GET",
+      "path": "/api/profile",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:profile:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/profile",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:profile:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/cart",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/cart",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/privacy/export",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:profile:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "POST",
+      "path": "/api/privacy/delete",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:profile:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "order.Buyer == authenticated account; allowed buyer actions"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "current store membership; seller.read for reads; shipped/delivered require fulfillment.write; return approvals require returns.resolve; refund approvals require refunds.approve"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/intent-lookup",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/{id}",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "order.Buyer == authenticated account; allowed buyer actions"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "current store membership; seller.read for reads; shipped/delivered require fulfillment.write; return approvals require returns.resolve; refund approvals require refunds.approve"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/{id}/pay-handoff",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state; invoice handoff only, Wallet user review/execution still required"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/{id}/confirm-payment",
+      "capabilityRole": "buyer",
+      "requiredScopes": [
+        "account:read",
+        "shop:orders:write"
+      ],
+      "businessAuthority": "authenticated own buyer records; live session, current privacy state and order state"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/{id}/transition",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "order.Buyer == authenticated account; allowed buyer actions"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "current store membership; seller.read for reads; shipped/delivered require fulfillment.write; return approvals require returns.resolve; refund approvals require refunds.approve"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "explicit self-create only; ownership only of the new store"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/stores",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "seller.read"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/seller/stores/{id}",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/activate",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/exports",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/stores/{id}/providers",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/seller/stores/{id}/providers/{kind}",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/providers/{kind}/test",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/providers/{kind}/disable",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/providers/{kind}/rotate",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/stores/{id}/roles",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "team.read"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/seller/stores/{id}/roles",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/roles/{account}/revoke",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/invitations",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "invitation-bound target actor; current invitation state/expiry"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/invitations/{invitation}/accept",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "invitation-bound target actor; current invitation state/expiry"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/invitations",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/invitations/{invitation}/cancel",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "owner-only"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/products",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "catalog.write; nonzero inventory additionally inventory.write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/products",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "seller.read"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/seller/products/{id}",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "catalog.write; nonzero inventory additionally inventory.write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/products/{id}/publish",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "catalog.write; nonzero inventory additionally inventory.write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/products/{id}/unpublish",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "catalog.write; nonzero inventory additionally inventory.write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/inventory",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "inventory.write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/audit",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "audit.read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/settlements",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "capabilityRole": "seller",
+      "businessAuthority": "finance.read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/jobs",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/jobs/{id}/run",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/jobs/{id}/decision",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/jobs/{id}/cancel",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/jobs/{id}/stream",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/jobs/{id}",
+      "authorizationVariants": {
+        "buyer": {
+          "requiredScopes": [
+            "account:read",
+            "shop:orders:write",
+            "shop:profile:write"
+          ],
+          "businessAuthority": "owned AI job; explicit one-time permission; output is draft only"
+        },
+        "seller": {
+          "requiredScopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "businessAuthority": "owned AI job; approved workflow/context; never execute protected commerce actions"
+        }
+      },
+      "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    }
+  ],
+  "merchantRoutes": [
+    {
+      "method": "GET",
+      "path": "/v1/merchant/state",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance",
+        "developer",
+        "support",
+        "viewer"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/merchant/analytics",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance",
+        "developer",
+        "support",
+        "viewer"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/merchant/reconciliation.csv",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/catalog",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/invoices",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/recurring-drafts",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/merchant/webhook",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "developer"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/webhook/rotate",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "developer"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/webhooks/{id}/retry",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "developer"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/refunds/{id}/submit",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/refunds/{id}/refresh",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/ai/runs",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance",
+        "support"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/ai/runs/{id}/review",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner",
+        "finance"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/members",
+      "requiredScopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "currentMerchantRoles": [
+        "owner"
+      ],
+      "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
+      "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    }
+  ],
+  "legacyCompatibility": [
+    {
+      "old": "ynx-seller-v1 / com.ynxweb4.seller-console / ynxseller://wallet-auth/callback / shop-seller",
+      "new": "ynx-shop-v1 / com.ynxweb4.shop[.web] / canonical Shop callback / seller capability",
+      "rule": "Preserve actor/store/role/invitations and owned records. Old links route to Shop /seller/ or native seller view, but require a new canonical v2 approval. Never rewrite an old signed grant into a new client/app tuple."
+    },
+    {
+      "old": "seller.ynxweb4.com/seller/",
+      "new": "shop.ynxweb4.com/seller/",
+      "rule": "A may perform reversible guest navigation redirect preserving permitted deep-link context, never token or approval-bearing query/callback bridging. Legacy signed callback stays legacy or fails closed."
+    },
+    {
+      "old": "merchant.ynxweb4.com/ or disabled merchant-console entry",
+      "new": "pay.ynxweb4.com/merchant/ with actual pay-merchant tuple",
+      "rule": "Historical public entry is not the authorization tuple. Redirect only guest navigation. Preserve merchant identity/current membership, request new canonical approval; no automatic merchant provisioning."
+    },
+    {
+      "old": "ynx-merchant-console-v1 / pay-merchant / com.ynxweb4.merchant-console / merchant:session:create",
+      "new": "same client/product/base app, web derives .web once; scopes unchanged",
+      "rule": "Native/backend base IDs must not receive .web twice. Legacy five-minute grant is not v2 business proof; new approval max240s."
+    }
+  ],
+  "proofBoundary": {
+    "routeScopes": "fixed server-owned policy arrays; requiredScopes never copied from client proof metadata",
+    "binding": "exact method + logical business path + canonical body digest + nonce + original mutable revalidator session context; path params fixed, no authority/query ambiguity",
+    "query": "Use A exact transport/query canonicalization. Until frozen, do not guess query in proof path or strip prefixes ad hoc; server always validates store/order/merchant ownership independently of filters.",
+    "mount": "Listed paths are existing service business paths. A Host adapter must bind actual external prefix to these exact routes using trusted routing context, not caller-provided strings.",
+    "nonce": "consume transactionally against the original revalidated object after scope/actor/store authority validation; replacement scope/session cannot be substituted"
+  },
+  "readbackGates": [
+    "Shop buyer grant fails Seller scope check",
+    "Seller viewer cannot create/edit/publish/inventory/fulfill/refund/change team/providers",
+    "Revoked store member cannot replay an old action or access a newly chosen store",
+    "Non-member merchant actor receives no private merchant session or records",
+    "Role downgrade/revocation invalidates server business authority even if Wallet grant has not expired",
+    "Old grants/callbacks are not silently recast to another tuple",
+    "Wallet consumer payment remains an explicit approval and execution boundary"
+  ],
+  "evidence": [
+    {
+      "path": "apps/shop/product-release.json",
+      "sha256": "180b5dd9955c49d5f8fe97a27b5191d160511496a2c7c95cc3437af9eff29dbc"
+    },
+    {
+      "path": "apps/seller-console/wallet-auth.js",
+      "sha256": "0578274868ce96ccee2ab93d5f1fd932dfcbbfff919380ed81bb679295fc8277"
+    },
+    {
+      "path": "apps/merchant-console/src/auth.js",
+      "sha256": "7d755a47208c1d603ca1aa75f2f2c44eaeb8aa859c4de187b30d25cb5acc4d2a"
+    },
+    {
+      "path": "apps/merchant-console/src/api.js",
+      "sha256": "16b479df903c37a47d87dc7e2c328a8168ba14083c2563f7dca76605751d4dc9"
+    },
+    {
+      "path": "apps/merchant-console/src/app.js",
+      "sha256": "0429b6dc635f823427ad6681a55ea40c8c5aa1d76e7665ed4446576809704680"
+    },
+    {
+      "path": "internal/commerce/auth.go",
+      "sha256": "58fddd62d78a638c7bd6de66b6f129dbdeca5d20cb1fc47319df631774c3438e"
+    },
+    {
+      "path": "internal/commerce/roles.go",
+      "sha256": "18b57d799dd4f1387a3ed09da5e25352e25931de2adb1228486471d08f1bed2a"
+    }
+  ],
+  "sharedSourceFrozen": false,
+  "canonicalV2Verified": false,
+  "installedRuntimeVerified": false,
+  "publicRuntimeVerified": false
+}
