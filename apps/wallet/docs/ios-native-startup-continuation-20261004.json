@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "ynx-wallet-owned-native-continuation/v1",
+  "parent": "b49d53cb095812edd933f8d38eef9a8a8b4b1cdd",
+  "status": "ACTUAL_NATIVE_BUILD_AND_GUEST_STARTUP_NOT_FULL_WALLET_ACCEPTANCE",
+  "environment": {"xcode": "27.0", "build": "27A266a", "developerDirectory": "/Applications/Xcode.app/Contents/Developer", "checkFirstLaunchStatusExit": 0, "appleAgreementOrEnrollmentAction": false},
+  "inheritance": {
+    "nativeCandidate": "/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet",
+    "originalWorkspace": "ios/YNXWallet.xcworkspace",
+    "scheme": "YNXWallet",
+    "derivedData": "/tmp/ynx-wallet-ios-first-build-20261003-OqwR00/DerivedData",
+    "deviceSet": "/tmp/ynx-wallet-ios-qa-20261004-5LLc9a/devices",
+    "device": "E3BBB290-0455-46E5-A3BF-E9E60F309A15",
+    "deviceName": "wallet-native-owned-20261004",
+    "newDeviceOrEnrollment": false,
+    "dataUninstallEraseReset": false,
+    "nativeDependencyInstallOrRewire": false,
+    "sourceCopy": "Only owned current WalletConnect runtime/test files and then AppDelegate were copied by apply_patch into the retained native candidate. Original generated Pods/workspace/project integration kept; shared dependencies unchanged. Docs missing from the older staging directory are not runtime modules.",
+    "dependencyLimits": "Current consumer955 Wallet Auth src 95/95 exact older955; its package is not e5be shared historical package. General sdk/js differs. Historical full runtime dependency trace absent. Prior dependency boundary receipt remains authoritative; this native build is not full-SDK or final-issuer graph admission."
+  },
+  "actualDiscoveredFailure": {
+    "cause": "Expo --localhost bound only ::1:8896. Explicit IPv4 127.0.0.1:8896 was unavailable; original RN provider status fallback silently selected an existing localhost:8081 server.",
+    "firstObservedPID": 53750,
+    "evidence": "Actual lsof showed established 127.0.0.1:8081 connections and own Metro had no bundle request. First normal-startup.png showed a welcome page but is not this candidate's startup proof. That app was immediately normally terminated; other server was not operated. Original lsof is retained in tool history, not falsely represented as an archived raw file.",
+    "otherRuntimeIdentity": "NOT_VERIFIED; do not assert that its loaded source was admitted or matches this candidate. No rejected successor branch was intentionally launched; no account/key/authentication operation was performed.",
+    "fix": "Original AppDelegate DEBUG branch uses original RN static jsBundleURL API when an explicit jsLocation is configured, preserving original dev/minification/source-map settings without status-probe discovery fallback. Unspecified host keeps normal RN discovery. Release still uses the original embedded main.jsbundle; no release signing/profile/factory change.",
+    "AppDelegateSHA256": "3c57c69de3fab2ef8f69ab5c14cc87018648176f41a9de78290dccf0b45827d9"
+  },
+  "evidenceDirectory": "/tmp/ynx-wallet-ios-owned-continuation-20261004-v0pZ9p",
+  "actualNativeBuild": {
+    "command": "xcodebuild -workspace YNXWallet.xcworkspace -scheme YNXWallet -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/ynx-wallet-ios-first-build-20261003-OqwR00/DerivedData build",
+    "cwd": "/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet/ios",
+    "originalBuild": {"exitCode": 0, "sha256": "7b69c1ba5cad639e1a9c80af5d58410b85808bcc0148239b27ef17c90c86d2dd", "log": "native-debug-build.log"},
+    "fixedBuild": {"exitCode": 0, "result": "BUILD SUCCEEDED", "sha256": "c5005df13fe1c67ec9050ba26d966378dba114a9844a6f040e61398a5f89f70c", "log": "native-debug-route-fixed-build.log"},
+    "executableSHA256": "e62e4ceb0af042fbb7df6ade665752ac515e80007f63b6df7504b1db1d1dc6af",
+    "debugDylibSHA256": "7c753883b5e43cfb9ba531465803c0c602dab45069ac8316bd78ab298918d4d3",
+    "retainedAppArchive": {"file": "native-debug-qa-app.tar", "sha256": "0512604aa7654d2d77deb1a4945bd95e18ef3041d59096e93fab43353e5d1799", "meaning": "Simulator Debug native diagnostic app, not distribution installer or an embedded full-JS release"},
+    "codesignVerifyExit": 0,
+    "signingLimit": "Original normal Simulator Debug ad-hoc signing only. Source entitlement stays original empty plist. Generated simulator application-identifier is FAKETEAMID.com.ynxweb4.wallet, not a real registered Apple team/profile. No credential/certificate retrieval or formal signing."
+  },
+  "actualInstalledStartup": {
+    "installation": "Normal update of only the existing owned simulator app, without uninstall/data reset",
+    "badExplicitHost": {"pid": 61358, "result": "Actual RN error page names http://127.0.0.1:8896/.expo/.virtual-metro-entry.bundle, not another welcome page", "screenshot": "fixed-bad-host.png", "sha256": "1d273b52d89486510765f0851f6de93314a0edc6834b9613579f6ac384abf128", "networkSnapshot": "fixed-bad-host-network.log", "networkLimit": "Empty lsof snapshot at capture; not an exhaustive lifetime network trace"},
+    "correctExplicitHost": {"pid": 62598, "host": "localhost:8896", "result": "Actual original guest welcome/create/import/replacement/previous-identity screen inspected, without storage error or key input. Own process connections ::1:8896 and own Metro Bundled3911", "screenshot": "fixed-correct-host.png", "sha256": "25a540b27970abfb82dd8eacce51a981f95824e70f347d1de8129d6b3f65e93b", "networkSnapshot": "fixed-correct-host-network.log", "networkSHA256": "da77cc4ebaa3ed63c2be0f3aaef681c936e51b7c7dd23871f9346e8d6b2282fe", "metroLog": "metro.log", "metroSHA256": "ff02d4911e65a8e535857cd44d6d10489a57785465df7d2b6116941a89912af2"},
+    "startupMeaning": "Original OS storage availability/public Wallet initialization plus ordinary host/JS rendering. Not secret read, enrollment, account creation/recovery or transaction acceptance.",
+    "finalState": "Only owned app/simulator and owned Metro stopped normally. Data and artifacts retained; other devices/8081 server unchanged."
+  },
+  "sourceRegression": {
+    "method": "Compile actual Swift bundleURL method against explicit API-shaped host stubs; full native xcodebuild separately verifies original RN API compatibility",
+    "command": "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/apps/wallet/node_modules/.bin/tsx --test --test-timeout=90000 apps/wallet/src/iosDebugBundle.test.ts",
+    "originalB49": {"pass": 3, "fail": 3, "log": "ios-debug-route-original.log", "sha256": "bcda4747174274eb8705b30c6c60a4c08bc9a126eb6cda2a2873cc8a923b4876"},
+    "fixed": {"pass": 6, "fail": 0, "log": "ios-debug-route-fixed.log", "sha256": "af70350d0c32daf8c8e8199e244d02fea9747f85dee8f8eb6701a56dd2059408"},
+    "notRepeated": "Unchanged prior foreground/Android/Password/UNKNOWN source suites were not mechanically rerun or relabeled as new installed acceptance. Related owned flow source was reviewed; no additional JS/runtime protocol change."
+  },
+  "frozen": {"AppSHA256": "c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f", "sourceEntitlementSHA256": "eb80c580e7af55cd9c76b062dd7a3651c94123dc0d695acb613dfe477edbd6a5", "versions": "Original1.0.15/code22 unchanged; do not downgrade or replace publishedAndroid1.0.28/code34 or claim0.6.8QA as a new official release"},
+  "remainingActualDeviceAndFactoryGates": [
+    "One fresh read-only CUA inventory returned Mac locked/native apps unavailable. No automatic/manual unlock, UI takeover or simulated substitute interaction. Actual button, camera permission failure/retry and OS dialog flow not run.",
+    "Actual enrolled retained-account strong-biometric read/import/recovery/signing requires the original approved device/profile. No fabricated key/PIN/biometric or weak/passcode fallback.",
+    "Protected signed Pay ordinary entry is null. Sole A supplies real registered canonical protected factory/ports and exact admitted complete shared graph; not QR/globals/native app flags.",
+    "Crypto649 NativeBinding/fingerprint/checkpoint namespace handoff is recorded in native-binding-custody-handoff-20261004.json. Go41 cold UNKNOWN remains HOLD; no new PQ capability/activation claim.",
+    "Source admission, installed camera/custody/main business, real balance/transfer/Pay, formal signing/release and user acceptance remain separate and incomplete."
+  ]
+}

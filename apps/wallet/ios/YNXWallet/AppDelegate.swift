@@ -61,7 +61,18 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
 
   override func bundleURL() -> URL? {
 #if DEBUG
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
+    let provider = RCTBundleURLProvider.sharedSettings()
+    // An explicitly selected development host must not silently fall back to
+    // another project's default Metro when its status probe is unavailable.
+    if let location = provider.jsLocation, !location.isEmpty {
+      return RCTBundleURLProvider.jsBundleURL(
+        forBundleRoot: ".expo/.virtual-metro-entry",
+        packagerHost: location,
+        enableDev: provider.enableDev,
+        enableMinification: provider.enableMinification,
+        inlineSourceMap: provider.inlineSourceMap)
+    }
+    return provider.jsBundleURL(forBundleRoot: ".expo/.virtual-metro-entry")
 #else
     return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
