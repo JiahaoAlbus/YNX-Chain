@@ -1,0 +1,43 @@
+{
+  "kind":"FINANCIAL_OWNER_INTEGRATION_INPUT_NOT_A_RELEASE",
+  "sourceCommit":"e2ebec748ef2067e71127c8f97d4f1eafb65779c",
+  "sourceTree":"d898f2681e95d58cf11fe05ee06ff3a91f5efe3b",
+  "branch":"codex/exchange-sso-cookie-binding-20261002",
+  "integrationRule":"A alone builds/releases the final compatible Wallet/Auth/runtime/asset graph. Integrate only reviewed ordinary owned business deltas, preserving A authority sections inside app.js. Do not blindly replace shared protocols, registries, bundles or release pins with this owner tree.",
+  "commonBrand":{"paths":["apps/finance/web/ynx-logo.png","apps/exchange/web/ynx-logo.png","apps/quant-lab/web/ynx-brand-logo.png"],"blob":"9857f146c2c53077e208dc063715b5d236e24346","bytes":104171,"sha256":"df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d","dimensions":"798x420; contain, not cropped or stretched"},
+  "commonDisplayPreferences":{"paths":["apps/finance/web/ui-preferences.js","apps/exchange/web/ui-preferences.js","apps/quant-lab/web/ui-preferences.js"],"blob":"bc9afab56074071d45d1d3f225364b37254b6c61","bytes":2241,"sha256":"5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45","requiredRuntimeAsset":true,"scope":"Local display sizing only, not identity or session storage"},
+  "files":[
+    {"path":"apps/finance/web/app.js","blob":"8a5910a3a3d5784f255889c649ecb96a06aa842a","bytes":106483,"sha256":"5b5c179cc94a415171ba0c02492ddaa8cedc5506a36741b82b2dbdc2b1a18a3b"},
+    {"path":"apps/finance/web/index.html","blob":"12673544a4163cb18f467f430cacd5ff7f1220bb","bytes":37500,"sha256":"03f9fc55a086026f996b1d40cc06fde6bfa52984be07809303ba0ebed0911121"},
+    {"path":"apps/finance/web/styles.css","blob":"c7907c9d9077c85a25def6aa64dd0a3a6a8715d1","bytes":29583,"sha256":"198e904e9b229ca5cc4dd5880e6601091f52b0c7a695dd200d0dad3c7342c624"},
+    {"path":"apps/finance/web/finance-locale.js","blob":"790b71931dbd2b969b601d770bfc99b8a295ef86","bytes":459376,"sha256":"9b1f7b66b0dc62657d0816361114f4536f3f14bf97dac70d2df275983837e4d9"},
+    {"path":"apps/exchange/web/app.js","blob":"ec4d1b93869c12c23b0f62df532b6488cb73482a","bytes":39763,"sha256":"b5a8d6ae3842d85e7779d48e3428191a29a6e7e57a5943850b40e0530ff93b9e"},
+    {"path":"apps/exchange/web/index.html","blob":"9d5ea940e527536553305f8f7a114fb74a3a2ca0","bytes":19171,"sha256":"9991529ffe46ccd2c282bc221318eb008eef5f416e15553d7d769a7f5e3e15e8"},
+    {"path":"apps/exchange/web/styles.css","blob":"a8e9229715842e192e19fff6c0cbc87dfa5c7dad","bytes":12365,"sha256":"094563b32cc612230cb5b0b336997ff65804763630d37f3643f2c4fa4d3b94b6"},
+    {"path":"apps/exchange/web/locale.js","blob":"b0ee03540a9546c795fa8ccbe367e5c9f6dea42c","bytes":165330,"sha256":"500b80095af1c80699b245b1a9f9a7732bc3e08d6fb920e836574595af3e2774"},
+    {"path":"apps/exchange/web/private-account-controller.js","blob":"9cab07fd98d4cae6e94d6f1219684c223419da89","bytes":14209,"sha256":"d81121210d1dda4aa3daef0492ec8924f35357af6cb808cad36bdbcb2284323c","integrationScope":"Owned record validation only; leave shared proof/auth protocol unchanged"},
+    {"path":"apps/quant-lab/web/app.js","blob":"ed67559e66245396c9a6416691ed378e36e74139","bytes":112212,"sha256":"c4c2a049c4bad0db8442600045e36c03b194d21c6dc6c5e04ffa723d832e36bf"},
+    {"path":"apps/quant-lab/web/index.html","blob":"b02de38f974a74c844bc536d01fd1f75acf1a2ac","bytes":27659,"sha256":"c8b26c0dbf2532dc759c9ee9db88196b35769fc7992c2f230264303f546dbc42"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"474d0b72f1d12bae9ad5b180c14a3adace260d13","bytes":12040,"sha256":"ac1eeee852992a936a0d28dc546c8e80a5923eb7a8ec7d305fa7889d3368a46d"}
+  ],
+  "tests":{
+    "combined":{"command":"YNX_EXCHANGE_CONTROLLER_HTTP_QA=1 node --test apps/finance/tests/owned-ai-controller.test.mjs apps/finance/tests/ai-order-intent-browser.test.mjs apps/finance/tests/owned-save-controller.test.mjs apps/finance/tests/owned-save-browser.test.mjs apps/finance/tests/owned-read-controller.test.mjs apps/finance/tests/finance-12-locales.test.mjs apps/exchange/tests/owned-record-integrity.test.mjs apps/exchange/tests/private-account.test.mjs apps/exchange/tests/owned-controls-browser.test.mjs apps/exchange/tests/locale-browser.test.mjs apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":145,"fail":0,"skip":0,"durationMs":48823.5465},
+    "allOwnedServicesRace":{"command":"go test -race ./internal/finance ./internal/exchangeproduct ./internal/quantlab -count=1","result":"PASS","financeSeconds":20.171,"exchangeSeconds":18.393,"quantSeconds":4.093},
+    "allServiceBuild":{"command":"go build ./apps/finance/cmd/server ./apps/exchange/server ./apps/quant-lab/server","result":"PASS","artifactCreated":false,"note":"Compile-cache verification only; no final binaries or platform installers created"},
+    "brandDisplay":{"command":"node --test apps/quant-lab/tests/financial-brand-browser.test.mjs","pass":3,"fail":0,"skip":0,"durationMs":6429.485958,"coverage":"1440/390/320; guest and controlled unavailable-business views; persistent size options; 200% Chinese/RTL rendering"}
+  },
+  "screenshots":[
+    {"path":"exchange-1440-guest.png","bytes":139410,"sha256":"67289cecb66b7a466cb9a1a0dfb32524d5a58883adc9870c83ca0c12421988d7"},
+    {"path":"exchange-390-business.png","bytes":47835,"sha256":"bd2328e744098a1691b303442be8565d5f84b40675da050fe6db10763f1c40cf"},
+    {"path":"finance-1440-guest.png","bytes":172862,"sha256":"2977745f0fefc3cfe0bf5aee58387a38b903dfc4d76da9b2219a1e76c26efd1d"},
+    {"path":"finance-390-business.png","bytes":52709,"sha256":"dadb030f4ecbb27f8210579c82f4f1dabeb597e220f71add6eb625271537b57c"},
+    {"path":"quant-lab-1440-guest.png","bytes":111957,"sha256":"bb7bd439022e412fd46ce36a1320eb0ac8590b51a31e1e40ef7a3bbc48b4bf81"},
+    {"path":"quant-lab-390-business.png","bytes":77058,"sha256":"15cd82caa4d0b3a3bb7f5b94511286b1d8345fb927b18f610d8368d65691f6b7"}
+  ],
+  "screenshotBoundary":"Actual isolated Chrome rendering only. Controlled unavailable API/auth fixtures, not public current source, real owned account, wallet approval or ComputerControl proof.",
+  "publicationRequirement":"A returns each exact source commit/tree, canonical URL/version endpoint, final asset and binary inventory, deployment receipt and rollback target. Owner then personally reruns the business user journey on the real official version; HTML 200 or existing source tests alone are insufficient.",
+  "installerBoundary":"No APK/AAB/DMG/EXE/MSIX was built or installed by this verification. ZIP cannot be advertised as an installer; final platform build and publication remain A-owned.",
+  "currentOwnershipExclusions":["DEX","Pay","Card","Wallet","Calendar","shared Auth/SDK/permissions","Host and final release graph"],
+  "originalGoal":"Still active and NOT_COMPLETE. Original Fable5 public trading, DEX, installed devices and real-wallet requirements are not satisfied by this integration input or overwritten by local tests.",
+  "truth":{"localRegressionPassed":true,"serviceCompilePassed":true,"publicCurrentSourceVerified":false,"installedVerified":false,"realWalletApproval":false,"productSessionLifecycle":false,"signatures":false,"realTransactions":false,"computerControl":false,"complete":false}
+}
