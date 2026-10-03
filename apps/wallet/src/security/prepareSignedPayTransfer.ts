@@ -35,13 +35,22 @@ const approvedScopes=["account:read","pay:case:create","pay:settlement:submit"];
 /** Structural narrowing of an ALREADY authority-verified full session. This
  * cannot authenticate a session or grant registration from persisted fields. */
 export function assertSignedPaySessionBinding(captured:ProductSessionV2,intent:PayPaymentIntent,account:string){
-  if(captured.account!==account||captured.productId!=="pay"||captured.clientId!==intent.productClientId||captured.applicationId!==intent.bundleId||
-    captured.origin!=="https://pay.ynxweb4.com"||captured.callback!=="ynxpay://wallet-auth/callback"||captured.serviceConsent||
-    canonicalJSON([...captured.scopes].sort())!==canonicalJSON([...approvedScopes].sort())||
-    Date.parse(captured.expiresAt)-Date.parse(captured.issuedAt)>180_000||captured.sessionBinding!==intent.sessionBinding)
+  assertSignedPayProductSession(captured,account);
+  if(captured.clientId!==intent.productClientId||captured.applicationId!==intent.bundleId||captured.sessionBinding!==intent.sessionBinding)
     return fail("PAY_CURRENT_SESSION_BINDING_MISMATCH");
   if(Date.parse(intent.quoteIssuedAt)<Date.parse(captured.issuedAt)||Date.parse(intent.quoteExpiresAt)>Date.parse(captured.expiresAt))
     return fail("PAY_QUOTE_EXCEEDS_SESSION_LIFETIME");
+}
+export function assertSignedPayProductSession(captured:ProductSessionV2,account:string){
+  if(captured.account!==account||captured.productId!=="pay"||captured.clientId!=="ynx-pay-v1"||captured.applicationId!=="com.ynxweb4.pay"||
+    captured.origin!=="https://pay.ynxweb4.com"||captured.callback!=="ynxpay://wallet-auth/callback"||captured.serviceConsent||
+    canonicalJSON([...captured.scopes].sort())!==canonicalJSON([...approvedScopes].sort())||
+    Date.parse(captured.expiresAt)-Date.parse(captured.issuedAt)>180_000)
+    return fail("PAY_CURRENT_SESSION_BINDING_MISMATCH");
+}
+export function assertSignedPayExpectedPayer(invoice:SignedPayInvoice,account:string){
+  if(invoice.expectedPayerHash&&invoice.expectedPayerHash!==bytesToHex(sha256(new TextEncoder().encode(`YNX_PAY_EXPECTED_PAYER_V1|${account}`))))
+    return fail("PAY_SIGNED_EXPECTED_PAYER_MISMATCH");
 }
 
 /** Explicit-review preparation only, called within the original outbox prepare
@@ -62,8 +71,7 @@ export async function prepareSignedPayTransfer(input:Readonly<{
     return fail("PAY_EXPLICIT_REVIEW_MISMATCH");
   // Original Pay53eb service.go:375,910 domain/order. A signed V4/V5 payer
   // restriction is narrower than a matching session, never an authority grant.
-  if(quote.invoice.expectedPayerHash&&quote.invoice.expectedPayerHash!==bytesToHex(sha256(new TextEncoder().encode(`YNX_PAY_EXPECTED_PAYER_V1|${review.account}`))))
-    return fail("PAY_SIGNED_EXPECTED_PAYER_MISMATCH");
+  assertSignedPayExpectedPayer(quote.invoice,review.account);
   // Only the CURRENT approved three-scope/180s Pay policy. Never resurrect the
   // legacy five-scope contract, widen scopes, extend time or grant registration.
   assertSignedPaySessionBinding(captured,quote.intent,review.account);

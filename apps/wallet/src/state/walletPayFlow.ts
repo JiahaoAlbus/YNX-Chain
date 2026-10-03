@@ -8,6 +8,7 @@ import {NativeTransferOutbox,type NativeTransferOutboxEntry,type NativeTransferP
 import {WalletPayInvoiceClient,WalletPayError,assertWalletPayReview,parseWalletPayInvoice,parseWalletPaySettlement,type WalletPayInvoice,type WalletPaySettlement} from "../chain/walletPayInvoice";
 import {buildWalletPayReview,type WalletPayReview} from "./walletPayReview";
 import {SIGNED_PAY_BINDING_PREFIX} from "./walletSignedPayRecord";
+import {SIGNED_PAY_PAID_INVOICE_PREFIX} from "./walletSignedPaySettlement";
 
 const PREFIX="ynx.wallet.pay-binding.v1.";
 const RECEIPT_PREFIX="ynx.wallet.pay-receipt.v1.";
@@ -34,6 +35,10 @@ export class WalletPayFlow {
   })}
   hasRetainedPayment(account:string):Promise<boolean>{return this.serial(async()=>{
     evmAddressFromYNX(account);try{return await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account)!==null||await this.load(account)!==null}catch{throw new WalletPayError("PAY_BINDING_STORAGE_UNAVAILABLE")}
+  })}
+  hasPaidInvoice(account:string,invoiceID:string):Promise<boolean>{return this.serial(async()=>{
+    evmAddressFromYNX(account);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(invoiceID))throw new WalletPayError("PAY_INVALID_IDENTIFIER");
+    try{return await this.storage.getItem(PAID_INVOICE_PREFIX+account+"."+invoiceID)!==null}catch{throw new WalletPayError("PAY_RECEIPT_STORAGE_UNAVAILABLE")}
   })}
   /** Read the retained payment and its original journal together. This never
    * queries a QR origin, signs, resends or creates a settlement session. */
@@ -107,6 +112,7 @@ export class WalletPayFlow {
       if(await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account)!==null)throw new WalletPayError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");guard();
       // A stale issued projection must never reopen an already paid invoice.
       const reviewed=parseWalletPayInvoice(invoice,invoice.id);
+      if(await this.storage.getItem(SIGNED_PAY_PAID_INVOICE_PREFIX+account+"."+reviewed.id)!==null)throw new WalletPayError("PAY_INVOICE_ALREADY_PAID");guard();
       let paid:string|null;try{paid=await this.storage.getItem(PAID_INVOICE_PREFIX+account+"."+reviewed.id)}
       catch{throw new WalletPayError("PAY_RECEIPT_STORAGE_UNAVAILABLE")}
       guard();if(paid!==null)throw new WalletPayError("PAY_INVOICE_ALREADY_PAID");

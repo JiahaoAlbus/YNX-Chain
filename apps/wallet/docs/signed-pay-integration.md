@@ -1,9 +1,12 @@
 # Signed Pay integration boundaries
 
 This is owned source implementation, not an installed/public Pay acceptance.
-The normal invoice modal still queries the legacy reference projection. A must
-deliver its protected signer policy and registered canonical authority adapter
-before the signed Review → explicit Approve handler can be mounted there.
+The normal invoice entry now selects the signed Review → explicit Approve and
+original recovery/receipt view when A supplies a protected integration through
+`createProtectedPayWalletApp`. The default no-argument App remains on the legacy
+reference projection: launch props, QR data and globals cannot enable this port.
+A must deliver its protected signer policy, registered canonical authority and
+authenticated settlement adapter and adopt that factory in its real bootstrap.
 There is no default authority, QR key trust, fixture adapter or new registration.
 
 ## Current owned pipeline
@@ -38,6 +41,18 @@ There is no default authority, QR key trust, fixture adapter or new registration
   second account/key database. Presence of even corrupt signed metadata blocks
   ordinary new transfer/Done and unbound generic retry. Original hash checking
   remains possible. Neither contract overwrites the other's records.
+- Explicit settlement submits only the retained original intent/result with a
+  stable idempotency key, after unknown-marker readback and fresh full authority.
+  It never creates another native transfer. Authenticated responses must bind the
+  original full invoice, actor, digest, nonce, hash and exact settlement evidence.
+- Archive/readback, paid-invoice marker and linked receipt-history publication
+  precede native journal release. Interrupted cleanup resumes from the immutable
+  archive. Native payment and settlement block numbers need not be equal; neither
+  a local checkpoint nor a business receipt proves consensus finality.
+- The shared Android/iOS modal shows the immutable invoice, recipient, fee/total,
+  full session expiry and digest before a separate approval. Opening and reading
+  never pay or settle. Lock/account/background/close invalidate stale callbacks;
+  receipt recovery, submission and final local archive remain explicit actions.
 
 ## Authority port requirements
 
@@ -71,10 +86,8 @@ authorization. Matching that hash is not account-session authority.
 
 ## Remaining complete-product work
 
-Mount the visible immutable signed quote and explicit Approve handler in the
-normal invoice entry using the actual A adapter/policy; integrate signed
-settlement and receipt schema/readback with the canonical business API; expose
-signed recovery/receipt history on the normal UI; implement corresponding
+Adopt the protected factory in the actual A bootstrap with real adapter/policy
+and authenticated canonical settlement transport; implement corresponding
 Desktop protected-key/outbox consumer behavior without replacing custody.
 Preserve original intent/result on any unknown settlement and archive only after
 matching authenticated business receipt and native durability verification.

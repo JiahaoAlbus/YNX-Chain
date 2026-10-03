@@ -24,6 +24,12 @@ import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 import { WalletPayFlow, type WalletPayReceipt } from "./src/state/walletPayFlow";
 import type { WalletPayReview } from "./src/state/walletPayReview";
 import { ModalActionGate } from "./src/state/modalActionGate";
+import { WalletSignedPayFlow, type SignedPayRecovery } from "./src/state/walletSignedPayFlow";
+import type { WalletSignedPayIntegration } from "./src/state/walletSignedPayIntegration";
+import type { WalletSignedPayReceipt } from "./src/state/walletSignedPaySettlement";
+import { verifyWalletPayQuote } from "./src/chain/walletPayQuote";
+import { assertSignedPaySessionBinding, assertSignedPayExpectedPayer, type WalletPayAuthorityLease } from "./src/security/prepareSignedPayTransfer";
+import { canonicalJSON, parseProductSession, type ProductSessionV2 } from "@ynx-chain/wallet-auth";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
@@ -68,6 +74,7 @@ let ACCESSIBILITY_SUMMARY="System contrast · standard motion · Klein blue and 
 const WalletOperationsContext=createContext<WalletOperationLifecycle|null>(null);
 const WalletLocaleContext=createContext<WalletLocale>("en");
 const WalletRecoveryContext=createContext<()=>void>(()=>{});
+const WalletSignedPayIntegrationContext=createContext<WalletSignedPayIntegration|null>(null);
 const EMPTY_WALLET_ACCOUNTS:readonly WalletAccount[]=[];
 function useWalletOperations(){const value=useContext(WalletOperationsContext);if(!value)throw new Error("Wallet operation lifecycle is unavailable");return value}
 function useOperationScope(visible=true,account?:string){const operations=useWalletOperations(),scope=useMemo(()=>operations.scope(),[operations]);useEffect(()=>operations.subscribe(()=>scope.cancel()),[operations,scope]);useEffect(()=>{if(!visible)scope.cancel();return()=>scope.cancel()},[scope,visible,account]);return scope}
@@ -75,13 +82,24 @@ function useModalActionGate(account:string){const gate=useMemo(()=>new ModalActi
 const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const walletPayFlow=new WalletPayFlow(platformSecureStorage,nativeOutbox,new WalletPayInvoiceClient());
+const walletSignedPayFlow=new WalletSignedPayFlow(platformSecureStorage,nativeOutbox,walletPayFlow);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
 function storedChainClient(origin:string){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return nativeChainClientForStoredOrigin(origin,runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
 function walletSessionInventoryClient(){return new WalletSessionInventoryClient({fetch:(input,init)=>fetch(input,init),randomBytes:getRandomBytesAsync,authorize:authorizeLocalKeyUse,accountSecret:(account,assertCurrent)=>repository.accountSecret(account,assertCurrent,{allowLegacyMigration:true})})}
 
-export default function App(){return <SafeAreaProvider><WalletApp/></SafeAreaProvider>}
+export default function App(){return <WalletRoot payIntegration={null}/>}
+/** Protected issuer composition only. Native/Expo launch props, QR and globals
+ * cannot inject policy or service functions. A supplies this factory's input
+ * only after its real registered canonical adapter is ready. */
+export function createProtectedPayWalletApp(integration:WalletSignedPayIntegration){
+  const captured=Object.freeze({...integration});
+  return function ProtectedPayWalletApp(){return <WalletRoot payIntegration={captured}/>};
+}
+function WalletRoot({payIntegration}:{payIntegration:WalletSignedPayIntegration|null}){
+  return <WalletSignedPayIntegrationContext.Provider value={payIntegration}><SafeAreaProvider><WalletApp/></SafeAreaProvider></WalletSignedPayIntegrationContext.Provider>;
+}
 
 function WalletApp(){
   const [reducedMotion,setReducedMotion]=useState(false);
@@ -544,9 +562,11 @@ function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close
 
 function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const integration=useContext(WalletSignedPayIntegrationContext);
   const gate=useModalActionGate(account.account);
   const [receipts,setReceipts]=useState<readonly WalletPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [recovery,setRecovery]=useState<WalletPayReview|null>(null);
+  const [signedHistory,setSignedHistory]=useState(false);
   const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const load=async(more:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});const retained=await walletPayFlow.recovery(account.account,lease.assert);lease.assert();setRecovery(retained);const page=await walletPayFlow.history(account.account,lease.assert,more?cursor:null,10);lease.assert();if(more&&page.receipts.some(item=>receipts.some(prior=>prior.binding.hash===item.binding.hash)))throw new Error("Repeated receipt page");setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true)}catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Saved receipts could not be verified. Original records are kept; this does not permit paying again.","暂时无法核对已保存收据。原记录仍被保留，不代表可以重新付款。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
@@ -566,10 +586,16 @@ function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>
     {loaded&&receipts.length===0?<Text style={styles.sheetText}>{c("No saved payment receipts for this account on this device.","本设备尚无此账户的已保存付款收据。")}</Text>:null}
     {receipts.map(receipt=><View key={receipt.binding.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{receipt.binding.invoice.merchant}</Text><ReviewRow label={c("Invoice","发票")} value={receipt.binding.invoice.id}/><ReviewRow label={c("Recipient","收款地址")} value={receipt.binding.invoice.payoutAddress}/><ReviewRow label={c("Amount / fee","金额 / 手续费")} value={`${receipt.binding.invoice.amount} / 1 YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={receipt.binding.hash}/><ReviewRow label={c("Settlement","结算")} value={receipt.binding.settlement!.id}/><ReviewRow label={c("Time","时间")} value={formatDateTime(locale,receipt.binding.settlement!.createdAt)}/></View>)}
     {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}<Button label={c(busy?"Reading receipts…":loaded?"Refresh receipts":"Read saved receipts",busy?"正在读取收据…":loaded?"刷新收据":"读取已保存收据")} disabled={busy} onPress={()=>void load(false)}/>{cursor?<SecondaryButton label={c("Older receipts","更早的收据")} disabled={busy} onPress={()=>void load(true)}/>:null}
+    {integration?<SecondaryButton label={c("Signed Pay receipts and recovery","签名 Pay 收据与恢复")} disabled={busy} onPress={()=>setSignedHistory(true)}/>:null}
+    {signedHistory&&integration?<WalletSignedPayModal account={account} invoiceID={null} integration={integration} close={()=>setSignedHistory(false)}/>:null}
   </Sheet></Modal>;
 }
 
 function WalletInvoiceReferenceModal({account,invoiceID,close}:{account:WalletAccount;invoiceID:string;close:()=>void}){
+  const integration=useContext(WalletSignedPayIntegrationContext);
+  return integration?<WalletSignedPayModal account={account} invoiceID={invoiceID} integration={integration} close={close}/>:<WalletLegacyInvoiceReferenceModal account={account} invoiceID={invoiceID} close={close}/>;
+}
+function WalletLegacyInvoiceReferenceModal({account,invoiceID,close}:{account:WalletAccount;invoiceID:string;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
   const gate=useModalActionGate(account.account);
   const [invoice,setInvoice]=useState<WalletPayInvoice|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
@@ -581,6 +607,103 @@ function WalletInvoiceReferenceModal({account,invoiceID,close}:{account:WalletAc
     <InfoCard title={c("A QR code is not payment authorization","二维码不是付款授权")} body={c("Only the invoice reference was read. QR-provided URLs, amounts and signing keys are not trusted. This view queries the configured Pay service and does not sign or transfer assets.","仅读取发票编号，不信任二维码中的服务地址、金额或签名公钥。此页面仅查询指定 Pay 服务，不签名、不转账。")}/>
     {invoice?<><ReviewRow label={c("Reported merchant","服务返回的商家")} value={invoice.merchant}/><ReviewRow label={c("Reported recipient","服务返回的收款地址")} value={invoice.payoutAddress}/><ReviewRow label={c("Reported amount","服务返回的金额")} value={`${invoice.amount} YNXT`}/><ReviewRow label={c("Expires","到期时间")} value={invoice.dueAt}/><ReviewRow label={c("Service status","服务状态")} value={invoice.status}/><InfoCard title={c("Payment verification is not complete","付款信任核验尚未完成")} body={c("This service projection is not a trusted signed merchant invoice or a payment receipt. Payment remains unavailable until the trusted merchant policy and account-bound Pay session are verified.","服务返回的信息不等于经信任策略核验的商家签名发票，也不是付款收据。商家信任策略及当前账户 Pay 会话核验完成前不可付款。")}/></>:null}
     {error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}<Button label={c(busy?"Checking invoice…":"Check at Pay service",busy?"正在核对发票…":"在 Pay 服务查询")} disabled={busy} onPress={()=>void load()}/><SecondaryButton label={c("Cancel without payment","取消，不付款")} onPress={dismiss}/>
+  </Sheet></Modal>;
+}
+
+type SignedPayQuoteReview=Readonly<{verified:ReturnType<typeof verifyWalletPayQuote>;authority:WalletPayAuthorityLease;session:ProductSessionV2}>;
+function WalletSignedPayModal({account,invoiceID,integration,close}:{account:WalletAccount;invoiceID:string|null;integration:WalletSignedPayIntegration;close:()=>void}){
+  const locale=useContext(WalletLocaleContext),operations=useWalletOperations(),scope=useOperationScope(true,account.account),gate=useModalActionGate(account.account);
+  const integrationRef=useRef(integration);integrationRef.current=integration;
+  const [quote,setQuote]=useState<SignedPayQuoteReview|null>(null),[recovery,setRecovery]=useState<SignedPayRecovery|null>(null);
+  const [receipts,setReceipts]=useState<readonly WalletSignedPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false);
+  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[time,setTime]=useState(Date.now());
+  const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
+  const dismiss=()=>{gate.close();scope.cancel();close()};
+  const current=(lease:WalletOperationLease)=>{lease.assert();if(integrationRef.current!==integration)throw Error("PAY_PROTECTED_INTEGRATION_CHANGED")};
+  const refreshSaved=async(lease:WalletOperationLease,more=false)=>{
+    const guard=()=>current(lease);guard();
+    const retained=await walletSignedPayFlow.recovery(account.account,integration.policy,guard);guard();
+    const page=await walletSignedPayFlow.history(account.account,integration.policy,guard,more?cursor:null,10);guard();
+    if(more&&page.receipts.some(item=>receipts.some(prior=>prior.record.transfer.hash===item.record.transfer.hash)))throw Error("Repeated signed receipt page");
+    setRecovery(retained);setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true);
+  };
+  const readSaved=async(more=false)=>{
+    const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);
+    try{lease=scope.begin({account:account.account});await refreshSaved(lease,more)}
+    catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Signed payment records could not be verified. Originals are kept; do not pay again.","暂时无法核对签名付款记录。原记录仍被保留，请勿再次付款。"))}
+    finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
+  };
+  const loadQuote=async()=>{
+    const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);setQuote(null);
+    try{
+      if(!invoiceID||!/^inv_[a-f0-9]{20}$/.test(invoiceID))throw Error("PAY_SIGNED_INVALID_INVOICE");
+      lease=scope.begin({account:account.account});const guard=()=>current(lease!);guard();
+      const retained=await walletSignedPayFlow.recovery(account.account,integration.policy,guard);guard();
+      if(retained){setRecovery(retained);return}
+      const legacy=await walletPayFlow.read(account.account);guard();if(legacy)throw Error("Review the retained legacy Pay receipt before another payment.");
+      const raw=await integration.getQuote(invoiceID,account.account,guard);guard();
+      const verified=verifyWalletPayQuote(raw.invoice,raw.intent,integration.policy,guard);
+      if(verified.invoice.id!==invoiceID)throw Error("PAY_EXPLICIT_REVIEW_MISMATCH");
+      const authority=raw.authority;
+      if(!authority||typeof authority.assertCurrent!=="function"||typeof authority.refresh!=="function"||typeof authority.verifyInvoicePayable!=="function")throw Error("PAY_CURRENT_AUTHORITY_REQUIRED");
+      const session=parseProductSession(authority.session),snapshot=canonicalJSON(session);
+      assertSignedPaySessionBinding(session,verified.intent,account.account);assertSignedPayExpectedPayer(verified.invoice,account.account);
+      const quoteGuard=()=>{guard();authority.assertCurrent();const at=Date.now();if(canonicalJSON(parseProductSession(authority.session))!==snapshot||at<Date.parse(session.issuedAt)||at>=Math.min(Date.parse(session.expiresAt),Date.parse(verified.intent.quoteExpiresAt)))throw Error("PAY_CURRENT_AUTHORITY_CHANGED_OR_EXPIRED")};
+      quoteGuard();const fresh=await authority.refresh();quoteGuard();if(canonicalJSON(parseProductSession(fresh))!==snapshot)throw Error("PAY_CURRENT_SESSION_CHANGED");
+      await authority.verifyInvoicePayable(verified.invoice,verified.intent);quoteGuard();
+      setQuote(Object.freeze({verified,authority,session}));setRecovery(null);setTime(Date.now());
+    }catch(caught){if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(message(caught))}
+    finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
+  };
+  const approve=async()=>{
+    if(!quote)return;const reviewed=quote,action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);
+    try{
+      lease=scope.begin({account:account.account});current(lease);reviewed.authority.assertCurrent();
+      if(canonicalJSON(parseProductSession(reviewed.authority.session))!==canonicalJSON(reviewed.session))throw Error("PAY_CURRENT_SESSION_CHANGED");
+      const chain=chainClient();await walletSignedPayFlow.payReviewed({rawInvoice:reviewed.verified.invoice,rawIntent:reviewed.verified.intent,reviewedIntentDigest:reviewed.verified.intentDigest,
+        review:{account:account.account,accountPublicKey:account.accountPublicKey,to:reviewed.verified.intent.payoutAddress,amount:reviewed.verified.intent.amount},policy:integration.policy,authority:reviewed.authority,
+        lease,chain,client:chain,repository,authorize:()=>authorizeLocalKeyUse("transaction-sign")});
+      current(lease);setQuote(null);await refreshSaved(lease);
+    }catch(caught){if(action.isCurrent()&&(!lease||lease.isCurrent())){setQuote(null);setError(message(caught));if(lease)try{await refreshSaved(lease)}catch{}}}
+    finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
+  };
+  const recover=async(mode:"check"|"read-receipt"|"settle"|"done")=>{
+    if(!recovery||!recovery.actions.includes(mode))return;const reviewed=recovery,action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);
+    try{
+      lease=scope.begin({account:account.account});const guard=()=>current(lease!);guard();
+      if(mode==="check")await walletSignedPayFlow.checkOriginal(account.account,integration.policy,storedChainClient(reviewed.record.origin),guard);
+      else if(mode==="done")await walletSignedPayFlow.acknowledgeSettled(account.account,reviewed.record.transfer.hash,integration.policy,guard);
+      else{const transport=await integration.getSettlementTransport(reviewed.record,guard);guard();
+        if(mode==="settle")await walletSignedPayFlow.settleOriginal(account.account,integration.policy,guard,transport);
+        else await walletSignedPayFlow.readOriginalReceipt(account.account,integration.policy,guard,transport);
+      }
+      guard();await refreshSaved(lease);
+    }catch(caught){if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(message(caught))}
+    finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
+  };
+  useEffect(()=>operations.subscribe(()=>{scope.cancel();setQuote(null);setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false)}),[operations,scope]);
+  useEffect(()=>{const timer=setInterval(()=>setTime(Date.now()),1000);return()=>clearInterval(timer)},[]);
+  useEffect(()=>{scope.cancel();setQuote(null);setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false);void readSaved();return()=>scope.cancel()},[account.account,invoiceID,integration,scope]);
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Signed Pay · review and recovery","签名 Pay · 核对与恢复")} close={dismiss}>
+    <ReviewRow label={c("Selected account","当前账户")} value={account.account}/>
+    <InfoCard title={c("Explicit review, then protected approval","先明确核对，再受保护地批准")} body={c("QR codes provide only an invoice reference. Protected merchant policy, current account session and canonical business checks are required. Opening this view never signs, transfers or settles.","二维码仅提供发票编号。必须核对独立商家信任策略、当前账户会话和权威业务状态。打开本页不会签名、转账或结算。")}/>
+    {invoiceID?<ReviewRow label={c("Requested invoice","请求的发票")} value={invoiceID}/>:null}
+    {quote?<View style={styles.auditRow}><ReviewRow label={c("Merchant","商家")} value={`${quote.verified.invoice.merchantName}\n${quote.verified.invoice.merchantId}`}/><ReviewRow label={c("Invoice","发票")} value={`${quote.verified.invoice.id}\n${quote.verified.invoice.centralInvoiceId}`}/><ReviewRow label={c("Recipient","收款地址")} value={quote.verified.intent.payoutAddress}/><ReviewRow label={c("Amount / fee / total","金额 / 手续费 / 合计")} value={`${quote.verified.intent.amount} / ${quote.verified.intent.fee} / ${quote.verified.intent.total} YNXT`}/><ReviewRow label={c("Quote expires","报价到期")} value={formatDateTime(locale,quote.verified.intent.quoteExpiresAt)}/><ReviewRow label={c("Full approved session expires","完整批准会话到期")} value={formatDateTime(locale,quote.session.expiresAt)}/><ReviewRow label={c("Exact reviewed intent","已核对的精确付款意图")} value={quote.verified.intentDigest}/>
+      {quote.verified.invoice.baseAmount!==undefined?<ReviewRow label={c("Base amount / tip","原金额 / 小费")} value={`${quote.verified.invoice.baseAmount} / ${quote.verified.invoice.tipAmount} YNXT`}/>:null}
+      {quote.verified.invoice.splitShareId?<ReviewRow label={c("Split payment / share","分账 / 份额")} value={`${quote.verified.invoice.splitPaymentId}\n${quote.verified.invoice.splitShareId}`}/>:null}
+      {quote.verified.invoice.serviceBillId?<ReviewRow label={c("Service bill / evidence","服务账单 / 证据")} value={`${quote.verified.invoice.serviceBillId}\n${quote.verified.invoice.serviceEvidenceDigest}`}/>:null}
+      <InfoCard title={c("Nothing has been signed or paid","尚未签名或付款")} body={c("Approve only this displayed invoice, recipient and total. System-protected key access follows. Closing preserves any original transaction already recorded; it does not reverse a submission.","仅批准当前显示的发票、收款地址和合计金额，之后才访问系统保护的密钥。关闭会保留已记录的原交易，不会撤销已发生的提交。")}/>
+      <Button label={c("Approve this exact payment","批准这笔精确付款")} disabled={busy||time>=Math.min(Date.parse(quote.session.expiresAt),Date.parse(quote.verified.intent.quoteExpiresAt))} onPress={()=>void approve()}/><SecondaryButton label={c("Discard this quote without payment","放弃此报价，不付款")} disabled={busy} onPress={()=>setQuote(null)}/>
+    </View>:null}
+    {recovery?<View style={styles.auditRow}><Text style={styles.infoTitle}>{c("Original payment recovery","原付款恢复")}</Text><ReviewRow label={c("Original invoice / merchant","原发票 / 商家")} value={`${recovery.record.invoice.id}\n${recovery.record.invoice.merchantName}`}/><ReviewRow label={c("Recipient / amount","收款地址 / 金额")} value={`${recovery.record.invoice.payoutAddress}\n${recovery.record.intent.amount} YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={recovery.record.transfer.hash}/><InfoCard title={recovery.state==="settled"?c("Matching settlement retained","已保留相符结算"):c("Original outcome needs review","原结果仍需核对")} body={c("Checking observes the original hash only. Settlement actions use its retained intent and result, never another native transaction. An unknown response cannot permit paying again. A verified local checkpoint is not consensus finality.","查询只读取原交易哈希。结算继续使用保留的付款意图和结果，不另建原生交易。未知响应不代表可以再次付款。本地检查点核验不等于共识最终确认。")}/>
+      {recovery.actions.map(mode=><Button key={mode} label={c(mode==="check"?"Check original transaction":mode==="read-receipt"?"Read original settlement receipt":mode==="settle"?"Submit original settlement":"Save reviewed receipt and finish",mode==="check"?"查询原交易":mode==="read-receipt"?"读取原结算收据":mode==="settle"?"提交原付款结算":"保存已核对收据并完成")} disabled={busy||mode==="settle"&&time>=Math.min(Date.parse(recovery.record.intent.quoteExpiresAt),Date.parse(recovery.record.session.expiresAt))} onPress={()=>void recover(mode)}/>)}
+    </View>:null}
+    {invoiceID&&!recovery&&!quote?<Button label={c("Read and review signed quote","读取并核对签名报价")} disabled={busy} onPress={()=>void loadQuote()}/>:null}
+    {loaded&&receipts.length===0?<Text style={styles.sheetText}>{c("No signed Pay receipts saved for this account on this device.","本设备尚无此账户已保存的签名 Pay 收据。")}</Text>:null}
+    {receipts.map(receipt=><View key={receipt.record.transfer.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{receipt.record.invoice.merchantName}</Text><ReviewRow label={c("Invoice","发票")} value={receipt.record.invoice.id}/><ReviewRow label={c("Amount / fee","金额 / 手续费")} value={`${receipt.record.intent.amount} / ${receipt.record.intent.fee} YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={receipt.record.transfer.hash}/><ReviewRow label={c("Settlement receipt","结算收据")} value={`${receipt.settlement.receiptId}\n${receipt.settlement.auditId}`}/><ReviewRow label={c("Settlement time","结算时间")} value={formatDateTime(locale,receipt.settlement.committedAt)}/><Text style={styles.sheetText}>{c("Local native checkpoint and matching authenticated business receipt; not consensus finality or complete chain history.","本地原生检查点及相符的已认证业务收据；不代表共识最终确认或完整链上历史。")}</Text></View>)}
+    {error?<><Text accessibilityRole="alert" style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/></>:null}
+    <SecondaryButton label={c("Refresh saved original records","刷新已保存原记录")} disabled={busy} onPress={()=>void readSaved()}/>{cursor?<SecondaryButton label={c("Older signed receipts","更早的签名收据")} disabled={busy} onPress={()=>void readSaved(true)}/>:null}
+    <SecondaryButton label={c("Close and keep original records","关闭并保留原记录")} onPress={dismiss}/>
   </Sheet></Modal>;
 }
 

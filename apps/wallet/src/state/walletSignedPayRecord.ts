@@ -4,7 +4,7 @@ import type {SignedPayInvoice} from "../chain/walletPaySignedInvoice";
 import type {NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import {NativeChainClient} from "../chain/nativeTransfer";
 import type {createPayInvoiceSignerPolicy} from "@ynx-chain/wallet-auth";
-import {assertSignedPaySessionBinding} from "../security/prepareSignedPayTransfer";
+import {assertSignedPaySessionBinding,assertSignedPayExpectedPayer} from "../security/prepareSignedPayTransfer";
 
 export const SIGNED_PAY_BINDING_PREFIX="ynx.wallet.pay-signed-binding.v2.";
 export type WalletSignedPayRecord=Readonly<{
@@ -23,6 +23,7 @@ export function parseWalletSignedPayRecord(raw:string,account:string,policy:Retu
   const issued=Date.parse(value.paymentResult?.issuedAt);
   if(!Number.isFinite(issued))throw Error("PAY_SIGNED_RECORD_INVALID");
   const quote=verifyWalletPayQuote(value.invoice,value.intent,policy,guard,issued);
+  assertSignedPayExpectedPayer(quote.invoice,account);
   const paymentResult=verifyPayPaymentResult(value.paymentResult,quote.intent,account,new Date(issued));
   const session=parseProductSession(value.session);assertSignedPaySessionBinding(session,quote.intent,account);
   if(issued<Date.parse(session.issuedAt)||issued>=Date.parse(session.expiresAt))throw Error("PAY_SIGNED_RECORD_BINDING_MISMATCH");
