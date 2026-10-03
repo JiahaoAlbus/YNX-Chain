@@ -118,3 +118,72 @@ func TestSellerMutationLookupTransitionReadsLaterStateWithoutAnotherTransition(t
 		t.Fatal("sensitive operation confirmed")
 	}
 }
+
+func TestSellerMutationLookupStoreUpdateKeepsLaterStateAndCurrentOwner(t *testing.T) {
+	s, _ := Open("")
+	_, owner := actor(t, 1)
+	_, other := actor(t, 2)
+	st, _ := setupCatalog(t, s, owner, 3)
+	input := StoreUpdate{Name: "Original edit", Policy: "Returns accepted", IdempotencyKey: "original-store-edit-key"}
+	if _, err := s.UpdateStore(owner, st.ID, input); err != nil {
+		t.Fatal(err)
+	}
+	later := StoreUpdate{Name: "Later edit", Policy: "Returns accepted", IdempotencyKey: "later-store-edit-key"}
+	if _, err := s.UpdateStore(owner, st.ID, later); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.UpdateStore(owner, st.ID, input)
+	if err != nil || got.Name != later.Name {
+		t.Fatal("old write repeated", got, err)
+	}
+	raw, _ := json.Marshal(input)
+	before := transitionDomainSnapshot(t, s)
+	result, _, err := s.lookupSellerMutation(owner, sellerMutationLookupInput{"PUT", "/seller/stores/" + st.ID, string(raw)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(result)
+	if !strings.Contains(string(encoded), later.Name) || !bytes.Equal(before, transitionDomainSnapshot(t, s)) {
+		t.Fatal("lookup overwrote later state")
+	}
+	input.Name = "Changed original"
+	if _, err := s.UpdateStore(owner, st.ID, input); err == nil {
+		t.Fatal("changed original key accepted")
+	}
+	if _, _, err := s.lookupSellerMutation(other, sellerMutationLookupInput{"PUT", "/seller/stores/" + st.ID, string(raw)}); err == nil {
+		t.Fatal("foreign owner read")
+	}
+	// Legacy callers keep the original unkeyed signature and behavior.
+	if _, err := s.UpdateStore(owner, st.ID, StoreUpdate{Name: "Legacy edit", Policy: "Returns accepted"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSellerStoreUpdateFailureRetainsOriginalStoreAuditAndKey(t *testing.T) {
+	s, _ := Open("")
+	_, owner := actor(t, 1)
+	st, _ := setupCatalog(t, s, owner, 3)
+	s.path = t.TempDir()
+	before := transitionDomainSnapshot(t, s)
+	input := StoreUpdate{Name: "Uncommitted edit", Policy: "Returns accepted", IdempotencyKey: "original-failed-update-key"}
+	if _, err := s.UpdateStore(owner, st.ID, input); err == nil {
+		t.Fatal("persistence unexpectedly succeeded")
+	}
+	if !bytes.Equal(before, transitionDomainSnapshot(t, s)) {
+		t.Fatal("failed save retained a new Store, audit or idempotency record")
+	}
+	s.path = ""
+	if _, err := s.UpdateStore(owner, st.ID, input); err != nil {
+		t.Fatal(err)
+	}
+	s.mu.Lock()
+	s.s.SellerRoles[st.ID][owner] = SellerRoleViewer
+	s.mu.Unlock()
+	raw, _ := json.Marshal(input)
+	if _, _, err := s.lookupSellerMutation(owner, sellerMutationLookupInput{"PUT", "/seller/stores/" + st.ID, string(raw)}); err == nil {
+		t.Fatal("downgraded owner read original update")
+	}
+	if _, err := s.UpdateStore(owner, st.ID, input); err == nil {
+		t.Fatal("downgraded owner replayed update")
+	}
+}

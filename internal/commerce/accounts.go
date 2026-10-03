@@ -427,7 +427,7 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 	return deletionReceiptForRequest(receipt, requestID), nil
 }
 
-type StoreUpdate struct{ Name, Description, Policy, TrustURL, SettlementAccount string }
+type StoreUpdate struct{ Name, Description, Policy, TrustURL, SettlementAccount, IdempotencyKey string }
 
 func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, error) {
 	s.mu.Lock()
@@ -442,6 +442,22 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 	if err := validateStoreFields(in.Name, in.Description, in.Policy, in.TrustURL, in.SettlementAccount); err != nil {
 		return StoreProfile{}, err
 	}
+	requestDigest := ""
+	if in.IdempotencyKey != "" {
+		var replay bool
+		var err error
+		requestDigest, replay, err = s.idempotencyLocked(actor, "store.update."+id, in.IdempotencyKey, in)
+		if err != nil {
+			return StoreProfile{}, err
+		}
+		if replay {
+			if requestDigest != id {
+				return StoreProfile{}, ErrConflict
+			}
+			return st, nil
+		}
+	}
+	previous, auditLen := st, len(s.s.Audits)
 	st.Name = in.Name
 	st.Description = in.Description
 	st.Policy = in.Policy
@@ -449,8 +465,16 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 	st.SettlementAccount = in.SettlementAccount
 	st.UpdatedAt = s.now()
 	s.s.Stores[id] = st
+	if in.IdempotencyKey != "" {
+		s.recordIdempotencyLocked(actor, "store.update."+id, in.IdempotencyKey, requestDigest, id)
+	}
 	s.auditLocked(actor, "seller", "store_profile_policy_updated", "store", id, "approved", "explicit owner action")
 	if err := s.persistLocked(); err != nil {
+		s.s.Stores[id] = previous
+		s.s.Audits = s.s.Audits[:auditLen]
+		if in.IdempotencyKey != "" {
+			delete(s.s.Idempotency, idemMapKey(actor, "store.update."+id, in.IdempotencyKey))
+		}
 		return StoreProfile{}, err
 	}
 	return st, nil

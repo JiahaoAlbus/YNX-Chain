@@ -61,6 +61,17 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		}
 		route, key, original = "store.create", input.IdempotencyKey, input
 		kind = "store"
+	case in.Method == "PUT" && strings.HasPrefix(in.Path, "/seller/stores/") && len(strings.Split(in.Path, "/")) == 4:
+		target = strings.TrimPrefix(in.Path, "/seller/stores/")
+		var input StoreUpdate
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		if err := s.requireSellerLocked(target, actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		route, key, storeID, original = "store.update."+target, input.IdempotencyKey, target, input
+		kind = "store"
 	case in.Method == "POST" && in.Path == "/seller/products":
 		var input CreateProductInput
 		if !decode(&input) {
