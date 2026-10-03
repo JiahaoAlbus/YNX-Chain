@@ -18,6 +18,59 @@ async function active(f:ReturnType<typeof fixture>){const app=f.service.createAp
 async function funded(f:ReturnType<typeof fixture>){const card=await active(f);const intent=f.service.createTopupIntent(principal(),card.id,{amountWei:'1000000000000000000'},'intent-1');await f.service.confirmTopup(principal(),intent.id,tx,'topup-1');return {card,intent}}
 const merchant={id:'fixture_merchant',name:'SIMULATED MERCHANT',mcc:'5812',country:'YN',channel:'online' as const,recurring:false};
 
+test('actual SQLite declined-attempt throttle survives restart without debits or duplicate audit',async t=>{
+  // Explicit mock authority and zero funding: not a real approved account/card.
+  const f=fixture(t),card=await active(f),p=principal();
+  f.service.updateControls(p,card.id,{velocity:3},'risk-budget');
+  const input={simulation:true as const,merchant,amountWei:'1'};
+  const first=f.service.authorize(p,card.id,input,'attempt-1');
+  assert.equal(first.reason,'INSUFFICIENT_BALANCE');
+  for(let i=2;i<=3;i++)assert.equal(f.service.authorize(p,card.id,input,'attempt-'+i).reason,'INSUFFICIENT_BALANCE');
+  f.reopen();
+  assert.deepEqual(f.service.authorize(p,card.id,input,'attempt-1'),first);
+  assert.throws(()=>f.service.authorize(p,card.id,{...input,amountWei:'2'},'attempt-1'),/IDEMPOTENCY_CONFLICT/);
+  const throttled=f.service.authorize(p,card.id,input,'attempt-4');
+  assert.equal(throttled.reason,'VELOCITY_EXCEEDED');assert.equal(throttled.remainingWei,'0');
+  const statement=f.service.statement(p,card.id);
+  assert.deepEqual(statement.card.balance,{availableWei:'0',pendingWei:'0',postedWei:'0',feeWei:'0',fundedWei:'0'});
+  assert.equal(statement.ledger.length,0);
+  const requested=statement.events.filter(event=>event.name==='card.authorization.requested');
+  const declined=statement.events.filter(event=>event.name==='card.authorization.declined');
+  assert.equal(requested.length,4);assert.equal(declined.length,4);
+  assert.equal(declined.filter(event=>event.details.reason==='VELOCITY_EXCEEDED').length,1);
+  assert.ok(declined.every(event=>event.simulation===true&&event.productionRealPayments===false));
+  assert.equal(f.service.reconcile(p,card.id).status,'CONSISTENT');
+});
+
+test('actual declined risk outbox preserves immutable event identity on worker outage and restart',async t=>{
+  const f=fixture(t),card=await active(f),p=principal();
+  f.service.updateControls(p,card.id,{velocity:1},'risk-budget');
+  const input={simulation:true as const,merchant,amountWei:'1'};
+  f.service.authorize(p,card.id,input,'attempt-1');
+  f.service.authorize(p,card.id,input,'attempt-2');
+  const original=f.service.statement(p,card.id).events.filter(event=>event.name==='card.authorization.declined');
+  await f.service.flushEvents(owner,{publish:async()=>{throw Error('QA worker unavailable')}});
+  f.reopen();const seen:string[]=[];
+  await f.service.flushEvents(owner,{publish:async event=>{seen.push(event.id)}});
+  const final=f.service.statement(p,card.id).events.filter(event=>event.name==='card.authorization.declined');
+  assert.deepEqual(final.map(event=>({id:event.id,details:event.details})),original.map(event=>({id:event.id,details:event.details})));
+  assert.ok(final.every(event=>event.delivered&&event.attempts===2&&seen.includes(event.id)));
+  assert.equal(f.service.statement(p,card.id).ledger.length,0);
+});
+
+test('attempt budget remains per authenticated owner through actual encrypted storage',async t=>{
+  const f=fixture(t),card=await active(f),input={simulation:true as const,merchant,amountWei:'1'};
+  f.service.updateControls(principal(),card.id,{velocity:1},'risk-budget');
+  f.service.authorize(principal(),card.id,input,'attempt-1');
+  const p=principal(other),app=f.service.createApplication(p,details,'create-1');
+  f.service.requestApproval(p,app.id,'request-1');
+  const otherCard=(await f.service.submitApplication(p,app.id,{fixtureOnly:true},'submit-1')).card!;
+  f.reopen();
+  assert.equal(f.service.authorize(p,otherCard.id,input,'attempt-1').reason,'INSUFFICIENT_BALANCE');
+  assert.equal(f.service.authorize(principal(),card.id,input,'attempt-2').reason,'VELOCITY_EXCEEDED');
+  assert.throws(()=>f.service.statement(p,card.id),/NOT_FOUND/);
+});
+
 test('persistent drafts are isolated, idempotent and encrypted on disk',t=>{const f=fixture(t);const a=f.service.createApplication(principal(),details,'create-1');assert.deepEqual(f.service.createApplication(principal(),details,'create-1'),a);assert.throws(()=>f.service.createApplication(principal(),{...details,nickname:'different'},'create-1'),/IDEMPOTENCY_CONFLICT/);const b=f.service.createApplication(principal(other),details,'create-1');f.reopen();assert.equal(f.service.getState(principal()).applications[0]?.id,a.id);assert.equal(f.service.getState(principal(other)).applications[0]?.id,b.id);assert.throws(()=>f.service.requestApproval(principal(other),a.id,'request'),/NOT_FOUND/);assert.equal(readFileSync(f.path).includes(Buffer.from(details.nickname)),false)});
 
 test('missing approval verifier persists DEGRADED without a card',async t=>{const f=fixture(t,unavailableWallet);const app=f.service.createApplication(principal(),details,'draft');f.service.requestApproval(principal(),app.id,'request');await assert.rejects(f.service.submitApplication(principal(),app.id,{notARealProof:true},'submit'),/VERIFIER_UNAVAILABLE/);f.reopen();assert.equal(f.service.getState(principal()).applications[0]?.status,'DEGRADED');assert.deepEqual(f.service.getState(principal()).cards,[])});
