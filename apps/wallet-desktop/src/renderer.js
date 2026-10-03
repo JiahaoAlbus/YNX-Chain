@@ -10,6 +10,7 @@ import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
 import {mountDesktopPayUI} from "./wallet-pay-ui.mjs";
 import { setWalletCopy } from "./wallet-locale.mjs";
 import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
+import {createQRFileInput} from "./qr-file-input.mjs";
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
@@ -46,15 +47,14 @@ const invoiceUI=createInvoiceReferenceUI({
     }
   },
 });
-document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;invoiceUI.clear();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
+function clearInvoiceInput(){invoiceQR.invalidate();invoiceUI.clear()}
+document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;clearInvoiceInput();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
 document.querySelector("#invoice-form").addEventListener("submit",event=>{event.preventDefault();void invoiceUI.check(document.querySelector("#invoice-reference").value)});
-document.querySelector("#invoice-reference").addEventListener("input",()=>invoiceUI.clear());
-document.querySelector("#invoice-qr").addEventListener("click",()=>invoiceUI.captureQRSelection());
-document.querySelector("#invoice-qr").addEventListener("change",event=>{
-  const file=event.target.files?.[0];event.target.value="";
+document.querySelector("#invoice-reference").addEventListener("input",clearInvoiceInput);
+const invoiceQR=createQRFileInput({document,selector:"#invoice-qr",onClick:()=>invoiceUI.captureQRSelection(),onChange:file=>{
   void invoiceUI.importSelectedQR(async()=>{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw new Error("Invalid QR image");const bytes=await file.arrayBuffer();if(bytes.byteLength!==file.size)throw new Error("Changed QR image");return {mimeType:file.type,bytes}});
-});
-invoiceSheet.addEventListener("close",()=>invoiceUI.clear());invoiceSheet.addEventListener("cancel",()=>invoiceUI.clear());
+}});
+invoiceSheet.addEventListener("close",clearInvoiceInput);invoiceSheet.addEventListener("cancel",clearInvoiceInput);
 const contractSheet = document.querySelector("#contract-sheet");
 const contractUI = createNativeContractUI({
   getContext: () => ({open: contractSheet.open, account: accountState?.account ?? null, keyRevision: keyState.revision}),
@@ -254,7 +254,7 @@ const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   clearAssetBalance();
   clearTransactionResolution();
-  invoiceUI.clear();
+  clearInvoiceInput();
   contractUI.clear();
   invalidatePaymentInput();
   receiveShareUI.invalidate();
@@ -757,7 +757,7 @@ function renderKeyDetail() {
 }
 function renderKeyState(state) {
   const accountChanged = state.account !== keyState.account;
-  if (state.revision !== keyState.revision || state.locked !== keyState.locked) invoiceUI.clear();
+  if (state.revision !== keyState.revision || state.locked !== keyState.locked) clearInvoiceInput();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);

@@ -1,4 +1,5 @@
 import {setWalletCopy} from "./wallet-locale.mjs";
+import {createQRFileInput} from "./qr-file-input.mjs";
 const payStateCopy=Object.freeze({transfer_unconfirmed:"Transfer outcome unconfirmed",settlement_pending:"Transfer verified — settlement pending",settlement_unknown:"Settlement outcome unknown — read original receipt",settled:"Settlement verified",archived:"Receipt archived"});
 const hash=value=>typeof value==="string"&&/^0x[0-9a-f]{64}$/.test(value);
 const invoice=value=>typeof value==="string"&&/^inv_[a-f0-9]{20}$/.test(value);
@@ -88,24 +89,24 @@ export function mountDesktopPayUI({document,api,getContext}){
     if(!item&&!view.error&&!view.notice&&view.available)setWalletCopy(status,"Enter a signed invoice reference to review. Approval is a separate step; nothing is paid by scanning or checking.");
   }});
   let qrIntent=null,qrRevision=0;
-  document.querySelector("#open-protected-pay").addEventListener("click",()=>{qrRevision++;qrIntent=null;document.querySelector("#invoice-sheet").close();history.replaceChildren();sheet.showModal();reference.focus();void ui.open()});
+  document.querySelector("#open-protected-pay").addEventListener("click",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();document.querySelector("#invoice-sheet").close();history.replaceChildren();sheet.showModal();reference.focus();void ui.open()});
   document.querySelector("#protected-pay-form").addEventListener("submit",event=>{event.preventDefault();void ui.review(reference.value)});
-  reference.addEventListener("input",()=>{qrRevision++;qrIntent=null;history.replaceChildren();void ui.open()});
+  reference.addEventListener("input",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();history.replaceChildren();void ui.open()});
   buttons.approve.addEventListener("click",()=>void ui.approve());buttons.restore.addEventListener("click",()=>void ui.restore());
-  document.querySelector("#protected-pay-next").addEventListener("click",()=>{qrRevision++;qrIntent=null;reference.value="";history.replaceChildren();void ui.open();reference.focus()});
+  document.querySelector("#protected-pay-next").addEventListener("click",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();reference.value="";history.replaceChildren();void ui.open();reference.focus()});
   for(const action of ["check","settle","receipt","done"])buttons[action].addEventListener("click",()=>void ui.action(action));
   const loadHistory=async more=>{if(!more)history.replaceChildren();const records=await ui.history(more);if(!records)return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};
   buttons.history.addEventListener("click",()=>loadHistory(false));document.querySelector("#protected-pay-older").addEventListener("click",()=>loadHistory(true));
-  const qr=document.querySelector("#protected-pay-qr");
-  qr.addEventListener("click",()=>{qrRevision++;const current=getContext();qrIntent=sheet.open&&!current.locked?{account:current.account,keyRevision:current.keyRevision,revision:qrRevision}:null;void ui.clear()});
-  qr.addEventListener("change",async event=>{
-    const bound=qrIntent;qrIntent=null;const file=event.target.files?.[0];event.target.value="";
+  const qrFile=createQRFileInput({document,selector:"#protected-pay-qr",
+  onClick:()=>{qrRevision++;const current=getContext();qrIntent=sheet.open&&!current.locked&&current.account?{account:current.account,keyRevision:current.keyRevision,revision:qrRevision}:null;void ui.clear()},
+  onChange:async file=>{
+    const bound=qrIntent;qrIntent=null;
     const live=()=>{const current=getContext();return bound&&bound.revision===qrRevision&&sheet.open&&!current.locked&&bound.account===current.account&&bound.keyRevision===current.keyRevision};
     if(!live())return;
     try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const result=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;if(!result?.ok||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())setWalletCopy(status,"QR reference read locally. Choose Review signed invoice; scanning never signs or pays.")}
     catch{if(live())setWalletCopy(status,"No supported Pay invoice QR was found. Nothing was uploaded or paid.")}
-  });
-  const invalidate=()=>{qrRevision++;qrIntent=null;history.replaceChildren();void ui.clear()};
+  }});
+  const invalidate=()=>{qrRevision++;qrIntent=null;qrFile.invalidate();history.replaceChildren();void ui.clear()};
   sheet.addEventListener("close",invalidate);sheet.addEventListener("cancel",invalidate);
   let lastContext={...getContext()};
   const refreshContext=()=>{

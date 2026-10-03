@@ -134,17 +134,19 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const elements = new Map();
     const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
     document.querySelector("#unlock-result").textContent = fixture.message;
-    let invalidatedInputs = 0, invalidatedContracts = 0;
+    let invalidatedInputs = 0, invalidatedContracts = 0, invalidatedInvoices = 0;
     const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
-    runInNewContext(`${copyHelper}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
+    const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
+    runInNewContext(`${copyHelper}\n${invoiceClear}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
-      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
+      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
     assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
     assert.equal(invalidatedContracts, invalidatedInputs);
+    assert.equal(invalidatedInvoices, invalidatedInputs);
   }
 });
 
@@ -186,7 +188,7 @@ async function sendEntryHarness() {
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
-    paymentDraftRevision: 0, invoiceUI: {clear() {}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
+    paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
   };
   const extract = (startText, endText) => {
@@ -196,6 +198,7 @@ async function sendEntryHarness() {
   };
   runInNewContext([
     source.match(/^function copyUI\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual copy helper missing")})(),
+    source.match(/^function clearInvoiceInput\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual invoice clear missing")})(),
     extract("function renderKeyDetail()", "\npasswordUI = createPasswordVaultUI"),
     extract('document.querySelector("#open-send").addEventListener', '\ndocument.querySelector("#send-sheet").addEventListener'),
     extract('document.querySelector("#transfer-form").addEventListener', "\nfunction setView(name)"),

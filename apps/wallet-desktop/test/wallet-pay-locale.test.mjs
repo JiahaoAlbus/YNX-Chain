@@ -6,6 +6,7 @@ import {PAY_COPY} from "../src/wallet-locale-pay.mjs";
 import {PAY_NOTICE_COPY} from "../src/wallet-locale-pay-notices.mjs";
 import {mountDesktopPayUI} from "../src/wallet-pay-ui.mjs";
 import {signedPayFixture} from "./fixture-signed-pay.mjs";
+import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 test("all 58 Pay labels/notices are explicitly translated in each existing locale with unchanged parameters",()=>{
   const params=value=>[...value.matchAll(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g)].map(match=>match[1]).sort();
   assert.deepEqual(Object.keys(PAY_COPY),WALLET_LOCALES);assert.deepEqual(Object.keys(PAY_NOTICE_COPY),WALLET_LOCALES);
@@ -45,7 +46,7 @@ class Element {
 function documentFixture(){
   const nodes=new Map();let document;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,new Element(document));return nodes.get(selector)};
-  document={documentElement:{},querySelector:selector=>selector==="#wallet-language"||selector==="#wallet-language-status"?null:get(selector),querySelectorAll:selector=>Object.hasOwn(WALLET_STATIC_COPY,selector)&&selector.includes("protected-pay")?[get(selector)]:[],createElement:tag=>new Element(document,tag),createTextNode:text=>({textContent:text})};
+  document={documentElement:{},querySelector:selector=>selector==="#wallet-language"||selector==="#wallet-language-status"?null:fileInputDOM(get(selector),next=>nodes.set(selector,next)),querySelectorAll:selector=>Object.hasOwn(WALLET_STATIC_COPY,selector)&&selector.includes("protected-pay")?[get(selector)]:[],createElement:tag=>new Element(document,tag),createTextNode:text=>({textContent:text})};
   return {document,get};
 }
 const flush=async()=>{for(let i=0;i<3;i++)await new Promise(resolve=>setImmediate(resolve))};

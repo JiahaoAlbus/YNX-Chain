@@ -14,6 +14,7 @@ import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
 import {assertWalletIPC} from "../src/wallet-ipc-policy.mjs";
 import {payTestSecret,signedPayFixture} from "./fixture-signed-pay.mjs";
 import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
+import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
 async function harness({configured=true}={}){
   const f=signedPayFixture(5),directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-service-"));let decryptions=0,posts=0,submits=0;
@@ -112,7 +113,8 @@ test("Desktop Pay history paging rejects wrong-account, duplicate, pending and f
 test("Desktop actual modal mounts service workflow, escaped facts, retained hash controls and paid history",async()=>{
   const f=await harness(),html=await readFile(new URL("../src/index.html",import.meta.url),"utf8"),ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(match=>match[1])),nodes=new Map();
   const get=selector=>{assert.ok(ids.has(selector.slice(1)),`Mounted HTML ${selector}`);if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},async emit(type,event={}){await this.listeners.get(type)?.(event);await new Promise(resolve=>setImmediate(resolve))},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
-  const document={querySelector:get,createElement:()=>({textContent:""})};mountDesktopPayUI({document,api:f.api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  const querySelector=selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next));
+  const document={querySelector,createElement:()=>({textContent:""})};mountDesktopPayUI({document,api:f.api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   await get("#open-protected-pay").emit("click");await new Promise(resolve=>setTimeout(resolve,20));assert.equal(get("#protected-pay-sheet").open,true);assert.equal(f.posts(),0);
   get("#protected-pay-reference").value=f.input.rawInvoice.id;await get("#protected-pay-form").emit("submit",{preventDefault(){}});while(get("#protected-pay-review").disabled)await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-approve").hidden,false);
   await get("#protected-pay-approve").emit("click");while(get("#protected-pay-restore").disabled)await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-done").disabled,true);
@@ -125,11 +127,12 @@ test("Desktop mounted QR is local reference-only and fences same-account close/r
   const f=await harness(),nodes=new Map();let decodes=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
   const api={...f.api,invoiceReferenceQR:async input=>{decodes++;assert.equal(input.bytes.byteLength,1);return f.api.invoiceReferenceQR(input)}};
-  mountDesktopPayUI({document:{querySelector:get,createElement:()=>({textContent:""})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   get("#protected-pay-sheet").showModal();const qr=get("#protected-pay-qr");
-  await qr.emit("change",{target:{files:[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}],value:"chosen"}});assert.equal(decodes,0);
-  qr.emit("click");let finish;const pending=qr.emit("change",{target:{files:[{type:"image/png",size:1,arrayBuffer:()=>new Promise(resolve=>finish=resolve)}],value:"chosen"}});
+  qr.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];await qr.emit("change");assert.equal(decodes,0);
+  qr.emit("click");let finish;qr.files=[{type:"image/png",size:1,arrayBuffer:()=>new Promise(resolve=>finish=resolve)}];const pending=qr.emit("change");
   get("#protected-pay-sheet").close();get("#open-protected-pay").emit("click");get("#protected-pay-reference").value="current-input";finish(new ArrayBuffer(1));await pending;assert.equal(decodes,0);assert.equal(get("#protected-pay-reference").value,"current-input");
-  qr.emit("click");const target={files:[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}],value:"chosen"};await qr.emit("change",{target});assert.equal(target.value,"");assert.equal(decodes,1);assert.equal(get("#protected-pay-reference").value,f.input.rawInvoice.id);
+  const fresh=get("#protected-pay-qr");assert.notEqual(fresh,qr);fresh.emit("click");qr.files=[{type:"image/png",size:1,arrayBuffer:async()=>{throw Error("Old chooser must not read")}}];await qr.emit("change");assert.equal(decodes,0);
+  fresh.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];fresh.value="chosen";await fresh.emit("change");assert.equal(fresh.value,"");assert.equal(decodes,1);assert.equal(get("#protected-pay-reference").value,f.input.rawInvoice.id);
   assert.equal(f.calls.filter(call=>call.channel==="wallet:pay-review").length,0);assert.equal(f.posts(),0);assert.equal(f.decryptions(),0);get("#protected-pay-sheet").close();f.lifecycle.lock();
 });
