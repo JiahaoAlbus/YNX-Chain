@@ -1,0 +1,1 @@
+PASS original AES/GCM record, first-use-only creation, missing/locked/wrong key, corrupt/oversized record, failed commits, explicit removal and preserved signer/storage identity; host JCE only, no installed Keystore claim

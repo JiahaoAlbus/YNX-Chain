@@ -1,0 +1,159 @@
+{
+  "actual641SourcePackage": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261003/generic-business/combined-authority-cancellation-successor-f1",
+  "ownedSDKSource": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "rows": [
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/utils.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/_md.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/_u64.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/sha2.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/canonical.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/base64url.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-registry.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/utils.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/modular.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/curve.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/fft.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/hash-to-curve.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/frost.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/oprf.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/hmac.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/abstract/weierstrass.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/nist.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/curves/secp256k1.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/node_modules/@noble/hashes/sha3.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/protocol.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/crypto.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-finite-consent.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-v2.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/session.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/integration.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/session-proof.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-proof-v2.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-router.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-revocation-intent.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-completion-record.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-gateway-snapshot-v2.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/wallet-session-control.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-control-capacity.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-control-intent.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-gateway.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-gateway-client.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-recovery.js",
+      "matches5cGraph": true
+    },
+    {
+      "path": "source/packages/wallet-auth/src/product-session-browser.js",
+      "matches5cGraph": true
+    }
+  ],
+  "allMatch": true
+}
