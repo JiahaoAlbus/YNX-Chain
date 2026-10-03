@@ -9,3 +9,9 @@ export function cardCallbackKind(value:string):'session'|'application'|'none'|'i
   if(session)return url.searchParams.getAll('result').length===1?'session':'invalid';
   return 'none';
 }
+import {parseCardApplicationApprovalReturnURL as parseAcceptedCardApprovalCallback,type CardApplicationApprovalRequest} from '@ynx-chain/wallet-auth-card-provider-v2';
+
+/** A callback discriminator is routing only, never approval authority. */
+export function verifyPendingCardApplicationCallback(registry:unknown,returnURL:string,pending:CardApplicationApprovalRequest,at?:Date){
+  return parseAcceptedCardApprovalCallback(registry,returnURL,pending,at);
+}

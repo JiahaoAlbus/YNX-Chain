@@ -1,9 +1,9 @@
 import {
   encodeCardApplicationApprovalWalletURL,parseCardApplicationApprovalWalletURL,
-  parseCardApplicationApprovalReturnURL,
   type CardApplicationApprovalRequest,type CardApplicationApprovalResult,
 } from '@ynx-chain/wallet-auth-card-provider-v2';
 import {hostedApprovalJournalKey,readHostedApprovalJournal,type HostedApprovalJournalEntry} from './providerApprovalJournal';
+import {verifyPendingCardApplicationCallback} from './providerCallback';
 
 export type HostedCardApprovalReservation=Readonly<{
   account:string;assertCurrent():void;request(url:string):Promise<unknown>;
@@ -39,7 +39,7 @@ export function createHostedCardApprovalConsumer(options:Options){
   const verify=(entry:HostedApprovalJournalEntry)=>{
     const pending=parseCardApplicationApprovalWalletURL(options.registry,entry.walletURL,now());
     if(JSON.stringify(pending)!==JSON.stringify(entry.request)||pending.account!==entry.owner||pending.challenge.applicationId!==entry.applicationId||pending.challenge.owner!==entry.owner)fail('CARD_APPLICATION_APPROVAL_REQUEST_INVALID');
-    return parseCardApplicationApprovalReturnURL(options.registry,entry.returnURL??'',pending,now());
+    return verifyPendingCardApplicationCallback(options.registry,entry.returnURL??'',pending,now());
   };
   return Object.freeze({
     async review(input:{applicationId:string;transport:HostedCardApprovalTransport|null;readRecord():Promise<unknown>;prepare():Promise<CardApplicationApprovalRequest>;operationId:string;resultOperationId:string}):Promise<{entry:HostedApprovalJournalEntry;result:CardApplicationApprovalResult}>{
@@ -69,7 +69,7 @@ export function createHostedCardApprovalConsumer(options:Options){
         if(!returned||typeof returned!=='object')fail('CARD_APPLICATION_APPROVAL_RETURN_INVALID');
         const carrier=returned as Record<string,unknown>;
         if(carrier.kind!=='card-application-approval'||carrier.version!==request.version||typeof carrier.returnUrl!=='string')fail('CARD_APPLICATION_APPROVAL_RETURN_INVALID');
-        const result=parseCardApplicationApprovalReturnURL(options.registry,carrier.returnUrl as string,request,now());
+        const result=verifyPendingCardApplicationCallback(options.registry,carrier.returnUrl as string,request,now());
         const terminal:HostedApprovalJournalEntry={...entry,state:result.status,returnURL:carrier.returnUrl as string};
         // Durable terminal correlation precedes any backend result acceptance.
         await save(terminal,context);
