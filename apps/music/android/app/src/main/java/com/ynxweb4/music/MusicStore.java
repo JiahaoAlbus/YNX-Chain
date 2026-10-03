@@ -22,7 +22,7 @@ final class MusicStore {
         if(!account.matches("ynx1[0-9a-z]{20,80}"))throw new IOException("Invalid verified Music account");
         DETACHED_ROOTS.add(c.getFilesDir().getAbsolutePath());
         MusicStore selected=new MusicStore(c,account);
-        if(!c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit()||!account.equals(selectedAccount(c)))throw new IOException("Original Music account selection is unconfirmed");
+        if(!c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit()||!account.equals(c.getSharedPreferences("music-identity",0).getString("account","")))throw new IOException("Original Music account selection is unconfirmed");
         DETACHED_ROOTS.remove(c.getFilesDir().getAbsolutePath());
         File target=selected.file(),legacy=new File(c.getFilesDir(),"music-state.json");
         if(!target.exists()&&!new File(selected.directory,"legacy-migration-disabled").exists()&&legacy.isFile()){
