@@ -1,0 +1,22 @@
+=== RUN   TestV2HTTPUnsupportedExternalRouteRemainsClosed
+--- PASS: TestV2HTTPUnsupportedExternalRouteRemainsClosed (0.09s)
+=== RUN   TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery
+=== RUN   TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery/normal
+=== RUN   TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery/late_actor
+--- PASS: TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery (0.39s)
+    --- PASS: TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery/normal (0.21s)
+    --- PASS: TestBusinessTrustDurableReceiptPrivacyReplayAndLateActorRecovery/late_actor (0.18s)
+=== RUN   TestBusinessTrustUnknownOutcomeCannotResendAfterRestartBackupOrNewKey
+--- PASS: TestBusinessTrustUnknownOutcomeCannotResendAfterRestartBackupOrNewKey (0.16s)
+=== RUN   TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch
+=== RUN   TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/foreign_buyer
+=== RUN   TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/seller
+=== RUN   TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/invalid_body
+=== RUN   TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/disk
+--- PASS: TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch (0.26s)
+    --- PASS: TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/foreign_buyer (0.06s)
+    --- PASS: TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/seller (0.06s)
+    --- PASS: TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/invalid_body (0.07s)
+    --- PASS: TestBusinessTrustForeignRoleInvalidBodyAndDiskFailureDoNotDispatch/disk (0.07s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	2.405s

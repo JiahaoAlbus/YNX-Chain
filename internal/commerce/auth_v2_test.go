@@ -107,7 +107,16 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 				}
 			}))
 			defer payProvider.Close()
-			cfg := ServerConfig{Pay: HTTPPayVerifier{BaseURL: payProvider.URL, APIKey: "qa-pay", MerchantID: "signed-merchant", PayoutAddress: account}}
+			var trustCalls atomic.Int32
+			trustProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				trustCalls.Add(1)
+				if r.URL.Path != "/api/actions" || r.Method != "POST" || r.Header.Get("X-YNX-Actor") != account {
+					t.Error("signed Trust dispatch lost original binding")
+				}
+				w.Write([]byte(`{"case":{"ID":"signed-trust-case","Status":"submitted","CreatedAt":"2026-10-03T00:00:00Z"}}`))
+			}))
+			defer trustProvider.Close()
+			cfg := ServerConfig{Pay: HTTPPayVerifier{BaseURL: payProvider.URL, APIKey: "qa-pay", MerchantID: "signed-merchant", PayoutAddress: account}, Trust: HTTPTrustGateway{BaseURL: trustProvider.URL, APIKey: "qa-trust"}}
 			server, err := NewCommerceV2Server(store, cfg, []string{platform}, "qa", key, transport, func(_ context.Context, session v2.Session) (func() error, error) {
 				if session.Account != ready.Account || session.SessionBinding != ready.Binding {
 					return nil, ErrUnauthorized
@@ -197,6 +206,17 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 			settled, err := store.Order(account, "buyer", order.ID)
 			if err != nil || settled.Status != "paid" || settled.Settlement == nil || settled.Settlement.Payer != ready.Account {
 				t.Fatal("original raw Wallet representation lost from settlement", err)
+			}
+			trustBody := `{"Action":"disputed","Reason":"signed owned claim","IdempotencyKey":"signed-trust-request"}`
+			trustPath := "/api/orders/" + order.ID + "/transition"
+			if w := request("POST", trustPath, trustBody, ShopScopes, false, trustBody); w.Code != 200 || trustCalls.Load() != 1 {
+				t.Fatal("actual signed Trust submission failed", w.Code, w.Body.String())
+			}
+			if w := request("POST", trustPath, trustBody, ShopScopes, true, trustBody); w.Code != 409 || trustCalls.Load() != 1 {
+				t.Fatal("Trust action replay resubmitted", w.Code)
+			}
+			if w := request("POST", trustPath, trustBody, ShopScopes, false, trustBody); w.Code != 200 || trustCalls.Load() != 1 {
+				t.Fatal("signed received Trust recovery resent", w.Code, w.Body.String())
 			}
 			cancelOrder, err := store.CreateOrder(account, orderInput(shop, product, "actual-sdk-cancel-order"))
 			if err != nil {

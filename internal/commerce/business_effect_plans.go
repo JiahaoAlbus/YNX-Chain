@@ -223,6 +223,19 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 	case "POST /api/orders/{id}/confirm-payment":
 		plan, err = s.settlementEffect(r.PathValue("id"), body, verified.proof)
 	case "POST /api/orders/{id}/transition":
+		var in orderTransitionInput
+		if err := decodeBusinessBody(body, &in); err != nil {
+			failBusiness(w, err)
+			return
+		}
+		if in.Action == "disputed" {
+			if verified.principal.Role != "buyer" {
+				failBusiness(w, ErrUnauthorized)
+				return
+			}
+			plan, err = s.trustDisputeEffect(r.PathValue("id"), body)
+			break
+		}
 		response, err := s.runBusinessOrderTransition(r.Context(), verified, r.PathValue("id"), body)
 		if err != nil {
 			failBusiness(w, err)

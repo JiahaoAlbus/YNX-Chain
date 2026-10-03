@@ -138,6 +138,7 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 		protocol = "wallet-product-session-v2+p256-sha256"
 	}
 	authorizationRevocation := "unavailable"
+	_, v2TrustAvailable := businessTrustGateway(s.cfg.Trust)
 	if _, ok := s.cfg.Auth.(ProductAuthorizationRevoker); ok && s.cfg.businessV2 == nil && s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		authorizationRevocation = "candidate_configured"
 	}
@@ -149,7 +150,7 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 		"logistics":                          "unavailable",
 		"tax":                                "unavailable",
 		"aiProvider":                         availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
-		"trustEvidence":                      availability(s.cfg.businessV2 == nil && s.cfg.Trust != nil && s.cfg.Trust.Available()),
+		"trustEvidence":                      availability((s.cfg.businessV2 == nil && s.cfg.Trust != nil && s.cfg.Trust.Available()) || (s.cfg.businessV2 != nil && v2TrustAvailable)),
 		"privacyData":                        "export_and_delete",
 		"providerRegistry":                   "available_local_authority",
 		"providerKinds":                      ProviderKinds(),
