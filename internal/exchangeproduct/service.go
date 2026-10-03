@@ -1475,19 +1475,19 @@ func (s *Service) CancelTWAP(session WalletSession, twapID, key, walletSignature
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := digest(struct{ ID, Key string }{twapID, key})
-	if prior, ok := s.state.Idempotency[key]; ok {
-		if prior.Action != "twap_cancel" || prior.Digest != d || prior.ObjectID != twapID {
-			return TWAPOrder{}, ErrConflict
-		}
-		return s.state.TWAPOrders[twapID], nil
-	}
 	twap, ok := s.state.TWAPOrders[twapID]
 	if !ok {
 		return TWAPOrder{}, ErrNotFound
 	}
 	if twap.Account != session.Account {
 		return TWAPOrder{}, ErrForbidden
+	}
+	d := digest(struct{ ID, Key string }{twapID, key})
+	if prior, ok := s.state.Idempotency[key]; ok {
+		if prior.Action != "twap_cancel" || prior.Digest != d || prior.ObjectID != twapID {
+			return TWAPOrder{}, ErrConflict
+		}
+		return s.state.TWAPOrders[twapID], nil
 	}
 	if twap.Status != "scheduled" {
 		return TWAPOrder{}, ErrConflict
@@ -1600,19 +1600,19 @@ func (s *Service) CancelConditionalOrder(session WalletSession, conditionalID, k
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := digest(struct{ ID, Key string }{conditionalID, key})
-	if prior, ok := s.state.Idempotency[key]; ok {
-		if prior.Action != "conditional_cancel" || prior.Digest != d || prior.ObjectID != conditionalID {
-			return ConditionalOrder{}, ErrConflict
-		}
-		return s.state.ConditionalOrders[conditionalID], nil
-	}
 	conditional, ok := s.state.ConditionalOrders[conditionalID]
 	if !ok {
 		return ConditionalOrder{}, ErrNotFound
 	}
 	if conditional.Account != session.Account {
 		return ConditionalOrder{}, ErrForbidden
+	}
+	d := digest(struct{ ID, Key string }{conditionalID, key})
+	if prior, ok := s.state.Idempotency[key]; ok {
+		if prior.Action != "conditional_cancel" || prior.Digest != d || prior.ObjectID != conditionalID {
+			return ConditionalOrder{}, ErrConflict
+		}
+		return s.state.ConditionalOrders[conditionalID], nil
 	}
 	if conditional.Status != "pending_trigger" {
 		return ConditionalOrder{}, ErrConflict
@@ -1758,19 +1758,19 @@ func (s *Service) CancelScale(session WalletSession, scaleID, key, walletSignatu
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := digest(struct{ ID, Key string }{scaleID, key})
-	if prior, ok := s.state.Idempotency[key]; ok {
-		if prior.Action != "scale_cancel" || prior.Digest != d || prior.ObjectID != scaleID {
-			return ScaleOrder{}, ErrConflict
-		}
-		return s.state.ScaleOrders[scaleID], nil
-	}
 	parent, ok := s.state.ScaleOrders[scaleID]
 	if !ok {
 		return ScaleOrder{}, ErrNotFound
 	}
 	if parent.Account != session.Account {
 		return ScaleOrder{}, ErrForbidden
+	}
+	d := digest(struct{ ID, Key string }{scaleID, key})
+	if prior, ok := s.state.Idempotency[key]; ok {
+		if prior.Action != "scale_cancel" || prior.Digest != d || prior.ObjectID != scaleID {
+			return ScaleOrder{}, ErrConflict
+		}
+		return s.state.ScaleOrders[scaleID], nil
 	}
 	if parent.Status != "open" && parent.Status != "partially_filled" {
 		return ScaleOrder{}, ErrConflict
