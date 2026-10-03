@@ -7,7 +7,8 @@ import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import registry from "./vendor/product-session-registry.json";
 import { ProductSessionGatewayFetchAdapter, productPlatformBinding } from "./vendor/product-session-native.mjs";
 import { createNativeSessionController } from "./nativeSessionController";
-import { SOCIAL_CHAT_SCOPES, parseStoredChatDevice, type StoredChatDevice } from "./scopedSessionBridge";
+import { SOCIAL_CHAT_SCOPES, type StoredChatDevice } from "./scopedSessionBridge";
+import { createNativeChatDeviceStore } from "./nativeChatDeviceStore";
 
 const authority = "https://wallet-auth.ynxweb4.com";
 const scopes = Object.freeze(["account:read", "profile:link"]);
@@ -75,27 +76,14 @@ export function nativeSocialSession(permission:"identity"|"chat"="identity") {
   return singleton;
 }
 
-export async function nativeChatDevice(account:string):Promise<StoredChatDevice>{
-  const currentKey="ynx.social.device.v1";
-  const accountKey=(value:string)=>`ynx.social.device.account.${bytesToHex(sha256(utf8ToBytes(value)))}`;
-  let raw=await SecureStore.getItemAsync(currentKey);
-  const sessionRaw=await SecureStore.getItemAsync("ynx.social.session.v1");
-  const previousAccount=sessionRaw?(JSON.parse(sessionRaw) as {session:{account:string}}).session.account:undefined;
-  if(raw){
-    const current=parseStoredChatDevice(raw),owner=current.account??previousAccount;
-    if(!owner)throw new Error("Existing Social device ownership requires recovery; keys were preserved");
-    const retained={...current,account:owner};
-    await SecureStore.setItemAsync(accountKey(owner),JSON.stringify(retained),protectedOptions);
-    if(owner===account)return retained;
-  }
-  raw=await SecureStore.getItemAsync(accountKey(account));
-  let device:StoredChatDevice;
-  if(raw){device=parseStoredChatDevice(raw);if(device.account!==account)throw new Error("Archived Social device account mismatch")}
-  else{
-    device={deviceId:`social-${bytesToHex(getRandomBytes(12))}`,account,signingSeed:bytesToHex(getRandomBytes(32)),encryptionSeed:bytesToHex(getRandomBytes(32))};
-    await SecureStore.setItemAsync(accountKey(account),JSON.stringify(device),protectedOptions);
-  }
-  // The old account carrier was preserved before changing the active selection.
-  await SecureStore.setItemAsync(currentKey,JSON.stringify(device),protectedOptions);
-  return device;
+const chatDeviceStore = createNativeChatDeviceStore({
+  get: key => SecureStore.getItemAsync(key),
+  set: (key, value) => SecureStore.setItemAsync(key, value, protectedOptions),
+}, account => ({
+  deviceId: `social-${bytesToHex(getRandomBytes(12))}`, account,
+  signingSeed: bytesToHex(getRandomBytes(32)), encryptionSeed: bytesToHex(getRandomBytes(32)),
+}));
+
+export function nativeChatDevice(account:string):Promise<StoredChatDevice>{
+  return chatDeviceStore.select(account);
 }
