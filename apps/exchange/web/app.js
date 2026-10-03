@@ -12,7 +12,21 @@ function requireProductSession(){toast(productApiUnavailable());$('#private-acco
 const privateAccount=createExchangePrivateAccount({onState:renderPrivateAccount});
 let browserIdentity=null,browserIdentityEpoch=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityLogoutOperation=null;
 function writeBrowserIdentity(element,key,fallback,suffix=''){element.textContent=fallback;window.YNXExchangeLocale?.write(element,key,suffix)}
-async function browserIdentityRequest(path,options={}){const response=await fetch(`/api/v1/sso/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(5000)});return {response,data:await response.json()};}
+async function browserIdentityRequest(path,options={}){
+  if(!['config','account','logout'].includes(path))throw new Error('IDENTITY_ROUTE_INVALID');
+  const controller=new AbortController();let timer;
+  const invalid=()=>Object.assign(new Error('IDENTITY_RESPONSE_INVALID'),{code:'IDENTITY_RESPONSE_INVALID'});
+  const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{reject(Object.assign(new Error('IDENTITY_REQUEST_TIMEOUT'),{code:'IDENTITY_REQUEST_TIMEOUT'}));controller.abort()},5000)});
+  try{return await Promise.race([deadline,(async()=>{
+    const response=await fetch(`/api/v1/sso/${path}`,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});
+    const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase(),length=response.headers.get('content-length');
+    if(!/^application\/(?:json|[a-z0-9.+-]+\+json)$/.test(mime)||(length!==null&&(!/^\d+$/.test(length)||Number(length)>262144)))throw invalid();
+    const text=await response.text();if(new TextEncoder().encode(text).byteLength>262144)throw invalid();
+    let data;try{data=JSON.parse(text)}catch{throw invalid()}
+    if(!data||typeof data!=='object'||Array.isArray(data))throw invalid();
+    return {response,data};
+  })()])}finally{clearTimeout(timer)}
+}
 async function restoreBrowserIdentity(){const epoch=++browserIdentityEpoch;const status=$('#browser-identity-status');if(!status)return;try{const {response,data}=await browserIdentityRequest('account');if(epoch!==browserIdentityEpoch)return;if(response.ok){
   if(data.scopes?.length!==1||data.scopes[0]!=='identity:read'||data.privateWorkspaceAuthorized!==false)throw new Error('IDENTITY_BOUNDARY_INVALID');
   if(state.account&&state.account!==data.account)await privateAccount.disconnect();if(epoch!==browserIdentityEpoch)return;browserIdentity=data;writeBrowserIdentity(status,'identity-read',`${data.account} · Browser identity only; approve private Exchange read access separately.`,` (${data.account})`);$('#browser-identity-logout').hidden=false;$('#browser-identity-logout').disabled=false;

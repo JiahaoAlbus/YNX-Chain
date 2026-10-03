@@ -56,7 +56,7 @@ test('actual activity renderer exposes existing owned order history and signed l
 test('actual identity controls fence late logout outcomes and preserve current logout failure/retry',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
-    for(const mode of ['chooser-takes-epoch','old-finalizer-new-logout','late-success','late-failure','late-recheck-unavailable','current-success','current-failure-retry','current-unauthorized']){
+    for(const mode of ['chooser-takes-epoch','old-finalizer-new-logout','late-success','late-failure','late-recheck-unavailable','current-success','current-failure-retry','current-timeout-retry','current-unauthorized']){
       const page=await browser.newPage();let owner='A',accountStatus=200;const pending=[],requests=[],arrivals=[];
       const nextRequest=(count=1)=>pending.length>=count?Promise.resolve():new Promise((resolve,reject)=>{
         const timer=setTimeout(()=>reject(new Error('isolated logout request did not arrive')),5000);
@@ -106,6 +106,14 @@ test('actual identity controls fence late logout outcomes and preserve current l
         assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0,mode);
         assert.match(await page.locator('#browser-identity-status').innerText(),mode==='late-recheck-unavailable'?/^Identity recheck unavailable\./u:/^B ·/u,mode);
         assert.equal(await logout.isVisible(),true,mode);
+      }else if(mode==='current-timeout-retry'){
+        await page.waitForFunction(()=>window.identityQA.calls.logoutSettled===1,{},{timeout:7000});
+        assert.equal(await logout.isEnabled(),true);assert.equal(await page.evaluate(()=>window.identityQA.current()?.account),'A');assert.equal(await page.evaluate(()=>window.identityQA.calls.disconnect),0);
+        assert.match(await page.locator('#browser-identity-status').innerText(),/^Sign-out is not confirmed\./u);assert.equal(requests.length,1);
+        pending.shift()({status:200,json:{revoked:true}});
+        await logout.click();await nextRequest();pending.shift()({status:200,json:{revoked:true}});
+        await page.waitForFunction(()=>window.identityQA.current()===null&&window.identityQA.calls.disconnect===1&&window.identityQA.calls.logoutSettled===2);
+        assert.equal(await logout.isVisible(),false);assert.equal(browser.contexts().flatMap(c=>c.pages()).length,1);
       }else{
         pending.shift()({status:mode==='current-failure-retry'?503:200,json:mode==='current-failure-retry'?{code:'UNAVAILABLE'}:{revoked:true}});
         if(mode==='current-failure-retry'){
@@ -127,7 +135,7 @@ test('actual identity controls fence late logout outcomes and preserve current l
         }
       }
       assert.ok(requests.every(value=>value.method==='POST'&&value.csrf==='isolated-control-csrf'&&value.body==='{}'));
-      assert.equal(requests.length,['current-failure-retry','old-finalizer-new-logout'].includes(mode)?2:1,'no implicit logout retry');
+      assert.equal(requests.length,['current-failure-retry','current-timeout-retry','old-finalizer-new-logout'].includes(mode)?2:1,'no implicit logout retry');
       await page.close();
     }
   }finally{await browser.close();}

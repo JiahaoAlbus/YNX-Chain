@@ -36,8 +36,10 @@ assert(mobile.includes('productSessionUnavailable().message'), 'installed UI doe
 // Historical mobile PENDING evidence is not authority for the current Web
 // consumer. Permit only its exact bounded identity-only same-origin helper;
 // private reads remain behind the separate original ProductSession SDK module.
-const identityHelper="async function browserIdentityRequest(path,options={}){const response=await fetch(`/api/v1/sso/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(5000)});return {response,data:await response.json()};}";
-assert(web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
+const identityStart=web.indexOf('async function browserIdentityRequest(');
+const identityEnd=web.indexOf('\nasync function restoreBrowserIdentity(',identityStart);
+const identityHelper=web.slice(identityStart,identityEnd);
+assert(identityStart>=0&&identityEnd>identityStart&&sha256(identityHelper)==='8953bb911714c9327690c25adf02d8415cdf91e0b2ade3dd7a5b7318a1e2f328'&&web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
 const webShell=web.replace(identityHelper,'');
 const identityCalls=[...webShell.matchAll(/\bbrowserIdentityRequest\(([^,)]+)/gu)];
 assert(identityCalls.length>=4&&identityCalls.length<=8, 'Web identity call set is missing or unbounded');
