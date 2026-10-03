@@ -160,7 +160,7 @@ struct CreatorSnapshot: Decodable {
                 if let cancel=try drafts?.pendingAICancel() {let id=String(cancel.path.split(separator:"/")[3]);selectedAI=snapshot?.ai_jobs?.first(where:{$0.id==id})}
                 else if let operation=try drafts?.pendingOperation(),operation.path.hasSuffix("/stream") {let id=String(operation.path.split(separator:"/")[3]);selectedAI=snapshot?.ai_jobs?.first(where:{$0.id==id})}
             }
-        } catch {if captured==revision {message=text("retryRequired")}}
+        } catch {if captured==revision {lastFailure=String(describing:error);message=text("retryRequired")}}
     }
     func handle(url: URL) {
         guard url.scheme=="ynxcreator",url.host=="wallet-auth",url.path=="/callback",url.user==nil,url.password==nil,url.port==nil,url.fragment==nil,url.absoluteString.count<=32768 else {return}
