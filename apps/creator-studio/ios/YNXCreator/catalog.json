@@ -182,7 +182,16 @@
     "rightsSharePercent": "Share (%)",
     "rightsRemoveContributor": "Remove contributor",
     "rightsAddContributor": "Add contributor",
-    "rightsInvalid": "Check rights details, future expiry, evidence hash and contributor shares totaling 100%."
+    "rightsInvalid": "Check rights details, future expiry, evidence hash and contributor shares totaling 100%.",
+    "versionHistory": "Version history",
+    "inviteCustomExpiry": "Choose invitation expiry",
+    "inviteExpiry": "Invitation expires",
+    "authorizationVersion": "Authorization version",
+    "rightsDeclaredBy": "Declared by",
+    "rightsSourceHash": "Original source SHA-256",
+    "rightsReviewer": "Reviewed by",
+    "yes": "Yes",
+    "no": "No"
   },
   "zh-CN": {
     "signIn": "登录",
@@ -367,7 +376,16 @@
     "rightsSharePercent": "分成（%）",
     "rightsRemoveContributor": "移除贡献者",
     "rightsAddContributor": "添加贡献者",
-    "rightsInvalid": "请检查版权信息、未来到期日期、证据哈希，以及合计为 100% 的贡献者分成。"
+    "rightsInvalid": "请检查版权信息、未来到期日期、证据哈希，以及合计为 100% 的贡献者分成。",
+    "versionHistory": "版本记录",
+    "inviteCustomExpiry": "设置邀请有效期",
+    "inviteExpiry": "邀请到期时间",
+    "authorizationVersion": "授权版本",
+    "rightsDeclaredBy": "声明账号",
+    "rightsSourceHash": "原始素材 SHA-256",
+    "rightsReviewer": "审核账号",
+    "yes": "是",
+    "no": "否"
   },
   "zh-TW": {
     "signIn": "Sign in",

@@ -7,6 +7,9 @@ struct CreatorVideo: Decodable, Identifiable {
     let rights_declaration_id: String?
     let version: UInt64?
     let reviewed_by: String?
+    let scheduled_at:String?
+    struct Version:Decodable,Identifiable {let sequence:UInt64;let actor,kind,previous_state,next_state,title,description,visibility,content_sha256,metadata_sha256,recorded_at:String;var id:UInt64 {sequence}}
+    let versions:[Version]?
     struct Caption:Decodable,Equatable {let language,label,object_key:String;let ai_proposed,human_approved:Bool}
     let thumbnail_key:String?
     let captions:[Caption]?
@@ -26,8 +29,9 @@ struct CreatorSnapshot: Decodable {
     struct Analytics: Decodable { let views, watch_seconds, subscribers, revenue_ynxt: Int; let source: String }
     struct Team: Decodable, Identifiable {
         struct Member: Decodable {let account,role,state: String}
-        struct Invite: Decodable,Identifiable {let id,channel_id,account,role,state: String}
+        struct Invite: Decodable,Identifiable {let id,channel_id,account,role,state: String;let expires_at:String?}
         let channel_id: String
+        let auth_version:UInt64?
         let members: [Member]?
         let invites: [Invite]?
         var id:String {channel_id}
@@ -97,11 +101,12 @@ struct CreatorSnapshot: Decodable {
     private var revision: UInt64=0
     var currentRevision: UInt64 {revision}
     private var started=false
+    private let scheduleOperation: @MainActor (@escaping @MainActor () async -> Void) -> Void
     private let makeEngine: @MainActor () throws -> CreatorNativeEngine
     private let makeDrafts: @MainActor (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState
     private var catalog: [String:[String:String]]=[:]
-    init(makeEngine: @escaping @MainActor () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping @MainActor (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live) {
-        self.makeEngine=makeEngine;self.makeDrafts=makeDrafts
+    init(makeEngine: @escaping @MainActor () throws -> CreatorNativeEngine=CreatorNativeEngine.live,makeDrafts: @escaping @MainActor (CreatorNativeEngine,CreatorNativeEngine.Identity) throws -> CreatorDraftState=CreatorDraftState.live,scheduleOperation: @escaping @MainActor (@escaping @MainActor () async -> Void) -> Void={work in Task {@MainActor in await work()}}) {
+        self.makeEngine=makeEngine;self.makeDrafts=makeDrafts;self.scheduleOperation=scheduleOperation
         if let file=Bundle.main.url(forResource:"catalog",withExtension:"json"),let bytes=try? Data(contentsOf:file),let parsed=try? JSONDecoder().decode([String:[String:String]].self,from:bytes) {catalog=parsed}
     }
     func text(_ key: String) -> String { catalog[locale]?[key] ?? catalog["en"]?[key] ?? key }
@@ -199,6 +204,18 @@ struct CreatorSnapshot: Decodable {
         } catch {if captured==revision {message=text("uploadUnconfirmed");try? await refreshCaptured(active,captured)}}
     }
     func cancelUpload() {guard !busy else {return};do {try drafts?.cancelUpload();pendingUploadTitle="";message=text("cancelRetained")}catch {message=text("draftUnavailable")}}
+    // Capture authority and inputs at the tap, before an asynchronous task can
+    // observe another account. A retired form cannot target a successor session.
+    func submit(_ path:String,body:[String:Any]=[:],method:String="POST",onSuccess:@escaping @MainActor () -> Void={}) {
+        guard connected,!busy,!pendingOperation,pendingAssetKind.isEmpty,let active=engine,let identity=active.identity else {return}
+        let captured=revision,epoch=active.epoch
+        scheduleOperation { [weak self] in
+            guard let self,(try? active.require(identity,epoch)) != nil,(try? self.require(active,captured)) != nil else {return}
+            await self.perform(path,body:body,method:method,expectedRevision:captured)
+            guard (try? active.require(identity,epoch)) != nil,(try? self.require(active,captured)) != nil,!self.pendingOperation,self.message.isEmpty else {return}
+            onSuccess()
+        }
+    }
     func perform(_ path: String,body: [String:Any]=[:],method:String="POST",expectedRevision:UInt64?=nil) async {
         guard !busy,pendingAssetKind.isEmpty,expectedRevision==nil || expectedRevision==revision,let store=drafts else {return}
         do {_ = try store.reserve(path:path,body:body,method:method);pendingOperation=true}catch {lastFailure=String(describing:error);message=text("operationPending");return}

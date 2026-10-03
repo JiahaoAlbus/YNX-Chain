@@ -243,29 +243,31 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual native consumer/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
-				PlaybackID                   string `json:"playbackID"`
-				ActualBusinessServerReadback bool   `json:"actualBusinessServerReadback"`
-				ActualAppleSwiftWebKitEngine bool   `json:"actualAppleSwiftWebKitEngine"`
-				ActualOriginalAppleModelFlow bool   `json:"actualOriginalAppleModelFlow"`
-				ActualTwoOriginalSwiftActors bool   `json:"actualTwoOriginalSwiftActors"`
-				ActualIndependentReview      bool   `json:"actualIndependentRightsAndPublication"`
-				ActualPublicationRecovery    bool   `json:"actualScheduledPublicationRecovery"`
-				ActualRevokedTeamDenied      bool   `json:"actualRevokedTeamMutationDenied"`
-				ActualAppealColdRecovery     bool   `json:"actualAppealColdRecovery"`
-				ActualAppealFreshReview      bool   `json:"actualAppealRequiresFreshPublicationReview"`
-				ActualAssetColdRecovery      bool   `json:"actualAssetColdRecovery"`
-				ActualAssetOriginalReadback  bool   `json:"actualAssetOriginalByteReadback"`
-				ActualAIStreamRecovery       bool   `json:"actualAIStreamAndColdRecovery"`
-				ActualAICancelBoundary       bool   `json:"actualAICancelAndHumanBoundary"`
-				ActualRightsFullFields       bool   `json:"actualNativeRightsFullFields"`
-				ActualDelegatedFinance       bool   `json:"actualDelegatedFinanceRecovery"`
-				ActualWalletConsent          bool   `json:"actualWalletConsent"`
-				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
+				PlaybackID                    string `json:"playbackID"`
+				ActualBusinessServerReadback  bool   `json:"actualBusinessServerReadback"`
+				ActualAppleSwiftWebKitEngine  bool   `json:"actualAppleSwiftWebKitEngine"`
+				ActualOriginalAppleModelFlow  bool   `json:"actualOriginalAppleModelFlow"`
+				ActualTwoOriginalSwiftActors  bool   `json:"actualTwoOriginalSwiftActors"`
+				ActualIndependentReview       bool   `json:"actualIndependentRightsAndPublication"`
+				ActualPublicationRecovery     bool   `json:"actualScheduledPublicationRecovery"`
+				ActualRevokedTeamDenied       bool   `json:"actualRevokedTeamMutationDenied"`
+				ActualAppealColdRecovery      bool   `json:"actualAppealColdRecovery"`
+				ActualAppealFreshReview       bool   `json:"actualAppealRequiresFreshPublicationReview"`
+				ActualAssetColdRecovery       bool   `json:"actualAssetColdRecovery"`
+				ActualAssetOriginalReadback   bool   `json:"actualAssetOriginalByteReadback"`
+				ActualAIStreamRecovery        bool   `json:"actualAIStreamAndColdRecovery"`
+				ActualAICancelBoundary        bool   `json:"actualAICancelAndHumanBoundary"`
+				ActualCapturedButtonAuthority bool   `json:"actualCapturedButtonAuthority"`
+				ActualNativeHistoryExpiry     bool   `json:"actualRetainedNativeHistoryAndExpiry"`
+				ActualRightsFullFields        bool   `json:"actualNativeRightsFullFields"`
+				ActualDelegatedFinance        bool   `json:"actualDelegatedFinanceRecovery"`
+				ActualWalletConsent           bool   `json:"actualWalletConsent"`
+				QAProtectedPorts              bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()

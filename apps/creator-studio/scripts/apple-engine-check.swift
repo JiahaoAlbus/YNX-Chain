@@ -49,11 +49,12 @@ import Foundation
                 return try CreatorNativeEngine(state:state,key:key,assets:assets,send:sender,stream:streamer,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
             }
             var engine=try create()
+            var queuedSubmit:(@MainActor () async -> Void)?,submitCompletions=0
             func createModel(_ engine: CreatorNativeEngine) -> CreatorModel {
                 CreatorModel(makeEngine:{engine},makeDrafts:{active,identity in
                     let epoch=active.epoch
                     return try CreatorDraftState(account:identity.account,root:root,require:{try active.require(identity,epoch)})
-                })
+                },scheduleOperation:{work in queuedSubmit=work})
             }
             var model=createModel(engine)
             func reply(_ id: String,_ value: [String:Any]) { do { let bytes=try JSONSerialization.data(withJSONObject:["id":id,"value":value],options:[.sortedKeys]);FileHandle.standardOutput.write(bytes+Data([10])) } catch { FileHandle.standardOutput.write(Data("{\"error\":\"fixture output invalid\"}\n".utf8)) } }
@@ -71,6 +72,8 @@ import Foundation
                             let deadline=Date().addingTimeInterval(35)
                             while model.busy && Date()<deadline {try await Task.sleep(nanoseconds:10_000_000)}
                         case "callback":_ = try await engine.dispatch("handleReturn",["url":command["url"]!])
+                        case "uiSubmitCaptured":model.submit(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:],method:command["method"] as? String ?? "POST",onSuccess:{submitCompletions+=1})
+                        case "uiReleaseSubmit":let work=queuedSubmit;queuedSubmit=nil;await work?()
                         case "uiPerform":await model.perform(command["path"] as! String,body:command["body"] as? [String:Any] ?? [:],method:command["method"] as? String ?? "POST")
                         case "uiSubmitAppeal":await model.submitAppeal(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
                         case "uiSubmitDispute":await model.submitDispute(command["recordID"] as! String,reason:command["reason"] as! String,expectedRevision:model.currentRevision)
@@ -137,11 +140,11 @@ import Foundation
                         }
                         value["held"]=held != nil;value["walletUrl"]=opened;value["connected"]=model.connected;value["pending"]=model.signOutPending;value["busy"]=model.busy
                         value["channelID"]=model.channelID;value["uploadPending"] = !model.pendingUploadTitle.isEmpty;value["operationPending"]=model.pendingOperation;value["message"]=model.message;value["assetPending"]=model.pendingAssetKind
-                        value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
-                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? "","thumbnail":$0.thumbnail_key ?? "","captions":($0.captions ?? []).map{["key":$0.object_key,"language":$0.language,"label":$0.label,"aiProposed":$0.ai_proposed,"humanApproved":$0.human_approved] as [String:Any]}] as [String:Any]}
+                        value["submitQueued"]=queuedSubmit != nil;value["submitCompletions"]=submitCompletions;value["businessVerified"]=engine.identity != nil;value["lastFailure"]=model.lastFailure
+                        value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"title":$0.title,"description":$0.description,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? "","scheduledAt":$0.scheduled_at ?? "","versions":($0.versions ?? []).map{["sequence":$0.sequence,"actor":$0.actor,"kind":$0.kind,"at":$0.recorded_at,"contentHash":$0.content_sha256] as [String:Any]},"thumbnail":$0.thumbnail_key ?? "","captions":($0.captions ?? []).map{["key":$0.object_key,"language":$0.language,"label":$0.label,"aiProposed":$0.ai_proposed,"humanApproved":$0.human_approved] as [String:Any]}] as [String:Any]}
                         value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
-                        value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state]}] as [String:Any]}
-                        value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? "","license":$0.license_reference ?? "","start":$0.starts_at ?? "","end":$0.ends_at ?? "","exclusive":$0.exclusive ?? false,"splits":($0.contributor_splits ?? []).map{["account":$0.account,"points":$0.basis_points] as [String:Any]}]}
+                        value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"authVersion":team.auth_version ?? 0,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state,"expires":$0.expires_at ?? ""]}] as [String:Any]}
+                        value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? "","sourceHash":$0.source_sha256,"territories":$0.territories ?? [],"license":$0.license_reference ?? "","start":$0.starts_at ?? "","end":$0.ends_at ?? "","exclusive":$0.exclusive ?? false,"splits":($0.contributor_splits ?? []).map{["account":$0.account,"points":$0.basis_points] as [String:Any]}]}
                         value["reports"]=(model.snapshot?.reports ?? []).map{["id":$0.id,"videoID":$0.VideoID,"state":$0.State,"canAppeal":model.canAppeal($0)] as [String:Any]}
                         value["appeals"]=(model.snapshot?.appeals ?? []).map{["id":$0.id,"reportID":$0.ReportID,"appellant":$0.Appellant,"state":$0.State,"reason":$0.Reason]}
                         value["revenue"]=(model.snapshot?.revenue ?? []).map{["id":$0.id,"videoID":$0.VideoID,"owner":$0.Owner,"receipt":$0.PayReceiptID,"amount":$0.AmountYNXT,"canDispute":model.canDispute($0)] as [String:Any]}
