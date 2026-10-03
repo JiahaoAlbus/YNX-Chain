@@ -1,0 +1,10 @@
+
+Running 3 tests using 1 worker
+
+(node:78992) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/form-context.spec.mjs:17:1 › cancel during controlled proof preparation sends zero operations and keeps original prepared key for explicit retry (388ms)
+  ✓  2 [chromium] › test/browser/form-context.spec.mjs:20:1 › same dialog reopened before late proof cannot admit previous presentation or clear its original key (189ms)
+  ✓  3 [chromium] › test/browser/form-context.spec.mjs:23:1 › escape after dispatch and actor replacement preserve original unknown row despite a late successful result (127ms)
+
+  3 passed (1.2s)

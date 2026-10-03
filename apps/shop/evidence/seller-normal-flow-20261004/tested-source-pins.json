@@ -1,0 +1,147 @@
+[
+  {
+    "path": "apps/seller-console/ai-stream.js",
+    "sha256": "67cb1a7818ad0674b8dd490e35646a22f97174dfc98945dd07ce24ccfca5b38c",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/ai-stream.js"
+  },
+  {
+    "path": "apps/seller-console/app.js",
+    "sha256": "7bcf11540c7558856ffed736a91afa1d5a3995a56aec0e359b37e891dd4f1d34",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/app.js"
+  },
+  {
+    "path": "apps/seller-console/display-settings.js",
+    "sha256": "e5a67d767b85cd5a7f5a92ab234fb4e33856fe561bf23cdd46bbaa5b55b2f5ec",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/display-settings.js"
+  },
+  {
+    "path": "apps/seller-console/form-context.js",
+    "sha256": "f3b8c6e72fe256bc6962cccc99dd9fd8dc615e3306dbbb603fba63d7d1c6afd3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/form-context.js"
+  },
+  {
+    "path": "apps/seller-console/form-input.js",
+    "sha256": "a81eda5b1f64e3d81c7dd1ee2179d20ba26c519624d3cda13af58c4ebb016c46",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/form-input.js"
+  },
+  {
+    "path": "apps/seller-console/i18n.js",
+    "sha256": "083485bc9c8857ec3c03a4a0f900a25799e82876fa3d20ba2544a466f116700e",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/i18n.js"
+  },
+  {
+    "path": "apps/seller-console/index.html",
+    "sha256": "bb4a47a7bec16d6fb37514dd1e16715456633ab495e770706ebae1633b1dcd7a",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/index.html"
+  },
+  {
+    "path": "apps/seller-console/mutation-intents.js",
+    "sha256": "7654d5c5940a4831f740e874721c7f118f02dbca478a83d9b41ab74f241676af",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/mutation-intents.js"
+  },
+  {
+    "path": "apps/seller-console/playwright.config.mjs",
+    "sha256": "7ca3f1d3a06e97769487f6d4706b59e782dcbcb6b46a00f76041625103a4daee",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/playwright.config.mjs"
+  },
+  {
+    "path": "apps/seller-console/private-copy.js",
+    "sha256": "5ffcd4b4b0cee53e23bd5d60cad4b9383618d3c08abe88a0f4989ba3592c168e",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/private-copy.js"
+  },
+  {
+    "path": "apps/seller-console/product-session.js",
+    "sha256": "4f70c0ecc16eb7a8a5e6fb7528fe581b2014a74c60f0fed862f7fdb08de1bbbd",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/product-session.js"
+  },
+  {
+    "path": "apps/seller-console/request-context.js",
+    "sha256": "fdc3af2dbf9fa01792339d6308f3e164a9e8b4a3046257ae14123414ec2ba7e3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/request-context.js"
+  },
+  {
+    "path": "apps/seller-console/runtime-config.js",
+    "sha256": "9e011f3c5d2a941397069193c554cda07d4f4602ac503e148de6b25edf7354b1",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/runtime-config.js"
+  },
+  {
+    "path": "apps/seller-console/scripts/build.mjs",
+    "sha256": "93e5a0f22df4ebdd3645ace50898d5b7ed9d9352be7270a0a8a437b16062e197",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/scripts/build.mjs"
+  },
+  {
+    "path": "apps/seller-console/scripts/smoke.mjs",
+    "sha256": "04ef87f4ed56f89fdde800cedb9932b2248ec926c4bd0b0c3a67359d7f5777c5",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/scripts/smoke.mjs"
+  },
+  {
+    "path": "apps/seller-console/standard-wallet.js",
+    "sha256": "0d199e29e02afec8bcf3348b354a97bc14186211d61ec5d8849f33a90d95bf94",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/standard-wallet.js"
+  },
+  {
+    "path": "apps/seller-console/test/ai-stream.test.mjs",
+    "sha256": "410a0a487d1223144d21278775a5b957cc48e4509a900ef4d7a03ee9e453f6d9",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/ai-stream.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/browser/form-context.spec.mjs",
+    "sha256": "958207531700d685a6754864a6300acbe6e38b425d690ca02a4473370a24c470",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/browser/form-context.spec.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/browser/wallet-visible.spec.mjs",
+    "sha256": "7936c52a42fbdbdf042b08738ce8ff63a8df2041a84b821d2710633ae51a1be6",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/browser/wallet-visible.spec.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/canonical_transport.test.mjs",
+    "sha256": "5cbaa39bc941d6396fb993408f3b2053da250694ccb60009a126be81d27d1824",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/canonical_transport.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/form-input.test.mjs",
+    "sha256": "a2dfecb58e3f66e214c9a4c372f5e6a7d9b5f49b0f49836c2867a3a257059a37",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/form-input.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/mutation-intents.test.mjs",
+    "sha256": "a5d79f849e69186428a310f03e64162db75fc3e82a95065834aaea6497faaeb3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/mutation-intents.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/private_controller.test.mjs",
+    "sha256": "4758baaccbbfd73dd454db7e173f1ed258fe8ccfe7449f18bae41b41db29b4c6",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/private_controller.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/release_wallet.test.mjs",
+    "sha256": "9c335488cbb191d78de8937024bb565be606a4032bdbb4298af47e2241dbc8cd",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/release_wallet.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/request-context.test.mjs",
+    "sha256": "094ff0c820bb3dd0d6a30775a6167a9938873d450da04d492335b74712d90ab3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/request-context.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/security_i18n.test.mjs",
+    "sha256": "3eabd8dd950349bd706247662dce08a368370b5b7151cfdb040df286a59c973a",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/security_i18n.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/standard_wallet.test.mjs",
+    "sha256": "595b54e5ca1e768fec80552262096e8b4d1efc63bc926edd5a8fb0ad649bd739",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/standard_wallet.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/test/ui.test.mjs",
+    "sha256": "50be46248dd8d1c33986a2cfcc459ed73ac5b32aa790b8f7129250152edad5b3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/test/ui.test.mjs"
+  },
+  {
+    "path": "apps/seller-console/wallet-auth.js",
+    "sha256": "75c6d40af08b416be1851b92a8ab3cb19e8d5443f74bcb3631bc07f7043b8d97",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/seller-console/wallet-auth.js"
+  }
+]

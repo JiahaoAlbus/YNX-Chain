@@ -1,0 +1,68 @@
+{
+  "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+  "sourceTree": "da7947ec9b2650455005eb077658178e05bee82e",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-11b514910.tar",
+    "members": 8,
+    "bytes": 94208,
+    "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+  },
+  "composedOwnedMembers": 437,
+  "composition": "PASS all current owned member hashes equal immutable base plus original offline delta plus current Seller delta",
+  "testedSourcePins": 29,
+  "rawRecords": [
+    {
+      "path": "raw/seller-build-final.log",
+      "bytes": 71,
+      "sha256": "c16af5ec576ef699558d2fc85d85f8763c23bef1b763be5cf27a6f816ab3fb10"
+    },
+    {
+      "path": "raw/seller-build.log",
+      "bytes": 71,
+      "sha256": "c16af5ec576ef699558d2fc85d85f8763c23bef1b763be5cf27a6f816ab3fb10"
+    },
+    {
+      "path": "raw/seller-form-browser.log",
+      "bytes": 767,
+      "sha256": "a0d210c1167352936028b59bb952a8833ec646bf9b84c9ca44a4e851044bf592"
+    },
+    {
+      "path": "raw/seller-node-final.log",
+      "bytes": 4728,
+      "sha256": "38912c09a1f5900cca4cb116a920df5fef3ddf86d92de97a7b143a54d43df20f"
+    },
+    {
+      "path": "raw/seller-node.log",
+      "bytes": 4468,
+      "sha256": "e4c39bca483e130f2874c732f477cc54a77a723b0d7f27ac0455d486c5fa5fb8"
+    }
+  ],
+  "validation": {
+    "sellerNode": 51,
+    "sellerWebBuild": "PASS",
+    "realDialogControllerJournalBrowser": 3,
+    "asyncProofNetwork": "CONTROLLED_SEAMS_NO_PRIVATE_AUTHORITY",
+    "sourceProtocolChanges": 0
+  },
+  "acceptanceCards": 11,
+  "publicDelivery": "NOT_VERIFIED",
+  "privateSellerMerchantQualification": "A_REQUIRED",
+  "installedNativeJourney": "A_RECEIPT_THEN_REAL_WALLET_REQUIRED",
+  "wholeGoal": "NOT_COMPLETE"
+}
