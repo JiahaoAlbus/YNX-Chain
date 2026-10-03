@@ -86,6 +86,13 @@ authorization. Matching that hash is not account-session authority.
 
 ## Remaining complete-product work
 
+Desktop now has `wallet-pay-prepare.mjs` for the exact native Pay transfer and
+public result inside the existing `DesktopWalletVault.withSecret` callback and
+`DesktopKeyLifecycle.run`. It is not the Ethereum sender and cannot broadcast.
+Controlled tests use the actual vault/lifecycle code with synthetic storage and
+authentication, not real OS custody acceptance. It is not yet wired into the
+Desktop main-process private native journal or normal approval/recovery UI.
+
 Adopt the protected factory in the actual A bootstrap with real adapter/policy
 and authenticated canonical settlement transport; implement corresponding
 Desktop protected-key/outbox consumer behavior without replacing custody.
