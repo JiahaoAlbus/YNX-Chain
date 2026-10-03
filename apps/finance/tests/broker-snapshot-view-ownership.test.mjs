@@ -58,3 +58,39 @@ test('actual Chrome keeps new broker display when an older account read fails',{
     assert.equal(await page.evaluate(()=>requests.length),3);
   }finally{await browser.close()}
 });
+
+test('workspace old-account and same-account late errors cannot erase current orders',async()=>{
+  const workspaceSource=app.slice(app.indexOf('let brokerWorkspaceRevision='),app.indexOf('async function createBrokerApproval('));
+  for(const switchAccount of [false,true])for(const oldFails of [false,true]){
+    const requests=[],renders=[];let view;
+    const context=vm.createContext({state:{context:1,connected:true},brokerWorkspaceUnavailable:false,renderBrokerWorkspace:value=>{view=value;renders.push(value)},api:()=>new Promise((resolve,reject)=>requests.push({resolve,reject}))});
+    vm.runInContext(workspaceSource,context);const old=vm.runInContext('refreshBrokerWorkspace()',context);if(switchAccount)context.state.context++;
+    const next=vm.runInContext('refreshBrokerWorkspace()',context);const expected={serverTime:'2026-10-03T00:00:00Z',orders:[{id:'current'}]};requests[1].resolve({schema:'ynx-finance-broker-workspace-v1',workspace:expected});await next;
+    if(oldFails)requests[0].reject(Error('old error'));else requests[0].resolve({schema:'ynx-finance-broker-workspace-v1',workspace:{...expected,orders:[{id:'old'}]}});assert.equal(await old,null);
+    assert.equal(view,expected);assert.equal(context.brokerWorkspaceUnavailable,false);assert.equal(renders.length,1);
+  }
+});
+
+test('quote responses and failures cannot cross account or edited symbol boundaries',async()=>{
+  const quoteSource=app.slice(app.indexOf('async function refreshBrokerQuote('),app.indexOf('function renderBrokerQuote('));
+  for(const boundary of ['account','symbol','invalid-new-read'])for(const fail of [false,true]){
+    let resolve,reject;const form={symbol:'TEST'},renders=[];
+    const context=vm.createContext({state:{context:1,brokerSelectedAsset:{symbol:'TEST'}},AbortController,setTimeout,clearTimeout,FormData:class{constructor(value){this.value=value}get(){return this.value.symbol}},$:()=>form,renderBrokerQuote:()=>renders.push(vm.runInContext('brokerQuoteDisplay.kind',context)),fetch:()=>new Promise((a,b)=>{resolve=a;reject=b})});
+    vm.runInContext(quoteSource,context);const old=vm.runInContext('refreshBrokerQuote()',context);
+    if(boundary==='account')context.state.context++;else form.symbol='OTHER';
+    if(boundary==='invalid-new-read')await vm.runInContext('refreshBrokerQuote()',context);
+    if(fail)reject(Error('old quote failed'));else resolve({ok:true,json:async()=>({schema:'ynx-finance-broker-quote-v1',source:'alpaca_market_data_sandbox',officialSandboxVerified:false,quoteState:'sample',quote:{symbol:'TEST',bidPrice:'1',askPrice:'2',feed:'sample',timestamp:'2026-10-03T00:00:00Z'}})});
+    await old;assert.equal(renders.length,boundary==='invalid-new-read'?1:0);assert.equal(vm.runInContext('brokerQuoteDisplay.kind',context),boundary==='invalid-new-read'?'unavailable':'none');
+  }
+});
+
+test('late public asset-search failure cannot clear a new-account selected asset or draft',async()=>{
+  const searchSource=app.slice(app.indexOf('async function searchBrokerAssets('),app.indexOf('function renderBrokerWatchlist('));
+  for(const fail of [false,true]){
+    let resolve,reject;const selected={symbol:'CURRENT'},form={elements:{assetId:{value:'current-id'},symbol:{value:'CURRENT'}}},renders=[];
+    const context=vm.createContext({state:{context:1,brokerSelectedAsset:selected},AbortController,setTimeout,clearTimeout,FormData:class{get(){return 'query'}},$:()=>form,brokerAssetSearchRevision:0,brokerAssetSearchController:null,brokerQuoteRevision:0,brokerQuoteController:null,brokerQuoteDisplay:{kind:'none'},brokerApprovalDisplay:null,financeText:key=>key,notify:()=>renders.push('notice'),renderBrokerQuote:()=>renders.push('quote'),renderBrokerAssets:()=>renders.push('assets'),fetch:()=>new Promise((a,b)=>{resolve=a;reject=b})});
+    vm.runInContext(searchSource,context);const old=vm.runInContext('searchBrokerAssets()',context);context.state.context++;
+    if(fail)reject(Error('old search failed'));else resolve({ok:true,json:async()=>({schema:'ynx-finance-broker-assets-v1',assets:[]})});await old;
+    assert.equal(context.state.brokerSelectedAsset,selected);assert.equal(form.elements.assetId.value,'current-id');assert.equal(form.elements.symbol.value,'CURRENT');assert.deepEqual(renders,[]);
+  }
+});

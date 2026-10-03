@@ -136,10 +136,10 @@ function renderBrokerAssets(assets,failed=false){
 }
 async function searchBrokerAssets(event){
   event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
-  const revision=++brokerAssetSearchRevision;
+  const revision=++brokerAssetSearchRevision,context=state.context;
   brokerAssetSearchController?.abort();const controller=new AbortController();brokerAssetSearchController=controller;
   const timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');if(revision===brokerAssetSearchRevision)renderBrokerAssets(result.assets)}catch{if(revision===brokerAssetSearchRevision){state.brokerSelectedAsset=null;const form=$('#broker-order-form');form.elements.assetId.value='';form.elements.symbol.value='';brokerQuoteRevision++;brokerQuoteController?.abort();brokerQuoteDisplay={kind:'none'};renderBrokerQuote();renderBrokerAssets([],true);if(!brokerApprovalDisplay)$('#broker-order-preview').textContent=financeText('brokerNoApproval');notify(financeText('brokerAssetsUnavailable'),true)}}finally{clearTimeout(timer);if(revision===brokerAssetSearchRevision)brokerAssetSearchController=null}
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');if(revision===brokerAssetSearchRevision&&context===state.context)renderBrokerAssets(result.assets)}catch{if(revision===brokerAssetSearchRevision&&context===state.context){state.brokerSelectedAsset=null;const form=$('#broker-order-form');form.elements.assetId.value='';form.elements.symbol.value='';brokerQuoteRevision++;brokerQuoteController?.abort();brokerQuoteDisplay={kind:'none'};renderBrokerQuote();renderBrokerAssets([],true);if(!brokerApprovalDisplay)$('#broker-order-preview').textContent=financeText('brokerNoApproval');notify(financeText('brokerAssetsUnavailable'),true)}}finally{clearTimeout(timer);if(revision===brokerAssetSearchRevision)brokerAssetSearchController=null}
 }
 function renderBrokerWatchlist(items){
   const list=Array.isArray(items)?items:[];
@@ -260,9 +260,12 @@ async function refreshBrokerExecutionStatus(orderId){
     await refreshBrokerWorkspace();
   }catch(error){notifyFailure(error,'brokerJournalUnavailable')}
 }
+let brokerWorkspaceRevision=0;
 async function refreshBrokerWorkspace(){
+  const revision=++brokerWorkspaceRevision,context=state.context;
+  const current=()=>revision===brokerWorkspaceRevision&&context===state.context&&state.connected;
   if(!state.connected){brokerWorkspaceUnavailable=false;renderBrokerWorkspace(null);return null}
-  try{const result=await api('/api/broker/orders');if(result?.schema!=='ynx-finance-broker-workspace-v1'||typeof result.workspace?.serverTime!=='string')throw new Error('Broker workspace response is invalid.');brokerWorkspaceUnavailable=false;renderBrokerWorkspace(result.workspace);return result.workspace}catch{brokerWorkspaceUnavailable=true;renderBrokerWorkspace(null);return null}
+  try{const result=await api('/api/broker/orders');if(!current())return null;if(result?.schema!=='ynx-finance-broker-workspace-v1'||typeof result.workspace?.serverTime!=='string')throw new Error('Broker workspace response is invalid.');brokerWorkspaceUnavailable=false;renderBrokerWorkspace(result.workspace);return result.workspace}catch{if(current()){brokerWorkspaceUnavailable=true;renderBrokerWorkspace(null)}return null}
 }
 async function createBrokerApproval(event){
   event.preventDefault();
@@ -296,16 +299,18 @@ async function requestBrokerCancel(orderId){
   try{const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/cancel-request`,{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-cancel-request-v1'||result.providerWriteAttempted!==false)throw new Error('Cancellation request response is invalid.');notify(financeText('brokerCancelRecorded'));await refreshBrokerWorkspace()}catch{notify(financeText('brokerCancelUnavailable'),true)}
 }
 async function refreshBrokerQuote(){
+  const revision=++brokerQuoteRevision,context=state.context;brokerQuoteController?.abort();
   const symbol=String(new FormData($('#broker-order-form')).get('symbol')||'').toUpperCase();
   if(!state.brokerSelectedAsset||state.brokerSelectedAsset.symbol!==symbol){brokerQuoteDisplay={kind:'unavailable'};renderBrokerQuote();return}
-  const revision=++brokerQuoteRevision;brokerQuoteController?.abort();const controller=new AbortController();brokerQuoteController=controller;
+  const current=()=>revision===brokerQuoteRevision&&context===state.context&&state.brokerSelectedAsset?.symbol===symbol&&String(new FormData($('#broker-order-form')).get('symbol')||'').toUpperCase()===symbol;
+  const controller=new AbortController();brokerQuoteController=controller;
   const timer=setTimeout(()=>controller.abort(),5000);
   try{
     const response=await fetch(`/api/broker/quote?symbol=${encodeURIComponent(symbol)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json(),quote=result?.quote;
     const decimal=/^-?(?:0|[1-9][0-9]{0,31})(?:\.[0-9]{1,18})?$/;
     if(!response.ok||result?.schema!=='ynx-finance-broker-quote-v1'||result.source!=='alpaca_market_data_sandbox'||result.officialSandboxVerified!==false||quote?.symbol!==symbol||!decimal.test(quote?.bidPrice||'')||!decimal.test(quote?.askPrice||'')||!['iex','sample'].includes(quote?.feed)||!['real_time','delayed','stale','sample'].includes(result.quoteState)||!Number.isFinite(Date.parse(quote?.timestamp)))throw new Error('BROKER_QUOTE_UNVERIFIED');
-    if(revision===brokerQuoteRevision&&state.brokerSelectedAsset?.symbol===symbol){brokerQuoteDisplay={kind:'data',quote,quoteState:result.quoteState};renderBrokerQuote()}
-  }catch{if(revision===brokerQuoteRevision){brokerQuoteDisplay={kind:'unavailable'};renderBrokerQuote()}}
+    if(current()){brokerQuoteDisplay={kind:'data',quote,quoteState:result.quoteState};renderBrokerQuote()}
+  }catch{if(current()){brokerQuoteDisplay={kind:'unavailable'};renderBrokerQuote()}}
   finally{clearTimeout(timer);if(revision===brokerQuoteRevision)brokerQuoteController=null}
 }
 let brokerQuoteRevision=0,brokerQuoteController=null,brokerQuoteDisplay={kind:'none'};
