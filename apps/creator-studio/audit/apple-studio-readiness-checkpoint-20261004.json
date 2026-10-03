@@ -1,0 +1,213 @@
+{
+  "schema": "ynx.creator.apple.studio-readiness.checkpoint.v1",
+  "createdAt": "2026-10-03T22:44:23.483699+00:00",
+  "sourceCommit": "5d61526931ac8d47dbb1d2e11dca02997e717454",
+  "sourceTree": "2d1ddbafc1d21cc43299839444045688b88fcc3c",
+  "sourceArchive": {
+    "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/media-owned-source-5d615269.tar.gz",
+    "bytes": 4274746,
+    "sha256": "98929e9be29e73a0c796695a39e4be9e140429b7a87bc751c150a0a891bd5eda",
+    "fileCount": 625,
+    "everyMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "candidates": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreator-5d615269-unsigned.tar.gz",
+      "bytes": 1589265,
+      "sha256": "ae7ffbaa9b6a00fbc371c283780a6d678133717603147d35b3bc5942ffb9c48d",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreator",
+      "sdk": "iphonesimulator",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreatorMac-5d615269-unsigned.tar.gz",
+      "bytes": 931388,
+      "sha256": "ed02aae908c980c31eb7f635c28ae65f607a5fd89b3a5520f2d141378753644a",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreatorMac",
+      "sdk": "macosx",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    }
+  ],
+  "buildSourcePinsGitExact": true,
+  "compositionInputPins": 673,
+  "ownedCompositionPinsGitExact": true,
+  "checks": {
+    "fullGoRacePassEvents": 447,
+    "fullGoRaceFailures": 0,
+    "goVet": "PASS",
+    "fullIOSSimulatorMacOSBuild": "PASS",
+    "originalSDKAssetsAndBrandExact": true,
+    "studioReadinessSeparatedFromVerifiedAccount": true,
+    "originalEmptyReadDistinguishedFromUnread": true,
+    "lostOriginalStudioReplySameBindingRefreshRecovery": true,
+    "oldReadSuccessAndFailureCannotOverwriteCurrentSuccessor": true,
+    "signOutSupersedesOriginalReadNoPrivateReappearance": true,
+    "actualOriginalStudioReadinessAndCompleteNativeJourney": true,
+    "originalSDKProtocolScopesRolesTimeoutsUnchanged": true
+  },
+  "inheritedRestoreQACheckpoint": {
+    "path": "apps/creator-studio/audit/apple-restore-repeat-checkpoint-20261004.json",
+    "bytes": 8521,
+    "sha256": "f1c17d04239beeb48c3bae2cd40e7502e0454209f5a971eed5d7a5e2b7f95672"
+  },
+  "inheritedExpiryLocalesCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-expiry-locales-checkpoint-20261004.json",
+    "bytes": 28043,
+    "sha256": "e20b4f0df97e7f7a2e95fc33378a0b7332fcc8826043d24e008b419aa7b8e9ca"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified"
+  ],
+  "publicReadback": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-0.json",
+      "bytes": 4939,
+      "sha256": "c5f3e391cdd021d6d6e23e5f3472b87bb2c0f66bfaf25548f49ddd95fe180149"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-1.json",
+      "bytes": 4176,
+      "sha256": "b1b6403f92f7e5f837699da755152077ac2e43ec7d8d78fcf8ffea3e6d7e4f61"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-2.json",
+      "bytes": 530,
+      "sha256": "e9ce0fc2e945c35fa4a45260cba795f8371249e58efc73e458319e078e31e6dc"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreator-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreator-full-build.txt",
+      "bytes": 129984,
+      "sha256": "53c2aa5f9f9c933bb1bfe87bd6fc021a485cb3168a1ca46c2a07dec4fd572e9e"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreatorMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/YNXCreatorMac-full-build.txt",
+      "bytes": 74922,
+      "sha256": "4555add387eebeec33e2b33d16fadb017e7e6366e5a29c2e98681ed052908506"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/combined-go-race.jsonl",
+      "bytes": 430569,
+      "sha256": "2e02fd1290fb4b48b9c0a30efff5450891e0372b698ca6b786b0cb971bd46507"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/combined-source-receipt.json",
+      "bytes": 185962,
+      "sha256": "8c9f50d59e4617b0712dd4ee1d37f572180bad8ddcee9e61695f4548cbdc768e"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/compiled-swift-log.txt",
+      "bytes": 1748,
+      "sha256": "c2addefcf185a99e41a26e8c3bab6a82c7fb2d87fae87c2deb53d5be6812eab1"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/compiled-swift-source.json",
+      "bytes": 2090,
+      "sha256": "77fbcff91a096b335a8a4210931be86227f2e4dff43722112c0331535085706d"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/followup.md",
+      "bytes": 2920,
+      "sha256": "aee7fc527e50199112f195b57f978dfaeb961688e1da54b8c535eaf6bb683393"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/full-native-build-receipt.json",
+      "bytes": 9992,
+      "sha256": "e0cea77eaa3d3f24180919ca3f8288b4ce356324f5fa910942417c06691eb490"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/original-readiness-focused-pass.jsonl",
+      "bytes": 3674,
+      "sha256": "c4fbd8c694bffb271f23ebf72f59602c1761e234847597b1905d720f61b10401"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/original-readiness-focused-receipt.json",
+      "bytes": 174834,
+      "sha256": "50f63e578bff4bc87e21ba6bc069e766a112d878cfaceb4465f58fc4f4dec123"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/prepare-checkpoint.py",
+      "bytes": 11849,
+      "sha256": "d971cc441f4a51520c0344b805db2c96a8478f4a17b80c51a833bd914821a824"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/prior-diagnostic-three-cancel-provider-race-failed.jsonl",
+      "bytes": 22444,
+      "sha256": "b476a206e2d388fe55deac30b690a46b0a0dc2940ecd1dfcefe5c9c42ee4c773"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/prior-diagnostic-three-cancel-provider-race-receipt.json",
+      "bytes": 174589,
+      "sha256": "e3b2ccc38d77195b5873de5c6fe7a7913b73108ab9c40f3f289e25bb24f1ae52"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/prior-diagnostic-three-runner.py",
+      "bytes": 18485,
+      "sha256": "67f8cbc6b738d625e9c159ee6fcc3bbc0b01ac035511d5fd5d6fc4e46a084a1e"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-0.json",
+      "bytes": 4939,
+      "sha256": "c5f3e391cdd021d6d6e23e5f3472b87bb2c0f66bfaf25548f49ddd95fe180149"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-1.json",
+      "bytes": 4176,
+      "sha256": "b1b6403f92f7e5f837699da755152077ac2e43ec7d8d78fcf8ffea3e6d7e4f61"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/public-readback-2.json",
+      "bytes": 530,
+      "sha256": "e9ce0fc2e945c35fa4a45260cba795f8371249e58efc73e458319e078e31e6dc"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-studio-readiness-20261004/verify-checkpoint.py",
+      "bytes": 2463,
+      "sha256": "77187f8fad08880eb314ccaa02e3f24f102cf70f6c35e808514b7a56657859a6"
+    }
+  ]
+}
