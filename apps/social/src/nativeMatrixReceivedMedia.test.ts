@@ -10,7 +10,7 @@ function fixture() {
     homeserverUrl: 'https://hs.example.test', authorityId: 'original', expiresAtMs: Date.now() + 3600000 };
   const person = 'sp_' + 'a'.repeat(32), peer = '@peer:example.test';
   const room = { roomId: '!original:example.test', name: 'Original', encrypted: true, joined: true, members: [binding.userId, peer] };
-  let generation = 0, accepted = true, opens = 0, cleanupFails = false;
+  let generation = 0, accepted = true, opens = 0, cleanupFails = false, currentPeer = peer;
   const released: number[] = [];
   let onOpen: () => Promise<void> = async () => {};
   const lease: MatrixMediaLease = { leaseId: '12345678-1234-1234-1234-123456789abc', roomId: room.roomId,
@@ -28,9 +28,10 @@ function fixture() {
     releaseReceivedMedia: async gen => { if (cleanupFails) { cleanupFails = false; throw new Error('CLEANUP_RETRY'); } released.push(gen); },
   };
   const consumer = new NativeMatrixConsumer(bridge, async () => binding,
-    async () => ({ personId: person, userId: peer, authorityId: binding.authorityId, accepted, blocked: false }));
+    async () => ({ personId: person, userId: currentPeer, authorityId: binding.authorityId, accepted, blocked: false }));
   return { consumer, bridge, person, room, opens: () => opens, released, reject: () => { accepted = false; },
-    onOpen: (callback: () => Promise<void>) => { onOpen = callback; }, failCleanup: () => { cleanupFails = true; } };
+    onOpen: (callback: () => Promise<void>) => { onOpen = callback; }, failCleanup: () => { cleanupFails = true; },
+    changePeer: () => { currentPeer = '@replacement:example.test'; } };
 }
 async function opened() { const f = fixture(); await f.consumer.restore(); await f.consumer.open(f.person); return f; }
 
@@ -66,4 +67,16 @@ test('failed cleanup retains original generation for explicit retry', async () =
   await target.preview.open(target.roomId, '$original'); f.failCleanup();
   await assert.rejects(target.preview.close(), /CLEANUP_RETRY/);
   await target.preview.close(); assert.deepEqual(f.released, [1]);
+});
+test('accepted profile cannot substitute its Matrix identity during download even in a self-only room', async () => {
+  const f = await opened(); f.room.members = f.room.members.slice(0, 1);
+  f.onOpen(async () => f.changePeer()); const target = f.consumer.receivedMedia('$original');
+  await assert.rejects(target.preview.open(target.roomId, '$original'), /STALE_PEER/);
+  assert.deepEqual(f.released, [1]);
+});
+test('native failure without a returned lease retires only the original Matrix scope', async () => {
+  const f = await opened(); f.onOpen(async () => { throw new Error('NATIVE_DOWNLOAD_FAILED'); });
+  const target = f.consumer.receivedMedia('$original');
+  await assert.rejects(target.preview.open(target.roomId, '$original'), /NATIVE_DOWNLOAD_FAILED/);
+  await assert.rejects(f.consumer.rooms(), /SESSION_REQUIRED/);
 });

@@ -65,7 +65,7 @@ export class NativeMatrixConsumer {
   private binding?: MatrixBinding;
   private generation?: number;
   private epoch = 0;
-  private room?: { value: MatrixRoom; personId: string };
+  private room?: { value: MatrixRoom; personId: string; userId: string };
   private listeners = new Set<(event: MatrixNativeEvent) => void>();
   private subscription?: { remove(): void };
   private expiryTimer?: ReturnType<typeof setTimeout>;
@@ -220,7 +220,7 @@ export class NativeMatrixConsumer {
     await this.authority();
     if (epoch !== this.epoch || peer.userId !== next.userId) throw new Error('MATRIX_STALE_PEER');
     this.validRoom(room, binding.userId, peer.userId);
-    this.room = { value: room, personId };
+    this.room = { value: room, personId, userId: peer.userId };
     await this.bridge.observeRoom(generation, room.roomId);
     await this.reviewRoom();
     await this.originals();
@@ -256,6 +256,10 @@ export class NativeMatrixConsumer {
     if (!currentRoom) throw new Error('MATRIX_REVIEWED_ROOM_REQUIRED');
     const auth = await this.authority();
     const peer = await this.peer(currentRoom.personId, auth.binding.authorityId);
+    if (peer.userId !== currentRoom.userId) {
+      if (auth.epoch === this.epoch && this.room === currentRoom) this.lock();
+      throw new Error('MATRIX_STALE_PEER');
+    }
     const rooms = await this.bridge.rooms(auth.generation);
     const room = rooms.find(r => r.roomId === currentRoom.value.roomId);
     await this.authority();
