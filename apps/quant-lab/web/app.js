@@ -723,7 +723,7 @@ function render() {
   renderPaperRecords(p);
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
-    `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${p.Cash ?? "—"}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${p.Position ?? "—"}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${p.ReconciliationDelta ?? "—"}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;
+`<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${paperObservedInteger(p.Cash)}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${paperObservedInteger(p.Position)}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${paperObservedInteger(p.ReconciliationDelta, true)}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch === true ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;
   const daily = p.DailyRisk;
   const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean';
   $('#paper-state').innerHTML += `<p>${safe(t('paperDailyLossLead'))}</p><dl><dt>${safe(t('paperDailyLoss'))}</dt><dd>${validDaily ? safe(`${daily.Day} UTC · ${daily.Loss} / ${daily.Limit} YUSD_TEST_MICRO · ${daily.Breached ? t('riskActive') : t('riskArmed')}`) : '—'}</dd></dl>`;
@@ -1212,6 +1212,9 @@ function confirmedRiskReceipt(value) {
   if(!value||!Number.isSafeInteger(value.Cash)||!Number.isSafeInteger(value.Position)||!Number.isSafeInteger(value.ReconciliationDelta)||value.ReconciliationDelta<0||typeof value.KillSwitch!=='boolean'||value.ReconciliationDelta>0&&!value.KillSwitch) throw Object.assign(new Error(t('riskReceiptUnconfirmed')), {localeKey:'riskReceiptUnconfirmed'});
   return value;
 }
+function paperObservedInteger(value, nonnegative = false) {
+  return Number.isSafeInteger(value) && (!nonnegative || value >= 0) ? String(value) : '—';
+}
 function applyConfirmedRiskReceipt(receipt) {
   // A confirmed write is newer than reads admitted before its completion.
   // Keep that source receipt even if the subsequent snapshot transport fails.
@@ -1223,6 +1226,7 @@ $("#reconcile").onclick = async () => {
   if (!statefulPreview || riskWrites.size>0) return;
   riskWrites.add('reconcile');snapshotRevision++;renderRiskControls();
   try {
+    if (!Number.isSafeInteger(snapshot.paper?.Cash) || !Number.isSafeInteger(snapshot.paper?.Position)) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
     const receipt=confirmedRiskReceipt(await api("/v1/paper/reconcile", {
       method: "POST",
       body: JSON.stringify({

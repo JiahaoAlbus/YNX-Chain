@@ -253,6 +253,26 @@ test('real research form coalesces a delayed request without displaying unconfir
     complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
   }finally{await context.close()}
 });
+test('actual Chrome renders malformed Paper amount fixtures unavailable without HTML or reconciliation write',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let writes=0;await context.route('**/api/v1/paper/reconcile',route=>{writes++;return route.abort('failed');});
+    await context.route('**/api/v1/snapshot',async route=>{
+      const response=await route.fetch(),body=await response.json();
+      body.paper={...body.paper,Cash:'<img src=x onerror="window.paperInjected=true">',Position:'0',ReconciliationDelta:Number.MAX_SAFE_INTEGER+1,KillSwitch:'false'};
+      await route.fulfill({response,json:body});
+    });
+    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();
+    assert.deepEqual((await page.locator('#paper-state dd').allTextContents()).slice(0,4),['—','—','—','—']);
+    assert.equal(await page.locator('#paper-state img').count(),0);assert.equal(await page.locator('#paper-state .danger').count(),0);
+    assert.equal(await page.evaluate(()=>window.paperInjected),undefined);
+    await page.getByRole('button',{name:'Risk',exact:true}).click();await page.locator('#reconcile').click();
+    await page.locator('#toast').filter({hasText:'unconfirmed'}).waitFor();assert.equal(writes,0);
+    assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+    await page.screenshot({path:path.join(evidence,'paper-source-values-unavailable.png'),fullPage:true});
+  }finally{await context.close()}
+});
 test('actual local Go reconciliation reports a controlled stale-snapshot difference and persistent kill switch',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

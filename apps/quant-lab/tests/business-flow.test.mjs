@@ -53,6 +53,28 @@ test('Paper daily loss shows only source-reported risk and explains the UTC firs
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
 });
 
+test('Paper amounts reject injected, missing and unsafe source values while preserving exact signed zero',async()=>{
+  const app=harness();await settle();
+  for(const value of [undefined,null,'0','<img src=x onerror=alert(1)>',{},[],true,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1]){
+    app.context.paperFixture={Cash:value,Position:value,ReconciliationDelta:value,KillSwitch:'false'};
+    vm.runInContext('snapshot.paper=paperFixture;render()',app.context);
+    const html=app.ids.get('paper-state').innerHTML;
+    assert.deepEqual([...html.matchAll(/<dd(?: class="[^"]*")?>(.*?)<\/dd>/g)].slice(0,4).map(m=>m[1]),['—','—','—','—']);
+    assert.doesNotMatch(html,/<img|class="danger"/);
+  }
+  app.context.paperFixture={Cash:0,Position:-123,ReconciliationDelta:0,KillSwitch:false};vm.runInContext('snapshot.paper=paperFixture;render()',app.context);
+  assert.deepEqual([...app.ids.get('paper-state').innerHTML.matchAll(/<dd(?: class="[^"]*")?>(.*?)<\/dd>/g)].slice(0,3).map(m=>m[1]),['0','-123','0']);
+  assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);
+});
+
+test('reconciliation cannot substitute missing or malformed observed amounts with service defaults',async()=>{
+  for(const paper of [{},{Cash:'0',Position:0},{Cash:0,Position:null},{Cash:Number.MAX_SAFE_INTEGER+1,Position:0},{Cash:0,Position:'<img>'}]){
+    const app=harness({snapshot:{paper}});await settle();await app.ids.get('reconcile').onclick();
+    assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);
+    assert.match(app.ids.get('toast').textContent,/unconfirmed/);
+  }
+});
+
 test('completed research must bind the exact submitted strategy ID, not another run with identical parameters',async()=>{
   const app=harness();await settle();
   const submitted={strategy:{id:'ma-current-request',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};
