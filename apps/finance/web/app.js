@@ -657,7 +657,7 @@ function renderSupport(s){const links=s&&typeof s==='object'&&!Array.isArray(s)?
 const formSaves=new WeakMap(),formSaveIntents=new WeakMap(),formUncommittedDrafts=new WeakMap();
 function ownedSavePayloadValid(path,body){
   const named=value=>typeof value==='string'&&value.trim().length>0;
-  const instant=value=>typeof value==='string'&&!value.startsWith('0001-')&&Number.isFinite(Date.parse(value));
+  const instant=value=>financeTimestampValid(value)&&!value.startsWith('0001-');
   if(path==='/api/privacy')return ['includePayInStatements','allowAiActivityContext','alertsEnabled'].every(key=>typeof body[key]==='boolean');
   if(path==='/api/categories')return named(body.name)&&typeof body.color==='string'&&/^#[0-9a-f]{6}$/i.test(body.color);
   if(path==='/api/budgets')return named(body.name)&&named(body.categoryId)&&Number.isSafeInteger(body.limitYnxt)&&body.limitYnxt>0&&['weekly','monthly'].includes(body.period)&&instant(body.startsAt);
@@ -665,7 +665,7 @@ function ownedSavePayloadValid(path,body){
   return false;
 }
 function ownedSaveReceiptMatches(path,body,receipt){
-  const instant=value=>typeof value==='string'&&!value.startsWith('0001-')&&Number.isFinite(Date.parse(value));
+  const instant=value=>financeTimestampValid(value)&&!value.startsWith('0001-');
   if(!receipt||typeof receipt!=='object'||Array.isArray(receipt))return false;
   if(path==='/api/privacy')return instant(receipt.updatedAt)&&['includePayInStatements','allowAiActivityContext','alertsEnabled'].every(key=>typeof body[key]==='boolean'&&receipt[key]===body[key]);
   if(typeof receipt.id!=='string'||!receipt.id.trim()||receipt.source!=='user'||!instant(receipt.createdAt))return false;

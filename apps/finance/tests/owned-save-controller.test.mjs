@@ -6,7 +6,7 @@ import {randomUUID} from 'node:crypto';
 
 // Direct production controller regression, not Wallet/public authentication QA.
 const source=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
-const controller=source.slice(source.indexOf('const formSaves='),source.indexOf("$('#category-form').addEventListener"));
+const controller=source.slice(source.indexOf('function financeTimestampValid('),source.indexOf('const date='))+source.slice(source.indexOf('const formSaves='),source.indexOf("$('#category-form').addEventListener"));
 const dataState=source.slice(source.indexOf('const dataDisabledControls='),source.indexOf('let loadOperation='));
 function fixture(){
   const calls=[],notices=[],state={context:1,connected:true},workspace={dataset:{dataState:'ready'}};
@@ -39,6 +39,16 @@ test('four owned saves require exact real receipts and keep uncertain intent/dra
 test('unsafe planning amounts and invalid payloads never send a write',async()=>{
   for(const [path,body] of [['/api/budgets',{name:'Budget',categoryId:'cat-1',limitYnxt:Number.MAX_SAFE_INTEGER+1,period:'monthly',startsAt:'2026-10-03T00:00:00Z'}],['/api/reminders',{title:'Reminder',amountYnxt:1.5,schedule:'monthly',nextDueAt:'2026-10-03T00:00:00Z'}],['/api/reminders',{title:'Reminder',amountYnxt:null,schedule:'monthly',nextDueAt:'invalid'}],['/api/categories',{name:'',color:'#002FA7'}],['/api/privacy',{alertsEnabled:true}]]){
     const f=fixture();await f.scope.save(f.form,path,body,null,{method:path==='/api/privacy'?'PUT':'POST'});assert.equal(f.calls.length,0);assert.equal(f.form.resetCount,0);assert.deepEqual(f.notices,['failed']);assert.equal(f.button.disabled,false);
+  }
+});
+test('calendar-invalid save receipts cannot confirm, reset drafts or lose the original retry intent',async()=>{
+  for(const timestamp of ['2026-02-30T00:00:00Z','2026-10-03','2026-10-03T00:00:00','2026-04-31T12:00:00+08:00']){
+    const f=fixture(),body={name:'Category',color:'#002FA7'};
+    const first=f.scope.save(f.form,'/api/categories',body,null,{method:'POST',reset:true});
+    f.calls[0].resolve({id:'owned-category',source:'user',name:'Category',color:'#002FA7',createdAt:timestamp});await first;
+    assert.equal(f.form.resetCount,0);assert.deepEqual(f.notices,['failed']);
+    const retry=f.scope.save(f.form,'/api/categories',body,null,{method:'POST',reset:true});
+    assert.deepEqual(f.calls[1].body,f.calls[0].body);f.reply(1);await retry;assert.equal(f.form.resetCount,1);
   }
 });
 test('explicit retry after unknown outcome preserves key and original computed time/body',async()=>{

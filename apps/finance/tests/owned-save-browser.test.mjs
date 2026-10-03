@@ -9,10 +9,29 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const locale=await readFile(new URL('../web/finance-locale.js',import.meta.url),'utf8');
-const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function renderStatement('));
+const saves=app.slice(app.indexOf('function financeTimestampValid('),app.indexOf('const date='))+app.slice(app.indexOf('const formSaves='),app.indexOf('function renderStatement('));
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
 const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
+test('invalid calendar receipt preserves the visible draft and same retry request in real Chrome',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>route.abort());await page.route('https://finance-calendar-save.test/',route=>route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}));await page.goto('https://finance-calendar-save.test/');await page.addScriptTag({content:locale});
+    await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.reads=0;const financeText=k=>YNXFinanceLocale.text(k),notify=()=>{},notifyFailure=()=>{},attestBrowserIdentityActivity=async()=>{},load=async()=>{reads++};const api=(path,options)=>new Promise(resolve=>calls.push({path,body:JSON.parse(options.body),resolve}));${saves}`});
+    await page.locator('#category-form input[name=name]').fill('Retain my category');
+    const submit=()=>page.evaluate(()=>document.querySelector('#category-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    await submit();await page.evaluate(()=>calls[0].resolve({...calls[0].body,id:'controlled-category',source:'user',color:calls[0].body.color.toUpperCase(),createdAt:'2026-02-30T00:00:00Z'}));
+    await page.waitForFunction(()=>!document.querySelector('#category-form').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'Retain my category');
+    assert.equal(await page.locator('#category-form [data-save-state]').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('ownedSaveUnconfirmed')));
+    assert.equal(await page.evaluate(()=>reads),0);await submit();
+    assert.deepEqual(await page.evaluate(()=>calls[1].body),await page.evaluate(()=>calls[0].body));
+    await page.evaluate(()=>calls[1].resolve({...calls[1].body,id:'controlled-category',source:'user',color:calls[1].body.color.toUpperCase(),createdAt:'2024-02-29T00:00:00+08:00'}));
+    await page.waitForFunction(()=>!document.querySelector('#category-form').hasAttribute('aria-busy'));
+    assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'');assert.equal(await page.evaluate(()=>reads),1);assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
+});
 test('confirmed category save reads a new overview and ignores a delayed pre-save overview in real Chrome',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
