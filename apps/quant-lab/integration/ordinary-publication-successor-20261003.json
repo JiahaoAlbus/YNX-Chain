@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "ynx-quant-ordinary-publication-successor-v1",
+  "classification": "ORDINARY_HUNKS_NOT_RELEASE_AUTHORITY",
+  "sourceCommit": "4bb47c6687e587d500bc4dc547b0deb062898996",
+  "sourceTree": "f7fecc66eaf53d4bab3e6568bc7f69819bafab12",
+  "baseManifest": "apps/quant-lab/integration/ordinary-publication-inputs-20261003.json",
+  "baseManifestSource": "38fd3552778bb7be3ef9988274da8f4dae891b06",
+  "handling": "Supersede listed ordinary inputs and add lifecycle/discovery helpers; retain base compatibility fences. Mixed files require ordinary-hunk integration into the release owner's current authority. Neither manifest is a complete runtime inventory. Rebuild formal HTML/modules/styles/SDK pins coherently; no whole-checkout publication.",
+  "objects": [
+    {"path":"apps/quant-lab/web/app.js","blob":"1c7fcd3f7bd6da30982185337a7d7a1698cd1f75","bytes":154471,"sha256":"9122bb553dbed64141b54232b299cfd4b26d01571a5682c1df9af983d0bce4ec"},
+    {"path":"internal/quantlab/service.go","blob":"1196658c1c48d948bdbf6c07bb2133f0de5b4f32","bytes":74809,"sha256":"fe06bb55c724863e61a961023382f0b0952cf09426cd3d40bf12f1deaf4eb049"},
+    {"path":"internal/quantlab/tenant_server.go","blob":"2713f3ad6f6ab748e75f788af3a204e512889446","bytes":6916,"sha256":"ed639815e80900b44b835f9a441a8c4e03b111a5ad1ce595401702b8e1bedb5e"},
+    {"path":"internal/quantlab/tenant_schedule_recovery.go","blob":"6b017d9066aeb141b20acf9518f413e10a0bb22a","bytes":2638,"sha256":"77fbb0517855128b6ce3ef59ef25141abf1785f773da27b23b8faaa6755a14ad"},
+    {"path":"apps/quant-lab/server/main.go","blob":"60bf7ba6bb2acb89c78d1256eadf3c09ff3db733","bytes":6357,"sha256":"1734943b2bccf0283acecf2110687bec729a28ebb840d6178362e66914d2c3ad"},
+    {"path":"apps/quant-lab/server/shutdown_test.go","blob":"d8f69965e1e0c3bc3f7d4e0995ab35dccc020ef0","bytes":3060,"sha256":"6488eafc68ef9fb38b7fe548d9172cd89440025ee7e2307c523c99459adb7792"},
+    {"path":"internal/quantlab/scheduler_context_test.go","blob":"89537da3f0c8e25a3772293530183fb89a4dfba1","bytes":5754,"sha256":"2da222a7afe5b4e401d134ecba2dbce932aefc716501d2bcea98c2c54b5f107a"},
+    {"path":"internal/quantlab/tenant_schedule_recovery_test.go","blob":"ab93debccb28abe83351e6cb29a930f84414f9eb","bytes":5223,"sha256":"8672520191dda05c04bd7080bc5b840a91320418cfa39cc83d6c5de4a11f5c23"},
+    {"path":"apps/quant-lab/scripts/test-postgres-isolated.mjs","blob":"0d572f83dba4345d8c5a752bcd73da4fb6a8a86a","bytes":8485,"sha256":"b9a2fef5ae793e0657ea53bb77a371ca430f3883df7a21aeaf7bb9d83a255cdc"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"cca82b496d0398f5e878b0b92497869053190ef6","bytes":75226,"sha256":"c45e8ebf3b720d9cdc48f8e2a5e0c987d47792660b933c720a8d425d2b6d7941"},
+    {"path":"apps/quant-lab/tests/research-recovery-browser.test.mjs","blob":"38215bcdb74b7163e6538cc163061e952d565dd3","bytes":6851,"sha256":"7739f82c2c4d65b500f6b4a876911790ec5182c05f6382c59562df096f903315"}
+  ],
+  "evidence": ["apps/quant-lab/evidence/tenant-scheduler-startup-recovery-20261003.md", "apps/quant-lab/evidence/scheduler-context-shutdown-20261003.md", "apps/quant-lab/evidence/http-shutdown-storage-drain-20261003.md", "apps/quant-lab/evidence/real-process-research-restart-20261003.md", "apps/quant-lab/evidence/schedule-status-localization-20261003.md"],
+  "databaseEvidence": {"actualIsolatedPostgreSQL":true,"focusedPasses":20,"postRestartFullPasses":116,"productionDatabaseUsed":false,"serverStopped":true},
+  "truth": {"deployed":false,"publicSourceBound":false,"publicMultiUserVerified":false,"walletApprovalVerified":false,"productSessionVerified":false,"installedVerified":false,"productComplete":false},
+  "forbidden": ["No Host/deploy/config mutation", "No shared authority/SDK/grants/pins overwrite", "No account/signature/order request", "No local/source proof promoted to public proof"]
+}
