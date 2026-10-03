@@ -1,0 +1,258 @@
+
+Running 6 tests using 1 worker
+
+(node:55626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/browser-identity-required.spec.mjs:3:1 › original private approval survives missing Browser identity and offers explicit sign-in (411ms)
+(node:55632) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  (273ms)
+(node:55637) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  (274ms)
+(node:55642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  (245ms)
+(node:55647) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent (252ms)
+(node:55652) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval (243ms)
+
+
+  1) [chromium] › test/browser/browser-identity-required.spec.mjs:3:1 › original private approval survives missing Browser identity and offers explicit sign-in 
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-required.spec.mjs:4:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/browser-identity-required--cb41b-and-offers-explicit-sign-in-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/browser-identity-required--cb41b-and-offers-explicit-sign-in-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/browser-identity-required--cb41b-and-offers-explicit-sign-in-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/browser-identity-required--cb41b-and-offers-explicit-sign-in-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/canonical-layout.spec.mjs:5:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/canonical-layout.spec.mjs:5:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/canonical-layout.spec.mjs:5:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent 
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/canonical-layout.spec.mjs:5:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval 
+
+    WalletAuthError: Central browser code redemption fields do not match the protocol schema
+
+       at ../../../../packages/wallet-auth/src/canonical.js:12
+
+      10 |   const actual = Object.keys(value).sort();
+      11 |   const wanted = [...expected].sort();
+    > 12 |   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+         |                                                      ^
+      13 | }
+      14 |
+      15 | export function canonicalJSON(value) {
+        at exactFields (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/canonical.js:12:54)
+        at CentralBrowserSessionAuthority.#redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:283:5)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:58
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:814:14
+        at CentralBrowserSessionStore.transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session-store.js:68:22)
+        at CentralBrowserSessionAuthority.#transaction (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:800:24)
+        at CentralBrowserSessionAuthority.redeem (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/central-browser-session.js:280:29)
+        at createBrowserIdentityFixture (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/browser-identity-fixture.mjs:25:24)
+        at installPrivateShop (/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:29:24)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/canonical-layout.spec.mjs:12:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-private-a-b2357-og-without-issuing-approval-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-private-a-b2357-og-without-issuing-approval-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-private-a-b2357-og-without-issuing-approval-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-private-a-b2357-og-without-issuing-approval-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [chromium] › test/browser/browser-identity-required.spec.mjs:3:1 › original private approval survives missing Browser identity and offers explicit sign-in 
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent 
+    [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval 

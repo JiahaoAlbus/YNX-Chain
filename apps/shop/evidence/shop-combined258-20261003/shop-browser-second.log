@@ -1,0 +1,19 @@
+--- FAIL: TestCommerceCombinedBrowserActualAuthorities (1.34s)
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/browser-revoke (0.34s)
+        auth_browser_v2_test.go:113: identity start 400 {"code":"SSO_REQUEST_REJECTED"}
+            
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/private-revoke (0.25s)
+        auth_browser_v2_test.go:113: identity start 400 {"code":"SSO_REQUEST_REJECTED"}
+            
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/generation (0.23s)
+        auth_browser_v2_test.go:113: identity start 400 {"code":"SSO_REQUEST_REJECTED"}
+            
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/actor (0.25s)
+        auth_browser_v2_test.go:113: identity start 400 {"code":"SSO_REQUEST_REJECTED"}
+            
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/replacement (0.27s)
+        auth_browser_v2_test.go:113: identity start 400 {"code":"SSO_REQUEST_REJECTED"}
+            
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.840s
+FAIL

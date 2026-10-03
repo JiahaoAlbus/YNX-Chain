@@ -1,0 +1,7 @@
+--- FAIL: TestCommerceCombinedBrowserActualAuthorities (0.49s)
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/actor (0.49s)
+        auth_browser_v2_test.go:215: changed Store field RequestWindow
+        auth_browser_v2_test.go:215: rejection changed original Store actor
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.058s
+FAIL

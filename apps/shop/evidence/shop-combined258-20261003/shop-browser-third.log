@@ -1,0 +1,14 @@
+--- FAIL: TestCommerceCombinedBrowserActualAuthorities (2.32s)
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/browser-revoke (0.49s)
+        auth_browser_v2_test.go:215: rejection changed original Store browser-revoke
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/private-revoke (0.46s)
+        auth_browser_v2_test.go:215: rejection changed original Store private-revoke
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/generation (0.45s)
+        auth_browser_v2_test.go:215: rejection changed original Store generation
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/actor (0.45s)
+        auth_browser_v2_test.go:215: rejection changed original Store actor
+    --- FAIL: TestCommerceCombinedBrowserActualAuthorities/replacement (0.48s)
+        auth_browser_v2_test.go:215: rejection changed original Store replacement
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	2.818s
+FAIL

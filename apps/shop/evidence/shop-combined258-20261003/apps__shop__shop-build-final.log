@@ -1,0 +1,50 @@
+✘ [ERROR] Could not resolve "@ynx-chain/wallet-auth/standard-wallet-connection"
+
+    wallet-auth.js:4:39:
+      4 │ ...nnection} from '@ynx-chain/wallet-auth/standard-wallet-connection';
+        ╵                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  The path "./standard-wallet-connection" is not exported by package "@ynx-chain/wallet-auth":
+
+    node_modules/@ynx-chain/wallet-auth/package.json:8:13:
+      8 │   "exports": {
+        ╵              ^
+
+  You can mark the path "@ynx-chain/wallet-auth/standard-wallet-connection" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+✘ [ERROR] Could not resolve "@ynx-chain/wallet-auth/wallet-provider-discovery"
+
+    wallet-provider-discovery.js:3:95:
+      3 │ ...AUTHORITY} from '@ynx-chain/wallet-auth/wallet-provider-discovery';
+        ╵                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  The path "./wallet-provider-discovery" is not exported by package "@ynx-chain/wallet-auth":
+
+    node_modules/@ynx-chain/wallet-auth/package.json:8:13:
+      8 │   "exports": {
+        ╵              ^
+
+  You can mark the path "@ynx-chain/wallet-auth/wallet-provider-discovery" as external to exclude it from the bundle, which will remove this error and leave the unresolved path in the bundle.
+
+/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:1467
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 2 errors:
+wallet-auth.js:4:39: ERROR: Could not resolve "@ynx-chain/wallet-auth/standard-wallet-connection"
+wallet-provider-discovery.js:3:95: ERROR: Could not resolve "@ynx-chain/wallet-auth/wallet-provider-discovery"
+    at failureErrorWithLog (/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:926:25
+    at /Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:878:52
+    at buildResponseToResult (/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:924:7)
+    at /Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:951:16
+    at responseCallbacks.<computed> (/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0/apps/seller-console/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:514:20)
+    at addChunk (node:internal/streams/readable:568:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v26.7.0

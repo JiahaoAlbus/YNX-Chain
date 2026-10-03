@@ -1,0 +1,5 @@
+--- FAIL: TestCommerceBrowserAssociationPersistenceAndMigration (0.02s)
+    browser_binding_test.go:50: old format could discard Browser protection conflict: older snapshots cannot enforce consumed business proofs
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	0.911s
+FAIL

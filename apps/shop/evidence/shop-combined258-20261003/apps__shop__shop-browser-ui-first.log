@@ -1,0 +1,147 @@
+
+Running 6 tests using 1 worker
+
+(node:55394) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/browser-identity-required.spec.mjs:3:1 › original private approval survives missing Browser identity and offers explicit sign-in (851ms)
+  ✘  2 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  (691ms)
+(node:55400) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  (728ms)
+(node:55407) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  (730ms)
+(node:55412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent (739ms)
+(node:55417) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval (353ms)
+
+
+  1) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  
+
+    WalletAuthError: Product Session proof header is invalid
+
+       at ../../../../packages/wallet-auth/src/product-session-gateway-client.js:129
+
+      127 | function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
+      128 | function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
+    > 129 | function fail(code, message) { throw new WalletAuthError(code, message); }
+          |                                      ^
+      130 |
+        at fail (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:129:38)
+        at decodeProductSessionGatewayProofHeaderV2 (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:115:59)
+        at ProductSessionServerAuthorizer.authorize (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-server.js:40:19)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:45:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-9a3d9-ls-stay-usable-at-320px-en--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  
+
+    WalletAuthError: Product Session proof header is invalid
+
+       at ../../../../packages/wallet-auth/src/product-session-gateway-client.js:129
+
+      127 | function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
+      128 | function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
+    > 129 | function fail(code, message) { throw new WalletAuthError(code, message); }
+          |                                      ^
+      130 |
+        at fail (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:129:38)
+        at decodeProductSessionGatewayProofHeaderV2 (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:115:59)
+        at ProductSessionServerAuthorizer.authorize (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-server.js:40:19)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:45:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-f80c7-stay-usable-at-320px-zh-CN--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  
+
+    WalletAuthError: Product Session proof header is invalid
+
+       at ../../../../packages/wallet-auth/src/product-session-gateway-client.js:129
+
+      127 | function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
+      128 | function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
+    > 129 | function fail(code, message) { throw new WalletAuthError(code, message); }
+          |                                      ^
+      130 |
+        at fail (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:129:38)
+        at decodeProductSessionGatewayProofHeaderV2 (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:115:59)
+        at ProductSessionServerAuthorizer.authorize (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-server.js:40:19)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:45:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-74859-ls-stay-usable-at-320px-ar--chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent 
+
+    WalletAuthError: Product Session proof header is invalid
+
+       at ../../../../packages/wallet-auth/src/product-session-gateway-client.js:129
+
+      127 | function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
+      128 | function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
+    > 129 | function fail(code, message) { throw new WalletAuthError(code, message); }
+          |                                      ^
+      130 |
+        at fail (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:129:38)
+        at decodeProductSessionGatewayProofHeaderV2 (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-gateway-client.js:115:59)
+        at ProductSessionServerAuthorizer.authorize (/private/tmp/ynx-commerce-shop258-HjnZ1y/packages/wallet-auth/src/product-session-server.js:40:19)
+        at /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/test/browser/shop-fixture.mjs:45:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/canonical-layout-canonical-b5a47-ble-at-320px-ar-200-percent-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4 failed
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  
+    [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent 
+  2 passed (6.6s)

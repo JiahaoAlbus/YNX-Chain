@@ -1,0 +1,58 @@
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (24.866666ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (1.062584ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (17.146125ms)
+✔ Shop Web keeps local Browser CSRF and fixed route scopes alongside private proofs (69.363375ms)
+✔ identity hint alone cannot create private authority; mismatch never requests a proof (0.325833ms)
+✔ account replacement at either await discards proof and CSRF (0.261083ms)
+✔ external origins never receive identity or private proof; read and order routes keep fixed scopes (0.290291ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (22.156125ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (10.77925ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (2.800667ms)
+✔ privacy lock checks durable intent after a competing preparation (0.867042ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (17.318583ms)
+✔ activation only removes old Shop shells, preserving other products (0.78275ms)
+✔ privacy copy covers all twelve product locales (2.83925ms)
+✔ non-English privacy controls do not silently use English copy (0.297958ms)
+✔ late success and failure cannot cross a buyer, store or view change (54.306417ms)
+✔ signout during response body decoding rejects before any private result is returned (1.044959ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (1.007292ms)
+✔ requests are bounded and cancellation does not publish private data (16.486458ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (11.965041ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (4.602666ms)
+✔ marketplace promise strip is localized in all twelve locales (5.086959ms)
+✔ buyer UI wires full order lifecycle (4.7925ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (0.909292ms)
+node:internal/modules/esm/resolve:315
+  return new ERR_PACKAGE_PATH_NOT_EXPORTED(
+         ^
+
+Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './wallet-provider-discovery' is not defined by "exports" in /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/node_modules/@ynx-chain/wallet-auth/package.json imported from /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/shop/wallet-provider-discovery.js
+    at exportsNotFound (node:internal/modules/esm/resolve:315:10)
+    at packageExportsResolve (node:internal/modules/esm/resolve:663:9)
+    at packageResolve (node:internal/modules/esm/resolve:792:12)
+    at moduleResolve (node:internal/modules/esm/resolve:873:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+    at #resolve (node:internal/modules/esm/loader:690:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35) {
+  code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+}
+
+Node.js v26.7.0
+✖ test/wallet-connect.test.mjs (165.525625ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 24
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 181.815417
+
+✖ failing tests:
+
+test at test/wallet-connect.test.mjs:1:1
+✖ test/wallet-connect.test.mjs (165.525625ms)
+  'test failed'

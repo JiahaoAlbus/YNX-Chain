@@ -1,0 +1,59 @@
+✔ a late stream chunk cannot update a different account or selected store (19.147958ms)
+✔ split CRLF events render once and service failures remain visible (1.105417ms)
+node:internal/modules/esm/resolve:272
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/private/tmp/ynx-commerce-shop258-HjnZ1y/apps/merchant-console/src/auth.js' imported from /private/tmp/ynx-commerce-shop258-HjnZ1y/apps/seller-console/test/canonical_transport.test.mjs
+    at finalizeResolution (node:internal/modules/esm/resolve:272:11)
+    at moduleResolve (node:internal/modules/esm/resolve:879:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+    at #resolve (node:internal/modules/esm/loader:690:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:389:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///private/tmp/ynx-commerce-shop258-HjnZ1y/apps/merchant-console/src/auth.js'
+}
+
+Node.js v26.7.0
+✖ test/canonical_transport.test.mjs (64.809208ms)
+✔ unconfirmed writes keep their key after account reauthentication but cannot cross accounts (8.397833ms)
+✔ a changed decision or target gets a new key without mutating the pending request body (1.597625ms)
+✔ consumer sends both separate proofs and exactly the signed wire bytes (9.58975ms)
+✔ sign-out during proof preparation cannot yield a sendable request (1.61025ms)
+✔ pending revocation remains Retry and prevents a new Wallet request (0.324041ms)
+✔ late device initialization receives sign-out before restoring authority (0.203625ms)
+✔ approved private account mismatch triggers exact SDK sign-out (0.136791ms)
+✔ cross-origin business requests cannot obtain proofs (0.140333ms)
+✔ release consumes the accepted endpoint manifest without claiming unavailable services (3.009792ms)
+✔ UI separates Standard Wallet, private degradation and honest guest preview (1.082209ms)
+✔ English is the first-run interface while the existing language chooser remains available (0.4205ms)
+✔ private authorization uses the approved recoverable SDK and explicit Wallet link (0.829292ms)
+✔ late success and failure cannot cross a buyer, store or view change (17.7ms)
+✔ signout during response body decoding rejects before any private result is returned (0.149041ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (0.628042ms)
+✔ requests are bounded and cancellation does not publish private data (15.87875ms)
+✔ Seller private identity uses canonical scope-bound nonextractable SDK storage (5.330792ms)
+✔ seller console persists only locale preferences and supports RTL (2.047083ms)
+✔ prefers YNX EIP-6963 provider and switches to YNX Testnet (2.806292ms)
+✔ missing provider exposes official YNX Wallet and MetaMask choices (0.638708ms)
+✔ private service degradation preserves standard account and chain (0.102541ms)
+✔ seller UI wires operations instead of navigation shells (7.593167ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 24
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 109.473083
+
+✖ failing tests:
+
+test at test/canonical_transport.test.mjs:1:1
+✖ test/canonical_transport.test.mjs (64.809208ms)
+  'test failed'

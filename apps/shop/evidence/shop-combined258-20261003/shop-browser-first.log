@@ -1,0 +1,7 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/commerce [github.com/JiahaoAlbus/YNX-Chain/internal/commerce.test]
+internal/commerce/auth_browser_v2_test.go:112:12: server.ServeHTTP undefined (type *Server has no field or method ServeHTTP)
+internal/commerce/auth_browser_v2_test.go:122:12: server.ServeHTTP undefined (type *Server has no field or method ServeHTTP)
+internal/commerce/auth_browser_v2_test.go:137:12: server.ServeHTTP undefined (type *Server has no field or method ServeHTTP)
+internal/commerce/auth_browser_v2_test.go:166:12: server.ServeHTTP undefined (type *Server has no field or method ServeHTTP)
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce [build failed]
+FAIL

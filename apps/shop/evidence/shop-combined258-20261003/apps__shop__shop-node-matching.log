@@ -1,0 +1,44 @@
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (27.317417ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (1.305417ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (17.295375ms)
+✔ Shop Web keeps local Browser CSRF and fixed route scopes alongside private proofs (19.542541ms)
+✔ identity hint alone cannot create private authority; mismatch never requests a proof (0.302292ms)
+✔ account replacement at either await discards proof and CSRF (0.249958ms)
+✔ external origins never receive identity or private proof; read and order routes keep fixed scopes (0.21725ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (11.591375ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (3.700208ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (1.069083ms)
+✔ privacy lock checks durable intent after a competing preparation (0.728583ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (19.495416ms)
+✔ activation only removes old Shop shells, preserving other products (0.782875ms)
+✔ privacy copy covers all twelve product locales (1.496791ms)
+✔ non-English privacy controls do not silently use English copy (0.140958ms)
+✔ late success and failure cannot cross a buyer, store or view change (23.509417ms)
+✔ signout during response body decoding rejects before any private result is returned (0.23875ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (0.737333ms)
+✔ requests are bounded and cancellation does not publish private data (15.737292ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (8.068ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (2.9935ms)
+✔ marketplace promise strip is localized in all twelve locales (6.205209ms)
+✔ buyer UI wires full order lifecycle (8.966792ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (2.337333ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (4.698125ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.220375ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.284458ms)
+✔ refresh restores an already-approved account without prompting again (0.248334ms)
+✔ account and chain events update or invalidate the standard connection (0.3185ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.15175ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.127625ms)
+✔ account event during chain switch rejects the old connection and removes owned SDK listeners (0.145375ms)
+✔ successful switch without matching silent account readback cannot connect (0.131666ms)
+✔ chain switch rejection never adds a network or requests another grant (0.1675ms)
+✔ a conflicted announcement cannot reappear through the injected fallback (1.80625ms)
+✔ silent restore never substitutes an installed wallet for the remembered choice (0.088667ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.873542

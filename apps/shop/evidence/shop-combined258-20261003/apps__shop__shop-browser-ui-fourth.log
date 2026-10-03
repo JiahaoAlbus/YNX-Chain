@@ -1,0 +1,13 @@
+
+Running 6 tests using 1 worker
+
+(node:56030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/browser-identity-required.spec.mjs:3:1 › original private approval survives missing Browser identity and offers explicit sign-in (1.2s)
+  ✓  2 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: en  (827ms)
+  ✓  3 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: zh-CN  (812ms)
+  ✓  4 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar  (829ms)
+  ✓  5 [chromium] › test/browser/canonical-layout.spec.mjs:3:85 › canonical private controls stay usable at 320px: ar 200-percent (846ms)
+  ✓  6 [chromium] › test/browser/canonical-layout.spec.mjs:11:1 › private authority unavailable preserves standard Wallet and public catalog without issuing approval (423ms)
+
+  6 passed (5.5s)
