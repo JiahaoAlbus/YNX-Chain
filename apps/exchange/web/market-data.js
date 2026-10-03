@@ -4,7 +4,21 @@ export const SNAPSHOT_PATH = '/api/v1/market-data/snapshot';
 export const STREAM_PATH = '/api/v1/market-data/stream';
 const invalid = () => Object.assign(new Error('The venue returned invalid market data.'), {code: 'MARKET_DATA_INVALID'});
 const integer = (n, min = 0) => Number.isSafeInteger(n) && n >= min;
-const date = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+// Venue timestamps are RFC3339, not browser-local dates. Date.parse alone
+// accepts locale-dependent strings and normalizes impossible calendar days.
+const date = value => {
+  if (typeof value !== 'string') return false;
+  const fields = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!fields) return false;
+  const [,y,m,d,h,min,s,zone] = fields;
+  const year = Number(y), month = Number(m), day = Number(d);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31,leap ? 29 : 28,31,30,31,30,31,31,30,31,30,31];
+  return month >= 1 && month <= 12 && day >= 1 && day <= days[month-1] &&
+    Number(h) <= 23 && Number(min) <= 59 && Number(s) <= 59 &&
+    (zone === 'Z' || (Number(zone.slice(1,3)) <= 23 && Number(zone.slice(4)) <= 59)) &&
+    Number.isFinite(Date.parse(value));
+};
 const MAX_MARKET_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 // Keep additive venue audit fields, but do not silently choose the last value

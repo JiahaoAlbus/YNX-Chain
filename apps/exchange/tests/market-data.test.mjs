@@ -131,6 +131,36 @@ test('invalid duplicate IDs, unsafe amounts, mismatched chain provenance and fal
     const value = snapshot(); change(value); assert.throws(() => validateSnapshot(value), {code: 'MARKET_DATA_INVALID'});
   }
 });
+test('venue timestamps reject locale-dependent and normalized impossible calendar values', () => {
+  for (const stamp of ['0', '09/12/2026', '2026-09-12', '2026-09-12T00:00:00',
+    '2026-02-30T00:00:00Z', '2025-02-29T00:00:00Z', '2026-04-31T00:00:00Z',
+    '2026-09-12T24:00:00Z', '2026-09-12T00:00:00.1234567890Z']) {
+    for (const change of [s => s.sourceMetadata.asOf = stamp, s => s.orderBook.asks[0].createdAt = stamp,
+      s => s.trades[0].createdAt = stamp]) {
+      const value = snapshot(); change(value);
+      assert.throws(() => validateSnapshot(value), {code:'MARKET_DATA_INVALID'}, stamp);
+    }
+  }
+});
+test('venue RFC3339 UTC, offset and nanosecond timestamps remain accepted', () => {
+  for (const stamp of ['2024-02-29T23:59:59Z', '2026-09-12T00:00:00.123456789Z',
+    '2026-09-12T08:00:00+08:00', '2026-09-11T19:00:00-05:00']) {
+    const value = snapshot(); value.sourceMetadata.asOf = stamp;
+    value.orderBook.asks[0].createdAt = stamp; value.trades[0].createdAt = stamp;
+    assert.equal(validateSnapshot(value), value);
+  }
+});
+test('invalid venue time cannot enter HTTP market state or replace verified stream state', async () => {
+  const malformed = snapshot(2); malformed.trades[0].createdAt = '2026-02-30T00:00:00Z';
+  const http = harness(async () => Response.json(malformed)); await http.feed.start();
+  assert.equal(http.received.length, 0); assert.equal(http.sources.length, 0);
+  assert.equal(http.statuses.at(-1).code, 'MARKET_DATA_INVALID'); http.feed.stop();
+  const stream = harness(); await stream.feed.start(); const original = stream.feed.snapshot();
+  stream.sources[0].emit('reconciled', malformed);
+  assert.equal(stream.feed.snapshot(), original); assert.equal(stream.received.length, 1);
+  assert.equal(stream.sources[0].closed, true); assert.equal(stream.statuses.at(-1).code, 'MARKET_DATA_INVALID');
+  stream.feed.stop(); assert.equal(stream.timers.size, 0);
+});
 test('heartbeat timeout is bounded; no EventSource falls back to periodic snapshots', async () => {
   const h = harness(); await h.feed.start(); h.sources[0].emit('heartbeat', {revision: 1});
   h.timer(20_000); assert.equal(h.statuses.at(-1).code, 'MARKET_STREAM_TIMEOUT'); h.feed.stop();
