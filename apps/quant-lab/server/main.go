@@ -6,10 +6,12 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -75,16 +77,61 @@ func main() {
 	// Registered after the service Close defer: cancel and join the research
 	// worker before its shared database pool is closed on normal shutdown.
 	defer func() { stop(); <-schedulerDone }()
-	go func() {
-		<-ctx.Done()
-		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdown)
-	}()
 	log.Printf("YNX Quant Lab simulated/testnet preview on %s", addr)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		log.Fatal(err)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Print("Quant listener unavailable")
+		return
 	}
+	if err := serveUntilShutdown(ctx, &srv, listener, 10*time.Second); err != nil {
+		log.Print("Quant HTTP server stopped with an error")
+	}
+}
+
+// Serve returning ErrServerClosed does not mean Shutdown has drained handlers.
+// Join both shutdown and admitted handlers before callers close their storage.
+func serveUntilShutdown(ctx context.Context, srv *http.Server, listener net.Listener, grace time.Duration) error {
+	var requests sync.WaitGroup
+	var admission sync.Mutex
+	closed := false
+	handler := srv.Handler
+	srv.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		admission.Lock()
+		if closed {
+			admission.Unlock()
+			http.Error(w, "Service shutting down", http.StatusServiceUnavailable)
+			return
+		}
+		requests.Add(1)
+		admission.Unlock()
+		defer requests.Done()
+		handler.ServeHTTP(w, r)
+	})
+	srv.BaseContext = func(net.Listener) context.Context { return ctx }
+	served := make(chan error, 1)
+	go func() { served <- srv.Serve(listener) }()
+	var serveErr error
+	select {
+	case <-ctx.Done():
+	case serveErr = <-served:
+	}
+	shutdown, cancel := context.WithTimeout(context.Background(), grace)
+	defer cancel()
+	shutdownErr := srv.Shutdown(shutdown)
+	if shutdownErr != nil {
+		_ = srv.Close()
+	}
+	if serveErr == nil {
+		serveErr = <-served
+	}
+	admission.Lock()
+	closed = true
+	admission.Unlock()
+	requests.Wait()
+	if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+		return serveErr
+	}
+	return shutdownErr
 }
 func registerFinanceOwnerRead(mux *http.ServeMux, api http.Handler) {
 	mux.Handle(quantlab.FinanceReadRoute, api)
