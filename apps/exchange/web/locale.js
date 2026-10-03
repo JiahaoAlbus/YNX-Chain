@@ -213,6 +213,21 @@ const controlsStateRows={
  ar:['لا إعدادات حساب متحقق منها. الحفظ يتطلب موافقة كتابة منفصلة.','تم التحقق من إعدادات القراءة فقط. الحفظ يتطلب موافقة كتابة منفصلة.','تم التحقق من إعدادات القراءة فقط. وقت المصدر غير متاح. الحفظ يتطلب موافقة كتابة منفصلة.','طلبات الدعم الحالية غير متحقق منها. استعد وصول Exchange للقراءة لعرضها.','لا طلبات دعم حالية لهذا الحساب المعتمد.'],
  id:['Tidak ada pengaturan akun terverifikasi. Menyimpan memerlukan persetujuan tulis terpisah.','Pengaturan hanya baca terverifikasi. Menyimpan memerlukan persetujuan tulis terpisah.','Pengaturan hanya baca terverifikasi. Waktu sumber tidak tersedia. Menyimpan memerlukan persetujuan tulis terpisah.','Kasus dukungan yang ada belum terverifikasi. Pulihkan akses baca Exchange untuk melihatnya.','Tidak ada kasus dukungan untuk akun yang disetujui ini.']
 };
+const publicChartKeys=['market-no-price','market-no-matches','market-trade-chart-label'];
+const publicChartRows={
+ en:['No matched price yet','No actual venue matches yet.','Actual YNX-owned matching-engine trades · latest 60'],
+ 'zh-Hans':['尚无撮合价格','尚无实际场所成交。','YNX 自有撮合引擎实际成交 · 最近 60 笔'],
+ 'zh-Hant':['尚無撮合價格','尚無實際場所成交。','YNX 自有撮合引擎實際成交 · 最近 60 筆'],
+ ja:['約定価格はまだありません','実際の市場約定はまだありません。','YNX 所有エンジンの実際の約定 · 最新60件'],
+ ko:['아직 체결 가격이 없습니다','아직 실제 시장 체결이 없습니다.','YNX 소유 매칭 엔진의 실제 체결 · 최근 60건'],
+ es:['Todavía no hay precio de cruce','Todavía no hay cruces reales del mercado.','Operaciones reales del motor YNX propio · últimas 60'],
+ fr:['Aucun prix exécuté pour le moment','Aucune exécution réelle du marché pour le moment.','Transactions réelles du moteur détenu par YNX · 60 dernières'],
+ de:['Noch kein Ausführungspreis','Noch keine tatsächlichen Marktausführungen.','Tatsächliche Trades des YNX-eigenen Matching-Systems · letzte 60'],
+ pt:['Ainda não há preço executado','Ainda não há execuções reais no mercado.','Negociações reais do motor próprio YNX · últimas 60'],
+ ru:['Цены исполнения пока нет','Реальных исполнений на площадке пока нет.','Реальные сделки собственного движка YNX · последние 60'],
+ ar:['لا سعر تنفيذ بعد','لا مطابقات فعلية في السوق بعد.','صفقات فعلية لمحرك YNX المملوك · آخر 60'],
+ id:['Belum ada harga cocok','Belum ada pencocokan bursa nyata.','Transaksi nyata mesin pencocokan milik YNX · 60 terbaru']
+};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale]];
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
@@ -229,7 +244,8 @@ export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   if(helpRows[locale].length!==helpKeys.length)throw new Error('EXCHANGE_HELP_CATALOG_INCOMPLETE');
   if(privateUIRows[locale].length!==privateUIKeys.length)throw new Error('EXCHANGE_PRIVATE_UI_CATALOG_INCOMPLETE');
   if(controlsStateRows[locale].length!==controlsStateKeys.length)throw new Error('EXCHANGE_CONTROLS_STATE_CATALOG_INCOMPLETE');
-  return [locale,Object.freeze({...Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])),...Object.fromEntries(quoteBoundaryKeys.map((key,i)=>[key,quoteBoundaryRows[locale][i]])),...Object.fromEntries(helpKeys.map((key,i)=>[key,helpRows[locale][i]])),...Object.fromEntries(privateUIKeys.map((key,i)=>[key,privateUIRows[locale][i]])),...Object.fromEntries(controlsStateKeys.map((key,i)=>[key,controlsStateRows[locale][i]]))})];
+  if(publicChartRows[locale].length!==publicChartKeys.length)throw new Error('EXCHANGE_PUBLIC_CHART_CATALOG_INCOMPLETE');
+  return [locale,Object.freeze({...Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])),...Object.fromEntries(quoteBoundaryKeys.map((key,i)=>[key,quoteBoundaryRows[locale][i]])),...Object.fromEntries(helpKeys.map((key,i)=>[key,helpRows[locale][i]])),...Object.fromEntries(privateUIKeys.map((key,i)=>[key,privateUIRows[locale][i]])),...Object.fromEntries(controlsStateKeys.map((key,i)=>[key,controlsStateRows[locale][i]])),...Object.fromEntries(publicChartKeys.map((key,i)=>[key,publicChartRows[locale][i]]))})];
 })));
 export const normalizeLocale=value=>locales.includes(value)?value:'en';
 export const translate=(locale,key)=>catalogs[normalizeLocale(locale)][key]??key;
