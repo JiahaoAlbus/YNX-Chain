@@ -78,6 +78,12 @@ export class NativeMatrixConsumer {
     private readonly current: () => Promise<MatrixBinding>,
     private readonly acceptedPeer: (personId: string) => Promise<MatrixPeer>) {}
 
+  // Local appearance scope only, not a grant or a replacement for current().
+  appearanceContext(): { account: string; roomId: string } | null {
+    if (!this.binding || !this.room || Date.now() >= this.expiryDeadline) return null;
+    return { account: this.binding.account, roomId: this.room.value.roomId };
+  }
+
   async restore(): Promise<void> {
     this.lock();
     const epoch = this.epoch;

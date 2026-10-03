@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 import type { MatrixEvent, NativeMatrixConsumer } from './nativeMatrix';
 import { NativeMatrixReceivedAttachment } from './NativeMatrixReceivedAttachment';
+import { ChatAppearanceSettings, NativeChatWallpaper, useNativeChatAppearance } from './ChatAppearanceSettings';
 
 // Mounted by the existing product identity integration, never by a discovered
 // URL or Wallet account alone. No custom envelope fallback in this workspace.
@@ -19,6 +20,8 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
   const [originals, setOriginals] = useState<readonly MatrixPendingIntent[]>([]);
   const [verificationPhase, setVerificationPhase] = useState<'idle' | 'requesting' | 'outgoing' | 'requested' | 'accepted' | 'comparing' | 'finished' | 'cancelled' | 'failed'>('idle');
   const mounted = useRef(true);
+  const appearanceScope = client.appearanceContext();
+  const chatAppearance = useNativeChatAppearance(appearanceScope?.account ?? null, appearanceScope?.roomId ?? null);
   const intent = useRef<{ id: string; body: string } | undefined>(undefined);
   const showError = (error: unknown) => {
     if (mounted.current) setStatus(error instanceof Error ? error.message : 'Matrix operation needs review.');
@@ -128,12 +131,14 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
       <Pressable accessibilityRole="button" onPress={() => { client.lock(); onClose(); }}><Text style={styles.link}>Close</Text></Pressable></View>
     <Text accessibilityLiveRegion="polite" style={styles.status}>{status}</Text>
     {!ready && <Pressable disabled={busy} onPress={() => { void restore(); }} style={styles.button}><Text>Restore original Matrix session</Text></Pressable>}
+    {ready && appearanceScope && <ChatAppearanceSettings account={appearanceScope.account} room={appearanceScope.roomId} />}
+    <View style={{ flex: 1, minHeight: 0 }}><NativeChatWallpaper appearance={chatAppearance} />
     <ScrollView style={styles.timeline}>{events.map((event, index) => <View key={event.eventId ?? event.transactionId ?? String(index)} style={styles.message}>
       <Text style={styles.sender}>{event.own ? 'You' : event.sender}</Text>
       <Text>{event.body ?? (event.kind === 'unable-to-decrypt' ? 'Waiting for the original encryption keys.' : event.kind)}</Text>
       <Text style={styles.status}>{event.remote ? 'SDK remote event' : 'SDK local echo, not delivered'}</Text>
       {event.remote && event.eventId && event.mediaKind && <NativeMatrixReceivedAttachment client={client} eventId={event.eventId} />}
-    </View>)}</ScrollView>
+    </View>)}</ScrollView></View>
     {ready && <>
       {originals.length > 0 && <ScrollView style={styles.recovery} nestedScrollEnabled>
         <Text style={styles.sender}>Original pending sends</Text>

@@ -131,6 +131,7 @@ import {ContactOperation} from './src/contactOperation';
 import { SocialAppearanceProvider, AppearanceSettings, useSocialAppearance } from './src/SocialAppearance';
 import { GuestWorkspace } from './src/GuestWorkspace';
 import { socialLayout, messageDayBoundary } from './src/socialPresentation';
+import { ChatAppearanceSettings, NativeChatWallpaper, useNativeChatAppearance } from './src/ChatAppearanceSettings';
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -1367,6 +1368,7 @@ function MessageThread({
   const [attachmentPreview, setAttachmentPreview] = useState<{name:string;uri:string}|null>(null);
   const account = session.session.account,
     deviceId = session.session.deviceId;
+  const chatAppearance = useNativeChatAppearance(account, conversation.id);
   const uploadKey = `ynx.social.upload.${account}.${deviceId}.${conversation.id}`;
   type UploadJob = { id: string; payload: AttachmentPayload; record?: CloudObjectRecord };
   const uploadFile = (id: string, request = false) => {
@@ -1626,6 +1628,7 @@ function MessageThread({
             <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); setShowSearch(value => !value); }}><Search color={BLUE} size={20} /><Text>Search on this device</Text></Pressable>
             <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); setThreadAI(true); }}><Bot color={BLUE} size={20} /><Text>Optional AI tools</Text></Pressable>
             <Pressable style={styles.discovery} onPress={() => { setShowMenu(false); void load(); }}><RefreshCw color={BLUE} size={20} /><Text>Refresh conversation</Text></Pressable>
+            <ChatAppearanceSettings account={account} room={conversation.id} />
           </>}
         </View></View>
       </Modal>
@@ -1677,6 +1680,8 @@ function MessageThread({
           {error}
         </Text>
       ) : null}
+      <View style={{ flex: 1, minHeight: 0 }}>
+      <NativeChatWallpaper appearance={chatAppearance} />
       <FlatList
         inverted
         refreshControl={
@@ -1771,6 +1776,7 @@ function MessageThread({
           );
         }}
       />
+      </View>
       {pending ? (
         <Pressable
           accessibilityLabel="Retry pending message"
@@ -2635,6 +2641,7 @@ function Profile({
     >
       <ScrollView contentContainerStyle={styles.profileScroll}>
         <AppearanceSettings />
+        <ChatAppearanceSettings account={session.session.account} />
         <View style={{ paddingHorizontal: 20, alignItems: 'flex-start' }}><LanguagePicker compact /></View>
         <View style={styles.profileCard}>
           <View style={styles.largeAvatar}>

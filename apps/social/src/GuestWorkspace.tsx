@@ -3,6 +3,7 @@ import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowD
 import { ContactRound, MessageCircle, Settings, Sparkles, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppearanceSettings, useSocialAppearance } from './SocialAppearance';
+import { ChatAppearanceSettings } from './ChatAppearanceSettings';
 import { socialLayout } from './socialPresentation';
 import { useI18n } from './i18nProvider';
 
@@ -32,7 +33,7 @@ export function GuestWorkspace({ language, signIn, error, discoveryPending }: {
     <View style={[styles.workspace, desktop && styles.desktop]}>
       <View style={[styles.content, desktop && tab === 'chats' && styles.chatList]}>
         <Text style={[styles.heading, { fontSize: 20 * scale }]}>{t(current.label)}</Text>
-        {tab === 'settings' ? <ScrollView><AppearanceSettings /><View style={styles.language}>{language}</View>
+        {tab === 'settings' ? <ScrollView><AppearanceSettings /><ChatAppearanceSettings account={null} /><View style={styles.language}>{language}</View>
           <Text style={[styles.note, { fontSize: 13 * scale }]}>{t('Social never creates, imports, or receives your recovery key.')}</Text></ScrollView> :
           <View style={styles.empty}><current.icon size={32} color="#002fa7" strokeWidth={1.5} />
             <Text style={[styles.emptyTitle, { fontSize: 18 * scale }]}>{t(tab === 'chats' ? 'Your conversations' : tab === 'contacts' ? 'People you choose' : 'Your moments')}</Text>
