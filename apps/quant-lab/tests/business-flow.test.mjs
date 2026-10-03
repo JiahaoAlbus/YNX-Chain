@@ -169,6 +169,21 @@ test('Paper daily loss shows only source-reported risk and explains the UTC firs
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
 });
 
+test('Paper daily risk rejects impossible calendar dates and threshold contradictions but preserves a latched breach',async()=>{
+  const app=harness();await settle();
+  const base={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-04',Loss:100,Limit:100,Breached:true};
+  for(const patch of [{Day:'2026-02-29'},{Day:'2026-04-31'},{Day:'0000-01-01'},{Day:'2026-13-01'},{Breached:false},{Loss:101,Breached:false}]){
+    app.context.dailyFixture={...base,...patch};vm.runInContext('snapshot.paper={DailyRisk:dailyFixture};render()',app.context);
+    assert.ok(!app.ids.get('paper-state').innerHTML.includes('100 / 100 YUSD_TEST_MICRO'));
+    assert.ok(!app.ids.get('paper-state').innerHTML.includes('101 / 100 YUSD_TEST_MICRO'));
+  }
+  for(const patch of [{Day:'2024-02-29'},{Loss:0,Breached:true},{Loss:99,Breached:false}]){
+    app.context.dailyFixture={...base,...patch};vm.runInContext('snapshot.paper={DailyRisk:dailyFixture};render()',app.context);
+    assert.ok(app.ids.get('paper-state').innerHTML.includes(`${app.context.dailyFixture.Loss} / 100 YUSD_TEST_MICRO`));
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+});
+
 test('Paper amounts reject injected, missing and unsafe source values while preserving exact signed zero',async()=>{
   const app=harness();await settle();
   for(const value of [undefined,null,'0','<img src=x onerror=alert(1)>',{},[],true,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1]){

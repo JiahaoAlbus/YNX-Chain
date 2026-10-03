@@ -229,6 +229,28 @@ test('actual Chrome localizes a daily-loss rejection and refreshes the persisted
   }finally{await context.close()}
 });
 
+test('actual Chrome refuses impossible daily-risk dates and contradictions without writes or blank tabs',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let risk={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-02-29',Loss:100,Limit:100,Breached:true};
+    const writes=[],errors=[];
+    await context.route('**/api/v1/snapshot',async route=>{
+      const response=await route.fetch(),body=await response.json();body.paper.DailyRisk=risk;await route.fulfill({response,json:body});
+    });
+    await context.route('**/api/**',route=>{if(route.request().method()!=='GET'){writes.push(route.request().url());return route.abort()}return route.fallback()});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
+    assert.doesNotMatch(await page.locator('#paper-state').textContent(),/100 \/ 100 YUSD_TEST_MICRO/);
+    risk={...risk,Day:'2026-10-04',Breached:false};await page.evaluate(()=>refresh());
+    assert.doesNotMatch(await page.locator('#paper-state').textContent(),/100 \/ 100 YUSD_TEST_MICRO/);
+    risk={...risk,Loss:0,Breached:true};await page.evaluate(()=>refresh());
+    assert.match(await page.locator('#paper-state').textContent(),/0 \/ 100 YUSD_TEST_MICRO/);
+    await page.selectOption('#locale','ar');assert.match(await page.locator('#paper-state').textContent(),/0 \/ 100 YUSD_TEST_MICRO/);
+    assert.equal(context.pages().length,1);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);
+  }finally{await context.close()}
+});
+
 test('actual Chrome keeps a malformed Paper receipt pending and retries only the same confirmed intent',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

@@ -915,7 +915,7 @@ function render() {
   $("#paper-state").innerHTML =
 `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${paperObservedInteger(p.Cash)}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${paperObservedInteger(p.Position)}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${paperObservedInteger(p.ReconciliationDelta, true)}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch === true ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;
   const daily = p.DailyRisk;
-  const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean';
+  const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && typeof daily.Day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && auditTimeValid(`${daily.Day}T00:00:00Z`) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean' && (daily.Loss < daily.Limit || daily.Breached);
   $('#paper-state').innerHTML += `<p>${safe(t('paperDailyLossLead'))}</p><dl><dt>${safe(t('paperDailyLoss'))}</dt><dd>${validDaily ? safe(`${daily.Day} UTC · ${daily.Loss} / ${daily.Limit} YUSD_TEST_MICRO · ${daily.Breached ? t('riskActive') : t('riskArmed')}`) : '—'}</dd></dl>`;
   renderAuditRecords(snapshot.audit);
   const firstReadableStrategy = strategies.find(readableSavedStrategy);
