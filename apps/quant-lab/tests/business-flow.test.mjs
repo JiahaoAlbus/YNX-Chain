@@ -710,6 +710,25 @@ test('reconciliation refuses state or authority changes during confirmation and 
   const app=harness({snapshot:{paper:receipt},confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{paper:receipt}:receipt});await settle();await app.ids.get('reconcile').onclick();
   assert.deepEqual(JSON.parse(app.calls.find(call=>call.options.method==='POST').options.body),{Cash:777,Position:2});
 });
+test('kill confirmation cannot regain retired workspace access or cross an admitted risk lane',async()=>{
+  for(const mutation of ['statefulPreview=false','riskWrites.add("reconcile")','riskWrites.add("kill")']){
+    const app=harness({snapshot:{paper:{Cash:777,Position:2,KillSwitch:false}}});await settle();
+    const revision=vm.runInContext('snapshotRevision',app.context);
+    app.context.confirm=()=>{vm.runInContext(mutation,app.context);return true};
+    await app.ids.get('kill').onclick();
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+    assert.equal(app.proofs(),0);assert.equal(vm.runInContext('snapshotRevision',app.context),revision);
+    assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),false);
+    assert.equal(app.ids.get('kill').disabled,true);
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("riskReceiptUnconfirmed")',app.context));
+    if(mutation.includes('riskWrites'))assert.equal(vm.runInContext('riskWrites.size',app.context),1);
+  }
+  const app=harness({confirmAction:()=>false});await settle();
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});await app.ids.get('kill').onclick();
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+});
 test('risk outcomes use confirmed zero or exact nonzero receipts without false zero-difference claims',async()=>{
   for(const delta of [0,1,Number.MAX_SAFE_INTEGER]){
     const receipt={Cash:1000,Position:0,ReconciliationDelta:delta,KillSwitch:delta!==0};

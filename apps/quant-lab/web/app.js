@@ -1449,6 +1449,13 @@ $("#reconcile").onclick = async () => {
 $("#kill").onclick = async () => {
   if (!statefulPreview || riskWrites.size>0) return;
   if (!confirm(t("confirmKill"))) return;
+  // Confirmation can span workspace retirement or another admitted risk write.
+  // Do not let the retired dialog start a second lane or regain local access.
+  if (!statefulPreview || riskWrites.size>0) {
+    toast(t('riskReceiptUnconfirmed'),'riskReceiptUnconfirmed');
+    renderRiskControls();
+    return;
+  }
   riskWrites.add('kill');snapshotRevision++;renderRiskControls();
   try {
     const receipt=confirmedRiskReceipt(await api("/v1/risk/kill", {

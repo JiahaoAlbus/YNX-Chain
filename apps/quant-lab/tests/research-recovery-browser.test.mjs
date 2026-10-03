@@ -99,8 +99,19 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     const otherPaperBefore=await otherPage.evaluate(()=>snapshot.paper);
     assert.equal(otherPaperBefore.Orders?.length??0,0);assert.equal(otherPaperBefore.KillSwitch,false);
     await page.locator('nav button[data-view="risk"]').click();
+    let killRequests=0;page.on('request',request=>{if(new URL(request.url()).pathname==='/api/v1/risk/kill')killRequests++});
+    for(const mutation of ['access','lane']){
+      await page.evaluate(async mutation=>{
+        const original=window.confirm;
+        try{window.confirm=()=>{if(mutation==='access')statefulPreview=false;else riskWrites.add('reconcile');return true};await document.getElementById('kill').onclick();}
+        finally{window.confirm=original;statefulPreview=true;riskWrites.delete('reconcile');renderRiskControls();}
+      },mutation);
+      assert.equal(killRequests,0,'retired confirmation never reaches the actual local Go kill route');
+      assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),false);
+    }
     const killDialog=page.waitForEvent('dialog'),killClick=page.locator('#kill').click();await (await killDialog).accept();await killClick;
     await page.waitForFunction(()=>snapshot.paper?.KillSwitch===true);
+    assert.equal(killRequests,1,'fresh explicit confirmation reaches the local simulation engine exactly once');
     const killedBefore=await page.evaluate(()=>snapshot.paper);
     await stop();await start();await page.reload({waitUntil:'networkidle'});await otherPage.reload({waitUntil:'networkidle'});
     assert.deepEqual(await page.evaluate(()=>snapshot.paper),killedBefore,'Paper fill and kill latch survive another complete service stop/start');
