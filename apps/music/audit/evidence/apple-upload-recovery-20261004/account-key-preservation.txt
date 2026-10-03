@@ -1,0 +1,19 @@
+PASS native signer: original DER signature, corrupt legacy session isolation, missing-key restoration/signing hold; no storage writes
+PASS Apple injected credentials: retained base64 identity, locked/corrupt preservation, duplicate winner, failed persistence, session-only deletion; no real Keychain calls
+PASS durable upload drafts: original bytes and operation survive cold restart, corruption/late writes rejected, account isolation
+PASS Apple account files: A/B isolation, verified restore, late writes, checksum, atomic preservation, scoped clear and retained legacy originals
+PASS Apple business API: retained bio, valid AI proposal review, invalid-ID zero transport, playlist read/update ordered record
+PASS Apple pending creation: cold/account restore, stable retry header and original GET readback
+PASS Apple API: captured headers, late-response rejection, zero stale mutation requests, same-binding generation fencing, guest rejection, non-installing callback candidate
+/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-check-1RXDXN/MusicModel.swift:415:68: warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+413 |         }
+414 |         let duration=Double(track.durationMillis)/1000
+415 |         completion=NotificationCenter.default.addObserver(forName:.AVPlayerItemDidPlayToEndTime,object:item,queue:.main) { [weak self] _ in
+    |                                                                    `- warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+416 |             Task { @MainActor [weak self] in
+417 |                 guard let self,self.generation==playGeneration,self.isCurrent else { return }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+PASS host SDK typecheck of shipped model, player, session and persistence code; SwiftUI screens are parse-only on this host
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj/project.pbxproj: OK
+PASS Swift iOS source parse and Xcode project syntax (not an iOS SDK build or installed acceptance)

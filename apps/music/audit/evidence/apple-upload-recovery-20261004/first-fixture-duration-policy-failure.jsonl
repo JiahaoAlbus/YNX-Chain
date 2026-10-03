@@ -1,0 +1,14 @@
+{"Time":"2026-10-04T02:14:02.890024+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T02:14:02.890174+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T02:14:03.357417+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation"}
+{"Time":"2026-10-04T02:14:03.357487+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Output":"=== RUN   TestUploadIntentConcurrentRestartConflictAndOwnerIsolation\n"}
+{"Time":"2026-10-04T02:14:03.382058+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T02:14:03.382287+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T02:14:03.399192+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Output":"    upload_recovery_test.go:40: invalid music request: audio duration outside policy\n"}
+{"Time":"2026-10-04T02:14:03.399674+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Output":"--- FAIL: TestUploadIntentConcurrentRestartConflictAndOwnerIsolation (0.04s)\n"}
+{"Time":"2026-10-04T02:14:03.399686+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Elapsed":0.04}
+{"Time":"2026-10-04T02:14:03.39981+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"FAIL\n"}
+{"Time":"2026-10-04T02:14:03.401143+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t0.511s\n"}
+{"Time":"2026-10-04T02:14:03.401158+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":0.511}
+{"Time":"2026-10-04T02:14:04.395527+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t1.505s [no tests to run]\n"}
+{"Time":"2026-10-04T02:14:04.395668+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":1.506}

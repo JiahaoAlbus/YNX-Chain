@@ -1,0 +1,262 @@
+{
+  "schema": "ynx.music.apple.upload-recovery.freeze.v1",
+  "createdAt": "2026-10-03T18:23:26.760503+00:00",
+  "sourceCommit": "bcb5892fbfd605b957a2bba2babc14f9de12603c",
+  "sourceTree": "4c9c8fcdc491ac5c58b40b3e26a9e4c8fc1ba71a",
+  "sourceArchive": {
+    "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/media-owned-source-bcb5892f.tar.gz",
+    "bytes": 3996112,
+    "sha256": "5a3882dea08d791cac926943be4dd695fa9b3687ecaca6ff6749dbdadc49431f",
+    "fileCount": 590,
+    "everyMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "appleCandidates": [
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/music-iphonesimulator-unsigned-bcb5892f.tar.gz",
+      "bytes": 1268902,
+      "sha256": "aa3bcc72df1c5cfa486e44beda985d6748a79e905faae2623d80ebdfbf4bc353",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXMusic",
+      "formalSigning": false,
+      "installed": false,
+      "launched": false
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/music-macosx-unsigned-bcb5892f.tar.gz",
+      "bytes": 795357,
+      "sha256": "b140c04726ba0c0a40df3db20b49dcccbfcab8df55f71dbd3a64d52259301f01",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXMusicMac",
+      "formalSigning": false,
+      "installed": false,
+      "launched": false
+    }
+  ],
+  "compiledSourcePinsGitExact": 22,
+  "compositionInputPins": 648,
+  "ownedInputPinsGitExact": 597,
+  "checks": {
+    "fullIOSSimulatorSwiftUIBuild": "PASS",
+    "fullNativeMacOSSwiftUIBuild": "PASS",
+    "goRacePassEvents": 446,
+    "goRaceFailEvents": 0,
+    "goVet": "PASS",
+    "actualMusicAppleModelOriginalSDKBusiness": true,
+    "actualVideoAppleOriginalSDKBusiness": true,
+    "keyPreservationDERAndMissingKeyHold": "PASS injected storage",
+    "actualIOSDeviceRuntime": false,
+    "actualOSStorage": false,
+    "actualWalletConsent": false,
+    "actualRenderedNativeUI": false,
+    "formalSigning": false,
+    "publicPairDeployment": false,
+    "originalAppleModelUploadLostReplyColdRecovery": "PASS both ios/macos binding tuples under isolated macOS WebKit",
+    "sameSavedUploadKeyFreshSDKProofOneOriginalTrack": "PASS",
+    "atomicServerUploadConcurrentRestartLaterReleaseAndOwnerIsolation": "PASS 16 concurrent calls; changed title/audio conflict; two owners isolated",
+    "originalPublishedTrackPrivateSignedDownloadAndVerifiedAccountCache": "PASS original 500ms PCM WAV fixture",
+    "corruptAudioPreservesOriginalCache": "PASS",
+    "lateDownloadCannotReplaceNewTrackSelection": "PASS original controller with isolated local render sink; no real codec",
+    "all12LocaleCatalogs": "PASS 71 keys",
+    "actualAudioDecoding": false,
+    "realMediaControls": false
+  },
+  "nativeSDKSource": "5c5e8a234206e306b6044deb6e938c1763ac7005",
+  "changes": [
+    "Durable Music Apple upload intent and original selected audio are saved atomically in the verified account directory before original SDK business dispatch; pending operation survives signout and cold reopen",
+    "Original Music server atomically binds upload key to owner and validated complete content; concurrent/cold replay returns current original track and retains later release state; changed content conflicts and temporary candidates are cleaned",
+    "Client clears pending upload only after fresh original current-account snapshot confirms exact owner, track and audio hash; explicit cancel retains original server audio and staged recovery bytes",
+    "Normal original Creator file picker exposes saved pending upload retry and explicit cancel in 12 original locale catalogs; private-data clear includes only this account UploadDrafts",
+    "Original signed private PCM WAV downloads are checksum verified and stored atomically under the current account; late earlier-track download is rejected before local playback",
+    "Native player uses verified file URLs and original session fences; injected QA render path does not play audio or touch OS media controls; normal real AVPlayer path remains to be accepted"
+  ],
+  "remaining": [
+    "Music Android full durable upload draft recovery and actual platform/account/playback acceptance",
+    "Creator Apple native full app with own original identity and complete upload/publish/revenue journeys",
+    "Real Wallet consent, real Keychain, device UI and audio codec/OS media-controls acceptance; formal signing and installation",
+    "A original formal Host/currentActor mounting with matching client deployment and public normal-user business readback"
+  ],
+  "publicReadback": [
+    {
+      "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "checkedAt": "2026-10-03T18:23:24.835753+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/video-manifest-public-readback.json",
+        "bytes": 4499,
+        "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+      },
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null
+    },
+    {
+      "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "checkedAt": "2026-10-03T18:23:25.510918+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/creator-manifest-public-readback.json",
+        "bytes": 3753,
+        "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+      },
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/health",
+      "checkedAt": "2026-10-03T18:23:25.908589+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/video-health-public-readback.json",
+        "bytes": 285,
+        "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+      },
+      "sourceCommit": null,
+      "centralDeploymentVerified": false
+    }
+  ],
+  "inheritedMediaCheckpoint": {
+    "path": "apps/video/audit/media-apple-native-playlist-checkpoint-20261004.json",
+    "bytes": 8235,
+    "sha256": "a385e190bcdf4f62e0b82be75d23ba17e1fd9ee7588c895245f95d8344f920d1"
+  },
+  "evidence": [
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/YNXMusic-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/YNXMusic-build.txt",
+      "bytes": 132996,
+      "sha256": "387361fc576ffea7fe6967c8756e0f22eb70e565affbfe68e64e521dc633c4e4"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/YNXMusicMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/YNXMusicMac-build.txt",
+      "bytes": 76137,
+      "sha256": "70a91c1b274fa0c7ae0de8570dc6f692b6a96eafe94fe59aec85a5a0fd4bb691"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/account-key-preservation.txt",
+      "bytes": 2283,
+      "sha256": "998caa0b97058eb01e1d2d95869b9f3d32796a6a400cb19dd2a00b6037639074"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/actual-model-fixture-compile.txt",
+      "bytes": 1123,
+      "sha256": "e13f42ef4aa399ff92b3cd16d1c6a8abf8e57020440b7410a16d77414a072349"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/actual-model-fixture-source.json",
+      "bytes": 2387,
+      "sha256": "15f652f9dae6530800ac39fb16c58ab3f4193a110b872134f77eda54ea679376"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 429172,
+      "sha256": "3144c95d607a76a0a9761dae9d1761af5d815880e03cdba3c18fbe00b1967e63"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/combined-source-receipt.json",
+      "bytes": 170873,
+      "sha256": "6ddee88d974d13d632f94f7fe67d4e7e078c36a3c605a6cd9b47a54edbf6e7f5"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/creator-manifest-public-readback.json",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/first-fixture-duration-policy-failure.jsonl",
+      "bytes": 2604,
+      "sha256": "1f60ef80a3016afbec3e45bebae968a449b6076c0ff3b35306e5fdba56364c36"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/first-fixture-track-selection-failure.jsonl",
+      "bytes": 12629,
+      "sha256": "ea16d601513b4d35c926b51ff0a505fff6562555a7d9d8b238d80fc8eda945f7"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/full-native-build-receipt.json",
+      "bytes": 9906,
+      "sha256": "ecc9a62672af30c7ebbf8af3b48636a7af1a4ad3452d667e414ea92d4f3f28aa"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/media-owned-source-bcb5892f.tar.gz",
+      "bytes": 3996112,
+      "sha256": "5a3882dea08d791cac926943be4dd695fa9b3687ecaca6ff6749dbdadc49431f"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/music-iphonesimulator-unsigned-bcb5892f.tar.gz",
+      "bytes": 1268902,
+      "sha256": "aa3bcc72df1c5cfa486e44beda985d6748a79e905faae2623d80ebdfbf4bc353"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/music-macosx-unsigned-bcb5892f.tar.gz",
+      "bytes": 795357,
+      "sha256": "b140c04726ba0c0a40df3db20b49dcccbfcab8df55f71dbd3a64d52259301f01"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/public-readback-receipt.json",
+      "bytes": 1562,
+      "sha256": "f040e9c2fb9a8fbabe524c0a87ee26ab0890fea1556e0940e8a21313d381b5a6"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/video-health-public-readback.json",
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/video-manifest-public-readback.json",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/freeze-preparation.py",
+      "bytes": 8514,
+      "sha256": "d5d20d92721eb8151138aca30e4bc4d7e5313413d3980a9dd9785647a1fda669"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/upload-concurrency-source-receipt.json",
+      "bytes": 166170,
+      "sha256": "d482ee1ba34b389cd5b30747a7f16f851a81ac4b05acb1b67b56dacb45ec0ec4"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/upload-concurrency-race.jsonl",
+      "bytes": 2314,
+      "sha256": "c3879018c74bad133e3179cb2701c297c433f4756f6ea69aef01d58b5d5832e3"
+    },
+    {
+      "path": "apps/music/audit/evidence/apple-upload-recovery-20261004/original-apple-upload-source-receipt.json",
+      "bytes": 168680,
+      "sha256": "11f3901a88a275116c7a79839b2d4bd786c03ba3ef23d421c35935a3414b6d02"
+    }
+  ],
+  "inheritedMusicCheckpoint": {
+    "path": "apps/music/audit/apple-native-v2-checkpoint-20261004.json",
+    "bytes": 10133,
+    "sha256": "76cefef30a06b5cec1b477b115b691b66dd6e290e0591596308ad0e44c7e6620"
+  }
+}

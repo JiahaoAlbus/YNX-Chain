@@ -1,0 +1,13 @@
+{"Time":"2026-10-04T02:17:32.911654+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T02:17:32.911934+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T02:17:33.611053+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T02:17:33.611122+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T02:17:33.625584+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation"}
+{"Time":"2026-10-04T02:17:33.62563+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Output":"=== RUN   TestUploadIntentConcurrentRestartConflictAndOwnerIsolation\n"}
+{"Time":"2026-10-04T02:17:33.67503+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Output":"--- PASS: TestUploadIntentConcurrentRestartConflictAndOwnerIsolation (0.05s)\n"}
+{"Time":"2026-10-04T02:17:33.675061+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Test":"TestUploadIntentConcurrentRestartConflictAndOwnerIsolation","Elapsed":0.05}
+{"Time":"2026-10-04T02:17:33.675213+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"PASS\n"}
+{"Time":"2026-10-04T02:17:34.624693+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t1.713s [no tests to run]\n"}
+{"Time":"2026-10-04T02:17:34.624855+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":1.713}
+{"Time":"2026-10-04T02:17:34.691714+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t1.780s\n"}
+{"Time":"2026-10-04T02:17:34.691938+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":1.78}
