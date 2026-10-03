@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { PrivateFilePolicy } from "./platform-private-file.mjs";
+import {readBoundedPrivateFile,PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
 import { Transaction, toQuantity } from "ethers";
 import { parseFeeModel, capabilityFingerprint, capabilityError, assertCompatibleIntentCapabilities } from "./rpc-capabilities.mjs";
 import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durability.mjs";
@@ -171,16 +172,18 @@ export class FileTransactionIntentStore {
     });
   }
   async #read(filePath = this.filePath) {
-    let handle;
+    let handle, failed = false, stage = "probe";
     try {
       await this.filePolicy.available(filePath);
+      stage = "open";
       handle = await this.io.open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+      stage = "inspect";
       const stat = await handle.stat();
-      if (!stat.isFile() || stat.size > 1024 * 1024) throw invalid();
+      if (!stat.isFile() || stat.size > PRIVATE_FILE_MAX_BYTES) throw invalid();
       await this.filePolicy.assertPrivate(filePath, stat);
-      return structuredClone(parseState(JSON.parse(await handle.readFile("utf8"))));
-    } catch (error) { if (error?.code === "ENOENT" && filePath === this.filePath) return empty(); throw invalid(); }
-    finally { await handle?.close(); }
+      return structuredClone(parseState(JSON.parse(await readBoundedPrivateFile(handle))));
+    } catch (error) { failed = true; if (error?.code === "ENOENT" && stage === "open" && !handle && filePath === this.filePath) return empty(); throw invalid(); }
+    finally { try { await handle?.close(); } catch { if (!failed) throw invalid(); } }
   }
   async add(intent, { retry = false } = {}) {
     validateIntent({ ...intent, attempts: 1 });

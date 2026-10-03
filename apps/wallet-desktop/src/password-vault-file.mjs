@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { PrivateFilePolicy } from "./platform-private-file.mjs";
+import {readBoundedPrivateFile,PrivateFileReadTooLarge,PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
 
 export const vaultFileDigest = value => value === null ? null : createHash("sha256").update(value).digest("hex");
 const safeStage = value => typeof value === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(value) ? value : "unknown";
@@ -25,7 +26,7 @@ export class PasswordVaultFile {
     catch (error) { if (error?.code === "ENOENT") return false; throw vaultStorageError(); }
   }
   async read(filePath = this.filePath, { legacy = false } = {}) {
-    let handle;
+    let handle, failed = false;
     let stage = "read-probe";
     try {
       await this.filePolicy.available(filePath);
@@ -33,17 +34,22 @@ export class PasswordVaultFile {
       handle = await this.io.open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       stage = "read-inspect";
       const stat = await handle.stat();
-      if (!stat.isFile() || stat.size > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
+      if (!stat.isFile() || stat.size > PRIVATE_FILE_MAX_BYTES) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
       if (!legacy) await this.filePolicy.assertPrivate(filePath, stat);
       stage = "read-content";
-      const text = await handle.readFile("utf8");
-      if (Buffer.byteLength(text) > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
+      const text = await readBoundedPrivateFile(handle);
+      if (Buffer.byteLength(text) > PRIVATE_FILE_MAX_BYTES) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
       return Object.freeze({ text, digest: vaultFileDigest(text) });
     } catch (error) {
-      if (error?.code === "ENOENT") return null;
+      failed = true;
+      if (error instanceof PrivateFileReadTooLarge) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
+      if (error?.code === "ENOENT" && stage === "read-open" && !handle) return null;
       if (error?.data?.code) throw error;
       throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", error?.storageStage ?? stage);
-    } finally { await handle?.close(); }
+    } finally {
+      try { await handle?.close(); }
+      catch { if (!failed) throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", "read-close"); }
+    }
   }
   async assertCurrent(expected, guard) {
     guard.assert(); const current = await this.read(); guard.assert();
