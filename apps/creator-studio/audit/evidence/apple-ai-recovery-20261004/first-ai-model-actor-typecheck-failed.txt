@@ -1,0 +1,33 @@
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:45: error: call to main actor-isolated static method 'validID' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 20 |     enum CodingKeys:String,CodingKey {case recordID="ID",Owner,VideoID,Kind,State,Provider,Model,Failure,OutputLanguage,ContextPreview,Result,Partial,ContextClasses,EstimatedUnits,Accepted}
+ 21 |     func valid(_ account:String) -> Bool {
+ 22 |         Owner==account && CreatorDraftState.validID(id) && CreatorDraftState.validID(VideoID) && ["awaiting_permission","running","review_required","accepted_suggestion","rejected","cancelled","recovery_required"].contains(State) && Result.utf8.count<=200000 && Partial.utf8.count<=200000 && ContextPreview.utf8.count<=10000 && EstimatedUnits>=0
+    |                                             `- error: call to main actor-isolated static method 'validID' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 23 |     }
+ 24 | }
+
+apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift:181:17: note: calls to static method 'validID' from outside of its actor context are implicitly asynchronous
+179 |     }
+180 |     private func require() throws {guard !poisoned else {throw Failure.damaged};try authority()}
+181 |     static func validID(_ text: String) -> Bool { CreatorNativeState.matches(text,"^[A-Za-z0-9_-]{1,160}$") }
+    |                 `- note: calls to static method 'validID' from outside of its actor context are implicitly asynchronous
+182 |     static func read(_ file: URL,limit: Int) throws -> Data {
+183 |         let stream=try FileHandle(forReadingFrom:file);defer {try? stream.close()};let bytes=try stream.read(upToCount:limit+1) ?? Data();guard bytes.count<=limit else { throw Failure.damaged };return bytes
+
+apps/creator-studio/ios/YNXCreator/CreatorModel.swift:22:78: error: call to main actor-isolated static method 'validID' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 20 |     enum CodingKeys:String,CodingKey {case recordID="ID",Owner,VideoID,Kind,State,Provider,Model,Failure,OutputLanguage,ContextPreview,Result,Partial,ContextClasses,EstimatedUnits,Accepted}
+ 21 |     func valid(_ account:String) -> Bool {
+ 22 |         Owner==account && CreatorDraftState.validID(id) && CreatorDraftState.validID(VideoID) && ["awaiting_permission","running","review_required","accepted_suggestion","rejected","cancelled","recovery_required"].contains(State) && Result.utf8.count<=200000 && Partial.utf8.count<=200000 && ContextPreview.utf8.count<=10000 && EstimatedUnits>=0
+    |                                                                              `- error: call to main actor-isolated static method 'validID' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 23 |     }
+ 24 | }
+
+apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift:181:17: note: calls to static method 'validID' from outside of its actor context are implicitly asynchronous
+179 |     }
+180 |     private func require() throws {guard !poisoned else {throw Failure.damaged};try authority()}
+181 |     static func validID(_ text: String) -> Bool { CreatorNativeState.matches(text,"^[A-Za-z0-9_-]{1,160}$") }
+    |                 `- note: calls to static method 'validID' from outside of its actor context are implicitly asynchronous
+182 |     static func read(_ file: URL,limit: Int) throws -> Data {
+183 |         let stream=try FileHandle(forReadingFrom:file);defer {try? stream.close()};let bytes=try stream.read(upToCount:limit+1) ?? Data();guard bytes.count<=limit else { throw Failure.damaged };return bytes
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>

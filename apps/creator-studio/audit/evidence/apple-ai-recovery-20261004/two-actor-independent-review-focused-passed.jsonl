@@ -1,0 +1,18 @@
+{"Time":"2026-10-04T03:58:23.975553+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T03:58:23.975826+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T03:58:24.366942+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness"}
+{"Time":"2026-10-04T03:58:24.367089+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness","Output":"=== RUN   TestVideoCreatorNativeConsumerAndOriginalBusiness\n"}
+{"Time":"2026-10-04T03:58:24.367204+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos"}
+{"Time":"2026-10-04T03:58:24.367216+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos","Output":"=== RUN   TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos\n"}
+{"Time":"2026-10-04T03:58:24.389697+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T03:58:24.38979+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"PASS\n"}
+{"Time":"2026-10-04T03:58:25.399475+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t1.424s [no tests to run]\n"}
+{"Time":"2026-10-04T03:58:25.399553+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":1.424}
+{"Time":"2026-10-04T03:58:37.944834+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos","Output":"    media_native_business_test.go:274: actual NativeSDK + owned native consumer + original business + context/cold/revoke; software QA ports, no installed OS or real Wallet claim\n"}
+{"Time":"2026-10-04T03:58:37.945643+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos","Output":"--- PASS: TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos (13.58s)\n"}
+{"Time":"2026-10-04T03:58:37.94566+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos","Elapsed":13.58}
+{"Time":"2026-10-04T03:58:37.945729+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness","Output":"--- PASS: TestVideoCreatorNativeConsumerAndOriginalBusiness (13.58s)\n"}
+{"Time":"2026-10-04T03:58:37.945748+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoCreatorNativeConsumerAndOriginalBusiness","Elapsed":13.58}
+{"Time":"2026-10-04T03:58:37.945986+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T03:58:38.957911+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t14.982s\n"}
+{"Time":"2026-10-04T03:58:38.957948+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":14.982}
