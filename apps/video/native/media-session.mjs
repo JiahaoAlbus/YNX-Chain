@@ -5,9 +5,9 @@ import {musicScope} from '../../music/web/canonical-request.js';
 import {serializeMediaBody,mediaBusinessAuthorization} from '../business-wire.js';
 
 const definitions=Object.freeze({
- video:{origin:'https://video.ynxweb4.com',account:'/v1/account',scopes:['video:account','video:library','video:playback'],scope:videoScope},
- 'creator-studio':{origin:'https://creator.ynxweb4.com',account:'/v1/account',scopes:['creator:account','creator:publish','creator:revenue'],scope:creatorScope},
- music:{origin:'https://music.ynxweb4.com',account:'/api/me',scopes:['music.creator','music.library','music.playback','music.profile'],scope:musicScope},
+ video:{origin:'https://video.ynxweb4.com',apiBase:'https://video.ynxweb4.com/video/api',account:'/v1/account',scopes:['video:account','video:library','video:playback'],scope:videoScope},
+ 'creator-studio':{origin:'https://creator.ynxweb4.com',apiBase:'https://creator.ynxweb4.com/video/api',account:'/v1/account',scopes:['creator:account','creator:publish','creator:revenue'],scope:creatorScope},
+ music:{origin:'https://music.ynxweb4.com',apiBase:'https://web4.ynxweb4.com/music',account:'/api/me',scopes:['music.creator','music.library','music.playback','music.profile'],scope:musicScope},
 });
 // The platform owner supplies the real protected runtime and Fetch bridge.
 // This consumer never enrolls an account, exports a key or migrates old storage.
@@ -35,7 +35,7 @@ export async function createNativeMediaSession({productId,platform,registry,runt
    if(options.body instanceof FormData)clean.delete('content-type');
    const maximum=path==='/api/creator/tracks'?64*1024*1024:1024*1024;
    if(options.body instanceof FormData){let size=0;for(const [name,value] of options.body){const length=typeof value==='string'?new TextEncoder().encode(value).length:value.size;size+=length;if(size>maximum||typeof value!=='string'&&length>(name==='artwork'?12.5:50)*1024*1024)throw Error('Music file exceeds original route limit')}}
-   const request=new Request(definition.origin+path,{method,headers:clean,body:options.body}),reader=request.body?.getReader(),chunks=[];let total=0;
+   const request=new Request(definition.apiBase+path,{method,headers:clean,body:options.body}),reader=request.body?.getReader(),chunks=[];let total=0;
    try{if(reader)while(true){check(c,options.signal);const {value,done}=await reader.read();check(c,options.signal);if(done)break;total+=value.length;if(total>maximum)throw Error('Music request exceeds route limit');chunks.push(value)}}finally{if(reader){await reader.cancel().catch(()=>{});reader.releaseLock()}}
    body=new Uint8Array(total);let offset=0;for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.length}headers=Object.fromEntries(request.headers);
   }else({body,headers}=await serializeMediaBody(path,method,options.body,options.headers,options.signal));
@@ -47,9 +47,9 @@ export async function createNativeMediaSession({productId,platform,registry,runt
    proof={'X-YNX-Product-Session-Proof-V2':signed.introspection.proofHeader,'X-YNX-Music-Business-Proof-V2':signed.proofHeader};
   }else proof=await mediaBusinessAuthorization(client,path,method,body,scope);
   check(c,options.signal);
-  const response=await send(definition.origin+path,{...options,method,headers:{...headers,...proof},body:method==='GET'?undefined:body,credentials:'omit',redirect:'error'});
+  const response=await send(definition.apiBase+path,{...options,method,headers:{...headers,...proof},body:method==='GET'?undefined:body,credentials:'omit',redirect:'error'});
   check(c,options.signal);
-  if(response.redirected||response.url&&response.url!==definition.origin+path)throw Error('Unexpected native Media response location');
+  if(response.redirected||response.url&&response.url!==definition.apiBase+path)throw Error('Unexpected native Media response location');
   return response;
  }
  async function readJSONBody(path,options,c){
