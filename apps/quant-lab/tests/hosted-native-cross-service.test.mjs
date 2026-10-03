@@ -92,6 +92,29 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
   // not a permission granted by records/identity or by forged remote headers.
   const localContext=await browser.newContext(),localPage=await localContext.newPage();
   await localContext.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!==go.url)return route.abort();if(/^\/api\/v1\/[a-z0-9/-]+$/u.test(url.pathname))return relay(route,go.url,url.pathname.slice(4),trace);const name=url.pathname==='/'?'index.html':url.pathname.slice(1);if(!/^[a-zA-Z0-9.-]+$/u.test(name))return route.abort();try{return route.fulfill({contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html',body:await readFile(resolve(root,'apps/quant-lab/web',name))})}catch{return route.fulfill({status:404,body:''})}});
-await localPage.goto(go.url);await localPage.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);await localPage.locator('#backtest button.primary').click();await localPage.waitForFunction(()=>document.querySelector('#paper-strategy').options.length>1);await localPage.click('[data-view=paper]');await localPage.selectOption('#paper-strategy',{index:1});await localPage.click('#paper-submit');await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-result',trace}))});assert.ok(trace.some(value=>value.path==='/v1/paper/orders'&&value.status===201));await localPage.reload();await localPage.click('[data-view=paper]');await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-result',trace}))});await localContext.close();
+  await localPage.goto(go.url);
+  await localPage.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);
+  await localPage.locator('#backtest button.primary').click();
+  await localPage.waitForFunction(()=>document.querySelector('#paper-strategy').options.length>1);
+  await localPage.click('[data-view=paper]');
+  await localPage.selectOption('#paper-strategy',{index:1});
+  const selected=await localPage.locator('#paper-strategy').inputValue();
+  const cancelledDialog=localPage.waitForEvent('dialog'),cancelledClick=localPage.click('#paper-submit');
+  const cancellation=await cancelledDialog;
+  assert.equal(cancellation.type(),'confirm');
+  assert.ok(cancellation.message().includes(selected));
+  assert.match(cancellation.message(),/does not deduct commission\/gas or model slippage/u);
+  await cancellation.dismiss();await cancelledClick;
+  assert.equal(trace.filter(value=>value.path==='/v1/paper/orders').length,0);
+  const approvalDialog=localPage.waitForEvent('dialog'),approvedClick=localPage.click('#paper-submit');
+  const approval=await approvalDialog;
+  assert.equal(approval.type(),'confirm');assert.ok(approval.message().includes(selected));
+  await approval.accept();await approvedClick;
+  await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-result',trace}))});
+  assert.equal(trace.filter(value=>value.path==='/v1/paper/orders'&&value.status===201).length,1);
+  await localPage.reload();await localPage.click('[data-view=paper]');
+  await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-reload',trace}))});
+  assert.equal(trace.filter(value=>value.path==='/v1/paper/orders').length,1);
+  await localContext.close();
  }finally{await browser?.close();if(go)await go.close();await new Promise(resolve=>gateway.close(resolve));await rm(directory,{recursive:true,force:true})}
 });
