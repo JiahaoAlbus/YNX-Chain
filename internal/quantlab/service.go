@@ -743,10 +743,14 @@ func (s *Service) RevokeMandate(digest, actor string) (Mandate, error) {
 }
 
 func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
+	strategy, err := normalizeResearchParameters(req.Strategy, req.Assumptions)
+	if err != nil {
+		return Experiment{}, err
+	}
+	req.Strategy = strategy
 	if err := validateBacktest(req); err != nil {
 		return Experiment{}, err
 	}
-	strategy := req.Strategy
 	// A completed deterministic experiment records each prerequisite research
 	// state in order. Execution stages remain unavailable until separately
 	// approved through AdvanceStrategy.
@@ -835,6 +839,10 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 }
 
 func (s *Service) RunBacktestFromMarket(strategy StrategySpec, assumptions Assumptions) (Experiment, error) {
+	strategy, err := normalizeResearchParameters(strategy, assumptions)
+	if err != nil {
+		return Experiment{}, err
+	}
 	if s.cfg.MarketData == nil {
 		return Experiment{}, ErrUnavailable
 	}
@@ -1120,7 +1128,10 @@ func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSec
 		s.audit("strategy_schedule_stopped", id, hash(strategy.Runtime))
 		return strategy, s.save()
 	}
-	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.FeeBPS < 0 || assumptions.SlippageBPS < 0 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
+	if _, err := normalizeResearchParameters(strategy, assumptions); err != nil {
+		return StrategySpec{}, err
+	}
+	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
 		return StrategySpec{}, ErrInvalid
 	}
 	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}

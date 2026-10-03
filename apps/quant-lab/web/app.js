@@ -395,7 +395,10 @@ const api = async (path, opt = {}) => {
     },
   });
   const b = await r.json();
-  if (!r.ok) throw Object.assign(new Error(b.error || `HTTP ${r.status}`), {status: r.status});
+  if (!r.ok) {
+    const researchError = b.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
+    throw Object.assign(new Error(researchError ? t("researchInputInvalid") : b.error || `HTTP ${r.status}`), {status: r.status, code: b.error, localeKey: researchError ? "researchInputInvalid" : null});
+  }
   return b;
 };
 const toast = (m, key = null, suffix = '') => {
@@ -783,7 +786,7 @@ $("#backtest").onsubmit = async (e) => {
     if (savedWorkspace) await refresh();
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
-    toast(e.message);
+    toast(e.message, e.localeKey ?? null);
   } finally {
     researchSubmitting = false;
     renderResearchChoices(Object.values(snapshot.strategies || {}));

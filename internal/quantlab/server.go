@@ -127,7 +127,11 @@ func (s *Server) publicBacktestFromMarket(w http.ResponseWriter, r *http.Request
 		Strategy    StrategySpec `json:"strategy"`
 		Assumptions Assumptions  `json:"assumptions"`
 	}
-	if !decode(w, r, &q) {
+	if !decodeResearch(w, r, &q) {
+		return
+	}
+	if _, err := normalizeResearchParameters(q.Strategy, q.Assumptions); err != nil {
+		respond(w, r, nil, err, 201)
 		return
 	}
 	dir, err := os.MkdirTemp("", "ynx-quant-public-")
@@ -322,7 +326,7 @@ func localWebSocketOrigin(r *http.Request) bool {
 }
 func (s *Server) backtest(w http.ResponseWriter, r *http.Request) {
 	var q BacktestRequest
-	if !decode(w, r, &q) {
+	if !decodeResearch(w, r, &q) {
 		return
 	}
 	v, e := s.service.RunBacktest(q)
@@ -333,7 +337,7 @@ func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 		Strategy    StrategySpec `json:"strategy"`
 		Assumptions Assumptions  `json:"assumptions"`
 	}
-	if !decode(w, r, &q) {
+	if !decodeResearch(w, r, &q) {
 		return
 	}
 	v, e := s.service.RunBacktestFromMarket(q.Strategy, q.Assumptions)
@@ -353,7 +357,7 @@ func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
 		IntervalSeconds int64       `json:"intervalSeconds"`
 		Assumptions     Assumptions `json:"assumptions"`
 	}
-	if !decode(w, r, &q) {
+	if !decodeResearch(w, r, &q) {
 		return
 	}
 	v, e := s.service.ConfigureStrategySchedule(r.PathValue("id"), q.Enabled, q.IntervalSeconds, q.Assumptions)
@@ -488,6 +492,10 @@ func respond(w http.ResponseWriter, r *http.Request, v any, e error, ok int) {
 		code = 503
 	}
 	errorCode := "invalid_request"
+	var parameterError *researchParameterError
+	if errors.As(e, &parameterError) {
+		errorCode = "invalid_research_parameters"
+	}
 	if errors.Is(e, ErrForbidden) {
 		errorCode = "forbidden"
 	} else if errors.Is(e, ErrConflict) {

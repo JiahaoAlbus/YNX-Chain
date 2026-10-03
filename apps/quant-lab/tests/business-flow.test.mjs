@@ -15,6 +15,19 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('typed research HTTP rejection preserves prior results and localizes through all 12 languages without retry',async()=>{
+  let rejected=false;
+  const app=harness({apiStatus:url=>rejected&&!url.endsWith('/snapshot')?400:200,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:rejected?{error:'invalid_research_parameters',errorId:'fixture-error-id'}:researchFixture('confirmed')});
+  await settle();await app.submit('backtest');rejected=true;
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});await app.submit('backtest');
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchInputInvalid`,app.context));
+    assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-submit').disabled,false);
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,13);
+  app.ids.get('locale').onchange({target:{value:'en'}});assert.equal(app.ids.get('toast').textContent,vm.runInContext('businessCopy.en.researchInputInvalid',app.context));
+});
+
 test('a research response with different or missing declared costs/windows is not the submitted completed run',async()=>{
   let response=researchFixture('good-run');const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:response});await settle();await app.submit('backtest');
   const good=response;
@@ -91,7 +104,7 @@ class Element {
   append(...elements) {this.children.push(...elements);}
   replaceChildren(...elements) {this.children = elements;}
 }
-function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, storageBoundary, confirmAction = () => false} = {}) {
+function harness({snapshot = {}, portfolioRead, apiResponse, apiStatus = () => 200, savedStorage, storageBoundary, confirmAction = () => false} = {}) {
   snapshot = {access: {statefulPreview: true}, ...snapshot};
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
@@ -116,7 +129,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, stora
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-    fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
+    fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;

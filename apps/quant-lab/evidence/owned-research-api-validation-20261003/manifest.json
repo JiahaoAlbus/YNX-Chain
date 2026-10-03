@@ -1,0 +1,46 @@
+{
+  "schema": "ynx-owned-business-evidence/1",
+  "product": "quant-lab",
+  "classification": "LOCAL_SOURCE_TEST_BUILD_ONLY",
+  "branch": "codex/exchange-sso-cookie-binding-20261002",
+  "predecessor": "9f07134183f86871b2a71eea770e619ead3f1329",
+  "predecessorTree": "a71d9f154877f76f464ada08454f0ef5e24a5826",
+  "authority": {
+    "coordinationThread": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+    "scope": "Authorized existing internal/quantlab research request validation and direct API/UI tests only; not engine algorithm, authority, capital execution or deployment.",
+    "overlapPrecheck": {"existingWorktreesChecked": 365, "missingWorktreesSkipped": 7, "dirtyInternalQuantlabWorktrees": []}
+  },
+  "contract": {
+    "requiredName": "Trimmed nonempty, at most 80 UTF-16 code units; original accepted name preserved",
+    "seed": "Signed JS-safe integer; omitted and explicit zero remain zero",
+    "cost": "Nonnegative JS-safe integer fee/slippage; zero remains valid; no new fee model",
+    "windows": "fast >= 2, slow > fast, JS-safe integers; explicit invalid values rejected",
+    "omittedWindows": {"fast": 3, "slow": 8, "returnedAndPersisted": true, "incompatibleExplicitFast": "rejected, not silently repaired"},
+    "http": "400 invalid_research_parameters with existing requestId/errorId; research decoder rejects explicit null and duplicate case-insensitive fields and retains unknown-field rejection",
+    "publicInvalidRequest": "Reject before market history read/workspace creation",
+    "savedInvalidRequest": "No experiment/strategy/audit persistence",
+    "ui": "Research-only typed error localization for all 12 languages; prior result preserved, no automatic retry",
+    "unchanged": ["simulateDetailed algorithm", "state loading and historical records", "Paper idempotency", "Auth/Wallet/shared protocol", "capital execution permissions"]
+  },
+  "files": [
+    {"path":"internal/quantlab/research_validation.go","blob":"9ba0575530834c0556f8956e63f8f160757041ea","bytes":3320,"sha256":"be20b7f76b618512f47a739f9da3c3a00de0507a1e68910fd75175f1d85fb355"},
+    {"path":"internal/quantlab/research_validation_test.go","blob":"eb5463fd3888d7e577b314bf9f701386cce604e6","bytes":5500,"sha256":"1c1dca54494920920c7df542169374c22b1b5bf78df21d6e2683d446860bc09a"},
+    {"path":"internal/quantlab/service.go","blob":"d2ea59cc407c4123df31fbc1232a6a5b44e98de6","bytes":66441,"sha256":"8c87475ff5b486ca00b2f45911ed4c92a58020a0cfb396c7684590c18efbe9bf"},
+    {"path":"internal/quantlab/server.go","blob":"6998b304d507bd9bafcbc61cb8a697b57dd110b2","bytes":18055,"sha256":"bd09538e09709676fdd67221cb27ea21bb413de93e9e584efe5a89135a4ecbda"},
+    {"path":"apps/quant-lab/web/app.js","blob":"8c007c52f091c8fbdf8fd2ea56cccde2978b44f4","bytes":116938,"sha256":"f4bcb965d0b6ff9a0ba582b916d58cdc27f82435233e1ebbf6ae6b53afc9e7f1"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"a2e9ad9fbbd652d3141b8ebded279e04652ce7e8","bytes":59615,"sha256":"ebf42bd427140be996687394a2ef1b704dcf9fd2b00d14258143489bf0b41388"},
+    {"path":"apps/quant-lab/tests/tenant-persistence.test.mjs","blob":"327d72fa50c7ee1fd7a23c81aa8a272373cfb9e9","bytes":13699,"sha256":"fad7ab514c7f77ecfee9c9962a8da5de40024c2000aa21664fa8eeabe4df526b"}
+  ],
+  "tests": [
+    {"command":"go test ./internal/quantlab -run 'TestResearchParameters|TestResearchOmitted' -count=1", "stage":"before fix", "result":"FAIL: explicit illegal parameters accepted/persisted; effective defaults not returned"},
+    {"command":"go test -race ./internal/quantlab -count=1", "result":"PASS", "packageSeconds":2.668},
+    {"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs", "result":"PASS", "pass":64,"fail":0,"skip":0,"durationMs":47333.463209},
+    {"command":"node --check app.js/business-flow.test.mjs/tenant-persistence.test.mjs; git diff --check", "result":"PASS"}
+  ],
+  "intermediateTestFailure": "Snapshot deep equality initially included fresh read-time asOf/sourceMetadata.asOf. Regression now excludes only these observation timestamps and compares all remaining fields including persisted audit; no production assertion weakened.",
+  "localFixtureBoundary": "Chrome and HTTP tests use synthetic loopback fixtures and local-paper capability IDs. Two tenants/two processes, twelve same-key submissions, conflict, restart/reopen and replay are local evidence, not real wallet auth or PostgreSQL/public trading evidence.",
+  "build": {"command":"go build -o /tmp/ynx-quant-research-validation-20261003 ./apps/quant-lab/server", "result":"PASS", "path":"/tmp/ynx-quant-research-validation-20261003", "format":"Mach-O arm64 developer executable, NOT installer or production artifact", "bytes":11397154,"sha256":"ae693e398da29caad8788ffe829ef97330fefe8299b028256aa75dc3db420549"},
+  "handoff": "A final release owner integrates only these ordinary deltas with compatible authority/asset graph; do not replace whole app.js or workspace. No independent deployment. Rollback is source reversion of this scoped commit through release owner, not a production mutation.",
+  "remaining": ["Compatible official build and release-owner publication", "Source-bound public/native API and visible research save/reopen verification", "Real Wallet/private identity lifecycle", "Research arithmetic at extreme otherwise safe numeric magnitudes is not certified by this request-validation change"],
+  "truth": {"localSourceTestBuild":true,"officialPublicCurrentSource":false,"installed":false,"walletApproval":false,"productSession":false,"realOrders":false,"realTransactions":false,"productionSigning":false,"complete":false}
+}

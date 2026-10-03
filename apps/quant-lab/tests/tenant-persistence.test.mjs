@@ -98,10 +98,22 @@ test('actual local Quant HTTP: two tenants, two processes, durable Paper replay 
   await api(server1, '/ready', undefined, undefined, 503);
   await api(server1, '/v1/snapshot', undefined, undefined, 401);
   await api(server1, '/v1/snapshot', 'invalid', undefined, 401);
+  const omittedWindows = syntheticBacktest('b',22);delete omittedWindows.strategy.Params;
   const [experimentA, experimentB] = await Promise.all([
     api(server1, '/v1/backtests', tenantA, syntheticBacktest('a', 11), 201),
-    api(server2, '/v1/backtests', tenantB, syntheticBacktest('b', 22), 201),
+    api(server2, '/v1/backtests', tenantB, omittedWindows, 201),
   ]);
+  assert.deepEqual(experimentB.strategy.Params,{fast:3,slow:8},'actual omitted defaults must be recorded');
+  const stateBeforeRejections = await api(server1,'/v1/snapshot',tenantA);
+  for(const mutate of [r=>r.strategy.Params.fast=0,r=>r.strategy.Params.slow=3,r=>r.strategy.Seed=null,r=>r.assumptions.FeeBPS=null,r=>r.assumptions.SlippageBPS=-1,r=>r.strategy.Name=' ',r=>r.strategy.Seed=9007199254740992]){
+    const request=syntheticBacktest('a',11);mutate(request);
+    const problem=await api(server2,'/v1/backtests',tenantA,request,400);
+    assert.equal(problem.error,'invalid_research_parameters');assert.ok(problem.errorId);assert.ok(problem.requestId);
+  }
+  // Snapshot observation timestamps are freshly generated on every read; they
+  // are not persisted mutations. Compare every other field, including audit.
+  const withoutObservationTime = value => {const {asOf,...rest}=value;const {asOf:metadataTime,...metadata}=rest.sourceMetadata;return {...rest,sourceMetadata:metadata};};
+  assert.deepEqual(withoutObservationTime(await api(server1,'/v1/snapshot',tenantA)),withoutObservationTime(stateBeforeRejections),'rejected HTTP research must not alter persisted tenant state');
   // Exercise the shipped UI consistency fence against actual Go JSON, not a
   // reimplemented JS engine or a hand-built successful response.
   const source=await readFile(path.join(repository,'apps/quant-lab/web/app.js'),'utf8');
