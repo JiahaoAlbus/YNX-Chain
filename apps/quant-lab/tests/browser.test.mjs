@@ -515,6 +515,25 @@ test('paper requires a saved strategy; zero reconciliation and kill switch are v
   await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.locator('#toast').filter({hasText:'Kill switch active'}).waitFor();
   await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true});
 });
+test('actual Chrome retains unreadable Paper intent across reload and explicitly forgets only local state',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}}),tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
+  try{
+    await context.addInitScript(({tenant,key})=>{if(!localStorage.getItem('ynx.quant.tenant.v1')){localStorage.setItem('ynx.quant.tenant.v1',tenant);localStorage.setItem(key,'{invalid-pending');}},{tenant,key});
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:0,KillSwitch:false},strategies:{fixture:{Name:'Controlled choice',StrategyHash:'d'.repeat(64)}}})}));
+    const page=await context.newPage(),writes=[],errors=[];page.on('request',request=>{if(request.method()==='POST')writes.push(request.url())});page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();await page.selectOption('#paper-strategy','d'.repeat(64));
+    assert.equal(await page.locator('#paper-submit').isDisabled(),true);assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),'{invalid-pending');
+    await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);assert.equal(await page.locator('#paper-pending-status').textContent(),await page.evaluate(()=>t('paperPendingUnreadable')));
+      const expected=await page.evaluate(()=>t('paperForgetConfirm')),pending=page.waitForEvent('dialog'),click=page.locator('#paper-forget-pending').click();const dialog=await pending;
+      assert.equal(dialog.message(),expected);await dialog.dismiss();await click;assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),'{invalid-pending');
+    }
+    await page.selectOption('#locale','en');const pending=page.waitForEvent('dialog'),click=page.locator('#paper-forget-pending').click();await(await pending).accept();await click;
+    assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),null);await page.selectOption('#paper-strategy','d'.repeat(64));assert.equal(await page.locator('#paper-submit').isDisabled(),false);
+    assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
+  }finally{await context.close()}
+});
 test('actual Chrome reconciliation preview cancels in twelve locales without any write',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

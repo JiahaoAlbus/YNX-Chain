@@ -470,7 +470,7 @@ test('schedule input and typed service rejection stay distinct and localize with
 });
 
 test('blocked or silent storage cannot crash public research or grant Paper authority', async () => {
-  for(const mode of ['get','set','remove','silent']){
+  for(const mode of ['get','set','silent']){
     const app=harness({storageBoundary(operation){if(operation===mode)throw Error('Storage unavailable');if(mode==='silent'&&operation==='set')return false},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},strategies:{},experiments:{},paper:{},audit:[]}:researchFixture('storage-public')});await settle();
     assert.equal(app.ids.get('workspace-storage-boundary').hidden,false,mode);
     assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('reconcile').disabled,true);assert.equal(app.ids.get('paper-submit').disabled,true);
@@ -479,6 +479,36 @@ test('blocked or silent storage cannot crash public research or grant Paper auth
     app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.context.document.documentElement.lang,'ar');assert.match(app.ids.get('workspace-storage-boundary').textContent,/تخزين/);
     assert.equal(app.proofs(),0);
   }
+});
+
+test('unreadable saved Paper intent is retained and blocks new orders until explicit local forgetting',async()=>{
+  const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant,hash='d'.repeat(64);
+  const valid={StrategyHash:hash,Side:'buy',Amount:100,IdempotencyKey:'quant-paper-12345678-1234-1234-1234-123456789abc'};
+  for(const raw of ['{','null','[]',JSON.stringify(valid).replace('"Amount":100','"Amount":99,"Amount":100'),JSON.stringify({...valid,extra:true}),JSON.stringify({...valid,Amount:'100'}),JSON.stringify({...valid,IdempotencyKey:'quant-paper-'+'-'.repeat(36)}),'x'.repeat(65537)]){
+    let accept=false,confirms=0;
+    const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,raw]],snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},confirmAction:()=>{confirms++;return accept}});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('paper-strategy').onchange();
+    assert.equal(app.storage.get(key),raw);assert.equal(app.ids.get('paper-submit').disabled,true);
+    await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(confirms,0);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.equal(vm.runInContext('paperPendingStatus.textContent',app.context),vm.runInContext('t("paperPendingUnreadable")',app.context));
+    }
+    vm.runInContext('paperForgetButton.onclick()',app.context);assert.equal(app.storage.get(key),raw);
+    accept=true;vm.runInContext('paperForgetButton.onclick()',app.context);
+    assert.equal(app.storage.has(key),false);assert.equal(vm.runInContext('pendingPaperInvalid',app.context),false);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+    assert.equal(app.ids.get('paper-submit').disabled,false);
+  }
+});
+
+test('failed explicit Paper forgetting preserves unknown intent and disables further workspace writes',async()=>{
+  const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
+  const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,'{']],confirmAction:()=>true,storageBoundary(operation){if(operation==='remove')throw Error('Storage unavailable')}});await settle();
+  vm.runInContext('paperForgetButton.onclick()',app.context);
+  assert.equal(app.storage.get(key),'{');assert.equal(vm.runInContext('pendingPaperInvalid',app.context),true);
+  assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(vm.runInContext('statefulPreview',app.context),false);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
 });
 
 test('Paper intent persistence failure sends no order and disables durable workspace actions', async()=>{

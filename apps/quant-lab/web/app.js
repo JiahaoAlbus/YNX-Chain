@@ -47,20 +47,25 @@ function readPendingResearchIntent() {
     return value;
   } catch { pendingResearchInvalid = true; return null; }
 }
-let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
+let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperIntent = readPendingPaperIntent();
 // A pending exact-key replay may retrieve an already committed receipt even
 // after a kill. The service still rejects new execution under the kill switch.
-function paperFreshIntentBlockKey() { return pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
+function paperFreshIntentBlockKey() { return pendingPaperInvalid ? 'paperPendingUnreadable' : pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
 function paperFreshIntentBlocked() { return paperFreshIntentBlockKey() !== null; }
-function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); }
+function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); renderPaperPendingState(); }
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
   try {
-    const value = JSON.parse(localStorage.getItem(paperPendingKey) || "null");
-    if (value && /^quant-paper-[0-9a-f-]{36}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
-  } catch {}
-  try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; }
-  return null;
+    const raw=localStorage.getItem(paperPendingKey);
+    if(raw===null)return null;
+    if(raw.length>65536)throw Error('INVALID_SAVED_PAPER_REQUEST');
+    const value = JSON.parse(raw);
+    // Our persisted envelope is always JSON.stringify output. A duplicate-key
+    // or otherwise rewritten envelope must not silently become an exact replay.
+    if(JSON.stringify(value)!==raw)throw Error('INVALID_SAVED_PAPER_REQUEST');
+    if (value && Object.keys(value).sort().join(',')==='Amount,IdempotencyKey,Side,StrategyHash' && /^quant-paper-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
+    throw Error('INVALID_SAVED_PAPER_REQUEST');
+  } catch { pendingPaperInvalid=true; return null; }
 }
 const supportedLocales = QuantI18n.locales;
 let locale = readPreference("ynx.quant.locale") || "en";
@@ -514,6 +519,37 @@ function renderAuditRecords(records) {
   }).join('');
 }
 const researchResultStatus = document.createElement("p");
+const paperRecoveryCopy={
+  en:['Saved Paper request unreadable. Its outcome may be unknown. Refresh history before explicitly forgetting it; no new request is allowed.','Forget saved Paper request locally','Forget this saved Paper request on this browser? This does not cancel or delete a service order. A later submission is a separate order and may duplicate the earlier intent.','Saved Paper request forgotten locally; service records are unchanged.'],
+  'zh-CN':['保存的模拟请求无法读取，结果可能未知。请刷新历史，再决定是否明确忘记；禁止新请求。','仅在本机忘记模拟请求','忘记此浏览器保存的模拟请求？这不会取消或删除服务订单。后续提交是独立订单，可能重复原意图。','本机已忘记模拟请求；服务记录不变。'],
+  'zh-TW':['儲存的模擬請求無法讀取，結果可能未知。請重新整理歷史再決定是否忘記；禁止新請求。','僅在本機忘記模擬請求','忘記此瀏覽器儲存的模擬請求？不會取消或刪除服務訂單。後續提交是獨立訂單，可能重複原意圖。','本機已忘記模擬請求；服務紀錄不變。'],
+  ja:['保存済みペーパー要求を読めません。結果は不明です。履歴を更新し、明示的に破棄するまで新規要求はできません。','保存済みペーパー要求をローカル破棄','このブラウザーの要求を破棄しますか？サービス注文は取消・削除されません。次の送信は別注文で、前の意図を重複する可能性があります。','ローカル要求を破棄しました。サービス記録は変更されません。'],
+  ko:['저장된 모의 요청을 읽을 수 없습니다. 결과가 불명확할 수 있습니다. 기록을 새로 읽고 명시적으로 삭제하기 전에는 새 요청을 보낼 수 없습니다.','저장된 모의 요청만 로컬 삭제','이 브라우저의 요청을 삭제할까요? 서비스 주문은 취소되거나 삭제되지 않습니다. 다음 제출은 별도 주문이며 이전 의도를 중복할 수 있습니다.','로컬 요청 삭제 완료. 서비스 기록은 그대로입니다.'],
+  es:['Solicitud simulada ilegible; el resultado puede ser desconocido. Actualice el historial antes de olvidarla explícitamente. No se permite otra solicitud.','Olvidar solicitud simulada local','¿Olvidar esta solicitud del navegador? No cancela ni borra la orden del servicio. El próximo envío será otra orden y podría duplicarla.','Solicitud local olvidada; registros del servicio intactos.'],
+  fr:['Demande simulée illisible ; résultat peut-être inconnu. Actualisez l’historique avant de l’oublier explicitement. Nouvelle demande interdite.','Oublier la demande simulée locale','Oublier cette demande du navigateur ? Aucun ordre du service n’est annulé ou supprimé. Le prochain envoi sera distinct et peut faire doublon.','Demande locale oubliée ; registres du service inchangés.'],
+  de:['Gespeicherte Paper-Anfrage unlesbar; Ergebnis möglicherweise unbekannt. Verlauf aktualisieren und ausdrücklich verwerfen. Keine neue Anfrage erlaubt.','Paper-Anfrage lokal verwerfen','Diese Browser-Anfrage verwerfen? Service-Aufträge bleiben bestehen. Ein späterer Auftrag ist separat und kann die ursprüngliche Absicht duplizieren.','Lokale Anfrage verworfen; Service-Daten unverändert.'],
+  pt:['Solicitação simulada ilegível; resultado possivelmente desconhecido. Atualize o histórico antes de esquecê-la explicitamente. Nova solicitação bloqueada.','Esquecer solicitação simulada local','Esquecer esta solicitação do navegador? Não cancela nem apaga a ordem do serviço. O próximo envio será separado e poderá duplicá-la.','Solicitação local esquecida; registros do serviço intactos.'],
+  ru:['Сохранённый запрос симуляции нечитаем; результат может быть неизвестен. Обновите историю перед явным удалением. Новый запрос запрещён.','Забыть локальный запрос симуляции','Забыть запрос в этом браузере? Ордер сервиса не отменяется и не удаляется. Следующий запрос создаст отдельный ордер и может повторить предыдущий.','Локальный запрос забыт; записи сервиса не изменены.'],
+  ar:['تعذر قراءة طلب المحاكاة المحفوظ وقد تكون نتيجته مجهولة. حدّث السجل قبل نسيانه صراحةً؛ لا يُسمح بطلب جديد.','نسيان طلب المحاكاة محليًا','نسيان طلب هذا المتصفح؟ لا يلغي أو يحذف أمر الخدمة. الإرسال التالي أمر منفصل وقد يكرر الطلب السابق.','تم نسيان الطلب محليًا؛ سجلات الخدمة لم تتغير.'],
+  id:['Permintaan simulasi tersimpan tidak terbaca; hasilnya mungkin belum diketahui. Muat ulang riwayat sebelum melupakannya secara eksplisit. Permintaan baru diblokir.','Lupakan permintaan simulasi lokal','Lupakan permintaan browser ini? Order layanan tidak dibatalkan atau dihapus. Pengiriman berikutnya terpisah dan dapat menduplikasi maksud sebelumnya.','Permintaan lokal dilupakan; catatan layanan tetap.']
+};
+for(const [language,values] of Object.entries(paperRecoveryCopy))Object.assign(businessCopy[language],Object.fromEntries(['paperPendingUnreadable','paperForget','paperForgetConfirm','paperForgotten'].map((key,index)=>[key,values[index]])));
+const paperPendingStatus=document.createElement('p'),paperForgetButton=document.createElement('button');
+paperPendingStatus.id='paper-pending-status';paperPendingStatus.role='status';
+paperForgetButton.id='paper-forget-pending';paperForgetButton.type='button';
+$('#paper-order').append(paperPendingStatus,paperForgetButton);
+function renderPaperPendingState(){
+  paperPendingStatus.hidden=!pendingPaperInvalid;paperPendingStatus.textContent=pendingPaperInvalid?t('paperPendingUnreadable'):'';
+  paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting;paperForgetButton.textContent=t('paperForget');
+}
+paperForgetButton.onclick=()=>{
+  if(paperSubmitting||!pendingPaperInvalid||!confirm(t('paperForgetConfirm')))return;
+  try{
+    localStorage.removeItem(paperPendingKey);
+    if(localStorage.getItem(paperPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
+    pendingPaperInvalid=false;pendingPaperIntent=null;toast(t('paperForgotten'),'paperForgotten');renderPaperSubmitControl();
+  }catch{workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable');renderPaperSubmitControl();}
+};
 const researchForgetButton = document.createElement('button');
 researchForgetButton.type='button';researchForgetButton.id='research-forget-pending';
 $('#backtest').append(researchForgetButton);
@@ -559,6 +595,7 @@ function applyLocale() {
   renderResearchStatus();
   renderRunDetails();
   renderResearchRequestState();
+  renderPaperPendingState();
   $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
   $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
   renderRiskControls();
