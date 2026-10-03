@@ -3,6 +3,7 @@ package quantlab
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -159,6 +160,39 @@ func TestReadyAcceptsMultiInstancePostgresStore(t *testing.T) {
 	}
 	if response.StatusCode != http.StatusOK || payload.Status != "ready" || payload.Storage.Backend != "postgresql" || !payload.Storage.MultiInstance {
 		t.Fatalf("durable readiness was not reported: status=%d payload=%+v", response.StatusCode, payload)
+	}
+}
+
+type unavailableReadinessStore struct{ conflictQuantStateStore }
+
+func (unavailableReadinessStore) load() (state, bool, error) {
+	return state{}, false, errors.New("private database connection detail must not be returned")
+}
+
+func TestReadyRejectsUnreadableMultiInstanceStoreWithoutDisclosingError(t *testing.T) {
+	service := &Service{store: unavailableReadinessStore{}, state: newQuantState()}
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var payload struct{ Status, Reason string }
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusServiceUnavailable || payload.Status != "not_ready" || payload.Reason != "authoritative state is temporarily unavailable" {
+		t.Fatalf("unreadable store readiness status=%d payload=%+v", response.StatusCode, payload)
+	}
+	service.store = conflictQuantStateStore{}
+	response, err = server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("recovered storage readiness=%d", response.StatusCode)
 	}
 }
 

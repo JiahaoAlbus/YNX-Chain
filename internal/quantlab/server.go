@@ -220,6 +220,15 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if err := s.service.checkDurableStateReadable(); err != nil {
+		// Store errors may contain connection details. Emit only a fixed class.
+		write(w, http.StatusServiceUnavailable, map[string]any{
+			"status":  "not_ready",
+			"reason":  "authoritative state is temporarily unavailable",
+			"storage": storage,
+		})
+		return
+	}
 	write(w, http.StatusOK, map[string]any{
 		"status":  "ready",
 		"storage": storage,

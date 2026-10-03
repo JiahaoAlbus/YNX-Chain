@@ -401,6 +401,19 @@ func (s *Service) StorageSource() string {
 	return "ynx-quant-authoritative-local-state"
 }
 
+// checkDurableStateReadable is a read-only readiness probe, not a write,
+// execution capability or tenant-isolation proof. The PostgreSQL store load
+// enforces its existing bounded query deadline and persisted integrity check.
+func (s *Service) checkDurableStateReadable() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.store == nil || !s.store.multiInstance() {
+		return ErrUnavailable
+	}
+	_, _, err := s.store.load()
+	return err
+}
+
 func (s *Service) snapshotSourceMetadata(status string) SnapshotSourceMetadata {
 	storage := s.StorageStatus()
 	if status == "" {
