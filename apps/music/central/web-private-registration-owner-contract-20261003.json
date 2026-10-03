@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ynx-media-owned-private-web-contract/v1",
+  "status": "OWNER_LIFECYCLE_SOURCE_READY_A_ADMISSION_REQUIRED",
+  "productId": "music",
+  "clientId": "ynx-music-v1",
+  "platform": "web",
+  "applicationId": "com.ynxweb4.music.web",
+  "bundleId": null,
+  "packageId": null,
+  "origin": "https://music.ynxweb4.com",
+  "callback": "https://music.ynxweb4.com/wallet-auth/callback",
+  "scopes": [
+    "music.creator",
+    "music.library",
+    "music.playback",
+    "music.profile"
+  ],
+  "sessionTTLSeconds": 300,
+  "actualConsumerSource": [
+    "apps/music/web/canonical-request.js",
+    "apps/music/web/canonical-session.js",
+    "apps/music/web/app.js",
+    "apps/music/web/wallet-callback.js"
+  ],
+  "businessProofHeader": "X-YNX-Music-Business-Proof-V2",
+  "wirePath": "Original server path /api/* after the mounted /music prefix is stripped; query is separately validated",
+  "multipart": "Final Request serialization before digest; preserve generated Content-Type boundary and exact original bytes; original 50MiB audio and50MiB/4 artwork plus1MiB HTTP bound, not shared512MiB ceiling",
+  "remainingOwnerImplementation": [
+    "Replace canonical-release.js unavailable seam with the exact admitted frozen shared browser SDK/registry after A admission"
+  ],
+  "requiresA": [
+    "exact admitted frozen browser SDK and registry Web tuple",
+    "original Music V2 sender-bound route verification and atomic store nonce/live actor revalidation",
+    "real Wallet review support and normal formal deployment"
+  ],
+  "admitted": false,
+  "productionActivated": false,
+  "callbackRoute": "GET /wallet-auth/callback serves embedded wallet-callback.html with no-store and no-referrer; root restores the same SDK device/session then reads original /api/me"
+}

@@ -72,6 +72,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/ai/status", s.api("music.library", s.aiStatus))
 	s.mux.HandleFunc("GET /api/ai/proposals/{id}/stream", s.api("music.library", s.aiStream))
 	s.mux.HandleFunc("POST /api/ai/proposals/{id}/review", s.api("music.library", s.aiReview))
+	s.mux.HandleFunc("GET /wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if s.web == nil {
+			http.NotFound(w, r)
+			return
+		}
+		file, err := s.web.Open("wallet-callback.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer file.Close()
+		io.Copy(w, file)
+	})
 	s.mux.Handle("GET /", http.FileServer(http.FS(s.web)))
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
