@@ -1,0 +1,25 @@
+{
+  "schema": "ynx-social-veil-v2-baseline-v1",
+  "requirements": {
+    "lines": 649,
+    "sha256": "ccafae671b2d325abd0e2bd2bfa403289a0b84f7dfc768345d41d39daa5385e8",
+    "fully_read": true
+  },
+  "source_base": "613801deeffd0805003c31bbaf5e5280e1313e37",
+  "policy_tests": {
+    "passed": 26,
+    "scope": "Synthetic metadata policy only; not crypto vectors or S03 end-to-end"
+  },
+  "social_typecheck": "PASS",
+  "libsignal_node_native_import": "PASS",
+  "handshake_and_original_vectors": "NOT_RUN",
+  "libsignal_browser_bridge": "NOT_VERIFIED",
+  "license_disposition": "NOT_APPROVED",
+  "native_veil_provider": "NOT_IMPLEMENTED",
+  "legacy_migration": "NOT_VERIFIED",
+  "independent_review": "NOT_RUN",
+  "activation": "NOT_APPROVED",
+  "installed_business_e2e": "NOT_RUN",
+  "dot_monster": "NOT_RUN",
+  "full_social_goal": "ACTIVE_NOT_COMPLETE"
+}

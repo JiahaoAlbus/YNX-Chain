@@ -1,0 +1,109 @@
+{
+  "observed_at": "2026-10-03T16:21:07.331Z",
+  "records": [
+    {
+      "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/git/ref/tags/26.09.07",
+      "status": 200,
+      "body": {
+        "ref": "refs/tags/26.09.07",
+        "node_id": "REF_kwDOG0nVvbJyZWZzL3RhZ3MvMjYuMDkuMDc",
+        "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/git/refs/tags/26.09.07",
+        "object": {
+          "sha": "d66ebb38271b75b1f101ccbc927c340aff09c71b",
+          "type": "commit",
+          "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/git/commits/d66ebb38271b75b1f101ccbc927c340aff09c71b"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/releases/latest",
+      "status": 200,
+      "body": {
+        "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/releases/401919648",
+        "assets_url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/releases/401919648/assets",
+        "upload_url": "https://uploads.github.com/repos/matrix-org/matrix-rust-components-swift/releases/401919648/assets{?name,label}",
+        "html_url": "https://github.com/matrix-org/matrix-rust-components-swift/releases/tag/26.10.02",
+        "id": 401919648,
+        "author": {
+          "login": "stefanceriu",
+          "id": 637564,
+          "node_id": "MDQ6VXNlcjYzNzU2NA==",
+          "avatar_url": "https://avatars.githubusercontent.com/u/637564?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/stefanceriu",
+          "html_url": "https://github.com/stefanceriu",
+          "followers_url": "https://api.github.com/users/stefanceriu/followers",
+          "following_url": "https://api.github.com/users/stefanceriu/following{/other_user}",
+          "gists_url": "https://api.github.com/users/stefanceriu/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/stefanceriu/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/stefanceriu/subscriptions",
+          "organizations_url": "https://api.github.com/users/stefanceriu/orgs",
+          "repos_url": "https://api.github.com/users/stefanceriu/repos",
+          "events_url": "https://api.github.com/users/stefanceriu/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/stefanceriu/received_events",
+          "type": "User",
+          "user_view_type": "public",
+          "site_admin": false
+        },
+        "node_id": "RE_kwDOG0nVvc4X9M6g",
+        "tag_name": "26.10.02",
+        "target_commitish": "main",
+        "name": "26.10.02",
+        "draft": false,
+        "immutable": false,
+        "prerelease": false,
+        "created_at": "2026-10-02T15:07:03Z",
+        "updated_at": "2026-10-02T15:07:45Z",
+        "published_at": "2026-10-02T15:07:07Z",
+        "assets": [
+          {
+            "url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/releases/assets/605855978",
+            "id": 605855978,
+            "node_id": "RA_kwDOG0nVvc4kHKDq",
+            "name": "MatrixSDKFFI.xcframework.zip",
+            "label": "",
+            "uploader": {
+              "login": "stefanceriu",
+              "id": 637564,
+              "node_id": "MDQ6VXNlcjYzNzU2NA==",
+              "avatar_url": "https://avatars.githubusercontent.com/u/637564?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/stefanceriu",
+              "html_url": "https://github.com/stefanceriu",
+              "followers_url": "https://api.github.com/users/stefanceriu/followers",
+              "following_url": "https://api.github.com/users/stefanceriu/following{/other_user}",
+              "gists_url": "https://api.github.com/users/stefanceriu/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/stefanceriu/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/stefanceriu/subscriptions",
+              "organizations_url": "https://api.github.com/users/stefanceriu/orgs",
+              "repos_url": "https://api.github.com/users/stefanceriu/repos",
+              "events_url": "https://api.github.com/users/stefanceriu/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/stefanceriu/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "content_type": "application/zip",
+            "state": "uploaded",
+            "size": 279614746,
+            "digest": "sha256:954420a70dee62f3c73a772d530b9668da17393da3bc71a219f0105006f93573",
+            "download_count": 22,
+            "created_at": "2026-10-02T15:07:08Z",
+            "updated_at": "2026-10-02T15:07:45Z",
+            "browser_download_url": "https://github.com/matrix-org/matrix-rust-components-swift/releases/download/26.10.02/MatrixSDKFFI.xcframework.zip"
+          }
+        ],
+        "tarball_url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/tarball/26.10.02",
+        "zipball_url": "https://api.github.com/repos/matrix-org/matrix-rust-components-swift/zipball/26.10.02",
+        "body": "https://github.com/matrix-org/matrix-rust-sdk/tree/4f7f4d49f571e613eb1cb35956e4649dc056f0af"
+      }
+    },
+    {
+      "url": "https://trunk.cocoapods.org/api/v1/pods/MatrixRustSDK",
+      "status": 404,
+      "body": {
+        "error": "No pod found with the specified name."
+      }
+    }
+  ]
+}

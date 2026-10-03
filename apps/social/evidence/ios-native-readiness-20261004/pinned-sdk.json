@@ -1,0 +1,14 @@
+{
+  "observed_at": "2026-10-03T16:23:23.553Z",
+  "tag": "26.09.07",
+  "swift_source_commit": "d66ebb38271b75b1f101ccbc927c340aff09c71b",
+  "manifest_url": "https://raw.githubusercontent.com/matrix-org/matrix-rust-components-swift/d66ebb38271b75b1f101ccbc927c340aff09c71b/Package.swift",
+  "manifest_sha256": "d419780c306b430d05c4a6e91511b22c87cedb8459677b2cd2804deb20d4da2e",
+  "ffi_url": "https://github.com/matrix-org/matrix-rust-components-swift/releases/download/26.09.07/MatrixSDKFFI.xcframework.zip",
+  "ffi_bytes": 284685478,
+  "ffi_sha256": "ad34daa3dd57e1cdf3c241a496a9b6f257ac28e38ff977e5c7b0a18d496ef74a",
+  "release_asset_digest": "sha256:ad34daa3dd57e1cdf3c241a496a9b6f257ac28e38ff977e5c7b0a18d496ef74a",
+  "release_url": "https://github.com/matrix-org/matrix-rust-components-swift/releases/tag/26.09.07",
+  "rust_source_reference": "https://github.com/matrix-org/matrix-rust-sdk/tree/48e07662de89d626c1ee0349ee44c5553ca30eb7",
+  "distribution": "Official full SDK Swift Package, not a CocoaPods trunk pod; existing 26.9.7 consumer dependency normalizes this 26.09.07 release."
+}

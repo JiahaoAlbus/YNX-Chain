@@ -1,0 +1,124 @@
+Using Expo modules
+[Expo] Enabling modular headers for pod ExpoModulesCore
+[Expo] Enabling modular headers for pod ExpoModulesJSI
+[Expo] Enabling modular headers for pod React-RCTAppDelegate
+[Expo] Enabling modular headers for pod React-RCTFabric
+[Expo] Enabling modular headers for pod ReactAppDependencyProvider
+[Expo] Enabling modular headers for pod React-Core
+[Expo] Enabling modular headers for pod ReactCodegen
+[Expo] Enabling modular headers for pod RCTRequired
+[Expo] Enabling modular headers for pod RCTTypeSafety
+[Expo] Enabling modular headers for pod ReactCommon
+[Expo] Enabling modular headers for pod React-NativeModulesApple
+[Expo] Enabling modular headers for pod Yoga
+[Expo] Enabling modular headers for pod React-Fabric
+[Expo] Enabling modular headers for pod React-graphics
+[Expo] Enabling modular headers for pod React-utils
+[Expo] Enabling modular headers for pod React-featureflags
+[Expo] Enabling modular headers for pod React-debug
+[Expo] Enabling modular headers for pod React-ImageManager
+[Expo] Enabling modular headers for pod React-rendererdebug
+[Expo] Enabling modular headers for pod React-jsi
+[Expo] Enabling modular headers for pod React-renderercss
+[Expo] Enabling modular headers for pod hermes-engine
+[Expo] Enabling modular headers for pod glog
+[Expo] Enabling modular headers for pod boost
+[Expo] Enabling modular headers for pod DoubleConversion
+[Expo] Enabling modular headers for pod fast_float
+[Expo] Enabling modular headers for pod fmt
+[Expo] Enabling modular headers for pod RCT-Folly
+[Expo] Enabling modular headers for pod SocketRocket
+[Expo] Enabling modular headers for pod MatrixRustSDK
+[Expo-precompiled] react-native-safe-area-context: prebuilt xcframework unavailable; building from source
+[Expo-precompiled]   Expected tarball: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/packages/precompile/.build/react-native-safe-area-context/output/5.7.0/0.86.0/250829098.0.14/debug/xcframeworks/RNCSafeAreaContext.tar.gz
+[Expo-precompiled] RNSVG: prebuilt xcframework unavailable; building from source
+[Expo-precompiled]   Expected tarball: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/packages/precompile/.build/react-native-svg/output/15.15.4/0.86.0/250829098.0.14/debug/xcframeworks/RNSVG.tar.gz
+Found 3 modules for target `YNXSocial`
+link_native_modules! {ios_packages: [{configurations: [], name: "expo", root: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo", path: "../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo", podspec_path: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo/Expo.podspec", script_phases: []}, {configurations: [], name: "react-native-safe-area-context", root: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-safe-area-context", path: "../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-safe-area-context", podspec_path: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-safe-area-context/react-native-safe-area-context.podspec", script_phases: []}, {configurations: [], name: "react-native-svg", root: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-svg", path: "../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-svg", podspec_path: "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native-svg/RNSVG.podspec", script_phases: []}], ios_project_root_path: "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios", react_native_path: "../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native"}
+Auto-linking React Native modules for target `YNXSocial`: RNSVG and react-native-safe-area-context
+Framework build type is static library
+[ReactNativeDependencies] Setting up ReactNativeDependencies...
+[ReactNativeDependencies] Building from source: false
+[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.86.0/react-native-artifacts-0.86.0-reactnative-dependencies-debug.tar.gz
+[ReactNativeDependencies] Verifying checksum for cached reactnative-dependencies-0.86.0-debug.tar.gz...
+[Cache] SHA1 verified for reactnative-dependencies-0.86.0-debug.tar.gz
+[ReactNativeDependencies] Cache hit: copying reactnative-dependencies-0.86.0-debug.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[ReactNativeDependencies] Verifying checksum for cached reactnative-dependencies-0.86.0-release.tar.gz...
+[Cache] SHA1 verified for reactnative-dependencies-0.86.0-release.tar.gz
+[ReactNativeDependencies] Cache hit: copying reactnative-dependencies-0.86.0-release.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[ReactNativeDependencies] Source: {http: "https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.86.0/react-native-artifacts-0.86.0-reactnative-dependencies-debug.tar.gz"}
+[ReactNativeCore] Setting up ReactNativeCore...
+[ReactNativeCore] Building from source: false
+Configuring the target with the New Architecture
+[ReactNativeCore] Using React Native Core and React Native Dependencies prebuilt versions.
+[36m[1m[Codegen][0m Analyzing /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/package.json[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in the app.[0m
+[36m[1m[Codegen][0m [33mThe "codegenConfig" field is not defined in package.json. Assuming there is nothing to generate at the app level.[0m
+[36m[1m[Codegen][0m [33mSearching for codegen-enabled libraries in react-native.config.js[0m
+[36m[1m[Codegen][0m Found react-native-safe-area-context[0m
+[36m[1m[Codegen][0m Found react-native-svg[0m
+[36m[1m[Codegen][0m Processing safeareacontext[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for safeareacontext[0m
+[36m[1m[Codegen][0m Processing rnsvg[0m
+[36m[1m[Codegen][0m [33mSearching for podspec in the project dependencies.[0m
+[36m[1m[Codegen][0m Supported Apple platforms: ios, macos, tvos, visionos for rnsvg[0m
+[36m[1m[Codegen][0m Generating Native Code for safeareacontext - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen[0m
+[36m[1m[Codegen][0m Generating Native Code for rnsvg - ios[0m
+[36m[1m[Codegen][0m Generated artifacts: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen/RCTThirdPartyComponentsProvider.h[0m
+[36m[1m[Codegen][0m Generating RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen/RCTThirdPartyComponentsProvider.mm[0m
+[36m[1m[Codegen][0m Generating RCTModulesProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen/RCTModuleProviders.h[0m
+[36m[1m[Codegen][0m Generating RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen/RCTModuleProviders.mm[0m
+[36m[1m[Codegen][0m Generating RCTAppDependencyProvider[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactAppDependencyProvider/RCTAppDependencyProvider.h[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactAppDependencyProvider/RCTAppDependencyProvider.mm[0m
+[36m[1m[Codegen][0m Generated podspec: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactAppDependencyProvider/ReactAppDependencyProvider.podspec[0m
+[36m[1m[Codegen][0m Generated podspec: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/ReactCodegen/ReactCodegen.podspec[0m
+[36m[1m[Codegen][0m Generating Package.swift[0m
+[36m[1m[Codegen][0m Generated artifact: /private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/build/generated/ios/Package.swift[0m
+[36m[1m[Codegen][0m [33mDone.[0m
+Analyzing dependencies
+[Expo-precompiled] Bundled SPM frameworks: ZXingObjC
+Fetching podspec for `ExpoCamera` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-camera/ios/ExpoCamera.podspec`
+Fetching podspec for `ExpoCameraBarcodeScanning` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-camera/ios/ExpoCameraBarcodeScanning.podspec`
+[Expo-precompiled] Stripping bundled dependency 'ZXingObjC/PDF417' from ExpoCameraBarcodeScanning
+[Expo-precompiled] Stripping bundled dependency 'ZXingObjC/OneD' from ExpoCameraBarcodeScanning
+Fetching podspec for `ExpoContacts` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-contacts/ios/ExpoContacts.podspec`
+Fetching podspec for `ExpoFileSystem` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-file-system/ios/ExpoFileSystem.podspec`
+Fetching podspec for `ExpoFont` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-font/ios/ExpoFont.podspec`
+Fetching podspec for `ExpoModulesCore` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/ExpoModulesCore.podspec`
+Fetching podspec for `ExpoModulesWorklets` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/ExpoModulesWorklets.podspec`
+Fetching podspec for `React-Core-prebuilt` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native/React-Core-prebuilt.podspec`
+[ReactNativeCore] Verifying checksum for cached reactnative-core-0.86.0-debug.tar.gz...
+[Cache] SHA1 verified for reactnative-core-0.86.0-debug.tar.gz
+[ReactNativeCore] Cache hit: copying reactnative-core-0.86.0-debug.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[ReactNativeCore] Verifying checksum for cached reactnative-core-0.86.0-release.tar.gz...
+[Cache] SHA1 verified for reactnative-core-0.86.0-release.tar.gz
+[ReactNativeCore] Cache hit: copying reactnative-core-0.86.0-release.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[ReactNativeCore] Resolved stable ReactNativeCore-prebuilt version:
+[ReactNativeCore]   ../../../../../../../../../private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/Pods/ReactNativeCore-artifacts/reactnative-core-0.86.0-debug.tar.gz
+[ReactNativeCore]   ../../../../../../../../../private/tmp/social-ios-debug-613801de-20261004.UYZulY/source/apps/social/ios/Pods/ReactNativeCore-artifacts/reactnative-core-0.86.0-release.tar.gz
+Fetching podspec for `ReactNativeDependencies` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`
+[ReactNativeDependencies] Using tarball from URL: https://repo1.maven.org/maven2/com/facebook/react/react-native-artifacts/0.86.0/react-native-artifacts-0.86.0-reactnative-dependencies-debug.tar.gz
+[ReactNativeDependencies] Tarball reactnative-dependencies-0.86.0-debug.tar.gz already exists in Pods. Skipping download.
+[ReactNativeDependencies] Tarball reactnative-dependencies-0.86.0-release.tar.gz already exists in Pods. Skipping download.
+Fetching podspec for `hermes-engine` from `../../../../../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`
+[Hermes] Using release tarball from URL: https://repo1.maven.org/maven2/com/facebook/hermes/hermes-ios/250829098.0.14/hermes-ios-250829098.0.14-hermes-ios-debug.tar.gz
+[Hermes] Verifying checksum for cached hermes-ios-250829098.0.14-debug.tar.gz...
+[Hermes] SHA1 verified for hermes-ios-250829098.0.14-debug.tar.gz
+[Hermes] Cache hit: copying hermes-ios-250829098.0.14-debug.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[Hermes] Verifying checksum for cached hermes-ios-250829098.0.14-release.tar.gz...
+[Hermes] SHA1 verified for hermes-ios-250829098.0.14-release.tar.gz
+[Hermes] Cache hit: copying hermes-ios-250829098.0.14-release.tar.gz from shared cache (/Users/huangjiahao/Library/Caches/ReactNative)
+[!] Unable to find a specification for `MatrixRustSDK (= 26.9.7)` depended upon by `YNXSocialMatrix`
+
+You have either:
+ * out-of-date source repos which you can update with `pod repo update` or with `pod install --repo-update`.
+ * mistyped the name or version.
+ * not added the source repo that hosts the Podspec to your Podfile.

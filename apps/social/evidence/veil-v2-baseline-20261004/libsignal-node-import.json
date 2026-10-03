@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-10-03T16:55:26.194Z",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v26.7.0",
+  "source_commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "package_version": "0.104.0",
+  "actual_native_module_import": "PASS",
+  "exports": {
+    "PrivateKey": "function",
+    "PublicKey": "function",
+    "IdentityKeyPair": "function",
+    "ProtocolAddress": "function",
+    "SessionRecord": "function",
+    "PreKeyBundle": "function",
+    "KyberPreKeyRecord": "function",
+    "signalEncrypt": "function",
+    "signalDecrypt": "function",
+    "signalDecryptPreKey": "function",
+    "processPreKeyBundle": "function"
+  },
+  "scope": "Isolated Node native-addon import only. No handshake, key generation, encryption, browser bridge or production dependency change."
+}

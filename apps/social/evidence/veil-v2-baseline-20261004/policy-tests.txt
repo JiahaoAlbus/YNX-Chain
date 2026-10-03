@@ -1,0 +1,34 @@
+✔ fully confirmed metadata permits only the subsequent native write operation (0.488375ms)
+✔ missing core (0.432958ms)
+✔ wrong version (0.056584ms)
+✔ wrong source (0.058ms)
+✔ Node is not browser (0.047417ms)
+✔ unverified browser bridge (0.042625ms)
+✔ license not approved (0.04275ms)
+✔ invalid identity binding (0.043875ms)
+✔ cross-device session (0.049292ms)
+✔ old XChaCha no fallback (0.074083ms)
+✔ Olm no fallback (0.048708ms)
+✔ Megolm no dual send (0.039209ms)
+✔ unverified identity (0.030458ms)
+✔ revoked device (0.036458ms)
+✔ SSO cannot grant crypto (0.024875ms)
+✔ stale revocation (0.025833ms)
+✔ invalid time (0.030583ms)
+✔ PQXDH pending (0.029458ms)
+✔ SPQR library is not key mixture (0.027083ms)
+✔ migration pending (0.044083ms)
+✔ activation not approved (0.029583ms)
+✔ empty fanout is rejected (0.050625ms)
+✔ duplicate device is rejected (0.028667ms)
+✔ fanout remains bounded (0.030333ms)
+✔ one revoked recipient stops fanout (0.037708ms)
+✔ independent recipient devices can pass policy without sharing a sender key (0.031041ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 135.919708

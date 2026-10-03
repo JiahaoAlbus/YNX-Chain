@@ -1,0 +1,61 @@
+{
+  "observed_at": "2026-10-03T16:52:24.074Z",
+  "source_base": "613801deeffd0805003c31bbaf5e5280e1313e37",
+  "source_binding": "Exact git archive of apps/social plus the explicit build-overlay file digests; new Veil policy is not part of this already-built bundle.",
+  "overlays": [
+    {
+      "path": "apps/social/ios/Podfile",
+      "bytes": 3017,
+      "sha256": "e14a99038d6d501692d1fcfee05d1a052544e0d52aa163a6afc82c954893474b"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixRustSDK.podspec",
+      "bytes": 1489,
+      "sha256": "032a6350a272203e559abff57acfcaea2ddab41eaf33dfb1356bf0b6346ed6b1"
+    }
+  ],
+  "app_local_path": "/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/Build/Products/Debug-iphonesimulator/YNXSocial.app",
+  "artifact_public_or_remote": null,
+  "platform": "arm64 iOS simulator",
+  "configuration": "Debug, CODE_SIGNING_ALLOWED=NO",
+  "device": {
+    "name": "YNX_Social_613801de_20261004",
+    "udid": "1E9E47E1-7AFD-4F1C-8265-8161CC35C4E1"
+  },
+  "checks": {
+    "project_list_exit": 0,
+    "first_project_build_exit": 65,
+    "initial_pod_resolution_exit": 1,
+    "local_sdk_pod_install_exit": 0,
+    "workspace_build_exit": 0,
+    "install_exit": 0,
+    "launch_exit": 0,
+    "launch_pid": 87577,
+    "actual_ui": "NOT_RUN_MAC_LOCKED",
+    "private_encrypted_delivery": "NOT_RUN",
+    "new_veil_crypto": "NOT_IMPLEMENTED_IN_THIS_BUNDLE",
+    "dot_monster": "NOT_RUN"
+  },
+  "lifecycle": "Only own newly allocated QA app/device stopped normally; data preserved and exclusive UI window released. No other device/reset/credential/host change.",
+  "components": [
+    {
+      "path": "YNXSocial",
+      "bytes": 40216,
+      "sha256": "28e767dd0213b1f6ca75397d508596d9e3136ec031246a82e32fb022da13abd6"
+    },
+    {
+      "path": "YNXSocial.debug.dylib",
+      "bytes": 195354264,
+      "sha256": "85161128d75f505f7262f9427e507049919a7cd6f44553fdbf16d1047984e992"
+    },
+    {
+      "path": "main.jsbundle",
+      "status": "ABSENT"
+    },
+    {
+      "path": "Info.plist",
+      "bytes": 2259,
+      "sha256": "d998a74471fabf6553089d9e21b6e3311f8043f5688539bf0c30771ac4c69fa9"
+    }
+  ]
+}

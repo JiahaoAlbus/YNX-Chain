@@ -1,0 +1,15 @@
+{
+  "project" : {
+    "configurations" : [
+      "Debug",
+      "Release"
+    ],
+    "name" : "YNXSocial",
+    "schemes" : [
+      "YNXSocial"
+    ],
+    "targets" : [
+      "YNXSocial"
+    ]
+  }
+}

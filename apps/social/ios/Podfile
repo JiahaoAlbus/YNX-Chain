@@ -25,6 +25,10 @@ platform :ios, podfile_properties['ios.deploymentTarget'] || '16.4'
 prepare_react_native_project!
 
 target 'YNXSocial' do
+  # The full Rust SDK is distributed upstream as SwiftPM, not a trunk pod.
+  # This local consumer bridge retains the existing exact SDK version.
+  pod 'MatrixRustSDK', :podspec => '../modules/native-matrix/ios/MatrixRustSDK.podspec'
+
   use_expo_modules!
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'

@@ -1,0 +1,34 @@
+{
+  "observed_at": "2026-10-03T16:13:50.675Z",
+  "source_commit": "613801deeffd0805003c31bbaf5e5280e1313e37",
+  "mode": "read-only inventory, no device create/boot/install/reset",
+  "simulator_sdk": "/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk",
+  "runtimes": [
+    {
+      "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+      "name": "iOS 18.5",
+      "version": "18.5",
+      "isAvailable": true
+    },
+    {
+      "identifier": "com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+      "name": "iOS 26.2",
+      "version": "26.2",
+      "isAvailable": true
+    }
+  ],
+  "devices": [
+    {
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-18-5",
+      "available": 11,
+      "booted": [],
+      "social_named": []
+    },
+    {
+      "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+      "available": 11,
+      "booted": [],
+      "social_named": []
+    }
+  ]
+}

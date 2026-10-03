@@ -1,0 +1,106 @@
+{
+  "observed_at": "2026-10-03T16:39:23.126Z",
+  "requirements_sha256": "ccafae671b2d325abd0e2bd2bfa403289a0b84f7dfc768345d41d39daa5385e8",
+  "records": [
+    {
+      "name": "libsignal",
+      "repository": "https://github.com/signalapp/libsignal",
+      "tag": "v0.104.0",
+      "commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+      "files": [
+        {
+          "path": "README.md",
+          "url": "https://raw.githubusercontent.com/signalapp/libsignal/257105c55a7389ca6b1e85185e2769465e6729f1/README.md",
+          "bytes": 12121,
+          "sha256": "ed1a9bc251f8b10a2f91966f5b8b90d8c1bcf7d635707888fe5166af4e950670",
+          "summary": [
+            "as a Java, Swift, or TypeScript library. The underlying implementations are written in Rust:",
+            "- libsignal-protocol: Implements the Signal protocol, including the [Double Ratchet algorithm][]. A",
+            "  replacement for [libsignal-protocol-java][] and [libsignal-metadata-java][].",
+            "server-side. Use outside of Signal is unsupported. In particular, the products of this repository",
+            "are the Java, Swift, and TypeScript libraries that wrap the underlying Rust implementations. All",
+            "APIs and implementations are subject to change without notice, as are the JNI, C, and Node add-on",
+            "\"bridge\" layers. However, backwards-incompatible changes to the Java, Swift, TypeScript, and",
+            "[libsignal-protocol-java]: https://github.com/signalapp/libsignal-protocol-java",
+            "[libsignal-metadata-java]: https://github.com/signalapp/libsignal-metadata-java",
+            "[Noise protocol]: http://noiseprotocol.org/",
+            "will be downloaded automatically by cargo. To build and test the basic protocol",
+            "## Java/Android",
+            "Our officially supported JDK version for Android builds is JDK 21, so be sure to install e.g. OpenJDK 21, and then point JAVA_HOME to it.",
+            "export JAVA_HOME=$(/usr/libexec/java_home -v 21)",
+            "sudo update-alternatives --config java",
+            "To build the Java/Android ``jar`` and ``aar``, and run the tests:",
+            "$ cd java",
+            "$ cd java",
+            "When exposing new APIs to Java, you will need to run `rust/bridge/jni/bin/gen_java_decl.py` in",
+            "Signal publishes Java packages for its own use, under the names org.signal:libsignal-server,",
+            "The Signal-Android gradle.properties file has a commented-out line to include libsignal as part of the build. Uncomment that and adjust the path; optionally, you can restrict the architectures you want to build for by adding `androidArchs=aarch64` to *libsignal's* gradle.properties. (The set of recognized architectures is in java/build_jni.sh.) If you're using an IDE, you'll need to re-import the Gradle structure at this point. When you're done, revert the changes to the Android app's gradle.properties and re-import once more.",
+            "## Swift",
+            "To learn about the Swift build process see [``swift/README.md``](swift/)",
+            "## Node",
+            "You'll need Node installed to build. If you have [nvm][], you can run `nvm use` to select an"
+          ]
+        },
+        {
+          "path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/signalapp/libsignal/257105c55a7389ca6b1e85185e2769465e6729f1/LICENSE",
+          "bytes": 34523,
+          "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+          "summary": [
+            "                    GNU AFFERO GENERAL PUBLIC LICENSE",
+            "                       Version 3, 19 November 2007",
+            "",
+            " Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>",
+            " Everyone is permitted to copy and distribute verbatim copies"
+          ]
+        },
+        {
+          "path": "node/package.json",
+          "url": "https://raw.githubusercontent.com/signalapp/libsignal/257105c55a7389ca6b1e85185e2769465e6729f1/node/package.json",
+          "bytes": 2436,
+          "sha256": "1d69ae5cb48ce6501df515ac3c46a871b8b08492f3bc9982e4e15ddf8f3218c9",
+          "summary": {
+            "version": "0.104.0",
+            "license": "AGPL-3.0-only",
+            "main": "dist/index.js",
+            "type": "module"
+          }
+        },
+        {
+          "path": "Cargo.toml",
+          "url": "https://raw.githubusercontent.com/signalapp/libsignal/257105c55a7389ca6b1e85185e2769465e6729f1/Cargo.toml",
+          "bytes": 7456,
+          "sha256": "c92beaf1fbf746ffd7f4d0a8f9615cf873ec36d1dd1cb3f5f2d5fa9c42cbb709",
+          "summary": [
+            "license = \"AGPL-3.0-only\"",
+            "rust-version = \"1.93.1\"",
+            "libsignal-protocol = { path = \"rust/protocol\" }",
+            "spqr = { git = \"https://github.com/signalapp/SparsePostQuantumRatchet.git\", tag = \"v1.6.0\" }",
+            "libcrux-ml-kem = { version = \"0.0.10\", default-features = false }"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "libsodium",
+      "repository": "https://github.com/jedisct1/libsodium",
+      "tag": "1.0.22-RELEASE",
+      "commit": "77e1ce5d6dee871c49ef211222ba18ef0c486bda",
+      "files": [
+        {
+          "path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/jedisct1/libsodium/77e1ce5d6dee871c49ef211222ba18ef0c486bda/LICENSE",
+          "bytes": 823,
+          "sha256": "508a76d186356c0dd807a670ef510964f8724557024796a2c426c6c0e19ab683",
+          "summary": [
+            "/*",
+            " * ISC License",
+            " *",
+            " * Copyright (c) 2013-2026",
+            " * Frank Denis <j at pureftpd dot org>"
+          ]
+        }
+      ]
+    }
+  ]
+}
