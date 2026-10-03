@@ -153,20 +153,27 @@ export function createMarketFeed({fetchImpl = globalThis.fetch, EventSourceImpl 
     const token = ++epoch;
     cancel(); report(snapshot ? 'reconnecting' : 'loading');
     const controller = new AbortController(); abort = controller;
+    let rejectAborted;
+    const aborted = new Promise((_,reject) => { rejectAborted = () => reject(Object.assign(new Error('Market read cancelled'),{code:'MARKET_SOURCE_UNAVAILABLE'})); });
+    controller.signal.addEventListener('abort',rejectAborted,{once:true});
     // Retire the epoch at the deadline, not just the fetch signal. A stalled
     // transport/body must not keep loading alive or apply a late response.
     const timeout = setTimer(() => { if (token === epoch && !stopped) reconnect('MARKET_SOURCE_UNAVAILABLE'); }, 10_000);
     requestTimer = timeout;
     try {
-      const response = await fetchImpl(SNAPSHOT_PATH, {method: 'GET', credentials: 'omit', redirect: 'error', cache: 'no-store', headers: {Accept: 'application/json'}, signal: controller.signal});
-      if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE'});
-      if (!/^application\/json\b/i.test(response.headers.get('content-type') || '')) throw invalid();
-      const body = await response.json();
+      // Signal cancellation alone does not guarantee a custom transport or
+      // delayed body settles. Bound callers too, without accepting late data.
+      const body = await Promise.race([(async () => {
+        const response = await fetchImpl(SNAPSHOT_PATH, {method: 'GET', credentials: 'omit', redirect: 'error', cache: 'no-store', headers: {Accept: 'application/json'}, signal: controller.signal});
+        if (!response.ok) throw Object.assign(new Error('Market read failed'), {code: response.status === 429 ? 'MARKET_RATE_LIMITED' : 'MARKET_SOURCE_UNAVAILABLE'});
+        if (!/^application\/json\b/i.test(response.headers.get('content-type') || '')) throw invalid();
+        return response.json();
+      })(),aborted]);
       if (token !== epoch || stopped) return;
       apply(body); report('live'); subscribe(token);
     } catch (error) {
       if (token === epoch && !stopped) reconnect(error?.code === 'MARKET_DATA_INVALID' ? error.code : error?.code === 'MARKET_RATE_LIMITED' ? error.code : 'MARKET_SOURCE_UNAVAILABLE');
-    } finally { clearTimer(timeout); if (requestTimer === timeout) requestTimer = null; }
+    } finally { clearTimer(timeout); if (requestTimer === timeout) requestTimer = null; controller.signal.removeEventListener('abort',rejectAborted); }
   }
   return Object.freeze({start: refresh, retry: refresh,
     offline() { stopped = true; ++epoch; cancel(); report('offline'); },

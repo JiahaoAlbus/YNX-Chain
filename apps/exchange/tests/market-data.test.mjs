@@ -74,6 +74,15 @@ test('snapshot timeout retires a stalled read immediately and fences its late bo
   assert.equal(h.sources.length,1); assert.equal(h.statuses.at(-1).phase,'live');
   h.feed.stop(); assert.equal(h.timers.size,0);
 });
+test('bounded refresh promise releases awaiting preview even if the aborted transport never settles',async()=>{
+  for(const action of ['deadline','offline','stop']){
+    let completed=false;const h=harness(()=>new Promise(()=>{}));
+    const request=h.feed.start().then(()=>completed=true);
+    if(action==='deadline')h.timer(10_000);else h.feed[action]();
+    await new Promise(setImmediate);assert.equal(completed,true,action);
+    await request;assert.equal(h.received.length,0);h.feed.stop();assert.equal(h.timers.size,0);
+  }
+});
 test('offline and stop clear the read deadline before an unresolved request returns', async () => {
   for(const method of ['offline','stop']){
     let resolve; const h=harness(()=>new Promise(done=>resolve=done)); const running=h.feed.start();

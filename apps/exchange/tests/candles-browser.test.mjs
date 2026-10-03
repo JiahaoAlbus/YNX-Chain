@@ -10,6 +10,23 @@ const root=new URL('../web/',import.meta.url);
 const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
+test('actual preview control unlocks after a bounded stalled read without showing or submitting an order',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const arithmetic=await readFile(new URL('order-preview.js',root),'utf8');
+    const preview=app.split('\n').find(line=>line.startsWith('function preview()'));
+    const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
+    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:null,source:null,marketPhase:'loading'};window.deadlines=[];window.readCalls=[];const toast=()=>{};const marketFeed=createMarketFeed({fetchImpl:(url,options)=>{readCalls.push({url,method:options.method});return new Promise(()=>{})},EventSourceImpl:null,setTimer:(fn,ms)=>{deadlines.push({fn,ms});return deadlines.length},clearTimer:()=>{},onStatus:value=>state.marketPhase=value.phase});${preview}${review}$('#review-order').onclick=reviewOrder;window.fireDeadline=()=>deadlines.find(item=>item.ms===10000).fn();window.stopFeed=()=>marketFeed.stop();`});
+    await page.locator('#review-order').click();assert.equal(await page.locator('#review-order').isEnabled(),false);
+    await page.evaluate(()=>fireDeadline());await page.waitForFunction(()=>!document.querySelector('#review-order').disabled);
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(element=>element.open),false);
+    assert.match(await page.locator('#order-error').innerText(),/Verified venue trading rules are unavailable/);
+    assert.deepEqual(await page.evaluate(()=>readCalls),[{url:'/api/v1/market-data/snapshot',method:'GET'}]);
+    assert.equal(page.context().pages().length,1);await page.evaluate(()=>stopFeed());
+  }finally{await browser.close()}
+});
 test('conflicting revision keeps actual candle view stale until an explicit verified retry',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
