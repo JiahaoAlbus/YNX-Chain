@@ -11,7 +11,7 @@ import Foundation
             let args=CommandLine.arguments;guard args.count==5,let gateway=URL(string:args[2]),let backend=URL(string:args[3]),[gateway,backend].allSatisfy({$0.scheme=="http" && $0.host=="127.0.0.1" && $0.path.isEmpty}),["ios","macos"].contains(args[4]) else { throw VideoNativeEngine.Failure.invalidSource }
             let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey()
             var viewerRecords: [String:Data]=[:]
-            var persisted: Data?,opened="",mismatch=false,hold=false,held: CheckedContinuation<Void,Never>?
+            var persisted: Data?,opened="",mismatch=false,dropMutation=false,hold=false,held: CheckedContinuation<Void,Never>?
             let key=ProductDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=VideoNativeTransport()
             let sender: VideoNativeEngine.Sender = { request,limit in
@@ -24,6 +24,7 @@ import Foundation
                 else { throw VideoNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
                 let (bytes,response)=try await network.send(redirected,limit)
+                if dropMutation,url.host=="video.ynxweb4.com",url.path.contains("/playlists/"),["POST","DELETE"].contains(request.httpMethod ?? "") { dropMutation=false;throw VideoHTTP.Failure.unexpectedResponse }
                 var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
                 return (bytes,HTTPURLResponse(url:url,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!)
             }
@@ -70,6 +71,18 @@ import Foundation
                         case "uiLibrary":
                             await model.loadLibrary("/v1/playlists",label:"Playlists")
                             if case .library(_,let rows)=model.state { value=["rows":rows] } else { value=["rows":[],"connected":model.accountConnected] }
+                        case "dropNextMutation":dropMutation=true;value=["armed":true]
+                        case "uiPlaylistChange":
+                            let rows=try await model.playlistChoices(),index=command["index"] as? Int ?? 0
+                            guard let original=(command["nameValue"] as? String).flatMap({name in rows.first(where:{$0.Name==name})}) ?? (rows.indices.contains(index) ? rows[index] : nil) else { throw VideoHTTP.Failure.unexpectedResponse }
+                            await model.changePlaylist(original,videoID:command["videoID"] as? String,action:command["action"] as! String)
+                            let current=try await model.playlistChoices()
+                            value=["pending":model.playlistOperationPending,"count":current.count,"members":current.first?.VideoIDs ?? []]
+                        case "queuePlaylistRemove":
+                            let rows=try await model.playlistChoices();guard let first=rows.first else { throw VideoHTTP.Failure.unexpectedResponse }
+                            let operation=try viewer(engine).reservePlaylistOperation(action:"remove",playlistID:first.playlistID,videoID:command["videoID"] as? String)
+                            value=["key":operation.key]
+                        case "uiPlaylistRetry":await model.retryPlaylistOperation();value=["pending":model.playlistOperationPending,"members":try await model.playlistChoices().first?.VideoIDs ?? []]
                         case "queueWatch":
                             let store=try viewer(engine),video=command["videoID"] as! String,playback=try store.playback(video)
                             _ = try store.position(video,playback,position:47,seconds:7,completed:false)

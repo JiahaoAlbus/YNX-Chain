@@ -6,6 +6,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var query=""
     @State private var showingDisplaySettings=false
+    @State private var deletingPlaylist: NativePlaylist?
     @AppStorage("ynx.media.display.text") private var displayMode=1
     @ScaledMetric(relativeTo:.body) private var displayPoints:CGFloat=15
     private var displayScale:CGFloat {[0.9333333,1,1.1333333][max(0,min(displayMode,2))]}
@@ -19,6 +20,7 @@ struct ContentView: View {
                 if model.showingPlaylists && model.accountConnected {
                     HStack { TextField(model.text("playlists"),text:$model.playlistName).textFieldStyle(.roundedBorder).disabled(model.playlistPending || model.playlistBusy);Button(model.text(model.playlistPending ? "retry" : "createPlaylist")){Task{await model.createPlaylist()}}.disabled(model.playlistBusy);if model.playlistPending { Button(model.text("discardDraft")){model.discardPlaylistDraft()}.disabled(model.playlistBusy) } }.padding(.horizontal)
                 }
+                if model.playlistOperationPending && model.accountConnected { Button(model.text("retry")){Task{await model.retryPlaylistOperation()}}.disabled(model.playlistBusy) }
                 if !model.operationMessage.isEmpty { Text(model.operationMessage).font(.caption) }
                 stateView.frame(maxWidth:.infinity,maxHeight:.infinity)
                 settings
@@ -27,6 +29,9 @@ struct ContentView: View {
             .environment(\.layoutDirection,model.locale=="ar" ? .rightToLeft:.leftToRight)
             .task { await model.start() }
             .onChange(of:scenePhase) { _,phase in if phase == .background { model.suspendAccount() } else if phase == .active { Task { await model.restoreAccount() } } }
+            .confirmationDialog(model.text("deletePlaylist"),isPresented:Binding(get:{deletingPlaylist != nil},set:{if !$0 { deletingPlaylist=nil }}),titleVisibility:.visible) {
+                Button(model.text("deletePlaylist"),role:.destructive) { if let original=deletingPlaylist { deletingPlaylist=nil;Task{await model.changePlaylist(original,videoID:nil,action:"delete")} } }
+            } message: { Text(deletingPlaylist?.Name ?? "") }
             .sheet(item:$model.selected){ VideoPlayerSheet(video:$0,gateway:model.gateway,title:model.text("play")).onDisappear { model.stopPlayback() } }
         }
     }
@@ -38,7 +43,7 @@ struct ContentView: View {
         case .unavailable: retry(model.text("walletPending"))
         case .failure(let reason): retry(model.text("unavailable")+"\n"+reason)
         case .library(let label,let rows):
-            if model.showingPlaylists { List(model.playlists) { item in Button(item.Name){Task{await model.openPlaylist(item)}} }.navigationTitle(label) } else { List(rows,id:\.self){Text($0)}.navigationTitle(label) }
+            if model.showingPlaylists { List(model.playlists) { item in Button(item.Name){Task{await model.openPlaylist(item)}}.contextMenu { Button(model.text("deletePlaylist"),role:.destructive){deletingPlaylist=item}.disabled(model.playlistBusy || model.playlistOperationPending) } }.navigationTitle(label) } else { List(rows,id:\.self){Text($0)}.navigationTitle(label) }
         case .loaded:
             List(model.videos) { video in
                 Button { model.select(video) } label: {
@@ -48,6 +53,7 @@ struct ContentView: View {
                         Text("\(video.status) · \(video.visibility)").font(.caption)
                     }
                 }.accessibilityLabel(model.text("play")+": "+video.title)
+                .contextMenu { if let playlist=model.openedPlaylist { Button(model.text("removeFromPlaylist"),role:.destructive){Task{await model.changePlaylist(playlist,videoID:video.id,action:"remove")}}.disabled(model.playlistBusy || model.playlistOperationPending) } }
             }.listStyle(.plain)
         }
     }
@@ -77,8 +83,9 @@ struct ContentView: View {
 struct VideoPlayerSheet: View {
     @EnvironmentObject private var model:VideoModel
     let video:VideoRecord; let gateway:URL; let title:String
+    @State private var choices:[NativePlaylist]=[]
     @State private var comment="";@State private var report="";@State private var transcript=""
-    var body:some View { NavigationStack { ScrollView { VStack { HStack(spacing:12){Image("ynx-brand-original").resizable().scaledToFit().frame(width:46,height:24).padding(4).background(Color.white).clipShape(RoundedRectangle(cornerRadius:6)).accessibilityLabel("YNX");Text("YNX Video").font(.headline);Spacer()};Group { if model.player != nil { VideoPlayer(player:model.player).frame(minHeight:260) } else { ContentUnavailableView(title,systemImage:"exclamationmark.triangle") } };HStack{Button(model.text("subscriptions")){Task{await model.mutate("/v1/channels/\(video.channel_id)/subscription",body:[:])}};if let track=video.captions?.first(where:{$0.human_approved}){Button(model.text("captions")){Task{transcript=await model.transcript(track)}}}};TextField(model.text("comments"),text:$comment).textFieldStyle(.roundedBorder);Button(model.text("comments")){Task{if await model.mutate("/v1/videos/\(video.id)/comments",body:["body":comment]) { comment="" }}};TextField(model.text("report"),text:$report).textFieldStyle(.roundedBorder);Button(model.text("report")){Task{if await model.mutate("/v1/videos/\(video.id)/reports",body:["reason":"viewer_report","details":report]) { report="" }}};if !transcript.isEmpty{Text(transcript).accessibilityLabel(model.text("captions"))};if !model.operationMessage.isEmpty{Text(model.operationMessage).font(.caption)} }.padding() }.navigationTitle(video.title).accessibilityLabel(title+": "+video.title) } }
+    var body:some View { NavigationStack { ScrollView { VStack { HStack(spacing:12){Image("ynx-brand-original").resizable().scaledToFit().frame(width:46,height:24).padding(4).background(Color.white).clipShape(RoundedRectangle(cornerRadius:6)).accessibilityLabel("YNX");Text("YNX Video").font(.headline);Spacer()};Group { if model.player != nil { VideoPlayer(player:model.player).frame(minHeight:260) } else { ContentUnavailableView(title,systemImage:"exclamationmark.triangle") } };if model.accountConnected { Menu(model.text("addToPlaylist")){ForEach(choices){playlist in Button(playlist.Name){Task{await model.changePlaylist(playlist,videoID:video.id,action:"add")}}}}.disabled(choices.isEmpty || model.playlistBusy || model.playlistOperationPending) };HStack{Button(model.text("subscriptions")){Task{await model.mutate("/v1/channels/\(video.channel_id)/subscription",body:[:])}};if let track=video.captions?.first(where:{$0.human_approved}){Button(model.text("captions")){Task{transcript=await model.transcript(track)}}}};TextField(model.text("comments"),text:$comment).textFieldStyle(.roundedBorder);Button(model.text("comments")){Task{if await model.mutate("/v1/videos/\(video.id)/comments",body:["body":comment]) { comment="" }}};TextField(model.text("report"),text:$report).textFieldStyle(.roundedBorder);Button(model.text("report")){Task{if await model.mutate("/v1/videos/\(video.id)/reports",body:["reason":"viewer_report","details":report]) { report="" }}};if !transcript.isEmpty{Text(transcript).accessibilityLabel(model.text("captions"))};if !model.operationMessage.isEmpty{Text(model.operationMessage).font(.caption)} }.padding() }.navigationTitle(video.title).accessibilityLabel(title+": "+video.title).task { if model.accountConnected { choices=(try? await model.playlistChoices()) ?? [] } } } }
 }
 
 private func videoDisplayLabels(_ tag:String)->[String] {

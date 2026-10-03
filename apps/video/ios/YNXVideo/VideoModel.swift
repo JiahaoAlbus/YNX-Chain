@@ -46,6 +46,8 @@ struct NativePlaylist: Decodable, Identifiable {
     @Published var playlistName = ""
     @Published var playlistPending = false
     @Published var playlistBusy = false
+    @Published var playlistOperationPending = false
+    @Published var openedPlaylist: NativePlaylist?
     private var viewer: VideoViewerState?
     private let makeViewer: @MainActor (VideoNativeEngine,VideoNativeEngine.Identity) throws -> VideoViewerState
     private var privateMedia: VideoPrivateMedia?
@@ -131,10 +133,10 @@ struct NativePlaylist: Decodable, Identifiable {
             if let identity=created.identity {
                 self.accountMessage=identity.account
                 if self.viewer==nil {
-                    do { self.viewer=try self.makeViewer(created,identity);let draft=try self.viewer?.playlistDraft();self.playlistName=draft?.name ?? "";self.playlistPending=draft != nil }
+                    do { self.viewer=try self.makeViewer(created,identity);let draft=try self.viewer?.playlistDraft();self.playlistName=draft?.name ?? "";self.playlistPending=draft != nil;self.playlistOperationPending=try self.viewer?.pendingPlaylistOperation() != nil }
                     catch { self.operationMessage=self.text("unavailable") }
                 }
-            } else { self.viewer=nil;self.playlists=[];self.playlistName="";self.playlistPending=false }
+            } else { self.viewer=nil;self.playlists=[];self.playlistName="";self.playlistPending=false;self.playlistOperationPending=false;self.openedPlaylist=nil }
         }
         return created
     }
@@ -224,7 +226,7 @@ struct NativePlaylist: Decodable, Identifiable {
     }
     @discardableResult private func beginNavigation(clearVideos: Bool = true) -> UInt64 {
         let generation = boundary.advance()
-        stopPlayback(); selected = nil; if clearVideos { videos = [] };playlists=[];showingPlaylists=false; operationMessage = ""
+        stopPlayback(); selected = nil;openedPlaylist=nil; if clearVideos { videos = [] };playlists=[];showingPlaylists=false; operationMessage = ""
         return generation
     }
     func openPlaylist(_ playlist: NativePlaylist) async {
@@ -236,8 +238,51 @@ struct NativePlaylist: Decodable, Identifiable {
                 let data=try await VideoHTTP.shared.accountData("/v1/videos/"+id,engine:engine,guardRequest:{if !self.boundary.matches(generation) { throw CancellationError() }})
                 records.append(try JSONDecoder().decode(VideoRecord.self,from:data))
             }
-            guard boundary.matches(generation) else { return };videos=records;state=records.isEmpty ? .empty : .loaded
+            guard boundary.matches(generation) else { return };openedPlaylist=playlist;videos=records;state=records.isEmpty ? .empty : .loaded
         } catch { if boundary.matches(generation) { state = .failure(text("unavailable")) } }
+    }
+    func playlistChoices() async throws -> [NativePlaylist] {
+        let generation=boundary.generation
+        let data=try await VideoHTTP.shared.accountData("/v1/playlists",engine:engine,guardRequest:{if !self.boundary.matches(generation) { throw CancellationError() }})
+        let rows=try JSONDecoder().decode([NativePlaylist].self,from:data)
+        guard let account=engine?.identity?.account,rows.allSatisfy({$0.Owner==account && VideoViewerState.validID($0.playlistID) && ($0.VideoIDs ?? []).allSatisfy(VideoViewerState.validID)}) else { throw VideoHTTP.Failure.unexpectedResponse }
+        return rows
+    }
+    func changePlaylist(_ playlist: NativePlaylist,videoID: String?,action: String) async {
+        guard !playlistBusy,let viewer,playlist.Owner==engine?.identity?.account else { return }
+        do {
+            _ = try viewer.reservePlaylistOperation(action:action,playlistID:playlist.playlistID,videoID:videoID);playlistOperationPending=true
+            await retryPlaylistOperation()
+        } catch { operationMessage=text("retry") }
+    }
+    func retryPlaylistOperation() async {
+        guard !playlistBusy,let viewer,let engine,let identity=engine.identity else { return }
+        playlistBusy=true;let generation=boundary.generation
+        defer { playlistBusy=false }
+        do {
+            guard let pending=try viewer.pendingPlaylistOperation() else { playlistOperationPending=false;return }
+            let current=try await playlistChoices()
+            let original=current.first(where:{$0.playlistID==pending.playlistID})
+            let alreadyDone=pending.action=="delete" ? original==nil : pending.action=="remove" && original != nil && !(original!.VideoIDs ?? []).contains(pending.videoID!)
+            if !alreadyDone {
+                guard original?.Owner==identity.account else { throw VideoHTTP.Failure.unexpectedResponse }
+                let path="/v1/playlists/"+pending.playlistID+(pending.action=="delete" ? "" : "/videos"+(pending.action=="remove" ? "/"+pending.videoID! : ""))
+                let body=try JSONSerialization.data(withJSONObject:pending.action=="add" ? ["video_id":pending.videoID!] : [:],options:[.sortedKeys,.withoutEscapingSlashes])
+                let bytes=try await VideoHTTP.shared.accountData(path,method:pending.action=="add" ? "POST" : "DELETE",body:body,engine:engine,requestKey:pending.key,guardRequest:{if !self.boundary.matches(generation) { throw CancellationError() }})
+                guard let result=try JSONSerialization.jsonObject(with:bytes) as? [String:Any],result["ok"] as? Bool==true else { throw VideoHTTP.Failure.unexpectedResponse }
+            }
+            let rows=try await playlistChoices(),updated=rows.first(where:{$0.playlistID==pending.playlistID})
+            let verified=pending.action=="delete" ? updated==nil : updated?.Owner==identity.account && ((updated?.VideoIDs ?? []).contains(pending.videoID!) == (pending.action=="add"))
+            guard verified,boundary.matches(generation) else { throw VideoHTTP.Failure.unexpectedResponse }
+            try viewer.finishPlaylistOperation(pending);playlistOperationPending=false
+            if showingPlaylists { playlists=rows;state=rows.isEmpty ? .empty : .library(text("playlists"),rows.map(\.Name)) }
+            if openedPlaylist?.playlistID==pending.playlistID {
+                openedPlaylist=updated
+                if pending.action=="remove" { videos.removeAll(where:{$0.id==pending.videoID}) }
+                if pending.action=="delete" { videos=[];state = .empty }
+            }
+            operationMessage=""
+        } catch { if boundary.matches(generation) { operationMessage=text("retry") } }
     }
     func createPlaylist() async {
         guard !playlistBusy,let viewer,let engine,let identity=engine.identity else { return }

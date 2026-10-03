@@ -8,7 +8,8 @@ import Security
     struct Playback: Codable, Equatable { let playbackID: String; var position: Int }
     struct Watch: Codable, Equatable { let key,videoID,playbackID: String;let seconds: Int;let completed: Bool }
     struct Playlist: Codable, Equatable { let key,name: String }
-    private struct Stored: Codable { let version: Int;let account: String;var resume: [String:Playback];var watchPending: [Watch];var playlistDraft: Playlist? }
+    struct PlaylistOperation: Codable, Equatable { let key,action,playlistID: String;let videoID: String? }
+    private struct Stored: Codable { let version: Int;let account: String;var resume: [String:Playback];var watchPending: [Watch];var playlistDraft: Playlist?;var playlistOperation: PlaylistOperation? }
     let account: String
     private let read: () throws -> Data?
     private let write: (Data) throws -> Void
@@ -24,12 +25,15 @@ import Security
     }
     private func current() throws { guard !poisoned else { throw Failure.unconfirmedWrite };try require() }
     private func load() throws -> Stored {
-        try current();guard let data=try read() else { return Stored(version:1,account:account,resume:[:],watchPending:[],playlistDraft:nil) }
-        guard data.count<=524288,let shape=try JSONSerialization.jsonObject(with:data) as? [String:Any],Set(shape.keys).subtracting(["version","account","resume","watchPending","playlistDraft"]).isEmpty else { throw Failure.invalidState }
+        try current();guard let data=try read() else { return Stored(version:1,account:account,resume:[:],watchPending:[],playlistDraft:nil,playlistOperation:nil) }
+        guard data.count<=524288,let shape=try JSONSerialization.jsonObject(with:data) as? [String:Any],Set(shape.keys).subtracting(["version","account","resume","watchPending","playlistDraft","playlistOperation"]).isEmpty else { throw Failure.invalidState }
         guard let resume=shape["resume"] as? [String:Any],let pending=shape["watchPending"] as? [[String:Any]] else { throw Failure.invalidState }
         for raw in resume.values { guard let row=raw as? [String:Any],Set(row.keys)==Set(["playbackID","position"]) else { throw Failure.invalidState } }
         for row in pending { guard Set(row.keys)==Set(["key","videoID","playbackID","seconds","completed"]) else { throw Failure.invalidState } }
         if let raw=shape["playlistDraft"],!(raw is NSNull) { guard let draft=raw as? [String:Any],Set(draft.keys)==Set(["key","name"]) else { throw Failure.invalidState } }
+        if let raw=shape["playlistOperation"],!(raw is NSNull) {
+            guard let row=raw as? [String:Any],Set(row.keys).subtracting(["key","action","playlistID","videoID"]).isEmpty else { throw Failure.invalidState }
+        }
         let stored=try JSONDecoder().decode(Stored.self,from:data)
         try validate(stored);try current();return stored
     }
@@ -43,7 +47,24 @@ import Security
         for (id,row) in value.resume { guard Self.validID(id),Self.uuid(row.playbackID),row.position>=0,row.position<=2_147_483_647 else { throw Failure.invalidState } }
         var keys=Set<String>()
         for row in value.watchPending { guard Self.validID(row.videoID),Self.uuid(row.playbackID),Self.uuid(row.key),row.seconds>=0,row.seconds<=86400,keys.insert(row.key).inserted else { throw Failure.invalidState } }
+        if let row=value.playlistOperation { guard Self.validOperation(row) else { throw Failure.invalidState } }
         if let draft=value.playlistDraft { guard Self.uuid(draft.key),!draft.name.isEmpty,draft.name.utf16.count<=1024 else { throw Failure.invalidState } }
+    }
+    private static func validOperation(_ row: PlaylistOperation) -> Bool {
+        uuid(row.key) && validID(row.playlistID) && (["add","remove"].contains(row.action) ? row.videoID.map(validID)==true : row.action=="delete" && row.videoID==nil)
+    }
+    func pendingPlaylistOperation() throws -> PlaylistOperation? { try load().playlistOperation }
+    func reservePlaylistOperation(action: String,playlistID: String,videoID: String?) throws -> PlaylistOperation {
+        var state=try load()
+        let row=PlaylistOperation(key:Self.newKey(),action:action,playlistID:playlistID,videoID:videoID)
+        guard Self.validOperation(row) else { throw Failure.invalidState }
+        if let original=state.playlistOperation {
+            guard original.action==action,original.playlistID==playlistID,original.videoID==videoID else { throw Failure.changedRecord };return original
+        }
+        state.playlistOperation=row;try save(state);return row
+    }
+    func finishPlaylistOperation(_ original: PlaylistOperation) throws {
+        var state=try load();guard state.playlistOperation==original else { throw Failure.changedRecord };state.playlistOperation=nil;try save(state)
     }
     func playback(_ id: String) throws -> Playback {
         guard Self.validID(id) else { throw Failure.invalidState };var state=try load()

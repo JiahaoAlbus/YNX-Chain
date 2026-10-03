@@ -13,7 +13,13 @@ import Foundation
         let original=try make(),playback=try original.playback("original-video")
         let pending=try original.position("original-video",playback,position:47,seconds:7,completed:false)!
         let draft=try original.reservePlaylist("  Original playlist  ")
+        let operation=try original.reservePlaylistOperation(action:"add",playlistID:"original-playlist",videoID:"original-video")
         let cold=try make()
+        try check(try cold.pendingPlaylistOperation()==operation,"cold replaced original membership request")
+        try check(try cold.reservePlaylistOperation(action:"add",playlistID:"original-playlist",videoID:"original-video")==operation,"retry replaced original membership key")
+        try rejects { _ = try cold.reservePlaylistOperation(action:"remove",playlistID:"original-playlist",videoID:"original-video") }
+        try rejects { try cold.finishPlaylistOperation(.init(key:operation.key,action:"remove",playlistID:operation.playlistID,videoID:operation.videoID)) }
+        try cold.finishPlaylistOperation(operation)
         try check(try cold.playback("original-video")==VideoViewerState.Playback(playbackID:playback.playbackID,position:47),"cold resume lost original ID or position")
         try check(try cold.pendingWatch()==[pending],"cold changed pending exact body/key")
         try check(try cold.reservePlaylist("Original playlist")==draft,"retry changed playlist request key")
