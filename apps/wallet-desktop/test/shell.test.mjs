@@ -189,7 +189,7 @@ async function sendEntryHarness() {
     async prepareTransfer() { calls.push(["prepare"]); return { ok: false, error: { message: "Fixture refuses transfer" } }; },
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
-  const context = { document, window: { ynxWallet: api }, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+  const context = { document, window: { ynxWallet: api }, accountViewRevision:0, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
@@ -227,6 +227,28 @@ test("locked Send opens the existing password form without unlocking or preparin
     assert.deepEqual(h.calls, []);
     h.context.passwordUI.cancel();
   }
+});
+
+test("unchanged security notifications preserve the actual pending Prepare owner, but an edited draft releases it",async()=>{
+  const h=await sendEntryHarness();h.render({locked:false,revision:2});
+  h.get("#send-sheet").open=true;h.get("#transfer-to").value="public-recipient";h.get("#transfer-amount").value="1";
+  let reject;h.api.prepareTransfer=()=>new Promise((_yes,no)=>{reject=no});
+  const job=h.get("#transfer-form").emit("submit");assert.equal(h.get("#prepare-transfer").disabled,true);
+  h.render({});assert.equal(h.get("#prepare-transfer").disabled,true);
+  h.context.invalidatePaymentInput();h.render({});assert.equal(h.get("#prepare-transfer").disabled,false);
+  h.get("#transfer-result").textContent="edited draft";reject(Error("old failure"));await job;
+  assert.equal(h.get("#transfer-result").textContent,"edited draft");assert.equal(h.get("#prepare-transfer").disabled,false);
+});
+
+test("unchanged security notifications cannot release a pending explicit transfer approval",async()=>{
+  const h=await sendEntryHarness();h.render({locked:false,revision:2});
+  h.get("#transfer-review").open=true;h.context.transferReview={id:"original-review"};let reject;
+  h.api.transferAction=()=>new Promise((_yes,no)=>{reject=no});
+  const job=h.context.actOnTransfer("approve");assert.equal(h.get("#confirm-transfer").disabled,true);
+  h.render({});assert.equal(h.get("#confirm-transfer").disabled,true);
+  h.render({locked:true,revision:3});h.get("#transfer-result").textContent="new locked view";
+  reject(Error("old unknown response"));await job;assert.equal(h.get("#transfer-result").textContent,"new locked view");
+  assert.equal(h.get("#confirm-transfer").disabled,true);assert.equal(h.context.transferInFlight,false);
 });
 
 for (const outcome of ["success", "failure", "throw"]) test(`cancelled recovery ${outcome} cannot replace a newer password journey`, async () => {

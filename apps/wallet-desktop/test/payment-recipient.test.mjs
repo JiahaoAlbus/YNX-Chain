@@ -104,10 +104,11 @@ test("actual Send submit handler cannot open a late review after close, edit or 
     const nodes = new Map();
     for (const id of ["transfer-form", "prepare-transfer", "transfer-result", "transfer-review", "transfer-to", "transfer-amount", "send-sheet"]) nodes.set(`#${id}`, { hidden: true, disabled: false, value: "", open: false, textContent: "", addEventListener: (_type, listener) => { submit = listener; }, showModal: () => { shown++; } });
     nodes.get("#send-sheet").open = true; nodes.get("#transfer-to").value = account; nodes.get("#transfer-amount").value = "1";
-    const context = { document: { querySelector: id => { assert(nodes.has(id), id); return nodes.get(id); } }, keyState: { locked: false, revision: 1 }, paymentDraftRevision: 0, transferReview: null, window: { ynxWallet: { prepareTransfer: () => pending.promise } } };
+    const context = { document: { querySelector: id => { assert(nodes.has(id), id); return nodes.get(id); } }, activeAccount:evm, accountViewRevision:0, keyState: { locked: false, revision: 1 }, paymentDraftRevision: 0, transferReview: null, window: { ynxWallet: { prepareTransfer: () => pending.promise } } };
     context.invalidatePaymentInput = () => { context.paymentDraftRevision++; };
     const copyHelper=source.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
-    runInNewContext(copyHelper+"\n"+source.slice(start, end), context);
+    const ownerStart=source.indexOf("let accountSecurityIntent="),ownerEnd=source.indexOf('createAccount.addEventListener("click"',ownerStart);
+    runInNewContext(copyHelper+"\n"+source.slice(ownerStart,ownerEnd)+"\n"+source.slice(start, end), context);
     const job = submit({ preventDefault() {} });
     if (mutation === "close") nodes.get("#send-sheet").open = false;
     if (mutation === "edit") nodes.get("#transfer-to").value = evm;

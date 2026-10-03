@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
 import {renderPermissionError} from "../src/permission-error-ui.mjs";
-import {initWalletLocale,WALLET_LOCALES,WALLET_COPY} from "../src/wallet-locale.mjs";
+import {initWalletLocale,setWalletCopy,WALLET_LOCALES,WALLET_COPY} from "../src/wallet-locale.mjs";
+import {BALANCE_COPY} from "../src/wallet-locale-balance.mjs";
 import {PERMISSION_STORE_NOTICE} from "../src/wallet-locale-permissions.mjs";
-const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
+const source=await readFile(process.env.YNX_BALANCE_SOURCE??new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),other="0x"+"2".repeat(40);
 const good=(selected=account,formatted="25")=>({ok:true,value:{account:selected,formatted,checkedAt:"2026-10-03T00:00:00Z",transferEnabled:false}});
@@ -55,4 +56,22 @@ test("current request failures remain visible and a new refresh recovers",async(
   for(const thrown of [false,true]){const h=harness(),pending=h.context.refreshAssets();if(thrown)h.requests[0].reject(Error("offline"));else h.requests[0].resolve({ok:false,error:{message:"Network unavailable"}});
     await pending;assert.match(h.get("#balance-status").textContent,thrown?/Balance unavailable/:/Network unavailable/);
     const retry=h.context.refreshAssets();h.requests[1].resolve(good());await retry;assert.equal(h.get("#balance-value").textContent,"25");}
+});
+for(const delta of [{account:other},{formatted:"not a balance"},{formatted:"-1"},{formatted:"1e9"},{formatted:"1.1234567890123456789"},{formatted:"9".repeat(81)},{formatted:null},{checkedAt:"invalid time"},{checkedAt:null},{transferEnabled:"false"}])test(`invalid current balance projection ends loading without publishing amounts: ${JSON.stringify(delta)}`,async()=>{
+  const h=harness(),pending=h.context.refreshAssets();h.requests[0].resolve({ok:true,value:{...good().value,...delta}});await pending;
+  assert.equal(h.get("#balance-value").textContent,"—");assert.equal(h.get("#asset-balance").textContent,"—");assert.match(h.get("#balance-status").textContent,/Balance unavailable/);
+  const retry=h.context.refreshAssets();h.requests[1].resolve(good());await retry;assert.equal(h.get("#balance-value").textContent,"25");
+});
+test("actual balance states localize across all twelve languages without translating displayed amounts",async()=>{
+  const h=harness(),doc={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]},status=h.get("#balance-status");
+  status.ownerDocument=doc;h.context.setWalletCopy=setWalletCopy;const locale=initWalletLocale({document:doc});
+  const pending=h.context.refreshAssets();
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(status.textContent,BALANCE_COPY[language]["Checking YNX Testnet…"])}
+  locale.select("en");h.requests[0].resolve({ok:true,value:{...good().value,formatted:"bad"}});await pending;
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(status.textContent,BALANCE_COPY[language]["Balance unavailable. Try refreshing."])}
+  const retry=h.context.refreshAssets();h.requests[1].resolve(good(account,"25.5"));await retry;
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(status.textContent,BALANCE_COPY[language]["Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network."]);assert.equal(h.get("#balance-value").textContent,"25.5")}
+  const enabled=h.context.refreshAssets(),checkedAt="2026-10-03T00:00:00.000Z";h.requests[2].resolve({ok:true,value:{...good(account,"0.000000000000000001").value,checkedAt,transferEnabled:true}});await enabled;
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(status.textContent,BALANCE_COPY[language]["YNX Testnet · Updated {time}"].replace("{time}",new Date(checkedAt).toLocaleTimeString()));assert.equal(h.get("#balance-value").textContent,"0.000000000000000001")}
+  for(const language of WALLET_LOCALES)for(const [key,value]of Object.entries(BALANCE_COPY[language]))assert.deepEqual(value.match(/\{\w+\}/g)??[],key.match(/\{\w+\}/g)??[]);
 });

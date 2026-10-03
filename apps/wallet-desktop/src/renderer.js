@@ -111,7 +111,7 @@ const paymentRecipientUI = createPaymentRecipientUI({
   report: message => { copyUI(document.querySelector("#recipient-status"),message); },
 });
 const recipientScanUI=createRecipientScanUI({document,getContext:()=>({open:document.querySelector("#send-sheet").open,account:accountState?.account,locked:keyState.locked,keyRevision:keyState.revision,draftRevision:paymentDraftRevision}),image:file=>paymentRecipientUI.image(file)});
-function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); recipientScanUI.invalidate(); }
+function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); recipientScanUI.invalidate(); document.querySelector("#prepare-transfer").disabled=keyState.locked||keyState.authenticating; }
 // Public metadata was identity-checked by the main-process vault. Protocol keys remain EVM addresses.
 const nativeAccountLabel = account => accountState?.accounts?.find(item => item.account === account)?.ynxAccount ?? account;
 const network = document.querySelector("#network");
@@ -623,16 +623,17 @@ async function refreshAssets() {
   const revision = balanceRevision, account = activeAccount;
   if (!account) return;
   const current = () => revision === balanceRevision && account === activeAccount;
-  document.querySelector("#balance-status").textContent = "Checking YNX Testnet…";
+  copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
   try {
     const result = await window.ynxWallet.balance();
     if (!current()) return;
     if (!result.ok) { document.querySelector("#balance-status").textContent = errorText(result); return; }
-    if (result.value.account !== activeAccount) return;
-    document.querySelector("#balance-value").textContent = result.value.formatted;
-    document.querySelector("#asset-balance").textContent = `${result.value.formatted} YNXT`;
-    document.querySelector("#balance-status").textContent = result.value.transferEnabled === false ? "Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network." : `YNX Testnet · Updated ${new Date(result.value.checkedAt).toLocaleTimeString()}`;
-  } catch { if (current()) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
+    const value=result.value;
+    if(value?.account!==account||typeof value.formatted!=="string"||value.formatted.length>80||!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?$/.test(value.formatted)||typeof value.transferEnabled!=="boolean"||typeof value.checkedAt!=="string"||!Number.isFinite(Date.parse(value.checkedAt))||![new Date(value.checkedAt).toISOString(),new Date(value.checkedAt).toISOString().replace(/\.000Z$/,"Z")].includes(value.checkedAt))throw new Error("Invalid balance projection");
+    document.querySelector("#balance-value").textContent = value.formatted;
+    document.querySelector("#asset-balance").textContent = `${value.formatted} YNXT`;
+    copyUI(document.querySelector("#balance-status"),value.transferEnabled===false?"Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network.":"YNX Testnet · Updated {time}",{time:new Date(value.checkedAt).toLocaleTimeString()});
+  } catch { if (current()) copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing."); }
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
@@ -695,14 +696,16 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   if (keyState.locked || keyState.authenticating) return;
   invalidatePaymentInput();
   const button = document.querySelector("#prepare-transfer"), output = document.querySelector("#transfer-result");
-  const revision = keyState.revision;
+  const operation=beginAccountOperation(button,"transfer");operation.draft=paymentDraftRevision;
+  const revision = keyState.revision, account = activeAccount;
   const draftRevision = paymentDraftRevision, to = document.querySelector("#transfer-to").value.trim(), amount = document.querySelector("#transfer-amount").value.trim();
   const draftIsCurrent = () => draftRevision === paymentDraftRevision && document.querySelector("#send-sheet").open && to === document.querySelector("#transfer-to").value.trim() && amount === document.querySelector("#transfer-amount").value.trim();
+  const current = () => accountOperationCurrent(operation) && !keyState.locked && keyState.revision === revision && account === activeAccount && draftIsCurrent();
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
   copyUI(output,"Checking recipient, balance and network fee…");
   try {
     const result = await window.ynxWallet.prepareTransfer({ to, amount });
-    if (keyState.locked || keyState.revision !== revision || !draftIsCurrent()) return;
+    if (!current()) return;
     if (!result.ok) { output.textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) { copyUI(output,"Account changed. Review again."); return; }
     transferReview = result.value;
@@ -715,33 +718,40 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     document.querySelector("#send-sheet").close();
     document.querySelector("#transfer-review").showModal();
     copyUI(output,"Review the details below. Nothing has been signed or sent.");
-  } catch { if (draftIsCurrent()) copyUI(output,"Unable to prepare the transfer. Check the network and try again."); }
-  finally { button.disabled = keyState.locked; }
+  } catch { if (current()) copyUI(output,"Unable to prepare the transfer. Check the network and try again."); }
+  finally { finishAccountOperation(operation); }
 });
 async function actOnTransfer(action) {
   if (action === "approve" && (keyState.locked || keyState.authenticating)) return;
   if (transferInFlight) { if (action === "reject") await window.ynxWallet.lock(); return; }
   if (!transferReview) return;
   transferInFlight = true;
+  const operation=beginAccountOperation(document.querySelector("#confirm-transfer"),"transfer");operation.draft=paymentDraftRevision;
   const revision = keyState.revision;
+  const account = activeAccount, draftRevision = paymentDraftRevision;
+  const current = () => accountOperationCurrent(operation) && !keyState.locked && revision === keyState.revision && account === activeAccount && draftRevision === paymentDraftRevision;
   const id = transferReview.id; transferReview = null;
   const output = document.querySelector("#transfer-result");
   document.querySelector("#confirm-transfer").disabled = true;
   copyUI(output,action === "approve" ? "Submitting the approved transfer…" : "Cancelling…");
   try {
     const result = await window.ynxWallet.transferAction(id, action);
+    // Main retains signed originals/outcomes even after this view is gone.
+    // Its old receipt owns neither a new account nor a newly edited Send draft.
+    if(!current())return;
     if(result.ok)copyUI(output,result.value.rejected ? "Transfer cancelled. Nothing was signed or sent." : "Submitted: {hash}. Network confirmation is pending.",{hash:result.value.hash});
     else output.textContent = errorText(result);
     if (result.ok && !result.value.rejected) void refreshAssets();
-  } catch { copyUI(output,"The response was interrupted. Check the network before trying another transfer."); }
+  } catch { if(current())copyUI(output,"The response was interrupted. Check the network before trying another transfer."); }
   finally {
     transferInFlight = false;
     void refreshTransactions();
-    if (keyState.revision === revision) {
+    if (current()) {
       document.querySelector("#transfer-review").close(); document.querySelector("#transfer-review").hidden = true;
       document.querySelector("#confirm-transfer").disabled = keyState.locked;
-      if (!keyState.locked) document.querySelector("#send-sheet").showModal();
+      if (!document.querySelector("dialog[open]")) document.querySelector("#send-sheet").showModal();
     }
+    finishAccountOperation(operation);
   }
 }
 document.querySelector("#cancel-transfer").addEventListener("click", () => actOnTransfer("reject"));
@@ -768,6 +778,8 @@ document.querySelector("#open-send").addEventListener("click", () => {
     if (keyState.unlockAvailable) document.querySelector("#unlock-wallet").click();
     return;
   }
+  invalidatePaymentInput();
+  document.querySelector("#transfer-result").textContent="";
   document.querySelector("#send-sheet").showModal();
   document.querySelector("#transfer-to").focus();
 });
@@ -825,7 +837,7 @@ function renderKeyState(state) {
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   copyUI(signingShort,state.locked ? "Locked" : "Approval required");
-  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) {const owner=accountOperationOwners.get(element);element.disabled = state.locked || element.dataset.account === activeAccount || !!(owner&&accountOperationCurrent(owner));}
+  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) {const owner=accountOperationOwners.get(element);element.disabled = state.locked || element.dataset.account === activeAccount || !!(owner&&accountOperationCurrent(owner)&&(owner.kind!=="transfer"||owner.draft===paymentDraftRevision));}
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) {
