@@ -1,0 +1,85 @@
+{
+  "observedAt": "2026-10-03T01:49:58.935Z",
+  "url": "https://social.ynxweb4.com/",
+  "assets": [
+    {
+      "file": "public-index.html",
+      "url": "https://social.ynxweb4.com/",
+      "bytes": 6098,
+      "sha256": "783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b"
+    },
+    {
+      "file": "public-app.js",
+      "url": "https://social.ynxweb4.com/app.js",
+      "bytes": 6928,
+      "sha256": "966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d"
+    },
+    {
+      "file": "public-wallet-provider.js",
+      "url": "https://social.ynxweb4.com/wallet-provider.js",
+      "bytes": 7749,
+      "sha256": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"
+    }
+  ],
+  "resourceTree": {
+    "frameTree": {
+      "frame": {
+        "adFrameStatus": {
+          "adFrameType": "none"
+        },
+        "crossOriginIsolatedContextType": "NotIsolated",
+        "domainAndRegistry": "ynxweb4.com",
+        "gatedAPIFeatures": [],
+        "id": "D6F849DCA25A23138A453189E44D982D",
+        "loaderId": "DC5CA081623E817EC33E5E129B3CFBF6",
+        "mimeType": "text/html",
+        "secureContextType": "Secure",
+        "securityOrigin": "https://social.ynxweb4.com",
+        "securityOriginDetails": {
+          "isLocalhost": false
+        },
+        "url": "https://social.ynxweb4.com/"
+      },
+      "resources": [
+        {
+          "contentSize": 280,
+          "lastModified": 1787419109,
+          "mimeType": "image/svg+xml",
+          "type": "Image",
+          "url": "https://social.ynxweb4.com/assets/ynx-wallet.svg"
+        },
+        {
+          "contentSize": 6327,
+          "lastModified": 1787419107,
+          "mimeType": "text/css",
+          "type": "Stylesheet",
+          "url": "https://social.ynxweb4.com/styles.css"
+        },
+        {
+          "contentSize": 6928,
+          "lastModified": 1787419106,
+          "mimeType": "application/javascript",
+          "type": "Script",
+          "url": "https://social.ynxweb4.com/app.js"
+        },
+        {
+          "contentSize": 755,
+          "lastModified": 1787446670,
+          "mimeType": "image/svg+xml",
+          "type": "Image",
+          "url": "https://social.ynxweb4.com/assets/metamask.svg"
+        },
+        {
+          "contentSize": 7749,
+          "lastModified": 1787419108,
+          "mimeType": "application/javascript",
+          "type": "Script",
+          "url": "https://social.ynxweb4.com/wallet-provider.js"
+        }
+      ]
+    }
+  },
+  "console": [],
+  "scope": "real public guest and chooser only; account authorization and provider lifecycle not performed",
+  "releaseSourceCommit": null
+}

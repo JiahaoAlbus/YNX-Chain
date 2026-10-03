@@ -1,0 +1,22 @@
+Browser tab: 1, Title: "YNX Social — Private by design", URL: "https://social.ynxweb4.com/".
+0 AXWebArea YNX Social — Private by design, URL: social.ynxweb4.com/
+	1 container wallet-dialog
+		2 text STANDARD WALLET CONNECTION
+		3 heading Choose a wallet, Value: 2
+			4 text Choose a wallet
+		5 button Description: Close, ID: close-wallet-dialog
+		6 text Select the wallet you intend to use. YNX Social will not silently substitute another provider.
+		7 button YNX Wallet logo YNX Wallet Independent YNX EIP-1193 provider Connect, ID: connect-ynx
+			8 image YNX Wallet logo
+			9 text YNX Wallet
+			10 text Independent YNX EIP-1193 provider
+			11 text Connect
+		12 button MetaMask logo MetaMask MetaMask EIP-1193 provider Connect, ID: connect-metamask
+			13 image MetaMask logo
+			14 text MetaMask
+			15 text MetaMask EIP-1193 provider
+			16 text Connect
+		17 text No account request is sent until you choose a wallet.
+		18 link Description: Install wallet, Value: social.ynxweb4.com/#, ID: install-wallet
+
+The focused UI element is 5 button Description: Close, ID: close-wallet-dialog

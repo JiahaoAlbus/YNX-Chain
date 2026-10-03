@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" translate="no" class="notranslate">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google" content="notranslate" />
+    <meta name="description" content="YNX Social is a private, wallet-connected Social experience on YNX Testnet. Explore safely as a guest before connecting a wallet." />
+    <title>YNX Social — Private by design</title>
+    <link rel="icon" href="./assets/ynx-wallet.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="YNX Social home"><span class="mark">Y</span><span>YNX Social</span></a>
+      <nav aria-label="Primary"><a href="#experience">Experience</a><a href="#privacy">Privacy</a><a href="#downloads">Apps</a></nav>
+      <button id="connect-wallet" class="button button-primary" type="button">Connect wallet</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span id="service-status" data-tone="neutral">Checking Social service…</span></div>
+          <h1>Close conversations.<br />Clear control.</h1>
+          <p>Explore YNX Social without an account. Connect a standard EVM wallet only when you are ready to link a profile or approve a private session.</p>
+          <div class="hero-actions"><button id="hero-connect-wallet" class="button button-primary" type="button">Connect wallet</button><a class="button button-secondary" href="#experience">Explore as guest</a></div>
+          <p class="fineprint">Guest access never creates a profile, wallet approval, Product Session, signature, or transaction.</p>
+        </div>
+        <div class="phone" aria-label="Product preview">
+          <div class="phone-head"><span>Social</span><span class="private">Private</span></div>
+          <div class="story-row"><span class="story blue"></span><span class="story violet"></span><span class="story coral"></span><span class="story mint"></span></div>
+          <article class="post"><div class="avatar"></div><div><strong>Design Circle</strong><small>Community preview</small></div><p>A calm place for people, projects and conversations you choose.</p><div class="post-image"></div></article>
+        </div>
+      </section>
+
+      <section id="experience" class="section"><div class="section-head"><span class="eyebrow">Guest preview</span><h2>See the product before you connect.</h2><p>Public information remains readable while identity, contacts, messages and private actions stay locked.</p></div><div class="grid"><article><span>01</span><h3>Moments</h3><p>Share thoughtful updates with public, contacts-only or private visibility controls.</p></article><article><span>02</span><h3>Encrypted chat</h3><p>Device-bound conversation keys, verified recovery states and explicit device rotation.</p></article><article><span>03</span><h3>People you choose</h3><p>Discover by handle, invite or QR without exposing a wallet address as a public identity.</p></article></div></section>
+
+      <section id="privacy" class="section contrast"><div><span class="eyebrow">Privacy boundary</span><h2>Your wallet is a key, not your public profile.</h2></div><ul><li>Standard wallet connection stays available if private YNX services are degraded.</li><li>No recovery phrase or private key is requested or received.</li><li>Private Social access requires a separate, explicit Product Session approval.</li><li>Rejected or failed approval creates no local or canned session.</li></ul></section>
+
+      <section id="downloads" class="section downloads"><div><span class="eyebrow">Get the app</span><h2>Continue on mobile.</h2><p>The public Web surface is for discovery and standard wallet connection. Private conversations remain in the installed Social client.</p></div><div class="download-actions"><a class="button button-primary" href="https://www.ynxweb4.com/dapp/download">Download YNX apps</a><span>Android Testnet preview · other platforms require verified releases</span></div></section>
+
+      <section id="connected-panel" class="connected" hidden><div class="connected-title"><img id="connected-logo" class="wallet-icon" alt="" /><div><span id="connected-wallet-name">Connected wallet</span><strong id="connected-account"></strong></div></div><p id="connected-chain">YNX Testnet · 0x1917</p><p id="private-session-state">Standard connection only. A private Social Product Session has not been created.</p><div class="connected-actions"><button id="wallet-switch-account" type="button">Switch account</button><button id="wallet-revoke" type="button">Revoke permission</button><button id="wallet-disconnect" type="button">Disconnect</button></div></section>
+    </main>
+
+    <dialog id="wallet-dialog" class="wallet-dialog">
+      <div class="dialog-head"><div><span class="eyebrow">Standard wallet connection</span><h2>Choose a wallet</h2></div><button id="close-wallet-dialog" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <p>Select the wallet you intend to use. YNX Social will not silently substitute another provider.</p>
+      <div class="wallet-list"><button id="connect-ynx" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-wallet.svg" alt="YNX Wallet logo" /><span class="wallet-copy"><strong>YNX Wallet</strong><small>Independent YNX EIP-1193 provider</small></span><b>Connect</b></button><button id="connect-metamask" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/metamask.svg" alt="MetaMask logo" /><span class="wallet-copy"><strong>MetaMask</strong><small>MetaMask EIP-1193 provider</small></span><b>Connect</b></button></div>
+      <div id="wallet-status" class="wallet-status" data-tone="neutral" role="status">No account request is sent until you choose a wallet.</div>
+      <a id="install-wallet" class="install-link" href="#" rel="noreferrer" hidden>Install wallet</a>
+    </dialog>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
