@@ -1,0 +1,17 @@
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web
+    auth_v2_test.go:114: actual signed write failed 403 {"code":"CAPABILITY_BINDING_MISMATCH","error":"CAPABILITY_BINDING_MISMATCH"}
+        
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android
+    auth_v2_test.go:114: actual signed write failed 403 {"code":"CAPABILITY_BINDING_MISMATCH","error":"CAPABILITY_BINDING_MISMATCH"}
+        
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos
+    auth_v2_test.go:114: actual signed write failed 403 {"code":"CAPABILITY_BINDING_MISMATCH","error":"CAPABILITY_BINDING_MISMATCH"}
+        
+--- FAIL: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary (0.69s)
+    --- FAIL: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web (0.25s)
+    --- FAIL: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android (0.22s)
+    --- FAIL: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos (0.22s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.159s
+FAIL

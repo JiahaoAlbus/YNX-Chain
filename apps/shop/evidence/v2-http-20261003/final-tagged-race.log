@@ -1,0 +1,287 @@
+=== RUN   TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs
+=== RUN   TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/privacy_deletion
+=== RUN   TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/cancel
+=== RUN   TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/cancel_and_delete
+=== RUN   TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/superseded_attempt
+--- PASS: TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs (0.18s)
+    --- PASS: TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/privacy_deletion (0.11s)
+    --- PASS: TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/cancel (0.02s)
+    --- PASS: TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/cancel_and_delete (0.03s)
+    --- PASS: TestCommerceLateAICompletionCannotReviveDeletedOrCancelledJobs/superseded_attempt (0.02s)
+=== RUN   TestCommerceAIProviderDoesNotStartWhenAdmissionCannotPersist
+--- PASS: TestCommerceAIProviderDoesNotStartWhenAdmissionCannotPersist (0.02s)
+=== RUN   TestShopRegistryV2EntriesMatchRuntimeBindings
+--- PASS: TestShopRegistryV2EntriesMatchRuntimeBindings (0.00s)
+=== RUN   TestCentralGatewayIntrospectionRejectsTamperExpiryAndCrossProduct
+--- PASS: TestCentralGatewayIntrospectionRejectsTamperExpiryAndCrossProduct (0.00s)
+=== RUN   TestCentralGatewayStoreAuthorizationRevocationBindsAccountAndReceipt
+--- PASS: TestCentralGatewayStoreAuthorizationRevocationBindsAccountAndReceipt (0.00s)
+=== RUN   TestCentralGatewayStoreAuthorizationRevocationUnavailableWhenContractMissing
+--- PASS: TestCentralGatewayStoreAuthorizationRevocationUnavailableWhenContractMissing (0.00s)
+=== RUN   TestCentralGatewayProxyPreservesReplayAndTamperRejection
+--- PASS: TestCentralGatewayProxyPreservesReplayAndTamperRejection (0.00s)
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android
+=== RUN   TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos
+--- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary (1.15s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/web (0.40s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/android (0.37s)
+    --- PASS: TestCommerceV2ActualSDKAndGoHTTPProfileBoundary/macos (0.38s)
+=== RUN   TestBusinessActorKeepsOriginalNamespaceAcrossDeletionAndRestart
+--- PASS: TestBusinessActorKeepsOriginalNamespaceAcrossDeletionAndRestart (0.03s)
+=== RUN   TestBusinessActorCanonicalRecordsAndCollisionNeverMerge
+--- PASS: TestBusinessActorCanonicalRecordsAndCollisionNeverMerge (0.00s)
+=== RUN   TestV2HTTPOriginalProfileAtomicReplyAndReplayDoesNotFallBackToBearer
+--- PASS: TestV2HTTPOriginalProfileAtomicReplyAndReplayDoesNotFallBackToBearer (0.00s)
+=== RUN   TestV2HTTPRejectedBodyRoleAndReplacementKeepBusinessAndNonceUnchanged
+--- PASS: TestV2HTTPRejectedBodyRoleAndReplacementKeepBusinessAndNonceUnchanged (0.01s)
+=== RUN   TestV2HTTPExternalRoutesCannotDispatchUnderLocalTransaction
+--- PASS: TestV2HTTPExternalRoutesCannotDispatchUnderLocalTransaction (0.00s)
+=== RUN   TestV2HTTPPrivacyAndLookupKeepOriginalActorBoundaries
+--- PASS: TestV2HTTPPrivacyAndLookupKeepOriginalActorBoundaries (0.00s)
+=== RUN   TestBusinessNonceAndOriginalCartCommitTogetherAcrossRestart
+--- PASS: TestBusinessNonceAndOriginalCartCommitTogetherAcrossRestart (0.04s)
+=== RUN   TestBusinessTransactionFailureCancelExpiryAndActorChangePublishNothing
+--- PASS: TestBusinessTransactionFailureCancelExpiryAndActorChangePublishNothing (0.00s)
+=== RUN   TestBusinessTransactionPersistFailureRetainsOriginalStateAndRetry
+--- PASS: TestBusinessTransactionPersistFailureRetainsOriginalStateAndRetry (0.00s)
+=== RUN   TestConcurrentBusinessReplayExecutesOnceAndSeparateBindingIsIndependent
+--- PASS: TestConcurrentBusinessReplayExecutesOnceAndSeparateBindingIsIndependent (0.00s)
+=== RUN   TestBusinessOrderFailureRollsBackReservationCartAndKeyThenFreshProofRecovers
+--- PASS: TestBusinessOrderFailureRollsBackReservationCartAndKeyThenFreshProofRecovers (0.01s)
+=== RUN   TestBusinessReplayDigestsSurviveDeletionAndRefuseOlderBackup
+--- PASS: TestBusinessReplayDigestsSurviveDeletionAndRefuseOlderBackup (0.02s)
+=== RUN   TestBuyerProfileAndCartAreDetachedFromInputsAndReadbacks
+--- PASS: TestBuyerProfileAndCartAreDetachedFromInputsAndReadbacks (0.05s)
+=== RUN   TestInvalidCartCannotReplacePreviouslySavedCart
+--- PASS: TestInvalidCartCannotReplacePreviouslySavedCart (0.00s)
+=== RUN   TestOrderAccumulationOverflowDoesNotReserveOrCreateOrder
+--- PASS: TestOrderAccumulationOverflowDoesNotReserveOrCreateOrder (0.00s)
+=== RUN   TestCatalogEditsCannotBypassInventoryAuthority
+--- PASS: TestCatalogEditsCannotBypassInventoryAuthority (0.00s)
+=== RUN   TestProductCreateAndNewVariantRetriesUseOriginalIntent
+--- PASS: TestProductCreateAndNewVariantRetriesUseOriginalIntent (0.00s)
+=== RUN   TestReturnedProductCannotModifyStockOrImmutableHistory
+--- PASS: TestReturnedProductCannotModifyStockOrImmutableHistory (0.00s)
+=== RUN   TestCartIntentReplayAfterRemoteEditDoesNotOverwriteAndSurvivesRestart
+--- PASS: TestCartIntentReplayAfterRemoteEditDoesNotOverwriteAndSurvivesRestart (0.06s)
+=== RUN   TestDeletionRetiresReceivedAndNotYetReceivedCartWrites
+--- PASS: TestDeletionRetiresReceivedAndNotYetReceivedCartWrites (0.00s)
+=== RUN   TestFailedCartIntentCommitLeavesKeyAndSnapshotUntouched
+--- PASS: TestFailedCartIntentCommitLeavesKeyAndSnapshotUntouched (0.00s)
+=== RUN   TestCheckoutConsumesCartOnceAndReplayPreservesNewCart
+--- PASS: TestCheckoutConsumesCartOnceAndReplayPreservesNewCart (0.06s)
+=== RUN   TestCartRevisionRejectsStaleSameContentAndConcurrentCheckouts
+--- PASS: TestCartRevisionRejectsStaleSameContentAndConcurrentCheckouts (0.00s)
+=== RUN   TestCheckoutAndSaveCartPersistenceFailuresRestoreEntireSnapshot
+--- PASS: TestCheckoutAndSaveCartPersistenceFailuresRestoreEntireSnapshot (0.01s)
+=== RUN   TestLegacyOrderHashAndHTTPCartProtocol
+--- PASS: TestLegacyOrderHashAndHTTPCartProtocol (0.01s)
+=== RUN   TestClientSubjectUsesForwardedClientOnlyFromLoopbackProxy
+--- PASS: TestClientSubjectUsesForwardedClientOnlyFromLoopbackProxy (0.00s)
+=== RUN   TestClientSubjectRejectsSpoofedForwardedClientFromPublicPeer
+--- PASS: TestClientSubjectRejectsSpoofedForwardedClientFromPublicPeer (0.00s)
+=== RUN   TestClientSubjectNormalizesIPv6Peer
+--- PASS: TestClientSubjectNormalizesIPv6Peer (0.00s)
+=== RUN   TestConcurrentReservationPreventsOversellingAndRecoversAfterRestart
+--- PASS: TestConcurrentReservationPreventsOversellingAndRecoversAfterRestart (0.05s)
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_intent
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_merchant
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_payout
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_payer
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_currency
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_amount
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_audit
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_tx
+=== RUN   TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_invoice
+--- PASS: TestPaidRequiresExactCommittedSettlementEvidence (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_intent (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_merchant (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_payout (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_payer (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_currency (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_amount (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_audit (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_tx (0.00s)
+    --- PASS: TestPaidRequiresExactCommittedSettlementEvidence/reject_tampered_invoice (0.00s)
+=== RUN   TestRefundRequiresExactCommittedPayEvidence
+--- PASS: TestRefundRequiresExactCommittedPayEvidence (0.00s)
+=== RUN   TestIdempotencyTamperRejectedAfterRestart
+--- PASS: TestIdempotencyTamperRejectedAfterRestart (0.04s)
+=== RUN   TestStateMigrationDropsLegacyPlaintextSessions
+--- PASS: TestStateMigrationDropsLegacyPlaintextSessions (0.01s)
+=== RUN   TestAuthenticatedStateFailsClosedAndRestoresVerifiedBackup
+--- PASS: TestAuthenticatedStateFailsClosedAndRestoresVerifiedBackup (0.02s)
+=== RUN   TestCommercePersistenceSchemaMigrationRollbackAndRecovery
+--- PASS: TestCommercePersistenceSchemaMigrationRollbackAndRecovery (0.02s)
+=== RUN   TestAIRequiresPermissionProviderAndHumanReview
+--- PASS: TestAIRequiresPermissionProviderAndHumanReview (0.00s)
+=== RUN   TestOrderAuthorizationAndLifecycle
+--- PASS: TestOrderAuthorizationAndLifecycle (0.00s)
+=== RUN   TestCatalogRevisionHistoryAndViewerReadOnlyRole
+--- PASS: TestCatalogRevisionHistoryAndViewerReadOnlyRole (0.00s)
+=== RUN   TestSellerDataExportIsOwnerOnlyStoreScopedAndDeepCopied
+--- PASS: TestSellerDataExportIsOwnerOnlyStoreScopedAndDeepCopied (0.10s)
+=== RUN   TestHTTPSellerDataExportRequiresCanonicalOwnerSession
+--- PASS: TestHTTPSellerDataExportRequiresCanonicalOwnerSession (0.00s)
+=== RUN   TestTransientRetentionPreviewAndPruneProtectAuthorityAndFinancialEvidence
+--- PASS: TestTransientRetentionPreviewAndPruneProtectAuthorityAndFinancialEvidence (0.06s)
+=== RUN   TestHealthReportsExactRuntimeAndDependencyBoundaries
+--- PASS: TestHealthReportsExactRuntimeAndDependencyBoundaries (0.00s)
+=== RUN   TestPrometheusMetricsExposeBoundedRuntimeAndState
+--- PASS: TestPrometheusMetricsExposeBoundedRuntimeAndState (0.00s)
+=== RUN   TestObservePreservesFlushCapability
+--- PASS: TestObservePreservesFlushCapability (0.00s)
+=== RUN   TestShopConcurrentReadLoadBaseline
+    observability_test.go:211: shop_read_capacity requests=3000 concurrency=32 products=24 variants=48 p50=12.61025ms p95=20.799709ms p99=28.58125ms throughput=2403.36_req_per_second elapsed=1.248250459s
+--- PASS: TestShopConcurrentReadLoadBaseline (1.25s)
+=== RUN   TestOrderReadRejectsUnknownRole
+--- PASS: TestOrderReadRejectsUnknownRole (0.00s)
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/shipped/downgrade
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/shipped/revoke
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/delivered/downgrade
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/delivered/revoke
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/return_approved/downgrade
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/return_approved/revoke
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/refund_approved/downgrade
+=== RUN   TestOrderTransitionReplayRequiresCurrentActionPermission/refund_approved/revoke
+--- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission (0.88s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/shipped/downgrade (0.09s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/shipped/revoke (0.10s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/delivered/downgrade (0.11s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/delivered/revoke (0.10s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/return_approved/downgrade (0.12s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/return_approved/revoke (0.13s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/refund_approved/downgrade (0.11s)
+    --- PASS: TestOrderTransitionReplayRequiresCurrentActionPermission/refund_approved/revoke (0.12s)
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached/shipped
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached/delivered
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached/reviewed
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached/return_requested
+=== RUN   TestOrderTransitionKeepsCallerIntentStableAndDetached/return_approved
+--- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached (0.00s)
+    --- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached/shipped (0.00s)
+    --- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached/delivered (0.00s)
+    --- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached/reviewed (0.00s)
+    --- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached/return_requested (0.00s)
+    --- PASS: TestOrderTransitionKeepsCallerIntentStableAndDetached/return_approved (0.00s)
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_read
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_read
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_list
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_list
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_export
+=== RUN   TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_export
+--- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_read (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_read (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_list (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_list (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/buyer_export (0.00s)
+    --- PASS: TestOrderReadAndExportSnapshotsCannotMutateRecords/seller_export (0.00s)
+=== RUN   TestOrderMutationResultsAreDetachedFromCommittedEvidence
+=== RUN   TestOrderMutationResultsAreDetachedFromCommittedEvidence/refund
+=== RUN   TestOrderMutationResultsAreDetachedFromCommittedEvidence/trust
+--- PASS: TestOrderMutationResultsAreDetachedFromCommittedEvidence (0.01s)
+    --- PASS: TestOrderMutationResultsAreDetachedFromCommittedEvidence/refund (0.00s)
+    --- PASS: TestOrderMutationResultsAreDetachedFromCommittedEvidence/trust (0.00s)
+=== RUN   TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance
+=== RUN   TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance/plain
+=== RUN   TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance/authenticated
+--- PASS: TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance (0.25s)
+    --- PASS: TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance/plain (0.12s)
+    --- PASS: TestPrivacyDeletionRejectsRetiredIntentAfterRestartAndMaintenance/authenticated (0.13s)
+=== RUN   TestPrivacyDeletionMetadataIsOpaqueAndReceiptRetryPreservesNewData
+--- PASS: TestPrivacyDeletionMetadataIsOpaqueAndReceiptRetryPreservesNewData (0.10s)
+=== RUN   TestPrivacyDeletionValidationAndFailureAreAtomic
+--- PASS: TestPrivacyDeletionValidationAndFailureAreAtomic (0.09s)
+=== RUN   TestPrivacyHTTPSealsLateRequestsAndVerifiesDeletionReceipt
+--- PASS: TestPrivacyHTTPSealsLateRequestsAndVerifiesDeletionReceipt (0.14s)
+=== RUN   TestPrivacyProtectionSurvivesRecoveryAndRefusesOlderRollback
+--- PASS: TestPrivacyProtectionSurvivesRecoveryAndRefusesOlderRollback (0.02s)
+=== RUN   TestPrivacySchemaV7MigrationPreservesExistingIdempotency
+--- PASS: TestPrivacySchemaV7MigrationPreservesExistingIdempotency (0.01s)
+=== RUN   TestPrivacyLegacyDeletionAlwaysAdvancesRecoveryBoundary
+--- PASS: TestPrivacyLegacyDeletionAlwaysAdvancesRecoveryBoundary (0.04s)
+=== RUN   TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory
+=== RUN   TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory/no_prior_backup
+=== RUN   TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory/existing_backup
+--- PASS: TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory (0.04s)
+    --- PASS: TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory/no_prior_backup (0.01s)
+    --- PASS: TestPrivacyPrimaryCommitFailureRestoresOriginalBackupAndMemory/existing_backup (0.03s)
+=== RUN   TestBuyerDataExportAndDeletionPseudonymizeRetainedRecords
+--- PASS: TestBuyerDataExportAndDeletionPseudonymizeRetainedRecords (0.09s)
+=== RUN   TestPrivacyHTTPRequiresBuyerAndExactConfirmation
+--- PASS: TestPrivacyHTTPRequiresBuyerAndExactConfirmation (0.01s)
+=== RUN   TestProviderRegistryLifecycleIsStoreScopedRedactedAndDurable
+--- PASS: TestProviderRegistryLifecycleIsStoreScopedRedactedAndDurable (0.10s)
+=== RUN   TestProviderRegistryRejectsUnsafeConfigurationAndRateLimitsTests
+--- PASS: TestProviderRegistryRejectsUnsafeConfigurationAndRateLimitsTests (0.07s)
+=== RUN   TestHTTPRoleRevocationConfirmsCentralSessionInvalidation
+--- PASS: TestHTTPRoleRevocationConfirmsCentralSessionInvalidation (0.01s)
+=== RUN   TestHTTPRoleRevocationReportsUnavailableAndBlocksRegrant
+--- PASS: TestHTTPRoleRevocationReportsUnavailableAndBlocksRegrant (0.00s)
+=== RUN   TestHTTPRoleRevocationRejectsMismatchedCentralReceipt
+--- PASS: TestHTTPRoleRevocationRejectsMismatchedCentralReceipt (0.00s)
+=== RUN   TestCanonicalSellerRolePermissionMatrix
+--- PASS: TestCanonicalSellerRolePermissionMatrix (0.00s)
+=== RUN   TestSellerRoleCapabilitiesFailClosed
+--- PASS: TestSellerRoleCapabilitiesFailClosed (0.00s)
+=== RUN   TestSnapshotV2ManagerMigratesToAdmin
+--- PASS: TestSnapshotV2ManagerMigratesToAdmin (0.01s)
+=== RUN   TestSellerRoleRevocationBlocksRegrantUntilSessionInvalidationConfirmed
+--- PASS: TestSellerRoleRevocationBlocksRegrantUntilSessionInvalidationConfirmed (0.00s)
+=== RUN   TestSellerRoleRevocationEventsPersistAcrossRestart
+--- PASS: TestSellerRoleRevocationEventsPersistAcrossRestart (0.07s)
+=== RUN   TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop
+--- PASS: TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop (0.41s)
+=== RUN   TestSnapshotFutureVersionRejectedWithoutMutation
+=== RUN   TestSnapshotFutureVersionRejectedWithoutMutation/plain
+=== RUN   TestSnapshotFutureVersionRejectedWithoutMutation/authenticated
+--- PASS: TestSnapshotFutureVersionRejectedWithoutMutation (0.00s)
+    --- PASS: TestSnapshotFutureVersionRejectedWithoutMutation/plain (0.00s)
+    --- PASS: TestSnapshotFutureVersionRejectedWithoutMutation/authenticated (0.00s)
+=== RUN   TestSnapshotRollbackExportV5PreservesRepresentableStateAndRestores
+--- PASS: TestSnapshotRollbackExportV5PreservesRepresentableStateAndRestores (0.02s)
+=== RUN   TestSnapshotRollbackExportVersionBoundaries
+=== RUN   TestSnapshotRollbackExportVersionBoundaries/v3_preserves_roles_and_audits
+=== RUN   TestSnapshotRollbackExportVersionBoundaries/v4_preserves_revocations
+--- PASS: TestSnapshotRollbackExportVersionBoundaries (0.01s)
+    --- PASS: TestSnapshotRollbackExportVersionBoundaries/v3_preserves_roles_and_audits (0.00s)
+    --- PASS: TestSnapshotRollbackExportVersionBoundaries/v4_preserves_revocations (0.01s)
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v5_invitation
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v5_invitation_event
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v4_seller_event
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v3_revocation
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/existing_output_is_never_overwritten
+=== RUN   TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/active_state_is_never_overwritten
+--- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations (0.01s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v5_invitation (0.00s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v5_invitation_event (0.00s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v4_seller_event (0.00s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/v3_revocation (0.00s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/existing_output_is_never_overwritten (0.00s)
+    --- PASS: TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations/active_state_is_never_overwritten (0.00s)
+=== RUN   TestSnapshotRollbackExportTamperAndFutureBackupFailClosed
+--- PASS: TestSnapshotRollbackExportTamperAndFutureBackupFailClosed (0.01s)
+=== RUN   TestHTTPSellerTeamInvitationIsWalletAccountBoundAndReplaySafe
+--- PASS: TestHTTPSellerTeamInvitationIsWalletAccountBoundAndReplaySafe (0.01s)
+=== RUN   TestSellerRoleUpdateRequiresAcceptedMembership
+--- PASS: TestSellerRoleUpdateRequiresAcceptedMembership (0.00s)
+=== RUN   TestSellerTeamInvitationLifecycleIsAccountBoundAndOneTime
+--- PASS: TestSellerTeamInvitationLifecycleIsAccountBoundAndOneTime (0.00s)
+=== RUN   TestSellerTeamInvitationExpiryAndRevocationBoundary
+--- PASS: TestSellerTeamInvitationExpiryAndRevocationBoundary (0.00s)
+=== RUN   TestSellerTeamInvitationPersistenceFailuresRollbackState
+--- PASS: TestSellerTeamInvitationPersistenceFailuresRollbackState (0.01s)
+=== RUN   TestSellerTeamInvitationPersistsAcrossRestart
+--- PASS: TestSellerTeamInvitationPersistsAcrossRestart (0.05s)
+=== RUN   TestTrustDisputeContractMinimizesEvidenceAndPreservesTruth
+--- PASS: TestTrustDisputeContractMinimizesEvidenceAndPreservesTruth (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	7.295s
