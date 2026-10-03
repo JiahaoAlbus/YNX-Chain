@@ -16,7 +16,8 @@ import Foundation
             let credentials=MusicCredentials(read:{name in name=="device-p256" ? (errSecSuccess,Data(original.rawRepresentation.base64EncodedString().utf8)) : (errSecItemNotFound,nil)},add:{_,_ in errSecAuthFailed},update:{_,_ in errSecAuthFailed},remove:{_ in errSecAuthFailed},create:{fatalError("generated original only")})
             let key=MusicDeviceSigner(credentials:credentials)
             let network=MusicNativeTransport()
-            var holdSnapshot=false,failSnapshot=false
+            var holdSnapshot=false,failSnapshot=false,holdModelSnapshot=false
+            var snapshotLoading:()->Bool={false}
             let sender: MusicNativeEngine.Sender = { request,limit in
                 let url=request.url!
                 if url.host=="web4.ynxweb4.com" && hold { hold=false;await withCheckedContinuation { held=$0 } }
@@ -27,8 +28,8 @@ import Foundation
                 else { throw MusicNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
                 let (bytes,response)=try await network.send(redirected,limit)
-                if url.path=="/music/api/me",holdSnapshot {
-                    holdSnapshot=false;await withCheckedContinuation {held=$0}
+                if url.path=="/music/api/me",holdSnapshot,(!holdModelSnapshot || snapshotLoading()) {
+                    holdSnapshot=false;holdModelSnapshot=false;await withCheckedContinuation {held=$0}
                     if failSnapshot {failSnapshot=false;throw URLError(.networkConnectionLost)}
                 }
                 if url.path=="/music/api/creator/tracks",request.httpMethod=="POST",loseUploadReply,(200..<300).contains(response.statusCode) {loseUploadReply=false;throw URLError(.networkConnectionLost)}
@@ -48,6 +49,7 @@ import Foundation
             defer { try? FileManager.default.removeItem(at:directory) }
             func createModel(_ engine:MusicNativeEngine) -> MusicModel { MusicModel(makeNative:{engine},storeRoot:directory,autoRestore:false,systemMediaControls:false,renderLocal:{track,url,_ in precondition(url.isFileURL);renderedTrack=track.id;renderedCount+=1},nativeNegativeRead:{negative},nativeNegativeWrite:{negative=$0}) }
             var model=createModel(engine)
+            snapshotLoading={model.snapshotReadState == .loading}
             func reply(_ id: String,_ value: [String:Any]) { do { let bytes=try JSONSerialization.data(withJSONObject:["id":id,"value":value],options:[.sortedKeys]);FileHandle.standardOutput.write(bytes+Data([10])) } catch { FileHandle.standardOutput.write(Data("{\"error\":\"fixture output invalid\"}\n".utf8)) } }
             reply("ready",["ready":true,"platform":platform,"actualOSStorage":false])
             while let line=await Task.detached(operation:{readLine()}).value {
@@ -116,7 +118,8 @@ import Foundation
                         case "cold":engine.close();engine=try create();model=createModel(engine);await model.restoreNative();value=["status":engine.lastStatus,"connected":model.signedIn,"count":model.snapshot.playlists.count,"uploadPending":model.state.uploadIntent != nil,"uploadKey":model.state.uploadIntent?.key ?? "","tracks":model.snapshot.creatorTracks.count]
                         case "mismatch":mismatch=command["enabled"] as! Bool;value=["enabled":mismatch]
                         case "holdNext":hold=true;value=["holding":true]
-                        case "holdNextSnapshot":holdSnapshot=true;value=["holding":true]
+                        case "holdNextModelSnapshot":holdSnapshot=true;holdModelSnapshot=true;value=["holding":true]
+                        case "holdNextSnapshot":holdSnapshot=true;holdModelSnapshot=false;value=["holding":true]
                         case "release":failSnapshot=command["failSnapshot"] as? Bool==true;held?.resume();held=nil;value=["released":true]
                         case "inspect":value=["snapshotReadState":model.snapshotReadState.rawValue,"hasCurrentSnapshot":model.hasCurrentSnapshot,"held":held != nil,"pending":model.revokePending,"connected":model.signedIn,"played":renderedTrack,"playCount":renderedCount,"status":model.status,"count":model.snapshot.playlists.count,"playlistName":model.snapshot.playlists.first?.name ?? ""]
                         case "suspend":model.suspendNative();value=["connected":model.signedIn]
