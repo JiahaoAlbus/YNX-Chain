@@ -37,6 +37,15 @@ func TestTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 }
 
 func TestPostgreSQLTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T) {
+	testPostgresOrderReplayLayouts(t, false)
+}
+
+func TestPostgreSQLIndependentProcessesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T) {
+	testPostgresOrderReplayLayouts(t, true)
+}
+
+func testPostgresOrderReplayLayouts(t *testing.T, processes bool) {
+	t.Helper()
 	databaseURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_POSTGRES_TEST_URL"))
 	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
@@ -55,12 +64,12 @@ func TestPostgreSQLTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t 
 					t.Fatal(err)
 				}
 			}
-			testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, isolatedURL)
+			testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, isolatedURL, processes)
 		})
 	}
 }
 
-func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T, databaseURL string) {
+func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T, databaseURL string, processes ...bool) {
 	t.Helper()
 	seed, chain, _ := newTestService(t)
 	seller := accountSession(t, seed, alice, "replay-seller", "exchange:read", "exchange:trade")
@@ -73,7 +82,10 @@ func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 	cfg.StateDatabaseURL = databaseURL
 	cfg.Gateway = orderReplayHTTPGateway{seller.token: seller.session, buyer.token: buyer.session}
 	cfg.GatewayClientID, cfg.GatewayBundleID = "ynx-exchange-v1", "com.ynxweb4.exchange"
-	open := func() *httptest.Server {
+	open := func() orderReplayEndpoint {
+		if len(processes) == 1 && processes[0] {
+			return startOrderReplayProcess(t, cfg)
+		}
 		s, err := New(cfg)
 		if err != nil {
 			t.Fatal(err)
@@ -87,7 +99,7 @@ func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 		t.Cleanup(func() { _ = s.Close() })
 		server := httptest.NewServer(NewServer(s))
 		t.Cleanup(server.Close)
-		return server
+		return orderReplayEndpoint{URL: server.URL, Close: server.Close}
 	}
 	one, two := open(), open()
 	client := &http.Client{Timeout: 5 * time.Second}
