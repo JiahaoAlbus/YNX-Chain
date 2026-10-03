@@ -67,6 +67,27 @@ test('offline invalidates in-flight reads and events; retry recovers without rep
   const resumed = h.feed.retry(); resolve(Response.json(snapshot(2))); await resumed;
   assert.equal(h.received.length, 1); assert.equal(h.calls.every(([, options]) => options.method === 'GET'), true); h.feed.stop();
 });
+test('venue restart regression stays stale until persisted revision recovers, including repeated disconnects',async()=>{
+  const responses=[snapshot(9),snapshot(1),snapshot(9),snapshot(10)];
+  const h=harness(async()=>Response.json(responses.shift()));await h.feed.start();
+  const first=h.sources[0],original=h.feed.snapshot();first.onerror();
+  await h.timer(1000);
+  assert.equal(h.feed.snapshot(),original,'restart must not replace verified revision with reset state');
+  assert.equal(h.received.length,1);assert.equal(h.sources.length,1);
+  assert.equal(h.statuses.at(-1).code,'MARKET_DATA_INVALID');
+  first.emit('reconciled',snapshot(999));first.emit('heartbeat',{revision:999});first.onerror();
+  assert.equal(h.feed.snapshot(),original);assert.equal(h.timers.size,1);
+  await h.timer(2000);assert.equal(h.feed.snapshot().revision,9);
+  assert.equal(h.statuses.at(-1).phase,'live');assert.equal(h.sources.length,2);
+  h.sources[1].onerror();await h.timer(1000);
+  assert.equal(h.feed.snapshot().revision,10);assert.equal(h.sources.length,3);
+  assert.deepEqual(h.received.map(s=>s.revision),[9,9,10]);
+  assert.equal(h.calls.every(([,options])=>options.method==='GET'&&options.credentials==='omit'),true);
+  h.feed.offline();const count=h.statuses.length;
+  for(const source of h.sources){source.emit('snapshot',snapshot(1000));source.onerror();}
+  assert.equal(h.statuses.length,count);assert.equal(h.timers.size,0);assert.equal(h.feed.snapshot().revision,10);
+  h.feed.stop();
+});
 test('newer manual refresh wins over delayed earlier HTTP result', async () => {
   const pending = []; const h = harness(() => new Promise(resolve => pending.push(resolve)));
   const first = h.feed.start(), second = h.feed.retry();
