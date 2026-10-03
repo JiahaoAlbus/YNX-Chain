@@ -1,4 +1,4 @@
-const CACHE='ynx-shop-shell-v9';
+const CACHE='ynx-shop-shell-v10';
 const BASE=new URL('./',self.registration.scope).pathname;
 const SHELL=['','index.html','styles.css','display-settings.js','workflow.css','app.js','request-context.js','checkout-recovery.js','ai-stream.js','i18n.js','privacy-i18n.js','wallet-auth.js','wallet-provider-discovery.js','manifest.webmanifest','icon-192.png','icon-512.png','assets/brand/ynx-logo.png'].map(path=>new URL(path,self.registration.scope).pathname);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));

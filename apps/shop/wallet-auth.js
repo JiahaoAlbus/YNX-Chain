@@ -1,5 +1,6 @@
 import {decodeBase64url} from '@ynx-chain/wallet-auth';
 import {discoverWalletProviders,WALLET_PROVIDER_KIND} from './wallet-provider-discovery.js';
+import {StandardWalletConnection} from '@ynx-chain/wallet-auth/standard-wallet-connection';
 import {createPrivateSessionController} from '../seller-console/product-session.js';
 const controller=createPrivateSessionController({productId:'shop',scopes:['account:read','shop:orders:write','shop:profile:write'],purpose:'Manage my YNX Shop profile, cart, and orders on ynx_6423-1.',endpoint:()=>globalThis.__YNX_SHOP_RUNTIME__?.endpoints?.appGateway?.status==='AVAILABLE'?globalThis.__YNX_SHOP_RUNTIME__.endpoints.appGateway.url:null});
 let callbackSeller=null;
@@ -12,11 +13,12 @@ export const authorizeBusinessRequest=controller.authorize;
 export const privateSignoutPending=()=>controller.signoutPending||Boolean(callbackSeller?.signoutPending);
 function discardPrivateSession(){sessionRevision++;connectionRevision++;return clearPrivateSession()}
 export const expirePrivateSession=discardPrivateSession;
-export function cancelWalletConnection(){connectionRevision++}
+const pendingConnections=new Set();
+export function cancelWalletConnection(){connectionRevision++;for(const connection of pendingConnections)connection.disconnect();pendingConnections.clear()}
 export const startPrivateSession=()=>controller.begin();
 export async function clearPrivateSession(){const states=await Promise.all([controller.clear().catch(()=>null),callbackSeller?.clear().catch(()=>null)]);return states.find(state=>state&&!['disconnected','expired'].includes(state.status))||states[0]}
 let standard = null;
-let activeProvider = null;
+let activeConnection = null;
 let removeProviderListeners = null;
 const standardListeners = new Set();
 
@@ -51,34 +53,49 @@ export async function startWalletAuth(_surface, options = {}) {
     error.fallbackURL = preferred === WALLET_PROVIDER_KIND.YNX ? OFFICIAL_YNX_WALLET_DOWNLOAD_URL : STANDARD_METAMASK_DOWNLOAD_URL;
     throw error;
   }
-  const accounts = await selected.provider.request({ method: 'eth_requestAccounts' });
-  assertCurrent();
-  if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
-  await ensureYNXChain(selected.provider, assertCurrent);
-  assertCurrent();
-  setStandardConnection(selected.provider, selected.kind, accounts[0]);
-  try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
-  return standard;
+  const connection = createStandardConnection(selected, options);
+  pendingConnections.add(connection);
+  try {
+    const connected = await connection.connect();
+    assertCurrent();
+    const account = connected.selectedAccount;
+    const assertAccount = () => { assertCurrent(); if (connection.current?.selectedAccount !== account) throw walletError('COMMERCE_CONTEXT_CHANGED', 'Wallet account changed during connection.'); };
+    await ensureYNXChain(connection, assertAccount);
+    assertAccount();
+    const confirmed = await connection.restore();
+    assertAccount();
+    if (confirmed?.selectedChain !== YNX_CHAIN.chainId) throw walletError('WRONG_CHAIN', 'The wallet did not confirm YNX Testnet.');
+    setStandardConnection(connection, selected.kind);
+    try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
+    return standard;
+  } catch (error) { connection.disconnect(); assertCurrent(); throw error; }
+  finally { pendingConnections.delete(connection); }
+}
+
+function createStandardConnection(selected, options) {
+  const origin=options.scope?.location?.origin??globalThis.location?.origin??'https://shop.ynxweb4.com';
+  return new StandardWalletConnection({provider:selected.provider,origin,metadata:{name:'YNX Shop',url:origin}});
 }
 
 export async function restoreStandardConnection(options = {}) {
   const revision = sessionRevision;
   const attempt = connectionRevision;
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
-  if (discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
+  if (revision !== sessionRevision || attempt !== connectionRevision || discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
   let remembered = '';
   try { remembered = sessionStorage.getItem('ynx_shop_wallet_kind') || ''; } catch {}
   const candidates = [discovery.ynx, discovery.metamask].filter(Boolean);
-  const selected = candidates.find(candidate => candidate.kind === remembered) || (candidates.length === 1 ? candidates[0] : null);
+  const selected = candidates.find(candidate => candidate.kind === remembered) || (!remembered && candidates.length === 1 ? candidates[0] : null);
   if (!selected) return null;
-  const [accounts, chainId] = await Promise.all([
-    selected.provider.request({ method: 'eth_accounts' }),
-    selected.provider.request({ method: 'eth_chainId' }),
-  ]).catch(() => [[], null]);
-  if (revision !== sessionRevision || attempt !== connectionRevision) return null;
-  if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '') || String(chainId).toLowerCase() !== YNX_CHAIN.chainId) return null;
-  setStandardConnection(selected.provider, selected.kind, accounts[0]);
-  return standard;
+  const connection=createStandardConnection(selected,options);
+  pendingConnections.add(connection);
+  try {
+    const restored=await connection.restore();
+    if (revision !== sessionRevision || attempt !== connectionRevision || !restored || restored.selectedChain !== YNX_CHAIN.chainId) { connection.disconnect(); return null; }
+    setStandardConnection(connection,selected.kind);
+    return standard;
+  } catch { connection.disconnect(); return null; }
+  finally { pendingConnections.delete(connection); }
 }
 
 function sellerCallbackController(){callbackSeller??=createPrivateSessionController({productId:'shop',scopes:['account:read','shop:seller:operate'],purpose:'Operate only my authorized YNX Shop seller records on ynx_6423-1.',endpoint:()=>globalThis.__YNX_SHOP_RUNTIME__?.endpoints?.appGateway?.status==='AVAILABLE'?globalThis.__YNX_SHOP_RUNTIME__.endpoints.appGateway.url:null});return callbackSeller}
@@ -110,43 +127,34 @@ export async function completeWalletCallback(){
  return session;
 }
 export function clearWalletSession(){discardPrivateSession();clearStandardConnection();try{sessionStorage.removeItem('ynx_shop_wallet_kind')}catch{}}
-function setStandardConnection(provider, wallet, account) {
+function setStandardConnection(connection, wallet) {
+  const account=connection.current.selectedAccount;
   if (standard?.account?.toLowerCase() !== account.toLowerCase()) discardPrivateSession();
   removeProviderListeners?.();
-  activeProvider = provider;
+  activeConnection?.disconnect();
+  activeConnection = connection;
   standard = Object.freeze({ account, chainId: YNX_CHAIN.chainId, wallet, transport: 'eip-1193' });
-  const accountsChanged = accounts => {
-    if (activeProvider !== provider) return;
-    const next = Array.isArray(accounts) ? accounts[0] : null;
-    if (!/^0x[0-9a-fA-F]{40}$/.test(next || '')) clearStandardConnection();
-    else {
-      if (standard?.account?.toLowerCase() !== next.toLowerCase()) { discardPrivateSession();  }
-      standard = Object.freeze({ ...standard, account: next });
+  removeProviderListeners=connection.subscribe(({event})=>{
+    if(activeConnection!==connection)return;
+    const current=connection.current;
+    if(!current || current.selectedChain!==YNX_CHAIN.chainId){clearStandardConnection();return;}
+    if(event==='accountsChanged'){
+      if(standard?.account!==current.selectedAccount)discardPrivateSession();
+      standard=Object.freeze({...standard,account:current.selectedAccount});
       emitStandardConnection();
     }
-  };
-  const chainChanged = chainId => {
-    if (activeProvider !== provider) return;
-    if (String(chainId).toLowerCase() !== YNX_CHAIN.chainId) clearStandardConnection();
-  };
-  const disconnected = () => { if (activeProvider === provider) clearStandardConnection(); };
-  provider.on?.('accountsChanged', accountsChanged);
-  provider.on?.('chainChanged', chainChanged);
-  provider.on?.('disconnect', disconnected);
-  removeProviderListeners = () => {
-    provider.removeListener?.('accountsChanged', accountsChanged);
-    provider.removeListener?.('chainChanged', chainChanged);
-    provider.removeListener?.('disconnect', disconnected);
-  };
+  });
   emitStandardConnection();
 }
 
 function clearStandardConnection() {
   discardPrivateSession();
-  try {  } catch {}
+  cancelWalletConnection();
   removeProviderListeners?.();
   removeProviderListeners = null;
-  activeProvider = null;
+  const previous=activeConnection;
+  activeConnection = null;
+  previous?.disconnect();
   standard = null;
   emitStandardConnection();
 }

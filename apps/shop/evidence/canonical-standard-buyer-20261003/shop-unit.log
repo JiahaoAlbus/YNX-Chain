@@ -1,0 +1,40 @@
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (23.626084ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (1.038ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (16.358375ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (5.517667ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (4.691791ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (1.971166ms)
+✔ privacy lock checks durable intent after a competing preparation (0.928792ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (18.058041ms)
+✔ activation only removes old Shop shells, preserving other products (0.776958ms)
+✔ privacy copy covers all twelve product locales (1.81725ms)
+✔ non-English privacy controls do not silently use English copy (0.304041ms)
+✔ late success and failure cannot cross a buyer, store or view change (19.009791ms)
+✔ signout during response body decoding rejects before any private result is returned (0.215083ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (1.00525ms)
+✔ requests are bounded and cancellation does not publish private data (15.975ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (2.971166ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (1.321416ms)
+✔ marketplace promise strip is localized in all twelve locales (2.212291ms)
+✔ buyer UI wires full order lifecycle (6.034333ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (1.032708ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (2.158167ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.222708ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.253417ms)
+✔ refresh restores an already-approved account without prompting again (0.185334ms)
+✔ account and chain events update or invalidate the standard connection (0.286833ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.135208ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.114041ms)
+✔ account event during chain switch rejects the old connection and removes owned SDK listeners (0.139ms)
+✔ successful switch without matching silent account readback cannot connect (0.125916ms)
+✔ chain switch rejection never adds a network or requests another grant (0.160709ms)
+✔ a conflicted announcement cannot reappear through the injected fallback (2.012041ms)
+✔ silent restore never substitutes an installed wallet for the remembered choice (0.124541ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 119.980917

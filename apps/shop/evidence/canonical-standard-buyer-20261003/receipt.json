@@ -1,0 +1,100 @@
+{
+  "schema": "ynx-commerce-standard-buyer-sdk-consumer/v1",
+  "baseSourceCommit": "31d1d3c991046940438d12fb177e93fee63e93be",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "approvedSDKSourceCommit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "approvedSDKArtifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+  "changes": [
+    "Shop standard provider discovery now imports the exact approved SDK, eliminating duplicate discovery implementation.",
+    "Shop connect/restore/events use StandardWalletConnection. Explicit selection and remembered wallet restoration never substitute a different wallet.",
+    "Only unknown-chain 4902 permits adding the original YNX network; independent readback and silent SDK restore confirm unchanged account and chain.",
+    "Cancellation/logout disconnect pending owned SDK connections, preventing late chain prompts or adoption; failed attempts remove only their own listeners.",
+    "Offline Shop cache v10 upgrades the previous shell while preserving other products."
+  ],
+  "verification": {
+    "shopUnit": {
+      "tests": 32,
+      "pass": 32,
+      "fail": 0,
+      "skip": 0
+    },
+    "shopBuild": "PASS",
+    "controlledChromium": {
+      "tests": 21,
+      "pass": 21,
+      "fail": 0,
+      "scope": "Actual approved SDK, software approval key and in-memory Gateway fixtures on registered HTTPS origins. Covers original checkout/recovery, canonical Buyer and Seller callback namespaces, private unavailable, AI invalidation and small-screen layouts.",
+      "runBeforeFinalChange": "Browser run used final standard connection/discovery source; subsequent changes only updated static unit expectations, added remembered-choice unit guard and bumped SW v9 to v10. Browser configuration blocks SW; cache upgrade verified separately by final unit tests."
+    },
+    "initialFailure": "Preserved initial unit log: old static test required eth_requestAccounts and EIP6963 implementation literals in product source. Those now belong to the approved SDK; behavior guards still validate account grants and discovery conflict exclusion."
+  },
+  "acceptance": {
+    "realWallet": false,
+    "liveGateway": false,
+    "realMerchantMembership": false,
+    "productionMounts": false,
+    "finalAndroid": false,
+    "finalMacOS": false,
+    "publicFullUserFlow": false,
+    "goalComplete": false
+  },
+  "sourcePins": [
+    {
+      "path": "apps/shop/wallet-auth.js",
+      "bytes": 11793,
+      "sha256": "c2c06354e3280d2d5e7adbbba73f92f80321aa137866c5e64f8b6e623b575547"
+    },
+    {
+      "path": "apps/shop/wallet-provider-discovery.js",
+      "bytes": 293,
+      "sha256": "d8949474394b861233cedb0aba1cce609ef0537406b4860d4dbf4f468b6e1742"
+    },
+    {
+      "path": "apps/shop/sw.js",
+      "bytes": 1411,
+      "sha256": "44d64f5068ed50f328b68acde216c2f111601a2f5f9a72b2ade55de1cef5ff72"
+    },
+    {
+      "path": "apps/shop/test/wallet-connect.test.mjs",
+      "bytes": 10188,
+      "sha256": "222fc24a83035d87f6b273903a90736a0953a12dc892bd446d27df328390b172"
+    },
+    {
+      "path": "apps/shop/test/ui.test.mjs",
+      "bytes": 2702,
+      "sha256": "d63310980557c84a4ac5bcb4ec8e722e2ee00ddc80dd5c1712800f2bbc5b5541"
+    },
+    {
+      "path": "apps/shop/test/offline-boundary.test.mjs",
+      "bytes": 1859,
+      "sha256": "044d62e09cbd97f72359b3bcd25463d9c4f941a0ec027afe966172e9e4eef143"
+    },
+    {
+      "path": "apps/shop/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+      "bytes": 553264,
+      "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/shop/evidence/canonical-standard-buyer-20261003/initial-shop-unit.log",
+      "bytes": 3536,
+      "sha256": "a29035c4a259523910c7d66abbf2ca485b357cb67c9030953a2d389cf077ca35"
+    },
+    {
+      "path": "apps/shop/evidence/canonical-standard-buyer-20261003/shop-browser.log",
+      "bytes": 3388,
+      "sha256": "3cc1139e90a53c14e30520369e03bd964cba0a7119bdefbaf324dc425ed07c65"
+    },
+    {
+      "path": "apps/shop/evidence/canonical-standard-buyer-20261003/shop-build.log",
+      "bytes": 26,
+      "sha256": "a75e746e4fad173556983e5f3769a17f1a14841044da4dcd3d668f8c79e8b262"
+    },
+    {
+      "path": "apps/shop/evidence/canonical-standard-buyer-20261003/shop-unit.log",
+      "bytes": 2971,
+      "sha256": "b14fd16cb862f65e833feb45efd9b055a9bcebe678216a63d6c6bf441e58f19c"
+    }
+  ]
+}

@@ -23,10 +23,10 @@ test('buyer UI wires full order lifecycle', async () => {
 test('web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation', async () => {
   const auth = await readFile(new URL('../wallet-auth.js', import.meta.url), 'utf8');
   const discovery = await readFile(new URL('../wallet-provider-discovery.js', import.meta.url), 'utf8');
-  for (const method of ['eth_requestAccounts', 'eth_chainId', 'wallet_switchEthereumChain', 'wallet_addEthereumChain']) assert.ok(auth.includes(method), method);
+  for (const method of ['eth_chainId', 'wallet_switchEthereumChain', 'wallet_addEthereumChain']) assert.ok(auth.includes(method), method);
   assert.ok(auth.includes("chainId: '0x1917'"));
   assert.ok(auth.includes("'https://evm.ynxweb4.com'"));
-  assert.ok(discovery.includes('eip6963:requestProvider'));
-  assert.ok(discovery.includes('eip6963:announceProvider'));
+  assert.ok(discovery.includes('@ynx-chain/wallet-auth/wallet-provider-discovery'));
+  assert.ok(auth.includes('@ynx-chain/wallet-auth/standard-wallet-connection'));
   assert.equal((auth.match(/ynxwallet:\/\/authorize/g)||[]).length, 0, 'the Web bundle must contain no custom-scheme navigation');
 });

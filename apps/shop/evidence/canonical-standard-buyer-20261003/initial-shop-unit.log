@@ -1,0 +1,55 @@
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (23.924ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (0.92625ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (16.089292ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (11.12925ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (16.844ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (1.659584ms)
+✔ privacy lock checks durable intent after a competing preparation (0.570875ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (22.10275ms)
+✔ activation only removes old Shop shells, preserving other products (0.906459ms)
+✔ privacy copy covers all twelve product locales (2.123166ms)
+✔ non-English privacy controls do not silently use English copy (0.30175ms)
+✔ late success and failure cannot cross a buyer, store or view change (31.400958ms)
+✔ signout during response body decoding rejects before any private result is returned (0.118375ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (1.688208ms)
+✔ requests are bounded and cancellation does not publish private data (17.213084ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (7.532125ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (4.126584ms)
+✔ marketplace promise strip is localized in all twelve locales (9.253042ms)
+✔ buyer UI wires full order lifecycle (6.76475ms)
+✖ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (1.754667ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (5.608292ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.434042ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.556625ms)
+✔ refresh restores an already-approved account without prompting again (0.242583ms)
+✔ account and chain events update or invalidate the standard connection (0.342209ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.155083ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.267958ms)
+✔ account event during chain switch rejects the old connection and removes owned SDK listeners (0.3235ms)
+✔ successful switch without matching silent account readback cannot connect (0.188584ms)
+✔ chain switch rejection never adds a network or requests another grant (0.230959ms)
+✔ a conflicted announcement cannot reappear through the injected fallback (3.43475ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 30
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 235.002667
+
+✖ failing tests:
+
+test at test/ui.test.mjs:23:1
+✖ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (1.754667ms)
+  AssertionError [ERR_ASSERTION]: eth_requestAccounts
+      at TestContext.<anonymous> (file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/shop/test/ui.test.mjs:26:128)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
