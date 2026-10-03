@@ -1,0 +1,1129 @@
+--------- beginning of main
+10-03 14:20:25.529  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7edcc38) locale list changing from [] to [en-US]
+10-03 14:20:25.529  5999 12939 I MDDSuperpacks: MDDSuperpacks.getPacks():548 getting packs for superpack: handwriting_recognition
+10-03 14:20:25.529  5999 12954 I MDDSuperpacks: MDDSuperpacks.getPacks():548 packs [transformer_latin_tflite_20231010_zip, scribe_latin_20231123_tflite_zip, qrnn_en_us_reco_20231010_fst_20230613_recospec_zip, transformer_latin_conf_tflite_20231010_zip, pack_mapping_v1_lstm_20231127, transformer_latin_seg_tflite_20231010_zip, scribe_latin_20231123_recospec_zip, en_us_20230613_compact_fst_zip] got for superpack: handwriting_recognition
+10-03 14:20:25.532  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.532  5999 12939 I MDDSuperpacks: MDDSuperpacks.getPacks():548 getting packs for superpack: handwriting_recognition_offline
+10-03 14:20:25.532  5999 12954 I MDDSuperpacks: MDDSuperpacks$3.onSuccess():558 packs [transformer_latin_tflite_20231010_zip, scribe_latin_20231123_tflite_zip, qrnn_en_us_reco_20231010_fst_20230613_recospec_zip, transformer_latin_conf_tflite_20231010_zip, pack_mapping_v1_lstm_20231127, transformer_latin_seg_tflite_20231010_zip, scribe_latin_20231123_recospec_zip, en_us_20230613_compact_fst_zip] got for superpack: handwriting_recognition
+10-03 14:20:25.532  5999 12953 W MDDSuperpacks: MDDSuperpacks.constructPackSet():578 file group is empty
+10-03 14:20:25.532  5999 12938 E HandwritingSuperpacksUtil: HandwritingSuperpacksUtil.getPackMappingPackName():40 No pack mapping pack found in []
+10-03 14:20:25.532  5999 12938 I HandwritingSuperpacks: HandwritingSuperpacks.reloadCache():237 updatePackMappingsCache(): pack mapping pack unavailable [OFFLINE]
+10-03 14:20:25.532  5999 12942 I MDDSuperpacks: MDDSuperpacks$3.onSuccess():558 packs [] got for superpack: handwriting_recognition_offline
+10-03 14:20:25.533  5999 12938 I MDDSuperpacks: MDDSuperpacks.getPacks():548 getting packs for superpack: handwriting_recognition
+10-03 14:20:25.536  5999 12954 I MDDSuperpacks: MDDSuperpacks$3.onSuccess():558 packs [transformer_latin_tflite_20231010_zip, scribe_latin_20231123_tflite_zip, qrnn_en_us_reco_20231010_fst_20230613_recospec_zip, transformer_latin_conf_tflite_20231010_zip, pack_mapping_v1_lstm_20231127, transformer_latin_seg_tflite_20231010_zip, scribe_latin_20231123_recospec_zip, en_us_20230613_compact_fst_zip] got for superpack: handwriting_recognition
+10-03 14:20:25.536  5999 12938 I MDDSuperpacks: MDDSuperpacks.getPacks():548 getting packs for superpack: handwriting_recognition
+10-03 14:20:25.537  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e7e098) locale list changing from [] to [en-US]
+10-03 14:20:25.538  5999 12953 I MDDSuperpacks: MDDSuperpacks$3.onSuccess():558 packs [transformer_latin_tflite_20231010_zip, scribe_latin_20231123_tflite_zip, qrnn_en_us_reco_20231010_fst_20230613_recospec_zip, transformer_latin_conf_tflite_20231010_zip, pack_mapping_v1_lstm_20231127, transformer_latin_seg_tflite_20231010_zip, scribe_latin_20231123_recospec_zip, en_us_20230613_compact_fst_zip] got for superpack: handwriting_recognition
+10-03 14:20:25.539  1375  1410 W HWUI    : Image decoding logging dropped!
+--------- beginning of system
+10-03 14:20:25.540  1051  1155 V WindowManagerShell: Transition animation finished (aborted=false), notifying core (#75) android.os.BinderProxy@aba0b52@0
+10-03 14:20:25.541   662   682 V WindowManager: Finish Transition (#75): created at 10-03 14:20:25.118 collect-started=0.809ms request-sent=0.962ms started=61.816ms ready=62.264ms sent=282.142ms commit=7.511ms finished=423.087ms
+10-03 14:20:25.542  1051  1155 V WindowManagerShell: Track 0 became idle
+10-03 14:20:25.542  1051  1155 V WindowManagerShell: All active transition animations finished
+10-03 14:20:25.546  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ed45d8) locale list changing from [] to [en-US]
+10-03 14:20:25.547  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.548  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.548  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.549  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.555  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee3358) locale list changing from [] to [en-US]
+10-03 14:20:25.557  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.557  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.563  1375  1410 D LoaderTask: loadWorkspace finished
+10-03 14:20:25.564  1375  1410 D LoaderTask: sanitizeData finished
+10-03 14:20:25.565  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.google.android.apps.nexuslauncher.qsb.SmartspaceViewContainer{722f0fb V.E...... ......ID 0,0-298,67 #7f0a032d app:id/search_container_workspace}
+10-03 14:20:25.565  1375  1375 D ModelCallbacks: startBinding: hotseat layout was vertical: false and is setting to false
+10-03 14:20:25.566  1375  1410 D LauncherBinder: Starting async inflation
+10-03 14:20:25.566  1375  1410 D LauncherBinder: Starting sync inflation
+10-03 14:20:25.566  1375  1410 D LauncherBinder: Calling onCompleteSignal
+10-03 14:20:25.566  1375  1410 D LoaderTask: bindWorkspace finished
+10-03 14:20:25.566  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 0 and y = 0
+10-03 14:20:25.566  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.views.DoubleShadowBubbleTextView{a74fbe VFED..C.. ......ID 0,0-0,0 #1}
+10-03 14:20:25.566  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 1 and y = 0
+10-03 14:20:25.566  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.views.DoubleShadowBubbleTextView{c7d081f VFED..C.. ......ID 0,0-0,0 #2}
+10-03 14:20:25.566  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 2 and y = 0
+10-03 14:20:25.566  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.views.DoubleShadowBubbleTextView{b0176c VFED..C.. ......ID 0,0-0,0 #3}
+10-03 14:20:25.566  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 3 and y = 0
+10-03 14:20:25.566  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.views.DoubleShadowBubbleTextView{ba51135 VFED..C.. ......ID 0,0-0,0 #4}
+10-03 14:20:25.566  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 4 and y = 0
+10-03 14:20:25.566  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.views.DoubleShadowBubbleTextView{484a9ca VFED..C.. ......ID 0,0-0,0 #5}
+10-03 14:20:25.567  1375  1375 D b/387844520: getOutlineOffsetX: measured width = 0, mNormalizedIconSize = 61, last updated width = 0
+10-03 14:20:25.567  1375  1375 D Launcher.Workspace: addInScreenFromBind: hotseat inflation with x = 5 and y = 0
+10-03 14:20:25.567  1375  1375 D CellLayout: Adding view to ShortcutsAndWidgetsContainer: com.android.launcher3.uioverrides.PredictedAppIcon{d2331ed VFED..C.. ......ID 0,0-0,0}
+10-03 14:20:25.568  1375  1375 D LauncherBinder: Calling onCompleteSignal
+10-03 14:20:25.568  1375  1375 D ViewOnDrawExecutor: markCompleted: executing tasks
+10-03 14:20:25.568  1666  1890 I AiAiEcho: AppPredictionInputConnectorImpl#createPredictionSession
+10-03 14:20:25.574  1375  1410 D LoaderTask: Sending first screen broadcast
+10-03 14:20:25.575  1375  1410 D LoaderTask: step 1 loading workspace complete
+10-03 14:20:25.578  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.safetyhub/com.google.android.apps.safetyhub.LauncherActivity}
+10-03 14:20:25.580  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4cd18) locale list changing from [] to [en-US]
+10-03 14:20:25.582  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.584  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.youtube.music/com.google.android.apps.youtube.music.activities.MusicActivity}
+10-03 14:20:25.584  1666  1890 I AiAiEcho: AppPredictionInputConnectorImpl#createPredictionSession
+10-03 14:20:25.585  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7edc5f8) locale list changing from [] to [en-US]
+10-03 14:20:25.587  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.587  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.588  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.youtube/com.google.android.youtube.app.honeycomb.Shell$HomeActivity}
+10-03 14:20:25.588  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.588  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.589  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.photos/com.google.android.apps.photos.home.HomeActivity}
+10-03 14:20:25.589  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.589  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.gm/com.google.android.gm.ConversationListActivityGmail}
+10-03 14:20:25.590  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.590  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.ynx.social/com.ynx.social.MainActivity}
+10-03 14:20:25.590  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e52ad8) locale list changing from [] to [en-US]
+10-03 14:20:25.591  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.592  1666  1890 I AiAiEcho: AppPredictionInputConnectorImpl#createPredictionSession
+10-03 14:20:25.592  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.googlequicksearchbox/com.google.android.googlequicksearchbox.SearchActivity}
+10-03 14:20:25.593  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:25.593  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:25.593  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:25.593  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:25.593  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:25.593  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:25.593  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:25.593  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:25.593  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:25.593  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:25.593  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+10-03 14:20:25.595   662  1029 D ActivityManager: sync unfroze 6400 com.google.android.googlequicksearchbox:search for 7
+10-03 14:20:25.597   662  1011 D BackgroundInstallControlService: Package event received: 0
+10-03 14:20:25.597   662  1011 D BackgroundInstallControlService: Package event received: 0
+10-03 14:20:25.600  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+10-03 14:20:25.601  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7edcf58) locale list changing from [] to [en-US]
+10-03 14:20:25.603   662  2038 D ActivityManager: sync unfroze 2121 com.google.android.apps.wallpaper for 7
+10-03 14:20:25.603  2121  2121 D ActivityThread: Package [com.ynx.social] reported as REPLACED, but missing application info. Assuming REMOVED.
+10-03 14:20:25.605  2121  2121 D ActivityThread: Package [com.ynx.social] reported as REPLACED, but missing application info. Assuming REMOVED.
+10-03 14:20:25.605  2121  2121 D ActivityThread: Package [com.ynx.social] reported as REPLACED, but missing application info. Assuming REMOVED.
+10-03 14:20:25.606  2121  2121 D ActivityThread: Package [com.ynx.social] reported as REPLACED, but missing application info. Assuming REMOVED.
+10-03 14:20:25.607   662  1011 D BackgroundInstallControlService: Package event received: 0
+10-03 14:20:25.608  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.611  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.googlequicksearchbox/com.google.android.googlequicksearchbox.VoiceSearchActivity}
+10-03 14:20:25.612  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.613  2121  5103 D DefaultGoogleWallpaperPreferences: getDefaultRecentWallpapers -> had defaults, returning
+10-03 14:20:25.615  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.deskclock/com.android.deskclock.DeskClock}
+10-03 14:20:25.630  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.android.vending/com.android.vending.AssetBrowserActivity}
+10-03 14:20:25.630  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.630  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.630  6400  6425 I amtp    : (REDACTED) Nga state changed to %s
+10-03 14:20:25.631  6400  6425 I amtp    : (REDACTED) isTngActive=%s
+10-03 14:20:25.631  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.631  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.631  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.631  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.631  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.632  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.633  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.android.stk/com.android.stk.StkMain}
+10-03 14:20:25.634  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee6238) locale list changing from [] to [en-US]
+10-03 14:20:25.634  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.634  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.634  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.634  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.635  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.636  6400  6425 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:25.637  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.637  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.documentsui/com.android.documentsui.LauncherActivity}
+10-03 14:20:25.639  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e43d58) locale list changing from [] to [en-US]
+10-03 14:20:25.642  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.643  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.maps/com.google.android.maps.MapsActivity}
+10-03 14:20:25.645  1680  2008 I ujp     : (REDACTED) Nga on-device enabled based on TNG:MA active state: %b
+10-03 14:20:25.646  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e45c98) locale list changing from [] to [en-US]
+10-03 14:20:25.647  1680  2008 I ujp     : (REDACTED) Nga on-device enabled based on TNG:MA active state: %b
+10-03 14:20:25.647  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.648  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.650  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.contacts/com.android.contacts.activities.PeopleActivity}
+10-03 14:20:25.650  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.650  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.651  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.messaging/com.google.android.apps.messaging.ui.ConversationListActivity}
+10-03 14:20:25.652  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.652  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.dialer/com.google.android.dialer.extensions.GoogleDialtactsActivity}
+10-03 14:20:25.653  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.653  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.653  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.calendar/com.android.calendar.AllInOneActivity}
+10-03 14:20:25.657  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e6f638) locale list changing from [] to [en-US]
+10-03 14:20:25.659  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.660  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.661  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.663  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.google.android.apps.docs/com.google.android.apps.docs.app.NewMainProxyActivity}
+10-03 14:20:25.664  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ed7e18) locale list changing from [] to [en-US]
+10-03 14:20:25.667  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.668  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.android.camera2/com.android.camera.CameraLauncher}
+10-03 14:20:25.668  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.669  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.android.settings/com.android.settings.Settings}
+10-03 14:20:25.669  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.670  1375  1410 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.android.chrome/com.google.android.apps.chrome.Main}
+10-03 14:20:25.670  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Camera sectionName: C
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Chrome sectionName: C
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Settings sectionName: S
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Play Store sectionName: P
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Drive sectionName: D
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Maps sectionName: M
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Messages sectionName: M
+10-03 14:20:25.671  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Photos sectionName: P
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: YT Music sectionName: Y
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Calendar sectionName: C
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Contacts sectionName: C
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Clock sectionName: C
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Phone sectionName: P
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Gmail sectionName: G
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: YouTube sectionName: Y
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: TMoble sectionName: T
+10-03 14:20:25.672  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Safety sectionName: S
+10-03 14:20:25.673  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Files sectionName: F
+10-03 14:20:25.673  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Voice Search sectionName: V
+10-03 14:20:25.673  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Google sectionName: G
+10-03 14:20:25.673  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: YNX Social sectionName: Y
+10-03 14:20:25.673  1375  1410 D LoaderTask: loadAllApps finished
+10-03 14:20:25.674  1375  1410 D LoaderTask: bindAllApps finished
+10-03 14:20:25.674  1375  1375 D AllAppsStore: setApps: apps.length=20
+10-03 14:20:25.674  1375  1375 D AllAppsStore: notifyUpdate: notifying listeners
+10-03 14:20:25.674  1375  1375 D ActivityAllAppsContainerView: onAppsUpdated; number of apps: 20
+10-03 14:20:25.674  1375  1375 D ActivityAllAppsContainerView: rebindAdapters: force: false
+10-03 14:20:25.674  1375  1375 D ActivityAllAppsContainerView: rebindAdapters: Not needed.
+10-03 14:20:25.674  1375  1375 D StatsLog: LAUNCHER_ALLAPPS_COUNT
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Clearing FastScrollerSections.
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Adding apps with sections. HasPrivateApps: false
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: C with appInfoTitle: Calendar
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: D with appInfoTitle: Drive
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: F with appInfoTitle: Files
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: G with appInfoTitle: Gmail
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: M with appInfoTitle: Maps
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: P with appInfoTitle: Phone
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: S with appInfoTitle: Safety
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: T with appInfoTitle: TMoble
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: Y with appInfoTitle: YNX Social
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Adding FastScrollSection duplicate to scroll to the bottom.
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Clearing FastScrollerSections.
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Adding apps with sections. HasPrivateApps: false
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: C with appInfoTitle: Calendar
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: D with appInfoTitle: Drive
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: F with appInfoTitle: Files
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: G with appInfoTitle: Gmail
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: M with appInfoTitle: Maps
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: P with appInfoTitle: Phone
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: S with appInfoTitle: Safety
+10-03 14:20:25.674  1375  1410 D LoaderTask: update AllApps icon cache finished
+10-03 14:20:25.674  1375  1410 D LoaderTask: saving all shortcuts in icon cache
+10-03 14:20:25.674  1375  1410 D LoaderTask: step 2 loading AllApps complete
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: T with appInfoTitle: TMoble
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: addAppsWithSections: adding sectionName: Y with appInfoTitle: YNX Social
+10-03 14:20:25.674  1375  1375 D AlphabeticalAppsList: Adding FastScrollSection duplicate to scroll to the bottom.
+10-03 14:20:25.675  1375  1410 D LoaderTask: loadDeepShortcuts finished
+10-03 14:20:25.675  1375  1410 D LoaderTask: bindDeepShortcuts finished
+10-03 14:20:25.675  1375  1410 D LoaderTask: saving deep shortcuts in icon cache
+10-03 14:20:25.675  1375  1410 D LoaderTask: step 3 loading all shortcuts complete
+10-03 14:20:25.675  1375  2181 I s.nexuslauncher: AssetManager2(0xb4000077d7e7ffd8) locale list changing from [] to [en-US]
+10-03 14:20:25.677   662  1029 W ParceledListSlice: Element #26 is 20848 bytes.
+10-03 14:20:25.677   662  1029 W ParceledListSlice: Element #27 is 20884 bytes.
+10-03 14:20:25.678   662  1029 W ParceledListSlice: Element #28 is 20724 bytes.
+10-03 14:20:25.678   662  1029 W ParceledListSlice: Element #29 is 20812 bytes.
+10-03 14:20:25.678   662  1029 W ParceledListSlice: Element #30 is 20748 bytes.
+10-03 14:20:25.679  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.680  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.681  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.682  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.685  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ea7d58) locale list changing from [] to [en-US]
+10-03 14:20:25.688  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.691  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.695  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e494d8) locale list changing from [] to [en-US]
+10-03 14:20:25.696  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.697  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.701  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.702  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.705  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e621b8) locale list changing from [] to [en-US]
+10-03 14:20:25.706  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.708  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.720  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5f5f8) locale list changing from [] to [en-US]
+10-03 14:20:25.728  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e52ad8) locale list changing from [] to [en-US]
+10-03 14:20:25.729  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.730  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.732  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.733  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.736  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4f298) locale list changing from [] to [en-US]
+10-03 14:20:25.737  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.737  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.738  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.743  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.745  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e8ddb8) locale list changing from [] to [en-US]
+10-03 14:20:25.746  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.746  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.747  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.747  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.748  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.748  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.752  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4a478) locale list changing from [] to [en-US]
+10-03 14:20:25.753  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.753  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.753  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.754  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.805  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7eca998) locale list changing from [] to [en-US]
+10-03 14:20:25.806  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.806  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.809  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e7cab8) locale list changing from [] to [en-US]
+10-03 14:20:25.809  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.810  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.811  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.812  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.813  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.814  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e575d8) locale list changing from [] to [en-US]
+10-03 14:20:25.816  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.818  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ea86b8) locale list changing from [] to [en-US]
+10-03 14:20:25.818  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.818  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.819  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.819  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.822  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e47278) locale list changing from [] to [en-US]
+10-03 14:20:25.822  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.823  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.825  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.825  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.827  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.828  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.829  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.830  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.839  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7eccf18) locale list changing from [] to [en-US]
+10-03 14:20:25.840  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.841  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.841  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.842  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.842  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.842  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.843  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.844  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.844  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.845  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.846  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.847  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.862  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.876  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e71578) locale list changing from [] to [en-US]
+10-03 14:20:25.877  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.889  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e41198) locale list changing from [] to [en-US]
+10-03 14:20:25.890  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.894  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e3ad98) locale list changing from [] to [en-US]
+10-03 14:20:25.894  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.895  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.900  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e50238) locale list changing from [] to [en-US]
+10-03 14:20:25.904  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4a478) locale list changing from [] to [en-US]
+10-03 14:20:25.904  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.908  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e8ddb8) locale list changing from [] to [en-US]
+10-03 14:20:25.909  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.913  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e52ad8) locale list changing from [] to [en-US]
+10-03 14:20:25.913  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.917  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e56958) locale list changing from [] to [en-US]
+10-03 14:20:25.918  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.918  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.922  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5c3f8) locale list changing from [] to [en-US]
+10-03 14:20:25.922  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.923  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.927  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e61e98) locale list changing from [] to [en-US]
+10-03 14:20:25.928  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.933  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e47bd8) locale list changing from [] to [en-US]
+10-03 14:20:25.934  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.934  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.934  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.937  1375  1410 D LoaderTask: load widgets finished
+10-03 14:20:25.937  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Settings sectionName: S
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Photos sectionName: P
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Battery sectionName: B
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Chrome sectionName: C
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Gmail sectionName: G
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Drive sectionName: D
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Clock sectionName: C
+10-03 14:20:25.938  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Contacts sectionName: C
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Calendar sectionName: C
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Maps sectionName: M
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: YouTube Music sectionName: Y
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: YouTube sectionName: Y
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Google sectionName: G
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Android System Intelligence sectionName: A
+10-03 14:20:25.939  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Digital Wellbeing sectionName: D
+10-03 14:20:25.940  1375  1410 D AlphabeticIndexCompat: computeSectionName: cs: Conversations sectionName: C
+10-03 14:20:25.940  1375  1410 D LoaderTask: bindWidgets finished
+10-03 14:20:25.940  1375  1410 D LoaderTask: saving all widgets in icon cache
+10-03 14:20:25.940  1375  1410 D LoaderTask: finish icon update
+10-03 14:20:25.941  1375  1410 D QuickstepModelDelegate: Successfully registered for launcher snapshot logging!
+10-03 14:20:25.944  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.945  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.945  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.946  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.949  1375  1375 D b/387844520: getOutlineOffsetX: measured width = 0, mNormalizedIconSize = 61, last updated width = 0
+10-03 14:20:25.954  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.961  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee8ad8) locale list changing from [] to [en-US]
+10-03 14:20:25.962  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.962  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.962  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.962  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: queryLength=0 size=15
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=extra_tall_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=extra_tall_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=short_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1375 D SearchTargetUtil: layoutType=extra_tall_icon_row resultType=131072 packageName=com.google.android.googlequicksearchbox
+10-03 14:20:25.969  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.976  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.976  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.979  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.986  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.990  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:25.993  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e48218) locale list changing from [] to [en-US]
+10-03 14:20:25.998  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.002  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e49e38) locale list changing from [] to [en-US]
+10-03 14:20:26.002  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.009  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.009  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.013  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e6b498) locale list changing from [] to [en-US]
+10-03 14:20:26.013  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.013  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.018  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e6ab38) locale list changing from [] to [en-US]
+10-03 14:20:26.022  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.025  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.032  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.032  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.035  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.035  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.039  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.042  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.045  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.045  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.062  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e6b498) locale list changing from [] to [en-US]
+10-03 14:20:26.067  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e49e38) locale list changing from [] to [en-US]
+10-03 14:20:26.067  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.070  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e48218) locale list changing from [] to [en-US]
+10-03 14:20:26.071  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.075  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e54a18) locale list changing from [] to [en-US]
+10-03 14:20:26.076  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.079  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee8ad8) locale list changing from [] to [en-US]
+10-03 14:20:26.080  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.083  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e61858) locale list changing from [] to [en-US]
+10-03 14:20:26.083  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.087  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ea1c78) locale list changing from [] to [en-US]
+10-03 14:20:26.091  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.094  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e45658) locale list changing from [] to [en-US]
+10-03 14:20:26.094  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.095  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.102  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5ca38) locale list changing from [] to [en-US]
+10-03 14:20:26.106  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5c3f8) locale list changing from [] to [en-US]
+10-03 14:20:26.106  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.107  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.107  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.107  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.117  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e61e98) locale list changing from [] to [en-US]
+10-03 14:20:26.118  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.118  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.122  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee0478) locale list changing from [] to [en-US]
+10-03 14:20:26.123  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.129  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.132  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.136  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7edfe38) locale list changing from [] to [en-US]
+10-03 14:20:26.145  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e9f6f8) locale list changing from [] to [en-US]
+10-03 14:20:26.146  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.149  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5a7d8) locale list changing from [] to [en-US]
+10-03 14:20:26.153  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.156  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.163  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.166  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.166  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.178  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.178  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.182  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e491b8) locale list changing from [] to [en-US]
+10-03 14:20:26.182  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.191  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e71578) locale list changing from [] to [en-US]
+10-03 14:20:26.191  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.191  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.195  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5d398) locale list changing from [] to [en-US]
+10-03 14:20:26.195  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.203  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.207  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4b738) locale list changing from [] to [en-US]
+10-03 14:20:26.207  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.207  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.214  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.214  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.219  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.224  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee4618) locale list changing from [] to [en-US]
+10-03 14:20:26.229  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e40e78) locale list changing from [] to [en-US]
+10-03 14:20:26.230  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.242  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.246  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.247  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.251  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.252  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.258  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.259  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.266  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e42458) locale list changing from [] to [en-US]
+10-03 14:20:26.267  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.272  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ee0478) locale list changing from [] to [en-US]
+10-03 14:20:26.272  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.273  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.273  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.273  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.280  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e61e98) locale list changing from [] to [en-US]
+10-03 14:20:26.280  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.285  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.289  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.289  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.295  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7ed42b8) locale list changing from [] to [en-US]
+10-03 14:20:26.295  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.295  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.296  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.300  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.305  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.310  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.315  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7eca998) locale list changing from [] to [en-US]
+10-03 14:20:26.321  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5a7d8) locale list changing from [] to [en-US]
+10-03 14:20:26.321  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.326  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.326  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.331  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e5e018) locale list changing from [] to [en-US]
+10-03 14:20:26.331  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.337  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e52178) locale list changing from [] to [en-US]
+10-03 14:20:26.337  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.343  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.343  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.348  1375  1410 I s.nexuslauncher: AssetManager2(0xb4000077d7e4aab8) locale list changing from [] to [en-US]
+10-03 14:20:26.348  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.354  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.359  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:26.363  1375  1410 W HWUI    : Image decoding logging dropped!
+10-03 14:20:27.373 12981 12981 D AndroidRuntime: >>>>>> START com.android.internal.os.RuntimeInit uid 2000 <<<<<<
+10-03 14:20:27.376 12981 12981 I AndroidRuntime: Using default boot image
+10-03 14:20:27.377 12981 12981 I AndroidRuntime: Leaving lock profiling enabled
+10-03 14:20:27.379 12981 12981 I app_process: Using CollectorTypeCMC GC.
+10-03 14:20:27.458 12981 12981 D nativeloader: InitDefaultPublicLibraries for_preload=1: libandroid.so:libaaudio.so:libamidi.so:libbinder_ndk.so:libc.so:libcamera2ndk.so:libdl.so:libEGL.so:libGLESv1_CM.so:libGLESv2.so:libGLESv3.so:libicu.so:libicui18n.so:libicuuc.so:libjnigraphics.so:liblog.so:libmediandk.so:libm.so:libnativehelper.so:libnativewindow.so:libOpenMAXAL.so:libOpenSLES.so:libRS.so:libstdc++.so:libsync.so:libvulkan.so:libwebviewchromium_plat_support.so:libz.so
+10-03 14:20:27.467 12981 12981 D nativeloader: Load libicu_jni.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+10-03 14:20:27.468 12981 12981 D app_process: u_setTimeZoneFilesDirectory("/apex/com.android.tzdata/etc/tz/versioned/9/icu") succeeded. 
+10-03 14:20:27.468 12981 12981 D app_process: I18n APEX ICU file found: /apex/com.android.i18n/etc/icu/icudt76l.dat
+10-03 14:20:27.470 12981 12981 D nativeloader: Load libjavacore.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+10-03 14:20:27.470 12981 12981 D nativeloader: Load libopenjdk.so using APEX ns com_android_art for caller /apex/com.android.art/javalib/core-oj.jar: ok
+10-03 14:20:27.474 12981 12981 W app_process: ClassLoaderContext shared library size mismatch. Expected=2, found=0 (PCL[]{PCL[/system/framework/android.test.base.jar*2789897741]#PCL[/system/framework/android.test.mock.jar*3361312393]} | PCL[])
+10-03 14:20:27.474 12981 12981 W app_process: ClassLoaderContext classpath size mismatch. expected=0, found=1 (PCL[]{PCL[/system/framework/android.test.runner.jar*895143020]#PCL[/system/framework/android.test.base.jar*2789897741]} | PCL[/system/framework/android.test.runner.jar*895143020])
+10-03 14:20:27.502 12981 12981 D nativeloader: Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+10-03 14:20:27.502 12981 12981 D AndroidRuntime: Calling main entry com.android.commands.uiautomator.Launcher
+10-03 14:20:27.506 12981 12981 I AconfigPackage: android.media.swcodec.flags is mapped to com.android.media.swcodec
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.settings.simplemode.flags is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.systemui is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.apps.nexuslauncher is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.settings.accessibility is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.settings.flags is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.apps.miphone.aiai.matchmaker.overview.ui is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.settings.flags is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.launcher3 is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.wallpaper is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.settings.media_drm is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.systemui.accessibility.accessibilitymenu is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.settings.keyboard is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.server.policy.feature.flags is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.android.settings.factory_reset is mapped to system_ext
+10-03 14:20:27.506 12981 12981 I AconfigPackage: com.google.android.haptics.flags is mapped to system_ext
+10-03 14:20:27.507 12981 12981 I AconfigPackage: com.android.permission.flags is mapped to com.android.permission
+10-03 14:20:27.507 12981 12981 I AconfigPackage: com.android.icu is mapped to com.android.i18n
+10-03 14:20:27.507 12981 12981 I AconfigPackage: com.android.appsearch.flags is mapped to com.android.appsearch
+10-03 14:20:27.507 12981 12981 I AconfigPackage: android.uprobestats.mainline.flags is mapped to com.android.uprobestats
+10-03 14:20:27.507 12981 12981 I AconfigPackage: android.provider.flags is mapped to com.android.configinfrastructure
+10-03 14:20:27.507 12981 12981 I AconfigPackage: com.android.server.deviceconfig is mapped to com.android.configinfrastructure
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.nfc.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.admin.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.database.sqlite is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.providers.calendar is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.power.feature.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.performance.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.contextualsearch.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.ondeviceintelligence.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.projection.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.companion is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.controls.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.text.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.providers.contactkeys.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.intentresolver is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.companion.virtualdevice.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.uprobestats.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.net.thread.platform.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.view.contentprotection.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.dreams is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.surfaceflinger.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.hardware.input is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.sdk is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.input.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.tracing is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.biometrics is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.view.contentcapture.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.job is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.content.res is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.net.platform.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.aconfig.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.server.app is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.speech.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.stats is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.hardware.biometrics is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.car.feature is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.adpf is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.location.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.settingslib.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.managedprovisioning.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.assist.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.net is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.settingslib.widget.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.camera.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.hardware.libsensor.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.jank is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.providers.settings is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.multiuser is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.power.optimization is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.calllogbackup is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.libvulkan.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.appfunctions.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.smartspace.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.providers.contacts.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.shell.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.aaudio is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.hardware.radio is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.google.wear.services.infra.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: suspend_service.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.media.midi is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.libcore.readonly is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.settingslib.widget.selectorwithwidgetpreference.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.notification is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.systemui.shared is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.jank is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.wearable is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.audio is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.chooser is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.compat is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.alarm is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.apex.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.quickaccesswallet is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.usage is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.accessibility is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app.supervision.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.utils is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.chre.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.content.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.media.codec is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.os is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.nfc.nci.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.app is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.security.keystore2 is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.crashrecovery.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.tradeinmode.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.hardware.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.telecom.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.settingslib.media.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.policy is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.media.audiopolicy is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.egg.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.compat.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.security is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.autofill is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.example.android.aconfig.demo.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.view.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.companion.virtual.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.aconfig_new_storage is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.feature.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.systemui is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.power.batterysaver is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.widget.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.editing.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.codec.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.powerstats is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.egl.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.audioserver is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.deviceidle is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.nfc is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.permission.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.voice.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.content.pm is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.power.hint is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.os is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.service.dreams is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.libgui.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.hardware.usb.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.provider is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.job is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.foldables.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.telephony.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.webkit is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.credentials.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.display.feature.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.notification is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.appwidget.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.frameworks.sensorservice.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.printspooler.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.window.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.adaptiveauth is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.net.wifi.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.media.tv.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.usb.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.os.vibrator is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.hardware.devicestate.feature.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.usage is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.server is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.wm.shell is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.view.inputmethod is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.graphics.hwui.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.backup is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.internal.pm.pkg.component.flags is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.view.accessibility is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.google.wear.sdk is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: android.media.audio is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.server.am is mapped to system
+10-03 14:20:27.508 12981 12981 I AconfigPackage: com.android.media.playback.flags is mapped to system
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.art.flags is mapped to com.android.art
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.libcore is mapped to com.android.art
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.media.extractor.flags is mapped to com.android.media
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.media.mainline.flags is mapped to com.android.media
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.wifi.flags is mapped to com.android.wifi
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.org.conscrypt.flags is mapped to com.android.conscrypt
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.android.healthfitness.flags is mapped to com.android.healthfitness
+10-03 14:20:27.509 12981 12981 I AconfigPackage: com.google.android.input.twoshay.flags is mapped to vendor
+10-03 14:20:27.509 12981 12981 I AconfigPackage: libgooglecamerahal.flags is mapped to vendor
+10-03 14:20:27.510 12981 12981 I AconfigPackage: com.android.ipsec.flags is mapped to com.android.ipsec
+10-03 14:20:27.510 12981 12981 I AconfigPackage: com.android.nfc.module.flags is mapped to com.android.nfcservices
+10-03 14:20:27.510 12981 12981 I AconfigPackage: com.android.adservices.ondevicepersonalization.flags is mapped to com.android.ondevicepersonalization
+10-03 14:20:27.510 12981 12981 I AconfigPackage: com.android.bluetooth.flags is mapped to com.android.bt
+10-03 14:20:27.510 12981 12981 I AconfigPackage: com.android.devicelock.flags is mapped to com.android.devicelock
+10-03 14:20:27.510 12981 12981 I AconfigPackage: android.os.profiling is mapped to com.android.profiling
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.os.statsd.flags is mapped to com.android.os.statsd
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.cellbroadcastreceiver.flags is mapped to com.android.cellbroadcast
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.adservices.flags is mapped to com.android.adservices
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.sdksandbox.flags is mapped to com.android.adservices
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.uwb.flags is mapped to com.android.uwb
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.ranging.flags is mapped to com.android.uwb
+10-03 14:20:27.511 12981 12981 I AconfigPackage: android.graphics.pdf.flags is mapped to com.android.mediaprovider
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.providers.media.flags is mapped to com.android.mediaprovider
+10-03 14:20:27.511 12981 12981 I AconfigPackage: android.graphics.pdf.flags.readonly is mapped to com.android.mediaprovider
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.net.ct.flags is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.net.flags is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: android.net.vcn is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.nearby.flags is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: android.net.http is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.net.thread.flags is mapped to com.android.tethering
+10-03 14:20:27.511 12981 12981 I AconfigPackage: com.android.system.virtualmachine.flags is mapped to com.android.virt
+10-03 14:20:27.511 12981 12981 E FeatureFlagsImplExport: android.os.flagging.AconfigStorageReadException: ERROR_PACKAGE_NOT_FOUND: package android.xr cannot be found on the device
+10-03 14:20:27.513 12981 12981 D UiAutomationConnection: Created on user UserHandle{0}
+10-03 14:20:27.513 12981 12981 I UiAutomation: Initialized for user 0 on display 0
+10-03 14:20:27.513 12981 12981 W UiAutomation: Created with deprecatead constructor, assumes DEFAULT_DISPLAY
+10-03 14:20:27.514   662  1029 D AccessibilityManagerService: changeCurrentUserForTestAutomationIfNeededLocked(0): ignoring because device doesn't support visible background users
+10-03 14:20:27.514   662  1029 I UiAutomationManager: Registering UiTestAutomationService (id=com.android.server.accessibility/UiAutomation, flags=0x0) when called by user 0
+10-03 14:20:27.514   662  1029 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+10-03 14:20:27.515   662  1029 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+10-03 14:20:27.516   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.516   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.516  1666  3269 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+10-03 14:20:27.516   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.516   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.516   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.517  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:27.517  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:27.517  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:27.517  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:27.517  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:27.517  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+10-03 14:20:27.517  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:27.518  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:27.518  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:27.518  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:27.518  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:27.518  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+10-03 14:20:27.518  1051  1051 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
+10-03 14:20:27.519   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.519   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.519   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.520   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.520   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.520   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.520   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.520   662  1029 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+10-03 14:20:27.520   662  1029 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+10-03 14:20:27.523   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.523   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.524   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.524   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.524   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.524  1666  3269 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+10-03 14:20:27.525  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:27.525  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:27.525  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:27.525  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:27.525  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:27.525  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:27.525  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:27.525  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:27.525  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:27.525  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:27.525  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+10-03 14:20:27.525  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+10-03 14:20:27.526   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.526   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.526   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.526   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.527   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.527   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.528  6400  6416 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:27.528   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.528   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.529   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.529   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.529   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.529   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.530   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:27.531   662   662 D BatterySaverPolicy: accessibility changed to true, updating policy.
+10-03 14:20:27.537  1051  1051 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
+10-03 14:20:28.546 12981 12981 W AccessibilityNodeInfoDumper: Fetch time: 15ms
+10-03 14:20:28.546   662  1029 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+10-03 14:20:28.547  1666  3269 I AiAiEcho: Settings changed for uri: content://settings/secure/accessibility_enabled
+10-03 14:20:28.547   662  1029 W MagnificationConnectionManager: requestConnection duplicated request: connect=false, mConnectionState=DISCONNECTED
+10-03 14:20:28.547   662  1029 D AccessibilityManagerService: restoreCurrentUserForTestAutomationIfNeededLocked(): ignoring because device doesn't support visible background users
+10-03 14:20:28.547   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.547   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:28.548  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:28.548  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:28.548  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:28.548  1666  1890 I AiAiEcho: Predicting[0]:  [CONTEXT sampling_count=5 ]
+10-03 14:20:28.548  1666  1890 I AiAiEcho: EchoTargets: 
+10-03 14:20:28.548  1666  1890 I AiAiEcho: Filtered by AiAi flag check: 
+10-03 14:20:28.548  1666  1890 I AiAiEcho: [CONTEXT ratelimit_period="10 SECONDS" ]
+10-03 14:20:28.548  1666  1890 I AiAiEcho: #remoteViewsTwiddler: feature disabled.
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface lockscreen with targets# 0 (types=[])
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.548  1666  1890 I AiAiEcho: #postPredictionTargets: Sending updates to UISurface home with targets# 0 (types=[])
+10-03 14:20:28.548   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.549  1051  1051 W PageIndicator: Total number of pages invalid: 0. Assuming 1 page.
+10-03 14:20:28.549 12981 12991 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+10-03 14:20:28.550 12981 12994 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+10-03 14:20:28.550 12981 12990 W IPCThreadState: call to talkWithDriver in joinThreadPool returned error: -9 (Bad file descriptor), FD: -1
+10-03 14:20:28.550   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.550   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.550 12981 12981 D AndroidRuntime: Shutting down VM
+10-03 14:20:28.551   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.551   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.551   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.551   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.551   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.551  6400  6416 I amtp    : NGA disabled due to not being eligible.
+10-03 14:20:28.552   662   662 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:28.552   662   662 D BatterySaverPolicy: accessibility changed to false, updating policy.
+10-03 14:20:29.339  1299  1299 I wpa_supplicant: wlan0: CTRL-EVENT-BEACON-LOSS 
+10-03 14:20:29.460 13000 13000 W screencap: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: SurfaceFlingerAIDL
+10-03 14:20:29.460 13000 13000 W BpBinder: Linking to death on android.gui.ISurfaceComposer but there are no threads (yet?) listening to incoming transactions. See ProcessState::startThreadPool and ProcessState::setThreadPoolMaxThreadCount. Generally you should setup the binder threadpool before other initialization steps.
+10-03 14:20:29.460 13000 13000 W ProcessState: Extra binder thread started, but 0 threads requested. Do not use *startThreadPool when zero threads are requested.
+10-03 14:20:29.461   520   545 E HwcComposer: getLuts failed Status(-8, EX_SERVICE_SPECIFIC): '8: '
+10-03 14:20:29.461   520   545 E HWComposer: getLuts: getLuts failed for display 4619827259835644672: UNSUPPORTED (8)
+10-03 14:20:29.543   662  1163 I WindowManager: Using new display size: 320x640
+10-03 14:20:29.544   662   711 D BrightnessThermalClamper: Thermal status observer already started
+10-03 14:20:29.544   662  1163 I ActivityTaskManager: Config changes=20000d80 {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.269 fontWeightAdjustment=0}
+10-03 14:20:29.544  1051  1155 V WindowManagerShell: Transition requested (#76): android.os.BinderProxy@8e1bfae TransitionRequestInfo { type = CHANGE, triggerTask = null, pipChange = null, remoteTransition = null, displayChange = DisplayChange { displayId = 0, startAbsBounds = Rect(0, 0 - 1440, 1000), endAbsBounds = Rect(0, 0 - 320, 640), startRotation = -1, endRotation = -1, physicalDisplayChanged = false }, flags = 0, debugId = 76 }
+10-03 14:20:29.546   662  1011 D BackgroundInstallControlService: Package event received: 0
+10-03 14:20:29.547   662  1163 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:29.547   662  1163 I WindowManager: Override config changes=20000d80 {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.269 fontWeightAdjustment=0} for displayId=0
+10-03 14:20:29.562   662  1163 W WindowManager: applyWithNextDraw with mSyncState=1, Window{4901e38 u0 Taskbar}, com.android.server.wm.InsetsSourceProvider.updateInsetsControlPosition:415 com.android.server.wm.InsetsSourceProvider.onPostLayout:387 com.android.server.wm.InsetsStateController.onPostLayout:175 com.android.server.wm.DisplayContent.applySurfaceChangesTransaction:5041 com.android.server.wm.RootWindowContainer.applySurfaceChangesTransaction:914 com.android.server.wm.RootWindowContainer.performSurfacePlacementNoTrace:780 com.android.server.wm.RootWindowContainer.performSurfacePlacement:746 com.android.server.wm.WindowSurfacePlacer.performSurfacePlacementLoop:173 
+10-03 14:20:29.565  1375  1375 D TaskbarManager: onConfigurationChanged: {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.269 fontWeightAdjustment=0} displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: onConfigurationChanged: | configDiff={} displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: onConfigurationChanged: isTaskbarEnabled(dp)=True displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: onConfigurationChanged: call recreateTaskbars displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: recreateTaskbars displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: recreateTaskbars: create external taskbar displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: recreateTaskbarForDisplay:  displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: recreateTaskbarForDisplay: getting device profile displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: recreateTaskbarForDisplay: destroying taskbar displayId=0 isDefaultDisplay=true
+10-03 14:20:29.566  1375  1375 D TaskbarManager: destroyTaskbarForDisplay displayId=0 isDefaultDisplay=true
+10-03 14:20:29.567  5999  5999 I AppBase : AppBase.onConfigurationChanged():422 onConfigurationChanged() : NewConfig = {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.275 fontWeightAdjustment=0}
+10-03 14:20:29.568  5999  5999 I putmethod.latin: AssetManager2(0xb4000077d7eaf738) locale list changing from [] to [en-US]
+10-03 14:20:29.570  1051  1051 I NoBackGesture: Config changed: newConfig={1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.328 fontWeightAdjustment=0} lastReportedConfig={1.0 310mcc260mnc [en_US] ldltr sw1000dp w1440dp h1000dp 160dpi xlrg land finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 1440, 1000) mAppBounds=Rect(0, 0 - 1440, 1000) mMaxBounds=Rect(0, 0 - 1440, 1000) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.265 fontWeightAdjustment=0}
+10-03 14:20:29.570  1051  1051 I NoBackGesture: NavbarController: newConfig={1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h640dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 640) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.328 fontWeightAdjustment=0} mTaskbarDelegate initialized=false willApplyConfigToNavbars=false navBarCount=0
+10-03 14:20:29.570  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onConfigurationChanged():1030 onConfigurationChanged() : NewConfig = {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h592dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 616) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.269 fontWeightAdjustment=0}
+10-03 14:20:29.570  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onConfigurationChanged():1031 device real metrics: DisplayMetrics{density=1.0, width=320, height=640, scaledDensity=1.0, xdpi=160.0, ydpi=160.0}
+10-03 14:20:29.570  1051  1051 D ShadeStateTraceLogger: New configuration change from Shade window. smallestScreenWidthDp: 320, densityDpi: 160
+10-03 14:20:29.570  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onConfigurationChanged():1039 Maybe update OEM display config because of configuration change
+10-03 14:20:29.571  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.notifyCurrentInputMethodEntryOnContextChanged():545 notifyCurrentInputMethodEntryOnContextChanged()
+10-03 14:20:29.571  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.notifyCurrentInputMethodEntryOnContextChanged():566 Notify current input method entry changed on context change
+10-03 14:20:29.571  5999  5999 I SystemSubtypesReportModule: SystemSubtypesReportModule$3.onCurrentInputMethodEntryChanged():149 entry: en-US, source: UNSPECIFIED
+10-03 14:20:29.572  5999  5999 I KeyboardContextProvider: KeyboardContextProvider$KeyboardContextCache.createKeyboardContext():173 createKeyboardContext(): en-US, jgj@f4e9776(com.android.inputmethod.latin.LatinIME@d40d96d), {1.0 310mcc260mnc [en_US] ldltr sw320dp w320dp h592dp 160dpi nrml long port finger -keyb/v/h -nav/h winConfig={ mBounds=Rect(0, 0 - 320, 640) mAppBounds=Rect(0, 0 - 320, 616) mMaxBounds=Rect(0, 0 - 320, 640) mDisplayRotation=ROTATION_0 mWindowingMode=fullscreen mActivityType=undefined mAlwaysOnTop=undefined mRotation=ROTATION_0} as.2 s.269 fontWeightAdjustment=0}
+10-03 14:20:29.573  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onCurrentInputMethodEntryChanged():2285 onCurrentInputMethodEntryChanged(): imeDefsChanged=false, entryLanguageVariantChanged=false, keyboardContextChanged=true
+10-03 14:20:29.573  5999  5999 I KeyboardContextProvider: KeyboardContextProvider.setBaseContextAndInvalidKeyboardContextCache():88 setBaseContextAndInvalidKeyboardContextCache(): com.android.inputmethod.latin.LatinIME@d40d96d
+10-03 14:20:29.574  5999  5999 I DeviceModeModule: DeviceModeModule.calculateAndNotify():223 Device mode 'tablet_large' from display metrics 'DisplayMetrics{density=0.0, width=1440, height=1000, scaledDensity=0.0, xdpi=160.0, ydpi=160.0}' or smallestScreenWidthDp: 1000
+10-03 14:20:29.574  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2747 resetLanguages(): languages=null, conditionName=orientation
+10-03 14:20:29.574  5999  5999 I ImeDefCache: ImeDefCache.clearCacheForLanguages():385 clearCacheForLanguages(): []
+10-03 14:20:29.574  5999  5999 I AdditionalImeDefCache: AdditionalImeDefCache.clearAdditionalImeDefsForCondition():425 clearAdditionalImeDefsForCondition() clear additional ImeDefs: []
+10-03 14:20:29.574  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2758 Clear cache for languages: null, changed=false
+10-03 14:20:29.574  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.startLoadingInputMethodEntrySettings():740 Start loading input method entry settings: [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}]
+10-03 14:20:29.575  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.updateInputMethodEntrySettingsLoadingTask():872 update loading task with resetImplicitlyEnabledEntries is false
+10-03 14:20:29.575  5999  5999 I InputMethodEntryManager: InputMethodEntryManager$4.onSuccess():891 Success load entries: [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}], resetImplicitlyEnabledEntries=false, initialized=true
+10-03 14:20:29.576  5999  5999 I SystemSubtypesReportModule: SystemSubtypesReportModule$2.onEnabledInputMethodEntriesChanged():131 1 entries
+10-03 14:20:29.579  1051  1155 V ShellDragAndDrop: Display changed: 0
+10-03 14:20:29.580  5999 12944 I DelightKLPDownloader: DelightKLPDownloader.downloadKLPInternal():199 downloading KLP for en_840
+10-03 14:20:29.580  5999 12944 I ManifestedDataDownloader: ManifestedDataDownloader.download():63 downloading manifest https://www.gstatic.com/android/keyboard/dictionarypack/2025031619/metadata.json-perlang/en-840.json?v=2025052001
+10-03 14:20:29.581  1375  1375 D TaskbarManager: recreateTaskbarForDisplay: isTaskbarEnabled=true [dp != null (i.e. mUserUnlocked)]=true FLAG_HIDE_NAVBAR_WINDOW=true dp.isTaskbarPresent=true displayExists=true displayId=0 isDefaultDisplay=true
+10-03 14:20:29.581  1375  1375 D TaskbarManager: recreateTaskbarForDisplay: creating taskbar displayId=0 isDefaultDisplay=true
+10-03 14:20:29.581   662   685 I InputManager-JNI: Viewport [0] to add: local:4619827259835644672, isActive: true
+10-03 14:20:29.581  1375  1375 I s.nexuslauncher: AssetManager2(0xb4000077d7e66cb8) locale list changing from [] to [en-US]
+10-03 14:20:29.581   662   770 I InputReader: Reconfiguring input devices, changes=DISPLAY_INFO
+10-03 14:20:29.582   662   770 I InputReader: Device reconfigured: id=12, name='virtio_input_multi_touch_1', size 320x640, orientation Rotation0, mode DIRECT, display id 0
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_2' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_4' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_5' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_6' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_7' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_8' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_10' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_11' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_9' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582   662   770 I InputReader: Touch device 'virtio_input_multi_touch_3' could not query the properties of its associated display.  The device will be inoperable until the display size becomes available.
+10-03 14:20:29.582  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.changeCurrentInputMethodEntry():2958 Set current input method entry: source=UNSPECIFIED, entryChanged=false, kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=tablet_device_size=large_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.582  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.loadAdditionalImeDefsForCurrentEntry():2981 loadAdditionalImeDefsForCurrentEntry(): kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=tablet_device_size=large_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.583  5999 12939 I MDDSuperpacks: MDDSuperpacks.getPacks():548 getting packs for superpack: handwriting_recognition
+10-03 14:20:29.584  5999  5999 I InputMethodEntryManager: InputMethodEntryManager$6.onSuccess():2997 Success load additional ImeDefs, entryChanged=false, additionalImeDefsChanged=false, [kyj{stringId=password, language=und-Latn-x-password, languageTag=und-Latn-x-password, processedConditions={variant=qwerty, enable_access_points_in_password_number=false, device_size=large, enable_number_row=false, device=tablet, keyboard_mode=normal}, className=com.google.android.libraries.inputmethod.ime.password.PasswordIme, label=2132019061, keyEventInterpreter=null, inlineComposing=true, autoCapital=true, announceAutoSelectedCandidate=true, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@831f44e, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number, language=und-Latn-x-number, languageTag=und-Latn-x-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019005, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@bcf3c94, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number_password, language=und-Latn-x-number-password, languageTag=und-Latn-x-number-password, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019006, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@a2a133d, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=phone_number, language=und-Latn-x-phone-number, languageTag=und-Latn-x-phone-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019096, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@3f4f732, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=date_time, language=und-Latn-x-date-time, languageTag=und-Latn-x-date-time, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132017724, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@54aac83, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=dummy_hard, language=en, languageTag=en, processedConditions={device=unknown}, className=com.google.android.apps.inputmethod.li
+10-03 14:20:29.584  5999  5999 I InputMethodEntryManager: bs.latin5.LatinDummyIme, label=0, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=true, statusIcon=0, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@1ad8e00, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=password_floating_hard_qwerty, language=und-Latn-x-password, languageTag=und-Latn-x-password, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231749, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@c29a639, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=phone_number_floating_hard_qwerty, language=und-Latn-x-phone-number, languageTag=und-Latn-x-phone-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@777547e, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number_floating_hard_qwerty, language=und-Latn-x-number, languageTag=und-Latn-x-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@1018ddf, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=date_time_floating_hard_qwerty, language=und-Latn-x-date-time, languageTag=und-Latn-x-date-time, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@5d8a2c, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}]
+10-03 14:20:29.584  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.onSuccessLoadingAdditionalImeDefs():3063 Additional ImeDefs have been loaded, maybe notify entry change: false
+10-03 14:20:29.584  5999  5999 I SystemSubtypesReportModule: SystemSubtypesReportModule$3.onCurrentInputMethodEntryChanged():149 entry: en-US, source: UNSPECIFIED
+10-03 14:20:29.585  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onCurrentInputMethodEntryChanged():2285 onCurrentInputMethodEntryChanged(): imeDefsChanged=false, entryLanguageVariantChanged=false, keyboardContextChanged=false
+10-03 14:20:29.585  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onCurrentInputMethodEntryChanged():2302 Skip the entry change as the input method entry is consider as not changed.
+10-03 14:20:29.585  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onConfigurationChanged():1061 changedMask : 20000d80
+10-03 14:20:29.585  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.clearInputMethodServiceData():1016 clearInputMethodServiceData for configurationChange
+10-03 14:20:29.586  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.discardAllKeyboardViewAndInputView():1181 discardAllKeyboardViewAndInputView()
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in eay
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in eay
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in fso
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in fso
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in fve
+10-03 14:20:29.586  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in fve
+10-03 14:20:29.587  5999  5999 I DeviceModeModule: DeviceModeModule.calculateAndNotify():223 Device mode 'phone' from display metrics 'DisplayMetrics{density=0.0, width=320, height=640, scaledDensity=0.0, xdpi=160.0, ydpi=160.0}' or smallestScreenWidthDp: 320
+10-03 14:20:29.587  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2747 resetLanguages(): languages=null, conditionName=device_size
+10-03 14:20:29.587  5999  5999 I ImeDefCache: ImeDefCache.clearCacheForLanguages():385 clearCacheForLanguages(): [en-US]
+10-03 14:20:29.588  5999  5999 I AdditionalImeDefCache: AdditionalImeDefCache.clearAdditionalImeDefsForCondition():425 clearAdditionalImeDefsForCondition() clear additional ImeDefs: [kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=tablet_device_size=large_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}]
+10-03 14:20:29.588  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2758 Clear cache for languages: null, changed=true
+10-03 14:20:29.589   520   520 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+10-03 14:20:29.590  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.startLoadingInputMethodEntrySettings():740 Start loading input method entry settings: [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}]
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.updateInputMethodEntrySettingsLoadingTask():872 update loading task with resetImplicitlyEnabledEntries is false
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2747 resetLanguages(): languages=null, conditionName=device
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager$4.onFailure():915 Fail load entries [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}]
+10-03 14:20:29.591  5999  5999 I ImeDefCache: ImeDefCache.clearCacheForLanguages():385 clearCacheForLanguages(): [en-US]
+10-03 14:20:29.591  5999  5999 I AdditionalImeDefCache: AdditionalImeDefCache.clearAdditionalImeDefsForCondition():425 clearAdditionalImeDefsForCondition() clear additional ImeDefs: []
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.resetLanguages():2758 Clear cache for languages: null, changed=true
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.startLoadingInputMethodEntrySettings():740 Start loading input method entry settings: [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}]
+10-03 14:20:29.591  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.updateInputMethodEntrySettingsLoadingTask():872 update loading task with resetImplicitlyEnabledEntries is false
+10-03 14:20:29.594  5999  5999 I GoogleInputMethodService: GoogleInputMethodService$7.onWindowMetricsChanged():769 windowMetrics: bounds() = Rect(0, 24 - 320, 640), insets() = Rect(0, 0 - 0, 0)
+10-03 14:20:29.594  5999  5999 I WindowMetricsNotification: WindowMetricsNotification.notify():159 mub[bounds=Rect(0, 24 - 320, 640), insets=Rect(0, 0 - 0, 0), densityDpi=160, smallestScreenWidthDp=320, displayWidth=320, displayHeight=640, xdpi=160.0, ydpi=160.0, isTrustable=true, displayId=0]; DisplayMetrics{density=1.0, width=320, height=640, scaledDensity=1.0, xdpi=160.0, ydpi=160.0}
+10-03 14:20:29.594  5999  5999 I WindowMetricsHelper: WindowMetricsHelper.predictAndNotify():140 Window metrics predicted.
+10-03 14:20:29.594  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.initializeInputMethodServiceData():834 initializeInputMethodServiceData for kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=tablet_device_size=large_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.596   662   685 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:29.598   520   595 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+10-03 14:20:29.600   662  2038 D FileUtils: Rounded bytes from 2592632832 to 4000000000
+10-03 14:20:29.601  5999  5999 I KeyboardThemeProvider: KeyboardThemeProvider.applyKeyboardTheme():27 Apply keyboard theme: theme_!gsf_!pgsans_!pgsf_!use_system_font_BORDER=true_FLAVOR_DPI=MDPI_KEYBOARD_WIDTH_CATEGORY=NORMAL_LIGHT_THEME=true_PHYSICAL_DIAGONAL=4.3384905_SCREEN_SHORTEST_WIDTH_NO_SCALE=320_enable_google_fonts_icons=true_enable_popup_on_keypress=true_keyboard_redesign_google_sans=true_noshadow_overlay_builtin_dynamic_color_light_base.binarypb:gm3-light-fffaf8ff-ff495d92-82b625f90d810779661adb8ce93b5ac5_silkpopup_unify_function_key_color=true
+10-03 14:20:29.602  5999  5999 E GoogleInputMethodService: GoogleInputMethodService.initializeInputBundles():878 No additional ImeDefs found for entry: kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=tablet_device_size=large_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.602  5999  5999 I AndroidIME: InputBundleManager.loadActiveInputBundleId():483 loadActiveInputBundleId: en-US, ime_english_united_states
+10-03 14:20:29.604  5999 12930 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214028 -> 0_resource_name_obfuscated : WaitTime = 15 ms : RunTime = 3 ms
+10-03 14:20:29.609  5999 12930 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214032 -> 0_resource_name_obfuscated : WaitTime = 22 ms : RunTime = 1 ms
+10-03 14:20:29.610  1051  1155 D ShellSplitScreen: onTaskInfoChanged: taskId=4 taskAct=null stageId=SIDE
+10-03 14:20:29.610  1051  1155 D ShellSplitScreen: onTaskInfoChanged: taskId=3 taskAct=null stageId=MAIN
+10-03 14:20:29.620  1164  1201 W IPCThreadState: Sending oneway calls to frozen process.
+10-03 14:20:29.621  1375  1375 I s.nexuslauncher: AssetManager2(0xb4000077d7ee1738) locale list changing from [] to [en-US]
+10-03 14:20:29.622  1051  1051 I ndroid.systemui: AssetManager2(0xb4000077d7e543d8) locale list changing from [] to [en-US]
+10-03 14:20:29.624  5999 12931 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214031 -> 0_resource_name_obfuscated : WaitTime = 15 ms : RunTime = 23 ms
+10-03 14:20:29.625  5999  5999 W StyleResolver: StyleResolver.createParsedStyleRule():233 Only one descendant combinator is supported: .keytop.pill-variant-colored  .label:pressed
+10-03 14:20:29.625  5999  6179 W LatinCommonMetricsProcessor: LatinCommonMetricsProcessor.processInputMethodEntryChanged():2417 The new entry is equal to the old entry
+10-03 14:20:29.628  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1293 onStartInput(EditorInfo{EditorInfo{packageName=com.ynx.social, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, true)
+10-03 14:20:29.628  5999  5999 W SessionManager: SessionManager.beginSession():53 Try to begin an already begun session [INPUT_SESSION], end it first
+10-03 14:20:29.631  5999  5999 I Module  : DeviceLockedStatusModuleProvider$Module.updateDeviceLockedStatus():100 repeatCheckTimes = 1, locked = false
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: EmojiCompatManager.getEmojiCompatIfLoaded():343 EmojiCompat.init() was never called.
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: java.lang.IllegalStateException: EmojiCompat is not initialized. Please call EmojiCompat.init() first
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at asx.p(PG:6)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at axb.b(PG:13)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at jnr.b(PG:2)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at jnr.c(PG:4)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at jnr.f(PG:3)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at jnx.c(PG:3)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at kif.cz(PG:47)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at lhl.run(PG:1025)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at jaf.execute(PG:12)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at nco.v(PG:13)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at lhn.m(PG:96)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at lhn.k(PG:25)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at kgn.onStartInput(PG:250)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService.doStartInput(InputMethodService.java:3521)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService.resetStateForNewConfiguration(InputMethodService.java:2017)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService.$r8$lambda$oRMkK66rOxqNaqhjifweqVkTB4Q(Unknown Source:0)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService$$ExternalSyntheticLambda5.run(D8$$SyntheticClass:0)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.ImsConfigurationTracker.onConfigurationChanged(ImsConfigurationTracker.java:103)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.inputmethodservice.InputMethodService.onConfigurationChanged(InputMethodService.java:2003)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at kgn.onConfigurationChanged(PG:234)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at dbj.onConfigurationChanged(PG:4)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.window.WindowProviderService.dispatchConfigurationChanged(WindowProviderService.java:253)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.window.WindowTokenClient.onConfigurationChangedInner(WindowTokenClient.java:205)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.window.WindowTokenClient.onConfigurationChanged(WindowTokenClient.java:153)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.window.WindowTokenClient.onConfigurationChanged(WindowTokenClient.java:112)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.window.WindowTokenClientController.onWindowContextInfoChanged(WindowTokenClientController.java:251)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.ActivityThread.handleWindowContextInfoChanged(ActivityThread.java:6908)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.servertransaction.WindowContextInfoChangeItem.execute(WindowContextInfoChangeItem.java:53)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.servertransaction.TransactionExecutor.executeNonLifecycleItem(TransactionExecutor.java:133)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.servertransaction.TransactionExecutor.executeTransactionItems(TransactionExecutor.java:103)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.servertransaction.TransactionExecutor.execute(TransactionExecutor.java:80)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.ActivityThread$H.handleMessage(ActivityThread.java:2823)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.os.Handler.dispatchMessage(Handler.java:110)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.os.Looper.loopOnce(Looper.java:248)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.os.Looper.loop(Looper.java:338)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at android.app.ActivityThread.main(ActivityThread.java:9067)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at java.lang.reflect.Method.invoke(Native Method)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+10-03 14:20:29.632  5999  5999 I EmojiCompatManager: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:932)
+10-03 14:20:29.634   662  1163 W PackageConfigPersister: App-specific configuration not found for packageName: com.ynx.social and userId: 0
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: No service published for: ethernet
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: android.os.ServiceManager$ServiceNotFoundException: No service published for: ethernet
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.ServiceManager.getServiceOrThrow(ServiceManager.java:203)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.SystemServiceRegistry$149.createService(SystemServiceRegistry.java:2232)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.SystemServiceRegistry$CachedServiceFetcher.getService(SystemServiceRegistry.java:2343)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.SystemServiceRegistry.getSystemService(SystemServiceRegistry.java:1918)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.ContextImpl.getSystemService(ContextImpl.java:2315)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.content.ContextWrapper.getSystemService(ContextWrapper.java:964)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering.isEthernetSupported(Tethering.java:1862)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering.makeSupportedDownstreams(Tethering.java:2843)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering.updateSupportedDownstreams(Tethering.java:2817)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering.updateConfiguration(Tethering.java:564)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering.-$$Nest$mupdateConfiguration(Tethering.java:0)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at com.android.networkstack.tethering.Tethering$StateReceiver.onReceive(Tethering.java:1396)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.LoadedApk$ReceiverDispatcher$Args.lambda$getRunnable$0(LoadedApk.java:1839)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.LoadedApk$ReceiverDispatcher$Args.$r8$lambda$mcNAAl1SQ4MyJPyDg8TJ2x2h0Rk(Unknown Source:0)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.app.LoadedApk$ReceiverDispatcher$Args$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.Handler.handleCallback(Handler.java:995)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.Handler.dispatchMessage(Handler.java:103)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.Looper.loopOnce(Looper.java:248)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.Looper.loop(Looper.java:338)
+10-03 14:20:29.634  1164  1201 E SystemServiceRegistry: 	at android.os.HandlerThread.run(HandlerThread.java:85)
+10-03 14:20:29.634  5999  5999 I HandwritingOfflineSuperpacks: HandwritingOfflineSuperpacks.syncInternal():80 no bundled lm for handwriting.
+10-03 14:20:29.634  5999  5999 I HandwritingSuperpacks: HandwritingSuperpacks.register():273 register(): version '86', url 'https://dl.google.com/handwriting/models/handwriting_release.superpack_manifest.20231127.json' [ONLINE]
+10-03 14:20:29.634  5999  5999 I DictionarySuperpacksManager: DictionarySuperpacksManager$1.onEnabledInputMethodEntriesChanged():65 onEnabledInputMethodEntriesChanged
+10-03 14:20:29.635  5999  5999 I PhenotypeModule: PhenotypeModule$2.onDeviceModeChanged():184 onDeviceModeChanged(): phone
+10-03 14:20:29.635  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension$3.onSuccess():555 KeyboardGroupManager destroyed in eay.
+10-03 14:20:29.635  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension$3.onSuccess():555 KeyboardGroupManager destroyed in fso.
+10-03 14:20:29.635  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension$3.onSuccess():555 KeyboardGroupManager destroyed in fve.
+10-03 14:20:29.635  5999  5999 I InputMethodEntryManager: InputMethodEntryManager$4.onSuccess():891 Success load entries: [LanguageTagVariantTuple{languageTag=en-US, variant=qwerty}], resetImplicitlyEnabledEntries=false, initialized=true
+10-03 14:20:29.635  5999  5999 I SystemSubtypesReportModule: SystemSubtypesReportModule$2.onEnabledInputMethodEntriesChanged():131 1 entries
+10-03 14:20:29.638  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.changeCurrentInputMethodEntry():2958 Set current input method entry: source=UNSPECIFIED, entryChanged=true, kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=phone_device_size=default_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.638  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.loadAdditionalImeDefsForCurrentEntry():2981 loadAdditionalImeDefsForCurrentEntry(): kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=phone_device_size=default_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.642  5999  5999 I AdditionalImeDefCache: AdditionalImeDefCache.loadAdditionalImeDefsForEntryWithoutCache():249 Start loading additional ime defs for entry: kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=phone_device_size=default_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.642  5999  5999 I InputMethodEntryManager: InputMethodEntryManager$6.onSuccess():2997 Success load additional ImeDefs, entryChanged=true, additionalImeDefsChanged=true, [kyj{stringId=password, language=und-Latn-x-password, languageTag=und-Latn-x-password, processedConditions={variant=qwerty, enable_access_points_in_password_number=false, enable_number_row=false, device=phone}, className=com.google.android.libraries.inputmethod.ime.password.PasswordIme, label=2132019061, keyEventInterpreter=null, inlineComposing=true, autoCapital=true, announceAutoSelectedCandidate=true, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@860bcd4, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number, language=und-Latn-x-number, languageTag=und-Latn-x-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019005, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@bcf3c94, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number_password, language=und-Latn-x-number-password, languageTag=und-Latn-x-number-password, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019006, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@a2a133d, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=phone_number, language=und-Latn-x-phone-number, languageTag=und-Latn-x-phone-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019096, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@3f4f732, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=date_time, language=und-Latn-x-date-time, languageTag=und-Latn-x-date-time, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132017724, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=0, primeKeyboardType=SOFT, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@54aac83, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=dummy_hard, language=en, languageTag=en, processedConditions={device=unknown}, className=com.google.android.apps.inputmethod.libs.latin5.LatinDummyIme, label=0, keyEventIn
+10-03 14:20:29.642  5999  5999 I InputMethodEntryManager: terpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=true, statusIcon=0, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@1ad8e00, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=password_floating_hard_qwerty, language=und-Latn-x-password, languageTag=und-Latn-x-password, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231749, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@c29a639, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=phone_number_floating_hard_qwerty, language=und-Latn-x-phone-number, languageTag=und-Latn-x-phone-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@777547e, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=number_floating_hard_qwerty, language=und-Latn-x-number, languageTag=und-Latn-x-number, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@1018ddf, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}, kyj{stringId=date_time_floating_hard_qwerty, language=und-Latn-x-date-time, languageTag=und-Latn-x-date-time, processedConditions={}, className=com.google.android.libraries.inputmethod.ime.DummyIme, label=2132019097, keyEventInterpreter=null, inlineComposing=true, autoCapital=false, announceAutoSelectedCandidate=false, statusIcon=2131231925, primeKeyboardType=HARD_QWERTY, indicatorIcon=0, indicatorLabel=null, displayAppCompletions=false, extraValues=kyb{}, processors=lac@b8e16a6, unacceptableMetaKeys=4098, languageSpecificSettings=0, asciiCapable=false, alwaysShowSuggestions=false, useAsciiPasswordKeyboard=false, secondaryIme=null, keyboardGroupDef=kzl@5d8a2c, phenotypeFlagId=0, localizationLanguageTag=null, supportsInlineSuggestion=false}]
+10-03 14:20:29.642  5999  5999 I InputMethodEntryManager: InputMethodEntryManager.onSuccessLoadingAdditionalImeDefs():3063 Additional ImeDefs have been loaded, maybe notify entry change: true
+10-03 14:20:29.642  5999  5999 I SystemSubtypesReportModule: SystemSubtypesReportModule$3.onCurrentInputMethodEntryChanged():149 entry: en-US, source: UNSPECIFIED
+10-03 14:20:29.642  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.onCurrentInputMethodEntryChanged():2285 onCurrentInputMethodEntryChanged(): imeDefsChanged=true, entryLanguageVariantChanged=false, keyboardContextChanged=false
+10-03 14:20:29.642  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.clearInputMethodServiceData():1016 clearInputMethodServiceData for entryChange
+10-03 14:20:29.643  5999  5999 I KeyboardDefCache: MemoryFileCache$2.onFailure():229 Load data from cache for key: 6d4bc9c109285200f9fb732fbfcc681e has been cancelled
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: KeyboardDefManager.handleKeyboardDefResult():254 Error when loading keyboard def
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: java.util.concurrent.CancellationException: Task was cancelled.
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.r(PG:33)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.get(PG:3)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at a.k(PG:2)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at pqu.E(PG:10)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qek.run(PG:88)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at jaf.execute(PG:12)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.h(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.k(PG:101)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.p(PG:28)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qem.run(PG:5)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qds.execute(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.h(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.k(PG:101)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.p(PG:28)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcu.run(PG:85)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qds.execute(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.h(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.k(PG:101)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.cancel(PG:53)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at iuk.d(PG:36)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kzj.b(PG:5)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kgn.aa(PG:44)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at dbj.p(PG:203)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kgi.e(PG:3)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kdr.cz(PG:9)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at lhl.run(PG:1025)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qds.execute(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at nco.v(PG:13)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at lhn.m(PG:96)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at lhn.k(PG:25)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kds.g(PG:10)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kew.b(PG:553)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qek.run(PG:94)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at jaf.execute(PG:12)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.h(PG:1)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qcq.b(PG:40)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at pqu.G(PG:10)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kfb.T(PG:319)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kfb.S(PG:8)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at kev.b(PG:408)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at qek.run(PG:94)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at android.os.Handler.handleCallback(Handler.java:995)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at android.os.Handler.dispatchMessage(Handler.java:103)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at android.os.Looper.loopOnce(Looper.java:248)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at android.os.Looper.loop(Looper.java:338)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at android.app.ActivityThread.main(ActivityThread.java:9067)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at java.lang.reflect.Method.invoke(Native Method)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:593)
+10-03 14:20:29.643  5999  5999 E KeyboardDefManager: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:932)
+10-03 14:20:29.643  5999  5999 I KeyboardManager: KeyboardManager.createKeyboardInternal():421 Keyboard request for prime is out-of-date.
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in eay
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in eay
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in fso
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in fso
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.maybeDestroyExistingKeyboardGroupManager():537 Destroy existing keyboard group manager in fve
+10-03 14:20:29.643  5999  5999 I AbstractOpenableExtension: AbstractOpenableExtension.createKeyboardGroupManagerListenableFuture():121 Create keyboard group manager listenable future in fve
+10-03 14:20:29.643  5999  5999 I KeyboardModeManager: KeyboardModeManager.onCurrentInputMethodEntryChanged():1400 Reload data for context change
+10-03 14:20:29.643  5999  5999 I GoogleInputMethodService: GoogleInputMethodService.initializeInputMethodServiceData():834 initializeInputMethodServiceData for kek{languageTag=en-US, variant=qwerty, hasLocalizedResources=true, conditionCacheKey=_app_first_start_timestamp=1790998093964_cache_additional_ime_defs_for_condition_change=false_cache_ime_defs_for_condition_change=false_deprecate_long_press_space_for_ime_picker=false_device=phone_device_size=default_enable_access_points_in_password_number=false_enable_flick_symbols=true_enable_more_candidates_view_for_multilingual=false_enable_number_row=false_enable_preemptive_decode=true_enable_premium_exp_tablet_layout_change=false_enable_secondary_digits=true_enable_secondary_symbols=false_expressions=normal_four_or_more_letter_rows=false_keyboard_mode=normal_language=en-US_layout_9key_split=false_orientation=portrait_physical_keyboard=nokeys_rtl_layout=false_show_secondary_digits=true_show_suggestions=true_split_with_duplicate_keys=true_variant=qwerty, imeDef.stringId=ime_english_united_states, imeDef.className=com.google.android.libraries.inputmethod.ime.experiment.ExperimentImeWrapper, imeDef.languageTag=en-US}
+10-03 14:20:29.644  5999 12931 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214031 -> 0_resource_name_obfuscated : WaitTime = 0 ms : RunTime = 0 ms
+10-03 14:20:29.644  5999 12931 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214028 -> 0_resource_name_obfuscated : WaitTime = 0 ms : RunTime = 0 ms
+10-03 14:20:29.644  5999 12931 I KeyboardGroupDefParser: KeyboardGroupDefParser.parseKeyboardGroupDef():86 parseKeyboardGroupDef() 2132214032 -> 0_resource_name_obfuscated : WaitTime = 0 ms : RunTime = 0 ms
+10-03 14:20:29.644   662  2176 D FileUtils: Rounded bytes from 2592632832 to 4000000000
+10-03 14:20:29.646  5999  5999 I KeyboardThemeProvider: KeyboardThemeProvider.applyKeyboardTheme():27 Apply keyboard theme: theme_!gsf_!pgsans_!pgsf_!use_system_font_BORDER=true_FLAVOR_DPI=MDPI_KEYBOARD_WIDTH_CATEGORY=NORMAL_LIGHT_THEME=true_PHYSICAL_DIAGONAL=4.3384905_SCREEN_SHORTEST_WIDTH_NO_SCALE=320_enable_google_fonts_icons=true_enable_popup_on_keypress=true_keyboard_redesign_google_sans=true_noshadow_overlay_builtin_dynamic_color_light_base.binarypb:gm3-light-fffaf8ff-ff495d92-82b625f90d810779661adb8ce93b5ac5_silkpopup_unify_function_key_color=true
+10-03 14:20:29.646  5999 12953 I DownloadManager: DownloadManager.downloadInternal():412 Download for __SP_MANIFEST_emoticon_content_description scheduled with params DownloadParams{allowMetered=true, requireCharging=false, foreground=false, immediately=true, priority=0}
+10-03 14:20:29.646  5999 12953 I DownloadManager: DownloadManager.startDownload():495 start download of __SP_MANIFEST_emoticon_content_description
+10-03 14:20:29.653  5999 12945 I DelightKLPDownloader: DelightKLPDownloader.downloadKLPInternal():199 downloading KLP for en_840
+10-03 14:20:29.653  5999 12945 I ManifestedDataDownloader: ManifestedDataDownloader.download():63 downloading manifest https://www.gstatic.com/android/keyboard/dictionarypack/2025031619/metadata.json-perlang/en-840.json?v=2025052001
+10-03 14:20:29.657  5999  5999 I AndroidIME: InputBundleManager.loadActiveInputBundleId():483 loadActiveInputBundleId: und-Latn-x-password, password

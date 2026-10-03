@@ -1,0 +1,314 @@
+{
+  "schema": "ynx-social-mainapp-ui-checkpoint/v1",
+  "source": "957c1a099db025df378cef9ac2fdc7e736f5205e",
+  "tree": "fbbdb0e0dc43d6513d0e15e3566c143fd714d8d5",
+  "parent": "d7d531b54155962e96480c7d917520414e9ebdb6",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "entry": "apps/social/index.ts -> App.tsx -> SocialApp",
+  "nativeBuildSource": "d7d531b54155962e96480c7d917520414e9ebdb6; native product source blobs unchanged at frozen 957c1a0; last change is Web viewport and direct test only",
+  "artifact": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/mainapp-ui-957c1a0-isolated-debug.apk",
+    "bytes": 134015330,
+    "sha256": "5af2ecaa10ece8b59f81f97e8cd1bf298b3271837bfc98bf421e41678fb056b8",
+    "qualification": "Isolated Android debug harness embedding the actual owned MainApp; not a final release. Temporary ReactHost embedded-bundle binding and offline MediaSourceProbeActivity remain in the harness, not formal owned product entry."
+  },
+  "embeddedBundle": {
+    "fixtureStringScan": "PASS exact four known fixture/fault markers absent from embedded bundle; not formal release certification",
+    "bytes": 3862993,
+    "sha256": "9ad9981f4411dfb79e3323c11fe825b3358762ece59fe70ffb7d22432bdb77bd"
+  },
+  "sourcePins": [
+    {
+      "file": "apps/social/App.tsx",
+      "blob": "afd554f0861f1f5bbfe4c05141f199ccc8ff7bcc",
+      "bytes": 154116,
+      "sha256": "1b4908adffc8b3aa1de55691892d0cd5d6fd66fe2f1bd60c6c96c335fe842157"
+    },
+    {
+      "file": "apps/social/index.ts",
+      "blob": "6668782c49b47e754fba67914564b1dda217cd2c",
+      "bytes": 182,
+      "sha256": "d6ce93e2f7e2957a62c82b2595dbb07a7906f619b764413ef8abff4b5728dcd3"
+    },
+    {
+      "file": "apps/social/src/GuestWorkspace.tsx",
+      "blob": "526d386358ad75e71c48d5e13a139f99fb402822",
+      "bytes": 7478,
+      "sha256": "0c1db3fffa775eb6c53381e4a8f831b3d262bb1e435f6c9ed6630492b2320eca"
+    },
+    {
+      "file": "apps/social/src/SocialAppearance.tsx",
+      "blob": "512f9a9ee0b15b9555f04180762afef941e34152",
+      "bytes": 3052,
+      "sha256": "dc3de8169c967a88c5ed62b85745745a07af7b926de2a1ecece6bfdce0222e8a"
+    },
+    {
+      "file": "apps/social/src/socialPresentation.ts",
+      "blob": "4d3a14fb333598ece0a03714a44aec266f824b06",
+      "bytes": 687,
+      "sha256": "d12f4086e2e43df117b0c265013b36165d29adb788ea6cc0a1cbaee9b7642529"
+    },
+    {
+      "file": "apps/social/web/product-shell.js",
+      "blob": "45850718f0494b3cb97c4e9b507d9de1bc4894a4",
+      "bytes": 3173,
+      "sha256": "0569f9d8f08650222f6115de76cb0b7eaaa9ead963be79fba8a267af5ef82e9c"
+    },
+    {
+      "file": "apps/social/web/product-shell.css",
+      "blob": "d1f947b0aeb6e848d0d2d236dc358ae37d94482c",
+      "bytes": 5795,
+      "sha256": "6381e7343c916e2131d6c7121570b4c6b9a5707cc25fc0180d5209aed9547028"
+    },
+    {
+      "file": "apps/social/web/index.html",
+      "blob": "af0355696eeb8f595db8b293d673b597750e6ae7",
+      "bytes": 16666,
+      "sha256": "84e535f8a67ed7fbc704c5223287b41c2689893b2433d381cc2d05b08bea68cb"
+    },
+    {
+      "file": "apps/social/web/build.mjs",
+      "blob": "836fa7acf24637bc6cb3c980d9a3288ec563e89b",
+      "bytes": 3767,
+      "sha256": "b483a85b3c85902e61171a952762a1dc30258dc65aebfe71dce8b92b5a174fd0"
+    }
+  ],
+  "raw": [
+    {
+      "file": "raw/isolated-media-registration-fixture.saved.txt",
+      "bytes": 3323,
+      "sha256": "294518e9f2d55c3c44b2fe8d7c2141204fa649a826f1bd8f757cfea7a831511b"
+    },
+    {
+      "file": "raw/mainapp-cold-wait-0.xml",
+      "bytes": 2234,
+      "sha256": "74cd8c2da4b67b2b9bac77d14531c52e054caa8a7dbaca2dfbae48584898569f"
+    },
+    {
+      "file": "raw/mainapp-cold-wait-1.xml",
+      "bytes": 17665,
+      "sha256": "84acc13f0b4f0301b66946a9476768121d81fc3b921ecc705687e331018c476f"
+    },
+    {
+      "file": "raw/mainapp-current-after-failure.xml",
+      "bytes": 17665,
+      "sha256": "84acc13f0b4f0301b66946a9476768121d81fc3b921ecc705687e331018c476f"
+    },
+    {
+      "file": "raw/mainapp-desktop.png",
+      "bytes": 46380,
+      "sha256": "5b27aa24fc892cf57b43eadf698e222bb69ebb4cfa7b43859ef51349b7c03f27"
+    },
+    {
+      "file": "raw/mainapp-desktop.xml",
+      "bytes": 19449,
+      "sha256": "03ed7e26e95509023d7eb2db21252f78359986df667bb106011da39829d1d129"
+    },
+    {
+      "file": "raw/mainapp-original-density.txt",
+      "bytes": 22,
+      "sha256": "9c3db1a622c9ff980916b891c3dd028abd992bf4a1d9afd1fa47ebf13f5fcde8"
+    },
+    {
+      "file": "raw/mainapp-original-size.txt",
+      "bytes": 23,
+      "sha256": "031393cbfa71d46fa05c2b39e43a0bf582ec6fec1db3031f25780dd0c4d42ed8"
+    },
+    {
+      "file": "raw/mainapp-phone-chats.png",
+      "bytes": 31880,
+      "sha256": "f8ce0767df039e497cfa854efb33d6a37e3d7748ba121c6851a42391c7e760e9"
+    },
+    {
+      "file": "raw/mainapp-phone-chats.xml",
+      "bytes": 17665,
+      "sha256": "84acc13f0b4f0301b66946a9476768121d81fc3b921ecc705687e331018c476f"
+    },
+    {
+      "file": "raw/mainapp-phone-cold-first-failure.xml",
+      "bytes": 2234,
+      "sha256": "74cd8c2da4b67b2b9bac77d14531c52e054caa8a7dbaca2dfbae48584898569f"
+    },
+    {
+      "file": "raw/mainapp-phone-cold-null-root-first-failure.xml",
+      "bytes": 2234,
+      "sha256": "74cd8c2da4b67b2b9bac77d14531c52e054caa8a7dbaca2dfbae48584898569f"
+    },
+    {
+      "file": "raw/mainapp-phone-cold.xml",
+      "bytes": 17665,
+      "sha256": "84acc13f0b4f0301b66946a9476768121d81fc3b921ecc705687e331018c476f"
+    },
+    {
+      "file": "raw/mainapp-phone-contacts.png",
+      "bytes": 36263,
+      "sha256": "52e965d84060692f89b557534e7b9c1c7a1b8b2c4ed7267e40b2754ac6c39c01"
+    },
+    {
+      "file": "raw/mainapp-phone-contacts.xml",
+      "bytes": 19072,
+      "sha256": "74039f6ca28636e458e949ff5decc24bdcbb4a33aca766b67ec47cab76fab95d"
+    },
+    {
+      "file": "raw/mainapp-phone-moments.png",
+      "bytes": 34119,
+      "sha256": "75c9a502220f1a4ed10c25c163da680a16be5efad256bd16cacc661d259d317a"
+    },
+    {
+      "file": "raw/mainapp-phone-moments.xml",
+      "bytes": 18714,
+      "sha256": "f987281cd4143d29795b7621a29f3ab1c1ddbf2a408090141f55e8849cfde5c3"
+    },
+    {
+      "file": "raw/mainapp-phone-resume.xml",
+      "bytes": 17662,
+      "sha256": "56451999490afa659529378aae3d0d538ec78b3dd969661d30e904381f2e9089"
+    },
+    {
+      "file": "raw/mainapp-phone-return.xml",
+      "bytes": 17662,
+      "sha256": "56451999490afa659529378aae3d0d538ec78b3dd969661d30e904381f2e9089"
+    },
+    {
+      "file": "raw/mainapp-phone-settings-130.png",
+      "bytes": 35337,
+      "sha256": "dab532111d88fcf5cc5db4f0715ba92e90f6802de63c2bf993c52eb094d4f7e8"
+    },
+    {
+      "file": "raw/mainapp-phone-settings-130.xml",
+      "bytes": 20507,
+      "sha256": "e83791242fd5712f6533a8991a7ca370f91804bb44f04959b29702f95b8747db"
+    },
+    {
+      "file": "raw/mainapp-phone-settings-reset.xml",
+      "bytes": 20510,
+      "sha256": "7428f32ab0877dd719c331bb4b07392192b486baf5901d1576a3ba54e8ddeaaf"
+    },
+    {
+      "file": "raw/mainapp-phone-settings-restored.xml",
+      "bytes": 20507,
+      "sha256": "e83791242fd5712f6533a8991a7ca370f91804bb44f04959b29702f95b8747db"
+    },
+    {
+      "file": "raw/mainapp-phone-settings.xml",
+      "bytes": 20507,
+      "sha256": "e83791242fd5712f6533a8991a7ca370f91804bb44f04959b29702f95b8747db"
+    },
+    {
+      "file": "raw/mainapp-phone-signin-cancel.xml",
+      "bytes": 17662,
+      "sha256": "56451999490afa659529378aae3d0d538ec78b3dd969661d30e904381f2e9089"
+    },
+    {
+      "file": "raw/mainapp-phone-signin.png",
+      "bytes": 32301,
+      "sha256": "785416623fdc2437f1875a51dd9d17e92e25f1d74e0a98801e9a85c23b3c10e1"
+    },
+    {
+      "file": "raw/mainapp-phone-signin.xml",
+      "bytes": 8351,
+      "sha256": "2ca9093033ae01691e0bdf114ce9f2d3a47393e56d6047406102782a98420f47"
+    },
+    {
+      "file": "raw/mainapp-ui-build.log",
+      "bytes": 21852,
+      "sha256": "7e0d7cdca253fdb5882b281cc51ba793c0626737524e3df414691b107a23d325"
+    },
+    {
+      "file": "raw/mainapp-ui-check.cjs",
+      "bytes": 3279,
+      "sha256": "3622826bae4e6c28d0ae82e782f55eed747e5e138796ac10b64ee33c8b08f02c"
+    },
+    {
+      "file": "raw/mainapp-ui-embed.log",
+      "bytes": 699,
+      "sha256": "d32a488d024f57befb4fe10248e1eb6dc3526c151a8d1362da4d5c1df4b0ab4a"
+    },
+    {
+      "file": "raw/mainapp-ui-final-build.log",
+      "bytes": 21852,
+      "sha256": "7b659cfc14b921bfa593d3fdde0131a5b3ab20c0a426b615d6924b43ed33a256"
+    },
+    {
+      "file": "raw/mainapp-ui-final-embed.log",
+      "bytes": 363,
+      "sha256": "1cddaa178f4ab5aa760f57b2124c7ccd5eaafeddeaa879ccb5d047a6e66015d1"
+    },
+    {
+      "file": "raw/mainapp-ui-final-first-failure.log",
+      "bytes": 1275,
+      "sha256": "dd397003be2b19f83c39a64fbbf96a398e4ed8e4024c7a5f45d0eb6cc7d07944"
+    },
+    {
+      "file": "raw/mainapp-ui-final-logcat.txt",
+      "bytes": 154655,
+      "sha256": "b98a85224af5892a0d74d8657d50b830f09ceaeb3418b267e758593271cddce7"
+    },
+    {
+      "file": "raw/mainapp-ui-final-result.log",
+      "bytes": 251,
+      "sha256": "d02375e54bda302cb0d98c852a5d4375bc0f0d81e797c588033b78f3f9774917"
+    },
+    {
+      "file": "raw/mainapp-ui-first-logcat.txt",
+      "bytes": 31581,
+      "sha256": "2a40a4189fac88887c815913bc4a4362875ebc0b89d5e8728a8edb40fb1938ac"
+    },
+    {
+      "file": "raw/mainapp-ui-first.xml",
+      "bytes": 17666,
+      "sha256": "7c14bff8d2b919a1a868841992ef5fddcdcd5cfc786c21416d947eda170d468f"
+    },
+    {
+      "file": "raw/mainapp-ui-harness-edit-first-failure.log",
+      "bytes": 1015,
+      "sha256": "760ec1d19260a6b0aabbd9db28f3d53eee518141b408e6bf3be270c53eb077c2"
+    },
+    {
+      "file": "raw/mainapp-ui-null-root-first-failure.log",
+      "bytes": 1333,
+      "sha256": "9235819d3e7a4147e30d6c1ac0c15c54510d107e1da4f9613583bd95079b0826"
+    },
+    {
+      "file": "raw/media-registration-before.xml",
+      "bytes": 11032,
+      "sha256": "5dd11e735014d76b7886686378231c8eaba93d986e3cc9be950b9fe7f8cdbf72"
+    },
+    {
+      "file": "raw/typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "file": "raw/tests.log",
+      "bytes": 21233,
+      "sha256": "739a57539c91cd08db5a1e5e5b096074e170525ea19733dc78a299b2e7379be7"
+    },
+    {
+      "file": "raw/bundle-check.log",
+      "bytes": 691,
+      "sha256": "1ca79db24608ede1ee20b945be7247bc0eb5e4b60f7557550f6fbd6f248f63b4"
+    },
+    {
+      "file": "raw/web-build-blocked.log",
+      "bytes": 903,
+      "sha256": "fc1b930b2ee4b2537d2ffbf32b6ad017003e9fe7c994c235651a27ac794c08c5"
+    }
+  ],
+  "checks": {
+    "typecheck": "PASS",
+    "tests": "216/216",
+    "androidIOSScriptExport": "PASS; not Apple native compile/link",
+    "androidSDKBuild": "PASS",
+    "actualInstalledGuest": "PASS chats/contacts/moments/settings; safe-area original branding; text scaling/cold persistence/reset; sign-in sheet/cancel; background/resume",
+    "wideWindow": "PASS responsive actual MainApp in Android emulator 1440x1000/160dpi; NOT a desktop OS/browser installed release",
+    "authenticatedConversation": "NOT_RUN: no real native canonical enrollment/approved peer supplied; no seed or synthetic account",
+    "webBuild": "FAIL SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH",
+    "nativeMediaRegistration": "FAIL openReceivedMedia undefined / releaseReceivedMedia undefined; raw original retained; own internal wiring pending",
+    "publicInstalledBusinessE2E": "NOT_RUN",
+    "walletAccountSignTransaction": "NOT_RUN, no grant/sign/send invoked",
+    "monster": "NOT_RUN, no real callable MONSTER channel supplied"
+  },
+  "originalFailureRetention": "Cold startup fixed-wait failure, UIAutomator null-root/stale XML failure and harness quoting failure are retained in raw; bounded fresh readiness deletes only its own temporary UI dump before reading. No missing product action is skipped.",
+  "authority": "Formal compatible integration/release remains sole A 接续测试网生态审计工作; this checkpoint is not completion or deployment authorization."
+}
