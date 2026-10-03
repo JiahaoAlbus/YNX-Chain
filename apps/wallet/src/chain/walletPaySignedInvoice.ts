@@ -55,7 +55,9 @@ export function verifySignedPayInvoice(value:unknown,expectedInvoiceID:string,po
   if(!policy||typeof policy.resolve!=="function")return fail("PAY_SIGNED_TRUST_POLICY_REQUIRED");
   const signer=policy.resolve({signatureKeyId:invoice.signatureKeyId,signingPublicKey:invoice.signingPublicKey,signatureAlgorithm:invoice.signatureAlgorithm,merchantId:invoice.merchantId});
   if(signer.keyId!==invoice.signatureKeyId||signer.publicKey!==invoice.signingPublicKey||signer.algorithm!=="ed25519")return fail("PAY_SIGNED_SIGNER_MISMATCH");
-  let valid=false;try{valid=ed25519.verify(hexToBytes(invoice.signature),new TextEncoder().encode(signedPayInvoiceMaterial(invoice)),hexToBytes(signer.publicKey))}catch{}
+  // Merchant invoices must use strict Ed25519, not ZIP215 acceptance of
+  // degenerate identity-point keys that cannot prove signer possession.
+  let valid=false;try{valid=ed25519.verify(hexToBytes(invoice.signature),new TextEncoder().encode(signedPayInvoiceMaterial(invoice)),hexToBytes(signer.publicKey),{zip215:false})}catch{}
   if(!valid)return fail("PAY_SIGNED_SIGNATURE_INVALID");guard();
   if(!Number.isSafeInteger(now)||now<0||now>8_640_000_000_000_000)return fail();
   return Object.freeze({invoice,signatureVerified:true as const,checkedAt:new Date(now).toISOString(),quoteTimeCurrent:Date.parse(invoice.createdAt)<=now&&now<Date.parse(invoice.expiresAt),

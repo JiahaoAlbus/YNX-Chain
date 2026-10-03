@@ -32,13 +32,22 @@ function originalMaterial(v:Record<string,any>):string{
   return parts.join("|");
 }
 function sign(v:Record<string,any>,key=seed):Record<string,any>{return {...v,signature:bytesToHex(ed25519.sign(new TextEncoder().encode(originalMaterial(v)),key))};}
-function desktopVerify(invoice:Record<string,any>){
+function desktopVerify(invoice:Record<string,any>,signerPublicKey=publicKey){
   // Run Desktop's real ESM boundary in Node, not tsx's Native CommonJS loader.
   // Only a public synthetic invoice/policy crosses stdin; no secret key does.
   const moduleURL=pathToFileURL(resolve(__dirname,"../../../wallet-desktop/src/wallet-pay-signed-invoice.mjs")).href;
   const script=`import {readFileSync} from "node:fs";import {createPayInvoiceSignerPolicy} from "@ynx-chain/wallet-auth";import {verifySignedPayInvoice,signedPayInvoiceMaterial,parseSignedPayInvoice} from ${JSON.stringify(moduleURL)};const v=JSON.parse(readFileSync(0,"utf8"));const policy=createPayInvoiceSignerPolicy({schemaVersion:"ynx-pay-invoice-signers/v1",signers:[{keyId:"qa-key",publicKey:v.publicKey,algorithm:"ed25519",merchantIds:["qa-merchant"]}]});try{console.log(JSON.stringify({material:signedPayInvoiceMaterial(parseSignedPayInvoice(v.invoice,v.id)),result:verifySignedPayInvoice(v.invoice,v.id,policy,()=>{},v.now)}))}catch(e){console.log(JSON.stringify({error:e.code}))}`;
-  return JSON.parse(execFileSync(process.execPath,["--input-type=module","-e",script],{input:JSON.stringify({invoice,id,now,publicKey}),encoding:"utf8"}));
+  return JSON.parse(execFileSync(process.execPath,["--input-type=module","-e",script],{input:JSON.stringify({invoice,id,now,publicKey:signerPublicKey}),encoding:"utf8"}));
 }
+test("all v1-v5 reject a degenerate identity-point signer even if accidentally operator registered",()=>{
+  const degenerate="01"+"00".repeat(31);
+  const badPolicy=createPayInvoiceSignerPolicy({schemaVersion:"ynx-pay-invoice-signers/v1",signers:[{keyId:"qa-key",publicKey:degenerate,algorithm:"ed25519",merchantIds:["qa-merchant"]}]});
+  for(const version of [1,2,3,4,5]){
+    const v={...fixture(version),signingPublicKey:degenerate,signature:degenerate+"00".repeat(32)};
+    assert.equal(desktopVerify(v,degenerate).error,"PAY_SIGNED_SIGNATURE_INVALID");
+    assert.throws(()=>verifySignedPayInvoice(v,id,badPolicy,()=>{},now),/SIGNATURE_INVALID/);
+  }
+});
 for(const version of [1,2,3,4,5]){
   test(`v${version} Native Noble and Desktop OpenSSL agree on identical signature, wire and result`,()=>{
     const v=sign(fixture(version));

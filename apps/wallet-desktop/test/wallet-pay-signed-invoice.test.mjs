@@ -11,6 +11,14 @@ const seed = new Uint8Array(32).fill(7), otherSeed = new Uint8Array(32).fill(8);
 const publicKey = bytesToHex(ed25519.getPublicKey(seed));
 const id = "inv_" + "a".repeat(20), now = Date.parse("2026-10-03T01:00:00Z");
 const policy = createPayInvoiceSignerPolicy({ schemaVersion: "ynx-pay-invoice-signers/v1", signers: [{ keyId: "qa-key", publicKey, algorithm: "ed25519", merchantIds: ["qa-merchant"] }] });
+test("all v1-v5 reject a degenerate identity-point signer even if accidentally operator registered", () => {
+    const degenerate = "01" + "00".repeat(31);
+    const badPolicy = createPayInvoiceSignerPolicy({schemaVersion:"ynx-pay-invoice-signers/v1",signers:[{keyId:"qa-key",publicKey:degenerate,algorithm:"ed25519",merchantIds:["qa-merchant"]}]});
+    for (const version of [1,2,3,4,5]) {
+        const value = {...fixture(version), signingPublicKey:degenerate, signature:degenerate+"00".repeat(32)};
+        assert.throws(() => verifySignedPayInvoice(value,id,badPolicy,()=>{},now), /SIGNATURE_INVALID/);
+    }
+});
 function fixture(version) {
     return { version, id, centralInvoiceId: "qa-central", intentId: "qa-intent", merchantId: "qa-merchant", merchantName: "QA merchant", payoutAddress: ynxAddressFromEVM("0x" + "2".repeat(40)), amount: 25, asset: "YNXT", network: "ynx_6423-1", fee: 1,
         ...(version >= 2 ? { feeBreakdown: { networkFee: 1, providerCost: 0, protocolFee: 0, burn: 0, treasury: 0, merchantNet: 25, sponsorCost: 0, userRebate: 0, source: "controlled-fixture", asOf: "2026-10-03T00:00:00Z", version: 1 } } : {}),
