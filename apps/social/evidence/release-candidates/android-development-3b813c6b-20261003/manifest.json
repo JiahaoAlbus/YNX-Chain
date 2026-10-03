@@ -1,0 +1,66 @@
+{
+  "status": "DEVELOPMENT_NATIVE_CANDIDATE_NOT_RELEASED",
+  "source": {
+    "commit": "3b813c6b135c8a7780393421a99aa6233920ec3e",
+    "tree": "2dc6653169c6db8b433458d91e43d67ebe863381",
+    "parent": "88eb9e3a5ece02284ca2ed3f9e5fb36d71e65797",
+    "archiveBytes": 279705600,
+    "archiveSHA256": "fa58e63cbba667e39a22c7003fd12940d148a7c5d0caeee2fb8614c935aa0c95",
+    "dirtyWorkingTreeExcluded": true,
+    "nodeModules": "borrowed existing locked owner dependencies; product lock untouched"
+  },
+  "artifact": {
+    "localOwnerPath": "apps/social/evidence/release-candidates/android-development-3b813c6b-20261003/social-arm64-development.apk",
+    "bytes": 106744284,
+    "sha256": "9340d93b756a02878a00e9a98a31d9e6234af8b81c934b1e40a0e47399d85c74",
+    "hermesBundleBytes": 4587096,
+    "hermesBundleSHA256": "52a58bd5e885c8675654ce1b9b6be4217d219be73df47ac2ca9e5a59c313e32b",
+    "package": "com.ynx.social",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "abi": "arm64-v8a",
+    "minimumSDK": 24,
+    "targetSDK": 36,
+    "signatureV2Verified": true,
+    "signingCertificateSHA256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "signingClassification": "Android Debug; NOT production release credential",
+    "remoteArtifact": null,
+    "exceedsGitHubNormal100MiBFileLimit": true
+  },
+  "build": {
+    "command": "./gradlew :app:assembleRelease --offline --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a",
+    "jdk": "17.0.17",
+    "sdk": "/Users/huangjiahao/Library/Android/sdk",
+    "nativeBuild": "PASS",
+    "nativeSeconds": 82,
+    "frozenSourceTypecheck": "PASS",
+    "frozenSourceTests": {
+      "total": 301,
+      "pass": 301,
+      "fail": 0,
+      "skipped": 0
+    }
+  },
+  "installedExisting": {
+    "device": "emulator-5584",
+    "versionName": "1.0.0",
+    "versionCode": 1,
+    "apkSHA256": "aeed8510e52e34bbc584353e9e8e5b23e5bf3ae6104251e0e1ab44f7b843586f",
+    "immutableSourceIdentity": null,
+    "touched": false
+  },
+  "permittedQA": "fresh isolated userdata only; guest/non-sensitive UI; no Wallet/account/sign/tx",
+  "release": {
+    "centralSingleUseLease": null,
+    "publicDeployment": false,
+    "productionExecutor": null,
+    "rollbackDeployment": null
+  },
+  "open": [
+    "Working tree test fixture TS2540 repair pending human choice",
+    "Native historical Matrix/account/node/private authorization not verified",
+    "Model signer/admission/context calibration/native inference incomplete",
+    "Real public source-bound lifecycle not verified",
+    "Actual dot/MONSTER NOT_RUN"
+  ]
+}

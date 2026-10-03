@@ -1,0 +1,5 @@
+INFO         | Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
+INFO         | Graphics backend: gfxstream
+INFO         | Found systemPath /Users/huangjiahao/Library/Android/sdk/system-images/android-36/google_apis/arm64-v8a/
+INFO         | Guest usage of host flag 'VulkanVirtualQueue' will be ignored.
+ERROR        | Invalid initial data image path: /Users/huangjiahao/Library/Android/sdk/system-images/android-36/google_apis/arm64-v8a/userdata.img

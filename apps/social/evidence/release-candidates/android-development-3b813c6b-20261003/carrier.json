@@ -1,0 +1,20 @@
+{
+  "status": "LOCAL_FROZEN_DEVELOPMENT_CARRIER_NOT_PUBLIC_DISTRIBUTION",
+  "file": "social-arm64-development.apk.gz",
+  "bytes": 47222857,
+  "sha256": "f894cd9c5d206fc15ebc6e1082601cc0b5437d5f9c50ecf5ae145b6667cdda43",
+  "expandsTo": {
+    "file": "social-arm64-development.apk",
+    "bytes": 106744284,
+    "sha256": "9340d93b756a02878a00e9a98a31d9e6234af8b81c934b1e40a0e47399d85c74"
+  },
+  "sourceCommit": "3b813c6b135c8a7780393421a99aa6233920ec3e",
+  "immutableRemoteCarrier": null,
+  "onlyFormalPublisher": "A wallet_release_owner",
+  "ordinaryHumanDelegationVerified": true,
+  "sensitiveAuthorizationOrReleaseLease": null,
+  "currentFixtureCompilerError": "FIXED; current successor working tree types PASS306tests PASS",
+  "installed": false,
+  "public": false,
+  "wholeProductComplete": false
+}

@@ -1,0 +1,9 @@
+device=emulator-5584
+arm64-v8a
+36
+package:/data/app/~~Ub2MuTOuLdsIrzvU4MkG3w==/com.ynx.social-6A-xdNG2Fdg6iXI30wtJhw==/base.apk
+    versionCode=1 minSdk=24 targetSdk=36
+    versionName=1.0.0
+    lastUpdateTime=2026-10-03 15:36:32
+    installerPackageName=null
+      firstInstallTime=2026-10-03 11:28:55
