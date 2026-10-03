@@ -1831,8 +1831,13 @@ function MessageThread({
 
 import { DurableNativeMomentActions } from './src/durableNativeMomentActions';
 import { runCurrentMomentReport } from './src/currentMomentReport';
+import { NativeMomentReportIntents } from './src/nativeMomentReportIntents';
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
+  const momentReportIntents=useMemo(()=>new NativeMomentReportIntents(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
+    read:key=>SecureStore.getItemAsync(key),
+    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
+  }),[]);
   const momentActions=useMemo(()=>new DurableNativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
     read:key=>SecureStore.getItemAsync(key),
     write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
@@ -2016,14 +2021,13 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
             item.text,
             ...item.media.map((value) => value.sha256),
           ].join("\n"),
-        ),evidence=>api.report({
-          idempotencyKey: `report-${Date.now()}`,
+        ),evidence=>momentReportIntents.run(session.session.account,{
           targetType: "moment",
           targetId: item.id,
           category: "other",
           detail: "User requested Trust review from the moment menu.",
           evidenceHashes: [evidence],
-        }));
+        },current,body=>api.report(body)));
       if(!result)return;
       setReportRecord(result.record);
       setError(null);

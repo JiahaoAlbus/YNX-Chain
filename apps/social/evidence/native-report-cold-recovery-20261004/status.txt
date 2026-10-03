@@ -1,0 +1,5 @@
+typecheck_exit=0
+report_action_tests_exit=0
+full_frontend_test_exit=0
+native_build_exit=0
+native_build_stage=/tmp/social-native-report-recovery-20261004.vE2p50
