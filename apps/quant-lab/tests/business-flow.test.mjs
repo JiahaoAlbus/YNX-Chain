@@ -831,6 +831,48 @@ test('reconcile and kill share one pending risk lane so late receipts cannot cro
   }
 });
 
+test('pending or unconfirmed risk writes fence Paper until a post-write valid risk read',{timeout:3000},async()=>{
+  for(const id of ['kill','reconcile']){
+    const pending=deferred(),hash='e'.repeat(64),before={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:false};
+    let next={paper:before,strategies:{saved:{Name:'Controlled Paper',StrategyHash:hash}}},confirmations=0;
+    const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>url.endsWith('/snapshot')?next:pending.promise});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('paper-strategy').onchange();app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';
+    assert.equal(app.ids.get('paper-submit').disabled,false);
+    const risk=app.ids.get(id).onclick();await settle();
+    assert.equal(app.ids.get('paper-submit').disabled,true,'admitted risk operation fences Paper immediately');
+    await app.submit('paper-order');assert.equal(confirmations,1);assert.equal(app.calls.filter(c=>c.url.endsWith('/paper/orders')).length,0);
+    await vm.runInContext('refresh()',app.context);assert.equal(app.ids.get('paper-submit').disabled,true,'read during pending risk cannot rearm Paper');
+    pending.reject(Error('Controlled lost risk response'));await risk;
+    assert.equal(app.ids.get('reconcile').disabled,true);await app.ids.get('reconcile').onclick();
+    assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1,'unknown reconciliation cannot reuse stale amounts');
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});await app.submit('paper-order');
+      assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(app.ids.get('workspace-read-status').hidden,false);
+      assert.equal(app.ids.get('workspace-read-status').textContent,vm.runInContext('t("riskReceiptUnconfirmed")',app.context));
+    }
+    next={paper:{KillSwitch:false},strategies:next.strategies};
+    await assert.rejects(vm.runInContext('refresh()',app.context));assert.equal(app.ids.get('paper-submit').disabled,true,'incomplete snapshot cannot resolve unknown risk');
+    next={paper:{...before,KillSwitch:true},strategies:next.strategies};await vm.runInContext('refresh()',app.context);
+    assert.equal(app.ids.get('workspace-read-status').hidden,true);assert.equal(app.ids.get('paper-submit').disabled,true,'confirmed kill still fences new intent');
+    assert.equal(app.calls.filter(c=>c.url.endsWith('/paper/orders')).length,0);assert.equal(app.proofs(),0);
+    // A valid non-killed read can re-enable Paper, but never submits it.
+    next={paper:before,strategies:next.strategies};await vm.runInContext('refresh()',app.context);
+    assert.equal(app.ids.get('paper-submit').disabled,false);assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1);
+  }
+});
+
+test('snapshot admitted during a lost risk write cannot resolve its outcome on late arrival',async()=>{
+  const write=deferred(),read=deferred();let reads=0;
+  const paper={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:false};
+  const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?++reads===1?{paper}:read.promise:write.promise});await settle();
+  const kill=app.ids.get('kill').onclick(),late=vm.runInContext('refresh()',app.context);
+  write.reject(Error('Controlled lost response'));await kill;
+  read.resolve({paper});await late;
+  assert.equal(vm.runInContext('riskOutcomeUnconfirmed',app.context),true);
+  assert.equal(vm.runInContext('paperFreshIntentBlockKey()',app.context),'riskReceiptUnconfirmed');
+  assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1);
+});
+
 test('confirmed kill blocks fresh Paper intents before confirmation and survives selection changes',async()=>{
   const strategyHash='e'.repeat(64),app=harness({snapshot:{paper:{KillSwitch:true},strategies:{saved:{Name:'Stopped Paper fixture',StrategyHash:strategyHash}}},confirmAction:()=>{throw Error('kill must block before confirmation')}});await settle();
   app.ids.get('paper-strategy').value=strategyHash;app.ids.get('paper-strategy').onchange();

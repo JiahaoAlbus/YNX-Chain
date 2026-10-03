@@ -12,6 +12,7 @@ const RESEARCH_TRAIN_END = 24;
 let lastToastKey = null;
 let lastToastSuffix = '';
 const riskWrites = new Set();
+let riskOutcomeUnconfirmed = false;
 const scheduleWrites = new Set(), scheduleUnconfirmed = new Set();
 let pendingMandate = null;
 let pendingOrder = null;
@@ -58,7 +59,7 @@ function readPendingResearchIntent() {
 let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperIntent = readPendingPaperIntent();
 // A pending exact-key replay may retrieve an already committed receipt even
 // after a kill. The service still rejects new execution under the kill switch.
-function paperFreshIntentBlockKey() { return pendingPaperInvalid ? 'paperPendingUnreadable' : pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
+function paperFreshIntentBlockKey() { return riskWrites.size>0 || riskOutcomeUnconfirmed ? 'riskReceiptUnconfirmed' : pendingPaperInvalid ? 'paperPendingUnreadable' : pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
 function paperFreshIntentBlocked() { return paperFreshIntentBlockKey() !== null; }
 function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); renderPaperPendingState(); }
 function readPendingPaperIntent() {
@@ -608,7 +609,7 @@ const workspaceReadCopy={
   id:'Pembaruan tidak tersedia. Catatan adalah pembacaan terakhir yang terkonfirmasi, bukan keadaan terbaru. Muat ulang; tindakan tertunda tetap disimpan.'
 };
 for(const [language,workspaceReadUnavailable] of Object.entries(workspaceReadCopy))Object.assign(businessCopy[language],{workspaceReadUnavailable});
-function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable;element.textContent=workspaceReadUnavailable?t('workspaceReadUnavailable'):'';if(workspaceReadUnavailable)$$('.schedule-toggle[data-enabled="true"]').forEach(button=>{button.disabled=true});}
+function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable&&!riskOutcomeUnconfirmed;element.textContent=riskOutcomeUnconfirmed?t('riskReceiptUnconfirmed'):workspaceReadUnavailable?t('workspaceReadUnavailable'):'';if(workspaceReadUnavailable)$$('.schedule-toggle[data-enabled="true"]').forEach(button=>{button.disabled=true});}
 function applyLocale() {
   $('#research-configured-training').textContent=String(RESEARCH_TRAIN_END);
   document.documentElement.lang = locale;
@@ -750,18 +751,23 @@ const toast = (m, key = null, suffix = '') => {
 };
 async function refresh() {
   const revision = ++snapshotRevision;
+  const riskPendingAtRead = riskWrites.size>0;
   let next;
   try {
     next = await api("/v1/snapshot");
     if(revision!==snapshotRevision)return;
     const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
     if(!object(next)||['paper','strategies','experiments','access'].some(key=>next[key]!==undefined&&!object(next[key])))throw Object.assign(new Error(t('workspaceReadUnavailable')),{code:'QUANT_SNAPSHOT_INVALID',localeKey:'workspaceReadUnavailable'});
+    // Only a complete read admitted after the risk write has settled can
+    // resolve its unknown outcome. Reads while that lane is busy cannot.
+    if(riskOutcomeUnconfirmed && riskWrites.size===0 && !riskPendingAtRead) confirmedRiskReceipt(next.paper);
   } catch(error) {
     if(revision!==snapshotRevision)return;
     workspaceReadUnavailable=true;renderWorkspaceReadStatus();renderPaperSubmitControl();renderRiskControls();throw error;
   }
   if (revision !== snapshotRevision) return;
   snapshot = next;
+  if(riskWrites.size===0 && !riskPendingAtRead)riskOutcomeUnconfirmed=false;
   workspaceReadUnavailable=false;renderWorkspaceReadStatus();
   statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
   for (const id of scheduleUnconfirmed) if (Object.values(snapshot.strategies || {}).some(strategy => strategy?.ID === id && observedSchedule(strategy))) scheduleUnconfirmed.delete(id);
@@ -1427,7 +1433,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
   }
 };
 function renderRiskControls() {
-  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0||(id==='reconcile'&&workspaceReadUnavailable); button.ariaBusy=String(riskWrites.has(id)); }
+  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0||(id==='reconcile'&&(workspaceReadUnavailable||riskOutcomeUnconfirmed)); button.ariaBusy=String(riskWrites.has(id)); }
 }
 const reconciliationConfirmationCopy = {
   en: 'Confirm Paper reconciliation with the exact observed amounts below. A difference activates the persistent kill switch. Local simulation only; no wallet signature, chain transaction or network fee.',
@@ -1455,19 +1461,21 @@ function applyConfirmedRiskReceipt(receipt) {
   // A confirmed write is newer than reads admitted before its completion.
   // Keep that source receipt even if the subsequent snapshot transport fails.
   snapshotRevision++;
+  riskOutcomeUnconfirmed=false;renderWorkspaceReadStatus();
   snapshot.paper = receipt;
   render();
 }
 $("#reconcile").onclick = async () => {
   if (!statefulPreview || riskWrites.size>0) return;
+  if (riskOutcomeUnconfirmed) { toast(t('riskReceiptUnconfirmed'),'riskReceiptUnconfirmed');return; }
   if (workspaceReadUnavailable) { toast(t('workspaceReadUnavailable'),'workspaceReadUnavailable');return; }
   let ownsRiskLane=false;
   try {
     if (!Number.isSafeInteger(snapshot.paper?.Cash) || !Number.isSafeInteger(snapshot.paper?.Position)) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
     const observed={Cash:snapshot.paper.Cash,Position:snapshot.paper.Position},revision=snapshotRevision;
     if (!confirm(`${t('confirmReconciliation')}\n${t('paperCash')}: ${observed.Cash}\n${t('paperPosition')}: ${observed.Position}`)) return;
-    if (!statefulPreview || workspaceReadUnavailable || riskWrites.size>0 || revision!==snapshotRevision || snapshot.paper?.Cash!==observed.Cash || snapshot.paper?.Position!==observed.Position) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
-    riskWrites.add('reconcile');ownsRiskLane=true;snapshotRevision++;renderRiskControls();
+    if (!statefulPreview || workspaceReadUnavailable || riskOutcomeUnconfirmed || riskWrites.size>0 || revision!==snapshotRevision || snapshot.paper?.Cash!==observed.Cash || snapshot.paper?.Position!==observed.Position) throw Object.assign(Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
+    riskWrites.add('reconcile');riskOutcomeUnconfirmed=true;ownsRiskLane=true;snapshotRevision++;renderRiskControls();renderWorkspaceReadStatus();renderPaperSubmitControl();
     const receipt=confirmedRiskReceipt(await api("/v1/paper/reconcile", {
       method: "POST",
       body: JSON.stringify(observed),
@@ -1479,7 +1487,7 @@ $("#reconcile").onclick = async () => {
   } catch (e) {
     toast(e.message,e.localeKey??null);
   } finally {
-    if(ownsRiskLane)riskWrites.delete('reconcile');renderRiskControls();
+    if(ownsRiskLane)riskWrites.delete('reconcile');renderRiskControls();renderWorkspaceReadStatus();renderPaperSubmitControl();
   }
 };
 $("#kill").onclick = async () => {
@@ -1492,7 +1500,7 @@ $("#kill").onclick = async () => {
     renderRiskControls();
     return;
   }
-  riskWrites.add('kill');snapshotRevision++;renderRiskControls();
+  riskWrites.add('kill');riskOutcomeUnconfirmed=true;snapshotRevision++;renderRiskControls();renderWorkspaceReadStatus();renderPaperSubmitControl();
   try {
     const receipt=confirmedRiskReceipt(await api("/v1/risk/kill", {
       method: "POST",
@@ -1505,7 +1513,7 @@ $("#kill").onclick = async () => {
   } catch (e) {
     toast(e.message,e.localeKey??null);
   } finally {
-    riskWrites.delete('kill');renderRiskControls();
+    riskWrites.delete('kill');renderRiskControls();renderWorkspaceReadStatus();renderPaperSubmitControl();
   }
 };
 if(pendingResearchIntent){

@@ -107,7 +107,8 @@ test('actual Chrome rejects ambiguous research costs/windows without HTTP and pr
       assert.ok((await page.locator('#toast').textContent()).length>30);assert.equal(bodies.length,0);assert.equal(await page.locator('#research-submit').isEnabled(),true);
     }
     await page.selectOption('#locale','en');await page.locator('#fast').fill('3');await page.locator('#slow').fill('8');await page.locator('#seed').fill('0');await page.locator('#slippage').fill('0');await page.locator('#research-submit').click();
-    await page.locator('#toast').filter({hasText:'Controlled source unavailable'}).waitFor();assert.equal(bodies.length,1);
+    await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();assert.equal(bodies.length,1);
+    assert.doesNotMatch(await page.locator('#toast').textContent(),/Controlled source unavailable/);
     assert.equal(bodies[0].assumptions.feeBPS,0);assert.equal(bodies[0].assumptions.slippageBPS,0);assert.equal(bodies[0].strategy.seed,0);assert.deepEqual(bodies[0].strategy.params,{fast:3,slow:8});
     assert.equal(await page.locator('#fee').inputValue(),'0');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(context.pages().length,1);
     await page.screenshot({path:path.join(evidence,'research-input-guard-source-unavailable.png'),fullPage:true});
@@ -132,7 +133,7 @@ test('actual Chrome recovers saved research history after malformed readback wit
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     let malformed=true,posts=0;
-    const good={id:'verified-history',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Verified history'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},sensitivitySpreadBPS:2};
+    const good={id:'verified-history',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Verified history'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},sensitivitySpreadBPS:2};
     await context.route('**/api/v1/snapshot',async route=>{
       const response=await route.fetch(),body=await response.json();
       body.experiments=malformed?{good,bad:{...good,id:'bad-history',metrics:{...good.metrics,ReturnBPS:'<img src=x onerror="window.injected=true">'}},missing:null}:{good};
@@ -204,7 +205,7 @@ test('actual Chrome requires explicit Paper preview confirmation and preserves a
     assert.equal(dialog.type(),'confirm');assert.ok(dialog.message().includes(hash));assert.match(dialog.message(),/1234567/);assert.match(dialog.message(),/10%/);assert.match(dialog.message(),/does not deduct commission\/gas or model slippage/);
     await dialog.dismiss();await cancelClick;assert.equal(posts,0);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),0);
     const confirmed=page.waitForEvent('dialog'),confirmClick=page.locator('#paper-submit').click();await (await confirmed).accept();await confirmClick;
-    await page.getByText('Controlled uncertain service outcome',{exact:true}).waitFor();assert.equal(posts,1);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
+    await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();assert.doesNotMatch(await page.locator('#toast').textContent(),/Controlled uncertain service outcome/);assert.equal(posts,1);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
     await page.selectOption('#locale','ar');const retry=page.waitForEvent('dialog'),retryClick=page.locator('#paper-submit').click();const retryDialog=await retry;assert.match(retryDialog.message(),/تأكيد/);await retryDialog.dismiss();await retryClick;assert.equal(posts,1);
     assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
   }finally{await context.close()}
@@ -413,7 +414,7 @@ test('real research form coalesces a delayed request without displaying unconfir
     assert.equal(await page.locator('#research-submit').isDisabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'true');
     await page.evaluate(()=>{document.getElementById('backtest').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))});
     await page.selectOption('#locale','ar');assert.match(await page.locator('#research-request-status').textContent(),/قيد الانتظار/);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(posts,1);
-    complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
+    complete();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();assert.doesNotMatch(await page.locator('#toast').textContent(),/Exact delayed market unavailable/);assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
   }finally{await context.close()}
 });
 test('actual Chrome retains confirmed workspace with persistent stale warning then explicitly recovers',async()=>{
@@ -536,7 +537,7 @@ test('actual guest research stays usable when Quant browser storage is denied',a
     const page=await context.newPage();const calls=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))calls.push({path:new URL(request.url()).pathname,method:request.method(),headers:request.headers()})});
     await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#workspace-storage-boundary').isVisible(),true);assert.equal(await page.locator('#locale').inputValue(),'en');
     await page.selectOption('#locale','ar');assert.equal(await page.locator('html').getAttribute('dir'),'rtl');assert.match(await page.locator('#workspace-storage-boundary').textContent(),/تخزين/);
-    await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.getByText('unavailable',{exact:true}).waitFor();
+    await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();
     assert.ok(calls.some(call=>call.path==='/api/v1/public/research/backtests/from-market'&&call.method==='POST'));
     assert.ok(calls.filter(call=>call.path.startsWith('/api/v1/')).every(call=>!call.headers['x-ynx-tenant-id']&&!call.headers['x-ynx-preview-mode']));
     await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.locator('#paper-submit').isDisabled(),true);
@@ -544,7 +545,7 @@ test('actual guest research stays usable when Quant browser storage is denied',a
     assert.equal(calls.filter(call=>/\/paper\/orders|\/risk\/kill|\/paper\/reconcile/.test(call.path)).length,0);
   }finally{await context.close()}
 });
-test('desktop fails closed without actual matched history and captures evidence',async()=>{const page=await browser.newPage({viewport:{width:1440,height:900},colorScheme:'light'});await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.getByText('unavailable',{exact:true}).waitFor();await page.getByRole('button',{name:'Experiments'}).click();await page.getByText('No experiments. Empty means no invented performance.').waitFor();await page.screenshot({path:path.join(evidence,'desktop-light.png'),fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(evidence,'desktop-dark.png'),fullPage:true})});
+test('desktop fails closed without actual matched history and captures evidence',async()=>{const page=await browser.newPage({viewport:{width:1440,height:900},colorScheme:'light'});await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();await page.getByRole('button',{name:'Experiments'}).click();await page.getByText('No experiments. Empty means no invented performance.').waitFor();await page.screenshot({path:path.join(evidence,'desktop-light.png'),fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(evidence,'desktop-dark.png'),fullPage:true})});
 test('mobile Arabic risk confirmation is localized and cancellation leaves persistent risk unchanged',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});
   await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','ar');
@@ -671,6 +672,37 @@ test('actual Chrome reconciliation preview cancels in twelve locales without any
     assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);assert.equal(context.pages().length,1);
   }finally{await context.close()}
 });
+test('lost actual-service kill response fences Paper until refresh reads persisted kill',{timeout:15000},async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});let release;
+  const held=new Promise(resolve=>{release=resolve});let reached;
+  const captured=new Promise(resolve=>{reached=resolve});let paperPosts=0;
+  try{
+    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});
+    await page.evaluate(()=>{snapshot.strategies={fixture:{Name:'Controlled selection fixture',StrategyHash:'e'.repeat(64)}};render()});
+    await page.getByRole('button',{name:'Paper',exact:true}).click();
+    await page.selectOption('#paper-strategy','e'.repeat(64));assert.equal(await page.locator('#paper-submit').isEnabled(),true);
+    await context.route('**/api/v1/paper/orders',route=>{paperPosts++;return route.abort('failed')});
+    await context.route('**/api/v1/risk/kill',async route=>{
+      const response=await route.fetch();assert.equal((await response.json()).KillSwitch,true);reached();await held;await route.abort('failed');
+    });
+    await page.getByRole('button',{name:'Risk',exact:true}).click();page.on('dialog',dialog=>dialog.accept());
+    await page.getByRole('button',{name:'Activate kill switch',exact:true}).click();await captured;
+    assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    await page.evaluate(()=>document.getElementById('paper-order').onsubmit({preventDefault(){}}));assert.equal(paperPosts,0);
+    release();await page.waitForFunction(()=>riskWrites.size===0&&riskOutcomeUnconfirmed);
+    assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),false,'lost write response does not invent confirmed kill');
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);assert.equal(await page.locator('#workspace-read-status').textContent(),await page.evaluate(()=>t('riskReceiptUnconfirmed')));
+      assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    }
+    await page.evaluate(()=>refresh());assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),true);
+    assert.equal(await page.evaluate(()=>riskOutcomeUnconfirmed),false);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    await page.reload({waitUntil:'networkidle'});assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),true);
+    assert.equal(paperPosts,0);assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+  }finally{release();await context.close()}
+});
+
 test('confirmed actual-service kill survives follow-up network loss and delayed pre-write snapshot',{timeout:15000},async()=>{
   // Delay a real isolated Go response, not a fabricated risk-state result.
   const context=await browser.newContext();let release;
