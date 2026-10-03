@@ -10,6 +10,6 @@ function run(cmd,args){const result=spawnSync(cmd,args,{stdio:'inherit'});if(res
 try{
   run(path.join(javaHome,'bin/javac'),['-d',temporary,path.join(base,'android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java'),path.join(base,'scripts/native-boundary-check.java')]);
   run(path.join(javaHome,'bin/java'),['-cp',temporary,'com.ynxweb4.video.NativeBoundaryCheck']);
-  run('xcrun',['swiftc','-target',`${process.arch === 'arm64' ? 'arm64' : 'x86_64'}-apple-macos14.0`,'-module-cache-path',path.join(temporary,'modules'),...['VideoModel.swift','ProductDeviceKey.swift','VideoNativeCore.swift'].map(name=>path.join(base,'ios/YNXVideo',name)),path.join(base,'scripts/native-boundary-check.swift'),'-o',path.join(temporary,'swift-check')]);
+  run('xcrun',['swiftc','-target',`${process.arch === 'arm64' ? 'arm64' : 'x86_64'}-apple-macos14.0`,'-module-cache-path',path.join(temporary,'modules'),...['VideoModel.swift','ProductDeviceKey.swift','VideoNativeCore.swift','VideoNativeState.swift','VideoNativeCustody.swift','VideoNativeEngine.swift','VideoNativeTransport.swift'].map(name=>path.join(base,'ios/YNXVideo',name)),path.join(base,'scripts/native-boundary-check.swift'),'-o',path.join(temporary,'swift-check')]);
   run(path.join(temporary,'swift-check'),[]);
 }finally{await rm(temporary,{recursive:true,force:true});}

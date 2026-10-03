@@ -87,6 +87,13 @@ final class VideoNativeState {
     func requestRevocation(_ namespace: String,_ expected: Context) throws {
         try locked { try require(expected); var next=state; try ensure(namespace,expected,&next); next.namespaces[namespace]!.revocationRequested=true; try persist(next) }
     }
+    func requestCurrentRevocation(_ expected: Context) throws {
+        try locked {
+            try require(expected); var next=state; var changed=false
+            for (name,box) in next.namespaces where box.context==expected { next.namespaces[name]!.revocationRequested=true; changed=true }
+            if changed { try persist(next) }
+        }
+    }
     func revocationRequested(_ namespace: String,_ expected: Context) throws -> Bool {
         try locked { try require(expected); try checkNamespace(namespace,expected,state); return state.namespaces[namespace]?.revocationRequested ?? false }
     }

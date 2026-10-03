@@ -29,7 +29,11 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 	if source == "" || os.Getenv("YNX_QA_MEDIA_MUSIC_EXTENDED") != "1" {
 		t.Skip("requires independently verified matching successor")
 	}
-	for _, target := range []string{"video:android", "video:macos", "creator-studio:android", "creator-studio:macos"} {
+	targets := []string{"video:android", "video:macos", "creator-studio:android", "creator-studio:macos"}
+	if os.Getenv("YNX_QA_APPLE_VIDEO_ENGINE_BIN") != "" {
+		targets = append(targets, "video:ios")
+	}
+	for _, target := range targets {
 		t.Run(target, func(t *testing.T) {
 			parts := strings.Split(target, ":")
 			product, platform := parts[0], parts[1]
@@ -153,7 +157,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			defer server.Close()
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
-			cmd := exec.CommandContext(ctx, "node", "../../apps/video/scripts/media-native-authority-check.mjs", source, product, platform)
+			script := "../../apps/video/scripts/media-native-authority-check.mjs"
+			apple := product == "video" && (platform == "ios" || platform == "macos") && os.Getenv("YNX_QA_APPLE_VIDEO_ENGINE_BIN") != ""
+			if apple {
+				script = "../../apps/video/scripts/media-apple-authority-check.mjs"
+			}
+			cmd := exec.CommandContext(ctx, "node", script, source, product, platform)
 			cmd.Env = append(os.Environ(), "YNX_QA_NATIVE_MEDIA_KEY="+nativeMediaKey, "YNX_QA_NATIVE_VIDEO_ID="+nativeVideoID, "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
 			var output, diagnostic bytes.Buffer
 			cmd.Stdout = &output
@@ -163,10 +172,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			}
 			var receipt struct {
 				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
+				ActualAppleSwiftWebKitEngine bool `json:"actualAppleSwiftWebKitEngine"`
+				ActualOriginalAppleModelFlow bool `json:"actualOriginalAppleModelFlow"`
 				ActualWalletConsent          bool `json:"actualWalletConsent"`
 				QAProtectedPorts             bool `json:"qaProtectedPorts"`
 			}
-			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts {
+			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
 			mu.Lock()

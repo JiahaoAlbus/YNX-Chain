@@ -139,8 +139,8 @@ func validVideoV2Binding(s videoSessionV2) bool {
 		return s.ApplicationID == application+".web" && s.BundleID == nil && s.PackageID == nil && s.Origin == origin && s.Callback == origin+"/wallet-auth/callback"
 	case "android":
 		return s.ApplicationID == application && s.BundleID == nil && s.PackageID != nil && *s.PackageID == application && s.Origin == "app://android/"+application && s.Callback == scheme+"://wallet-auth/callback"
-	case "macos":
-		return s.ApplicationID == application && s.PackageID == nil && s.BundleID != nil && *s.BundleID == application && s.Origin == "app://macos/"+application && s.Callback == scheme+"://wallet-auth/callback"
+	case "ios", "macos":
+		return s.ApplicationID == application && s.PackageID == nil && s.BundleID != nil && *s.BundleID == application && s.Origin == "app://"+s.Platform+"/"+application && s.Callback == scheme+"://wallet-auth/callback"
 	}
 	return false
 }

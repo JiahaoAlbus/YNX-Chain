@@ -10,6 +10,7 @@
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>
+<key>LSApplicationQueriesSchemes</key><array><string>ynxwallet</string></array>
 <key>LSRequiresIPhoneOS</key><true/>
 <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.ynxweb4.video.wallet-auth</string><key>CFBundleURLSchemes</key><array><string>ynxvideo</string></array></dict></array>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>

@@ -26,13 +26,23 @@ struct VideoRecord: Identifiable, Decodable {
     @Published var selected: VideoRecord?
     @Published var player: AVPlayer?
     @Published var operationMessage = ""
+    @Published var accountMessage = ""
+    @Published var accountBusy = false
+    @Published var accountConnected = false
+    @Published var signOutPending = false
+    @Published var awaitingWallet = false
+    private var engine: VideoNativeEngine?
+    private let makeEngine: @MainActor () throws -> VideoNativeEngine
+    private var accountRevision: UInt64 = 0
+    private var didStart = false
     private var catalog: [String:[String:String]] = [:]
     private let boundary = VideoRequestBoundary()
     private let loadData: (String, [URLQueryItem]) async throws -> Data
     let gateway = VideoHTTP.api
 
-    init(loadData: @escaping (String, [URLQueryItem]) async throws -> Data = { path, query in try await VideoHTTP.shared.data(path, query: query) }) {
+    init(loadData: @escaping (String, [URLQueryItem]) async throws -> Data = { path, query in try await VideoHTTP.shared.data(path, query: query) }, makeEngine: @escaping @MainActor () throws -> VideoNativeEngine = VideoNativeEngine.live) {
         self.loadData = loadData
+        self.makeEngine = makeEngine
         let system = Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
         let selectedLocale = UserDefaults.standard.string(forKey: "ynx.video.locale") ?? Self.supported.first(where: { system.hasPrefix($0) }) ?? "en"
         locale = selectedLocale
@@ -65,7 +75,7 @@ struct VideoRecord: Identifiable, Decodable {
         // A native SDK-confirmed session and exact business proof are required.
         // Legacy URI parameters never authorize a private library read.
         do {
-            let data = try await VideoHTTP.shared.accountData(path)
+            let data = try await VideoHTTP.shared.accountData(path,engine:engine)
             guard boundary.matches(generation) else { return }
             guard let array=try JSONSerialization.jsonObject(with:data) as? [[String:Any]] else { state = .unavailable; return }
             let rows=array.map{String(describing:$0["Name"] ?? $0["name"] ?? $0["VideoID"] ?? $0["video_id"] ?? "record")}
@@ -73,29 +83,86 @@ struct VideoRecord: Identifiable, Decodable {
         } catch { if boundary.matches(generation) { state = .failure(text("signIn") + " · " + text("unavailable")) } }
     }
 
-    func walletURL() -> URL? {
-        beginNavigation()
-        let now=Date(), expires=now.addingTimeInterval(300)
-        let iso=ISO8601DateFormatter(); iso.formatOptions=[.withInternetDateTime,.withFractionalSeconds]
-        let key: String
-        do { key = try ProductDeviceKey.shared.compressedPublicKey() }
-        catch { state = .failure(text("unavailable")); return nil }
-        let nonce=random(24)
-        let request: [String:Any] = ["bundleId":"com.ynxweb4.video","callback":"ynxvideo://wallet-auth/callback","chainId":"ynx_6423-1","expiresAt":iso.string(from:expires),"issuedAt":iso.string(from:now),"nonce":nonce,"productClientId":"ynx-video-mobile-v1","productDeviceAlgorithm":"p256-sha256","productDeviceKey":key,"purpose":text("privacy"),"requestingProduct":"ynx-video","scopes":["video.comment","video.history","video.read","video.report","video.subscribe"],"version":"1"]
-        guard JSONSerialization.isValidJSONObject(request), let data=try? JSONSerialization.data(withJSONObject:request,options:[.sortedKeys]) else{return nil}
-        let encoded=data.base64EncodedString().replacingOccurrences(of:"+",with:"-").replacingOccurrences(of:"/",with:"_").replacingOccurrences(of:"=",with:"")
-        return URL(string:"ynxwallet://authorize?request=\(encoded)")
+    func start() async {
+        guard !didStart else { return };didStart=true
+        async let guest: Void = load()
+        await restoreAccount();await guest
     }
-
+    private func ensureEngine() throws -> VideoNativeEngine {
+        if let engine { return engine }
+        let created=try makeEngine();engine=created
+        created.onChange={ [weak self,weak created] in
+            guard let self,let created,self.engine === created else { return }
+            let connected=created.identity != nil
+            if self.accountConnected && !connected { self.beginNavigation();self.state = .unavailable }
+            self.accountConnected=connected
+            if let identity=created.identity { self.accountMessage=identity.account }
+        }
+        return created
+    }
+    func restoreAccount() async {
+        guard !accountBusy else { return }
+        accountBusy=true;accountRevision &+= 1;let revision=accountRevision
+        defer { if revision==accountRevision { accountBusy=false } }
+        do {
+            let active=try ensureEngine(),result=try await active.dispatch("restore")
+            guard revision==accountRevision else { return }
+            applyAccount(result,active)
+        } catch { if revision==accountRevision { accountConnected=false;accountMessage=text("signIn")+" · "+text("retry") } }
+    }
+    func signIn() async {
+        guard !accountBusy,!signOutPending else { return }
+        beginNavigation();accountBusy=true;accountRevision &+= 1;let revision=accountRevision
+        defer { if revision==accountRevision { accountBusy=false } }
+        do {
+            let active=try ensureEngine()
+            signOutPending=true
+            let retired=try await active.dispatch("disconnect")
+            guard revision==accountRevision else { return }
+            applyAccount(retired,active)
+            guard !signOutPending,["disconnected","expired"].contains(retired["status"] as? String ?? "") else { return }
+            let reply=try await active.dispatch("connect")
+            guard revision==accountRevision else { return }
+            let result=reply["state"] as? [String:Any] ?? reply
+            applyAccount(result,active)
+        } catch { if revision==accountRevision { accountConnected=false;accountMessage=text("signIn")+" · "+text("retry") } }
+    }
+    func signOut() async {
+        beginNavigation();accountRevision &+= 1;let revision=accountRevision
+        accountBusy=true;accountConnected=false;signOutPending=true
+        defer { if revision==accountRevision { accountBusy=false } }
+        do {
+            let active=try ensureEngine(),reply=try await active.dispatch("disconnect")
+            guard revision==accountRevision else { return };applyAccount(reply,active)
+        } catch { if revision==accountRevision { accountMessage=text("signOut")+" · "+text("retry") } }
+    }
+    private func applyAccount(_ result: [String:Any],_ active: VideoNativeEngine) {
+        accountConnected=active.identity != nil
+        let status=result["status"] as? String ?? "retry-required"
+        if accountConnected || ["disconnected","expired"].contains(status) { signOutPending=false }
+        else if result["revocationPending"] as? Bool==true || status=="revocation-pending" { signOutPending=true }
+        awaitingWallet=status=="connecting"
+        if let identity=active.identity { accountMessage=identity.account }
+        else if signOutPending { accountMessage=text("signOut")+" · "+text("retry") }
+        else if status=="connecting" { accountMessage=text("walletPending") }
+        else if ["disconnected","expired","guest"].contains(status) { accountMessage="" }
+        else { accountMessage=text("signIn")+" · "+text("retry") }
+    }
     func handle(url: URL) {
-        guard url.scheme=="ynxvideo",url.host=="wallet-auth",url.path=="/callback",url.user==nil,url.password==nil,url.port==nil,url.fragment==nil else{return}
-        beginNavigation()
-        state = .failure(text("signIn") + " · " + text("unavailable"))
+        guard url.scheme=="ynxvideo",url.host=="wallet-auth",url.path=="/callback",url.user==nil,url.password==nil,url.port==nil,url.fragment==nil,url.absoluteString.count<=32768 else{return}
+        beginNavigation();accountRevision &+= 1;let revision=accountRevision
+        accountConnected=false;accountBusy=true;state = .unavailable
+        Task { @MainActor in
+            defer { if revision==accountRevision { accountBusy=false } }
+            do { let active=try ensureEngine(),reply=try await active.dispatch("handleReturn",["url":url.absoluteString]);guard revision==accountRevision else { return };applyAccount(reply,active);if accountConnected { await loadLibrary("/v1/playlists",label:text("playlists")) } }
+            catch { if revision==accountRevision { accountMessage=text("signIn")+" · "+text("retry") } }
+        }
     }
+    func suspendAccount() { accountRevision &+= 1;accountBusy=false;beginNavigation();engine?.suspend();accountConnected=false;state = .unavailable }
     @discardableResult func mutate(_ path:String,body:[String:Any]) async -> Bool {
         let generation = boundary.generation
         do {
-            _ = try await VideoHTTP.shared.accountData(path,method:"POST",body:JSONSerialization.data(withJSONObject:body))
+            _ = try await VideoHTTP.shared.accountData(path,method:"POST",body:JSONSerialization.data(withJSONObject:body),engine:engine)
             guard boundary.matches(generation) else { return false }
             operationMessage = ""
             return true
@@ -125,5 +192,4 @@ struct VideoRecord: Identifiable, Decodable {
         player=AVPlayer(url:url); selected=video
     }
     func stopPlayback() { player?.pause(); player?.replaceCurrentItem(with:nil); player=nil }
-    private func random(_ count:Int)->String { var bytes=[UInt8](repeating:0,count:count); _=SecRandomCopyBytes(kSecRandomDefault,count,&bytes); return Data(bytes).base64EncodedString().replacingOccurrences(of:"+",with:"-").replacingOccurrences(of:"/",with:"_").replacingOccurrences(of:"=",with:"") }
 }

@@ -1,0 +1,85 @@
+import AppKit
+import CryptoKit
+import Foundation
+
+// Headless owner process, injected custody/generated key and fixed QA network
+// adapters only. No user Keychain, app installation, real Wallet or user UI.
+@main enum AppleEngineCheck {
+    @MainActor static func main() async {
+        NSApplication.shared.setActivationPolicy(.prohibited)
+        do {
+            let args=CommandLine.arguments;guard args.count==5,let gateway=URL(string:args[2]),let backend=URL(string:args[3]),[gateway,backend].allSatisfy({$0.scheme=="http" && $0.host=="127.0.0.1" && $0.path.isEmpty}),["ios","macos"].contains(args[4]) else { throw VideoNativeEngine.Failure.invalidSource }
+            let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey()
+            var persisted: Data?,opened="",mismatch=false,hold=false,held: CheckedContinuation<Void,Never>?
+            let key=ProductDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
+            let network=VideoNativeTransport()
+            let sender: VideoNativeEngine.Sender = { request,limit in
+                let url=request.url!
+                if url.host=="video.ynxweb4.com" && hold { hold=false;await withCheckedContinuation { held=$0 } }
+                if url.absoluteString==VideoHTTP.api.absoluteString+"/v1/account" && mismatch { return (Data("{\"schemaVersion\":1,\"account\":\"wrong-account\"}".utf8),HTTPURLResponse(url:url,statusCode:200,httpVersion:nil,headerFields:["Content-Type":"application/json"])!) }
+                let target: URL
+                if url.host=="wallet-auth.ynxweb4.com" { target=URL(string:gateway.absoluteString+url.path)! }
+                else if url.host=="video.ynxweb4.com",url.path.hasPrefix("/video/api/") { target=URL(string:backend.absoluteString+url.path.dropFirst("/video/api".count))! }
+                else { throw VideoNativeEngine.Failure.invalidSource }
+                var redirected=request;redirected.url=target
+                let (bytes,response)=try await network.send(redirected,limit)
+                var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
+                return (bytes,HTTPURLResponse(url:url,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!)
+            }
+            func create() throws -> VideoNativeEngine {
+                let state=try VideoNativeState(platform:platform,deviceId:"qa-original-apple-video-device",deviceKey:VideoNativeState.encode(original.publicKey.compressedRepresentation),read:{persisted},write:{persisted=$0})
+                return try VideoNativeEngine(state:state,key:key,assets:assets,send:sender,walletDetected:{true},openWallet:{url in opened=url.absoluteString;return true})
+            }
+            var engine=try create()
+            func createModel(_ engine: VideoNativeEngine) -> VideoModel { VideoModel(loadData:{path,query in
+                var parts=URLComponents(url:try VideoHTTP.url(path),resolvingAgainstBaseURL:false)!;parts.queryItems=query
+                let (bytes,_)=try await sender(URLRequest(url:parts.url!),2_097_152);return bytes
+            },makeEngine:{engine}) }
+            var model=createModel(engine)
+            func reply(_ id: String,_ value: [String:Any]) { do { let bytes=try JSONSerialization.data(withJSONObject:["id":id,"value":value],options:[.sortedKeys]);FileHandle.standardOutput.write(bytes+Data([10])) } catch { FileHandle.standardOutput.write(Data("{\"error\":\"fixture output invalid\"}\n".utf8)) } }
+            reply("ready",["ready":true,"platform":platform,"actualOSStorage":false])
+            while let line=await Task.detached(operation:{readLine()}).value {
+                guard let command=try? VideoNativeState.object(line),let id=command["id"] as? String,let name=command["name"] as? String else { throw VideoNativeEngine.Failure.invalidSource }
+                Task { @MainActor in
+                    do {
+                        let value: [String:Any]
+                        switch name {
+                        case "connect":value=try await engine.dispatch("connect")
+                        case "callback":value=try await engine.dispatch("handleReturn",["url":command["url"]!])
+                        case "restore":value=try await engine.dispatch("restore")
+                        case "disconnect":value=try await engine.dispatch("disconnect")
+                        case "proof":value=try await engine.dispatch("prepareRequest",command["args"] as! [String:Any])
+                        case "json":
+                            let body=(command["body"] as? String).map{Data($0.utf8)}
+                            let bytes=try await VideoHTTP.shared.accountData(command["path"] as! String,method:command["method"] as? String ?? "GET",body:body,engine:engine)
+                            value=["json":try JSONSerialization.jsonObject(with:bytes)]
+                        case "uiSignIn":await model.signIn();value=["busy":model.accountBusy,"pending":model.signOutPending]
+                        case "uiCallback":
+                            model.handle(url:URL(string:command["url"] as! String)!)
+                            let deadline=Date().addingTimeInterval(35)
+                            while model.accountBusy && Date()<deadline { try await Task.sleep(nanoseconds:10_000_000) }
+                            value=["connected":model.accountConnected,"busy":model.accountBusy,"sdkStatus":engine.lastStatus,"sdkFailure":engine.lastFailure]
+                        case "uiLibrary":
+                            await model.loadLibrary("/v1/playlists",label:"Playlists")
+                            if case .library(_,let rows)=model.state { value=["rows":rows] } else { value=["rows":[],"connected":model.accountConnected] }
+                        case "uiMutate":value=["accepted":await model.mutate(command["path"] as! String,body:command["body"] as! [String:Any])]
+                        case "uiSignOut":await model.signOut();value=["connected":model.accountConnected,"pending":model.signOutPending]
+                        case "cold":engine.close();engine=try create();model=createModel(engine);value=try await engine.dispatch("restore")
+                        case "mismatch":mismatch=command["enabled"] as! Bool;value=["enabled":mismatch]
+                        case "holdNext":hold=true;value=["holding":true]
+                        case "release":held?.resume();held=nil;value=["released":true]
+                        case "inspect":value=["held":held != nil,"pending":model.signOutPending,"connected":model.accountConnected]
+                        case "suspend":model.suspendAccount();value=["connected":model.accountConnected]
+                        case "close":engine.close();value=["closed":true]
+                        default:throw VideoNativeEngine.Failure.invalidSource
+                        }
+                        var answer=value;answer["walletUrl"]=opened;answer["businessVerified"]=engine.identity != nil
+                        if let identity=engine.identity { answer["account"]=identity.account;answer["binding"]=identity.binding }
+                        reply(id,["ok":true,"result":answer])
+                    } catch { reply(id,["ok":false,"code":String(describing:error),"businessVerified":engine.identity != nil]) }
+                }
+            }
+            engine.close()
+        } catch { FileHandle.standardError.write(Data("Apple isolated engine QA failed: \(error)\n".utf8));exit(1) }
+    }
+}

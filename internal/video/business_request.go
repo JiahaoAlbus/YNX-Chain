@@ -184,7 +184,7 @@ func videoClaimedProofBinding(claimed *videoSessionV2) bool {
 	}
 	matches := 0
 	var platform string
-	for _, candidate := range []string{"web", "android", "macos"} {
+	for _, candidate := range []string{"web", "android", "ios", "macos"} {
 		copy := *claimed
 		copy.Platform = candidate
 		if validVideoV2Binding(copy) {

@@ -249,7 +249,7 @@ func TestVideoBusinessHTTPFreshProofKeepsOriginalIdempotency(t *testing.T) {
 }
 
 func TestVideoMatureProofMetadataHasNoPlatformAndSeparateSessionExpiry(t *testing.T) {
-	for _, platform := range []string{"web", "android", "macos"} {
+	for _, platform := range []string{"web", "android", "ios", "macos"} {
 		t.Run(platform, func(t *testing.T) {
 			s, h, claim, _ := videoHTTPFixture(t)
 			if platform == "android" {
@@ -258,9 +258,9 @@ func TestVideoMatureProofMetadataHasNoPlatformAndSeparateSessionExpiry(t *testin
 				claim.Callback = "ynxvideo://wallet-auth/callback"
 				claim.PackageID = &claim.ApplicationID
 			}
-			if platform == "macos" {
+			if platform == "macos" || platform == "ios" {
 				claim.ApplicationID = "com.ynxweb4.video"
-				claim.Origin = "app://macos/com.ynxweb4.video"
+				claim.Origin = "app://" + platform + "/com.ynxweb4.video"
 				claim.Callback = "ynxvideo://wallet-auth/callback"
 				claim.BundleID = &claim.ApplicationID
 			}

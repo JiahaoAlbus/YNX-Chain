@@ -68,7 +68,7 @@ func mediaSDKProof(t *testing.T, s productsessionv2.Session, key *ecdsa.PrivateK
 }
 func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 	for _, product := range []string{"video", "creator-studio"} {
-		for _, platform := range []string{"web", "android", "macos"} {
+		for _, platform := range []string{"web", "android", "ios", "macos"} {
 			t.Run(product+"/"+platform, func(t *testing.T) {
 				key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				if e != nil {

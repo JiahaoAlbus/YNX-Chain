@@ -183,7 +183,7 @@ func TestVideoV2RejectsCreatorAndUnsupportedRoutesBeforeGateway(t *testing.T) {
 
 func TestMediaV2ExactNativeBindingsAndCrossPlatformReturnedAuthority(t *testing.T) {
 	for _, product := range []string{"video", "creator-studio"} {
-		for _, platform := range []string{"android", "macos"} {
+		for _, platform := range []string{"android", "ios", "macos"} {
 			t.Run(product+"/"+platform, func(t *testing.T) {
 				claimed := creatorV2Fixture()
 				claimed.ProductID = product
@@ -218,6 +218,17 @@ func TestMediaV2ExactNativeBindingsAndCrossPlatformReturnedAuthority(t *testing.
 				}
 				if validVideoV2Binding(tampered) {
 					t.Fatal("cross product native package accepted")
+				}
+				if platform != "android" {
+					borrowed := claimed
+					other := "ios"
+					if platform == "ios" {
+						other = "macos"
+					}
+					borrowed.Origin = "app://" + other + "/" + application
+					if validVideoV2Binding(borrowed) {
+						t.Fatal("Apple platform borrowed another registered origin")
+					}
 				}
 				for _, swap := range []bool{false, true} {
 					gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
