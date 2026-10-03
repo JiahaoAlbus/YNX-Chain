@@ -358,6 +358,38 @@ test('actual Chrome blocks stale schedule starts but keeps confirmed stop and ex
     assert.equal(await start.isEnabled(),true);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
   }finally{await context.close()}
 });
+test('actual Chrome preserves confirmed schedule start and stop when follow-up reads fail, then restores on second launch',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const strategy={ID:'confirmed-read-outage',Name:'Controlled schedule receipt',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
+    let failRead=false,puts=0;const errors=[],writes=[];
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:failRead?503:200,contentType:'application/json',body:JSON.stringify(failRead?{error:'unavailable'}:{access:{statefulPreview:true},strategies:{saved:strategy}})}));
+    await context.route('**/api/v1/strategies/confirmed-read-outage/schedule',async route=>{
+      puts++;const body=route.request().postDataJSON();writes.push(body);
+      strategy.Runtime=body.enabled?{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-04T01:01:00Z',lastRunStatus:'scheduled',assumptions:Object.fromEntries(Object.entries(body.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]))}:{enabled:false,running:false,intervalSeconds:0,lastRunStatus:'stopped_by_user'};
+      failRead=true;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategy)});
+    });
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    const action=async()=>{const dialog=page.waitForEvent('dialog'),click=page.locator('.schedule-toggle').click();await (await dialog).accept();await click;await page.waitForFunction(()=>scheduleWrites.size===0&&workspaceReadUnavailable)};
+    await action();assert.equal(puts,1);assert.equal(await page.locator('.schedule-toggle').isEnabled(),true,'confirmed start retains explicit stop during history outage');
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);
+      assert.equal(await page.evaluate(()=>scheduleUnconfirmed.size),0);
+      assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('workspaceReadUnavailable')));
+      assert.ok((await page.locator('#strategy-rows').innerText()).includes(await page.evaluate(()=>t('scheduleQueued'))));
+    }
+    await action();assert.equal(puts,2);assert.equal(await page.evaluate(()=>snapshot.strategies.saved.Runtime.enabled),false);
+    assert.equal(await page.evaluate(()=>scheduleUnconfirmed.size),0);
+    assert.equal(await page.locator('.schedule-toggle').isDisabled(),true,'stale history cannot authorize a new start');
+    assert.ok((await page.locator('#strategy-rows').innerText()).includes(await page.evaluate(()=>t('scheduleStopped'))));
+    failRead=false;await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'hidden'});
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    assert.equal(await page.evaluate(()=>snapshot.strategies.saved.Runtime.lastRunStatus),'stopped_by_user');
+    assert.equal(await page.locator('.schedule-toggle').isEnabled(),true);assert.equal(puts,2);
+    assert.deepEqual(writes.map(body=>body.enabled),[true,false]);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome keeps impossible schedule timestamps unavailable across locales and reload without writes',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

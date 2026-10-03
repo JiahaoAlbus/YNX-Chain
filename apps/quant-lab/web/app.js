@@ -974,7 +974,7 @@ $("#strategy-rows").addEventListener("click", async event => {
   if (enabled && workspaceReadUnavailable) { toast(t('workspaceReadUnavailable'),'workspaceReadUnavailable');return; }
   const strategy = Object.values(snapshot.strategies || {}).find(value => value?.ID === id), runtime = observedSchedule(strategy);
   if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
-  let sent = false;
+  let sent = false, confirmedWrite = false;
   try {
     const assumptions = enabled ? {feeBPS:researchIntegerInput("fee"), slippageBPS:researchIntegerInput("slippage"), latencyBars:1, participationBPS:1000, seed:researchIntegerInput("seed"), trainEnd:RESEARCH_TRAIN_END, walkForwardWindows:3} : {};
     if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
@@ -989,11 +989,12 @@ $("#strategy-rows").addEventListener("click", async event => {
     if (!savedKey) throw Error(t("scheduleUnknown"));
     snapshotRevision++;
     snapshot.strategies = {...snapshot.strategies, [savedKey]:receipt};
+    confirmedWrite = true;
     render();toast(t(enabled ? "scheduleConfigured" : "scheduleStopped"), enabled ? "scheduleConfigured" : "scheduleStopped");
     await refresh();
   } catch (error) {
-    if (sent) { snapshotRevision++; scheduleUnconfirmed.add(id); }
-    const key=error.localeKey==='researchInputInvalid'?'researchInputInvalid':sent?'scheduleUnknown':'scheduleInvalid';
+    if (sent && !confirmedWrite) { snapshotRevision++; scheduleUnconfirmed.add(id); }
+    const key=confirmedWrite?'workspaceReadUnavailable':error.localeKey==='researchInputInvalid'?'researchInputInvalid':sent?'scheduleUnknown':'scheduleInvalid';
     toast(t(key),key);
   }
   finally { scheduleWrites.delete(id); render(); }

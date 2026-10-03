@@ -510,6 +510,29 @@ test('stale workspace blocks new schedules before confirmation but preserves con
     assert.equal(vm.runInContext('statefulPreview',app.context),true);
   }
 });
+test('confirmed schedule start or stop survives unavailable follow-up history without becoming an unknown write',async()=>{
+  for(const enabled of [true,false]){
+    const strategy=savedResearchStrategy({Runtime:enabled?{enabled:false,running:false,intervalSeconds:0}:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled'}});
+    let reads=0,receipt;
+    const app=harness({confirmAction:()=>true,apiResponse:(url,options)=>{
+      if(url.endsWith('/snapshot')){if(++reads===1)return {strategies:{saved:strategy}};throw Error('Controlled post-receipt history outage')}
+      const body=JSON.parse(options.body);
+      receipt={...strategy,Runtime:{enabled:body.enabled,running:false,intervalSeconds:body.enabled?60:0,lastRunStatus:body.enabled?'scheduled':'stopped_by_user',...(body.enabled?{nextRunAt:'2026-10-03T01:01:00Z',assumptions:Object.fromEntries(Object.entries(body.assumptions).map(([k,v])=>[k[0].toUpperCase()+k.slice(1),v]))}:{})}};
+      return receipt;
+    }});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';
+    await app.schedule(strategy,enabled);
+    assert.equal(vm.runInContext('scheduleUnconfirmed.size',app.context),0);
+    assert.equal(vm.runInContext('workspaceReadUnavailable',app.context),true);
+    assert.equal(vm.runInContext('snapshot.strategies.saved.Runtime.enabled',app.context),enabled);
+    assert.equal(app.calls.filter(c=>c.options.method==='PUT').length,1);
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
+      assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,new RegExp(vm.runInContext('t("scheduleUnknown")',app.context)));
+    }
+    assert.equal(app.proofs(),0);
+  }
+});
 
 test('unbound schedule acknowledgements block another write until a fresh verified snapshot',async()=>{
   const strategy=savedResearchStrategy();for(const mismatch of [{ID:'foreign'},{StrategyHash:'e'.repeat(64)},{Stage:'BoundedTestnet'},{Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'scheduled',assumptions:{FeeBPS:999}}}]){
