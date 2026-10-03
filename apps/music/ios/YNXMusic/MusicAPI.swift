@@ -61,7 +61,12 @@ actor MusicAPI {
         try fence.requireCurrent(context)
         return binding
     }
-    func createPlaylist(name:String,ids:[String])async throws{let body=try JSONSerialization.data(withJSONObject:["name":name,"description":"Created from selected real library records","trackIDs":ids]);_ = try await request("api/playlists",method:"POST",body:body)}
+    func createPlaylist(name:String,ids:[String],key:String)async throws->MusicPlaylist {
+        guard key.range(of:"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",options:.regularExpression) != nil else{throw URLError(.badURL)}
+        let body=try JSONSerialization.data(withJSONObject:["name":name,"description":"Created from selected real library records","trackIDs":ids])
+        let record=try JSONDecoder().decode(MusicPlaylist.self,from:try await request("api/playlists",method:"POST",body:body,idempotency:key))
+        return try await playlist(record.id)
+    }
     func playlist(_ id:String)async throws->MusicPlaylist { guard id.range(of:"^pl_[0-9a-f]{24}$",options:.regularExpression) != nil else{throw URLError(.badURL)};return try JSONDecoder().decode(MusicPlaylist.self,from:try await request("api/playlists/\(id)")) }
     func savePlaylist(_ playlist:MusicPlaylist)async throws->MusicPlaylist { guard playlist.id.range(of:"^pl_[0-9a-f]{24}$",options:.regularExpression) != nil else{throw URLError(.badURL)};let body=try JSONSerialization.data(withJSONObject:["name":playlist.name,"description":playlist.description ?? "","trackIDs":playlist.trackIds]);return try JSONDecoder().decode(MusicPlaylist.self,from:try await request("api/playlists/\(playlist.id)",method:"PUT",body:body)) }
     func createAI(ids:[String],language:String)async throws->AIProposal{let body=try JSONSerialization.data(withJSONObject:["kind":"playlist","intent":"Explain and organize my selected real library without inventing tracks","provider":"ynx-ai-gateway","model":"operator-selected","trackIDs":ids,"permission":true,"outputLanguage":language,"explanationRequired":true]);let proposal=try JSONDecoder().decode(AIProposal.self,from:try await request("api/ai/proposals",method:"POST",body:body));_ = try await request("api/ai/proposals/\(proposal.id)/stream");let completed=try JSONDecoder().decode(AIProposal.self,from:try await request("api/ai/proposals/\(proposal.id)"));guard completed.status=="completed" else{throw URLError(.badServerResponse)};return completed}

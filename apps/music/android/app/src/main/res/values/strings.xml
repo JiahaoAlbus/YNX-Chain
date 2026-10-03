@@ -12,4 +12,6 @@
     <string name="remove_track">Remove track</string>
     <string name="empty_playlists">No playlists yet</string>
     <string name="playlist_save_failed">Save not confirmed. Your changes are retained; retry.</string>
+    <string name="playlist_pending">A previous creation may already be saved. Retry to recover it, or start a new playlist; any saved playlist is kept.</string>
+    <string name="new_playlist">New playlist</string>
 </resources>

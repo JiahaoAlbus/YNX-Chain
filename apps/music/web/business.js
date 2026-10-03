@@ -1,9 +1,11 @@
+import {createPlaylistJournal} from './playlist-journal.js';
 // The release owner's canonical request adapter supplies authentication and
 // exact action proofs. This controller never obtains authority from EVM connect,
 // browser storage, a caller-supplied account, or an old Music bearer token.
 export function createMusicBusiness({document:doc, audio, tell}) {
   const $=s=>doc.querySelector(s), $$=s=>[...doc.querySelectorAll(s)];
   let view='home', aiCancel=null;
+  const playlistJournal=createPlaylistJournal();
   let epoch=0, transport=null, snapshot=null, current=null, detail=null, mediaURL='', playback='', lastSave=0, playRevision=0, searchRevision=0, libraryTail=Promise.resolve();
   const pending=new Set(), urls=new Set(), dialogs=new Set();
   const stale=()=>new DOMException('Music account changed','AbortError');
@@ -97,6 +99,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
     return new Promise(resolve=>{let result=null;const d=dialog(t,title,(d,body)=>{const input=node('input');input.value=initial;input.setAttribute('aria-label',title);body.append(input,button('Cancel',()=>d.close()),button('Continue',()=>{check(t);result=input.value;d.close()}))});d.addEventListener('close',()=>resolve(result),{once:true})})
   }
   function confirmAction(t,title){return new Promise(resolve=>{let confirmed=false;const d=dialog(t,title,(d,body)=>body.append(button('Cancel',()=>d.close()),button('Publish',()=>{check(t);confirmed=true;d.close()})));d.addEventListener('close',()=>resolve(confirmed),{once:true})})}
+  function confirmCreationReset(t){return new Promise(resolve=>{let confirmed=false;const d=dialog(t,'Start a new playlist?',(d,body)=>{body.append(node('p','Any playlist already saved by the previous request is kept.'),button('Cancel',()=>d.close()),button('New playlist',()=>{check(t);confirmed=true;d.close()}))});d.addEventListener('close',()=>resolve(confirmed),{once:true})})}
   async function editPlaylist(t,id){
     const record=await json(t,`api/playlists/${path(id,'pl')}`);check(t);const draft={name:record.name,description:record.description||'',trackIDs:[...(record.trackIds||[])]};
     dialog(t,'Edit playlist',(d,body)=>{
@@ -140,7 +143,23 @@ export function createMusicBusiness({document:doc, audio, tell}) {
   const click=(id,action)=>$('#'+id).onclick=()=>run(action);
   click('savePrivacy',async t=>{const profile={displayName:$('#profileName').value,bio:$('#profileBio').value,explicitAllowed:$('#explicitAllowed').checked,privateHistory:$('#privateHistory').checked};await json(t,'api/profile','PUT',profile);await load(t);tell('Profile and privacy saved.')});
   click('onboard',async t=>{await json(t,'api/creator/onboarding','POST',{displayName:snapshot.profile.displayName,bio:snapshot.profile.bio||''});await load(t)});
-  click('playlistFromFavorites',async t=>{const ids=[...(snapshot.listener.favorites||[])];if(!ids.length)throw new Error('Favorite tracks before creating a playlist.');const name=await ask(t,'Playlist name');check(t);if(!name)return;await json(t,'api/playlists','POST',{name,description:'Created from selected real library records',trackIDs:ids});await load(t)});
+  click('playlistFromFavorites',async t=>{
+    const account=snapshot.profile.account;let intent=await playlistJournal.read(account,()=>check(t));check(t);
+    const ids=[...(snapshot.listener.favorites||[])];if(!intent&&!ids.length)throw new Error('Favorite tracks before creating a playlist.');
+    dialog(t,'Create playlist',(d,body)=>{
+      const name=node('input'),warning=node('p',intent?'A previous creation may already be saved. Retry to recover it; saved playlists are retained.':''),error=node('p',null,'error');name.setAttribute('aria-label','Playlist name');name.value=intent?.body.name||'';name.disabled=!!intent;
+      const startNew=button('New playlist',async()=>{if(!intent)return;if(await confirmCreationReset(t)){await playlistJournal.finish(account,intent.key,()=>check(t));check(t);d.close();$('#playlistFromFavorites').click()}});startNew.hidden=!intent;
+      const cancel=button('Cancel',()=>d.close()),save=button('Save',async()=>{
+        check(t);if(!name.value.trim())return;const controls=[...body.querySelectorAll('input,button')];controls.forEach(n=>n.disabled=true);const preventCancel=e=>e.preventDefault();d.addEventListener('cancel',preventCancel);error.textContent='';
+        try{
+          intent=await playlistJournal.begin(account,{name:name.value,description:'Created from selected real library records',trackIDs:ids},()=>check(t));check(t);name.value=intent.body.name;
+          const record=await json(t,'api/playlists','POST',intent.body,intent.key);if(!validID(record.id,'pl'))throw new Error('Created playlist record missing');await json(t,`api/playlists/${path(record.id,'pl')}`);
+          await playlistJournal.finish(account,intent.key,()=>check(t));await load(t);check(t);d.close();
+        }catch(e){if(t.epoch===epoch&&d.isConnected){error.textContent='Creation not confirmed. Retry will recover the same saved request.';warning.textContent='A previous creation may already be saved. Retry to recover it; saved playlists are retained.';controls.forEach(n=>n.disabled=false);name.disabled=!!intent;startNew.hidden=!intent}if(e.name==='AbortError')throw e}
+        finally{d.removeEventListener('cancel',preventCancel)}
+      });body.append(name,warning,error,startNew,cancel,save);
+    });
+  });
   click('playLibrary',t=>play(t,allTracks().find(x=>x.id===snapshot.listener.favorites?.[0])||tracks()[0]));click('playPause',async t=>{if(!current)return play(t,tracks()[0]);if(audio.paused){await audio.play();check(t)}else audio.pause()});click('next',t=>adjacent(t,1));click('previous',t=>adjacent(t,-1));
   click('detailPlay',t=>{const track=detail;$('#trackDialog').close();return play(t,track)});
   const favorite=async(t,id)=>saveLibrary(t,l=>{const ids=new Set(l.favorites||[]);ids.has(id)?ids.delete(id):ids.add(id);return {favorites:[...ids]}});

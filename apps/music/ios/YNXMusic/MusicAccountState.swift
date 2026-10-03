@@ -13,7 +13,8 @@ struct AIProposal:Codable,Identifiable{let id,kind,status:String;let estimatedUn
 struct MusicPlaylist:Codable,Identifiable { let id:String;var name:String;var description:String?;var trackIds:[String] }
 struct Snapshot:Codable { var profile=Profile();var listener=Listener();var catalog:[Track]=[];var creatorTracks:[Track]=[];var usage:[Usage]=[];var allocations:[Allocation]=[];var settlements:[Settlement]=[];var cases:[CaseRecord]=[];var aiProposals:[AIProposal]=[];var playlists:[MusicPlaylist]=[] }
 struct Usage:Codable,Identifiable{let id,trackId:String;let listenedMillis:Int}
-struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true }
+struct PlaylistCreation:Codable {let key:String;let name:String;let trackIds:[String]}
+struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation? }
 
 
 struct MusicSessionContext:Equatable, Sendable {

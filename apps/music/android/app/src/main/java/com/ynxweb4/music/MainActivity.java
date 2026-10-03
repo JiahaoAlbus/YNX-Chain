@@ -101,19 +101,37 @@ public final class MainActivity extends Activity {
     }
     private void setPlaylistControls(View view,boolean enabled){view.setEnabled(enabled);if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++)setPlaylistControls(group.getChildAt(i),enabled);}}
     private void createPlaylist(){
-        final long openedGeneration=authGeneration;JSONArray favorites=state.optJSONArray("favorites");
-        if(favorites==null||favorites.length()==0){status.setText(R.string.empty_library);return;}
-        final JSONArray ids;try{ids=new JSONArray(favorites.toString());}catch(Exception e){return;}
-        EditText name=new EditText(this);name.setHint(R.string.playlist_name);
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(R.string.playlists).setView(name).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.save,null).create();
+        final long openedGeneration=authGeneration;JSONObject saved=state.optJSONObject("playlistCreation");JSONArray favorites=state.optJSONArray("favorites");
+        if(saved==null&&(favorites==null||favorites.length()==0)){status.setText(R.string.empty_library);return;}
+        final JSONArray initialIDs;try{initialIDs=new JSONArray((saved==null?favorites:saved.getJSONArray("trackIDs")).toString());}catch(Exception e){status.setText(R.string.playlist_save_failed);return;}
+        LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);
+        EditText name=new EditText(this);name.setHint(R.string.playlist_name);name.setText(saved==null?"":saved.optString("name"));name.setEnabled(saved==null);panel.addView(name);
+        TextView warning=text(saved==null?"":getString(R.string.playlist_pending),14);panel.addView(warning);
+        Button fresh=button(getString(R.string.new_playlist));fresh.setVisibility(saved==null?View.GONE:View.VISIBLE);panel.addView(fresh);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(R.string.playlists).setView(panel).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.save,null).create();
         playlistDialog=dialog;dialog.setOnDismissListener(d->{if(playlistDialog==dialog)playlistDialog=null;});dialog.show();
+        fresh.setOnClickListener(v->new AlertDialog.Builder(this).setTitle(R.string.new_playlist).setMessage(R.string.playlist_pending).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.new_playlist,(d,w)->{
+            if(openedGeneration!=authGeneration)return;
+            try{JSONObject next=new JSONObject(state.toString());next.remove("playlistCreation");store.save(next);state=next;dialog.dismiss();createPlaylist();}catch(Exception e){status.setText(R.string.playlist_save_failed);}
+        }).show());
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             if(openedGeneration!=authGeneration){dialog.dismiss();return;}
-            String submitted=name.getText().toString();if(submitted.trim().isEmpty())return;
-            name.setEnabled(false);dialog.setCancelable(false);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+            final String submitted,key;final JSONArray ids;
+            try{
+                JSONObject intent=state.optJSONObject("playlistCreation");
+                if(intent==null){String title=name.getText().toString();if(title.trim().isEmpty())return;intent=new JSONObject().put("key","music-playlist-"+java.util.UUID.randomUUID()).put("name",title).put("trackIDs",initialIDs);state.put("playlistCreation",intent);}
+                key=intent.getString("key");submitted=intent.getString("name");ids=new JSONArray(intent.getJSONArray("trackIDs").toString());
+                // Persist before HTTP: an unobserved successful response can be
+                // recovered after process death without creating another list.
+                store.save(state);
+            }catch(Exception e){warning.setText(R.string.playlist_save_failed);return;}
+            name.setText(submitted);name.setEnabled(false);fresh.setEnabled(false);dialog.setCancelable(false);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
             runAccountTask(openedGeneration,(requestApi,requestState,generation)->{
-                try{requestApi.createPlaylist(submitted,ids);runAccountUI(generation,()->{dialog.dismiss();refresh();});}
-                catch(Exception e){runAccountUI(generation,()->{name.setEnabled(true);dialog.setCancelable(true);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);status.setText(R.string.playlist_save_failed);});}
+                try{requestApi.createPlaylist(submitted,ids,key);runAccountUI(generation,()->{
+                    try{JSONObject next=new JSONObject(state.toString()),pending=next.optJSONObject("playlistCreation");if(pending!=null&&key.equals(pending.optString("key")))next.remove("playlistCreation");store.save(next);state=next;dialog.dismiss();refresh();}
+                    catch(Exception e){fresh.setEnabled(true);fresh.setVisibility(View.VISIBLE);dialog.setCancelable(true);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);warning.setText(R.string.playlist_save_failed);}
+                });}
+                catch(Exception e){runAccountUI(generation,()->{fresh.setEnabled(true);fresh.setVisibility(View.VISIBLE);dialog.setCancelable(true);dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);warning.setText(R.string.playlist_pending);status.setText(R.string.playlist_save_failed);});}
             });
         });
     }

@@ -12,4 +12,6 @@
     <string name="remove_track">Remover faixa</string>
     <string name="empty_playlists">Ainda não há listas</string>
     <string name="playlist_save_failed">Gravação não confirmada. As alterações foram mantidas; tente novamente.</string>
+    <string name="playlist_pending">A criação anterior pode estar salva. Tente recuperar ou crie outra lista; as listas salvas são mantidas.</string>
+    <string name="new_playlist">Nova lista</string>
 </resources>

@@ -12,4 +12,6 @@
     <string name="remove_track">Hapus lagu</string>
     <string name="empty_playlists">Belum ada daftar putar</string>
     <string name="playlist_save_failed">Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi.</string>
+    <string name="playlist_pending">Pembuatan sebelumnya mungkin sudah tersimpan. Coba pulihkan atau buat daftar baru; daftar yang tersimpan tetap dipertahankan.</string>
+    <string name="new_playlist">Daftar baru</string>
 </resources>

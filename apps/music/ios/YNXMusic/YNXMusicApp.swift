@@ -243,6 +243,33 @@ struct MusicOperation {
         }
         signOut()
     }
+    @Published private var playlistCreationGeneration:UUID?
+    var creatingPlaylist:Bool {playlistCreationGeneration==viewGeneration}
+    func createPlaylist(_ operation:MusicOperation,name:String)async->Bool {
+        guard isCurrent(operation),!creatingPlaylist else{return false}
+        let generation=viewGeneration;playlistCreationGeneration=generation
+        defer{if playlistCreationGeneration==generation{playlistCreationGeneration=nil}}
+        var candidate=state
+        if candidate.playlistCreation==nil {
+            guard !name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,!state.favorites.isEmpty else{return false}
+            candidate.playlistCreation=PlaylistCreation(key:"music-playlist-\(UUID().uuidString)",name:name,trackIds:state.favorites)
+        }
+        guard let pending=candidate.playlistCreation else{return false}
+        do{try store.save(candidate,for:operation.account);state=candidate}catch{status="playlist_save_failed";return false}
+        guard await perform(operation,{try await $0.createPlaylist(name:pending.name,ids:pending.trackIds,key:pending.key)}) != nil,isCurrent(operation) else{return false}
+        // Clear only this acknowledged intent. Other local private content and
+        // any later server-side edits are retained.
+        if state.playlistCreation?.key==pending.key {
+            var acknowledged=state;acknowledged.playlistCreation=nil
+            do{try store.save(acknowledged,for:operation.account);state=acknowledged}catch{status="playlist_save_failed";return false}
+        }
+        await refresh(operation);return isCurrent(operation)
+    }
+    func discardPlaylistCreation(_ operation:MusicOperation){
+        guard isCurrent(operation) else{return}
+        var candidate=state;candidate.playlistCreation=nil
+        do{try store.save(candidate,for:operation.account);state=candidate}catch{status="playlist_save_failed"}
+    }
     private func saveLocal() {
         guard let operation=captureOperation() else { return }
         do { try store.save(state,for:operation.account) } catch { status="retry" }
@@ -339,6 +366,8 @@ struct LibraryView:View {
     @EnvironmentObject var m:MusicModel
     @EnvironmentObject var l:I18n
     @State private var playlistName=""
+    @State private var discardCreation=false
+    @State private var discardOperation:MusicOperation?
     @State private var editing:MusicPlaylist?
     @State private var operation:MusicOperation?
     var body:some View {
@@ -359,22 +388,21 @@ struct LibraryView:View {
                             }
                         }
                     }
-                    TextField(l.t("playlist_name"),text:$playlistName)
+                    TextField(l.t("playlist_name"),text:Binding(get:{m.state.playlistCreation?.name ?? playlistName},set:{playlistName=$0})).disabled(m.state.playlistCreation != nil||m.creatingPlaylist)
+                    if m.state.playlistCreation != nil {Text(l.t("playlist_pending"));Button(l.t("new_playlist")){discardOperation=m.captureOperation();discardCreation=discardOperation != nil}.disabled(m.creatingPlaylist)}
                     Button(l.t("save")) {
                         guard let captured=m.captureOperation() else{return}
-                        let name=playlistName,ids=m.state.favorites
-                        Task {
-                            guard await m.perform(captured,{try await $0.createPlaylist(name:name,ids:ids)}) != nil,m.isCurrent(captured) else{return}
-                            playlistName="";await m.refresh(captured)
-                        }
-                    }.disabled(playlistName.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty||m.state.favorites.isEmpty)
+                        let name=playlistName
+                        Task {if await m.createPlaylist(captured,name:name),m.isCurrent(captured){playlistName=""}}
+                    }.disabled(m.creatingPlaylist||(m.state.playlistCreation==nil&&(playlistName.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty||m.state.favorites.isEmpty)))
                 }
             }.navigationTitle(l.t("library"))
         }
+        .alert(l.t("new_playlist"),isPresented:$discardCreation){Button(l.t("cancel"),role:.cancel){};Button(l.t("new_playlist"),role:.destructive){if let operation=discardOperation{m.discardPlaylistCreation(operation)}}}message:{Text(l.t("playlist_pending"))}
         .sheet(item:$editing){playlist in
             if let operation {MusicPlaylistEditor(initial:playlist,operation:operation)}
         }
-        .onChange(of:m.viewGeneration){_ in editing=nil;operation=nil;playlistName=""}
+        .onChange(of:m.viewGeneration){_ in editing=nil;operation=nil;playlistName="";discardCreation=false;discardOperation=nil}
     }
 }
 

@@ -82,7 +82,9 @@
       "move_down": "Move down",
       "remove_track": "Remove track",
       "empty_playlists": "No playlists yet",
-      "playlist_save_failed": "Save not confirmed. Your changes are retained; retry."
+      "playlist_save_failed": "Save not confirmed. Your changes are retained; retry.",
+      "playlist_pending": "A previous creation may already be saved. Retry to recover it, or start a new playlist; any saved playlist is kept.",
+      "new_playlist": "New playlist"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -151,7 +153,9 @@
       "move_down": "下移",
       "remove_track": "移除歌曲",
       "empty_playlists": "还没有歌单",
-      "playlist_save_failed": "保存尚未确认，修改已保留，请重试。"
+      "playlist_save_failed": "保存尚未确认，修改已保留，请重试。",
+      "playlist_pending": "上次创建可能已经保存。重试可恢复原记录，也可新建歌单；已保存的歌单会保留。",
+      "new_playlist": "新建歌单"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -220,7 +224,9 @@
       "move_down": "下移",
       "remove_track": "移除歌曲",
       "empty_playlists": "尚無歌單",
-      "playlist_save_failed": "儲存尚未確認，修改已保留，請重試。"
+      "playlist_save_failed": "儲存尚未確認，修改已保留，請重試。",
+      "playlist_pending": "上次建立可能已儲存。重試可恢復原紀錄，也可建立新歌單；已儲存的歌單會保留。",
+      "new_playlist": "建立新歌單"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -289,7 +295,9 @@
       "move_down": "下に移動",
       "remove_track": "曲を削除",
       "empty_playlists": "プレイリストはありません",
-      "playlist_save_failed": "保存を確認できません。変更を保持しています。再試行してください。"
+      "playlist_save_failed": "保存を確認できません。変更を保持しています。再試行してください。",
+      "playlist_pending": "前回の作成は保存済みかもしれません。再試行して復元するか、新規作成してください。保存済みのリストは保持されます。",
+      "new_playlist": "新規リスト"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -358,7 +366,9 @@
       "move_down": "아래로 이동",
       "remove_track": "곡 제거",
       "empty_playlists": "재생 목록이 없습니다",
-      "playlist_save_failed": "저장이 확인되지 않았습니다. 변경 사항을 유지합니다. 다시 시도하세요."
+      "playlist_save_failed": "저장이 확인되지 않았습니다. 변경 사항을 유지합니다. 다시 시도하세요.",
+      "playlist_pending": "이전 생성이 저장되었을 수 있습니다. 재시도하여 복구하거나 새 목록을 만드세요. 저장된 목록은 유지됩니다.",
+      "new_playlist": "새 재생 목록"
     },
     "es": {
       "app_name": "YNX Music",
@@ -427,7 +437,9 @@
       "move_down": "Bajar",
       "remove_track": "Quitar pista",
       "empty_playlists": "Todavía no hay listas",
-      "playlist_save_failed": "Guardado sin confirmar. Los cambios se conservan; vuelve a intentarlo."
+      "playlist_save_failed": "Guardado sin confirmar. Los cambios se conservan; vuelve a intentarlo.",
+      "playlist_pending": "La creación anterior podría estar guardada. Reintenta para recuperarla o crea otra lista; las listas guardadas se conservan.",
+      "new_playlist": "Nueva lista"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -496,7 +508,9 @@
       "move_down": "Descendre",
       "remove_track": "Retirer le titre",
       "empty_playlists": "Aucune liste pour le moment",
-      "playlist_save_failed": "Enregistrement non confirmé. Les modifications sont conservées ; réessayez."
+      "playlist_save_failed": "Enregistrement non confirmé. Les modifications sont conservées ; réessayez.",
+      "playlist_pending": "La création précédente est peut-être enregistrée. Réessayez pour la retrouver ou créez une nouvelle liste ; les listes enregistrées sont conservées.",
+      "new_playlist": "Nouvelle liste"
     },
     "de": {
       "app_name": "YNX Music",
@@ -565,7 +579,9 @@
       "move_down": "Nach unten",
       "remove_track": "Titel entfernen",
       "empty_playlists": "Noch keine Listen",
-      "playlist_save_failed": "Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen."
+      "playlist_save_failed": "Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen.",
+      "playlist_pending": "Die vorige Liste könnte gespeichert sein. Erneut versuchen oder eine neue Liste erstellen; gespeicherte Listen bleiben erhalten.",
+      "new_playlist": "Neue Liste"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -634,7 +650,9 @@
       "move_down": "Mover para baixo",
       "remove_track": "Remover faixa",
       "empty_playlists": "Ainda não há listas",
-      "playlist_save_failed": "Gravação não confirmada. As alterações foram mantidas; tente novamente."
+      "playlist_save_failed": "Gravação não confirmada. As alterações foram mantidas; tente novamente.",
+      "playlist_pending": "A criação anterior pode estar salva. Tente recuperar ou crie outra lista; as listas salvas são mantidas.",
+      "new_playlist": "Nova lista"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -703,7 +721,9 @@
       "move_down": "Ниже",
       "remove_track": "Удалить трек",
       "empty_playlists": "Плейлистов пока нет",
-      "playlist_save_failed": "Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку."
+      "playlist_save_failed": "Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку.",
+      "playlist_pending": "Предыдущая запись могла сохраниться. Повторите попытку для восстановления или создайте новую; сохранённые плейлисты останутся.",
+      "new_playlist": "Новый плейлист"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -772,7 +792,9 @@
       "move_down": "نقل لأسفل",
       "remove_track": "إزالة المقطع",
       "empty_playlists": "لا توجد قوائم بعد",
-      "playlist_save_failed": "لم يتأكد الحفظ. تم الاحتفاظ بالتغييرات؛ حاول مجدداً."
+      "playlist_save_failed": "لم يتأكد الحفظ. تم الاحتفاظ بالتغييرات؛ حاول مجدداً.",
+      "playlist_pending": "قد تكون القائمة السابقة محفوظة. أعد المحاولة لاستعادتها أو أنشئ قائمة جديدة؛ ستبقى القوائم المحفوظة.",
+      "new_playlist": "قائمة جديدة"
     },
     "id": {
       "app_name": "YNX Music",
@@ -841,7 +863,9 @@
       "move_down": "Turunkan",
       "remove_track": "Hapus lagu",
       "empty_playlists": "Belum ada daftar putar",
-      "playlist_save_failed": "Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi."
+      "playlist_save_failed": "Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi.",
+      "playlist_pending": "Pembuatan sebelumnya mungkin sudah tersimpan. Coba pulihkan atau buat daftar baru; daftar yang tersimpan tetap dipertahankan.",
+      "new_playlist": "Daftar baru"
     }
   }
 }

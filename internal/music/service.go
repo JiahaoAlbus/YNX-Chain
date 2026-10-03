@@ -562,6 +562,17 @@ func (s *Service) SavePosition(actor, trackID, sessionRef string, position int64
 }
 
 func (s *Service) CreatePlaylist(actor, name, desc string, trackIDs []string) (Playlist, error) {
+	return s.createPlaylist(actor, name, desc, trackIDs, "")
+}
+
+func (s *Service) CreatePlaylistIdempotent(actor, name, desc string, trackIDs []string, key string) (Playlist, error) {
+	if !safeIdempotencyKey.MatchString(key) {
+		return Playlist{}, ErrInvalid
+	}
+	return s.createPlaylist(actor, name, desc, trackIDs, key)
+}
+
+func (s *Service) createPlaylist(actor, name, desc string, trackIDs []string, requestKey string) (Playlist, error) {
 	actor, err := normalizeActor(actor)
 	if err != nil {
 		return Playlist{}, err
@@ -570,15 +581,37 @@ func (s *Service) CreatePlaylist(actor, name, desc string, trackIDs []string) (P
 		return Playlist{}, ErrInvalid
 	}
 	p := Playlist{ID: newID("pl"), Owner: actor, Name: strings.TrimSpace(name), Description: strings.TrimSpace(desc), TrackIDs: unique(trackIDs), CreatedAt: s.cfg.Now().UTC(), UpdatedAt: s.cfg.Now().UTC()}
+	key := "playlist:" + actor + ":" + requestKey
+	inputKey := "playlist-input:" + actor + ":" + requestKey
+	inputHash := hashJSON(map[string]any{"name": p.Name, "description": p.Description, "trackIDs": p.TrackIDs})
 	var out Playlist
 	err = s.mutate(actor, "playlist_created", p.ID, p, func(st *persistentState) error {
+		if requestKey != "" {
+			if existingID := st.Idempotency[key]; existingID != "" {
+				existing, ok := st.Playlists[existingID]
+				if !ok || existing.Owner != actor || st.Idempotency[inputKey] != inputHash {
+					return ErrConflict
+				}
+				// Recovery returns the current owned projection. It never reapplies the
+				// original input over subsequent edits or restores unavailable tracks.
+				out = visiblePlaylist(st, actor, existing)
+				return errIdempotentReplay
+			}
+		}
 		if err := validateVisibleTrackIDs(st, actor, p.TrackIDs); err != nil {
 			return err
 		}
 		st.Playlists[p.ID] = p
+		if requestKey != "" {
+			st.Idempotency[key] = p.ID
+			st.Idempotency[inputKey] = inputHash
+		}
 		out = visiblePlaylist(st, actor, p)
 		return nil
 	})
+	if err == errIdempotentReplay {
+		return out, nil
+	}
 	return out, err
 }
 

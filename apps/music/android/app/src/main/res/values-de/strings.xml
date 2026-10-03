@@ -12,4 +12,6 @@
     <string name="remove_track">Titel entfernen</string>
     <string name="empty_playlists">Noch keine Listen</string>
     <string name="playlist_save_failed">Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen.</string>
+    <string name="playlist_pending">Die vorige Liste könnte gespeichert sein. Erneut versuchen oder eine neue Liste erstellen; gespeicherte Listen bleiben erhalten.</string>
+    <string name="new_playlist">Neue Liste</string>
 </resources>

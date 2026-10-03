@@ -12,4 +12,6 @@
     <string name="remove_track">移除歌曲</string>
     <string name="empty_playlists">尚無歌單</string>
     <string name="playlist_save_failed">儲存尚未確認，修改已保留，請重試。</string>
+    <string name="playlist_pending">上次建立可能已儲存。重試可恢復原紀錄，也可建立新歌單；已儲存的歌單會保留。</string>
+    <string name="new_playlist">建立新歌單</string>
 </resources>

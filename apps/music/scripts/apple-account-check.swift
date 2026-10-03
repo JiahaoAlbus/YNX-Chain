@@ -87,6 +87,7 @@ final class FixtureProtocol:URLProtocol {
         let (accountA,initial)=try store.select(verifiedAccount:"account-a")
         try require(initial.favorites.isEmpty && initial.trackId.isEmpty,"unowned legacy cache was exposed")
         var stateA=LocalState(); stateA.favorites=["a-track"]; stateA.position=27; stateA.trackId="a-track"
+        stateA.playlistCreation=PlaylistCreation(key:"music-playlist-fixture",name:"Retained pending",trackIds:["a-track"])
         try store.save(stateA,for:accountA)
         let (accountB,stateB)=try store.select(verifiedAccount:"account-b")
         try require(stateB.favorites.isEmpty && stateB.position==0,"A state crossed into B")
@@ -96,6 +97,10 @@ final class FixtureProtocol:URLProtocol {
         try store.save(newStateB,for:accountB)
         let (restoredA,restoredState)=try store.select(verifiedAccount:"account-a")
         try require(restoredA != accountA && restoredState.favorites==["a-track"] && restoredState.position==27,"A cache restore failed")
+        try require(restoredState.playlistCreation?.key=="music-playlist-fixture","A pending creation lost across account replacement")
+        let coldStore=MusicAccountStore(root:root)
+        let (_,coldState)=try coldStore.select(verifiedAccount:"account-a")
+        try require(coldState.playlistCreation?.name=="Retained pending","pending creation lost across cold restart")
         let (sameA,_)=try store.select(verifiedAccount:"account-a")
         try require(sameA==restoredA,"same verified account unexpectedly rotated file context")
         var wav=Data("RIFF".utf8);wav.append(Data(repeating:0,count:4));wav.append(Data("WAVE".utf8));wav.append(Data(repeating:42,count:44))
@@ -166,6 +171,19 @@ final class FixtureProtocol:URLProtocol {
         do {_ = try await api.playlist("../profile");throw NSError(domain:"invalid playlist ID accepted",code:1)} catch let error as URLError {try require(error.code == .badURL,"wrong playlist rejection")}
         try require(FixtureProtocol.requests.count==validCount,"invalid ID emitted network request")
         print("PASS Apple business API: retained bio, valid AI proposal review, invalid-ID zero transport, playlist read/update ordered record")
+        var createAttempts=0, readbacks=0
+        FixtureProtocol.handler={ request in
+            if request.httpMethod=="POST" {
+                precondition(request.value(forHTTPHeaderField:"Idempotency-Key")=="music-playlist-fixture")
+                createAttempts+=1
+                if createAttempts==1{return (500,Data("{}".utf8))}
+            } else {readbacks+=1}
+            return (200,Data("{\"id\":\"\(playlistID)\",\"name\":\"Recovered\",\"trackIds\":[\"\(id)\"]}".utf8))
+        }
+        do {_ = try await api.createPlaylist(name:"Recovered",ids:[id],key:"music-playlist-fixture");throw NSError(domain:"lost reply accepted",code:1)}catch let error as URLError {try require(error.code == .badServerResponse,"unexpected lost-reply error")}
+        let recoveredPlaylist=try await api.createPlaylist(name:"Recovered",ids:[id],key:"music-playlist-fixture")
+        try require(createAttempts==2 && readbacks==1 && recoveredPlaylist.id==playlistID,"creation retry did not use stable key and GET readback")
+        print("PASS Apple pending creation: cold/account restore, stable retry header and original GET readback")
         FixtureProtocol.handler={ request in
             precondition(request.value(forHTTPHeaderField:"X-YNX-App-Session")=="session-a")
             fence.replace(binding:"session-b")

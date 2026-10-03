@@ -12,4 +12,6 @@
     <string name="remove_track">Удалить трек</string>
     <string name="empty_playlists">Плейлистов пока нет</string>
     <string name="playlist_save_failed">Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку.</string>
+    <string name="playlist_pending">Предыдущая запись могла сохраниться. Повторите попытку для восстановления или создайте новую; сохранённые плейлисты останутся.</string>
+    <string name="new_playlist">Новый плейлист</string>
 </resources>

@@ -321,7 +321,13 @@ func (s *Server) playlist(w http.ResponseWriter, r *http.Request, a string) {
 	if !decode(w, r, &q, 32<<10) {
 		return
 	}
-	v, e := s.service.CreatePlaylist(a, q.Name, q.Description, q.TrackIDs)
+	var v Playlist
+	var e error
+	if key := r.Header.Get("Idempotency-Key"); key != "" {
+		v, e = s.service.CreatePlaylistIdempotent(a, q.Name, q.Description, q.TrackIDs, key)
+	} else {
+		v, e = s.service.CreatePlaylist(a, q.Name, q.Description, q.TrackIDs)
+	}
 	resultStatus(w, v, e, http.StatusCreated)
 }
 func (s *Server) playlists(w http.ResponseWriter, r *http.Request, a string) {
