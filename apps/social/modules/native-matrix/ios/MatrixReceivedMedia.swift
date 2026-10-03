@@ -74,6 +74,7 @@ actor MatrixReceivedMedia {
     guard file.deletingLastPathComponent() == directory, metadata.isRegularFile == true,
           let size = metadata.fileSize, size > 0, UInt64(size) <= maximumBytes,
           declared == nil || UInt64(size) == declared else { throw failure("MATRIX_MEDIA_FILE_INVALID") }
+    try ImagePreviewBounds.validate(file: file, declaredMime: mime)
     let token = UUID().uuidString
     handles[token] = handle // SDK deletes plaintext when the final handle is freed.
     return ["leaseId": token, "eventId": eventId, "roomId": roomId, "filename": filename,

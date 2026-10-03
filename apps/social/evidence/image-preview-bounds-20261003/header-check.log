@@ -1,0 +1,14 @@
+PASS public-original-logo-png
+PASS static-png-header
+PASS apng-conservative-default-plus-animation
+PASS apng-declared-frame-flood MATRIX_MEDIA_IMAGE_METADATA_INVALID
+PASS apng-observed-frame-flood MATRIX_MEDIA_IMAGE_PREVIEW_TOO_LARGE
+PASS png-missing-end MATRIX_MEDIA_IMAGE_METADATA_INVALID
+PASS png-truncated-chunk MATRIX_MEDIA_IMAGE_METADATA_INVALID
+PASS static-webp-header
+PASS webp-animation-frames
+PASS webp-frame-flood MATRIX_MEDIA_IMAGE_PREVIEW_TOO_LARGE
+PASS webp-short-frame-header MATRIX_MEDIA_IMAGE_METADATA_INVALID
+PASS webp-riff-size-mismatch MATRIX_MEDIA_IMAGE_METADATA_INVALID
+PASS webp-truncated-file MATRIX_MEDIA_IMAGE_METADATA_INVALID
+RESULT 13/13 header-only checks passed

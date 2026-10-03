@@ -1,0 +1,15 @@
+8f3042a4e5b4f6be54b6f393f000ddfcb85b47dafeefaa711c0dcfdf1d03ca38  apps/social/modules/native-matrix/android/build.gradle
+6b9d9a8586b3ec036b4bcc751007e7f7b3f683e3323f182eb0a227266a8a17e3  apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixReceivedMedia.kt
+dde84c055ab86ad72cb751dc281cba9675edc8e5043669203aae0828efeb0f01  apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBudget.kt
+0d6f632eb70eda9e14e34af7f1d125fede3a685b4137861447537513d1d5405e  apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBounds.kt
+6a8e079d383564cf9f15796ce764102b30fe78542af5a909e5e9b4e238004bfe  apps/social/modules/native-matrix/android/src/test/java/com/ynx/social/matrix/ImagePreviewBudgetTest.kt
+32403d1236cc933a82433c143b4f43316c9e4bbafd72e27a3fc331e9520f4d33  apps/social/modules/native-matrix/ios/MatrixReceivedMedia.swift
+ccbca115f1c7f9563a9d18dc5f78c9b4fc68f0dc347604a762f1655fc383daa7  apps/social/modules/native-matrix/ios/ImagePreviewBounds.swift
+7d73fc47eddfbb0c7dca27ecc797a25815a719aaba6c9dad95539f6dd7d4f71e  apps/social/scripts/media-preview-bounds-qa/check.swift
+d6afff581c9977edec819be0cf96dff4c10af5aef8224a857f5b93fccecc9183  apps/social/scripts/media-preview-bounds-qa/HeaderBudgetCheck.java
+9e2bd9a3f7477381883db6ed4246b2962af2ca949989f1f096dd4b075cb7ceca  apps/social/evidence/image-preview-bounds-20261003/android-check.log
+82f2474d2cba9975350244cdb05710275e58403080d7111d6497e8bc8ce63a02  apps/social/evidence/image-preview-bounds-20261003/android-unit-tests.xml
+411522ec89779639df259fa9f595942811c505c31bc2eb85696023376304b203  apps/social/evidence/image-preview-bounds-20261003/swift-build.log
+8f75a58cf1b1151e3e455b3faddb3af377400c64f2335799f772d294db16534d  apps/social/evidence/image-preview-bounds-20261003/header-check.log
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  apps/social/evidence/image-preview-bounds-20261003/swift-after-initialization-build.log
+7dffd09498ee871209275a5f4361e794e6aa71adb51dd3caf13013325a488a63  apps/social/evidence/image-preview-bounds-20261003/swift-check.log

@@ -1,0 +1,146 @@
+{
+  "schema": "ynx-social-native-image-preview-budget-checkpoint-v1",
+  "created_at": "2026-10-03T16:00:50.047Z",
+  "owner_branch": "codex/social-wallet-chooser-20261001",
+  "source_base": "08f73e88ff089aa83083abd8cc54e3340b2df620",
+  "source_binding": "Base commit plus exact listed source SHA256/git blobs; enclosing commit freezes this checkpoint.",
+  "checks": {
+    "android_native_compile": "PASS",
+    "android_unit_tests": {
+      "passed": 5,
+      "failed": 0
+    },
+    "compiled_kotlin_header_checks": {
+      "passed": 13,
+      "failed": 0,
+      "scope": "Actual compiled Kotlin guard; public logo and synthetic PNG/APNG/WebP headers only; no raster decoding."
+    },
+    "swift_helper_host_compile": {
+      "status": "PASS",
+      "tool_exit": 0,
+      "scope": "Portable iOS ImagePreviewBounds.swift compiled on macOS; not an iOS app build."
+    },
+    "swift_foundation_imageio_checks": {
+      "passed": 12,
+      "failed": 0,
+      "scope": "Real host Foundation/ImageIO public-logo metadata and pure budget checks."
+    },
+    "historical_swift_attempt": {
+      "tool_exit": 69,
+      "status": "SUPERSEDED",
+      "reason": "Xcode license gate, removed after coordinator normal initialization; raw log retained."
+    },
+    "ios_native_app_build": "NOT_VERIFIED",
+    "android_bitmapfactory_device": "NOT_VERIFIED",
+    "installed_ui": "NOT_VERIFIED",
+    "real_matrix_encrypted_delivery": "NOT_VERIFIED",
+    "dot_monster": "NOT_RUN",
+    "product_acceptance": "NOT_COMPLETE"
+  },
+  "limits": {
+    "max_encoded_bytes": 33554432,
+    "max_side": 16384,
+    "max_frames": 256,
+    "static_pixel_budget": 67108864,
+    "animated_aggregate_pixel_budget": 16777216
+  },
+  "exclusions": [
+    "No global Apple initialization/license acceptance/selector change by Social",
+    "No deployment or formal signed release",
+    "No existing device/account/PIN/userdata modification",
+    "No wallet account grant/signature/transaction",
+    "No model admission or scientific calibration claim"
+  ],
+  "files": [
+    {
+      "path": "apps/social/modules/native-matrix/android/build.gradle",
+      "bytes": 1814,
+      "sha256": "8f3042a4e5b4f6be54b6f393f000ddfcb85b47dafeefaa711c0dcfdf1d03ca38",
+      "git_blob": "ba32af4d078866f2d81307ca80c7ec8a4183071d"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixReceivedMedia.kt",
+      "bytes": 6078,
+      "sha256": "6b9d9a8586b3ec036b4bcc751007e7f7b3f683e3323f182eb0a227266a8a17e3",
+      "git_blob": "83069795a0852f15a64adbb2f9328e1ad0e2654f"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBudget.kt",
+      "bytes": 5251,
+      "sha256": "dde84c055ab86ad72cb751dc281cba9675edc8e5043669203aae0828efeb0f01",
+      "git_blob": "46a2cc342f5f9d35b1282bb58fb2d3922cfb79b4"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBounds.kt",
+      "bytes": 926,
+      "sha256": "0d6f632eb70eda9e14e34af7f1d125fede3a685b4137861447537513d1d5405e",
+      "git_blob": "4328923134b94d0718d5e0eb8e720b7ad28c043a"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/test/java/com/ynx/social/matrix/ImagePreviewBudgetTest.kt",
+      "bytes": 1961,
+      "sha256": "6a8e079d383564cf9f15796ce764102b30fe78542af5a909e5e9b4e238004bfe",
+      "git_blob": "68908f7456d64d241e3a99c1bee132e991b7e65a"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixReceivedMedia.swift",
+      "bytes": 6117,
+      "sha256": "32403d1236cc933a82433c143b4f43316c9e4bbafd72e27a3fc331e9520f4d33",
+      "git_blob": "a287c1ae0f2cc17ce6ea41ad61bc3274e27d30fd"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/ImagePreviewBounds.swift",
+      "bytes": 2080,
+      "sha256": "ccbca115f1c7f9563a9d18dc5f78c9b4fc68f0dc347604a762f1655fc383daa7",
+      "git_blob": "1620b18999138baa9f673feb8a2035e98572bb2f"
+    },
+    {
+      "path": "apps/social/scripts/media-preview-bounds-qa/check.swift",
+      "bytes": 900,
+      "sha256": "7d73fc47eddfbb0c7dca27ecc797a25815a719aaba6c9dad95539f6dd7d4f71e",
+      "git_blob": "82579b5657e17233cec734dc06e04c2a2c55dfba"
+    },
+    {
+      "path": "apps/social/scripts/media-preview-bounds-qa/HeaderBudgetCheck.java",
+      "bytes": 5820,
+      "sha256": "d6afff581c9977edec819be0cf96dff4c10af5aef8224a857f5b93fccecc9183",
+      "git_blob": "b7a41cc73fab7aa3738665a7bd080a731815bf2c"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/android-check.log",
+      "bytes": 13100,
+      "sha256": "9e2bd9a3f7477381883db6ed4246b2962af2ca949989f1f096dd4b075cb7ceca",
+      "git_blob": "2f56e631b61449d0c6ca74abc62663e509c0977f"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/android-unit-tests.xml",
+      "bytes": 964,
+      "sha256": "82f2474d2cba9975350244cdb05710275e58403080d7111d6497e8bc8ce63a02",
+      "git_blob": "a3ab19dadfb135bb5a8f3ec8e42b6fa017177c3a"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/swift-build.log",
+      "bytes": 178,
+      "sha256": "411522ec89779639df259fa9f595942811c505c31bc2eb85696023376304b203",
+      "git_blob": "7277277b93adbd07c0ce0e9de5e04efc053088db"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/header-check.log",
+      "bytes": 692,
+      "sha256": "8f75a58cf1b1151e3e455b3faddb3af377400c64f2335799f772d294db16534d",
+      "git_blob": "1ede3a45fec64ea747483470e2a4bd003449b9ae"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/swift-after-initialization-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "apps/social/evidence/image-preview-bounds-20261003/swift-check.log",
+      "bytes": 73,
+      "sha256": "7dffd09498ee871209275a5f4361e794e6aa71adb51dd3caf13013325a488a63",
+      "git_blob": "1a8f539c49bcbc964b4de77c40fa58236f86ed8f"
+    }
+  ]
+}

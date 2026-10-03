@@ -88,6 +88,7 @@ internal class MatrixReceivedMedia(
             val file = File(handle.path()).canonicalFile
             require(file.parentFile == root && file.isFile && file.length() in 1..maximumBytes) { "MATRIX_MEDIA_FILE_INVALID" }
             require(declared == null || file.length().toULong() == declared) { "MATRIX_MEDIA_SIZE_MISMATCH" }
+            ImagePreviewBounds.validate(file, mime)
             val token = UUID.randomUUID().toString()
             synchronized(handles) {
                 require(epoch.get() == attempt) { "MATRIX_MEDIA_RETIRED" }

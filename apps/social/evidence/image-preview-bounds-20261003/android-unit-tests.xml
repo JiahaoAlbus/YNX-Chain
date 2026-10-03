@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynx.social.matrix.ImagePreviewBudgetTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-03T15:37:44.699Z" hostname="HuangJiahaoMacmini" time="0.035">
+  <properties/>
+  <testcase name="gifFrameFloodIsRejected" classname="com.ynx.social.matrix.ImagePreviewBudgetTest" time="0.023"/>
+  <testcase name="actualGifHeadersCountFramesWithoutRasterDecode" classname="com.ynx.social.matrix.ImagePreviewBudgetTest" time="0.001"/>
+  <testcase name="sidePixelFrameAndOverflowLimits" classname="com.ynx.social.matrix.ImagePreviewBudgetTest" time="0.008"/>
+  <testcase name="truncatedGifIsRejectedBeforePreview" classname="com.ynx.social.matrix.ImagePreviewBudgetTest" time="0.001"/>
+  <testcase name="ordinary48MegapixelPhotoStillFits" classname="com.ynx.social.matrix.ImagePreviewBudgetTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

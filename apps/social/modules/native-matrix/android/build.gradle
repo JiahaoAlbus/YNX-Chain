@@ -21,6 +21,7 @@ def matrixRelease = configurations.create('matrixAdmittedRelease') {
 }
 
 dependencies {
+  testImplementation 'junit:junit:4.13.2'
   implementation 'org.matrix.rustcomponents:sdk-android:26.09.28'
   matrixAdmittedRelease 'org.matrix.rustcomponents:sdk-android:26.09.28@aar'
   implementation 'net.java.dev.jna:jna:5.18.1@aar'
