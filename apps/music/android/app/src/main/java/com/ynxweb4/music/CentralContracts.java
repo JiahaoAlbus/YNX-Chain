@@ -84,7 +84,7 @@ public final class CentralContracts {
 
     public static JSONObject aiRequest(String kind, String intent, JSONArray trackIds, String language) throws Exception {
         if (!List.of("playlist", "metadata", "discovery", "creator_description", "royalty_explanation").contains(kind)) throw new IllegalArgumentException("AI kind");
-        return new JSONObject().put("kind", kind).put("intent", intent).put("provider", "ynx-ai-gateway").put("model", "operator-selected").put("trackIDs", trackIds).put("permission", true).put("outputLanguage", language).put("explanationRequired", true);
+        return new JSONObject().put("kind", kind).put("intent", intent).put("provider", "ynx-ai-gateway").put("model", "operator-selected").put("trackIDs", trackIds).put("permission", true).put("outputLanguage", "system".equals(language) ? java.util.Locale.getDefault().toLanguageTag() : language).put("explanationRequired", true);
     }
 
     public static Uri paySettlement(String intentId, long amountMicros, String payTo) {

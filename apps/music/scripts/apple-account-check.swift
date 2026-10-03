@@ -144,6 +144,28 @@ final class FixtureProtocol:URLProtocol {
             return (200,Data("{}".utf8))
         }
         _ = try await api.request("api/me")
+        let id="trk_"+String(repeating:"c",count:24)
+        let playlistID="pl_"+String(repeating:"a",count:24),proposalID="ai_"+String(repeating:"b",count:24)
+        var profile=Profile();profile.displayName="Retained listener";profile.bio="Retained original biography"
+        FixtureProtocol.handler={ request in
+            var body=request.httpBody ?? Data()
+            if body.isEmpty,let stream=request.httpBodyStream {stream.open();defer{stream.close()};var buffer=[UInt8](repeating:0,count:4096);while stream.hasBytesAvailable{let count=stream.read(&buffer,maxLength:buffer.count);if count<=0{break};body.append(buffer,count:count)}}
+            let object=(try? JSONSerialization.jsonObject(with:body)) as? [String:Any] ?? [:]
+            if request.url!.path.hasSuffix("profile") {precondition(object["bio"] as? String=="Retained original biography")}
+            if request.url!.path.hasSuffix("review") {precondition(object["action"] as? String=="apply")}
+            if request.httpMethod=="PUT",request.url!.path.contains("playlists") {precondition(object["name"] as? String=="Edited list");precondition(object["trackIDs"] as? [String]==[id])}
+            return request.url!.path.contains("playlists") ? (200,Data("{\"id\":\"\(playlistID)\",\"name\":\"Edited list\",\"description\":\"Retained description\",\"trackIds\":[\"\(id)\"]}".utf8)) : (200,Data("{}".utf8))
+        }
+        try await api.updateProfile(profile)
+        try await api.reviewAI(id:proposalID,action:"apply")
+        let playlist=try await api.playlist(playlistID)
+        let saved=try await api.savePlaylist(playlist)
+        try require(saved.trackIds==[id],"playlist response lost ordered IDs")
+        let validCount=FixtureProtocol.requests.count
+        do {try await api.reviewAI(id:id,action:"apply");throw NSError(domain:"track accepted as proposal",code:1)} catch let error as URLError {try require(error.code == .badURL,"wrong proposal rejection")}
+        do {_ = try await api.playlist("../profile");throw NSError(domain:"invalid playlist ID accepted",code:1)} catch let error as URLError {try require(error.code == .badURL,"wrong playlist rejection")}
+        try require(FixtureProtocol.requests.count==validCount,"invalid ID emitted network request")
+        print("PASS Apple business API: retained bio, valid AI proposal review, invalid-ID zero transport, playlist read/update ordered record")
         FixtureProtocol.handler={ request in
             precondition(request.value(forHTTPHeaderField:"X-YNX-App-Session")=="session-a")
             fence.replace(binding:"session-b")

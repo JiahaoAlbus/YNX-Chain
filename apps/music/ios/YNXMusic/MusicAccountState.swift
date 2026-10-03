@@ -5,12 +5,13 @@ struct Track: Codable, Identifiable { let id,title,artistName:String; var album:
 struct Rights:Codable { let basis,evidenceRef:String;let territories:[String] }
 struct HistoryEntry:Codable,Identifiable{var id:String{trackId+"-"+String(positionMillis)};let trackId:String;let positionMillis:Int;let completed:Bool}
 struct Listener:Codable{var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var history:[HistoryEntry]=[]}
-struct Profile:Codable{var account="";var displayName="";var explicitAllowed=false;var privateHistory=true;var creatorStatus="listener"}
+struct Profile:Codable{var account="";var displayName="";var bio:String?;var explicitAllowed=false;var privateHistory=true;var creatorStatus="listener"}
 struct Allocation:Codable,Identifiable{let id:String;let amountMicros:Int}
 struct Settlement:Codable,Identifiable{let id,status,reviewUri:String;let amountMicros:Int}
 struct CaseRecord:Codable,Identifiable{let id,kind,status:String}
 struct AIProposal:Codable,Identifiable{let id,kind,status:String;let estimatedUnits:Int;var result:String?}
-struct Snapshot:Codable { var profile=Profile();var listener=Listener();var catalog:[Track]=[];var creatorTracks:[Track]=[];var usage:[Usage]=[];var allocations:[Allocation]=[];var settlements:[Settlement]=[];var cases:[CaseRecord]=[];var aiProposals:[AIProposal]=[] }
+struct MusicPlaylist:Codable,Identifiable { let id:String;var name:String;var description:String?;var trackIds:[String] }
+struct Snapshot:Codable { var profile=Profile();var listener=Listener();var catalog:[Track]=[];var creatorTracks:[Track]=[];var usage:[Usage]=[];var allocations:[Allocation]=[];var settlements:[Settlement]=[];var cases:[CaseRecord]=[];var aiProposals:[AIProposal]=[];var playlists:[MusicPlaylist]=[] }
 struct Usage:Codable,Identifiable{let id,trackId:String;let listenedMillis:Int}
 struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true }
 

@@ -22,6 +22,8 @@ import (
 var safeText = regexp.MustCompile(`^[\pL\pN][\pL\pN .,'&()_\-]{0,119}\z`)
 var safeIdempotencyKey = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\z`)
 
+var safeOutputLanguage = regexp.MustCompile(`^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0,3}$`)
+
 var errIdempotentReplay = fmt.Errorf("music idempotent replay")
 
 type Service struct {
@@ -901,7 +903,7 @@ func (s *Service) LinkCentralCase(actor, id, centralID string) (Case, error) {
 	return out, err
 }
 
-func (s *Service) CreateAIProposal(actor, kind, intent, provider, model string, trackIDs []string, permission bool) (AIProposal, error) {
+func (s *Service) CreateAIProposal(actor, kind, intent, provider, model string, trackIDs []string, permission bool, output ...AIOutputOptions) (AIProposal, error) {
 	actor, err := normalizeActor(actor)
 	if err != nil {
 		return AIProposal{}, err
@@ -910,7 +912,17 @@ func (s *Service) CreateAIProposal(actor, kind, intent, provider, model string, 
 	if !allowed || !permission || strings.TrimSpace(intent) == "" || provider == "" || model == "" {
 		return AIProposal{}, ErrInvalid
 	}
-	p := AIProposal{ID: newID("ai"), Owner: actor, Kind: kind, Intent: strings.TrimSpace(intent), ContextTrackIDs: unique(trackIDs), Provider: provider, Model: model, EstimatedUnits: int64(200 + len(trackIDs)*80), Permission: true, Status: "awaiting_gateway", CreatedAt: s.cfg.Now().UTC(), UpdatedAt: s.cfg.Now().UTC()}
+	var options AIOutputOptions
+	if len(output) > 1 {
+		return AIProposal{}, ErrInvalid
+	}
+	if len(output) == 1 {
+		options = output[0]
+	}
+	if options.OutputLanguage != "" && !safeOutputLanguage.MatchString(options.OutputLanguage) {
+		return AIProposal{}, ErrInvalid
+	}
+	p := AIProposal{AIOutputOptions: options, ID: newID("ai"), Owner: actor, Kind: kind, Intent: strings.TrimSpace(intent), ContextTrackIDs: unique(trackIDs), Provider: provider, Model: model, EstimatedUnits: int64(200 + len(trackIDs)*80), Permission: true, Status: "awaiting_gateway", CreatedAt: s.cfg.Now().UTC(), UpdatedAt: s.cfg.Now().UTC()}
 	err = s.mutate(actor, "ai_proposal_created", p.ID, p, func(st *persistentState) error {
 		for _, id := range p.ContextTrackIDs {
 			track, err := visibleTrack(st, actor, id)

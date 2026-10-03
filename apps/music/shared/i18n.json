@@ -71,7 +71,18 @@
       "explicit_content": "Allow explicit content",
       "private_history": "Keep listening history private",
       "ai_output_language": "AI output language",
-      "sign_out": "Sign out"
+      "sign_out": "Sign out",
+      "playlists": "Playlists",
+      "edit_playlist": "Edit playlist",
+      "playlist_name": "Playlist name",
+      "playlist_description": "Description",
+      "save": "Save",
+      "add_track": "Add track",
+      "move_up": "Move up",
+      "move_down": "Move down",
+      "remove_track": "Remove track",
+      "empty_playlists": "No playlists yet",
+      "playlist_save_failed": "Save not confirmed. Your changes are retained; retry."
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -129,7 +140,18 @@
       "explicit_content": "允许露骨内容",
       "private_history": "保持收听历史私密",
       "ai_output_language": "AI 输出语言",
-      "sign_out": "退出登录"
+      "sign_out": "退出登录",
+      "playlists": "歌单",
+      "edit_playlist": "编辑歌单",
+      "playlist_name": "歌单名称",
+      "playlist_description": "简介",
+      "save": "保存",
+      "add_track": "添加歌曲",
+      "move_up": "上移",
+      "move_down": "下移",
+      "remove_track": "移除歌曲",
+      "empty_playlists": "还没有歌单",
+      "playlist_save_failed": "保存尚未确认，修改已保留，请重试。"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -187,7 +209,18 @@
       "explicit_content": "允許露骨內容",
       "private_history": "保持收聽記錄私密",
       "ai_output_language": "AI 輸出語言",
-      "sign_out": "登出"
+      "sign_out": "登出",
+      "playlists": "歌單",
+      "edit_playlist": "編輯歌單",
+      "playlist_name": "歌單名稱",
+      "playlist_description": "簡介",
+      "save": "儲存",
+      "add_track": "加入歌曲",
+      "move_up": "上移",
+      "move_down": "下移",
+      "remove_track": "移除歌曲",
+      "empty_playlists": "尚無歌單",
+      "playlist_save_failed": "儲存尚未確認，修改已保留，請重試。"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -245,7 +278,18 @@
       "explicit_content": "露骨なコンテンツを許可",
       "private_history": "再生履歴を非公開にする",
       "ai_output_language": "AI 出力言語",
-      "sign_out": "サインアウト"
+      "sign_out": "サインアウト",
+      "playlists": "プレイリスト",
+      "edit_playlist": "プレイリストを編集",
+      "playlist_name": "名前",
+      "playlist_description": "説明",
+      "save": "保存",
+      "add_track": "曲を追加",
+      "move_up": "上に移動",
+      "move_down": "下に移動",
+      "remove_track": "曲を削除",
+      "empty_playlists": "プレイリストはありません",
+      "playlist_save_failed": "保存を確認できません。変更を保持しています。再試行してください。"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -303,7 +347,18 @@
       "explicit_content": "명시적 콘텐츠 허용",
       "private_history": "감상 기록 비공개 유지",
       "ai_output_language": "AI 출력 언어",
-      "sign_out": "로그아웃"
+      "sign_out": "로그아웃",
+      "playlists": "재생 목록",
+      "edit_playlist": "재생 목록 편집",
+      "playlist_name": "목록 이름",
+      "playlist_description": "설명",
+      "save": "저장",
+      "add_track": "곡 추가",
+      "move_up": "위로 이동",
+      "move_down": "아래로 이동",
+      "remove_track": "곡 제거",
+      "empty_playlists": "재생 목록이 없습니다",
+      "playlist_save_failed": "저장이 확인되지 않았습니다. 변경 사항을 유지합니다. 다시 시도하세요."
     },
     "es": {
       "app_name": "YNX Music",
@@ -361,7 +416,18 @@
       "explicit_content": "Permitir contenido explícito",
       "private_history": "Mantener privado el historial",
       "ai_output_language": "Idioma de salida de IA",
-      "sign_out": "Cerrar sesión"
+      "sign_out": "Cerrar sesión",
+      "playlists": "Listas de reproducción",
+      "edit_playlist": "Editar lista",
+      "playlist_name": "Nombre de la lista",
+      "playlist_description": "Descripción",
+      "save": "Guardar",
+      "add_track": "Añadir pista",
+      "move_up": "Subir",
+      "move_down": "Bajar",
+      "remove_track": "Quitar pista",
+      "empty_playlists": "Todavía no hay listas",
+      "playlist_save_failed": "Guardado sin confirmar. Los cambios se conservan; vuelve a intentarlo."
     },
     "fr": {
       "app_name": "YNX Music",
@@ -419,7 +485,18 @@
       "explicit_content": "Autoriser le contenu explicite",
       "private_history": "Garder l’historique privé",
       "ai_output_language": "Langue de sortie IA",
-      "sign_out": "Se déconnecter"
+      "sign_out": "Se déconnecter",
+      "playlists": "Listes de lecture",
+      "edit_playlist": "Modifier la liste",
+      "playlist_name": "Nom de la liste",
+      "playlist_description": "Description",
+      "save": "Enregistrer",
+      "add_track": "Ajouter un titre",
+      "move_up": "Monter",
+      "move_down": "Descendre",
+      "remove_track": "Retirer le titre",
+      "empty_playlists": "Aucune liste pour le moment",
+      "playlist_save_failed": "Enregistrement non confirmé. Les modifications sont conservées ; réessayez."
     },
     "de": {
       "app_name": "YNX Music",
@@ -477,7 +554,18 @@
       "explicit_content": "Explizite Inhalte erlauben",
       "private_history": "Hörverlauf privat halten",
       "ai_output_language": "KI-Ausgabesprache",
-      "sign_out": "Abmelden"
+      "sign_out": "Abmelden",
+      "playlists": "Wiedergabelisten",
+      "edit_playlist": "Liste bearbeiten",
+      "playlist_name": "Listenname",
+      "playlist_description": "Beschreibung",
+      "save": "Speichern",
+      "add_track": "Titel hinzufügen",
+      "move_up": "Nach oben",
+      "move_down": "Nach unten",
+      "remove_track": "Titel entfernen",
+      "empty_playlists": "Noch keine Listen",
+      "playlist_save_failed": "Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen."
     },
     "pt": {
       "app_name": "YNX Music",
@@ -535,7 +623,18 @@
       "explicit_content": "Permitir conteúdo explícito",
       "private_history": "Manter histórico privado",
       "ai_output_language": "Idioma de saída da IA",
-      "sign_out": "Terminar sessão"
+      "sign_out": "Terminar sessão",
+      "playlists": "Listas de reprodução",
+      "edit_playlist": "Editar lista",
+      "playlist_name": "Nome da lista",
+      "playlist_description": "Descrição",
+      "save": "Salvar",
+      "add_track": "Adicionar faixa",
+      "move_up": "Mover para cima",
+      "move_down": "Mover para baixo",
+      "remove_track": "Remover faixa",
+      "empty_playlists": "Ainda não há listas",
+      "playlist_save_failed": "Gravação não confirmada. As alterações foram mantidas; tente novamente."
     },
     "ru": {
       "app_name": "YNX Music",
@@ -593,7 +692,18 @@
       "explicit_content": "Разрешить откровенный контент",
       "private_history": "Сохранять историю приватной",
       "ai_output_language": "Язык ответа ИИ",
-      "sign_out": "Выйти"
+      "sign_out": "Выйти",
+      "playlists": "Плейлисты",
+      "edit_playlist": "Изменить плейлист",
+      "playlist_name": "Название",
+      "playlist_description": "Описание",
+      "save": "Сохранить",
+      "add_track": "Добавить трек",
+      "move_up": "Выше",
+      "move_down": "Ниже",
+      "remove_track": "Удалить трек",
+      "empty_playlists": "Плейлистов пока нет",
+      "playlist_save_failed": "Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку."
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -651,7 +761,18 @@
       "explicit_content": "السماح بالمحتوى الصريح",
       "private_history": "إبقاء سجل الاستماع خاصًا",
       "ai_output_language": "لغة مخرجات الذكاء الاصطناعي",
-      "sign_out": "تسجيل الخروج"
+      "sign_out": "تسجيل الخروج",
+      "playlists": "قوائم التشغيل",
+      "edit_playlist": "تعديل القائمة",
+      "playlist_name": "اسم القائمة",
+      "playlist_description": "الوصف",
+      "save": "حفظ",
+      "add_track": "إضافة مقطع",
+      "move_up": "نقل لأعلى",
+      "move_down": "نقل لأسفل",
+      "remove_track": "إزالة المقطع",
+      "empty_playlists": "لا توجد قوائم بعد",
+      "playlist_save_failed": "لم يتأكد الحفظ. تم الاحتفاظ بالتغييرات؛ حاول مجدداً."
     },
     "id": {
       "app_name": "YNX Music",
@@ -709,7 +830,18 @@
       "explicit_content": "Izinkan konten eksplisit",
       "private_history": "Simpan riwayat secara privat",
       "ai_output_language": "Bahasa keluaran AI",
-      "sign_out": "Keluar"
+      "sign_out": "Keluar",
+      "playlists": "Daftar putar",
+      "edit_playlist": "Edit daftar putar",
+      "playlist_name": "Nama daftar",
+      "playlist_description": "Deskripsi",
+      "save": "Simpan",
+      "add_track": "Tambah lagu",
+      "move_up": "Naikkan",
+      "move_down": "Turunkan",
+      "remove_track": "Hapus lagu",
+      "empty_playlists": "Belum ada daftar putar",
+      "playlist_save_failed": "Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi."
     }
   }
 }

@@ -68,6 +68,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/creator/allocations", s.api("music.creator", s.allocate))
 	s.mux.HandleFunc("POST /api/creator/settlements", s.api("music.creator", s.settlement))
 	s.mux.HandleFunc("POST /api/ai/proposals", s.api("music.library", s.aiProposal))
+	s.mux.HandleFunc("GET /api/ai/proposals/{id}", s.api("music.library", s.readAIProposal))
 	s.mux.HandleFunc("GET /api/ai/status", s.api("music.library", s.aiStatus))
 	s.mux.HandleFunc("GET /api/ai/proposals/{id}/stream", s.api("music.library", s.aiStream))
 	s.mux.HandleFunc("POST /api/ai/proposals/{id}/review", s.api("music.library", s.aiReview))
@@ -422,14 +423,20 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request, a string) {
 func (s *Server) aiProposal(w http.ResponseWriter, r *http.Request, a string) {
 	var q struct {
 		Kind, Intent, Provider, Model string
+		OutputLanguage                string
+		ExplanationRequired           bool
 		TrackIDs                      []string
 		Permission                    bool
 	}
 	if !decode(w, r, &q, 32<<10) {
 		return
 	}
-	v, e := s.service.CreateAIProposal(a, q.Kind, q.Intent, q.Provider, q.Model, q.TrackIDs, q.Permission)
+	v, e := s.service.CreateAIProposal(a, q.Kind, q.Intent, q.Provider, q.Model, q.TrackIDs, q.Permission, AIOutputOptions{OutputLanguage: q.OutputLanguage, ExplanationRequired: q.ExplanationRequired})
 	resultStatus(w, v, e, http.StatusAccepted)
+}
+func (s *Server) readAIProposal(w http.ResponseWriter, r *http.Request, a string) {
+	v, err := s.service.AIProposal(a, r.PathValue("id"))
+	result(w, v, err)
 }
 func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a string) {
 	if strings.TrimSpace(s.service.cfg.AIGatewayURL) == "" {
@@ -463,7 +470,20 @@ func (s *Server) aiStream(w http.ResponseWriter, r *http.Request, a string) {
 	}
 	q := url.Values{}
 	q.Set("session", proposal.ID)
-	q.Set("q", proposal.Intent+". Use only these authorized YNX Music track IDs: "+strings.Join(proposal.ContextTrackIDs, ","))
+	if proposal.OutputLanguage != "" {
+		q.Set("outputLanguage", proposal.OutputLanguage)
+	}
+	if proposal.ExplanationRequired {
+		q.Set("explanationRequired", "true")
+	}
+	prompt := proposal.Intent + ". Use only these authorized YNX Music track IDs: " + strings.Join(proposal.ContextTrackIDs, ",")
+	if proposal.OutputLanguage != "" {
+		prompt += ". Respond in language " + proposal.OutputLanguage
+	}
+	if proposal.ExplanationRequired {
+		prompt += ". Explain your recommendation using only authorized records"
+	}
+	q.Set("q", prompt)
 	up, err := http.NewRequestWithContext(r.Context(), http.MethodGet, gateway+"/ai/stream?"+q.Encode(), nil)
 	if err != nil {
 		writeErr(w, err)

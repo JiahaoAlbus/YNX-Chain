@@ -148,7 +148,13 @@ type Case struct {
 	CreatedAt     time.Time `json:"createdAt"`
 }
 
+type AIOutputOptions struct {
+	OutputLanguage      string `json:"outputLanguage,omitempty"`
+	ExplanationRequired bool   `json:"explanationRequired,omitempty"`
+}
+
 type AIProposal struct {
+	AIOutputOptions
 	ID              string    `json:"id"`
 	Owner           string    `json:"owner"`
 	Kind            string    `json:"kind"`
