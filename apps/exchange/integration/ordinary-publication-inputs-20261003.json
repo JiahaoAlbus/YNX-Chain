@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "ynx-exchange-ordinary-integration-inputs-v1",
+  "classification": "OWNER_INPUTS_NOT_RELEASE_OR_DEPLOY_AUTHORITY",
+  "sourceCheckpoint": {
+    "commit": "939fdecfd8323679ac27ec123167765d57a7abd0",
+    "tree": "922d91ace7db0cadf15bf1b5f3deab3f3e3b5fd1",
+    "branch": "codex/exchange-sso-cookie-binding-20261002"
+  },
+  "requestedIntegrator": "wallet_release_owner via 接续测试网生态审计工作",
+  "ordinaryInputs": [
+    {
+      "path": "apps/exchange/web/app.js",
+      "blob": "c6e460e7b9dbcb5f4c7e54818daae84562e60e5e",
+      "bytes": 43447,
+      "sha256": "a07426927c8479bf7d0d8ba4d960f244278c81ee6c15916e36e98d038540b8a8"
+    },
+    {
+      "path": "apps/exchange/web/market-data.js",
+      "blob": "5e3020d3e03749ebd39a4bb6dc6c5b50d11b8647",
+      "bytes": 15124,
+      "sha256": "b65052b8ca7091c1fd604bcabcd13d419c914da5d58bd38bf3ba67f1abf917b3"
+    },
+    {
+      "path": "apps/exchange/web/order-preview.js",
+      "blob": "2a9e61fe5ee8df4ddefc82ac7ffb8a68ab1aa139",
+      "bytes": 4550,
+      "sha256": "5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3"
+    },
+    {
+      "path": "apps/exchange/web/locale.js",
+      "blob": "94bb8a9d30e3285df7edff3117ed5f7be60f32b6",
+      "bytes": 170803,
+      "sha256": "b8b7ce7e1a7e3ea487c246f5cbdba733db88f2fd74a8442e764f9341bfae0781"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "blob": "0f069a50737d0871b7c0402880f9a49ccb09805e",
+      "bytes": 13302,
+      "sha256": "05cc5bb35872b4f3c33182bc25a9055760fabde6d548a999ebcca3992626f198"
+    },
+    {
+      "path": "apps/exchange/web/index.html",
+      "blob": "344a85a2443bac2b41cdb2b3aef2ba7cfd51c6b5",
+      "bytes": 20271,
+      "sha256": "c24b5388851c40b55aee1708713830de57a3ca56bfeda54a6a393e45617119d8"
+    }
+  ],
+  "publicReadOnlyObservation": {
+    "observedAt": "2026-10-03T10:30:12.501Z",
+    "receipts": [
+      {
+        "url": "https://exchange.ynxweb4.com/api/version",
+        "status": 200,
+        "bytes": 107,
+        "sha256": "b4c022607d648d184914ec7e9041fc4e7c5c2ce5fcc13392f18350bfc2a6d8a8",
+        "mime": "application/json; charset=utf-8",
+        "publicVersion": {
+          "commit": "91c1a40587d28ad4c931d4a4d601766bd467ea20",
+          "productId": "ynx-exchange",
+          "version": "0.1.0-testnet"
+        }
+      },
+      {
+        "url": "https://exchange.ynxweb4.com/api/health",
+        "status": 200,
+        "bytes": 307,
+        "sha256": "9d16623ea43cc49bd257b1043c14bd1f1cd1d68a8df4b8e754a1ff2c5dbdc7de",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "https://exchange.ynxweb4.com/",
+        "status": 200,
+        "bytes": 15995,
+        "sha256": "e19bfb7281f35515b5d5648f893803af94ea3a0c64ed46d766f3495a8e7b63ab",
+        "mime": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "executedLocalGates": {
+    "command": "node --test apps/exchange/tests/browser.test.mjs apps/exchange/tests/owned-controls-browser.test.mjs apps/exchange/tests/locale-browser.test.mjs",
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 21460.53275,
+    "coverage": [
+      "actual local service desktop/mobile/no-provider fallbacks",
+      "actual source renderers and 12-language order advisory preview",
+      "controlled account history and identity logout/retry epoch fencing"
+    ]
+  },
+  "integrationContract": {
+    "wholeOwnerCheckoutReplacementAllowed": false,
+    "sharedSDKOrAuthorityOverwriteAllowed": false,
+    "formalPinsOwner": "wallet_release_owner",
+    "indexHandling": "Merge ordinary content hunks into the current coherent formal HTML graph; do not overwrite current identity/runtime authority or retain stale query hashes.",
+    "moduleHandling": "Re-freeze app imports and HTML asset hashes together against all admitted bytes after compatible shared runtime integration.",
+    "requiredTests": [
+      "all Exchange asset graph tests with no mismatch waiver",
+      "ordinary regression and local actual browser gates",
+      "exact source/build public version + assets readback",
+      "actual public two-wallet lifecycle and separately approved native write actions"
+    ],
+    "missingWriteDependency": "The current Web handler intentionally does not submit orders/cancel/deposit/withdraw. Read-only Product Session and Standard Wallet are not accepted write authority. Central must supply the accepted product-native write-scope/signature route for owner consumption, or keep these operations explicitly unavailable."
+  },
+  "truth": {
+    "publicSourceBoundToInputs": false,
+    "publicOwnerBrowserFlowVerified": false,
+    "realAccountApproval": false,
+    "realSignature": false,
+    "realOrderSubmitted": false,
+    "realTestnetTransaction": false,
+    "installedVerified": false,
+    "productComplete": false
+  },
+  "forbidden": [
+    "No deployment/service/config/state/public mutation from this request",
+    "No account request/sign/transaction implied",
+    "Do not publish the owner checkout wholesale",
+    "Do not treat local controlled fixtures or public HTTP200 as current-source product completion"
+  ]
+}
