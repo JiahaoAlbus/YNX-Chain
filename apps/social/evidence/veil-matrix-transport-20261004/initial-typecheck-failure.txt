@@ -1,0 +1,1 @@
+src/veilMatrixTransport.test.ts(5,61): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.

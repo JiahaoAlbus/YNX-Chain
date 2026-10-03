@@ -1,0 +1,16 @@
+✔ maximum opaque ciphertext uses small descriptor, not inline base64 (0.597792ms)
+✔ wire output is immutable snapshot and never accepts secret/context extras (0.122542ms)
+✔ unknown new version or suite cannot fall back to legacy (0.136125ms)
+✔ legacy JSON preserved byte-for-byte with read-only routing (0.298459ms)
+✔ descriptor refuses remote HTTP, malformed fields, fractions, caps, secrets and unsupported sender-key type (0.5495ms)
+✔ sender/local operation/Matrix txn namespaces remain distinct and immutable (0.161125ms)
+✔ unknown send must read original, not regenerate or repost (0.092875ms)
+✔ readback requires exact original room, sender, type and ciphertext reference (0.134375ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45.349875

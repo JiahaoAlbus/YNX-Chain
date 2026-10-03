@@ -1,0 +1,1 @@
+Initial runner did not execute tests: evidence redirection used repository-relative path under app cwd; shell exit1. Product source unchanged.

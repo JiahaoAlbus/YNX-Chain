@@ -1,0 +1,20 @@
+(node:2204) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/veilMatrixTransport.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ maximum opaque ciphertext uses small descriptor, not inline base64 (0.642042ms)
+✔ wire output is immutable snapshot and never accepts secret/context extras (0.12325ms)
+✔ unknown new version or suite cannot fall back to legacy (0.388042ms)
+✔ legacy JSON preserved byte-for-byte with read-only routing (0.34125ms)
+✔ descriptor refuses remote HTTP, malformed fields, fractions, caps, secrets and unsupported sender-key type (0.139833ms)
+✔ sender/local operation/Matrix txn namespaces remain distinct and immutable (0.202791ms)
+✔ unknown send must read original, not regenerate or repost (0.125334ms)
+✔ readback requires exact original room, sender, type and ciphertext reference (0.164ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 85.536833

@@ -1,0 +1,8 @@
+tests_exit=0
+typecheck_exit=2
+corrected_typecheck_exit=0
+compiled_test_stage=/tmp/social-matrix-transport-20261004.3VZQqU
+test_compile_exit=1
+standalone_strict_test_compile_exit=2
+node16_strict_test_compile_exit=0
+compiled_tests_exit=0
