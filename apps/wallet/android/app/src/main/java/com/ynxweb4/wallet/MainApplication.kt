@@ -23,7 +23,10 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
-        }
+        },
+      // A prebuilt React Native dependency's DEBUG flag is not the app variant.
+      // Debug loads Metro; release keeps developer support disabled.
+      useDevSupport = BuildConfig.DEBUG
     )
   }
 

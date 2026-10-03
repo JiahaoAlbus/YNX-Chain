@@ -1,5 +1,7 @@
 # Android native build and isolated onboarding — limited OS evidence
 
+Historical 04fd checkpoint. Root subsequently clarified ordinary MainApplication/build startup ownership; `native-startup-qa-identity-20261003.md` records the production fix and actual ordinary-debug startup. The external QA init below is retained only as the original diagnostic route, not the current product solution.
+
 Inherited production HEAD `6c21f9487c833edbb77ebbca3ff6c627c4d38dce`, tree `83b5c6049916bace6a334217d6496fd71870ef1b`; frozen App SHA256 `c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f`. No App/startup, shared SDK, version, signing policy or protection source was changed. Native 935/935 and Desktop 694/694 are prior results, not new reruns.
 
 ## Actual build and target

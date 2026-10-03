@@ -58,6 +58,7 @@ const configuredRpcUrl = process.env.YNX_WALLET_RPC_URL;
 const rpcUrl = configuredRpcUrl || CANONICAL_RPC_URL;
 const evidencePath = process.env.YNX_WALLET_EVIDENCE_PATH;
 let mainWindow;
+let walletWindowTitle=app.isPackaged?"YNX Wallet":"YNX Wallet · 测试构建 / QA · 源码未验证";
 let authorizationController;
 let protocolReady = false;
 let lastCallback = null;
@@ -182,7 +183,7 @@ handleWalletIPC("wallet:authorization-action", async (_event, input) => {
     const result = await keyAccess.run(() => authorizationController.act(input));
     lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: result.callbackEmitted, callbackReceivedProved: false, authorityGranted: result.authorityGranted, productSessionCreated: false };
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setTitle(app.isPackaged ? "YNX Wallet" : "YNX Wallet · QA");
+      mainWindow.setTitle(walletWindowTitle);
       await recordEvidence(await rpcStatus(), mainWindow);
     }
     return result;
@@ -359,7 +360,7 @@ async function handleCallback(rawValue) {
     activation: protocolActivationFingerprint(rawValue)
   };
   if (!mainWindow || mainWindow.isDestroyed()) return;
-  mainWindow.show(); mainWindow.focus(); mainWindow.setTitle("YNX Wallet");
+  mainWindow.show(); mainWindow.focus(); mainWindow.setTitle(walletWindowTitle);
   if (review.acceptedForReview) mainWindow.webContents.send("wallet:authorization-request", review);
   else mainWindow.webContents.send("wallet:authorization-error", review);
   await recordEvidence(await rpcStatus(), mainWindow);
@@ -465,6 +466,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });
   const branding=configureWalletRuntimeBranding({app,Menu,nativeImage,directory});
+  walletWindowTitle=branding.title;
   const window = new BrowserWindow({
     width: 1080,
     height: 780,
