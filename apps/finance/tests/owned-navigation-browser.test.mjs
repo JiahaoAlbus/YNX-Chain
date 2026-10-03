@@ -27,3 +27,35 @@ test('actual receipt/support renderers reject executable and ambiguous navigatio
     assert.equal(page.url(),'https://finance-navigation.test/');assert.equal(browser.contexts()[0].pages().length,1);
   }finally{await browser.close()}
 });
+test('actual receipt/support renderers isolate malformed sources and preserve valid neighboring records',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();
+    await page.goto('about:blank');
+    await page.setContent('<div id="recent-receipts"></div><div id="support-links"></div>');
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s),financeText=k=>k,date=v=>v,short=v=>v;const esc=v=>String(v??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');${app.slice(app.indexOf('const fmt='),app.indexOf('\n',app.indexOf('const fmt=')))}\n${receipts}\n${support}\nwindow.renderSourceQA=(items,status,s)=>{renderReceipts(items,status);renderSupport(s)};`});
+    for(const status of [null,undefined,{},[],{available:'true'},{available:1}]){
+      await page.evaluate(s=>renderSourceQA([],s,null),status);
+      assert.match(await page.locator('#recent-receipts').textContent(),/unavailable/);
+      assert.equal(await page.locator('#support-links .support-card').count(),3);
+    }
+    for(const items of [null,{},'bad']){
+      await page.evaluate(i=>renderSourceQA(i,{available:true},null),items);
+      assert.match(await page.locator('#recent-receipts').textContent(),/unavailable/);
+      assert.doesNotMatch(await page.locator('#recent-receipts').textContent(),/noOwnedPayReceipts/);
+    }
+    await page.evaluate(()=>renderSourceQA([null,{},[],{id:'valid-zero',amountYnxt:0},{id:'valid-unknown',amountYnxt:null}],{available:true},{}));
+    const text=await page.locator('#recent-receipts').textContent();
+    assert.match(text,/valid-zero/);assert.match(text,/0 YNXT/);assert.match(text,/valid-unknown/);assert.match(text,/unknown YNXT/);
+    assert.equal(await page.locator('#recent-receipts .empty').count(),3);
+    for(const amount of [null,-1,'7',Number.MAX_SAFE_INTEGER+1]){
+      await page.evaluate(v=>renderSourceQA([{id:'typed-record',amountYnxt:v,status:{paid:true},transactionHash:{hash:'bad'},createdAt:{date:'bad'}}],{available:true},['bad']),amount);
+      const row=await page.locator('#recent-receipts').textContent();
+      assert.match(row,/typed-record/);assert.match(row,/payRecord/);assert.match(row,/unknown YNXT/);assert.doesNotMatch(row,/\[object Object\]/);
+      assert.equal(await page.locator('#support-links .support-card').count(),3);
+    }
+    await page.evaluate(()=>renderSourceQA([],{available:true},null));
+    assert.match(await page.locator('#recent-receipts').textContent(),/noOwnedPayReceipts/);
+    assert.equal(await page.locator('a').count(),0);
+  }finally{await browser.close()}
+});
