@@ -547,7 +547,7 @@ const workspaceReadCopy={
   id:'Pembaruan tidak tersedia. Catatan adalah pembacaan terakhir yang terkonfirmasi, bukan keadaan terbaru. Muat ulang; tindakan tertunda tetap disimpan.'
 };
 for(const [language,workspaceReadUnavailable] of Object.entries(workspaceReadCopy))Object.assign(businessCopy[language],{workspaceReadUnavailable});
-function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable;element.textContent=workspaceReadUnavailable?t('workspaceReadUnavailable'):'';}
+function renderWorkspaceReadStatus(){const element=$('#workspace-read-status');element.hidden=!workspaceReadUnavailable;element.textContent=workspaceReadUnavailable?t('workspaceReadUnavailable'):'';if(workspaceReadUnavailable)$$('.schedule-toggle[data-enabled="true"]').forEach(button=>{button.disabled=true});}
 function applyLocale() {
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
@@ -825,6 +825,7 @@ function render() {
     $("#mandate-strategy").value = firstReadableStrategy.StrategyHash;
   }
   renderTestnetExecutions(Object.hasOwn(snapshot,'testnetOrders')?snapshot.testnetOrders:{});
+  renderWorkspaceReadStatus();
 }
 $("#strategy-rows").addEventListener("click", async event => {
   const button = event.target.closest(".schedule-toggle");
@@ -832,6 +833,7 @@ $("#strategy-rows").addEventListener("click", async event => {
   const id = decodeURIComponent(button.dataset.strategyId);
   if (scheduleWrites.has(id) || scheduleUnconfirmed.has(id)) return;
   const enabled = button.dataset.enabled === "true";
+  if (enabled && workspaceReadUnavailable) { toast(t('workspaceReadUnavailable'),'workspaceReadUnavailable');return; }
   const strategy = Object.values(snapshot.strategies || {}).find(value => value?.ID === id), runtime = observedSchedule(strategy);
   if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
   let sent = false;
@@ -840,7 +842,7 @@ $("#strategy-rows").addEventListener("click", async event => {
     if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
     if (!confirm(`${t(enabled ? "scheduleConfirmStart" : "scheduleConfirmStop")}\n${id}\n${strategy.StrategyHash}${enabled ? `\n${t("runFee")}: ${assumptions.feeBPS}\n${t("runSlippage")}: ${assumptions.slippageBPS}\n${t("runSeed")}: ${assumptions.seed}` : ""}`)) return;
     const current = Object.values(snapshot.strategies || {}).find(value => value?.ID === id);
-    if (!statefulPreview || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || researchIntegerInput("fee") !== assumptions.feeBPS || researchIntegerInput("slippage") !== assumptions.slippageBPS || researchIntegerInput("seed") !== assumptions.seed)) throw Error(t("scheduleInvalid"));
+    if (!statefulPreview || enabled && workspaceReadUnavailable || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || researchIntegerInput("fee") !== assumptions.feeBPS || researchIntegerInput("slippage") !== assumptions.slippageBPS || researchIntegerInput("seed") !== assumptions.seed)) throw Error(t("scheduleInvalid"));
     scheduleWrites.add(id); snapshotRevision++; render(); sent = true;
     const receipt = await api(`/v1/strategies/${encodeURIComponent(id)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions})});
     const confirmed = observedSchedule(receipt);

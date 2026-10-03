@@ -268,6 +268,32 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
     assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
   }finally{await context.close()}
 });
+test('actual Chrome blocks stale schedule starts but keeps confirmed stop and explicit recovery available',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const baseStrategy={Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64)};
+    const strategies={start:{...baseStrategy,ID:'stale-start',Name:'Start fixture',Runtime:{enabled:false,running:false,intervalSeconds:0}},stop:{...baseStrategy,ID:'stale-stop',Name:'Stop fixture',Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled'}}};
+    let stale=false,puts=0;const errors=[];
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(stale?null:{access:{statefulPreview:true},strategies})}));
+    await context.route('**/api/v1/strategies/stale-stop/schedule',async route=>{
+      puts++;assert.equal(route.request().postDataJSON().enabled,false);
+      strategies.stop.Runtime={enabled:false,running:false,intervalSeconds:0,lastRunStatus:'stopped_by_user'};
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategies.stop)});
+    });
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    const start=page.locator('.schedule-toggle[data-strategy-id="stale-start"]'),stop=page.locator('.schedule-toggle[data-strategy-id="stale-stop"]');
+    assert.equal(await start.isEnabled(),true);stale=true;await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'visible'});
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);assert.equal(await start.isDisabled(),true);assert.equal(await stop.isEnabled(),true);
+    }
+    const dialog=page.waitForEvent('dialog'),click=stop.click();await (await dialog).accept();await click;
+    await page.waitForFunction(()=>Object.values(snapshot.strategies).find(s=>s.ID==='stale-stop').Runtime.lastRunStatus==='stopped_by_user');
+    assert.equal(puts,1);assert.equal(await start.isDisabled(),true);
+    stale=false;await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'hidden'});
+    assert.equal(await start.isEnabled(),true);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome keeps impossible schedule timestamps unavailable across locales and reload without writes',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

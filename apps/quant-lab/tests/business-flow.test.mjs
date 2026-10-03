@@ -297,6 +297,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, rawSnapshot = false
   const document = {documentElement: {}, createElement: tag => new Element(tag), querySelector: selector => selector === 'nav button.active' ? nav.find(element => element.classes.has('active')) : ids.get(selector.slice(1)), querySelectorAll: selector => {
     if (selector === 'nav button') return nav;
     if (selector === '.view') return views;
+    if (selector === '.schedule-toggle[data-enabled="true"]') return [...ids.get('strategy-rows').innerHTML.matchAll(/<button\b([^>]*class="schedule-toggle"[^>]*)>/g)].map(([,attrs])=>new Element('button',attrs)).filter(element=>element.dataset.enabled==='true');
     if (selector === '[data-i18n]') return elements.filter(element => element.dataset.i18n);
     if (selector === '[data-business-i18n]') return elements.filter(element => element.dataset.businessI18n);
     if (selector.startsWith('#mandate-form')) return formInputs('mandate-form').filter(element => element.id !== 'mandate-signature');
@@ -396,6 +397,22 @@ test('schedule configuration coalesces through rerender and binds the exact save
   app.ids.get('fee').value='99';const body=JSON.parse(app.calls.find(call=>call.options.method==='PUT').options.body);assert.equal(body.assumptions.feeBPS,10);
   observed={...strategy,Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled',assumptions:{FeeBPS:10,SlippageBPS:5,Seed:42,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3}}};pending.resolve(observed);await first;
   assert.match(app.ids.get('toast').textContent,/execution is not yet proved/);assert.match(app.ids.get('strategy-rows').innerHTML,/Stop schedule/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/aria-busy="true"/);assert.equal(app.proofs(),0);
+});
+
+test('stale workspace blocks new schedules before confirmation but preserves confirmed stop',async()=>{
+  for(const enabled of [false,true]){
+    let confirmations=0,unavailable=false;
+    const strategy=savedResearchStrategy({Runtime:enabled?{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled'}:{enabled:false,running:false,intervalSeconds:0}});
+    const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>{
+      if(url.endsWith('/snapshot')){if(unavailable)throw Error('offline');return {strategies:{saved:strategy}}}
+      return {...strategy,Runtime:{enabled:false,running:false,intervalSeconds:0,lastRunStatus:'stopped_by_user'}};
+    }});await settle();unavailable=true;await app.ids.get('refresh').onclick();
+    await app.schedule(strategy,!enabled);
+    assert.equal(confirmations,enabled?1:0);
+    assert.equal(app.calls.filter(c=>c.options.method==='PUT').length,enabled?1:0);
+    if(!enabled)assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("workspaceReadUnavailable")',app.context));
+    assert.equal(vm.runInContext('statefulPreview',app.context),true);
+  }
 });
 
 test('unbound schedule acknowledgements block another write until a fresh verified snapshot',async()=>{
