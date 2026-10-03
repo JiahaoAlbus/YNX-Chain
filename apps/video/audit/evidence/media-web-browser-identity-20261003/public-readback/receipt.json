@@ -1,0 +1,45 @@
+{
+  "noAuthenticationOrPrivateBusinessUsed": true,
+  "thisSourceCommit": "da12f9d00c059f532293ccb67eadbdf24961d112",
+  "results": [
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "video",
+        "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+        "status": 200,
+        "bytes": 4499,
+        "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87",
+        "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+        "centralDeploymentVerified": null,
+        "checkedAt": "2026-10-03T15:03:43.781Z"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "creator",
+        "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+        "status": 200,
+        "bytes": 3753,
+        "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2",
+        "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+        "centralDeploymentVerified": null,
+        "checkedAt": "2026-10-03T15:03:45.224Z"
+      }
+    },
+    {
+      "status": "fulfilled",
+      "value": {
+        "name": "health",
+        "url": "https://video.ynxweb4.com/video/api/health",
+        "status": 200,
+        "bytes": 285,
+        "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0",
+        "sourceCommit": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+        "centralDeploymentVerified": false,
+        "checkedAt": "2026-10-03T15:03:42.808Z"
+      }
+    }
+  ]
+}

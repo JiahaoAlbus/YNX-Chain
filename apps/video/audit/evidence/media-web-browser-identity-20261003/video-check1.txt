@@ -1,0 +1,277 @@
+
+> check
+> node --check display-settings.js && node --check browser-identity.js && node --check app.js && node --check business-identity.js && node --check business-wire.js && node --check product-session.js && node --check video-api.js && node --check watch-progress.js && node --check wallet-callback.js && node --check i18n.js && node --check wallet-connection.js && node --check ynx-dapp-connect-sdk/provider.js && node --check scripts/verify-public-browser.mjs && node --check scripts/video-retained-evidence-guard.mjs && node --check scripts/video-retained-takeover-transport.mjs && bash -n scripts/video-retained-takeover-preflight.sh scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh && node --test browser-identity.test.mjs business-identity.test.mjs business-wire.test.mjs connection-attempt.test.mjs watch-progress.test.mjs guest-navigation.test.mjs i18n-navigation.test.mjs product-session.test.mjs provider-signin.test.mjs session-boundaries.test.mjs app.test.mjs runtime.test.mjs controlled-takeover.test.mjs retained-evidence-guard.test.mjs retained-takeover-transport.test.mjs retained-takeover-preflight.test.mjs emergency-recovery.test.mjs browser-acceptance.test.mjs && node i18n-check.mjs
+
+✔ removed or absent Wallet cannot reject guest startup (38.513417ms)
+✔ restore binds provider method receiver and performs read-only calls (17.479375ms)
+✔ same-label replacement provider is not silently restored (4.322792ms)
+✔ locked, switched-account and wrong-chain providers leave restore disconnected (4.21675ms)
+✔ stalled and rejected provider reads cannot indefinitely block guest startup (6.943417ms)
+✔ viewer exposes complete truthful interaction paths (2.462042ms)
+✔ accepted browser-safe SDK modules remain byte exact (4.507625ms)
+✔ Video has one strict 6423 Testnet configuration and excludes legacy ingress (2.857875ms)
+✔ YNX EIP-6963 provider is preferred and switches to 0x1917 (1.663125ms)
+✔ missing Wallet fails with exact official installation choices (0.640875ms)
+✔ late YNX and MetaMask providers remain distinct without requesting accounts (22.757583ms)
+✔ late root injection and no-provider state are classified without navigation (23.746542ms)
+✔ public browser acceptance is source-bound and non-sensitive (66.624875ms)
+✔ video original browser csrf accompanies independent private SDK proof (14.038166ms)
+✔ creator-studio original browser csrf accompanies independent private SDK proof (1.821458ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (0.357458ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":true} (3.010083ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (0.40175ms)
+✔ unmatched or invalid browser identity cannot initiate private signing ],"csrfToken":"bad","privateWorkspaceAuthorized":false} (0.198458ms)
+✔ unmatched or invalid browser identity cannot initiate private signing paceAuthorized":false,"grantToken":"must-never-return"} (5.165083ms)
+✔ unmatched or invalid browser identity cannot initiate private signing aaaaaaaaaaaaaaaaaa","privateWorkspaceAuthorized":false} (4.658625ms)
+✔ browser status alone never returns a private proof or csrf to UI (1.961583ms)
+✔ late browser status and late private signing are fenced by original identity revision (0.777792ms)
+✔ authority outage and declined identity preserve private signing capability without calling it (0.244667ms)
+✔ explicit browser sign in uses exact product target and never an external return URL (0.128625ms)
+✔ site logout reads original csrf then requires actual server revocation acknowledgement (2.890542ms)
+✔ Video private identity requires original account readback, not approved session alone (4.945125ms)
+✔ mismatched business account and unsupported response cannot enable private identity (0.296333ms)
+✔ late A readback after B verification or disconnect cannot publish A identity (0.356583ms)
+✔ concurrent replacement retains B identity when A returns last (0.389917ms)
+✔ expiry during await or changed session binding invalidates business confirmation (0.133333ms)
+✔ actual upload multipart serialization signs exact final bytes and preserves its boundary (46.078833ms)
+✔ large complete multipart uses digest commitment, never expanded JSON (54.277625ms)
+✔ asset route caps, invalid body and abort fail before sign (2.832375ms)
+✔ legacy SDK cannot silently substitute introspection for body proof (0.086041ms)
+✔ Video immutable byte snapshot and stable idempotency survive retry with fresh action proofs (1.5955ms)
+✔ Video transport invokes synchronously, releases cancelled and late connections, and rejects late identity (5.662ms)
+✔ Video real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15000.45ms)
+✔ Creator Studio transport invokes synchronously, releases cancelled and late connections, and rejects late identity (0.603583ms)
+✔ Creator Studio real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15000.468791ms)
+✔ controlled takeover freezes predecessor, switches once, and restores a verified legacy successor (3268.598584ms)
+✔ controlled takeover failure at stop preserves or restores exact legacy service (1854.8545ms)
+✔ controlled takeover failure at port preserves or restores exact legacy service (2536.688792ms)
+✔ controlled takeover failure at bootstrap preserves or restores exact legacy service (2462.125792ms)
+✔ controlled takeover failure at post preserves or restores exact legacy service (2517.65125ms)
+✔ controlled takeover lock rejects a concurrent executor before service mutation (605.553958ms)
+✔ controlled takeover rejects retained evidence foreign sibling before lifecycle or deletion (520.300042ms)
+✔ controlled takeover rejects retained evidence same-byte replacement before lifecycle or deletion (537.582833ms)
+✔ controlled takeover rejects retained evidence symlink replacement before lifecycle or deletion (523.622125ms)
+✔ controlled takeover rejects retained evidence hardlink replacement before lifecycle or deletion (592.604666ms)
+✔ controlled takeover rejects retained evidence directory-only sibling before lifecycle or deletion (516.602542ms)
+✔ controlled takeover rejects a post-validation retained evidence race before lifecycle or receipt creation (831.5885ms)
+✔ emergency recovery atomically restores only legacy apps/video (1809.87075ms)
+✔ failed emergency recovery removes only the exact new subtree (1686.275167ms)
+✔ failed emergency recovery refuses to delete a same-byte replacement inode (1668.86625ms)
+✔ actual shell transport preserves a link tuple containing spaces (1787.438458ms)
+✔ opening a video deep link also loads the catalog so closing returns to usable content (7.744708ms)
+✔ a late translation apply cannot replace the actual channel heading with Discover (0.75575ms)
+✔ deep-link playback starts while the catalog is pending and closing recovers when it arrives (0.703708ms)
+✔ channel navigation ends its own loading state and ignores an older catalog response (1.058417ms)
+✔ a failed channel request clears loading without letting a late error replace a newer view (3.67425ms)
+✔ two tabs showing Subscribe both set the desired state instead of undoing each other (2.222917ms)
+✔ an older subscription read cannot replace the result of a newer explicit action (1.207833ms)
+✔ sign-out immediately hides private library while revoke is pending, and a late restore cannot reconnect (2.364792ms)
+✔ a late private playlist response cannot reopen its picker after sign-out (2.119625ms)
+✔ restored pending logout has only explicit retry and never starts new approval (0.454583ms)
+✔ a sign-in racing initial restore still exposes SDK pending logout retry (1.363292ms)
+✔ a browser launch route is an unsigned guest request, not proof that the native Wallet is absent (0.753167ms)
+✔ a confirmed sign-out and subsequent browser restore keep retry and sign-out controls hidden (0.465375ms)
+✔ actual network failures and revocation intents retain explicit retry even beside a native detection route (1.12325ms)
+✔ a recoverable sign-in error opens the chooser and the selected native request has its own launch link (0.786125ms)
+✔ language selection updates an existing URL override to en without losing the video deep link (1.818583ms)
+✔ language selection updates an existing URL override to zh-CN without losing the video deep link (0.523458ms)
+✔ language selection updates an existing URL override to zh-TW without losing the video deep link (0.512666ms)
+✔ language selection updates an existing URL override to ja without losing the video deep link (1.00825ms)
+✔ language selection updates an existing URL override to ko without losing the video deep link (0.492625ms)
+✔ language selection updates an existing URL override to es without losing the video deep link (1.050333ms)
+✔ language selection updates an existing URL override to fr without losing the video deep link (0.570125ms)
+✔ language selection updates an existing URL override to de without losing the video deep link (0.135708ms)
+✔ language selection updates an existing URL override to pt without losing the video deep link (0.119125ms)
+✔ language selection updates an existing URL override to ru without losing the video deep link (0.122875ms)
+✔ language selection updates an existing URL override to ar without losing the video deep link (0.093709ms)
+✔ language selection updates an existing URL override to id without losing the video deep link (0.069417ms)
+✔ Video uses the frozen browser SDK with exact Video registration and honest browser storage (8.906583ms)
+✔ product preparation protects pending request before explicit link and never asserts installation (2.216917ms)
+✔ wrong web origin stops before registry, SDK initialization and Gateway requests (0.88625ms)
+✔ callback, restore and disconnect use SDK authority while private scopes remain route specific (1.108ms)
+✔ Video scope allowlist rejects Creator reads, moderation and unknown mutation paths (0.855417ms)
+✔ public API starts without awaiting or attaching a Product Session (16.808167ms)
+✔ network retry generates fresh device proof with stable idempotency key and immutable body (1.312375ms)
+✔ private credentials never go to an overridden origin and rejected authority clears private UI (1.189875ms)
+✔ watch progress excludes guest playback and seeking; failed persistence retains real elapsed time (0.822084ms)
+✔ preparation retains the SDK pending logout state so the UI can expose explicit retry (0.183333ms)
+✔ native resume never re-prepares before callback storage exists; matched state still requires SDK restore (0.156042ms)
+✔ Video dispatches exact V2 URL and accepts only SDK-verified product return (0.943166ms)
+✔ Video cancelled preparation never opens approval; late approval cannot consume callback (1.711917ms)
+✔ Video rejects malformed return and allows explicit retry after rejection (0.189ms)
+✔ Creator dispatches exact V2 URL and accepts only SDK-verified product return (0.120458ms)
+✔ Creator cancelled preparation never opens approval; late approval cannot consume callback (0.439208ms)
+✔ Creator rejects malformed return and allows explicit retry after rejection (0.550083ms)
+✔ Video shipped chooser routes the chosen YNX button to approval and the original library (1.43575ms)
+✔ Video choose-another and account-change discard a late approval without private activation (1.026541ms)
+✔ Video cancellation during SDK completion revokes the persisted late session before flight release (1.310333ms)
+✔ Video failed cancellation keeps revocation pending, never reports a connected return (2.308542ms)
+✔ Creator cancellation during SDK completion revokes the persisted late session before flight release (0.78875ms)
+✔ Creator failed cancellation keeps revocation pending, never reports a connected return (0.724916ms)
+✔ Video Web Wallet click opens transport synchronously before preparing private approval (1.529917ms)
+✔ Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code (1.114375ms)
+✔ Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable (0.73075ms)
+✔ Video without an injected extension still offers Web, phone and native choices (0.107208ms)
+✔ Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it (3.0945ms)
+✔ Video cancelled native preparation revokes only its late pending request and never exposes a launch (0.254666ms)
+✔ Video unknown wallet failures do not expose internal exception text (0.111083ms)
+✔ Video launched native return is backend-restored with exact request state, closes modal without revoking (0.182666ms)
+✔ Video late native restore after Cancel and a different signed request cannot reconnect the original intent (1.046334ms)
+✔ Video concurrent native focus recovery is singleflight; expiry during verification cannot activate (0.184125ms)
+✔ Video focus before native callback completion stays waiting, not a network error (0.097417ms)
+✔ Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent (0.127125ms)
+✔ Video empty library Go to sign in opens chooser in one click and closes player overlays (0.075208ms)
+✔ Video top connected account entry retains account focus without opening a new sign-in (0.053209ms)
+✔ retained evidence exact inventory is readable (16.596917ms)
+▶ foreign sibling, replacement, symlink, hardlink and directory-only mutations preserve all retained entries
+  ✔ foreign sibling (3.646541ms)
+  ✔ same-byte replacement inode (5.458083ms)
+  ✔ symlink replacement (4.970583ms)
+  ✔ hardlink replacement (6.026791ms)
+  ✔ directory-only sibling (5.494625ms)
+✔ foreign sibling, replacement, symlink, hardlink and directory-only mutations preserve all retained entries (26.334375ms)
+✔ preflight captures one byte-preserving HTTP response for bytes, SHA and base64 (300.707709ms)
+✔ preflight canonical base64 preserves an embedded NUL byte (272.875334ms)
+✔ transport places exact three-object carrier, observes it and cleans only its root (34.68725ms)
+✔ transport placement failure removes only its exact stage and preserves parent siblings (13.414416ms)
+✔ transport prewrite failure removes only its exact stage and preserves parent siblings (10.81075ms)
+✔ transport refuses cleanup before deleting owned bytes when a foreign stage child appears (8.144417ms)
+✔ transport refuses cleanup before deleting anything after a same-byte inode replacement (5.582917ms)
+✔ runtime topology isolates Viewer 6494 from API 6493 and Creator 6495 (0.7445ms)
+✔ post-P0-239 recovery baseline freezes exact legacy rollback and isolated successor topology (0.835041ms)
+✔ self-contained server serves the public /video path without a shared release symlink (117.096875ms)
+fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+✔ same-origin API proxy preserves queries, media ranges and unavailable state (82.956375ms)
+✔ API proxy refuses a non-loopback upstream (51.246042ms)
+✖ runtime carrier rebuild is byte-identical and normalized (387.151958ms)
+✖ actual shell deploy and rollback touch only isolated Viewer binding (375.937708ms)
+✖ post-switch Viewer failure automatically restores the exact predecessor and preserves API and Creator (392.625958ms)
+✔ executor refuses the shared Video current path (3.86425ms)
+✖ actual shell bootstrap creates an absent dedicated predecessor, supports switch rollback, and removes only its own state (1839.970125ms)
+✔ failed first bootstrap returns dedicated root and unit to exact absence (1224.614792ms)
+✔ account changes during proof generation prevent a private mutation from reaching the service (15.185167ms)
+✔ an old 401 arriving after a new account cannot invalidate the new account (3.621083ms)
+✔ video callback resumes the original view only for the matching verified session (1.271166ms)
+✔ creator-studio callback resumes the original view only for the matching verified session (0.192125ms)
+✔ cross-tab hints deduplicate the two browser transports and contain no account or proof (0.753458ms)
+✔ cancellation settles an uncooperative private authorization without emitting a request (0.285791ms)
+✔ cancellation settles an uncooperative network without invalidating another account (0.255125ms)
+✔ cancellation settles an uncooperative body without invalidating another account (0.193458ms)
+✔ the complete Video request has the real 15 second authority deadline (15001.731167ms)
+✔ unbounded responses and foreign response locations are rejected before use (1.818542ms)
+✔ only original private Video requests carry same-origin cookies alongside fresh SDK proof (1.663792ms)
+✔ ending during a pending ordinary flush persists completion for the same playback exactly once (2.880458ms)
+✔ a lost response after service commit reuses the exact mutation across API retries and later flushes (18.816334ms)
+✔ an unreadable success response retains the same batch until a valid acknowledgement (0.653834ms)
+✔ failed completion retains its immutable zero-second batch and key for retry (0.175ms)
+✔ discard while a request is pending cancels queued completion and never restores accumulated playback (1.392166ms)
+✔ guests, seeking and unobserved time cannot create completion records (0.259833ms)
+✔ long playback automatically saves two observed checkpoints as one playback with separate batches (2.195584ms)
+✔ automatic failures are throttled by newly observed playback and retry the immutable batch (1.757375ms)
+✔ discard prevents periodic work and suppresses an older automatic failure (2.127042ms)
+✔ a retained automatic failure cannot retry from paused playback or seeking (3.095042ms)
+ℹ tests 166
+ℹ suites 0
+ℹ pass 162
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30147.167291
+
+✖ failing tests:
+
+test at runtime.test.mjs:142:1
+✖ runtime carrier rebuild is byte-identical and normalized (387.151958ms)
+  Error: Command failed: bash /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/build-runtime.sh cfa4bdb0bb55d927b0b683053c56110169329cf6 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-build-iRcT1x/first.tar.gz
+  fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+  
+      at genericNodeError (node:internal/errors:999:15)
+      at wrappedFn (node:internal/errors:544:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/runtime.test.mjs:147:3)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12) {
+    status: 128,
+    signal: null,
+    output: [ null, <Buffer >, <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes> ],
+    pid: 48877,
+    stdout: <Buffer >,
+    stderr: <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes>
+  }
+
+test at runtime.test.mjs:177:1
+✖ actual shell deploy and rollback touch only isolated Viewer binding (375.937708ms)
+  Error: Command failed: bash /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/build-runtime.sh cfa4bdb0bb55d927b0b683053c56110169329cf6 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-executor-4TpJvn/candidate.tar.gz
+  fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+  
+      at genericNodeError (node:internal/errors:999:15)
+      at wrappedFn (node:internal/errors:544:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/runtime.test.mjs:202:3)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12) {
+    status: 128,
+    signal: null,
+    output: [ null, <Buffer >, <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes> ],
+    pid: 49001,
+    stdout: <Buffer >,
+    stderr: <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes>
+  }
+
+test at runtime.test.mjs:230:1
+✖ post-switch Viewer failure automatically restores the exact predecessor and preserves API and Creator (392.625958ms)
+  Error: Command failed: bash /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/build-runtime.sh cfa4bdb0bb55d927b0b683053c56110169329cf6 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-auto-rollback-EuaSuU/candidate.tar.gz
+  fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+  
+      at genericNodeError (node:internal/errors:999:15)
+      at wrappedFn (node:internal/errors:544:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/runtime.test.mjs:249:3)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12) {
+    status: 128,
+    signal: null,
+    output: [ null, <Buffer >, <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes> ],
+    pid: 49163,
+    stdout: <Buffer >,
+    stderr: <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes>
+  }
+
+test at runtime.test.mjs:296:1
+✖ actual shell bootstrap creates an absent dedicated predecessor, supports switch rollback, and removes only its own state (1839.970125ms)
+  Error: Command failed: bash /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/build-runtime.sh cfa4bdb0bb55d927b0b683053c56110169329cf6 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-bootstrap-auMR6f/candidate.tar.gz
+  fatal: path 'apps/video/browser-identity.js' exists on disk, but not in 'cfa4bdb0bb55d927b0b683053c56110169329cf6'
+  
+      at genericNodeError (node:internal/errors:999:15)
+      at wrappedFn (node:internal/errors:544:14)
+      at checkExecSyncError (node:child_process:942:11)
+      at execFileSync (node:child_process:978:15)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/runtime.test.mjs:360:3)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12) {
+    status: 128,
+    signal: null,
+    output: [ null, <Buffer >, <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes> ],
+    pid: 50043,
+    stdout: <Buffer >,
+    stderr: <Buffer 66 61 74 61 6c 3a 20 70 61 74 68 20 27 61 70 70 73 2f 76 69 64 65 6f 2f 62 72 6f 77 73 65 72 2d 69 64 65 6e 74 69 74 79 2e 6a 73 27 20 65 78 69 73 74 ... 65 more bytes>
+  }
