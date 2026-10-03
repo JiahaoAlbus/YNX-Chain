@@ -1,0 +1,8 @@
+{"Time":"2026-10-04T00:49:58.140121+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto"}
+{"Time":"2026-10-04T00:49:58.935216+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Test":"TestAuthorizedMigrationRetainsExactSignedKey"}
+{"Time":"2026-10-04T00:49:58.935326+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Test":"TestAuthorizedMigrationRetainsExactSignedKey","Output":"=== RUN   TestAuthorizedMigrationRetainsExactSignedKey\n"}
+{"Time":"2026-10-04T00:49:59.05553+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Test":"TestAuthorizedMigrationRetainsExactSignedKey","Output":"--- PASS: TestAuthorizedMigrationRetainsExactSignedKey (0.12s)\n"}
+{"Time":"2026-10-04T00:49:59.055566+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Test":"TestAuthorizedMigrationRetainsExactSignedKey","Elapsed":0.12}
+{"Time":"2026-10-04T00:49:59.055583+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Output":"PASS\n"}
+{"Time":"2026-10-04T00:50:00.069515+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto\t1.929s\n"}
+{"Time":"2026-10-04T00:50:00.069776+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/chaincrypto","Elapsed":1.9300000000000002}

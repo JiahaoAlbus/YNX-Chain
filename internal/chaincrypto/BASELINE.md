@@ -1,0 +1,18 @@
+# Chain crypto v2 — isolated implementation baseline
+
+Source requirement read in full: 649 lines / 53143 bytes / ccafae671b2d325abd0e2bd2bfa403289a0b84f7dfc768345d41d39daa5385e8. Baseline exact 2f354d67a365d62d5d9d2e89b74f2882d666a1e1 / c47f88175c21b779af72e321cb1ba99c17689011. No applicable AGENTS.md found in the inspected worktree or project roots. Existing dirty Wallet Web/extension styling and dependency caches are preserved.
+
+| Actual baseline | Gap | Selected dependency / next implementation |
+|---|---|---|
+| Native SignedTransaction v1: canonical Go JSON, SHA256, decred secp256k1 v4.4.0; Keccak-derived original address | No PQ account policy or dual envelope | CIRCL v1.6.5 ML-DSA-87 pure full-message/context verifier; separate canonical v2 candidate |
+| ethnative: canonical EIP155 RLP + low-S + Keccak; only whole-YNXT plain transfers, no bytecode engine | Every actually supported raw/native/action entrance needs identical policy enforcement | Preserve existing digest/ID rules; new verifier adapter must reach shared applyTransaction before activation |
+| CometBFT v0.38.23; FilePV Ed25519 and original anti-double-sign state | No hybrid proposal/vote/commit/light-client encoding or signer persistence | Separate ConsensusVerifier/KeyManager contracts; no application vote-extension substitution |
+| CheckTx / PrepareProposal / ProcessProposal / FinalizeBlock share applyTransaction | No height/version-controlled account policy state | AuthPolicy states LEGACY/PQ_REGISTERED/HYBRID_ENFORCED/RECOVERY_PENDING; explicit committed activation only |
+
+Migration interface: original address stays the locator; complete public keys, key/policy versions, nonce and network/genesis commitment become authenticated state. Registration requires original authorization AND fresh independent PQ possession proof. Enforce/rotate/recover remain versioned actions with independent nonce/domain/height and a reviewed prior recovery policy. Wallet must display the actual state, independently wrap/backup new account keys, never reuse validator/Social/service issuer keys. Old historical messages/transactions remain under original rules; v2 normative byte/domain registration is candidate-only until independent review.
+
+New exclusive A scope: internal/chaincrypto/** as an isolated nested Go module, including CryptoProvider, AuthPolicy, TxVerifier, ConsensusVerifier and KeyManager contracts, canonical byte vectors and synthetic-only tests. Root go.mod/go.sum, internal/consensus, ethnative, chain state, signers, Native UI, Social and current Node/AI/Finance release source are NOT modified by this first batch. Root can allocate a disjoint downstream adapter scope after this contract freeze.
+
+Dependencies: CIRCL v1.6.5 official release (https://github.com/cloudflare/circl/releases/tag/v1.6.5), BSD-3-Clause, exact module checksum retained; API https://pkg.go.dev/github.com/cloudflare/circl@v1.6.5/sign/mldsa/mldsa87. Release includes exact-length verification corrections; this is not YNX protocol audit or FIPS module certification. No custom PQ algorithm, no prehash substitute for pure ML-DSA message signing.
+
+Risk / unverified gates: deployed chain/genesis/current height and validator quorum not newly observed; actual all-route integration, original historical replay C01, mixed-version/network/light-client/signer faults C09–C16 and real Wallet backups are not yet verified. Library success is not activation. H_TX/H_CONS remain unset; activationApproved=false, activated=false. No production key, network peer, DB copy, chain write, funds or issuer access occurs in this module. Account-only PQ must not be described as Social handshake or consensus security.
