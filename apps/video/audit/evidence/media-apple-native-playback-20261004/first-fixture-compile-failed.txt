@@ -1,0 +1,45 @@
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift:25:22: error: ambiguous use of 'ID'
+ 21 | 
+ 22 | struct NativePlaylist: Decodable, Identifiable {
+ 23 |     let ID,Owner,Name: String
+    |         `- note: 'ID' declared here
+ 24 |     let VideoIDs: [String]?
+ 25 |     var id: String { ID }
+    |                      `- error: ambiguous use of 'ID'
+ 26 | }
+ 27 | 
+
+main.NativePlaylist.ID:2:40: note: 'ID' declared here
+1 | struct NativePlaylist {
+2 | internal typealias main.NativePlaylist.ID = String}
+  |                                        `- note: 'ID' declared here
+3 | 
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift:297:77: warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+295 |                     Task { @MainActor in guard let self,let player,self.player === player,self.boundary.matches(navigation) else { return };self.observePlayback(position:time.seconds,playing:player.timeControlStatus == .playing) }
+296 |                 }
+297 |                 endObserver=NotificationCenter.default.addObserver(forName:.AVPlayerItemDidPlayToEndTime,object:player.currentItem,queue:.main) { [weak self,weak player] _ in
+    |                                                                             `- warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+298 |                     Task { @MainActor in guard let self,let player,self.player === player,self.boundary.matches(navigation) else { return };self.observePlayback(position:player.currentTime().seconds,playing:false,completed:true) }
+299 |                 }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: xcrun swiftc -module-cache-path /tmp/ynx-apple-video-playback-check-20261004/modules /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoPrivateMedia.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoViewerState.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/apple-engine-check.swift -o /tmp/ynx-apple-video-playback-check-20261004/apple-engine-check
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/scripts/compile-apple-engine-check.mjs:4:1 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 98461,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0

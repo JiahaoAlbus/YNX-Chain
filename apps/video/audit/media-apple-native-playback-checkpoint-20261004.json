@@ -1,0 +1,181 @@
+{
+  "schema": "ynx.media.apple-native-playback.freeze.v1",
+  "createdAt": "2026-10-03T17:10:15.282252+00:00",
+  "sourceCommit": "31e86f3d4cdbb3a11a0503a4ae320867b1f2f595",
+  "sourceTree": "c28bee803751acf723d00209db10e78d16f95079",
+  "previousCheckpoint": {
+    "path": "apps/video/audit/media-apple-native-engine-checkpoint-20261004.json",
+    "bytes": 8646,
+    "sha256": "b4e2ca7b9be507d7ad567510278af0dcd346cb2b733154c49c6a5fe3131746cd"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/media-owned-source-31e86f3d.tar.gz",
+    "bytes": 3847869,
+    "sha256": "367f2898906e088c59a65c8d245b10bd887eef151996847e6dd3b9fe53afa056",
+    "fileCount": 572,
+    "everyArchiveMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "videoWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/video-web-31e86f3d.tar.gz",
+    "bytes": 632107,
+    "sha256": "59f4ad94381e473299057ba003eff3379a4c15d000c18f410eb6eac137128e41"
+  },
+  "creatorWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/creator-web-31e86f3d.tar.gz",
+    "bytes": 638059,
+    "sha256": "f57d36b66dbcf8a0c76d881b1e71481b396a8ccd2869c810b8955ca4487f9cb9",
+    "fileCount": 28,
+    "everyArchiveMemberVerified": true
+  },
+  "appleUnsignedCandidates": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/video-ios-simulator-unsigned-31e86f3d.tar.gz",
+      "bytes": 972937,
+      "sha256": "d6522770f2614288b8fd28cc82ba235aea079b64230e41afa699988016cb1bcb",
+      "fileCount": 11,
+      "everyArchiveMemberVerified": true,
+      "target": "ios-simulator",
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/video-macos-unsigned-31e86f3d.tar.gz",
+      "bytes": 623906,
+      "sha256": "a201da2803060cd439405637c5f8887efb99dc9f1700525c0de203784dec7f8d",
+      "fileCount": 11,
+      "everyArchiveMemberVerified": true,
+      "target": "macos",
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    }
+  ],
+  "checks": {
+    "race": "PASS",
+    "vet": "PASS",
+    "GoPassEvents": 444,
+    "GoFailEvents": 0,
+    "inputCount": 465,
+    "MediaInputPinsGitExact": 421,
+    "AppleCompiledSourcePinsGitExact": 10,
+    "iOSSimulatorCompile": "PASS generic unsigned",
+    "macOSCompile": "PASS unsigned",
+    "actualAppleSwiftWebKitAndModelFlow": true,
+    "actualOSStorage": false,
+    "actualRenderedNativeUI": false,
+    "actualWalletConsent": false,
+    "originalUserKeychainAccessed": false
+  },
+  "capabilities": [
+    "AVPlayer bounded private Range resource loader using original SDK fresh proof and identity/epoch/navigation guards; actual Swift range tested against original business server",
+    "Separate account-owned protected viewer state preserves original resume UUID/position, exact pending watch bodies/keys and playlist drafts",
+    "Original SDK normal model playlist creation with original owner readback and durable draft ACK",
+    "Cold original viewer watch then normal model restore flush; Go original account history proves exact persisted playback ID and seven seconds",
+    "Seek-ready fence protects existing resume position; monotonic watch clock excludes pauses, seeks and background gaps",
+    "Explicit discard and original draft retry; original identity/account/body ACK and poisoned write guards"
+  ],
+  "remaining": [
+    "AVPlayer actual OS decoding/rendered playback and real iOS/macOS protected Keychain lifecycle",
+    "Physical/simulator runtime and real Wallet approval callbacks",
+    "Native playlist add/remove membership and full native creator/upload draft journeys",
+    "Formal signing original entitlement and TestFlight upload by unique release owner",
+    "Formal public Host/client pair deployment and same-own business",
+    "Music Apple native playback continuation remains separate pending work"
+  ],
+  "temporaryLaunchServices": {
+    "ownTemporaryCandidateUnregisteredAfterBuild": true,
+    "noExistingAppUnregistered": true,
+    "appLaunched": false
+  },
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/apple-compiled-source-receipt.json",
+      "bytes": 2153,
+      "sha256": "9f5d98a5034a642b28a5553eef7282c4fe909a5e496028f8b8b71b0e83a4fee5"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/apple-state.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/combined-go-race.jsonl",
+      "bytes": 427006,
+      "sha256": "69599c191129d216ab3270bb05db6596c58ce613ea076c88bd696cee217f91b4"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/combined-source-receipt.json",
+      "bytes": 119546,
+      "sha256": "a3c718a19ae530b7a722e44eaa3b8aefb44b45256336cb2a24619db8996a3e63"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/creator-web-build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/first-fixture-compile-failed.txt",
+      "bytes": 3747,
+      "sha256": "be27b7f08e09a8876c3ed6eac498c66ede34936eec9d3f786685edbce0a81538"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/fixture-compile.txt",
+      "bytes": 1777,
+      "sha256": "7b2e24fa5f65cf9fdbf793514b5be2ff9291609961b34155a67392ed5da90368"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/ios-build.txt",
+      "bytes": 114567,
+      "sha256": "7c0ae17e477ccbf02349077cf41ddb9f61ef4204ecb00559555d5bcc2d5e77eb"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/key-preservation.txt",
+      "bytes": 151,
+      "sha256": "979e78dabfa5dc9b042582a3cf3148b7f34b2db7673e24374d63e1c36e3aad60"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/macos-build.txt",
+      "bytes": 65020,
+      "sha256": "98ab02954ed5574aff2eaa1244e72634b498d3aaf1e3a84fe14aa9dfeef1c286"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/model-boundary.txt",
+      "bytes": 274,
+      "sha256": "a113278612e4619ac52b8bb224478bf3753c073f8c8de80604e5020a799de21f"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/public-readback.json",
+      "bytes": 10419,
+      "sha256": "5ac57ca0f7517f0c554768a91d255f479949f73523e8aeabdb890bc1831f6789"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/qa-creator-studio-normal-product-390.png",
+      "bytes": 79995,
+      "sha256": "778595ab5147244424a2a6e8ef519f9b5fdfe6b8061ab0160c0aaa65b410636e"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/qa-video-normal-product-390.png",
+      "bytes": 67213,
+      "sha256": "74d1692f8d674749cbba36a56f08362ab96aa971d60520ed1ceb80e7364979ee"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/video-web-build.txt",
+      "bytes": 210,
+      "sha256": "ea5b0edc46eddcee1f3f11229f5e603282ab3306ed756002b7dde822aeaf05d1"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-playback-20261004/viewer-state.txt",
+      "bytes": 104,
+      "sha256": "51f7773d1875e16ef1ae36865a57f309c15bbaa6d08e81ccc0e77fa0b5e3aeda"
+    }
+  ]
+}
