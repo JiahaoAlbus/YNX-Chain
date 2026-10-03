@@ -1,0 +1,421 @@
+{
+  "status": "PASS",
+  "sourceHash": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "scope": "Actual shipped main and callback DOM, synthetic visual account state only; not Wallet or real business acceptance",
+  "screenshots": [
+    {
+      "product": "video",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12.25,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-guest.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12.25,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-connected.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12.25,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-390-signed-out.png"
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "video-390-callback.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          14.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-guest.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          14.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-connected.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          14.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "video-1440-signed-out.png"
+    },
+    {
+      "product": "video",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "video-1440-callback.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-guest.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-connected.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-390-signed-out.png"
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "creator-390-callback.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          24,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-guest.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          24,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-connected.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          25,
+          24,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "creator-1440-signed-out.png"
+    },
+    {
+      "product": "creator",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "creator-1440-callback.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-guest.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-connected.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          16,
+          12,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-390-signed-out.png"
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "state": "callback",
+      "screenshot": "music-390-callback.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "guest",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          16.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-guest.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "connected",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          16.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-connected.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "signed-out",
+      "shape": {
+        "src": "/assets/ynx-brand-original.png",
+        "natural": [
+          798,
+          420
+        ],
+        "box": [
+          28,
+          16.5,
+          72,
+          38
+        ],
+        "fit": "contain",
+        "overflow": false
+      },
+      "screenshot": "music-1440-signed-out.png"
+    },
+    {
+      "product": "music",
+      "width": 1440,
+      "state": "callback",
+      "screenshot": "music-1440-callback.png"
+    }
+  ]
+}

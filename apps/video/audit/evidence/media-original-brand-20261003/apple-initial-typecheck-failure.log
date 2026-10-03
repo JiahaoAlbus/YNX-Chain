@@ -1,0 +1,23 @@
+apps/video/ios/YNXVideo/ContentView.swift:7:24: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+ 5 |     @EnvironmentObject private var model: VideoModel
+ 6 |     @Environment(\.openURL) private var openURL
+ 7 |     @State private var query=""
+   |                        `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+ 8 |     var body: some View {
+ 9 |         NavigationStack {
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/video/ios/YNXVideo/ContentView.swift:7:24: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+ 5 |     @EnvironmentObject private var model: VideoModel
+ 6 |     @Environment(\.openURL) private var openURL
+ 7 |     @State private var query=""
+   |                        `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+ 8 |     var body: some View {
+ 9 |         NavigationStack {
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here

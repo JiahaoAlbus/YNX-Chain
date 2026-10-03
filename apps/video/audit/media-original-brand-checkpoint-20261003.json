@@ -1,0 +1,208 @@
+{
+  "schemaVersion": "ynx-media-brand-source-checkpoint/v1",
+  "sourceCommit": "9ceb7ef77c7dd369816fd00289f19d29a2b6fa44",
+  "sourceTree": "18e44c20bc46770d4e6e9c697ab7088907c6256a",
+  "parent": "9993c4b72bccc8aba8ab0cc8b5918877d339fd0d",
+  "originalAsset": {
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346",
+    "dimensions": [
+      798,
+      420
+    ],
+    "source": "User-authorized website original public/ynx-logo.png",
+    "ownedCopies": [
+      "apps/video/assets/ynx-brand-original.png",
+      "apps/creator-studio/assets/ynx-brand-original.png",
+      "apps/music/web/assets/ynx-brand-original.png",
+      "apps/video/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "apps/music/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "apps/video/ios/YNXVideo/ynx-brand-original.png",
+      "apps/music/ios/YNXMusic/ynx-brand-original.png"
+    ]
+  },
+  "implemented": [
+    "Video, Creator and Music actual main Web/header/sidebar brand slots and callback pages use the same unmodified original image",
+    "Logo contain with fixed no-shrink slot; product names preserved, Creator mobile name clarified",
+    "Music mobile header wraps without brand compression or horizontal overflow",
+    "Actual Video/Music Android main header original logo, FIT_CENTER, protected white plate, unchanged business/key/auth paths",
+    "Actual Video/Music Apple common main branding plus Video player sheet, scaledToFit, original resource added to real Xcode copy phase",
+    "Both Media static whitelist/build graphs include new original image; inherited original square favicon/provider assets preserved"
+  ],
+  "verification": {
+    "webStates": 24,
+    "webViewportWidths": [
+      390,
+      1440
+    ],
+    "webStatesPerProduct": [
+      "guest with unavailable authority",
+      "synthetic visual connected state",
+      "signed out",
+      "callback"
+    ],
+    "webScope": "Actual shipped DOM/controllers in isolated Chromium, query/callback and credentials not user accounts; not real Wallet/business acceptance",
+    "measured": "798x420 natural dimensions, exact fetched source SHA, contain, visible brand in viewport, no root overflow or page errors",
+    "visualInspection": "Opened Video mobile guest, Creator mobile connected, Music mobile connected, Creator desktop guest, final Creator mobile name correction",
+    "android": "Actual API36 Video/API35 Music all resources linked and all 2/7 Java source files compiled with generated R including original logo; no APK installation/native screenshot claim",
+    "apple": "Both actual pbxproj plutil valid; updated SwiftUI parse succeeds. Initial full macOS typecheck failed because configured CLT SDK SwiftUIMacros.StateMacro plugin not found; original failure log retained, no typecheck/build/native screenshot pass",
+    "regression": "Video121/121 zero skip, Creator62/62 zero skip, Music full original business Web browser suite pass; no source/business behavioral downgrade claimed",
+    "build": "Video immutable 615596B tar SHA6564fafc229b730b59affa3ec76bc38411b2e8c9b378718193e29a5d1f6c52ac; Creator manifest all24 files exact bytes/SHA verified; actual immutable entry/import graphs pass with deliberate old-SDK private hold"
+  },
+  "artifacts": {
+    "video-390-guest.png": {
+      "bytes": 59207,
+      "sha256": "0eea30a4f64e4e91b4d5fb81f2614a22c9496833964ff82c21c7f1d179f65b8f"
+    },
+    "browser-receipt.json": {
+      "bytes": 8356,
+      "sha256": "d458b315b6a4d3386d8417fbc1e41bb8b2c3898d18175d765ad8c8d0f3e700dc"
+    },
+    "creator-390-guest.png": {
+      "bytes": 61906,
+      "sha256": "0cee130b2de949017de137e33aa3bbbc556da3cb38d4f191c168e93352f7b848"
+    },
+    "apple-project-parse.log": {
+      "bytes": 108,
+      "sha256": "151c710a93f4fa5a5227dafd48c7b46bbab484692722defffc5513cdee74379c"
+    },
+    "music-390-signed-out.png": {
+      "bytes": 108415,
+      "sha256": "2fe0d5c01c642cc2fe7df14b2356db36c6263f41d6d02f44040c251eecc1e9bc"
+    },
+    "apple-initial-typecheck-failure.log": {
+      "bytes": 2093,
+      "sha256": "afbebc8a3b37744a2edb15d6bf0bc228f110018fb6d20fcf03328c4e05c5580b"
+    },
+    "video-390-connected.png": {
+      "bytes": 58931,
+      "sha256": "15b8ad911fa5f186fa16fc9e822e31b9ae749d63b906d9c1bf18059ee87206df"
+    },
+    "video-1440-callback.png": {
+      "bytes": 29569,
+      "sha256": "63f3269f70673bd762037e160e5db31c50c12d1e80e658e4bcb6224cca2b235c"
+    },
+    "video-390-signed-out.png": {
+      "bytes": 53546,
+      "sha256": "f4dfbe55e194f58766213f8fdb8fddec07a367f09d68a12434f3edbf326696f8"
+    },
+    "video-1440-guest.png": {
+      "bytes": 70621,
+      "sha256": "edc1a9fb0267aacf6413756bfba8295d4dd70b5aa5af1ed1d4194edcdf0b5101"
+    },
+    "music-business-web.log": {
+      "bytes": 976,
+      "sha256": "af29961ebdc5f4a668f7f711f5bf9449a2f788d3bb15cfccb88ad8393cda891a"
+    },
+    "creator-1440-connected.png": {
+      "bytes": 97787,
+      "sha256": "d57258acd8ca649625d8cb382831a389b340f5a5bfbc7a5cfedd4101017f8331"
+    },
+    "android-resources-java.log": {
+      "bytes": 472,
+      "sha256": "faee44fdaa3963e2498a8657e0b58e488c82a27edc412e33cd720ea299045018"
+    },
+    "web-visual.log": {
+      "bytes": 93,
+      "sha256": "ea453ff1d472e3f13ecd2847b39d05e856500cf4102ede121e69a6089f0b467f"
+    },
+    "creator-1440-guest.png": {
+      "bytes": 100298,
+      "sha256": "a56f102aaa50a385dceee357385790287654a824b8e2fb1dd1a0ba7fa3e3d387"
+    },
+    "creator-1440-signed-out.png": {
+      "bytes": 96129,
+      "sha256": "6daf876e41e595e77cb341e60027265b8c462b9f78b0909e1181a1df4f3fdc68"
+    },
+    "video-1440-signed-out.png": {
+      "bytes": 65234,
+      "sha256": "4c1b8c3ed31cda2090acb435b0982e4fdfcc908ced06979e9593816a192a4d55"
+    },
+    "video-check.log": {
+      "bytes": 13213,
+      "sha256": "5de6f0556f3c5267bf54e512a108c0f9151bbba66b1adf1d2afc4317c5353260"
+    },
+    "built-browser.log": {
+      "bytes": 254,
+      "sha256": "0a70930db10560bf0c7281aafd6576075bb58130186d9a3382e34eaeef5dfd16"
+    },
+    "creator-studio.manifest.json": {
+      "bytes": 4222,
+      "sha256": "7cf15eea6c4d7e6753f9a237b0c1eff0b13eb7ad539e2213914a9a7056c7ca94"
+    },
+    "creator-check.log": {
+      "bytes": 5796,
+      "sha256": "bb42dfcc5b93f9be86712f838f010c1d290d72d90f272326f428010752e3c5e1"
+    },
+    "music-1440-callback.png": {
+      "bytes": 31200,
+      "sha256": "63656cd7704417ab4260a58b312e42390380d6e360724bf5b5a50f2302859088"
+    },
+    "creator-390-signed-out.png": {
+      "bytes": 61407,
+      "sha256": "48e79ff5644561053b083afd5d2feb55b85a3d4afb741057410e3711cfead7c4"
+    },
+    "music-390-callback.png": {
+      "bytes": 27511,
+      "sha256": "25d7f3249479a33970c1d2ce1154700d1580afae98d1a2a49f22399988f91514"
+    },
+    "music-390-connected.png": {
+      "bytes": 114540,
+      "sha256": "98560b4f11672add2b6b4e6d67920b64fd0eeafc0e39788929f1099792f84410"
+    },
+    "video-1440-connected.png": {
+      "bytes": 71376,
+      "sha256": "c2f5f5fc4d086fbdb171e2739a10f1415ff23d5e85c73e6e04314520a1b1bc28"
+    },
+    "creator-390-connected.png": {
+      "bytes": 59405,
+      "sha256": "a20ea4ace2f6555fbab073defd89c54e03308e182b1f282f190107d1bf2a0b6d"
+    },
+    "creator-1440-callback.png": {
+      "bytes": 30881,
+      "sha256": "df8021a3ffc61e22141d0e53cbf79f91fe6d6e75cf55be47f792d389eb1324b0"
+    },
+    "music-1440-connected.png": {
+      "bytes": 262606,
+      "sha256": "5754300f416d19fb27cca47bc52ff80d421389c741ded815baa531882572211c"
+    },
+    "music-1440-guest.png": {
+      "bytes": 262025,
+      "sha256": "1a92962f9790f694c302ca00dacf8f081bb57d1868d16346fee1f27f2c461521"
+    },
+    "music-1440-signed-out.png": {
+      "bytes": 256918,
+      "sha256": "2ade74c123e083a56b3d36f0eebc9de88bbacbdd2b72eacfb78b107b7efe1747"
+    },
+    "creator-390-callback.png": {
+      "bytes": 24216,
+      "sha256": "55bf530bb5d2fcc958670e4b30b5e3a15b85173594016e64645abfe8b7a9205e"
+    },
+    "music-390-guest.png": {
+      "bytes": 114815,
+      "sha256": "84c95ec27a63f364425c58ffeb965373a701f9bd1b13b2d8758cbd45a06d2af4"
+    },
+    "video-runtime.tar.gz": {
+      "bytes": 615596,
+      "sha256": "6564fafc229b730b59affa3ec76bc38411b2e8c9b378718193e29a5d1f6c52ac"
+    },
+    "video-390-callback.png": {
+      "bytes": 22975,
+      "sha256": "81d79758c06f505fdc189d749d68e6461237a614d8971f3152d7d298a42c079f"
+    }
+  },
+  "acceptance": {
+    "brandingSource": "READY_EXISTING_MEDIA_SURFACES_ONLY",
+    "formalPublicBranding": "NOT_VERIFIED_NOT_DEPLOYED",
+    "nativeInstalledBrandScreens": "NOT_RUN",
+    "macOSFullNativeProduct": "NOT_COMPLETED",
+    "creatorNativeProduct": "NOT_COMPLETED",
+    "originalUserPrivateBusiness": "NOT_VERIFIED",
+    "fullMediaGoal": "NOT_COMPLETED"
+  },
+  "next": [
+    "Unique A integrate exact owned source and unmodified original image in complete compatible release, then normal formal/install source/version and brand/UI checks",
+    "Media continues original internal/video/internal/music V2 live actor/object/atomic nonce/body proof adoption and full Android/macOS/Web user flows; branding does not close those gates"
+  ],
+  "preservation": "No shared source/Host/key/PIN/account store/content/third-party identity/provider icon overwritten; original Media inheritance retained."
+}
