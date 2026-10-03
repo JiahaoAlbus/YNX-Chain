@@ -12,6 +12,8 @@ Existing core pin: OpenVSCode 1.109.5, upstream commit 072586267e68ece9a47aa43f8
 
 ## A-owned missing release inputs
 
+The reusable consumer composition is now provided in services/codeoss-service/src/admission.mjs. See IDE_CORE_ADMISSION_COMPOSITION_20261003.md for the exact protected-factory call, deterministic isolated session host mapping, admitted-driver proof checks and browser failure recovery. This closes the missing composition source; it does not install the protected module or supply an admitted executor.
+
 The later A-supplied read-only host receipt reports Linux x86_64; /etc/ynx-developer and /opt/ynx-developer are root:root, mode0755 and not symlinks, while /etc/ynx-developer/adapters does not exist. This selects the pinned Linux x64 artifact for that host and establishes a missing adapter directory; it does not establish absence of an executor, an admitted runtime, or permission to install one. The receipt also contains an existing duplicate YNX_NATIVE_QUOTA sudoers alias diagnostic. Shared operator configuration remains A-owned; no consumer edit or host mutation attempted to fix that diagnostic. Local and remote host observations remain separate.
 
 Provide an approved exact executor/admission module path and source digest, immutable core/derived artifact paths and digests, independent execution origin and protected proxy mappings, existing verified project persistence/isolation boundary, and source-bound formal deployment identity. This document neither chooses a replacement executor nor grants new installation/network authority. Preserve existing projects, drafts, journals, volumes and uncertain terminal actions.

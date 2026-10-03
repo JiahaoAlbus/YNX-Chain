@@ -288,7 +288,12 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         redirect(response, "/", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000))]); return true;
       }
       throw fault("Method not allowed.", "method_not_allowed", 405);
-    } catch (error) { json(response, error.status || 503, { error: error.message || "Developer sign-in is unavailable.", code: error.code || "developer_sso_unavailable" }); return true; }
+    } catch (error) {
+      if (["/sso/core-open", "/sso/core-admit"].includes(path) && String(request.headers.accept || "").includes("text/html"))
+        coreEntryFailure(response, error.status || 503);
+      else json(response, error.status || 503, { error: error.message || "Developer sign-in is unavailable.", code: error.code || "developer_sso_unavailable" });
+      return true;
+    }
   }
   async function recordCoreActivity(request, sessionId, eventId, action) {
     const grant = await grantForRequest(request);
@@ -299,6 +304,14 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
     if (!grant.isCurrent()) throw fault("Workbench identity changed during activity.", "core_identity_changed", 401);
   }
   return { handler, verifyIdentity, grantForRequest, workspaceBinding, recordCoreActivity, close: () => db.close() };
+}
+
+function coreEntryFailure(response, status) {
+  const nonce = random(), identityEnded = status === 401;
+  response.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer",
+    "content-security-policy": `default-src 'none'; style-src 'nonce-${nonce}'; base-uri 'none'; frame-ancestors 'none'`,
+    "x-content-type-options": "nosniff" });
+  response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX Developer · Project connection</title><style nonce="${nonce}">body{margin:0;background:#101319;color:#eef1f6;font:16px system-ui,sans-serif;line-height:1.6}main{max-width:36rem;margin:12vh auto;padding:2rem}h1{font-size:1.6rem}p{color:#bdc7d5}a{display:inline-block;margin:.5rem 1rem .5rem 0;color:#8fd8ff}</style><main><h1>${identityEnded ? "Sign in to reopen your project" : "The editor connection is unavailable"}</h1><p>Your saved projects are preserved. Return to your projects to refresh the connection. If a workspace needs recovery, use its Stop action before opening it again.</p><a href="${PARENT}/">Return to projects</a>${identityEnded ? `<a href="${PARENT}/sso/start">Sign in with YNX Wallet</a>` : ""}</main></html>`);
 }
 async function bodyBuffer(request) { const chunks = []; let bytes = 0; for await (const chunk of request) { bytes += chunk.length; if (bytes > 8192) throw fault("Identity request too large.", "body_too_large", 413); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
 async function bodyJSON(request) { try { return JSON.parse(await bodyBuffer(request)); } catch (error) { if (error.code) throw error; throw fault("Identity request must be JSON.", "invalid_json", 400); } }

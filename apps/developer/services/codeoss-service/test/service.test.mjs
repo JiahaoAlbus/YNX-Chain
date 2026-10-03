@@ -8,6 +8,8 @@ import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createCodeOSSService } from "../src/service.mjs";
 import { CORE_LIMITS } from "../src/upstream.mjs";
 import { consumerIdentityBinding } from "../src/identity-consumer-binding.mjs";
+import { createDeveloperCoreAdmission } from "../src/admission.mjs";
+import { OPENVSCODE_X64 } from "../src/upstream.mjs";
 
 const ownerA = "a".repeat(64), ownerB = "b".repeat(64), project = "project-a";
 const snapshot = { name: "YNX project", files: { "main.js": "console.log(42)\n", "empty.txt": "" }, folders: [], open: ["main.js"], active: "main.js" };
@@ -16,10 +18,10 @@ async function fixture(t, overrides = {}) {
   const store = createWorkspaceStore({ filename: join(root, "workspace.sqlite") });
   store.put(ownerA, project, { expectedRevision: 0, idempotencyKey: "seed-owner-a", payload: snapshot });
   store.put(ownerB, project, { expectedRevision: 0, idempotencyKey: "seed-owner-b", payload: snapshot });
-  const driver = { async start(value) { context = value; await overrides.start?.(value); }, async stop(value) {
+  const driver = { upstream: OPENVSCODE_X64, async start(value) { context = value; return await overrides.start?.(value) || { running: true, runtimeId: value.runtimeId }; }, async stop(value) {
     if (overrides.stop) return overrides.stop(value);
     return { stopped: true, runtimeId: value.runtimeId, identityDigest: value.identityDigest, neverStarted: false };
-  } };
+  }, connect: async () => { throw new Error("Contract test has no executable runtime listener."); } };
   const rawVerify = overrides.verifyIdentity || (async request => {
     const owner = request.headers["x-test-owner"] === "b" ? ownerB : ownerA;
     return { owner, workspaceOwner: owner, account: `ynx-${owner[0]}`, generation: Number(request.headers["x-test-generation"] || 1), expiresAt: Date.now() + 3600000 };
@@ -27,8 +29,10 @@ async function fixture(t, overrides = {}) {
   const completeIdentity = value => ({ identityReference: "browser-a", isCurrent() {}, ...value });
   const verifyIdentity = async request => completeIdentity(await rawVerify(request));
   if (rawVerify.resolveReference) verifyIdentity.resolveReference = async reference => completeIdentity(await rawVerify.resolveReference(reference));
-  const make = () => createCodeOSSService({ filename: join(root, "core.sqlite"), root: join(root, "native"), workspaceStore: store, driver,
-    launchURL: ({ sessionId }) => `https://${sessionId}.native.ynxweb4.com/`, assertProjectQuiescent() {}, limits: { ...CORE_LIMITS, ...overrides.limits },
+  const admission = overrides.composed ? createDeveloperCoreAdmission({ driver, architecture: "linux-x64", executionDomain: "runtime.example" })
+    : { driver, launchURL: ({ sessionId }) => `https://${sessionId}.native.ynxweb4.com/` };
+  const make = () => createCodeOSSService({ filename: join(root, "core.sqlite"), root: join(root, "native"), workspaceStore: store, ...admission,
+    assertProjectQuiescent() {}, limits: { ...CORE_LIMITS, ...overrides.limits },
     now: overrides.now || Date.now,
     verifyIdentity });
   let service = make();
@@ -60,6 +64,31 @@ test("normal HTTP launch binds current project; binary/empty/nested files remain
   f.restart(); const reopened = await f.launch(); assert.equal(reopened.status, 201);
   assert.equal(f.context().projectDirectory, first.projectDirectory);
   assert.deepEqual(await readFile(join(f.context().projectDirectory, "workspace", "image.png")), binary);
+  assert.equal((await f.call(`/${reopened.value.session.sessionId}`, "DELETE")).status, 200);
+});
+
+test("composed admission retains uncertain launch and Stop across durable broker restart and denies another account", async t => {
+  let confirmStart = false, confirmStop = false;
+  const f = await fixture(t, { composed: true,
+    start: async value => ({ running: true, runtimeId: confirmStart ? value.runtimeId : "uncertain-runtime" }),
+    stop: async value => ({ stopped: true, runtimeId: confirmStop ? value.runtimeId : "uncertain-runtime", identityDigest: value.identityDigest }) });
+  assert.equal((await f.launch()).status, 503);
+  const first = f.context(), binary = Buffer.from([0, 0xff, 0x89, 0x50]);
+  await writeFile(join(first.projectDirectory, "workspace", "recovery.bin"), binary);
+  f.restart();
+  const pending = (await f.call()).value.sessions[0];
+  assert.equal(pending.status, "recovery-required"); assert.equal(pending.launchURL, undefined);
+  assert.throws(() => f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "unsafe-replace", payload: snapshot }), { code: "core_writer_active" });
+  await assert.rejects(f.service().authorizeConnection({ headers: { "x-test-owner": "b" } }, pending.sessionId), { code: "core_not_found" });
+  assert.equal((await f.call(`/${pending.sessionId}`, "DELETE")).status, 503);
+  assert.equal((await f.call()).value.sessions[0].status, "recovery-required");
+  confirmStop = true;
+  assert.equal((await f.call(`/${pending.sessionId}`, "DELETE")).status, 200);
+  assert.deepEqual(await readFile(join(first.projectDirectory, "workspace", "recovery.bin")), binary);
+  confirmStart = true;
+  const reopened = await f.launch(); assert.equal(reopened.status, 201);
+  assert.equal(f.context().projectDirectory, first.projectDirectory);
+  assert.deepEqual(await readFile(join(f.context().projectDirectory, "workspace", "recovery.bin")), binary);
   assert.equal((await f.call(`/${reopened.value.session.sessionId}`, "DELETE")).status, 200);
 });
 
