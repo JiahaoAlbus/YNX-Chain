@@ -1,0 +1,40 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+apps/shop/native/ios/YNXShop/ShopModel.swift:22:5: error: property wrapper can only apply to a single variable
+20 |     private var operationRevision=0
+21 |     @Published private(set) var mutationBusy=false
+22 |     @Published var profileName="",profileRecipient="",profileAddress="",profileCity="",profileCountry=""
+   |     `- error: property wrapper can only apply to a single variable
+23 |     private var handoffPresentationRevision=0
+24 |     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil}
+
+apps/shop/native/ios/YNXShop/ShopModel.swift:22:5: error: property wrapper can only apply to a single variable
+20 |     private var operationRevision=0
+21 |     @Published private(set) var mutationBusy=false
+22 |     @Published var profileName="",profileRecipient="",profileAddress="",profileCity="",profileCountry=""
+   |     `- error: property wrapper can only apply to a single variable
+23 |     private var handoffPresentationRevision=0
+24 |     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil}
+
+apps/shop/native/ios/YNXShop/ShopModel.swift:22:5: error: property wrapper can only apply to a single variable
+20 |     private var operationRevision=0
+21 |     @Published private(set) var mutationBusy=false
+22 |     @Published var profileName="",profileRecipient="",profileAddress="",profileCity="",profileCountry=""
+   |     `- error: property wrapper can only apply to a single variable
+23 |     private var handoffPresentationRevision=0
+24 |     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil}
+
+apps/shop/native/ios/YNXShop/ShopModel.swift:22:5: error: property wrapper can only apply to a single variable
+20 |     private var operationRevision=0
+21 |     @Published private(set) var mutationBusy=false
+22 |     @Published var profileName="",profileRecipient="",profileAddress="",profileCity="",profileCountry=""
+   |     `- error: property wrapper can only apply to a single variable
+23 |     private var handoffPresentationRevision=0
+24 |     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil}
+
+apps/shop/native/ios/YNXShop/ShopModel.swift:22:5: error: property wrapper can only apply to a single variable
+20 |     private var operationRevision=0
+21 |     @Published private(set) var mutationBusy=false
+22 |     @Published var profileName="",profileRecipient="",profileAddress="",profileCity="",profileCountry=""
+   |     `- error: property wrapper can only apply to a single variable
+23 |     private var handoffPresentationRevision=0
+24 |     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil}

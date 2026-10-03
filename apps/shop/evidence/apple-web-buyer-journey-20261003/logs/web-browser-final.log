@@ -1,0 +1,16 @@
+
+Running 9 tests using 1 worker
+
+(node:24364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (1.6s)
+  ✓  2 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (1.7s)
+  ✓  3 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (1.6s)
+  ✓  4 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.8s)
+  ✓  5 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (1.5s)
+  ✓  6 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (1.5s)
+  ✓  7 [chromium] › test/browser/invoice-recovery.spec.mjs:3:1 › normal invoice button reviews before Wallet; cancel and cold reload reuse original invoice without POST (3.0s)
+  ✓  8 [chromium] › test/browser/invoice-recovery.spec.mjs:4:1 › lost invoice response never creates a second invoice; unknown only original reference GET (2.7s)
+  ✓  9 [chromium] › test/browser/invoice-recovery.spec.mjs:5:1 › disconnect during invoice proof/response clears dialog and current private orders (2.5s)
+
+  9 passed (19.5s)

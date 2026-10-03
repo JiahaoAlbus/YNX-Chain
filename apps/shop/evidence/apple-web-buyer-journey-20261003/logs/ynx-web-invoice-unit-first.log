@@ -1,0 +1,21 @@
+✔ Shop Web keeps local Browser CSRF and fixed route scopes alongside private proofs (13.090291ms)
+✔ identity hint alone cannot create private authority; mismatch never requests a proof (0.245917ms)
+✔ account replacement at either await discards proof and CSRF (0.210834ms)
+✔ external origins never receive identity or private proof; read and order routes keep fixed scopes (0.194792ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (5.502333ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (1.2115ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (0.703292ms)
+✔ privacy lock checks durable intent after a competing preparation (0.410709ms)
+✔ concurrent preparation preserves original key; durable record contains no account/private order (5.588542ms)
+✔ unknown dispatch and bound invoices only read back original targets after cold reopen (0.971083ms)
+✔ matching invoice survives opening, refresh and receipt mismatch without any paid assertion (1.337292ms)
+✔ current actor/storage failure cannot dispatch or discard original evidence (0.600625ms)
+✔ paid presentation requires exact original backend settlement and safe integer amounts (0.171375ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64.761792

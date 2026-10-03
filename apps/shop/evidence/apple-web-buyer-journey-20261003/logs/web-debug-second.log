@@ -1,0 +1,15 @@
+REQUESTFAILED https://shop.ynxweb4.com/app.js { errorText: 'net::ERR_FAILED' }
+CONSOLE Failed to load resource: net::ERR_FAILED
+FAILED expect(locator).toBeEnabled() failed
+
+Locator:  locator('#privateSession')
+Expected: enabled
+Received: disabled
+Timeout:  5000ms
+
+Call log:
+  - Expect "to.be.enabled" with timeout 5000ms
+  - waiting for locator('#privateSession')
+    14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+       - unexpected value "disabled"
+

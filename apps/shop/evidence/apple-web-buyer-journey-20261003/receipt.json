@@ -1,0 +1,390 @@
+{
+  "schema": "ynx-commerce-apple-web-buyer-journey/v1",
+  "sourceCommit": "d44c454213bf61e023e9d72af4900dd9da9b9d3d",
+  "sourceTree": "74fabc2eb4f397e149e3af5e5375593274b2b687",
+  "previousDelivery": "0a8b2805edf0f688992f5172ae9d9aa31ff5a451",
+  "sourceFiles": {
+    "apps/shop/app.js": {
+      "bytes": 34742,
+      "sha256": "c1123d08709e92abc0485b23229bb3780260937ac121ce6c61796825a1036792"
+    },
+    "apps/shop/index.html": {
+      "bytes": 8865,
+      "sha256": "7b220d3cc00290ec5a28b8fef3d50478bbde81cfe4091be48a1e668d1d6cbe3c"
+    },
+    "apps/shop/invoice-recovery.js": {
+      "bytes": 6013,
+      "sha256": "051f1576a958cb28fbafa9081eecd638bf5841eb7c3e854d291ca0dbb1ea7d40"
+    },
+    "apps/shop/native/APPLE_WEB_BUYER_JOURNEY.md": {
+      "bytes": 4655,
+      "sha256": "7ad133d4c89088fcd84582fb52e51f516373d75d55698f7cfc59dc2140457c71"
+    },
+    "apps/shop/native/ios/YNXShop/API.swift": {
+      "bytes": 8857,
+      "sha256": "52cb5018ba2e2bbefbaeef40141d02ff3439287d687d9b0da399b72c234627aa"
+    },
+    "apps/shop/native/ios/YNXShop/ContentView.swift": {
+      "bytes": 8848,
+      "sha256": "f4fe45ee6a4e57e8b11384af50c3dac0d6f5035ed8676f05f8c7a746665b81b6"
+    },
+    "apps/shop/native/ios/YNXShop/Localizable.xcstrings": {
+      "bytes": 242613,
+      "sha256": "455eaf6943c24f91eea777ea86a0c5d4a0ecb12a0d4d9c18e1071a6216650d58"
+    },
+    "apps/shop/native/ios/YNXShop/NativeProtectedRuntime.swift": {
+      "bytes": 5396,
+      "sha256": "0d4f84fa2f4b2cd9179f80ee3b1dddb1044528953687f18b55c77c7e7514ea9a"
+    },
+    "apps/shop/native/ios/YNXShop/NativeSessionBridge.swift": {
+      "bytes": 17560,
+      "sha256": "b271af9678a15e6e35be9062f68d318f98d6c4f42880610c6f9ac571d765d273"
+    },
+    "apps/shop/native/ios/YNXShop/Security.swift": {
+      "bytes": 20050,
+      "sha256": "81dc947ca758320e45bb87d948b361b75a008b200b2e5ad9cfacc016d40590e2"
+    },
+    "apps/shop/native/ios/YNXShop/ShopModel.swift": {
+      "bytes": 16542,
+      "sha256": "6be2521dd8fdb77f93f6003591b940411e1291ae42a9a6e25c5f6ef3b6efcb96"
+    },
+    "apps/shop/native/ios/YNXShop/native-session/registry.json": {
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    "apps/shop/native/ios/tests/BuyerJourneyChecks.swift": {
+      "bytes": 12326,
+      "sha256": "acc54f71f238b181a3a9346e8ab15fa4b15fcfd0dd539e30d4fcecb1aa284747"
+    },
+    "apps/shop/native/ios/tests/NativeAPIChecks.swift": {
+      "bytes": 9803,
+      "sha256": "c5f4277a25e301f4e9aac52106a34a68f510cfa4f5daa444235de5de0603aa5b"
+    },
+    "apps/shop/native/scripts/sync-ios-locales.mjs": {
+      "bytes": 5289,
+      "sha256": "3c6d8a6b1d20f45b74ff6fe4497d3184824720b0cecfa6944116f1872fc97116"
+    },
+    "apps/shop/scripts/build.mjs": {
+      "bytes": 1063,
+      "sha256": "d621093fb292cda7887110cd4a28af0947a5688d1692b8560d488ac7b65c6393"
+    },
+    "apps/shop/test/browser/checkout-recovery.spec.mjs": {
+      "bytes": 6765,
+      "sha256": "0aaf0b721dfac4b27244e8c9cba486f47b19e5f6800fac28c4790ba8eb658d12"
+    },
+    "apps/shop/test/browser/invoice-recovery.spec.mjs": {
+      "bytes": 3029,
+      "sha256": "52402528807339b3f0c442cc554a0e661d30855e3aa535be64a181983096e6a4"
+    },
+    "apps/shop/test/browser/shop-fixture.mjs": {
+      "bytes": 10840,
+      "sha256": "0a8501772a88e69cc3052fb1d60c7607d40e6898cda887cd734c110676c1f985"
+    },
+    "apps/shop/test/invoice-recovery.test.mjs": {
+      "bytes": 3907,
+      "sha256": "6220cf7f34f272c170fbe1150ef91a3f3db7fdaa625e52fbbe120b19255da80c"
+    }
+  },
+  "sourceArchive": {
+    "path": "commerce-apple-web-source-d44c45421.tar",
+    "bytes": 471040,
+    "sha256": "f4316ebe9307243f2440cba3276f98f6caa4225fd5c7a4c8bb90fabcd29c40f7"
+  },
+  "native188": {
+    "inputEvidence": "../android-buyer-journey-20261003",
+    "rootAdmissionSHA256": "97861b0cca9821f10888a1b035a5c655b4976343b3ab6788ac4f2679c1e7f864",
+    "sameArtifactBrand": true,
+    "shopTupleUnchanged": true,
+    "bundle": {
+      "bytes": 225709,
+      "sha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82"
+    },
+    "registry": {
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    }
+  },
+  "verification": {
+    "counts": {
+      "buyerSource": 25,
+      "apiSource": 31,
+      "webKit": 6
+    },
+    "modelApiCoreCompile": "PASS current actual source",
+    "fullSourceParse": "PASS",
+    "localeContractArtifactPins": "PASS",
+    "webNodeChecks": 15,
+    "isolatedWebBuild": "PASS cached dependencies",
+    "targetedBrowserChecks": 9,
+    "browserFull": {
+      "passed": 22,
+      "failed": 3,
+      "reason": "isolated Seller dist absent; no production failure inferred",
+      "failedCasesRerun": "3/3 PASS after building unchanged Seller source in same isolated stage",
+      "uniqueCasesPassed": 25
+    },
+    "fullSwiftUITypecheck": "NOT_VERIFIED missing SwiftUIMacros.StateMacro and cascading inherited bindings; current logs retained",
+    "xcodeEnvironment": "CommandLineTools; no full Xcode app build"
+  },
+  "logs": {
+    "apple-api-build-final-current.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-api-build-final.log": {
+      "bytes": 1314,
+      "sha256": "10d589941ffd7a66ff49ad7d9b324ba1e3d04490eb87d0e94deafe370c5e066f"
+    },
+    "apple-api-build-frozen.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-api-build.log": {
+      "bytes": 2690,
+      "sha256": "4c8d9d1a8cec16adc412c6eefc62e74eb395c4d1508eeeeff447c28ec0d49c60"
+    },
+    "apple-api-checks-final-current.log": {
+      "bytes": 1665,
+      "sha256": "9d448b13afc1a5ee34376271963d0c9ec6e8b55adb0c088f6ef2fa223b6b1195"
+    },
+    "apple-api-checks-final.log": {
+      "bytes": 92,
+      "sha256": "acb6868c0ebe9e5f08a3ab3f35882994a61aa4c7aef5560c9fd2dd5dca72b43f"
+    },
+    "apple-api-checks-frozen.log": {
+      "bytes": 1665,
+      "sha256": "9d448b13afc1a5ee34376271963d0c9ec6e8b55adb0c088f6ef2fa223b6b1195"
+    },
+    "apple-api-checks.log": {
+      "bytes": 92,
+      "sha256": "09c2987183849675478c9ab0577c0c1cf0ebfb2debc76d35e232996300af6a76"
+    },
+    "apple-build-final-current.log": {
+      "bytes": 2252,
+      "sha256": "89f9b794b2991392120c912cf06c6f6be792c7a44ad02e131fe0594094e32bbf"
+    },
+    "apple-build-final-freeze.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-build-final.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-build-first.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-build-second.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-build-third.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-build-verified-current.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-checks-final-current.log": {
+      "bytes": 1316,
+      "sha256": "52b30b9ba880c945baa18ab158468c716a6e6115bfe4c3bd41475dfac252f1cc"
+    },
+    "apple-checks-final-freeze.log": {
+      "bytes": 1652,
+      "sha256": "64d60970c251347a2110512c11e9d76a38f7fdcc7545fdbd09fa9990174b7cf0"
+    },
+    "apple-checks-final.log": {
+      "bytes": 1316,
+      "sha256": "52b30b9ba880c945baa18ab158468c716a6e6115bfe4c3bd41475dfac252f1cc"
+    },
+    "apple-checks-first.log": {
+      "bytes": 105,
+      "sha256": "e1fecedc4cba5dc4cecdd896ffa00d337b756c597cf3031b3a1f8d26fef9393f"
+    },
+    "apple-checks-second.log": {
+      "bytes": 1240,
+      "sha256": "f66f78fe65152ef69ea2bc9404dd65dae07e88da2ac12b4dd39775b4f8ae6c94"
+    },
+    "apple-checks-third.log": {
+      "bytes": 1240,
+      "sha256": "f66f78fe65152ef69ea2bc9404dd65dae07e88da2ac12b4dd39775b4f8ae6c94"
+    },
+    "apple-checks-verified-current.log": {
+      "bytes": 1579,
+      "sha256": "f72075da3d583956a1a3397381e16a373670d16622e57608941983935a8a0966"
+    },
+    "apple-engine-build.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-engine-checks.log": {
+      "bytes": 11927,
+      "sha256": "2deded27d8e921b99d222459300994c890d29cae560b42d75edb8db54eb083da"
+    },
+    "apple-full-source-parse-final-freeze.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-full-source-parse-final.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-full-source-parse.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-full-ui-typecheck.log": {
+      "bytes": 41700,
+      "sha256": "c8c32ebe70228ba2b02c7af5a3588c4f91edd32f5a6026069bfae74a30fdc8a7"
+    },
+    "apple-model-core-build-final-current.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "apple-model-core-final-build.log": {
+      "bytes": 2777,
+      "sha256": "9c192f9a3205fbb307485fa51ba3e2f05bbc5236691a3215794cdee3d967eda4"
+    },
+    "apple-static-verify-final.log": {
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    "apple-static-verify-first.log": {
+      "bytes": 397,
+      "sha256": "aaf5379b8ea74acd28a3b9627c0d717af0df6cd3e63e2708b70cb27d50ca520f"
+    },
+    "web-browser-final.log": {
+      "bytes": 1685,
+      "sha256": "a49b180d658a02b0494deaee1ed62221d9871a749a74fd7ef032f2633c993b31"
+    },
+    "web-browser-first.log": {
+      "bytes": 544,
+      "sha256": "b04bf61bae034cae6976a10906466f2f34a6b43da3673250b14e76e38653ff57"
+    },
+    "web-browser-full-final.log": {
+      "bytes": 14212,
+      "sha256": "190e59ffde91c744d2bbf38296938b29bd04a29708fb56a171958e2d873a2d77"
+    },
+    "web-browser-role-final.log": {
+      "bytes": 668,
+      "sha256": "9f65cc3cadcd6ea8f0c9de73ca72c9b09904875c2ee03494a66325cdcc525bac"
+    },
+    "web-browser-second.log": {
+      "bytes": 36448,
+      "sha256": "a6783e5e58b7510c92e62ab4b4ec2495cf61b6c2a7874d198c3d4c1705d723b7"
+    },
+    "web-browser-third.log": {
+      "bytes": 5273,
+      "sha256": "ee19ee5e6bbe9beefdc85407bec1e7fe67ef57a1dc410e822bd142b6f1c5922f"
+    },
+    "web-debug-first.log": {
+      "bytes": 443,
+      "sha256": "38a7dab214f8bf80eac89374e0eba8b699dcd832b10f31bd122160d0491eb8ce"
+    },
+    "web-debug-second.log": {
+      "bytes": 522,
+      "sha256": "efb1e3325ac1ffe20076941f6f80cc9c69b9249d6c47fdaaad2bbceec90ee625"
+    },
+    "web-seller-build-for-original-role-tests.log": {
+      "bytes": 71,
+      "sha256": "c16af5ec576ef699558d2fc85d85f8763c23bef1b763be5cf27a6f816ab3fb10"
+    },
+    "web-web-build-current.log": {
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    "web-web-build-final.log": {
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    "web-web-build-first.log": {
+      "bytes": 1093,
+      "sha256": "18a26ab0fa12d63a82ac5d776b2d165cd34450e7948ffefb9b9f546efaa6f324"
+    },
+    "web-web-build-second.log": {
+      "bytes": 2220,
+      "sha256": "221122a97dbbb23cf2f2432cc380f2822ed9a32d5cdc7b24cc7c1303f89b9d15"
+    },
+    "web-web-build-third.log": {
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    "ynx-apple-journey-typecheck-first.log": {
+      "bytes": 2669,
+      "sha256": "84156bf2d114e94f1a7109eb0777fb0dd77bda9489d139f4b840fcb7caa36e60"
+    },
+    "ynx-apple-journey-typecheck-second.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ynx-web-invoice-unit-final.log": {
+      "bytes": 1552,
+      "sha256": "c446ef11ea4a5068b808ebb8aec9fb29bf71c76e2806ec01ac3e4003a6631a6a"
+    },
+    "ynx-web-invoice-unit-first.log": {
+      "bytes": 1400,
+      "sha256": "da559210c4baa0feff5e514d4bfd4eaff24a5756a9ac3f713bb66eaa9f7ecea5"
+    }
+  },
+  "limits": [
+    "Controlled authority/HTTP/memory are tests only; no real Native approval/key/store/device/Wallet/public operation",
+    "WebKit executes the exact module with controlled ports; no signature or authoritative ACK inferred",
+    "Browser journal records only Wallet opening requested, not OS acceptance",
+    "Original incomplete native transition/legacy invoice rows remain preserved; no automatic replay",
+    "iOS Native tuple/platform/role remains unapproved; existing authority fails closed; complete shared source UI is not operational iOS acceptance",
+    "Current merged Wallet invoice handler/return, current Host actor/registration, final signed distributed app and device/user payment gates remain with A",
+    "Full Android/iOS/macOS/Web goal remains incomplete; Merchant/separate Seller Browser remain HOLD"
+  ],
+  "preservedFailureExplanation": [
+    "Web dependency links and absent Seller dist caused isolated build/role fixture failures; repaired using cached dependencies and unchanged original Seller build",
+    "Initial Swift controlled HTTP stub lacked body-stream read; fixed to assert actual original request bytes",
+    "A Swift fixture expression exceeded compiler diagnostics; split typed profile fixtures; only newly compiled current binary counted",
+    "A first mismatched-order oracle expected old text; current stronger owned receipt rejection retained exact saved checkout assertion",
+    "Original failed logs and failed current-toolchain UI typecheck retained unchanged"
+  ],
+  "completeOwnedSourceArchive": {
+    "path": "commerce-owned-source-d44c45421.tar",
+    "members": 357,
+    "bytes": 13096960,
+    "sha256": "50201b7c96bc72e110f744efc81ba4beef3168e1aa54c46fab9551f9e440bfe2"
+  },
+  "sharedQAComposition": {
+    "complete641": "6413198530fcc89abfcc44cf010ee96228475b8b",
+    "complete641Tree": "f70c782e828b81b5aea955c6481edd079176e88c",
+    "shopBrowser258": "2587012a7eaf9c2b827596b7914d6304d91840ab",
+    "stage": "/tmp/ynx-commerce-shop258-HjnZ1y",
+    "browserDependency": "existing qualified stage complete641 packages/wallet-auth; owner vendor package not replaced; A must integrate exact approved shared artifacts",
+    "actualBrowserBusinessReplies": "controlled fixtures with actual browser SDK/private proof/Browser identity checks; not public Go business acceptance"
+  },
+  "acceptedCurrentLogs": {
+    "buyer": [
+      "apple-build-final-freeze.log",
+      "apple-checks-final-freeze.log"
+    ],
+    "api": [
+      "apple-api-build-frozen.log",
+      "apple-api-checks-frozen.log"
+    ],
+    "module": [
+      "apple-engine-build.log",
+      "apple-engine-checks.log"
+    ],
+    "web": [
+      "ynx-web-invoice-unit-final.log",
+      "web-web-build-final.log",
+      "web-browser-final.log",
+      "web-browser-full-final.log",
+      "web-seller-build-for-original-role-tests.log",
+      "web-browser-role-final.log"
+    ],
+    "parse": "apple-full-source-parse-final-freeze.log",
+    "static": "apple-static-verify-final.log"
+  },
+  "excludedResults": [
+    "apple-checks-final-current.log ran a previous binary after the corresponding fixture compile failed; it is NOT current-source evidence",
+    "All first/second/third intermediate results are historical diagnostics, not substituted for accepted frozen-source logs",
+    "Full SwiftUI typecheck remains failed/unverified; parse/model tests do not replace app acceptance"
+  ]
+}

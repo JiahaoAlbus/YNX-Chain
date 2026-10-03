@@ -1,0 +1,15 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: ynx_logo:zh-Hans
+    at file:///Users/huangjiahao/Desktop/YNX%20Final%20Worktrees/63-shop-connect-state/apps/shop/native/scripts/verify.mjs:81:47 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v26.7.0

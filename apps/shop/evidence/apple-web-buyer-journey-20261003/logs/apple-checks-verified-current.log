@@ -1,0 +1,25 @@
+PASS fresh client adopts existing server cart without overwriting old items
+PASS cold draft retains original account and isolates another buyer
+PASS unknown cart cannot rotate original save
+PASS same original revision is not acknowledgement
+PASS owned readback reconciles original cart revision and items
+PASS unknown checkout cannot redispatch or replace original key
+PASS original encrypted queue bytes preserved after rejection
+PASS only matching backend cart consumption clears local cart
+PASS inaccessible original queue cannot become empty or be replaced
+PASS inaccessible original invoice journal cannot rotate key
+PASS locked original records cause zero replacement writes
+PASS lost invoice retains original key and read-only phase
+PASS Wallet opening preserves original invoice journal and never asserts paid
+PASS foreign settlement and order cannot be adopted
+PASS paid label without matching settlement is refused
+PASS callback supplies only fixed wake hint
+PASS order read uses exact full Buyer scopes
+PASS retired settlement GET route is refused
+PASS actual model cart CAS checkout uses original service fields and owned receipt
+PASS normal pay button presents invoice before any Wallet opening
+PASS resume reads original target without another checkout
+PASS normal profile save uses original protected route and current context
+PASS account replacement synchronously clears private presentation
+PASS logout clears private content while original saved records remain
+Buyer journey controlled production-source checks PASS; real OS/Wallet/public payment NOT_VERIFIED

@@ -1,0 +1,23 @@
+✔ Shop Web keeps local Browser CSRF and fixed route scopes alongside private proofs (13.44775ms)
+✔ identity hint alone cannot create private authority; mismatch never requests a proof (0.273042ms)
+✔ account replacement at either await discards proof and CSRF (0.26025ms)
+✔ external origins never receive identity or private proof; read and order routes keep fixed scopes (0.197417ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (6.620958ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (1.294292ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (0.994ms)
+✔ privacy lock checks durable intent after a competing preparation (0.39925ms)
+✔ concurrent preparation preserves original key; durable record contains no account/private order (5.559291ms)
+✔ unknown dispatch and bound invoices only read back original targets after cold reopen (1.453667ms)
+✔ matching invoice survives opening, refresh and receipt mismatch without any paid assertion (2.134916ms)
+✔ current actor/storage failure cannot dispatch or discard original evidence (1.227167ms)
+✔ paid presentation requires exact original backend settlement and safe integer amounts (0.224083ms)
+✔ buyer UI wires full order lifecycle (3.363833ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (1.327542ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 69.20675

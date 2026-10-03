@@ -1,0 +1,61 @@
+
+Running 9 tests using 1 worker
+
+(node:23800) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (1.6s)
+  ✓  2 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (1.5s)
+  ✓  3 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (1.5s)
+  ✓  4 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.7s)
+  ✓  5 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (1.4s)
+  ✘  6 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (6.4s)
+(node:23833) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 [chromium] › test/browser/invoice-recovery.spec.mjs:3:1 › normal invoice button reviews before Wallet; cancel and cold reload reuse original invoice without POST (3.3s)
+  ✓  8 [chromium] › test/browser/invoice-recovery.spec.mjs:4:1 › lost invoice response never creates a second invoice; unknown only original reference GET (2.7s)
+  ✓  9 [chromium] › test/browser/invoice-recovery.spec.mjs:5:1 › disconnect during invoice proof/response clears dialog and current private orders (2.4s)
+
+
+  1) [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('#orderState')
+    Expected substring: "receipt does not match"
+    Received string:    "Checkout unconfirmed or rejected. Your recovery key is preserved when the outcome is unknown. The current owned order receipt is invalid."
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('#orderState')
+        - locator resolved to <div role="status" id="orderState"></div>
+        - unexpected value ""
+        13 × locator resolved to <div role="status" id="orderState">Checkout unconfirmed or rejected. Your recovery k…</div>
+           - unexpected value "Checkout unconfirmed or rejected. Your recovery key is preserved when the outcome is unknown. The current owned order receipt is invalid."
+
+
+      38 |  await installPrivateShop(page,{cart:[item],beforeNavigate:async()=>{
+      39 |   await page.route('**/api/orders',async route=>{if(route.request().method()!=='POST'){await route.fallback();return}await route.fulfill({status:201,json:confirmedOrder({Buyer:'ynx1'+'p'.repeat(38),ID:'wrong-account'})})});
+    > 40 |  }});await submit(page);await expect(page.locator('#orderState')).toContainText('receipt does not match');expect(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx-shop-checkout-v1:')).length)).toBe(1);
+         |                                                                   ^
+      41 | });
+      42 |
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:40:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence 
+  8 passed (24.5s)

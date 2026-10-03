@@ -1,0 +1,14 @@
+apps/shop/native/ios/tests/NativeAPIChecks.swift:64:72: error: invalid redeclaration of 'before'
+37 |         let foreign=try second.prepare(account:other,path:"orders",input:input);try first.confirmed(original)
+38 |         try check(try first.load(account:account).isEmpty && first.load(account:other)==[foreign],"confirmation removes only exact original target")
+39 |         let before=saved;let failing=OfflineQueue(read:read,write:{_ in throw ShopError.security});do{_ = try failing.prepare(account:account,path:"orders",input:input);throw NSError(domain:"write accepted",code:1)}catch ShopError.security{try check(saved==before,"storage failure preserves original evidence")}
+   |             `- note: 'before' previously declared here
+40 |         saved=Data("broken original evidence".utf8);do{_ = try first.load(account:account);throw NSError(domain:"invalid queue adopted",code:1)}catch{try check(saved==Data("broken original evidence".utf8),"malformed records are retained and never silently emptied")}
+41 |         let authority=ControlledAuthority();authority.current=ShopSession.parse(try metadata(account));let config=URLSessionConfiguration.ephemeral;config.protocolClasses=[StubProtocol.self];let urlSession=URLSession(configuration:config);let api=APIClient(base:URL(string:"https://shop.ynxweb4.com/api")!,session:urlSession,authority:authority)
+   :
+62 |         for pair in [("PUT","/api/orders"),("GET","/api/seller/products"),("POST","/api/profile"),("GET","/api/orders/../profile")]{do{_ = try AppleNativeBusinessPolicy.scopes(pair.0,pair.1);throw NSError(domain:"scope broadened",code:1)}catch ShopError.security{print("PASS fixed Buyer scope route refuses "+pair.1)}}
+63 |         try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/pay-handoff")==["account:read","shop:orders:write"],"payment preparation uses original Buyer scopes")
+64 |         authority.current=ShopSession.parse(try metadata(account));let before=dispatched
+   |                                                                        `- error: invalid redeclaration of 'before'
+65 |         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{throw ShopError.security});throw NSError(domain:"admission dispatched",code:1)}catch ShopError.security{try check(dispatched==before,"durable dispatch admission failure cannot send HTTP")}
+66 |         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{api.invalidate()});throw NSError(domain:"late admission dispatched",code:1)}catch ShopError.contextChanged{try check(dispatched==before,"context change in dispatch admission prevents HTTP")}

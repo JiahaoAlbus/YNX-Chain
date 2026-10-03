@@ -1,0 +1,7 @@
+apps/shop/native/ios/tests/NativeAPIChecks.swift:66:233: error: cannot convert value of type 'Data?' to expected argument type 'Int'
+64 |         authority.current=ShopSession.parse(try metadata(account));let dispatchBaseline=dispatched
+65 |         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{throw ShopError.security});throw NSError(domain:"admission dispatched",code:1)}catch ShopError.security{try check(dispatched==dispatchBaseline,"durable dispatch admission failure cannot send HTTP")}
+66 |         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{api.invalidate()});throw NSError(domain:"late admission dispatched",code:1)}catch ShopError.contextChanged{try check(dispatched==before,"context change in dispatch admission prevents HTTP")}
+   |                                                                                                                                                                                                                                         `- error: cannot convert value of type 'Data?' to expected argument type 'Int'
+67 |         urlSession.invalidateAndCancel();print("Controlled actual API source checks PASS; no real Native approval/device/public business")
+68 |     }

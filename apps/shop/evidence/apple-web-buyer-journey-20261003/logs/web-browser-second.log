@@ -1,0 +1,420 @@
+
+Running 9 tests using 1 worker
+
+(node:23008) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (5.5s)
+(node:23039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (5.4s)
+(node:23089) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (5.5s)
+(node:23147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (5.3s)
+(node:23258) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (5.3s)
+(node:23267) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (5.3s)
+(node:23274) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  7 [chromium] › test/browser/invoice-recovery.spec.mjs:3:1 › normal invoice button reviews before Wallet; cancel and cold reload reuse original invoice without POST (5.4s)
+(node:23291) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  8 [chromium] › test/browser/invoice-recovery.spec.mjs:4:1 › lost invoice response never creates a second invoice; unknown only original reference GET (5.3s)
+(node:23305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  9 [chromium] › test/browser/invoice-recovery.spec.mjs:5:1 › disconnect during invoice proof/response clears dialog and current private orders (5.3s)
+
+
+  1) [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:6:35
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-confirme-44490-nd-no-cleanup-PUT-is-issued-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:12:33
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-lost-res-5ba15-it-recovery-returns-receipt-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:19:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-failed-c-b8706-rent-clicks-send-one-update-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:28:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-reload-a-17a01-y-without-saving-an-address-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:32:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-two-tabs-703bc-deletion-cannot-overtake-it-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-two-tabs-703bc-deletion-cannot-overtake-it-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-two-tabs-703bc-deletion-cannot-overtake-it-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-two-tabs-703bc-deletion-cannot-overtake-it-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/checkout-recovery.spec.mjs:38:2
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/checkout-recovery-a-mismat-c998a-s-durable-checkout-evidence-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › test/browser/invoice-recovery.spec.mjs:3:1 › normal invoice button reviews before Wallet; cancel and cold reload reuse original invoice without POST 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/invoice-recovery.spec.mjs:3:136
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-normal-in-1aab8-iginal-invoice-without-POST-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/invoice-recovery-normal-in-1aab8-iginal-invoice-without-POST-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-normal-in-1aab8-iginal-invoice-without-POST-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/invoice-recovery-normal-in-1aab8-iginal-invoice-without-POST-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › test/browser/invoice-recovery.spec.mjs:4:1 › lost invoice response never creates a second invoice; unknown only original reference GET 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/invoice-recovery.spec.mjs:4:134
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-lost-invo-c17af-only-original-reference-GET-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/invoice-recovery-lost-invo-c17af-only-original-reference-GET-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-lost-invo-c17af-only-original-reference-GET-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/invoice-recovery-lost-invo-c17af-only-original-reference-GET-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › test/browser/invoice-recovery.spec.mjs:5:1 › disconnect during invoice proof/response clears dialog and current private orders 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator:  locator('#privateSession')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeEnabled" with timeout 5000ms
+      - waiting for locator('#privateSession')
+        14 × locator resolved to <button disabled type="button" id="privateSession">Connect private Shop service</button>
+           - unexpected value "disabled"
+
+
+       at shop-fixture.mjs:62
+
+      60 |   });
+      61 |   await beforeNavigate?.({state,requests,account,handler,registry});
+    > 62 |   await page.goto(origin+'/');await expect(page.locator('#privateSession')).toBeEnabled();if(!prepareApproval){await expect(page.locator('#products')).toContainText('QA product');return{state,requests,account,registry,gatewayRequests}}await page.locator('#privateSession').click();const link=page.locator('#status a');await expect(link).toHaveAttribute('href',/^ynxwallet:/);const request=parseProductSessionWalletURL(registry,await link.getAttribute('href')),at=new Date(),approval=signProductSessionApproval(registry,request,{accountSecret:'0'.repeat(63)+'1',scopes:request.scopes,expiresAt:request.expiresAt},at);await page.goto(createProductSessionReturnURL(registry,request,{result:'approved',approval},at));
+         |                                                                             ^
+      63 |   if(waitForSession){await expect(page.locator('#wallet')).toHaveText('Wallet session active');await expect(page.locator('#products')).toContainText('QA product')}
+      64 |   return {state,requests,account,registry,gatewayRequests};
+      65 | }
+        at installPrivateShop (/private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/shop-fixture.mjs:62:77)
+        at /private/tmp/ynx-commerce-apple-web-journey-20261003/apps/shop/test/browser/invoice-recovery.spec.mjs:5:106
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-disconnec-42177--and-current-private-orders-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright/invoice-recovery-disconnec-42177--and-current-private-orders-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright/invoice-recovery-disconnec-42177--and-current-private-orders-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright/invoice-recovery-disconnec-42177--and-current-private-orders-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9 failed
+    [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it 
+    [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence 
+    [chromium] › test/browser/invoice-recovery.spec.mjs:3:1 › normal invoice button reviews before Wallet; cancel and cold reload reuse original invoice without POST 
+    [chromium] › test/browser/invoice-recovery.spec.mjs:4:1 › lost invoice response never creates a second invoice; unknown only original reference GET 
+    [chromium] › test/browser/invoice-recovery.spec.mjs:5:1 › disconnect during invoice proof/response clears dialog and current private orders 
