@@ -106,6 +106,19 @@ export class CardService {
     return {cardId,asOf:this.clock().toISOString(),status:findings.length?'INCONSISTENT':'CONSISTENT',findings:[...new Set(findings)],balance:{...card.balance},ledgerEntries:entries.length,creditedIntents:credited.length,chainReverified:false,dataFabricReconciled:false,environment:ENVIRONMENT,productionRealPayments:false};
   }
   statement(p:Principal,cardId:string){const state=this.state(this.principal(p)),card=own(state.cards,cardId);return {card,ledger:state.ledger.filter(e=>e.cardId===cardId),events:state.events.filter(e=>e.cardId===cardId),environment:ENVIRONMENT,productionRealPayments:false}}
+  operationResult(p:Principal,operation:string,resourceId:string,key:string,digest:string){
+    const state=this.state(this.principal(p));
+    if(!/^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(resourceId)||! /^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(key)||! /^[0-9a-f]{64}$/.test(digest))throw new CardError('INVALID_OPERATION_READBACK',400);
+    const routes:Record<string,string>={freeze:'card:freeze:',unfreeze:'card:unfreeze:',recover:'card:recover:',controls:'controls:','topup-intent':'topup-intent:','topup-confirm':'topup-confirm:',authorization:'authorization:',capture:'capture:',reverse:'reverse:',refund:'refund:'};
+    if(!Object.hasOwn(routes,operation))throw new CardError('INVALID_OPERATION_READBACK',400);
+    if(operation==='topup-confirm')own(state.intents,resourceId);
+    else if(operation==='capture'||operation==='reverse')own(state.authorizations,resourceId);
+    else if(operation==='refund')own(state.captures,resourceId);
+    else own(state.cards,resourceId);
+    const stored=state.idempotency[hash([routes[operation]+resourceId,key])];
+    if(stored&&stored.fingerprint!==digest)throw new CardError('IDEMPOTENCY_CONFLICT');
+    return {operation,resourceId,idempotencyKey:key,digest,status:stored?'CONFIRMED':'UNKNOWN',...(stored?{result:structuredClone(stored.result)}:{})};
+  }
   // Trusted server worker only. Never expose transport selection or this method
   // through an end-user route, and never invent a broad Wallet write scope.
   async flushEvents(ownerInput:string,transport:{publish:(event:BusinessEvent)=>Promise<void>}){const owner=subject(ownerInput);for(const event of this.state(owner).events.filter(e=>!e.delivered)){let delivered=false;try{await transport.publish(event);delivered=true}catch{}this.store.transaction(owner,()=>empty(owner),state=>{const current=state.events.find(e=>e.id===event.id);if(current&&!current.delivered){current.attempts++;current.delivered=delivered}return null})}return this.state(owner).events.filter(e=>!e.delivered)}

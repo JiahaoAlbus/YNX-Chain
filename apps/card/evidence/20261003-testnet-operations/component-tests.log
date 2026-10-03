@@ -1,0 +1,41 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual private form has no auto-create, PAN/CVV, fake active account or balance (223.928833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ explicit terms/create/challenge/review failure never submits a card (27.924916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Chinese private form changes UI copy without replaying actions (15.615917ms)
+✔ actual form keeps unknown create and retries the original body/key rather than edited fields (20.958416ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web navigation exposes one selected section before and after local controls change (389.24775ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Native sections retain native selection attributes without Web-only aria props (55.058292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest control changes stay in Controls and preserve their actual local state (50.689666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ local controls audit remains visible through explicit Activity navigation (44.23775ms)
+✔ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (34.911458ms)
+✔ malformed original records survive load and automatic rewrite is blocked (99.08725ms)
+✔ stored ACTIVE is historical only and raw receipt/details are preserved (54.481875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual operation UI writes journal before explicit API action and never auto-mutates on mount (113.9775ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ timeout recovery makes no automatic write and explicit retry preserves original body/key (72.153ms)
+✔ malformed journal remains untouched and disables mutation (17.557292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ named Web radiogroup describes three explicit checked states and a single tab stop (173.680667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ direction/Home/End keys move selection and focus without changing native semantics (34.883625ms)
+✔ native radio group retains native checked state without DOM keyboard props (17.237959ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 971.279625

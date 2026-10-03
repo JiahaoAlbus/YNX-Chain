@@ -1,0 +1,26 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual operation UI writes journal before explicit API action and never auto-mutates on mount (69.328458ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ timeout recovery makes no automatic write and explicit retry preserves original body/key (32.906084ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ malformed journal remains untouched and disables mutation (10.905833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ funding intent and transaction verification each require explicit confirmation with exact wei/hash (19.428166ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ authorization is explicitly simulated and settlements require current-card event references (28.145667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ foreign settlement reference never reaches mutation endpoint and keeps original unknown request (14.839083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ switching owner never consumes previous owner pending journal or silently retries it (26.859375ms)
+✔ Chinese operation failure stays in selected locale and disabled controls expose accessibility state (19.513375ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 521.649042

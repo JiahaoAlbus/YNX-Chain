@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {randomBytes} from 'node:crypto';
+import {randomBytes,createHash} from 'node:crypto';
 import {CardStore} from './storage.ts';
 import {CardService} from './service.ts';
 import {CardError,CHAIN,unavailableWallet,type Principal,type WalletAuthority,type CoreAuthority,type FundingIntent} from './contracts.ts';
@@ -17,6 +17,21 @@ function fixture(t:any,wallet:WalletAuthority=approved,core:CoreAuthority=fixtur
 async function active(f:ReturnType<typeof fixture>){const app=f.service.createApplication(principal(),details,'create-1');f.service.requestApproval(principal(),app.id,'request-1');return (await f.service.submitApplication(principal(),app.id,{fixtureOnly:true},'submit-1')).card!}
 async function funded(f:ReturnType<typeof fixture>){const card=await active(f);const intent=f.service.createTopupIntent(principal(),card.id,{amountWei:'1000000000000000000'},'intent-1');await f.service.confirmTopup(principal(),intent.id,tx,'topup-1');return {card,intent}}
 const merchant={id:'fixture_merchant',name:'SIMULATED MERCHANT',mcc:'5812',country:'YN',channel:'online' as const,recurring:false};
+
+test('original operation readback survives SQLite restart without mutation or cross-owner disclosure',async t=>{
+  const f=fixture(t),card=await active(f),p=principal(),digest=createHash('sha256').update('{}').digest('hex');
+  const before=f.service.statement(p,card.id);
+  assert.equal(f.service.operationResult(p,'freeze',card.id,'freeze-original',digest).status,'UNKNOWN');
+  assert.deepEqual(f.service.statement(p,card.id),before);
+  f.service.changeCard(p,card.id,'freeze','freeze-original');f.reopen();
+  const frozen=f.service.statement(p,card.id);
+  assert.equal(f.service.operationResult(p,'freeze',card.id,'freeze-original',digest).status,'CONFIRMED');
+  assert.deepEqual(f.service.statement(p,card.id),frozen);
+  assert.throws(()=>f.service.operationResult(p,'freeze',card.id,'freeze-original','b'.repeat(64)),/IDEMPOTENCY_CONFLICT/);
+  assert.throws(()=>f.service.operationResult(principal(other),'freeze',card.id,'freeze-original',digest),/NOT_FOUND/);
+  assert.throws(()=>f.service.operationResult({...p,scopes:[]},'freeze',card.id,'freeze-original',digest),/PERMISSION_DENIED/);
+  assert.throws(()=>f.service.operationResult(p,'actual-payment',card.id,'freeze-original',digest));
+});
 
 test('actual SQLite declined-attempt throttle survives restart without debits or duplicate audit',async t=>{
   // Explicit mock authority and zero funding: not a real approved account/card.

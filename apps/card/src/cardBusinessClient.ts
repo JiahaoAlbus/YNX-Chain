@@ -12,6 +12,7 @@ export type CardFundingView=Readonly<FundingIntent&{receipt?:ChainReceipt}>;
 export type CardBusinessSnapshot=Readonly<{environment:typeof ENVIRONMENT;productionRealPayments:false;asset:'YNXT_TESTNET';applications:readonly CardApplicationView[];cards:readonly TestnetCardView[];intents:readonly CardFundingView[]}>;
 export type CardStatementView=Readonly<{card:TestnetCardView;ledger:readonly ObjectValue[];events:readonly ObjectValue[];environment:typeof ENVIRONMENT;productionRealPayments:false}>;
 export type CardReconciliationView=Readonly<{cardId:string;asOf:string;status:'CONSISTENT'|'INCONSISTENT';findings:readonly string[];balance:CardBalanceView;ledgerEntries:number;creditedIntents:number;chainReverified:false;dataFabricReconciled:false;environment:typeof ENVIRONMENT;productionRealPayments:false}>;
+export type TestnetMerchant=Readonly<{id:string;name:string;mcc:string;country:string;channel:'online'|'terminal';recurring:boolean}>;
 export class CardBusinessError extends Error {
   constructor(readonly code:string,readonly layer:'configuration'|'product-session'|'card-api'|'context',readonly retryable=false){super(code);this.name='CardBusinessError';}
 }
@@ -156,5 +157,21 @@ export class CardBusinessClient {
   confirmTopup(intentId:string,txHash:string,key:string):Promise<Readonly<{intent:CardFundingView;card:TestnetCardView}>>{return this.request('card:topup:write','POST','/api/card/v1/topups',(value,account)=>{if(!record(value))throw invalid();const intent=funding(value.intent,account),result=card(value.card,account);if(intent.cardId!==result.id||intent.status!=='credited'||intent.txHash!==txHash)throw invalid();return {intent,card:result};},{intentId:this.resource(intentId),txHash},key);}
   changeCard(cardId:string,action:'freeze'|'unfreeze'|'close'|'recover',key:string):Promise<TestnetCardView>{if(!['freeze','unfreeze','close','recover'].includes(action))throw new CardBusinessError('INVALID_CARD_ACTION','configuration');return this.request('card:controls:write','POST',`/api/card/v1/cards/${this.resource(cardId)}/${action}`,card,{},key);}
   updateControls(cardId:string,controls:ObjectValue,key:string):Promise<TestnetCardView>{return this.request('card:controls:write','PUT',`/api/card/v1/cards/${this.resource(cardId)}/controls`,card,controls,key);}
+  authorize(cardId:string,input:Readonly<{amountWei:string;merchant:TestnetMerchant;simulation:true}>,key:string):Promise<ObjectValue>{const selected=this.resource(cardId);return this.request('card:simulation:write','POST',`/api/card/v1/cards/${selected}/authorizations`,value=>{
+    if(!record(value)||!id(value.id)||value.cardId!==selected||!wei(value.amountWei)||value.amountWei!==input.amountWei||!wei(value.remainingWei)||!['APPROVED','DECLINED'].includes(String(value.status))||!date(value.createdAt)||!date(value.expiresAt)||!record(value.merchant)||JSON.stringify(value.merchant)!==JSON.stringify(input.merchant)||BigInt(String(value.remainingWei))>BigInt(String(value.amountWei))||value.status==='DECLINED'&&(value.remainingWei!=='0'||typeof value.reason!=='string'))throw invalid();return value;
+  },input,key);}
+  settle(reference:string,operation:'capture'|'reverse'|'refund',amountWei:string,key:string):Promise<ObjectValue>{const selected=this.resource(reference);if(!['capture','reverse','refund'].includes(operation))throw new CardBusinessError('INVALID_CARD_ACTION','configuration');return this.request('card:simulation:write','POST',`/api/card/v1/${operation==='refund'?'captures':'authorizations'}/${selected}/${operation}`,(value,account)=>{
+    if(!record(value))throw invalid();const result=card(value.card,account),entry=operation==='reverse'?value.authorization:value.capture;
+    if(!record(entry)||!id(entry.id)||entry.cardId!==result.id||!wei(entry.amountWei)||!wei(entry.remainingWei)||BigInt(String(entry.remainingWei))>BigInt(String(entry.amountWei))||(operation==='reverse'||operation==='refund')&&entry.id!==selected||operation==='capture'&&entry.authorizationId!==selected)throw invalid();return value;
+  },{amountWei},key);}
+  operationResult(operation:string,resourceId:string,key:string,digest:string):Promise<Readonly<{status:'CONFIRMED'|'UNKNOWN'}>>{
+    if(!['freeze','unfreeze','recover','controls','topup-intent','topup-confirm','authorization','capture','reverse','refund'].includes(operation)||! /^[0-9a-f]{64}$/.test(digest))throw new CardBusinessError('INVALID_OPERATION_READBACK','configuration');
+    return this.request('account:read','GET',`/api/card/v1/operations/${operation}/${this.resource(resourceId)}/${this.resource(key)}/${digest}`,value=>{
+      if(!record(value)||value.operation!==operation||value.resourceId!==resourceId||value.idempotencyKey!==key||value.digest!==digest||!['CONFIRMED','UNKNOWN'].includes(String(value.status))||value.status==='CONFIRMED'&&!Object.hasOwn(value,'result')||value.status==='UNKNOWN'&&Object.hasOwn(value,'result'))throw invalid();
+      // Historical result is not rendered as a current card/balance: refresh
+      // the authoritative state/statement after the exact original-key match.
+      return {status:value.status as 'CONFIRMED'|'UNKNOWN'};
+    });
+  }
   private resource(value:string):string{if(!id(value))throw new CardBusinessError('INVALID_CARD_RESOURCE','configuration');return value;}
 }

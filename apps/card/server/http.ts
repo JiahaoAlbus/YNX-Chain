@@ -61,6 +61,7 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
         if(!options.providerRegistry)throw new CardError('PROVIDER_REGISTRY_UNAVAILABLE',503);result=options.providerRegistry.activity(principal,cardId,rawCursor===null?0:Number(rawCursor),rawLimit===null?50:Number(rawLimit));
       }
       else if(request.method==='GET'&&path==='/api/card/v1/state')result=service.getState(principal);
+      else if(request.method==='GET'&&/^\/api\/card\/v1\/operations\//.test(path)){if(parsedUrl.search)throw new CardError('INVALID_OPERATION_READBACK',400);const parts=path.split('/');result=service.operationResult(principal,parts[5]!,parts[6]!,parts[7]!,parts[8]!);}
       else if(request.method==='POST'&&path==='/api/card/v1/applications')result=service.createApplication(principal,input,key);
       else if(request.method==='POST'&&path==='/api/card/v1/topups')result=await service.confirmTopup(principal,input.intentId,input.txHash,key);
       else {

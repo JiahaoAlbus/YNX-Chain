@@ -1,0 +1,41 @@
+{
+  "kind": "CARD_READ_ONLY_APPLE_PREFLIGHT",
+  "dateLocal": "2026-10-03",
+  "worktree": "/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain",
+  "startingCommittedSource": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "developerDir": "/Applications/Xcode.app/Contents/Developer",
+  "developerDirScope": "process-local only",
+  "observedCommands": [
+    {
+      "command": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer /usr/bin/xcodebuild -version",
+      "stdout": "Xcode 27.0\nBuild version 27A266a\n"
+    },
+    {
+      "command": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer /usr/bin/xcodebuild -checkFirstLaunchStatus",
+      "stdout": "",
+      "exitCode": 0
+    },
+    {
+      "command": "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer /usr/bin/xcodebuild -showsdks",
+      "exitCode": 0,
+      "relevantSDKs": ["iphoneos27.0", "iphonesimulator27.0"]
+    }
+  ],
+  "cardProject": "apps/card/ios/YNXCard.xcodeproj",
+  "checkedWorkspace": "apps/card/ios/YNXCard.xcworkspace",
+  "workspaceDirectoryPresent": false,
+  "checkedLockFile": "apps/card/ios/Podfile.lock",
+  "podLockPresent": false,
+  "executableNextDependency": "Existing Native/release owner must prepare the original Card CocoaPods workspace and exact dependency lock before a source-bound simulator compile. Do not create a second iOS shell.",
+  "licenseAutomaticallyAccepted": false,
+  "globalDeveloperSelectorChanged": false,
+  "dependencyInstallationPerformed": false,
+  "simulatorBooted": false,
+  "deviceHubCalled": false,
+  "formalBuildPerformed": false,
+  "signingPerformed": false,
+  "testFlightUploaded": false,
+  "installedLifecycleVerified": false,
+  "testnetBusinessFlowComplete": false,
+  "realWorldPayments": false
+}
