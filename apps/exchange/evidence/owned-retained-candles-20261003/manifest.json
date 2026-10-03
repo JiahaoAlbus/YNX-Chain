@@ -1,0 +1,56 @@
+{
+  "schema":"ynx-owned-business-evidence/1",
+  "product":"exchange",
+  "classification":"LOCAL_SOURCE_TEST_BUILD_ONLY",
+  "branch":"codex/exchange-sso-cookie-binding-20261002",
+  "predecessor":"3063c4364751fe6be7a0a5cb7e5d59508766cbc3",
+  "implementationCommit":"4a7beeca8b7c7fe3a9eef8988845c23463bc8053",
+  "implementationTree":"64f5a128d61565a99f57b26ce5bb59ba060a9d27",
+  "coordinationThread":"01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "overlapPrecheck":{"existingWorktreesChecked":365,"dirtyTargetedExchangeWorktrees":[]},
+  "behavior":{
+    "intervalMs":[60000,300000,3600000],
+    "source":"Only validated retained YNX-owned deterministic venue matches; not external prices or fabricated candles",
+    "calculation":"UTC buckets, nanosecond-aware chronological ordering, ID tie-break; OHLC from prices; exact BigInt volume returned as decimal micro-unit string",
+    "provenance":"Displayed candle records expose exact contributing trade IDs/sourceDigest; no HTML interpretation",
+    "coverage":"Retained snapshot fragment, NOT complete candle history; never fill missing intervals or mark a bucket complete; display latest 60 observed buckets",
+    "chart":"Elapsed-time x positions preserve empty temporal gaps; real wick/body geometry; small-screen SVG label >=12px in tested widths",
+    "controls":"1m/5m/1h recompute locally without HTTP, account, signing or order actions",
+    "localization":"12 locales; original English default; numeric values/digests unchanged by language selection",
+    "unchanged":["Wallet/Auth/SSO/authority implementations","matching algorithm and state","capital execution permissions","official release control plane"]
+  },
+  "files":[
+    {"path":"apps/exchange/web/app.js","blob":"42be8be7e37aa67afe16b7ed7cc6a12000326e21","bytes":41774,"sha256":"21b03f43ab87a248c7be7cee3887318ff7a97ce7b6e9f981d073965f4862d234"},
+    {"path":"apps/exchange/web/index.html","blob":"f72648edee54a6b2d32ff86f38df69bed1965b18","bytes":20037,"sha256":"ce4050efbce3c948f6e80a8b12b18c9549801cf902daf6f05d30d369f8f2ad7f"},
+    {"path":"apps/exchange/web/locale.js","blob":"12b135fa0cdc4bab9f142694641a49124137df44","bytes":168373,"sha256":"ed0876789062d19f84366d83b0ac1f786c17462af135c621ac0a470b99a0d6a2"},
+    {"path":"apps/exchange/web/market-data.js","blob":"6277d9bf119174c29a0aee87ad6fbe7e3dc9bbcb","bytes":9430,"sha256":"b8a186f1a359bfd7f83ddcf1f9186ae8aefebf4de3ab21e1b67a24f0891a6312"},
+    {"path":"apps/exchange/web/styles.css","blob":"0f069a50737d0871b7c0402880f9a49ccb09805e","bytes":13302,"sha256":"05cc5bb35872b4f3c33182bc25a9055760fabde6d548a999ebcca3992626f198"},
+    {"path":"apps/exchange/tests/candles.test.mjs","blob":"376e4c18b6eb18fe35daa8078a1161a7bbe5f65b","bytes":2156,"sha256":"89a269374a727f034cd846df349540365abcef79b0ebc7348e8d081b91d01d84"},
+    {"path":"apps/exchange/tests/candles-browser.test.mjs","blob":"aff3122b26ca2d17cfe6c0dc0d893f7a0d442ff2","bytes":4172,"sha256":"820cc7a57df13ea1a2c36114ef21179d109e74066ecaa4767c83c91f720e5aeb"},
+    {"path":"apps/exchange/tests/http-market-flow.mjs","blob":"1d39efb22a2db1d65eb4cb4a9ea5bc62cd7f9840","bytes":3369,"sha256":"284fa3a17611c361a49ca9b7ca3d7248f4b3b56244ab4b09be8e235b09c51e7a"},
+    {"path":"apps/exchange/tests/locale-browser.test.mjs","blob":"f9f571944f1d0d069ee0bb66ce9af6e0062cff31","bytes":67088,"sha256":"b51b2d2b3d9bdacf79a9f055248935d623763ac4949de3fde7ca9489461a1f63"}
+  ],
+  "tests":[
+    {"command":"node --test apps/exchange/tests/market-data.test.mjs apps/exchange/tests/candles.test.mjs apps/exchange/tests/candles-browser.test.mjs apps/exchange/tests/order-preview.test.mjs apps/exchange/tests/owned-record-integrity.test.mjs apps/exchange/tests/locale-browser.test.mjs apps/exchange/tests/browser.test.mjs","pass":51,"fail":0,"skip":0,"durationMs":27088.266458},
+    {"command":"go test -race ./internal/exchangeproduct -count=1","result":"PASS","packageSeconds":9.507,"coverage":"Existing real Go httptest engine matches consumed over actual HTTP/SSE by two independent Node readers, new three-period OHLCV/provenance assertions; local test venue only"},
+    {"command":"node --check changed JS/MJS files; git diff --check","result":"PASS"},
+    {"command":"node --test apps/exchange/tests/ui.test.mjs","pass":8,"fail":4,"result":"NOT RELEASE READY; do not suppress"}
+  ],
+  "releaseFailures":[
+    "Legacy static test broadly forbids localStorage already present in predecessor display-language handling",
+    "Static Wallet route test fails to exclude existing multiline bounded browser-identity helper",
+    "Static identity test only matches obsolete single-line helper; predecessor already multiline",
+    "EXCHANGE_ASSET_HASH_MISMATCH:styles.css; final page/module inventory/pins also need locale.js/ui-preferences.js compatibility by sole A release owner"
+  ],
+  "environment":"Missing local SDK dependency restored using tracked npm ci --ignore-scripts --prefix apps/exchange/web; no SDK/lock/source modification. Failure facts sent to authorized coordination thread.",
+  "screenshots":[
+    {"path":"candles-1440.png","bytes":407272,"sha256":"341d24944019ef0273ef17e3056f730b2f6cf259dda782d5a9993afb2d3144e2"},
+    {"path":"candles-390.png","bytes":278174,"sha256":"6ea401690615dcc304df38f02e2745303678d4f5fe006256b459a89e0619a7ba"},
+    {"path":"candles-320.png","bytes":250061,"sha256":"cf7035967cfd3815c38388d7e8eaaa3536c3220773260a9876af50b26a8e9e05"}
+  ],
+  "screenshotBoundary":"Actual local headless Chrome, controlled fixture rows only; no public/account evidence. Original PNG logo embedded from unchanged owned bytes (SHA256 df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d). Page/tab stable, zero network actions, English/Arabic desktop/mobile assertions; horizontal trace-table scrolling is intentional; no page overflow.",
+  "build":{"command":"go build -o /tmp/ynx-exchange-candle-build.NXT5kX/ynx-exchange ./apps/exchange/server","result":"PASS","format":"Mach-O arm64 developer executable, NOT installer/release","bytes":12966034,"sha256":"e7366912660290b22843777b1c113d2879710f452f56872fe328c872d7ffd579"},
+  "integration":"A release owner applies only ordinary candle/index section/CSS/locale/market deltas, never whole app.js/index overwrite, then freezes compatible final asset graph and publishes. Add new tests to final CI. Source rollback is revert of implementation through integration owner; no production rollback performed.",
+  "remaining":["Complete historical candle API and completeness/coverage contract, not just retained matches","Compatible final official publication/installer/source identity","Real public person-owned Wallet and order journey; no account/sign/transaction action here"],
+  "truth":{"localSourceTestBuild":true,"fullReleaseTestsGreen":false,"officialPublicCurrentSource":false,"installed":false,"realWalletApproval":false,"realTestnetTrades":false,"productionSigning":false,"complete":false}
+}
