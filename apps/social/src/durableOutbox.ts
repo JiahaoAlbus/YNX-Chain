@@ -43,6 +43,16 @@ export class DurableOutbox {
     const entries = readOutbox(current ? current.value.payload : this.storage.read("legacy"));
     const next = change(entries), payload = JSON.stringify(next);
     readOutbox(payload);
+    for(const account of new Set(next.map(entry=>entry.account))){
+      if(!/^ynx1[0-9a-z]{38}$/.test(account))continue;
+      const key=`index.${account}`,raw=this.storage.read(key);
+      if(raw!==null){
+        const index=JSON.parse(raw);
+        if(index.version!==1||index.account!==account||typeof index.deleted!=='boolean')throw new Error("Pending account index requires recovery");
+        if(index.deleted)throw new Error("Deleted account pending messages require explicit recovery");
+      }
+      this.storage.write(key,JSON.stringify({version:1,account,deleted:false}));
+    }
     const generation = (current?.value.generation ?? 0) + 1;
     if (!Number.isSafeInteger(generation)) throw new Error("Pending message generation limit reached");
     const slot = current?.slot === "a" ? "b" : "a";
@@ -55,5 +65,13 @@ export class DurableOutbox {
     this.update(() => []);
     this.update(() => []);
     this.storage.remove("legacy");
+  }
+  clearAccount(account:string,current:()=>boolean){
+    if(!/^ynx1[0-9a-z]{38}$/.test(account))throw new Error("Original outbox account is required");
+    const check=()=>{if(!current())throw new Error("Outbox cleanup stopped after authorization changed")};
+    check();this.update(entries=>entries.filter(entry=>entry.account!==account));
+    check();this.update(entries=>entries.filter(entry=>entry.account!==account));
+    check();this.storage.write(`index.${account}`,JSON.stringify({version:1,account,deleted:true}));
+    // Legacy may hold other accounts or recovery data: never remove the carrier.
   }
 }

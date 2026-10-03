@@ -34,6 +34,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ExpoContacts from "expo-contacts";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as SecureStore from "expo-secure-store";
+import { AccountIntentIndex } from "./src/accountIntentIndex";
 import { File, Paths } from "expo-file-system";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -204,6 +205,11 @@ const messageOutbox = new DurableOutbox({
   read(slot) { const file = outboxSlot(slot); return file.exists ? file.textSync() : null; },
   write(slot, value) { outboxSlot(slot).write(value); },
   remove(slot) { const file = outboxSlot(slot); if (file.exists) file.delete(); },
+});
+const accountIntentIndex=new AccountIntentIndex({
+  read:key=>SecureStore.getItemAsync(key),
+  write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
+  remove:key=>SecureStore.deleteItemAsync(key),
 });
 type Tab = "contacts" | "messages" | "moments" | "alerts" | "profile";
 
@@ -1834,19 +1840,10 @@ import { runCurrentMomentReport } from './src/currentMomentReport';
 import { NativeMomentReportIntents, type MomentReportDraft } from './src/nativeMomentReportIntents';
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
-  const momentReportIntents=useMemo(()=>new NativeMomentReportIntents(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
-    read:key=>SecureStore.getItemAsync(key),
-    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
-  }),[]);
-  const momentActions=useMemo(()=>new DurableNativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),{
-    read:key=>SecureStore.getItemAsync(key),
-    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
-  }),[]);
-  const momentIntents=useMemo(()=>new NativeMomentIntents({
-    read:key=>SecureStore.getItemAsync(key),
-    write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
-    remove:key=>SecureStore.deleteItemAsync(key),
-  },async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[]);
+  const intentStorage=useMemo(()=>accountIntentIndex.bind(session.session.account,api.authorizationGuard()),[api,session.session.account,api.authorizationGeneration]);
+  const momentReportIntents=useMemo(()=>new NativeMomentReportIntents(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),intentStorage),[intentStorage]);
+  const momentActions=useMemo(()=>new DurableNativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join(''),intentStorage),[intentStorage]);
+  const momentIntents=useMemo(()=>new NativeMomentIntents(intentStorage,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[intentStorage]);
   const momentSending=useRef(false),momentMounted=useRef(true),momentCancellation=useRef<AbortController|null>(null);
   const momentNewPublication=useRef(false);
   const closeMomentComposer=()=>{momentCancellation.current?.abort();setCompose(false)};
@@ -2629,18 +2626,18 @@ function Profile({
     }
   };
   const deleteAccount = async () => {
+    const originalCurrent=api.authorizationGuard();
+    let receipt:Awaited<ReturnType<SocialAPI['deleteAccountReceipt']>>|undefined;
     try {
-      await api.deleteAccount();
-      await Promise.all(
-        [SESSION_KEY, DEVICE_KEY, ROTATION_KEY, PENDING_KEY].map((key) =>
-          SecureStore.deleteItemAsync(key),
-        ),
-      );
-      messageOutbox.clear();
-      api.setToken(null);
+      receipt=await api.deleteAccountReceipt(session.session.account);
+      await accountIntentIndex.cleanupConfirmed(receipt.account,receipt.current);
+      if(!receipt.current())return;
+      messageOutbox.clearAccount(receipt.account,receipt.current);
+      if(!receipt.current())return;
       onSessionChange(null);
+      Alert.alert("Social data deleted","Known pending records for this account were cleared. Older unindexed local records and legacy device keys were retained for explicit recovery; local erasure is not complete.");
     } catch (caught) {
-      setError(message(caught));
+      if(receipt?.current()||!receipt&&originalCurrent())setError(`${receipt?'Deletion confirmed; local cleanup requires explicit recovery. ':''}${message(caught)}`);
     }
   };
   return (
