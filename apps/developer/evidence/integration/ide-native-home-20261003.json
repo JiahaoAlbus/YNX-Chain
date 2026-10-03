@@ -1,0 +1,23 @@
+{
+  "observedAt": "2026-10-03T03:08:33.185Z",
+  "homeBrowserChecks": 7,
+  "nativePanelChecks": 17,
+  "typescript": "PASS",
+  "frontendBuild": "PASS",
+  "windowsSourceCheck": "PASS structural only",
+  "staticCheck": "PASS",
+  "normalWebEntry": "canonical Wallet projects",
+  "guestEntry": "/guest-workspace",
+  "fullWorkbenchUserAcceptance": "NOT_RUN",
+  "nativeTerminal": "NOT_RUN",
+  "realWalletBusinessOperation": "NOT_RUN",
+  "realProviderGeneration": false,
+  "installedAcceptance": "NOT_RUN; includes Windows old-client compatibility",
+  "capacityVerified": false,
+  "formalPublication": false,
+  "rejectedScopesStillStopped": [
+    "network",
+    "package-egress",
+    "LXD"
+  ]
+}

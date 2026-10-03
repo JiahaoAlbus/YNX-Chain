@@ -16,8 +16,8 @@ async function privateRequest(path: string, options?: RequestInit, identityKey?:
 async function coreRequest(path = "", options?: RequestInit, identityKey?: string) {
   return privateRequest(`/runtime/codeoss${path}`, options, identityKey);
 }
-export function NativeIDEPanel({ projectId: guestProjectId, projectName, revision, admitted, onOwnershipChange }: {
-  projectId: string; projectName: string; revision: number; admitted: boolean; onOwnershipChange: (value: boolean) => void;
+export function NativeIDEPanel({ projectId: guestProjectId, projectName, revision, admitted, onOwnershipChange, guestProjectAvailable = true }: {
+  projectId: string; projectName: string; revision: number; admitted: boolean; onOwnershipChange: (value: boolean) => void; guestProjectAvailable?: boolean;
 }) {
   const [projectId, selectProject] = useState(guestProjectId);
   const requests = useRef(createRequestEpoch()).current;
@@ -45,11 +45,11 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     try {
       const value: Catalog = await coreRequest(query); if (!current(captured) || currentProject.current !== selected) return;
       if (actor.current !== value.identityKey) { identityActivity.reset(); setCreateReviewed(false); createIntent.current = undefined; }
-      if (selected !== guestProjectId && !value.walletProjects.some(project => project.projectId === selected)) {
+      if ((!guestProjectAvailable || selected !== guestProjectId) && !value.walletProjects.some(project => project.projectId === selected) && (guestProjectAvailable || value.walletProjects.length > 0)) {
         actor.current = value.identityKey; setCatalog(value); selectProject(value.walletProjects[0]?.projectId || guestProjectId); return;
       }
       actor.current = value.identityKey; verified.current = true; setCatalog(value);
-      if (selected === guestProjectId) onOwnershipChange(value.nativeProjects.includes(selected) || value.sessions.some(row => row.projectId === selected && row.status !== "stopped"));
+      if (guestProjectAvailable && selected === guestProjectId) onOwnershipChange(value.nativeProjects.includes(selected) || value.sessions.some(row => row.projectId === selected && row.status !== "stopped"));
     } catch (cause) {
       if (!current(captured)) return;
       if (unauthorized(cause)) retire(cause);
@@ -63,7 +63,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     const focus = () => { if (!exitPending) void reload(); };
     window.addEventListener("focus", focus);
     return () => { verified.current = false; requests.invalidate(); window.removeEventListener("focus", focus); };
-  }, [projectId, query, onOwnershipChange, guestProjectId, exitPending, requests]);
+  }, [projectId, query, onOwnershipChange, guestProjectId, guestProjectAvailable, exitPending, requests]);
   const handleError = (cause: unknown, captured: number) => {
     if (!current(captured)) return;
     if (unauthorized(cause)) retire(cause);
@@ -94,7 +94,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
   };
   const copy = async () => {
     const value = context(); if (!value) return;
-    if (value.selected !== guestProjectId) return;
+    if (!guestProjectAvailable || value.selected !== guestProjectId) return;
     const { selected, captured, identityKey } = value; setBusy(true); setError("");
     try {
       await privateRequest("/runtime/identity/import", { method: "POST", body: JSON.stringify({ projectId: selected, expectedGuestRevision: revision, approval: "copy-guest-project-once", approvalId: crypto.randomUUID() }) }, identityKey);
@@ -149,9 +149,10 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     {!exitPending && <Button disabled={loading} onClick={() => void reload()}>{loading ? "Loading Wallet projects…" : "Refresh Wallet projects"}</Button>}
     {(account || exitPending) && <Button disabled={busy} onClick={() => void signOut()}>{exitPending ? 'Retry sign-out' : 'Sign out on this device'}</Button>}
     {account && <Button disabled={disabled} onClick={event => { const captured = requests.capture(); void identityActivity.attest(event.nativeEvent, 'edit').then(ok => { if (current(captured) && !ok) setError('Sign in again if this session has reached its fixed end. Your project files are preserved.'); }).catch(() => { if (current(captured)) setError('The connection is unavailable. Your project files are preserved.'); }); }}>Continue editing</Button>}
-    {account && <label>Wallet projects<select aria-label="Native Wallet projects" value={projectId} disabled={disabled} onChange={event => { verified.current = false; requests.invalidate(); selectProject(event.target.value); }}>{!catalog?.walletProjects.some(row => row.projectId === guestProjectId) && <option value={guestProjectId}>Current guest project — copy to Wallet</option>}{catalog?.walletProjects.map(row => <option key={row.projectId} value={row.projectId}>{row.name}</option>)}</select></label>}
+    {account && (guestProjectAvailable || Boolean(catalog?.walletProjects.length)) && <label>Wallet projects<select aria-label="Native Wallet projects" value={projectId} disabled={disabled} onChange={event => { verified.current = false; requests.invalidate(); selectProject(event.target.value); }}>{guestProjectAvailable && !catalog?.walletProjects.some(row => row.projectId === guestProjectId) && <option value={guestProjectId}>Current guest project — copy to Wallet</option>}{catalog?.walletProjects.map(row => <option key={row.projectId} value={row.projectId}>{row.name}</option>)}</select></label>}
+    {account && !guestProjectAvailable && catalog && !catalog.walletProjects.length && <p>No Wallet projects yet. Create your first project below.</p>}
     {account && <details><summary>New Wallet project</summary><label>New project name<input value={newProjectName} maxLength={160} disabled={disabled} onChange={event => { setNewProjectName(event.target.value); setCreateReviewed(false); createIntent.current = undefined; }} /></label><label className="native-review"><input type="checkbox" checked={createReviewed} disabled={disabled} onChange={event => setCreateReviewed(event.target.checked)} /> Create an empty project for {account}.</label><Button disabled={disabled || !createReviewed || !newProjectName.trim() || /[\u0000-\u001f\u007f]/.test(newProjectName)} onClick={() => void createProject()}>Create Wallet project</Button></details>}
-    {account && catalog && projectId === guestProjectId && !catalog.walletProjectExists && <><p>Copy this saved project into your Wallet workspace. The original project stays available.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Copy this project to the account shown above.</label><Button disabled={disabled || !admitted || !reviewed} onClick={() => void copy()}>Copy project</Button></>}
+    {account && guestProjectAvailable && catalog && projectId === guestProjectId && !catalog.walletProjectExists && <><p>Copy this saved project into your Wallet workspace. The original project stays available.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Copy this project to the account shown above.</label><Button disabled={disabled || !admitted || !reviewed} onClick={() => void copy()}>Copy project</Button></>}
     {account && catalog?.walletProjectExists && !native && <><p>Open this project in the full editor. Its files and libraries stay in a persistent workspace; the original text copy is retained.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Use the native workspace for this project.</label></>}
     {account && catalog?.walletProjectExists && !sessions.length && <Button disabled={disabled || !catalog.configured || (!native && !reviewed)} onClick={event => void launch(event.nativeEvent)}>{busy ? "Opening…" : "Open project"}</Button>}
     {account && sessions.map(session => <div className="native-session" key={session.sessionId}>{verified.current && session.launchURL && <a className="native-launch-link" href={session.launchURL} target="_blank" rel="noopener noreferrer">Return to editor ↗</a>}{verified.current && session.launchURL && <a className="native-launch-link" href={`/native-tools?sessionId=${encodeURIComponent(session.sessionId)}`} target="_blank" rel="noopener noreferrer">YNX Tools ↗</a>}<Button disabled={disabled} onClick={() => void stop(session)}>{busy ? "Stopping…" : "Stop workspace"}</Button>{session.failure && <p role="alert">The workspace needs recovery. Your files are preserved; retry stopping it.</p>}</div>)}

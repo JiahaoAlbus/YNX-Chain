@@ -30,3 +30,5 @@ Each step needs runtime receipts; mock HTTP/VSCode drivers, public HTTP200 and s
 ## Current bounded repair and evidence
 
 Contract inspector now clears old ABI calldata when selecting a different function or inspecting again, so a new displayed function cannot silently retain the previous call target. Actual React/Chromium controlled-route verification covers request bodies, cleared calldata/results, and rejected inspection. TypeScript and frontend production build passed; no whole service suite was rerun for this isolated frontend change. Prior102 service checks remain inherited evidence. See evidence/integration/ide-workbench-contract-20261003; the frozen delivery manifest has exact current build/source bytes.
+
+The source successor makes the normal Web root the Wallet-project home and retains /guest-workspace plus document-start desktop routing. Before formal publication, A must verify the exact Windows client/runtime pair and old-client behavior; browser-injected markers and structural source checks do not prove installed compatibility. See IDE_NATIVE_HOME_20261003.md for complete route, recovery and acceptance evidence.

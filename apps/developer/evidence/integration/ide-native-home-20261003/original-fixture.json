@@ -1,0 +1,20 @@
+{
+  "passed": false,
+  "checks": [],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/src/runtime/client.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/src/runtime/PortPreviewDialog.tsx"
+    }
+  ],
+  "actualReactEntry": true,
+  "actualChromium": true,
+  "backend": "controlled HTTP routes",
+  "nativeEditorAccepted": false,
+  "public": false
+}

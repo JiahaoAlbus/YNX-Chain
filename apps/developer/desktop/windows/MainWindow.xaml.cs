@@ -64,6 +64,9 @@ public partial class MainWindow : Window
             Browser.CoreWebView2.Settings.AreDevToolsEnabled = false;
             Browser.CoreWebView2.Settings.AreHostObjectsAllowed = false;
             Browser.CoreWebView2.Settings.IsWebMessageEnabled = false;
+            // Select the existing desktop workbench before the frontend starts.
+            // This is only a view marker; no script-to-host capability is added.
+            await Browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("if(window.top===window.self&&location.origin==='https://developer.ynxweb4.com'&&['/','/wallet-auth/callback'].includes(location.pathname))window.ynxHostedDesktop=true;");
             Browser.CoreWebView2.NavigationStarting += (_, args) =>
             {
                 if (!HostPolicy.TrustedDocument(args.Uri)) { args.Cancel = true; Status.Text = "External navigation blocked. Workspace remains open."; return; }
