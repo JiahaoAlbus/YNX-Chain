@@ -1668,6 +1668,24 @@ func (s *Service) snapshotWithFingerprint() (map[string]any, string) {
 		order.WalletSignature = ""
 		publicOrders[id] = order
 	}
+	// Detach all public maps, slices and nested pointers while holding the
+	// service lock. Encoding/streaming happens after this lock is released;
+	// neither a caller nor a later service update may mutate its observation.
+	// Reuse typed JSON copying so integer units never pass through float64.
+	publicState := state{Paper: s.state.Paper, Datasets: s.state.Datasets,
+		Strategies: s.state.Strategies, Experiments: s.state.Experiments,
+		TestnetOrders: publicOrders, ExecutionLedger: s.state.ExecutionLedger,
+		AdapterSequences: s.state.AdapterSequences, Audit: s.state.Audit}
+	var observed state
+	encoded, copyErr := json.Marshal(publicState)
+	if copyErr == nil {
+		copyErr = json.Unmarshal(encoded, &observed)
+	}
+	if copyErr != nil {
+		observed = state{}
+		failure = map[string]string{"code": "snapshot_copy_failed", "message": "authoritative snapshot is temporarily unavailable"}
+		metadata = s.snapshotSourceMetadata("unavailable")
+	}
 	snapshot := map[string]any{
 		"productId":        ProductID,
 		"mode":             "SIMULATED / YNX TESTNET ONLY",
@@ -1678,14 +1696,14 @@ func (s *Service) snapshotWithFingerprint() (map[string]any, string) {
 		"coverage":         "local-research-paper-and-bounded-testnet-records",
 		"sourceMetadata":   metadata,
 		"failure":          failure,
-		"paper":            s.state.Paper,
-		"datasets":         s.state.Datasets,
-		"strategies":       s.state.Strategies,
-		"experiments":      s.state.Experiments,
-		"testnetOrders":    publicOrders,
-		"executionLedger":  s.state.ExecutionLedger,
-		"adapterSequences": s.state.AdapterSequences,
-		"audit":            s.state.Audit,
+		"paper":            observed.Paper,
+		"datasets":         observed.Datasets,
+		"strategies":       observed.Strategies,
+		"experiments":      observed.Experiments,
+		"testnetOrders":    observed.TestnetOrders,
+		"executionLedger":  observed.ExecutionLedger,
+		"adapterSequences": observed.AdapterSequences,
+		"audit":            observed.Audit,
 	}
 	return snapshot, fmt.Sprintf("%d:%s", s.state.Revision, s.state.Integrity)
 }
