@@ -1707,19 +1707,19 @@ func (s *Service) CancelOrder(session WalletSession, id, key, walletSignature st
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := digest(struct{ ID, Key string }{id, key})
-	if prev, ok := s.state.Idempotency[key]; ok {
-		if prev.Action != "order_cancel" || prev.Digest != d {
-			return Order{}, ErrConflict
-		}
-		return s.state.Orders[id], nil
-	}
 	o, ok := s.state.Orders[id]
 	if !ok {
 		return Order{}, ErrNotFound
 	}
 	if o.Account != session.Account {
 		return Order{}, ErrForbidden
+	}
+	d := digest(struct{ ID, Key string }{id, key})
+	if prev, ok := s.state.Idempotency[key]; ok {
+		if prev.Action != "order_cancel" || prev.Digest != d {
+			return Order{}, ErrConflict
+		}
+		return s.state.Orders[id], nil
 	}
 	if o.Status != "open" && o.Status != "partially_filled" {
 		return Order{}, ErrConflict
