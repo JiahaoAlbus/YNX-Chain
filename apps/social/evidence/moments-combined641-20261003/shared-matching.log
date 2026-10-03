@@ -1,0 +1,88 @@
+=== RUN   TestCombinedAuthorityRealHTTP
+=== RUN   TestCombinedAuthorityRealHTTP/ai/success
+=== RUN   TestCombinedAuthorityRealHTTP/ai/family-success
+=== RUN   TestCombinedAuthorityRealHTTP/ai/private-revoke-after-browser-await
+=== RUN   TestCombinedAuthorityRealHTTP/ai/browser-revoke-after-private-await
+=== RUN   TestCombinedAuthorityRealHTTP/ai/generation
+=== RUN   TestCombinedAuthorityRealHTTP/ai/expiry
+=== RUN   TestCombinedAuthorityRealHTTP/ai/outage
+=== RUN   TestCombinedAuthorityRealHTTP/ai/bindings
+=== RUN   TestCombinedAuthorityRealHTTP/ai/response-tamper
+=== RUN   TestCombinedAuthorityRealHTTP/ai/expiry-after-response
+=== RUN   TestCombinedAuthorityRealHTTP/ai/cancel-before-http
+=== RUN   TestCombinedAuthorityRealHTTP/ai/cancel-after-http
+=== RUN   TestCombinedAuthorityRealHTTP/ai/deadline-during-http
+=== RUN   TestCombinedAuthorityRealHTTP/ai/cancel-after-body
+=== RUN   TestCombinedAuthorityRealHTTP/ai/cancel-after-close
+=== RUN   TestCombinedAuthorityRealHTTP/ai/cancel-during-sync-decision
+=== RUN   TestCombinedAuthorityRealHTTP/mail/success
+=== RUN   TestCombinedAuthorityRealHTTP/mail/family-success
+=== RUN   TestCombinedAuthorityRealHTTP/mail/private-revoke-after-browser-await
+=== RUN   TestCombinedAuthorityRealHTTP/mail/browser-revoke-after-private-await
+=== RUN   TestCombinedAuthorityRealHTTP/mail/generation
+=== RUN   TestCombinedAuthorityRealHTTP/mail/expiry
+=== RUN   TestCombinedAuthorityRealHTTP/mail/outage
+=== RUN   TestCombinedAuthorityRealHTTP/mail/bindings
+=== RUN   TestCombinedAuthorityRealHTTP/mail/response-tamper
+=== RUN   TestCombinedAuthorityRealHTTP/mail/expiry-after-response
+=== RUN   TestCombinedAuthorityRealHTTP/mail/cancel-before-http
+=== RUN   TestCombinedAuthorityRealHTTP/mail/cancel-after-http
+=== RUN   TestCombinedAuthorityRealHTTP/mail/deadline-during-http
+=== RUN   TestCombinedAuthorityRealHTTP/mail/cancel-after-body
+=== RUN   TestCombinedAuthorityRealHTTP/mail/cancel-after-close
+=== RUN   TestCombinedAuthorityRealHTTP/mail/cancel-during-sync-decision
+--- PASS: TestCombinedAuthorityRealHTTP (9.20s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/success (0.32s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/family-success (0.30s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/private-revoke-after-browser-await (0.31s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/browser-revoke-after-private-await (0.30s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/generation (0.29s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/expiry (0.27s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/outage (0.27s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/bindings (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/response-tamper (0.36s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/expiry-after-response (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/cancel-before-http (0.26s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/cancel-after-http (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/deadline-during-http (0.29s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/cancel-after-body (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/cancel-after-close (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/ai/cancel-during-sync-decision (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/success (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/family-success (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/private-revoke-after-browser-await (0.30s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/browser-revoke-after-private-await (0.30s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/generation (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/expiry (0.27s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/outage (0.26s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/bindings (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/response-tamper (0.36s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/expiry-after-response (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/cancel-before-http (0.27s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/cancel-after-http (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/deadline-during-http (0.29s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/cancel-after-body (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/cancel-after-close (0.28s)
+    --- PASS: TestCombinedAuthorityRealHTTP/mail/cancel-during-sync-decision (0.28s)
+=== RUN   TestRegisteredClientsRejectDuplicateOrMismatchedReaders
+--- PASS: TestRegisteredClientsRejectDuplicateOrMismatchedReaders (0.00s)
+=== RUN   TestRevalidationRealNodeAfterAwait
+--- PASS: TestRevalidationRealNodeAfterAwait (0.25s)
+=== RUN   TestRevalidationResponseFailClosed
+=== RUN   TestRevalidationResponseFailClosed/temporary-clock
+=== RUN   TestRevalidationResponseFailClosed/backend-config
+=== RUN   TestRevalidationResponseFailClosed/revoked
+=== RUN   TestRevalidationResponseFailClosed/unknown-fields
+=== RUN   TestRevalidationResponseFailClosed/missing-cache
+=== RUN   TestRevalidationResponseFailClosed/trailing-json
+=== RUN   TestRevalidationResponseFailClosed/drift
+--- PASS: TestRevalidationResponseFailClosed (0.01s)
+    --- PASS: TestRevalidationResponseFailClosed/temporary-clock (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/backend-config (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/revoked (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/unknown-fields (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/missing-cache (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/trailing-json (0.00s)
+    --- PASS: TestRevalidationResponseFailClosed/drift (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2	11.217s
