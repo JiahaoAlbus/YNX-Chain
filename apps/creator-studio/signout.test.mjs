@@ -212,7 +212,7 @@ test('an old AI stream fallback cannot replace a newly selected job', async t =>
     }});
     controller.renderProductState(connected('owner-a'));controller.showAI({id:'job-a',state:'awaiting_permission'});
     const pending=controller.run('ai-run');await turn();assert.equal(reading,true);
-    controller.showAI({id:'job-b',state:'awaiting_permission'});
+    controller.showAI({id:'job-b',state:'awaiting_permission',result:'job-b-owned-result'});
     assert.equal(readSignal.aborted,true);
     oldRead.resolve(response({id:'job-a',state:'failed'}));await pending;
     assert.equal(controller.readState().currentAI.id,'job-b');
@@ -582,4 +582,32 @@ test('unknown AI state offers no provider resend or application',async()=>{
  const c=await app();c.renderProductState(connected('owner-a'));c.showAI({ID:'saved-ai',State:'recovery_required'});
  assert.equal(c.element('#ai-run').disabled,true);assert.equal(c.element('#ai-accept').disabled,true);assert.equal(c.element('#ai-reject').disabled,true);
  c.showAI({ID:'historical-failure',State:'failed'});assert.equal(c.element('#ai-run').disabled,true);
+});
+
+test('cold Studio restores only saved own AI choices and opens the original result using GET',async()=>{
+ const calls=[],saved={ID:'saved_ai_001',Owner:'owner-a',State:'review_required',Kind:'summary',Result:'Actual saved text <not HTML>',ContextPreview:'title and description',EstimatedUnits:3};
+ const c=await app({fetch:async(url,opt)=>{calls.push([url,opt?.method||'GET']);return response(url.endsWith('/v1/studio')?{ai_jobs:[saved,{...saved,ID:'other_private',Owner:'owner-b',Result:'other account secret'}]}:saved);}});
+ c.renderProductState(connected('owner-a'));await c.refresh();assert.equal(c.readState().currentAI,null);const select=c.element('#ai-saved-select');assert.equal(select.value,saved.ID);assert.equal(select.children.length,1);
+ await c.run('ai-open-saved');assert.equal(c.readState().currentAI.ID,saved.ID);assert.equal(c.element('#ai-result').textContent,saved.Result);assert.equal(c.element('#ai-accept').disabled,false);assert.equal(c.element('#ai-run').disabled,true);
+ assert.ok(calls.every(([,method])=>method==='GET'));assert.ok(calls.some(([path])=>path.endsWith('/v1/ai/jobs/'+saved.ID)));assert.doesNotMatch(c.element('#ai-summary').textContent,/"ID"|"Owner"/);
+});
+test('late saved AI GET after replacement account does not refill private UI',async()=>{
+ const pending=deferred();const c=await app({fetch:async()=>pending.promise});c.renderProductState(connected('owner-a'));c.element('#ai-saved-select').value='saved_ai_old';const read=c.run('ai-open-saved');await turn();c.renderProductState(connected('owner-b'));
+ pending.resolve(response({ID:'saved_ai_old',Owner:'owner-a',State:'review_required',Result:'old account secret'}));await read;assert.equal(c.readState().currentAI,null);assert.doesNotMatch(c.element('#ai-result').textContent,/old account secret/);assert.equal(c.element('#ai-accept').disabled,true);assert.equal(c.element('#ai-saved-select').children.length,1);
+});
+test('saved AI selection rejects mismatched service account and id',async()=>{
+ for(const reply of [{ID:'saved_ai_001',Owner:'other-owner',State:'review_required',Result:'secret'},{ID:'different_id',Owner:'owner-a',State:'review_required',Result:'secret'}]){
+  const c=await app({fetch:async()=>response(reply)});c.renderProductState(connected('owner-a'));c.element('#ai-saved-select').value='saved_ai_001';await c.run('ai-open-saved');assert.equal(c.readState().currentAI,null);assert.equal(c.element('#ai-accept').disabled,true);assert.doesNotMatch(c.element('#ai-result').textContent,/secret/);
+ }
+});
+test('AI stream cannot enable application from a terminal event before EOF and saved GET',async()=>{
+ const tail=deferred();let reads=0,cancelled=0,gets=0;const final={ID:'saved_ai_001',Owner:'owner-a',State:'review_required',Result:'Unconfirmed stream text'};
+ const reader={read:async()=>++reads===1?{done:false,value:new TextEncoder().encode(JSON.stringify({state:'review_required',job:final})+'\n')}:tail.promise,cancel:async()=>{cancelled++},releaseLock(){}};
+ const c=await app({fetch:async(url)=>{if(url.endsWith('/stream'))return {ok:true,body:{getReader:()=>reader}};gets++;return response({error:'Saved result unavailable'},503);}});c.renderProductState(connected('owner-a'));c.showAI({...final,State:'awaiting_permission',Result:''});const run=c.run('ai-run');await turn();assert.equal(c.element('#ai-accept').disabled,true);assert.equal(gets,0);
+ tail.resolve({done:true,value:new TextEncoder().encode('{"unexpected":"tail"}\n')});await run;assert.equal(c.element('#ai-accept').disabled,true);assert.equal(c.readState().currentAI.State,'running');assert.equal(gets,1);assert.ok(cancelled>0);
+});
+test('completed AI stream requires fresh saved owner readback before review becomes available',async()=>{
+ const saved={ID:'saved_ai_001',Owner:'owner-a',State:'review_required',Result:'Durable original result'};let reads=0,gets=0;
+ const reader={read:async()=>++reads===1?{done:false,value:new TextEncoder().encode(JSON.stringify({state:'review_required',job:saved})+'\n')}:{done:true},cancel:async()=>{},releaseLock(){}};
+ const c=await app({fetch:async(url)=>{if(url.endsWith('/stream'))return {ok:true,body:{getReader:()=>reader}};gets++;return response(saved);}});c.renderProductState(connected('owner-a'));c.showAI({...saved,State:'awaiting_permission',Result:''});await c.run('ai-run');assert.equal(gets,1);assert.equal(c.element('#ai-result').textContent,saved.Result);assert.equal(c.element('#ai-accept').disabled,false);
 });

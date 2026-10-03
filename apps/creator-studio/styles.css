@@ -160,3 +160,11 @@ h2,.section-head h2{font-size:1.25rem;line-height:1.35}
 button,input,select,textarea{font:inherit}
 button,.button-link,.wallet-link{min-height:44px;white-space:normal}
 @media(max-width:420px){.header-actions{flex-wrap:wrap;justify-content:flex-end}.brand{max-width:100%;white-space:normal}.brand b,.brand strong{overflow-wrap:anywhere}.hero h1{font-size:1.5rem}}
+
+.ai-saved{display:grid;gap:.5rem;margin:1.25rem 0;padding:1rem;background:#f4f7ff;border:1px solid #dbe4f6;border-radius:12px}
+.ai-saved-controls{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.ai-saved-controls select{flex:1 1 15rem;min-width:0;max-width:100%;font:inherit;min-height:44px}
+.ai-saved-controls button{font:inherit;min-height:44px;white-space:normal;overflow-wrap:anywhere}
+#ai-summary{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+#ai-result{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;max-height:32rem;overflow:auto}
+@media(max-width:520px){.ai-saved-controls{align-items:stretch}.ai-saved-controls select,.ai-saved-controls button{flex-basis:100%;width:100%}}

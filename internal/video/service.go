@@ -411,8 +411,7 @@ func (s *Service) Studio(actor string) (StudioSnapshot, error) {
 			}
 		}
 		for _, job := range st.AIJobs {
-			role, ok := accessibleVideos[job.VideoID]
-			if job.Owner == actor || (ok && roleAllowed(role, CreatorRoleEditor, CreatorRoleUploader)) {
+			if job.Owner == actor {
 				out.AIJobs = append(out.AIJobs, *job)
 			}
 		}

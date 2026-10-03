@@ -31,3 +31,16 @@ pre{font-size:.78rem}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}
 }
+
+/* Keep native-sized actions and the fixed navigation usable at large text sizes. */
+@media(max-width:850px){
+ body{padding-bottom:max(66px,calc(2.1em + 24px + env(safe-area-inset-bottom)))}
+ aside{height:auto}
+ nav .media-link{flex:0 0 auto;min-height:44px;white-space:nowrap;padding:10px 8px;font-size:.72rem;line-height:1.5}
+ header{display:flex;flex-wrap:wrap;min-width:0}
+ header>div:first-of-type{flex:1 1 calc(100% - 70px);min-width:0}
+ header .locale-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);flex:1 1 100%;min-width:0}
+ header #signin{max-width:none;white-space:normal;overflow-wrap:normal}
+ .product-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));align-items:stretch}
+ .product-actions button,.product-actions .primary-link,.product-actions>a{width:100%;min-width:0;white-space:normal;overflow-wrap:break-word}
+}
