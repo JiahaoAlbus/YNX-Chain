@@ -19,6 +19,8 @@ import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { createReceiveCode } from "./receive-code.mjs";
 import { NativeContractClient } from "./native-contract.mjs";
 import { createNativeContractService } from "./native-contract-service.mjs";
+import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
+import { createInvoiceReferenceService } from "./wallet-invoice-reference-service.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
@@ -68,6 +70,10 @@ const sensitiveIPC = action => safeIPC(() => keyAccess.run(action));
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
+});
+const readInvoiceReference=createInvoiceReferenceService({
+  client:new WalletPayInvoiceClient("https://api.ynxweb4.com",net.fetch.bind(net)),
+  getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress}),
 });
 const walletConnectRequests = new Map();
 const walletConnectProposalAccounts = new Map();
@@ -171,6 +177,7 @@ handleWalletIPC("wallet:account-status", () => safeIPC(() => walletAuthority.acc
 handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
 handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
 handleWalletIPC("wallet:native-contract", (_event, input) => safeIPC(() => readNativeContract(input)));
+handleWalletIPC("wallet:invoice-reference",(_event,reference)=>safeIPC(()=>readInvoiceReference(reference)));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;

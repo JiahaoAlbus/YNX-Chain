@@ -138,7 +138,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
-      passwordUI: { cancel() {}, render() {} }, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
+      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
@@ -185,7 +185,7 @@ async function sendEntryHarness() {
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
-    paymentDraftRevision: 0, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
+    paymentDraftRevision: 0, invoiceUI: {clear() {}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
   };
   const extract = (startText, endText) => {

@@ -6,6 +6,7 @@ import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
+import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -22,6 +23,25 @@ const receiveShareUI=createReceiveShareUI({
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
+const invoiceSheet=document.querySelector("#invoice-sheet");
+const invoiceUI=createInvoiceReferenceUI({
+  getContext:()=>({open:invoiceSheet.open,account:accountState?.account,keyRevision:keyState.revision}),
+  request:reference=>window.ynxWallet.invoiceReference(reference),
+  render:({busy,result,error})=>{
+    document.querySelector("#check-invoice").disabled=busy;
+    document.querySelector("#invoice-status").textContent=busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":"");
+    const facts=document.querySelector("#invoice-facts");facts.replaceChildren();
+    if(!result)return;
+    const invoice=result.invoice;
+    for(const [label,value] of [["Invoice",invoice.id],["Selected account",nativeAccountLabel(result.account)],["Reported merchant",invoice.merchant],["Reported recipient",invoice.payoutAddress],["Reported amount",`${invoice.amount} YNXT`],["Expires",invoice.dueAt],["Service status",invoice.status],["Source",result.source]]){
+      const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=value;facts.append(dt,dd);
+    }
+  },
+});
+document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;invoiceUI.clear();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
+document.querySelector("#invoice-form").addEventListener("submit",event=>{event.preventDefault();void invoiceUI.check(document.querySelector("#invoice-reference").value)});
+document.querySelector("#invoice-reference").addEventListener("input",()=>invoiceUI.clear());
+invoiceSheet.addEventListener("close",()=>invoiceUI.clear());invoiceSheet.addEventListener("cancel",()=>invoiceUI.clear());
 const contractSheet = document.querySelector("#contract-sheet");
 const contractUI = createNativeContractUI({
   getContext: () => ({open: contractSheet.open, account: accountState?.account ?? null, keyRevision: keyState.revision}),
@@ -218,6 +238,7 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
+  invoiceUI.clear();
   contractUI.clear();
   invalidatePaymentInput();
   receiveShareUI.invalidate();
@@ -672,6 +693,7 @@ function renderKeyDetail() {
   detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
 }
 function renderKeyState(state) {
+  if (state.revision !== keyState.revision || state.locked !== keyState.locked) invoiceUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
