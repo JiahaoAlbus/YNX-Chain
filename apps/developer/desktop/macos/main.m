@@ -31,6 +31,10 @@ static YNXNavigationDisposition YNXMainNavigation(NSURL *url, NSInteger port, WK
     if(type==WKNavigationTypeLinkActivated && ([@"https" isEqualToString:url.scheme] || [@"http" isEqualToString:url.scheme]))return YNXNavigationOpenExternal;
     return YNXNavigationCancel;
 }
+static YNXNavigationDisposition YNXNewWindowNavigation(NSURL *url, NSInteger port, WKNavigationType type, BOOL trustedSource) {
+    if(!trustedSource || type!=WKNavigationTypeLinkActivated || [url.absoluteString isEqualToString:@"about:blank"])return YNXNavigationCancel;
+    return YNXMainNavigation(url,port,type);
+}
 
 static SEL YNXEditSelector(NSString *command) {
     if([command isEqualToString:@"selectAll"])return @selector(selectAll:);
@@ -422,10 +426,21 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 - (BOOL)trustedFrame:(WKFrameInfo *)frame { return YNXTrustedFrame(frame,_port); }
 - (void)webView:(WKWebView *)view decidePolicyForNavigationAction:(WKNavigationAction *)action decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     if(view!=_webView){decisionHandler(WKNavigationActionPolicyCancel);return;}
+    if(!action.targetFrame && ![self trustedFrame:action.sourceFrame]){decisionHandler(WKNavigationActionPolicyCancel);return;}
     if(action.targetFrame && !action.targetFrame.mainFrame){decisionHandler(WKNavigationActionPolicyAllow);return;}
     YNXNavigationDisposition disposition=YNXMainNavigation(action.request.URL,_port,action.navigationType);
     decisionHandler(disposition==YNXNavigationAllow?WKNavigationActionPolicyAllow:WKNavigationActionPolicyCancel);
     if(disposition==YNXNavigationOpenExternal)[NSWorkspace.sharedWorkspace openURL:action.request.URL];
+}
+- (WKWebView *)webView:(WKWebView *)view createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)action windowFeatures:(WKWindowFeatures *)features {
+    if(view!=_webView || action.targetFrame)return nil;
+    YNXNavigationDisposition disposition=YNXNewWindowNavigation(action.request.URL,_port,action.navigationType,[self trustedFrame:action.sourceFrame]);
+    // WKWebView otherwise silently drops target=_blank links. Keep trusted
+    // local Tools in this window; public links use the system browser without
+    // giving a remote document access to the native workspace bridge.
+    if(disposition==YNXNavigationAllow)[view loadRequest:action.request];
+    else if(disposition==YNXNavigationOpenExternal)[NSWorkspace.sharedWorkspace openURL:action.request.URL];
+    return nil;
 }
 - (void)webView:(WKWebView *)view runOpenPanelWithParameters:(WKOpenPanelParameters *)parameters initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL *> *))completionHandler {
     if(view!=_webView || ![self trustedFrame:frame]){completionHandler(nil);return;}

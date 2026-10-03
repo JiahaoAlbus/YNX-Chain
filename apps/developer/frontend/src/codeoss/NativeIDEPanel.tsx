@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { identityActivity } from './identityActivity';
 import { createRequestEpoch } from './requestEpoch';
-type Session = { sessionId: string; projectId: string; status: string; failure: string | null; launchURL?: string };
+import { editorEntry, workspaceStatus, type NativeSession as Session } from './sessionNavigation';
 type Catalog = { account: string; generation: number; identityKey: string; configured: boolean; kernel: string; nativeProjects: string[]; sessions: Session[]; walletProjectExists: boolean; projectRevision: number; walletProjects: { projectId: string; name: string; revision: number }[] };
 const unauthorized = (error: unknown) => typeof error === "object" && error !== null && "status" in error && error.status === 401;
 async function privateRequest(path: string, options?: RequestInit, identityKey?: string) {
@@ -28,6 +28,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
   const [catalog, setCatalog] = useState<Catalog>(), [busy, setBusy] = useState(false), [reviewed, setReviewed] = useState(false), [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [exitPending, setExitPending] = useState(false);
+  const progress = useRef({ key: "", attempts: 0 });
   const [newProjectName, setNewProjectName] = useState(''), [createReviewed, setCreateReviewed] = useState(false);
   const createIntent = useRef<{ name: string; identityKey: string; approvalId: string } | undefined>(undefined);
   const currentProject = useRef(projectId); currentProject.current = projectId;
@@ -64,6 +65,14 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     window.addEventListener("focus", focus);
     return () => { verified.current = false; requests.invalidate(); window.removeEventListener("focus", focus); };
   }, [projectId, query, onOwnershipChange, guestProjectId, guestProjectAvailable, exitPending, requests]);
+  useEffect(() => {
+    const pending = catalog?.sessions.filter(row => row.projectId === projectId && ["preparing", "stopping"].includes(row.status)) || [];
+    const key = `${projectId}:${catalog?.identityKey || ""}:${pending.map(row => `${row.sessionId}:${row.status}`).join(",")}`;
+    if (progress.current.key !== key) progress.current = { key, attempts: 0 };
+    if (!pending.length || loading || busy || exitPending || !verified.current || progress.current.attempts >= 8) return;
+    const timer = window.setTimeout(() => { progress.current.attempts++; void reload(); }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [catalog, projectId, loading, busy, exitPending]);
   const handleError = (cause: unknown, captured: number) => {
     if (!current(captured)) return;
     if (unauthorized(cause)) retire(cause);
@@ -120,6 +129,7 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
   };
   const stop = async (session: Session) => {
     const value = context(); if (!value) return;
+    if (session.projectId !== value.selected || !catalog?.sessions.some(row => row.sessionId === session.sessionId && row.projectId === value.selected && row.status !== "stopped")) return;
     const { captured, identityKey } = value; setBusy(true); setError("");
     try {
       await coreRequest(`/${encodeURIComponent(session.sessionId)}`, { method: "DELETE" }, identityKey);
@@ -155,7 +165,11 @@ export function NativeIDEPanel({ projectId: guestProjectId, projectName, revisio
     {account && guestProjectAvailable && catalog && projectId === guestProjectId && !catalog.walletProjectExists && <><p>Copy this saved project into your Wallet workspace. The original project stays available.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Copy this project to the account shown above.</label><Button disabled={disabled || !admitted || !reviewed} onClick={() => void copy()}>Copy project</Button></>}
     {account && catalog?.walletProjectExists && !native && <><p>Open this project in the full editor. Its files and libraries stay in a persistent workspace; the original text copy is retained.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Use the native workspace for this project.</label></>}
     {account && catalog?.walletProjectExists && !sessions.length && <Button disabled={disabled || !catalog.configured || (!native && !reviewed)} onClick={event => void launch(event.nativeEvent)}>{busy ? "Opening…" : "Open project"}</Button>}
-    {account && sessions.map(session => <div className="native-session" key={session.sessionId}>{verified.current && session.launchURL && <a className="native-launch-link" href={session.launchURL} target="_blank" rel="noopener noreferrer">Return to editor ↗</a>}{verified.current && session.launchURL && <a className="native-launch-link" href={`/native-tools?sessionId=${encodeURIComponent(session.sessionId)}`} target="_blank" rel="noopener noreferrer">YNX Tools ↗</a>}<Button disabled={disabled} onClick={() => void stop(session)}>{busy ? "Stopping…" : "Stop workspace"}</Button>{session.failure && <p role="alert">The workspace needs recovery. Your files are preserved; retry stopping it.</p>}</div>)}
+    {account && catalog && !catalog.configured && <p>The full editor is unavailable on this server. Your saved projects are preserved.</p>}
+    {account && sessions.map(session => {
+      const entry = verified.current ? editorEntry(session, projectId) : undefined;
+      return <div className="native-session" key={session.sessionId}><p role="status">{workspaceStatus(session)}</p>{entry && <a className="native-launch-link" href={entry} target="_blank" rel="noopener noreferrer">Return to editor ↗</a>}{entry && <a className="native-launch-link" href={`/native-tools?sessionId=${encodeURIComponent(session.sessionId)}`} target="_blank" rel="noopener noreferrer">YNX Tools ↗</a>}{verified.current && session.status === "running" && !entry && !session.failure && <p role="alert">The editor connection could not be verified. Refresh your Wallet projects.</p>}<Button disabled={disabled} onClick={() => void stop(session)}>{busy ? "Stopping…" : "Stop workspace"}</Button>{session.failure && <p role="alert">Your files are preserved. Retry stopping the workspace to finish recovery.</p>}</div>;
+    })}
     {error && <p role="alert">{error}</p>}
     <details><summary>About and connection details</summary><p>OpenVSCode Server {catalog?.kernel || "1.109.5"}, MIT. OpenVSX compatibility depends on its license, platform and runtime.</p><p>Wallet signing uses a separate review. AI receives the context you approve.</p>{!catalog?.configured && <p>The project runtime has not been configured for this deployment.</p>}{sessions.map(row => <p key={row.sessionId}>{row.status}{row.failure ? ` · ${row.failure}` : ""}</p>)}</details>
   </section>;

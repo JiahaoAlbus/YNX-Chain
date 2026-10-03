@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "checks": [
+    "A -> B -> A: delayed first A cannot replace the current catalog",
+    "logout (503): delayed private catalog stays retired; unconfirmed stop retains retry; successful retry restores sign-in",
+    "logout (200): delayed private catalog stays retired; unconfirmed stop retains retry; successful retry restores sign-in",
+    "retired launch: delayed activity completion cannot dispatch an old workspace start after A -> B -> A",
+    "failed current identity/activity admission preserves files and does not launch",
+    "launch: explicit action carries catalog identity and refreshes authenticated recovery state",
+    "launch: cookie switch before dispatch preserves the displayed actor binding, rejects all effects and retires private UI",
+    "stop: explicit action carries catalog identity and refreshes authenticated recovery state",
+    "stop: cookie switch before dispatch preserves the displayed actor binding, rejects all effects and retires private UI",
+    "copy: explicit action carries catalog identity and refreshes authenticated recovery state",
+    "copy: cookie switch before dispatch preserves the displayed actor binding, rejects all effects and retires private UI",
+    "Native catalog refresh immediately disables mutation and project selection until the new single-source actor is installed",
+    "A 503 launch recovery response re-reads the authenticated catalog and exposes the preserved session for explicit Stop",
+    "Account refresh retires a missing old private project and re-reads an available project; it never offers to import another private project as guest data",
+    "new Wallet project (normal): explicit displayed-account approval, scoped creation, no automatic retry, durable UUID on manual retry",
+    "new Wallet project (lost-response): explicit displayed-account approval, scoped creation, no automatic retry, durable UUID on manual retry",
+    "new Wallet project (switched-account): explicit displayed-account approval, scoped creation, no automatic retry, durable UUID on manual retry"
+  ],
+  "errors": [],
+  "actualChromium": true,
+  "actualReactPanel": true,
+  "backend": "controlled HTTP routes",
+  "fullWorkbench": false,
+  "public": false
+}
