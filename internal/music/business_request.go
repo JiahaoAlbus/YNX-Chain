@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -52,9 +53,12 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
 	go func() { ready <- l.grant.Revalidate(checkCtx) }()
 	select {
 	case <-checkCtx.Done():
-		return ErrUnauthorized
+		return ErrMusicAuthorityUnavailable
 	case err := <-ready:
 		if err != nil {
+			if errors.Is(err, ErrMusicAuthorityUnavailable) {
+				return err
+			}
 			return fmt.Errorf("%w: original Music authority changed", ErrUnauthorized)
 		}
 	}
@@ -193,12 +197,16 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 	select {
 	case <-ctx.Done():
 		file.Close()
-		writeErr(w, ErrUnauthorized)
+		writeErr(w, ErrMusicAuthorityUnavailable)
 		return
 	case done := <-ready:
 		grant, err = done.grant, done.err
 	}
 	if err != nil || reader.remaining <= 0 {
+		if errors.Is(err, ErrMusicAuthorityUnavailable) {
+			writeErr(w, err)
+			return
+		}
 		writeErr(w, ErrUnauthorized)
 		return
 	}
@@ -213,7 +221,7 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 	select {
 	case <-ctx.Done():
 		file.Close()
-		writeErr(w, ErrUnauthorized)
+		writeErr(w, ErrMusicAuthorityUnavailable)
 		return
 	case end = <-ended:
 	}
@@ -278,6 +286,13 @@ func (r *musicBoundedBody) Read(p []byte) (int, error) {
 	return n, err
 }
 
+func musicAuthorityStatus(err error) int {
+	if errors.Is(err, ErrMusicAuthorityUnavailable) {
+		return http.StatusServiceUnavailable
+	}
+	return http.StatusUnauthorized
+}
+
 type scopedResponse struct {
 	http.ResponseWriter
 	lease   *musicBusinessLease
@@ -285,33 +300,44 @@ type scopedResponse struct {
 	denied  bool
 	started bool
 	consume func() error
+	denial  error
 }
 
 func (w *scopedResponse) WriteHeader(code int) {
 	if w.started {
 		return
 	}
-	if w.lease.check(w.now) != nil || w.consume != nil && w.consume() != nil {
+	err := w.lease.check(w.now)
+	if err == nil && w.consume != nil {
+		err = w.consume()
+	}
+	if err != nil {
 		w.denied = true
-		code = http.StatusUnauthorized
+		w.denial = err
+		code = musicAuthorityStatus(err)
 	}
 	w.started = true
 	w.ResponseWriter.WriteHeader(code)
 }
 func (w *scopedResponse) Write(p []byte) (int, error) {
-	if w.denied || w.lease.check(w.now) != nil {
+	err := w.denial
+	if !w.denied {
+		err = w.lease.check(w.now)
+	}
+	if w.denied || err != nil {
+		w.denial = err
 		w.denied = true
 		if !w.started {
 			w.started = true
-			w.ResponseWriter.WriteHeader(http.StatusUnauthorized)
+			w.ResponseWriter.WriteHeader(musicAuthorityStatus(err))
 		}
-		return 0, ErrUnauthorized
+		return 0, err
 	}
 	if !w.started {
 		w.WriteHeader(http.StatusOK)
 	}
 	if w.denied {
-		return 0, ErrUnauthorized
+		return 0, w.denial
 	}
 	return w.ResponseWriter.Write(p)
 }
@@ -319,8 +345,13 @@ func (w *scopedResponse) Flush() {
 	if w.denied {
 		return
 	}
-	if w.lease.check(w.now) != nil {
+	if err := w.lease.check(w.now); err != nil {
 		w.denied = true
+		w.denial = err
+		if !w.started {
+			w.started = true
+			w.ResponseWriter.WriteHeader(musicAuthorityStatus(err))
+		}
 		return
 	}
 	if !w.started {

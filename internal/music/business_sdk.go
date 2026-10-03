@@ -4,6 +4,7 @@ package music
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"time"
@@ -17,6 +18,17 @@ import (
 // it runs under the original transaction mutex. Remote SDK reads run outside it.
 // HTTP fields alone cannot establish this guard.
 type BindMusicCurrentActor func(context.Context, *http.Request, productsessionv2.Session) (func(context.Context) error, error)
+
+func musicSDKError(err error) error {
+	if err == nil {
+		return nil
+	}
+	var failure *productsessionv2.Error
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.As(err, &failure) && failure.Status >= 500 {
+		return ErrMusicAuthorityUnavailable
+	}
+	return err
+}
 
 type musicSDKAuthority struct {
 	music *productsessionv2.RegisteredClientSet
@@ -49,7 +61,7 @@ func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Req
 	scopes := []string{scope}
 	session, err := set.Authorize(ctx, r, scopes)
 	if err != nil {
-		return zero, err
+		return zero, musicSDKError(err)
 	}
 	if ctx.Err() != nil {
 		return zero, ErrUnauthorized
@@ -78,7 +90,7 @@ func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Req
 	// catalogue search and rejects query strings on all private business routes.
 	action, err := set.VerifyHTTPActionStream(ctx, r.Header.Get("X-YNX-Music-Business-Proof-V2"), session, r.Method, r.URL.Path, body, size, scopes, time.Now())
 	if err != nil {
-		return zero, err
+		return zero, musicSDKError(err)
 	}
 	if ctx.Err() != nil || guard(ctx) != nil {
 		return zero, ErrUnauthorized
@@ -94,7 +106,7 @@ func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Req
 		// Never replay Authorize's consumed device proof or reconstruct Session
 		// from the reduced grant. SDK checks the same full original session.
 		if _, err := set.Revalidate(current, session, scopes); err != nil {
-			return ErrUnauthorized
+			return musicSDKError(err)
 		}
 		if current.Err() != nil || guard(current) != nil {
 			return ErrUnauthorized

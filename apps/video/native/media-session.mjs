@@ -52,6 +52,18 @@ export async function createNativeMediaSession({productId,platform,registry,runt
   if(response.redirected||response.url&&response.url!==definition.apiBase+path)throw Error('Unexpected native Media response location');
   return response;
  }
+ // The trusted OS sender hashes its FINAL immutable wire bytes, including any
+ // multipart boundary. The backend separately hashes the delivered stream. A
+ // commitment is never proof that those bytes reached the original service.
+ async function prepareRequest({method,path,bodyDigest,bodyBytes}){
+  const c=capture();if(verified!==c.state)throw Error('Original Media account readback required');
+  if(typeof path!=='string'||/[?#%\\\r\n]/.test(path)||path.includes('..')||path.includes('//'))throw Error('Invalid native Media route');
+  method=String(method).toUpperCase();const scope=definition.scope(path,method),maximum=productId==='music'&&path==='/api/creator/tracks'?64*1024*1024:1024*1024;
+  if(!/^[0-9a-f]{64}$/.test(bodyDigest)||!Number.isSafeInteger(bodyBytes)||bodyBytes<0||bodyBytes>maximum)throw Error('Invalid final native wire commitment');
+  check(c);const proof=await client.createBusinessProofCommitment({method,path,bodyDigest,bodyBytes,requiredScopes:[scope]});check(c);
+  if(!proof?.introspection?.proofHeader||!proof.proofHeader)throw Error('Native business proof unavailable');
+  return Object.freeze({identityHeader:proof.introspection.proofHeader,actionHeader:proof.proofHeader,bodyDigest,bodyBytes,account:c.state.session.account,sessionBinding:c.state.session.sessionBinding});
+ }
  async function readJSONBody(path,options,c){
   const response=await wire(path,options,c);if(!response.ok)throw Error('Media business read failed ('+response.status+')');
   const reader=response.body?.getReader(),chunks=[];let total=0;
@@ -81,6 +93,7 @@ export async function createNativeMediaSession({productId,platform,registry,runt
   resumeWallet:()=>{invalidate();return client.resumeWallet()},
   handleReturn:url=>operation(()=>client.handleReturn(url)),
   async json(path,options={}){const c=capture();if(verified!==c.state)throw Error('Original Media account readback required');return readJSON(path,options,c)},
+  prepareRequest,
   disconnect(){invalidate();return client.disconnect()},
   close(){closed=true;invalidate();client.close()},
  });

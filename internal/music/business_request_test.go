@@ -415,9 +415,9 @@ func TestMusicCanceledBodyOrEarlyVerifierSettlesWithoutBusiness(t *testing.T) {
 			started := time.Now()
 			called := false
 			(&Server{service: s}).businessAPI(w, r, "music.profile", func(*Server, http.ResponseWriter, *http.Request, string) { called = true })
-			// Original Music writeErr maps ErrUnauthorized to 403 before a
-			// scoped response exists. Cancellation must settle without business.
-			if time.Since(started) > time.Second || w.Code != http.StatusForbidden || called || len(s.state.BusinessNonces) != 0 {
+			// Unresolved transport cancellation is retryable, while still settling
+			// without business or nonce consumption.
+			if time.Since(started) > time.Second || w.Code != http.StatusServiceUnavailable || called || len(s.state.BusinessNonces) != 0 {
 				t.Fatal("stalled body admitted business or failed to settle", w.Code)
 			}
 		})

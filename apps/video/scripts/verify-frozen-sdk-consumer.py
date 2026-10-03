@@ -5,6 +5,7 @@ Reads the shared repository through git show only. Does not install a runtime.
 import argparse, hashlib, json, os, pathlib, shutil, subprocess, tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--shared-repository', required=True)
+parser.add_argument('--packaged-music-engine', action='store_true', help='Exercise actual packaged Android Music driver with disposable software ports; no installed/OS claim')
 parser.add_argument('--test-run', help='Optional Go test name filter for focused repair; receipt retains exact command')
 parser.add_argument('--evidence', required=True)
 parser.add_argument('--central-source-package', help='Exact A complete16195 or Music successor frozen fixture package; enables actual loopback authority tests')
@@ -91,7 +92,7 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                 out.write_bytes(data)
                 pins.append(dict(owner='Media', path=str(relative), bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     if fixture_package_receipt is not None and successor:
-        browser_inputs = list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs']
+        browser_inputs = [owned / 'apps/music/scripts/packaged-native-engine-fixture.mjs'] + [owned / name for name in sorted(visible_owned_paths) if name.startswith('apps/music/android/') and not any(part in ['build','.gradle'] for part in pathlib.PurePosixPath(name).parts)] + list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs']
         for product in ['video', 'creator-studio']:
             for path in (owned / 'apps' / product).rglob('*'):
                 if path.is_file() and str(path.relative_to(owned)) in visible_owned_paths and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] or part.startswith('.') for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
@@ -115,6 +116,9 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     # neither owned nor shared go.mod/go.sum is overwritten.
     build_env = dict(os.environ, GOTOOLCHAIN='go1.25.13', GOPROXY='off', GOWORK='off', GOFLAGS='-mod=readonly')
     build_env.pop('YNX_QA_CENTRAL_SOURCE', None)
+    if args.packaged_music_engine:
+        assert fixture_package_receipt is not None and successor, 'Actual packaged engine requires frozen Music registration package'
+        build_env['YNX_QA_PACKAGED_MUSIC_ENGINE'] = '1'
     if overlay_receipt:
         build_env['YNX_QA_MEDIA_APPROVED_BROWSER_ROSTER'] = '1'
     if args.central_source_package:

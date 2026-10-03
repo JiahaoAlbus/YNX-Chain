@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	ErrInvalid      = errors.New("invalid music request")
-	ErrUnauthorized = errors.New("music access denied")
-	ErrNotFound     = errors.New("music record not found")
-	ErrConflict     = errors.New("music state conflict")
+	ErrMusicAuthorityUnavailable = errors.New("original Music authority temporarily unavailable")
+	ErrInvalid                   = errors.New("invalid music request")
+	ErrUnauthorized              = errors.New("music access denied")
+	ErrNotFound                  = errors.New("music record not found")
+	ErrConflict                  = errors.New("music state conflict")
 )
 
 type Config struct {

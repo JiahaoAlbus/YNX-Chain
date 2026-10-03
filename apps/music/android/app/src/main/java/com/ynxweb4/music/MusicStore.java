@@ -15,10 +15,10 @@ final class MusicStore {
     MusicStore(Context c){this(c,c.getSharedPreferences("music-identity",0).getString("account",""));}
     private MusicStore(Context c,String account){this.c=c;this.account=account;directory=new File(c.getFilesDir(),"music-accounts/"+partition(account));}
     // Call only with the account returned by the authenticated /api/me read.
-    static MusicStore selectAccount(Context c,String account)throws Exception{
+    static MusicStore selectAccount(Context c,String account)throws Exception{synchronized(WRITE_LOCK){
         if(!account.matches("ynx1[0-9a-z]{20,80}"))throw new IOException("Invalid verified Music account");
         MusicStore selected=new MusicStore(c,account);
-        c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit();
+        if(!c.getSharedPreferences("music-identity",0).edit().putString("account",account).commit()||!account.equals(c.getSharedPreferences("music-identity",0).getString("account","")))throw new IOException("Original Music account selection is unconfirmed");
         File target=selected.file(),legacy=new File(c.getFilesDir(),"music-state.json");
         if(!target.exists()&&!new File(selected.directory,"legacy-migration-disabled").exists()&&legacy.isFile()){
             try{JSONObject old=read(legacy),remote=old.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");
@@ -26,7 +26,7 @@ final class MusicStore {
             if(profile!=null&&account.equals(profile.optString("account"))&&(!old.has("account")||account.equals(old.optString("account")))){selected.save(old);selected.retainVerifiedOffline(remote);}}catch(Exception migrationFailure){JSONObject fresh=selected.fresh();fresh.put("recoveryWarning",true);selected.save(fresh);}
         }
         return selected;
-    }
+    }}
     static void detach(Context c){c.getSharedPreferences("music-identity",0).edit().remove("account").commit();}
     JSONObject load(){if(account.isEmpty())return fresh();try{File f=file();if(!f.exists())return fresh();JSONObject s=read(f);if(s.optInt("version")!=1||!account.equals(s.optString("account")))throw new IOException("account binding");return s;}catch(Exception e){JSONObject s=fresh();try{s.put("recoveryWarning",true);}catch(Exception ignored){}return s;}}
     void save(JSONObject s)throws Exception{synchronized(WRITE_LOCK){

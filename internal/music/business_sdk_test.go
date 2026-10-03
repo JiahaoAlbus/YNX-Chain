@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -92,7 +93,7 @@ func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 				}
 				authorizations, reads := 0, 0
 				var originalStore *musicStateStore
-				revoked, changedActor, changedSession := false, false, false
+				revoked, changedActor, changedSession, outage := false, false, false, false
 				transport := mediaSDKRoundTrip(func(r *http.Request) (*http.Response, error) {
 					var payload any
 					status := 200
@@ -119,6 +120,10 @@ func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 							returned.State = "different-original-state"
 						}
 						payload = map[string]any{"active": true, "session": returned}
+						if outage {
+							status = 503
+							payload = map[string]any{"ok": false, "error": map[string]string{"code": "AUTHORITY_UNAVAILABLE"}}
+						}
 						if revoked {
 							status = 401
 							payload = map[string]any{"ok": false, "error": map[string]string{"code": "SESSION_REVOKED"}}
@@ -216,6 +221,32 @@ func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 					t.Fatal("method escalation accepted")
 				}
 				request.Header.Set(musicSDKActionHeader, action)
+				outage = true
+				if e = grant.Revalidate(context.Background()); !errors.Is(e, ErrMusicAuthorityUnavailable) {
+					t.Fatalf("SDK outage collapsed into revocation: %v", e)
+				}
+				beforePlaylists, beforeNonces := len(store.state.Playlists), len(store.state.BusinessNonces)
+				if _, e = owned.CreatePlaylist(s.Account, "outage forbidden", "", nil); !errors.Is(e, ErrMusicAuthorityUnavailable) {
+					t.Fatalf("outage write: %v", e)
+				}
+				if len(store.state.Playlists) != beforePlaylists || len(store.state.BusinessNonces) != beforeNonces {
+					t.Fatal("outage changed original business state")
+				}
+				outHold := httptest.NewRecorder()
+				holdResponse := &scopedResponse{ResponseWriter: outHold, lease: &musicBusinessLease{ctx: context.Background(), grant: grant}, now: store.cfg.Now}
+				if _, e = holdResponse.Write([]byte("private")); !errors.Is(e, ErrMusicAuthorityUnavailable) || outHold.Code != 503 || outHold.Body.Len() != 0 {
+					t.Fatalf("outage response: %d %v", outHold.Code, e)
+				}
+				flushHold := httptest.NewRecorder()
+				flushResponse := &scopedResponse{ResponseWriter: flushHold, lease: &musicBusinessLease{ctx: context.Background(), grant: grant}, now: store.cfg.Now}
+				flushResponse.Flush()
+				if _, e = flushResponse.Write([]byte("late private")); !errors.Is(e, ErrMusicAuthorityUnavailable) || flushHold.Code != 503 || flushHold.Body.Len() != 0 {
+					t.Fatalf("outage flush leaked or lost error: %d %v", flushHold.Code, e)
+				}
+				outage = false
+				if e = grant.Revalidate(context.Background()); e != nil {
+					t.Fatalf("original session cannot retry after outage: %v", e)
+				}
 				changedActor = true
 				before := reads
 				if e = grant.Revalidate(context.Background()); e == nil || reads != before {
