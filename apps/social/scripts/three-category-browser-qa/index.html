@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Social local classifier engineering QA</title><link rel="stylesheet" href="/styles.css"></head>
+<body><main><header><img src="/logo.png" alt="Original YNX logo"><span>LOCAL ENGINE LAB</span></header>
+<p class="eyebrow">ENGINEERING ONLY / NO PRODUCT LOGIN</p><h1>Three categories.<br>One isolated worker.</h1>
+<p>The input is the public YNX logo. Nothing private is selected or uploaded. No model admission, calibration or Social product acceptance is implied.</p>
+<section class="panel"><div class="actions">
+<button data-mode="complete">Run public logo</button>
+<button data-mode="cancel-at-encoder-entry">Cancel at encoder entry (QA)</button>
+<button data-mode="corrupt-xs">Reject wrong SHA (QA)</button>
+<button id="cancel" disabled>Cancel</button></div>
+<p id="stage" role="status">Ready. Filtering is not enabled.</p>
+<pre id="result" aria-label="Uncalibrated model scores"></pre></section>
+<details><summary>Worker event trace</summary><pre id="trace"></pre></details>
+<footer>Not the Social app. Real browser Worker engine checks only.</footer>
+</main><script type="module" src="/main.mjs"></script></body></html>

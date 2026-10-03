@@ -1,0 +1,73 @@
+{
+  "status": "ACTUAL_BROWSER_ENGINE_QA_ONLY",
+  "cases": [
+    {
+      "case": "normal",
+      "url": "http://127.0.0.1:62856/",
+      "dom": {
+        "buttons": [
+          {
+            "disabled": false,
+            "label": "Run public logo"
+          },
+          {
+            "disabled": false,
+            "label": "Cancel at encoder entry (QA)"
+          },
+          {
+            "disabled": false,
+            "label": "Reject wrong SHA (QA)"
+          },
+          {
+            "disabled": true,
+            "label": "Cancel"
+          }
+        ],
+        "result": "{\n  \"gore\": 0.03724127635359764,\n  \"explicit_violence\": 0.15449557494338967,\n  \"sexual_content\": 0.040699053555727005,\n  \"calibration\": \"NOT_RUN\",\n  \"productMount\": \"NOT_MOUNTED\"\n}",
+        "stage": "Three finite scores returned. This is not a safety decision.",
+        "trace": "{\"type\":\"ready\",\"cspProbeBlocked\":true}\n{\"type\":\"phase\",\"value\":\"encoder-run-entry\"}\n{\"protocol\":\"ynx-social-classifier-worker-v1\",\"type\":\"scores\",\"id\":1,\"scores\":{\"gore\":0.03724127635359764,\"explicit_violence\":0.15449557494338967,\"sexual_content\":0.040699053555727005}}\n"
+      }
+    },
+    {
+      "case": "cancel-at-encoder-entry",
+      "url": "http://127.0.0.1:62856/",
+      "dom": {
+        "result": "",
+        "stage": "Cancelled at encoder entry. No score accepted. Retry available.",
+        "trace": "{\"type\":\"ready\",\"cspProbeBlocked\":true}\n{\"type\":\"phase\",\"value\":\"encoder-run-entry\"}\n"
+      }
+    },
+    {
+      "case": "retry-after-cancel",
+      "url": "http://127.0.0.1:62856/",
+      "dom": {
+        "result": "{\n  \"gore\": 0.03724127635359764,\n  \"explicit_violence\": 0.15449557494338967,\n  \"sexual_content\": 0.040699053555727005,\n  \"calibration\": \"NOT_RUN\",\n  \"productMount\": \"NOT_MOUNTED\"\n}",
+        "stage": "Three finite scores returned. This is not a safety decision.",
+        "trace": "{\"type\":\"ready\",\"cspProbeBlocked\":true}\n{\"type\":\"phase\",\"value\":\"encoder-run-entry\"}\n{\"protocol\":\"ynx-social-classifier-worker-v1\",\"type\":\"scores\",\"id\":3,\"scores\":{\"gore\":0.03724127635359764,\"explicit_violence\":0.15449557494338967,\"sexual_content\":0.040699053555727005}}\n"
+      }
+    },
+    {
+      "case": "wrong-sha-rejected",
+      "url": "http://127.0.0.1:62856/",
+      "dom": {
+        "result": "",
+        "stage": "Pinned asset or engine check rejected. No score accepted. Retry available.",
+        "trace": "{\"type\":\"error\",\"code\":\"PIN_OR_ENGINE_CHECK_FAILED\"}\n"
+      }
+    },
+    {
+      "case": "retry-after-rejection",
+      "url": "http://127.0.0.1:62856/",
+      "dom": {
+        "result": "{\n  \"gore\": 0.03724127635359764,\n  \"explicit_violence\": 0.15449557494338967,\n  \"sexual_content\": 0.040699053555727005,\n  \"calibration\": \"NOT_RUN\",\n  \"productMount\": \"NOT_MOUNTED\"\n}",
+        "stage": "Three finite scores returned. This is not a safety decision.",
+        "trace": "{\"type\":\"ready\",\"cspProbeBlocked\":true}\n{\"type\":\"phase\",\"value\":\"encoder-run-entry\"}\n{\"protocol\":\"ynx-social-classifier-worker-v1\",\"type\":\"scores\",\"id\":5,\"scores\":{\"gore\":0.03724127635359764,\"explicit_violence\":0.15449557494338967,\"sexual_content\":0.040699053555727005}}\n"
+      }
+    }
+  ],
+  "logs": [],
+  "browserWorkerAdmission": "NOT_ADMITTED",
+  "productMount": "NOT_MOUNTED",
+  "calibration": "NOT_RUN",
+  "timestamp": "2026-10-03T13:34:05.571Z"
+}

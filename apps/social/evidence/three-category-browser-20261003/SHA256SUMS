@@ -1,0 +1,11 @@
+fd37e1a6ca4578cdfd60a87263dfba8ed801a7c0101f1cab69aa3cdbc3d1c7fb  apps/social/scripts/three-category-browser-qa/server.mjs
+e25116cd5b476d55a9f7470c17ad8695197dd34eb4bbd8bdae3233b018e8b5c2  apps/social/scripts/three-category-browser-qa/worker.mjs
+9260fb73c878a0bebb70f2a3b66550b6b96104641a644f2a8ac0788f2a13fc61  apps/social/scripts/three-category-browser-qa/main.mjs
+59c51c57b684d4fd35395d619a42ea0d6d8c4ce33a0a58b7e0d8c1ae42a2d9c5  apps/social/scripts/three-category-browser-qa/index.html
+45493f7429ec6d40dfc75dd1adf27d03a61dee4f05685cf43300e61b2e21060f  apps/social/scripts/three-category-browser-qa/styles.css
+39865d6940dfbaadeff23c81c2daf20dafd359cdfe2555f10a405a76c91cbc9b  apps/social/evidence/three-category-browser-20261003/browser-proof.json
+26a000e03d97d21ac773de0e3554edad6ae006e4bf69e55cb57e4406648729c9  apps/social/evidence/three-category-browser-20261003/server-status.json
+16b48b56e47a3a5533d4d53c6d8359dce62fc46b1ee775bdc26c10299883af85  apps/social/evidence/three-category-browser-20261003/worker-headers.txt
+6cb1d313ee1ed375348569426b4405bbf4e2538e931c606567789bafde74234f  apps/social/evidence/three-category-browser-20261003/normal.png
+e5bd4199adb12b34d52d934eb24e15f9b54419d7c162857503ac52029c4e778b  apps/social/evidence/three-category-browser-20261003/rejected.png
+3edf0ca99569e38b51bba65cddb9a52a95d1fc5ef377306c42fad60e8a3920ac  apps/social/evidence/three-category-browser-20261003/recovered.png

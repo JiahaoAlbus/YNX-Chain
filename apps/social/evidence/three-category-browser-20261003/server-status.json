@@ -1,0 +1,1 @@
+{"probeRequests":0,"publicContentOnly":true,"workerPolicy":"default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'none'; worker-src 'none'; base-uri 'none'"}
