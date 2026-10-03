@@ -1,6 +1,6 @@
 // Product orchestration only: request, storage, callbacks and proofs belong to
 // the unchanged Wallet SDK. No account permission, native signing or order POST.
-import {parseMarketDocument} from './market-data.js';
+import {parseMarketDocument,isVenueTimestamp} from './market-data.js';
 export const PRIVATE_READ_SCOPE='exchange:read';
 const ORIGIN='https://exchange.ynxweb4.com',MAX_BODY=1024*1024;
 const accountPattern=/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
@@ -34,7 +34,8 @@ export function validateAccountSnapshot(value,account){
   }
   if(value.security?.account!==account)throw failure('ACCOUNT_BINDING_MISMATCH');
   const source=value.sourceMetadata;
-  if(source?.classification!=='testnet'||source.authority!=='YNX-owned deterministic order state'||source.version!=='exchange-public-state-v1'||source.coverage!=='account-ledger-orders-trades-fees-audit'||!['live','degraded_single_host'].includes(source.status)||!Number.isFinite(Date.parse(source.asOf))||Math.abs(Date.now()-Date.parse(source.asOf))>120000||source.status==='live'&&(source.stateBackend!=='postgres-cas-multi-instance'||source.multiInstance!==true)||source.status==='degraded_single_host'&&(source.stateBackend!=='file-cas-single-host'||source.multiInstance!==false))throw failure('INVALID_ACCOUNT_SOURCE');
+  const observed=isVenueTimestamp(source?.asOf)?Date.parse(source.asOf):NaN,now=Date.now();
+  if(source?.classification!=='testnet'||source.authority!=='YNX-owned deterministic order state'||source.version!=='exchange-public-state-v1'||source.coverage!=='account-ledger-orders-trades-fees-audit'||!['live','degraded_single_host'].includes(source.status)||!Number.isFinite(observed)||observed>now+5000||now-observed>120000||source.status==='live'&&(source.stateBackend!=='postgres-cas-multi-instance'||source.multiInstance!==true)||source.status==='degraded_single_host'&&(source.stateBackend!=='file-cas-single-host'||source.multiInstance!==false))throw failure('INVALID_ACCOUNT_SOURCE');
   // Refuse unsafe JSON integers instead of silently rounding a venue balance.
   const check=(v)=>{if(v&&typeof v==='object')for(const [key,n]of Object.entries(v)){if(typeof n==='number'&&!Number.isSafeInteger(n))throw failure('UNSAFE_ACCOUNT_AMOUNT');if(/Micro$/.test(key)&&typeof n!=='number')throw failure('UNSAFE_ACCOUNT_AMOUNT');check(n)}};check(value);
   // Validate business records before rendering or summing them. Signed ledger

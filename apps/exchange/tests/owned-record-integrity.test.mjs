@@ -54,6 +54,16 @@ test('security display cannot coerce false strings or invent a default for missi
     const value=snapshot();mutate(value);assert.throws(()=>validateAccountSnapshot(value,account),{code:'INVALID_ACCOUNT_RESPONSE'});
   }
 });
+test('owned source timestamps require real RFC3339 dates with bounded past age and future skew',t=>{
+  const now=Date.parse('2026-10-01T00:00:00Z');t.mock.method(Date,'now',()=>now);
+  for(const asOf of ['2026-09-31T00:00:00Z','2026-10-01 00:00:00','10/01/2026','2026-10-01T00:00:00','2026-10-01T00:00:00+24:00',new Date(now),null,now,new Date(now+5001).toISOString(),new Date(now-120001).toISOString()]){
+    const value=snapshot();value.sourceMetadata.asOf=asOf;
+    assert.throws(()=>validateAccountSnapshot(value,account),{code:'INVALID_ACCOUNT_SOURCE'},String(asOf));
+  }
+  for(const asOf of ['2026-10-01T00:00:00Z','2026-10-01T00:00:00.123456789Z','2026-10-01T02:00:00+02:00',new Date(now+5000).toISOString(),new Date(now-120000).toISOString()]){
+    const value=snapshot();value.sourceMetadata.asOf=asOf;assert.equal(validateAccountSnapshot(value,account),value);
+  }
+});
 test('raw duplicate JSON keys cannot conceal account or amount fields and recovery requires one explicit fresh read',async()=>{
   const standard={status:'connected',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
   const valid=JSON.stringify(snapshot());let raw=valid,reads=0;

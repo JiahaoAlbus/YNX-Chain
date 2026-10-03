@@ -19,6 +19,7 @@ const date = value => {
     (zone === 'Z' || (Number(zone.slice(1,3)) <= 23 && Number(zone.slice(4)) <= 59)) &&
     Number.isFinite(Date.parse(value));
 };
+export {date as isVenueTimestamp};
 const MAX_MARKET_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 // Keep additive venue audit fields, but do not silently choose the last value
