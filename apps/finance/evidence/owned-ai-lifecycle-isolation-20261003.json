@@ -1,0 +1,37 @@
+{
+  "classification":"OWNER_SOURCE_AND_LOCAL_QA_NOT_OFFICIAL_RELEASE",
+  "predecessor":"4890a5e877f3f9b3061e019485987be79389f9de",
+  "scope":"Existing Finance AI draft product UI and owned form retirement only; API/SDK/Auth/proof/scope and financial execution unchanged",
+  "defectsFixed":[
+    "An older poll for the same account could replace a newer draft",
+    "A late older-account failure could stop a newer polling timer or display an irrelevant error",
+    "Polling could overlap and refetch an already-ready draft, dropping its result",
+    "Late delete/decision response could remove or replace a newer job",
+    "Cancel HTTP 202 was previously immediately displayed as cancelled without exact job readback"
+  ],
+  "invariants":[
+    "Bind create/poll/action UI ownership to existing context, browser identity generation and job generation",
+    "Bind every observed job receipt to id/kind and recognized raw job status",
+    "Serial polling only while running; retain completed result without unnecessary polling",
+    "Coalesce decisions and expose busy action controls",
+    "Cancel requires exact cancelled readback; decision requires exact applied/rejected readback",
+    "Retiring a UI view does not claim cancellation of an already-sent write",
+    "No automatic order, capital execution, private key or new authorization protocol"
+  ],
+  "objects":[
+    {"path":"apps/finance/web/app.js","blob":"8a5910a3a3d5784f255889c649ecb96a06aa842a","bytes":106483,"sha256":"5b5c179cc94a415171ba0c02492ddaa8cedc5506a36741b82b2dbdc2b1a18a3b"},
+    {"path":"apps/finance/tests/owned-ai-controller.test.mjs","blob":"14af6c876b23a237bfcb2a754323780486592c98","bytes":6120,"sha256":"f806785921aff395aebd722de450ac7b97e74432d20aaede089600aaa251b7fe"},
+    {"path":"apps/finance/tests/ai-order-intent-browser.test.mjs","blob":"64137b080a1a57b4db7105fa557643ae9e2b41b2","bytes":17365,"sha256":"3a28c345dbd0b01b36e7eed8be8a415bd8196040ffcdfc41786d6c95f4ba6411"},
+    {"path":"apps/finance/tests/owned-save-browser.test.mjs","blob":"7500491d553ccabc9a7e16c5185deb40df9af151","bytes":13453,"sha256":"d89c50bf093a78eb529766c70f485162b6728782244f7adeac5a536b6c611ecc"}
+  ],
+  "tests":[
+    {"command":"node --test apps/finance/tests/owned-ai-controller.test.mjs apps/finance/tests/ai-order-intent-browser.test.mjs apps/finance/tests/owned-save-controller.test.mjs apps/finance/tests/owned-save-browser.test.mjs apps/finance/tests/owned-read-controller.test.mjs apps/finance/tests/finance-12-locales.test.mjs","pass":36,"fail":0,"skip":0,"durationMs":9738.869208},
+    {"command":"go test -race ./internal/finance -run '^(TestOverviewPersistenceExportAndAIReview|TestAIBudgetDraftOnlyAppliesAfterReview|TestAIBrokerOrderIntentProducesStrictDraftOnlyJob|TestHTTPAIProviderConsumesLoopbackSSEWithoutWrite)$' -count=1 -v","pass":4,"result":"PASS","seconds":1.841},
+    {"command":"node --check apps/finance/web/app.js; node --check apps/finance/tests/owned-ai-controller.test.mjs; node --check apps/finance/tests/ai-order-intent-browser.test.mjs; node --check apps/finance/tests/owned-save-browser.test.mjs; git diff --check","result":"PASS"}
+  ],
+  "priorFailure":"First combined run 34 passed/2 failed: owned-save-browser extracted the planning functions without newly required real AI retirement helper. Fixture was updated to load the actual shipped helper, not a stub, and the complete combined run then passed. Full-page Chrome AI cases passed both runs.",
+  "browserEvidence":"Actual local Chrome executed the complete product page with controlled API/Wallet fixtures: old delayed poll discarded after newer ready draft; exact newer result retained; cancel controls busy and no cancelled display until exact GET receipt. Not real Wallet/public/installed proof.",
+  "releaseDependency":"A must integrate the exact owner delta into final compatible shared runtime and Finance asset/version graph, then return official source-bound URL/version for owner verification",
+  "rollback":"No production mutation occurred; omit owner delta before publication or use A-approved previous immutable release rollback afterward. Never reset user work.",
+  "truth":{"sourcePassed":true,"localChromePassed":true,"localPersistentServiceRegressionPassed":true,"publicCurrentSourceVerified":false,"installedVerified":false,"realWalletApproval":false,"productSessionLifecycle":false,"signatures":false,"realTransactions":false,"computerControl":false,"productComplete":false}
+}

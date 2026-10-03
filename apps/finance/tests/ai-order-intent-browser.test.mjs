@@ -61,6 +61,38 @@ async function fillIntent(page,{symbol='ACME',qty='2',price='10.25'}={}){
   await page.locator('#ai-order-intent [name=limitPrice]').fill(price);
 }
 
+test('actual Finance Chrome discards an old poll after a newer draft and keeps its exact ready result',async()=>{
+  const {page,errors}=await fixture();let releaseOld;
+  try{
+    let posts=0,markOld;const oldStarted=new Promise(resolve=>markOld=resolve),oldGate=new Promise(resolve=>releaseOld=resolve);
+    const observed=(id,status,progress)=>({id,kind:'draft_broker_order',status,provider:'isolated-fixture',model:'test-only',progress,result:status==='ready'?{summary:'Exact '+id}:undefined});
+    await page.route('**/api/ai/jobs',route=>{posts++;return route.fulfill({status:202,contentType:'application/json',body:JSON.stringify(observed(posts===1?'old':'new','running',posts===1?'OLD_INITIAL':'NEW_INITIAL'))})});
+    await page.route('**/api/ai/jobs/*',async route=>{
+      const id=new URL(route.request().url()).pathname.split('/').at(-1);
+      if(id==='old'){markOld();await oldGate}
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(observed(id,'ready',id==='old'?'OLD_READY':'NEW_READY'))});
+    });
+    await fillIntent(page);await page.locator('#ai-start').click();await oldStarted;
+    await page.locator('#ai-start').click();await page.locator('#ai-status').filter({hasText:'NEW_READY'}).waitFor();
+    const oldResponse=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/ai/jobs/old');releaseOld();await oldResponse;
+    assert.match(await page.locator('#ai-status').textContent(),/Exact new/);assert.doesNotMatch(await page.locator('#ai-status').textContent(),/OLD_READY|Exact old/);
+    assert.equal(posts,2);assert.deepEqual(errors,[]);
+  }finally{releaseOld?.();await page.close()}
+});
+test('actual Finance cancel waits for exact job readback and prevents duplicate action requests',async()=>{
+  const {page,errors}=await fixture();let releaseRead;
+  try{
+    let cancels=0,markRead;const readStarted=new Promise(resolve=>markRead=resolve),readGate=new Promise(resolve=>releaseRead=resolve);
+    const observed=status=>({id:'cancel-me',kind:'draft_broker_order',status,provider:'isolated-fixture',model:'test-only',progress:status==='running'?'RUNNING_OBSERVED':'CANCELLED_OBSERVED'});
+    await page.route('**/api/ai/jobs',route=>route.fulfill({status:202,contentType:'application/json',body:JSON.stringify(observed('running'))}));
+    await page.route('**/api/ai/jobs/cancel-me/cancel',route=>{cancels++;return route.fulfill({status:202,body:''})});
+    await page.route('**/api/ai/jobs/cancel-me',async route=>{markRead();await readGate;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(observed('cancelled'))})});
+    await fillIntent(page);await page.locator('#ai-start').click();await page.locator('#ai-status').filter({hasText:'RUNNING_OBSERVED'}).waitFor();
+    await page.locator('[data-ai=cancel]').click();await readStarted;
+    assert.equal(await page.locator('[data-ai=cancel]').isDisabled(),true);assert.equal(await page.locator('#ai-actions').getAttribute('aria-busy'),'true');assert.match(await page.locator('#ai-status').textContent(),/RUNNING_OBSERVED/);assert.equal(cancels,1);
+    releaseRead();await page.locator('#ai-status').filter({hasText:'CANCELLED_OBSERVED'}).waitFor();assert.equal(await page.locator('#ai-actions').getAttribute('aria-busy'),null);assert.equal(cancels,1);assert.deepEqual(errors,[]);
+  }finally{releaseRead?.();await page.close()}
+});
 test('real Finance DOM submits one canonical AI Broker order intent and restores the button',async()=>{
   const {page,errors}=await fixture();
   try{

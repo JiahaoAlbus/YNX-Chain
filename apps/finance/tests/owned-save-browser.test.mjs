@@ -12,6 +12,7 @@ const locale=await readFile(new URL('../web/finance-locale.js',import.meta.url),
 const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function renderStatement('));
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
+const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
 test('all twelve locales keep reminder protocol values independent from translated option labels',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
@@ -75,7 +76,7 @@ test('native-owned planning drafts clear on sign-out and restore only for their 
   try{
     const page=await browser.newPage();await page.route('**/*',route=>route.abort());
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
-    const drafts=reportView+app.slice(app.indexOf('const ownedFormDrafts='),app.indexOf('function clearPrivateView('));
+    const drafts=aiViewRetirement+reportView+app.slice(app.indexOf('const ownedFormDrafts='),app.indexOf('function clearPrivateView('));
     await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=selector=>document.querySelector(selector),$$=selector=>Array.from(document.querySelectorAll(selector));const financeText=k=>k,notify=()=>{},notifyFailure=()=>{},attestBrowserIdentityActivity=async()=>{},load=async()=>{},api=async()=>{};${saves}${drafts}window.newContext=()=>{state.context++;browserSSOIntentGeneration++;};`});
     await page.evaluate(()=>restoreOwnedFormDrafts('isolated-native-A'));
     await page.locator('#category-form input[name=name]').fill('A unfinished category');
@@ -98,7 +99,7 @@ test('normal account switch releases old save controls without letting its late 
     const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.name));
     await page.route('**/*',route=>route.request().url()==='https://finance.ynxweb4.com/'?route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}):route.abort());
     await page.goto('https://finance.ynxweb4.com/');
-    const drafts=reportView+app.slice(app.indexOf('const ownedFormDrafts='),app.indexOf('function clearPrivateView('));
+    const drafts=aiViewRetirement+reportView+app.slice(app.indexOf('const ownedFormDrafts='),app.indexOf('function clearPrivateView('));
     await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=selector=>document.querySelector(selector),$$=selector=>Array.from(document.querySelectorAll(selector));window.calls=[];window.notices=[];const financeText=k=>k,notify=x=>notices.push(x),notifyFailure=()=>notices.push('failure'),attestBrowserIdentityActivity=async()=>{},load=async()=>{};const api=(path,options)=>new Promise((resolve,reject)=>calls.push({path,body:JSON.parse(options.body),resolve,reject}));${saves}${drafts}`});
     await page.evaluate(()=>restoreOwnedFormDrafts('isolated-native-A'));
     await page.locator('#category-form input[name=name]').fill('A category');await page.locator('#category-form button').click();

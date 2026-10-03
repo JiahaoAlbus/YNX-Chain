@@ -500,6 +500,7 @@ async function consumeCallback(){await window.YNXFinanceWallet.ready}
 const ownedFormDrafts=new Map();let ownedFormAccount=null;
 function rememberOwnedFormDrafts(){
   retireOwnedStatementView();
+  retireOwnedAIView();
   if(!ownedFormAccount)return;
   const drafts=[];for(const id of ['category-form','budget-form','reminder-form','privacy-form']){
     const form=$('#'+id);if(!form)continue;
@@ -637,11 +638,72 @@ $('#statement-form').addEventListener('submit',e=>{e.preventDefault();void loadS
 async function download(path,name){const context=state.context,identityRevision=browserSSOIntentGeneration,current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision;try{const blob=await api(path,{responseType:'blob'});if(!current())return;const url=URL.createObjectURL(blob),a=document.createElement('a');try{a.href=url;a.download=name;a.click()}finally{URL.revokeObjectURL(url)}}catch(error){if(current())notifyFailure(error,'unavailable')}}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
-async function startAI(){const button=$('#ai-start');if(button.disabled)return;button.disabled=true;button.textContent=financeText('aiRequesting');try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent}state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});renderAIJob();pollAI()}catch(error){notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid'],'aiDraftFailed')}finally{button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
+let ownedAIGeneration=0,ownedAIStart=null,ownedAIAction=null;
+function restoreOwnedAIAction(operation){if(!operation)return;for(const {button,disabled} of operation.buttons||[])button.disabled=disabled;$('#ai-actions').removeAttribute('aria-busy')}
+function retireOwnedAIView(){ownedAIGeneration++;ownedAIStart=null;restoreOwnedAIAction(ownedAIAction);ownedAIAction=null;clearInterval(state.aiTimer);state.aiTimer=null;const button=$('#ai-start');if(button){button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
+function ownedAIContext(){const context=state.context,identityRevision=browserSSOIntentGeneration,generation=ownedAIGeneration;return()=>context===state.context&&identityRevision===browserSSOIntentGeneration&&generation===ownedAIGeneration}
+function ownedAIReceipt(value,kind,id=null){return value&&typeof value==='object'&&!Array.isArray(value)&&typeof value.id==='string'&&!!value.id.trim()&&(id===null||value.id===id)&&value.kind===kind&&['running','ready','failed','cancelled','applied','rejected'].includes(value.status)}
+async function startAI(){
+  const button=$('#ai-start');if(button.disabled||ownedAIStart)return;
+  ownedAIGeneration++;restoreOwnedAIAction(ownedAIAction);ownedAIAction=null;clearInterval(state.aiTimer);state.aiTimer=null;
+  const operation={},currentContext=ownedAIContext(),current=()=>ownedAIStart===operation&&currentContext();ownedAIStart=operation;
+  button.disabled=true;button.textContent=financeText('aiRequesting');
+  try{
+    const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;
+    if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));
+    const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};
+    if(kind==='draft_broker_order'){
+      const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};
+      if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent;
+    }
+    const candidate=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});if(!current())return;
+    if(!ownedAIReceipt(candidate,kind))throw new Error(financeText('aiDraftIncomplete'));
+    state.aiJob=candidate;renderAIJob();pollAI();
+  }catch(error){if(current())notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid','aiDraftIncomplete'],'aiDraftFailed')}
+  finally{if(ownedAIStart===operation){ownedAIStart=null;button.disabled=false;button.textContent=financeText('aiRequestDraft');if(currentContext()&&state.aiJob?.status==='running'&&state.aiTimer===null)pollAI()}}
+}
 function renderAIJob(){const j=state.aiJob;if(!j)return;const statusKey=({running:'aiStatusRunning',ready:'aiStatusReady',failed:'aiStatusFailed',cancelled:'aiStatusCancelled',applied:'aiStatusApplied',rejected:'aiStatusRejected'})[j.status];$('#ai-status').innerHTML=`<p><strong>${esc(statusKey?financeText(statusKey):j.status)}</strong> · ${esc(j.provider||financeText('aiProviderUnavailable'))} / ${esc(j.model||'—')}</p><p>${esc(j.progress||j.error||financeText('aiWaitingStream'))}</p><p><small>${esc(financeText('aiEstimate'))}: ${esc(j.estimatedCost||financeText('aiNotReturned'))}</small></p>${j.result?`<pre>${esc(JSON.stringify(j.result,null,2))}</pre>`:''}`;$('#ai-actions').classList.remove('hidden');$$('[data-ai=cancel]').forEach(b=>b.classList.toggle('hidden',j.status!=='running'));$$('[data-ai=delete]').forEach(b=>b.classList.toggle('hidden',j.status==='running'));$$('[data-ai=apply],[data-ai=reject]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind==='draft_broker_order'));$$('[data-ai=use-order]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind!=='draft_broker_order'))}
-function pollAI(){clearInterval(state.aiTimer);state.aiTimer=setInterval(async()=>{if(!state.aiJob)return;try{state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}`);renderAIJob();if(state.aiJob.status!=='running')clearInterval(state.aiTimer)}catch(error){clearInterval(state.aiTimer);notifyFailure(error,'aiDraftFailed')}},700)}
+function pollAI(){
+  clearInterval(state.aiTimer);state.aiTimer=null;if(state.aiJob?.status!=='running')return;
+  const contextCurrent=ownedAIContext();let busy=false;
+  const timer=setInterval(async()=>{
+    if(busy||!contextCurrent()||state.aiTimer!==timer||state.aiJob?.status!=='running')return;
+    const job=state.aiJob,current=()=>contextCurrent()&&state.aiTimer===timer&&state.aiJob===job;busy=true;
+    try{
+      const candidate=await api(`/api/ai/jobs/${encodeURIComponent(job.id)}`);if(!current())return;
+      if(!ownedAIReceipt(candidate,job.kind,job.id))throw new Error(financeText('aiDraftIncomplete'));
+      state.aiJob=candidate;renderAIJob();if(candidate.status!=='running'){clearInterval(timer);state.aiTimer=null}
+    }catch(error){if(current()){clearInterval(timer);state.aiTimer=null;notifyFailure(error,'aiDraftFailed')}}
+    finally{busy=false}
+  },700);state.aiTimer=timer;
+}
 const deleteAIButton=document.createElement('button');deleteAIButton.dataset.ai='delete';deleteAIButton.className='danger hidden';deleteAIButton.textContent=financeText('aiDeleteDraftData');$('#ai-actions').append(deleteAIButton);
-$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='use-order'){const d=state.aiJob.result?.orderDraft,form=$('#broker-order-form');if(!d||!['buy','sell'].includes(d.side)||!d.symbol||!d.qty||!d.limitPrice)throw new Error(financeText('aiDraftIncomplete'));form.elements.assetId.value='';form.elements.symbol.value='';form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);$('#broker-asset-search').elements.query.value=String(d.symbol);state.brokerSelectedAsset=null;location.hash='broker-sandbox';notify(financeText('aiDraftCopied'));return}else if(decision==='delete'){if(!window.confirm(financeText('aiDeleteConfirm')))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent=financeText('aiDraftDeleted');$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notifyKnownOrFailure(error,['aiDraftIncomplete'],'aiDraftFailed')}});
+async function decideOwnedAI(event){
+  const decision=event.target.dataset.ai,job=state.aiJob;
+  if(!['cancel','delete','apply','reject','use-order'].includes(decision)||!job||ownedAIAction||ownedAIStart)return;
+  if(decision==='delete'&&!window.confirm(financeText('aiDeleteConfirm')))return;
+  ownedAIGeneration++;clearInterval(state.aiTimer);state.aiTimer=null;
+  const operation={},contextCurrent=ownedAIContext(),current=()=>ownedAIAction===operation&&contextCurrent()&&state.aiJob===job;ownedAIAction=operation;
+  operation.buttons=$$('#ai-actions button').map(button=>({button,disabled:button.disabled}));for(const {button} of operation.buttons)button.disabled=true;$('#ai-actions').setAttribute('aria-busy','true');
+  const path=`/api/ai/jobs/${encodeURIComponent(job.id)}`;
+  try{
+    if(decision==='use-order'){
+      const d=job.result?.orderDraft,form=$('#broker-order-form');if(!d||!['buy','sell'].includes(d.side)||!d.symbol||!d.qty||!d.limitPrice)throw new Error(financeText('aiDraftIncomplete'));
+      form.elements.assetId.value='';form.elements.symbol.value='';form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);$('#broker-asset-search').elements.query.value=String(d.symbol);state.brokerSelectedAsset=null;location.hash='broker-sandbox';notify(financeText('aiDraftCopied'));return;
+    }
+    if(decision==='delete'){
+      await api(path,{method:'DELETE'});if(!current())return;state.aiJob=null;$('#ai-status').textContent=financeText('aiDraftDeleted');$('#ai-actions').classList.add('hidden');return;
+    }
+    let candidate;
+    if(decision==='cancel'){await api(path+'/cancel',{method:'POST'});if(!current())return;candidate=await api(path)}
+    else candidate=await api(path+'/decision',{method:'POST',body:JSON.stringify({decision})});
+    if(!current())return;
+    if(!ownedAIReceipt(candidate,job.kind,job.id)||candidate.status!==({cancel:'cancelled',apply:'applied',reject:'rejected'})[decision])throw new Error(financeText('aiDraftIncomplete'));
+    state.aiJob=candidate;renderAIJob();if(decision==='apply')await load();
+  }catch(error){if(current())notifyKnownOrFailure(error,['aiDraftIncomplete'],'aiDraftFailed')}
+  finally{if(ownedAIAction===operation){restoreOwnedAIAction(operation);ownedAIAction=null;if(contextCurrent()&&state.aiJob?.status==='running')pollAI()}}
+}
+$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',decideOwnedAI);
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
