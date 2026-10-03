@@ -1,0 +1,25 @@
+{
+  "schema": "ynx-commerce-preserved-native-source-failures/v1",
+  "failures": [
+    {
+      "step": "first core source build",
+      "error": "Throwing context assertion was initially declared as a nonthrowing closure result.",
+      "corrected": true
+    },
+    {
+      "step": "first full source/core emit-module",
+      "error": "New combined @Published declarations were invalid; split into individual property wrappers.",
+      "corrected": true
+    },
+    {
+      "step": "locale sync",
+      "error": "Existing sync script replaced custom brand-key translations with incomplete Android source locales; static verification failed ynx_logo:zh-Hans.",
+      "corrected": "Restored exact original source catalog bytes through parsed HEAD snapshot for every original key; merged only the new sign_out entry. Final diff adds 12 translations and preserves original branding entries."
+    }
+  ],
+  "remaining": {
+    "fullSwiftUIApp": "SwiftUIMacros.StateMacro plugin missing in installed Command Line Tools SDK; actual failure log retained. Core and parse are separate successful checks.",
+    "canonicalNativeSDK": "Original compatibility auth remains; approved Native successor and real OS ports not yet integrated.",
+    "serverRevoke": "Local negative authority and pending cancellation only; no claim of server revoke or Wallet permission revocation."
+  }
+}

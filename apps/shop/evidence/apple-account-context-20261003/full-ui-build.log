@@ -1,0 +1,207 @@
+apps/shop/native/ios/YNXShop/ContentView.swift:31:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+29 | }
+30 | struct CartView:View {@EnvironmentObject var model:ShopModel
+31 |     @State var recipient=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+32 |     @State var address=""
+33 |     @State var city=""
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:32:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+30 | struct CartView:View {@EnvironmentObject var model:ShopModel
+31 |     @State var recipient=""
+32 |     @State var address=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+33 |     @State var city=""
+34 |     @State var country=""
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:33:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+31 |     @State var recipient=""
+32 |     @State var address=""
+33 |     @State var city=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:34:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+32 |     @State var address=""
+33 |     @State var city=""
+34 |     @State var country=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:31:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+29 | }
+30 | struct CartView:View {@EnvironmentObject var model:ShopModel
+31 |     @State var recipient=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+32 |     @State var address=""
+33 |     @State var city=""
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:32:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+30 | struct CartView:View {@EnvironmentObject var model:ShopModel
+31 |     @State var recipient=""
+32 |     @State var address=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+33 |     @State var city=""
+34 |     @State var country=""
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:33:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+31 |     @State var recipient=""
+32 |     @State var address=""
+33 |     @State var city=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:34:16: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+32 |     @State var address=""
+33 |     @State var city=""
+34 |     @State var country=""
+   |                `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:38:75: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+   |                                                                           `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+40 | }
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:38:75: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+   |                                                                           `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+40 | }
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:41:84: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+   |                                                                                    `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+42 |     var body:some View{Form{Section("wallet_security"){if model.signedIn{Text("wallet_active");Button("sign_out",role:.destructive){model.signOut()}}else{Button("wallet_sign_in"){model.signIn()}};Text("privacy_boundary").font(.caption)};if model.signedIn{Section("privacy_data_title"){Text("privacy_data_description").font(.caption);Button("privacy_export_button"){model.exportPrivacyData()};if let url=model.privacyExportURL{ShareLink(item:url){Label("privacy_share_label",systemImage:"square.and.arrow.up")}};Text("privacy_delete_warning").font(.caption);TextField("DELETE_MY_SHOP_DATA",text:$deletionConfirmation).shopCapitalization(true).autocorrectionDisabled();Button("privacy_delete_button",role:.destructive){model.deletePrivacyData(deletionConfirmation)}}};Section("text_size"){Picker("text_size",selection:$textSize){Text("text_compact").tag("compact");Text("text_standard").tag("standard");Text("text_larger").tag("larger")}};Section("settings_language"){Picker("settings_language",selection:Binding(get:{model.appLanguage},set:model.setLanguage)){ForEach(supportedLanguages,id:\.self){Text(Locale.current.localizedString(forIdentifier:$0) ?? $0).tag($0)}};Picker("ai_language",selection:Binding(get:{model.aiLanguage},set:model.setAILanguage)){ForEach(supportedLanguages,id:\.self){Text($0).tag($0)}};Text("ai_privacy").font(.caption)};Section("service_boundaries"){Text("tax_unavailable");Text("logistics_unavailable")}}.navigationTitle("nav_account").shopInlineTitle()}
+43 | }
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:41:84: error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+   |                                                                                    `- error: external macro implementation type 'SwiftUIMacros.StateMacro' could not be found for macro 'State()'; plugin for module 'SwiftUIMacros' not found
+42 |     var body:some View{Form{Section("wallet_security"){if model.signedIn{Text("wallet_active");Button("sign_out",role:.destructive){model.signOut()}}else{Button("wallet_sign_in"){model.signIn()}};Text("privacy_boundary").font(.caption)};if model.signedIn{Section("privacy_data_title"){Text("privacy_data_description").font(.caption);Button("privacy_export_button"){model.exportPrivacyData()};if let url=model.privacyExportURL{ShareLink(item:url){Label("privacy_share_label",systemImage:"square.and.arrow.up")}};Text("privacy_delete_warning").font(.caption);TextField("DELETE_MY_SHOP_DATA",text:$deletionConfirmation).shopCapitalization(true).autocorrectionDisabled();Button("privacy_delete_button",role:.destructive){model.deletePrivacyData(deletionConfirmation)}}};Section("text_size"){Picker("text_size",selection:$textSize){Text("text_compact").tag("compact");Text("text_standard").tag("standard");Text("text_larger").tag("larger")}};Section("settings_language"){Picker("settings_language",selection:Binding(get:{model.appLanguage},set:model.setLanguage)){ForEach(supportedLanguages,id:\.self){Text(Locale.current.localizedString(forIdentifier:$0) ?? $0).tag($0)}};Picker("ai_language",selection:Binding(get:{model.aiLanguage},set:model.setAILanguage)){ForEach(supportedLanguages,id:\.self){Text($0).tag($0)}};Text("ai_privacy").font(.caption)};Section("service_boundaries"){Text("tax_unavailable");Text("logistics_unavailable")}}.navigationTitle("nav_account").shopInlineTitle()}
+43 | }
+
+SwiftUI.State:1:145: note: 'State()' declared here
+1 | @attached(accessor, names: named(init), named(get), named(set)) @attached(peer, names: prefixed(`_`), prefixed(__), prefixed(`$`)) public macro State() = #externalMacro(module: "SwiftUIMacros", type: "StateMacro")
+  |                                                                                                                                                 `- note: 'State()' declared here
+
+apps/shop/native/ios/YNXShop/ContentView.swift:36:60: error: cannot find '$recipient' in scope
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+   |                                                            `- error: cannot find '$recipient' in scope
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+
+apps/shop/native/ios/YNXShop/ContentView.swift:36:97: error: cannot find '$address' in scope
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+   |                                                                                                 `- error: cannot find '$address' in scope
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+
+apps/shop/native/ios/YNXShop/ContentView.swift:36:129: error: cannot find '$city' in scope
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+   |                                                                                                                                 `- error: cannot find '$city' in scope
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+
+apps/shop/native/ios/YNXShop/ContentView.swift:36:161: error: cannot find '$country' in scope
+34 |     @State var country=""
+35 |     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.quantity) × \($0.variantID)")}}
+36 |         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart").shopInlineTitle()}
+   |                                                                                                                                                                 `- error: cannot find '$country' in scope
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+
+apps/shop/native/ios/YNXShop/ContentView.swift:39:478: error: cannot find '$reason' in scope
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              `- error: cannot find '$reason' in scope
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+
+apps/shop/native/ios/YNXShop/ContentView.swift:39:199: error: cannot convert value of type '[Order]' to expected argument type 'Range<Int>'
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+   |                                                                                                                                                                                                       `- error: cannot convert value of type '[Order]' to expected argument type 'Range<Int>'
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+
+apps/shop/native/ios/YNXShop/ContentView.swift:39:227: error: value of type 'Int' has no member 'orderID'
+37 | }
+38 | struct OrdersView:View {@EnvironmentObject var model:ShopModel;@State var reason=""
+39 |     var body:some View{List{if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}else{ForEach(model.orders){o in Section{Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT");if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}};TextField("reason",text:$reason);Menu("order_actions"){Button("cancel_order"){model.transition(o,"cancelled",reason:reason)};Button("confirm_delivery"){model.transition(o,"delivered",reason:reason)};Button("write_review"){model.transition(o,"reviewed",reason:reason)};Button("return_request"){model.transition(o,"return_requested",reason:reason)};Button("refund_request"){model.transition(o,"refund_requested",reason:reason)};Button("dispute"){model.transition(o,"disputed",reason:reason)}};Text(o.trustStatus ?? "trust_unavailable").font(.caption)}}};Button("restore_pending"){model.retryPending()}}.navigationTitle("nav_orders").shopInlineTitle().task{await model.loadOrders()}.refreshable{await model.loadOrders()}}
+   |                                                                                                                                                                                                                                   `- error: value of type 'Int' has no member 'orderID'
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+
+apps/shop/native/ios/YNXShop/ContentView.swift:42:595: error: cannot find '$deletionConfirmation' in scope
+40 | }
+41 | struct AccountView:View {@EnvironmentObject var model:ShopModel;@State private var deletionConfirmation="";@AppStorage("shop-text-size") private var textSize="standard"
+42 |     var body:some View{Form{Section("wallet_security"){if model.signedIn{Text("wallet_active");Button("sign_out",role:.destructive){model.signOut()}}else{Button("wallet_sign_in"){model.signIn()}};Text("privacy_boundary").font(.caption)};if model.signedIn{Section("privacy_data_title"){Text("privacy_data_description").font(.caption);Button("privacy_export_button"){model.exportPrivacyData()};if let url=model.privacyExportURL{ShareLink(item:url){Label("privacy_share_label",systemImage:"square.and.arrow.up")}};Text("privacy_delete_warning").font(.caption);TextField("DELETE_MY_SHOP_DATA",text:$deletionConfirmation).shopCapitalization(true).autocorrectionDisabled();Button("privacy_delete_button",role:.destructive){model.deletePrivacyData(deletionConfirmation)}}};Section("text_size"){Picker("text_size",selection:$textSize){Text("text_compact").tag("compact");Text("text_standard").tag("standard");Text("text_larger").tag("larger")}};Section("settings_language"){Picker("settings_language",selection:Binding(get:{model.appLanguage},set:model.setLanguage)){ForEach(supportedLanguages,id:\.self){Text(Locale.current.localizedString(forIdentifier:$0) ?? $0).tag($0)}};Picker("ai_language",selection:Binding(get:{model.aiLanguage},set:model.setAILanguage)){ForEach(supportedLanguages,id:\.self){Text($0).tag($0)}};Text("ai_privacy").font(.caption)};Section("service_boundaries"){Text("tax_unavailable");Text("logistics_unavailable")}}.navigationTitle("nav_account").shopInlineTitle()}
+   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   `- error: cannot find '$deletionConfirmation' in scope
+43 | }
+44 | 

@@ -1,0 +1,133 @@
+{
+  "schema": "ynx-commerce-apple-account-context-and-durable-mutations/v1",
+  "baseCommit": "2c94664a720fd62d8ee7272462be01d3c58ae9f7",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "changes": [
+    "Original bare token no longer activates the app; validated account/token/expiry metadata binds every private request. Original unbound token and queue keys are retained and never upgraded or replayed.",
+    "MainActor request revision and exact session snapshot fence every asynchronous network result. Expired context and authoritative 401 clear private UI; response from old account cannot populate current views. Public catalog sends no bearer; API routes remain below original HTTPS base. Ephemeral transport refuses redirects rather than forwarding private wire body.",
+    "Keychain writes update existing values atomically before adding a new key; no delete-before-add loss of the original record on write failure.",
+    "Persist the original account-bound mutation body/key before dispatch. Restart or explicit retry retains exact wire bytes/key; changed content cannot replace unknown result. Confirmation removes only exact original envelope; invalid data remains for recovery.",
+    "Logout creates local negative authority and binds cancellation to the original pending digest. Callback requires its original active pending marker and cannot reactivate a cancelled request, including after restart. This is local cancellation, not server revoke.",
+    "UI sign-out clears private records, recipient/deletion fields and owned temporary export; sign_out uses all 12 inherited translations. Account change resets views and private draft state. Privacy deletion blocks account-bound unresolved mutations.",
+    "AppKit opener and portable input/title modifiers prepare the shared source for macOS. Payment check now reads original GET orders/{id}/settlement and refreshes actual server orders instead of inventing a transition."
+  ],
+  "verification": {
+    "macOSCore": {
+      "status": "PASS",
+      "command": "swiftc -parse-as-library -emit-module Security.swift API.swift ShopModel.swift WalletAuth.swift -module-name YNXShopCore",
+      "scope": "Actual production core, conditional AppKit implementation and MainActor model compiled with installed macOS toolchain; no UI app or release package is implied."
+    },
+    "foundationBoundaries": {
+      "checks": 22,
+      "status": "PASS",
+      "scope": "Actual API/queue/session/cancellation/redirect code, controlled URLProtocol and memory storage. No actual Keychain record, Wallet, hardware key or network authority was changed."
+    },
+    "allSwiftParse": "PASS",
+    "nativeStaticLocales": "PASS",
+    "fullSwiftUIApp": {
+      "status": "FAIL",
+      "reason": "Installed Command Line Tools SDK references absent SwiftUIMacros.StateMacro plugin. Raw final failure log retained. Full Xcode unavailable; no full app build or installed macOS/iOS acceptance."
+    },
+    "sourceDiffCheck": "PASS",
+    "legacyAuth": "Inherited WalletAuth exchange and bearer compatibility remain; not a canonical Native Product Session SDK consumer."
+  },
+  "sourcePins": [
+    {
+      "path": "apps/shop/native/ios/YNXShop/API.swift",
+      "bytes": 5288,
+      "sha256": "d90f85dac9736a2a1cddc5b75a8f23174f2d40516f51aac70387f328f7d5de38"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/Security.swift",
+      "bytes": 6041,
+      "sha256": "e7ee3742e1a738356fb4054bd6259320295c5ea294a63a355f123c5d2a3787df"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/ShopModel.swift",
+      "bytes": 8325,
+      "sha256": "da35475b65e051c14cb7a2fa87b1242688474d67c8e33f39ce81a7f16e47f709"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/WalletAuth.swift",
+      "bytes": 5747,
+      "sha256": "26a8af2d62bd781bbda54480960a3dbde8312dacd8f4eb91f3186cd2e0c5f6df"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/ContentView.swift",
+      "bytes": 6817,
+      "sha256": "6ed65543eeb3d11a4c835e74b9ccbe897d8736256dee19d2dc099457bbcf2c21"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/YNXShopApp.swift",
+      "bytes": 479,
+      "sha256": "aef01c6948e335ab2a0352f2f030689c61a92d2df5eab48e6dcedefbf2dedde3"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/Localizable.xcstrings",
+      "bytes": 166242,
+      "sha256": "b01511a51fda3f7fefc905c8befd45dbf0fa7154570fe388dd017ae4c0e442b0"
+    },
+    {
+      "path": "apps/shop/native/ios/README.md",
+      "bytes": 2087,
+      "sha256": "d5aa5b7ef161563f37758bb0793de47a531f0f4c41a8cc7ab9c76abc259ae4c1"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/BoundaryTests.swift",
+      "bytes": 7003,
+      "sha256": "0eac9aada8fae3dfa82c2e2632fea24443664f158617732a3493c2314bd55461"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/boundary-tests.log",
+      "bytes": 1215,
+      "sha256": "652309106a5fad226683ed51eb5c37081e11f7c0ad3476f500cd9f30ce461070"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/core-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/full-ui-build.log",
+      "bytes": 34006,
+      "sha256": "8f69816b6a716ba2d718b0e1b5b2ed243d8033b6469a54f49ef20b4727016965"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/initial-source-failures.json",
+      "bytes": 1365,
+      "sha256": "c6a53481f6e45bb04eaa1c739021215706a5863f1442ad9389b7c0623c322959"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/native-static.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/swift-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/shop/evidence/apple-account-context-20261003/test-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "qaModule": {
+    "path": "/tmp/ynx-commerce-apple-context-20261003/YNXShopCore.swiftmodule",
+    "sha256": "b49ba91a3884033e80f271c88e4268f700081cadefa040367b2c648d0725d3ea"
+  },
+  "acceptance": {
+    "canonicalNativeSDK": false,
+    "protectedOSPorts": false,
+    "realWallet": false,
+    "serverRevoke": false,
+    "macOSApp": false,
+    "iOSApp": false,
+    "finalAndroid": false,
+    "publicBusiness": false,
+    "goalComplete": false
+  }
+}

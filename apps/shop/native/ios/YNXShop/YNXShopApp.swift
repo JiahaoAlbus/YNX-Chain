@@ -4,7 +4,7 @@ import SwiftUI
     @StateObject private var model = ShopModel()
     var body: some Scene {
         WindowGroup {
-            ContentView().environmentObject(model)
+            ContentView().environmentObject(model).id(model.privacyRevision)
                 .environment(\.locale, Locale(identifier: model.appLanguage))
                 .environment(\.layoutDirection, model.appLanguage == "ar" ? .rightToLeft : .leftToRight)
                 .onOpenURL { model.walletCallback($0) }
