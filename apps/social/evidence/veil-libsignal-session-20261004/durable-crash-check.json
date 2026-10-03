@@ -1,0 +1,63 @@
+{
+  "schema": "ynx-social-native-durable-crash-qa-v1",
+  "package": "@signalapp/libsignal-client",
+  "version": "0.104.0",
+  "upstream_commit": "257105c55a7389ca6b1e85185e2769465e6729f1",
+  "runtime": {
+    "node": "v26.7.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "storage": "isolated SQLite WAL synchronous=FULL, one local DB, synthetic keys only",
+  "crash_method": "actual worker SIGKILL; next worker opens database in a new process",
+  "synthetic_database_removed": true,
+  "checks": [
+    {
+      "name": "cold process opens committed official native sender session",
+      "result": "PASS"
+    },
+    {
+      "name": "SIGKILL after native ratchet save rolls back all sender writes",
+      "result": "PASS"
+    },
+    {
+      "name": "SIGKILL after outbox insert before COMMIT rolls back ratchet and ciphertext together",
+      "result": "PASS"
+    },
+    {
+      "name": "post-COMMIT SIGKILL preserves ratchet and exactly one committed ciphertext",
+      "result": "PASS"
+    },
+    {
+      "name": "cold outbox retry preserves original ciphertext and ratchet without re-encryption",
+      "result": "PASS"
+    },
+    {
+      "name": "SIGKILL after native prekey decrypt restores prekeys and uncommitted inbox/session",
+      "result": "PASS"
+    },
+    {
+      "name": "cold retry decrypt succeeds and atomically commits inbox and one-time key consumption",
+      "result": "PASS"
+    },
+    {
+      "name": "fresh processes reply and decrypt through persisted bidirectional native sessions",
+      "result": "PASS"
+    },
+    {
+      "name": "already committed send ID is rejected without mutating durable state",
+      "result": "PASS"
+    },
+    {
+      "name": "reopened SQLite integrity remains valid after abrupt crash cuts",
+      "result": "PASS"
+    }
+  ],
+  "not_proven": [
+    "power-loss/filesystem fault durability",
+    "concurrent writers and multi-node prekey races",
+    "mobile secure storage and keystore integration",
+    "independently measured SPQR fresh key contribution",
+    "production integration, independent review, migration, activation, public/installed user acceptance"
+  ]
+}

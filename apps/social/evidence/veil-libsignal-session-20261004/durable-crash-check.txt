@@ -1,0 +1,11 @@
+PASS cold process opens committed official native sender session
+PASS SIGKILL after native ratchet save rolls back all sender writes
+PASS SIGKILL after outbox insert before COMMIT rolls back ratchet and ciphertext together
+PASS post-COMMIT SIGKILL preserves ratchet and exactly one committed ciphertext
+PASS cold outbox retry preserves original ciphertext and ratchet without re-encryption
+PASS SIGKILL after native prekey decrypt restores prekeys and uncommitted inbox/session
+PASS cold retry decrypt succeeds and atomically commits inbox and one-time key consumption
+PASS fresh processes reply and decrypt through persisted bidirectional native sessions
+PASS already committed send ID is rejected without mutating durable state
+PASS reopened SQLite integrity remains valid after abrupt crash cuts
+PASS 10 native SDK durable process-crash checks
