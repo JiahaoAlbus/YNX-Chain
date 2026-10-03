@@ -104,9 +104,25 @@ test("v1, spoofed bindings, widened scopes and malformed routes fail before appr
 
 test("mobile Wallet accepts web origins but rejects another native operating system", async () => {
   await assert.rejects(fixture().controller.receive(unsafeURL(request("ios"))), /platform/);
-  const f = fixture(), req = request("web");
+  const f = fixture(), req = request("web", { productId: "finance", scopes: ["finance.profile.write"] });
   const review = await f.controller.receive(unsafeURL(req)); await f.controller.reject(review.id);
-  assert.equal(new URL(f.state.opens[0]!).origin, "https://pay.ynxweb4.com");
+  assert.equal(new URL(f.state.opens[0]!).origin, "https://finance.ynxweb4.com");
+});
+
+test("native payer and web merchant sessions remain separate canonical products", async () => {
+  assert.throws(() => request("web"), /platform/i);
+  assert.throws(() => request("android", { productId: "pay-merchant", scopes: ["account:read"] }), /platform/i);
+  assert.throws(() => request("android", { scopes: ["pay:route:select"] }), /scope/i);
+  const f = fixture(), req = request("web", { productId: "pay-merchant", scopes: ["account:read", "merchant:session:create"] });
+  assert.equal(req.callback, "https://pay.ynxweb4.com/merchant/wallet-auth/callback");
+  const review = await f.controller.receive(unsafeURL(req));
+  assert.equal(review.request.productId, "pay-merchant");
+  assert.deepEqual(review.request.scopes, req.scopes);
+  await f.controller.reject(review.id);
+  const returned = new URL(f.state.opens[0]!);
+  assert.equal(returned.origin + returned.pathname, req.callback);
+  assert.equal(f.state.reads, 0);
+  assert.equal(f.state.authorizations, 0);
 });
 
 test("expiry is revalidated after biometric confirmation", async () => {
