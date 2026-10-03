@@ -54,7 +54,16 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if product == "creator-studio" {
 				callback = "ynxcreator://wallet-auth/callback"
 			}
-			owned, _ := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
+			owned, originalChannel := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
+			nativeMediaKey, nativeVideoID := "", ""
+			if product == "video" {
+				published := upload(t, owned, originalChannel, "Original Native media fixture")
+				approveTestPublication(t, owned, originalChannel.Owner, published.ID)
+				if e := owned.Publish(originalChannel.Owner, published.ID, VisibilityPublic); e != nil {
+					t.Fatal(e)
+				}
+				nativeMediaKey, nativeVideoID = published.ObjectKey, published.ID
+			}
 			var mu sync.Mutex
 			var handler http.Handler
 			var actor productsessionv2.Session
@@ -145,7 +154,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "node", "../../apps/video/scripts/media-native-authority-check.mjs", source, product, platform)
-			cmd.Env = append(os.Environ(), "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
+			cmd.Env = append(os.Environ(), "YNX_QA_NATIVE_MEDIA_KEY="+nativeMediaKey, "YNX_QA_NATIVE_VIDEO_ID="+nativeVideoID, "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
 			var output, diagnostic bytes.Buffer
 			cmd.Stdout = &output
 			cmd.Stderr = &diagnostic
@@ -169,6 +178,10 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				list, e := owned.Playlists(actor.Account)
 				if e != nil || len(list) != 1 {
 					t.Fatal("missing original Video playlist readback")
+				}
+				history, e := owned.History(actor.Account)
+				if e != nil || len(history) != 1 || history[0].PlaybackID != "00000000-0000-4000-8000-000000000001" || history[0].Seconds != 7 {
+					t.Fatal("missing original Native playback history")
 				}
 			} else {
 				found := false

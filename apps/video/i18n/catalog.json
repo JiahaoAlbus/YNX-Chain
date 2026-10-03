@@ -21,7 +21,16 @@
     "noMetrics": "No synthetic views, revenue, subscribers, copyright, or recommendations.",
     "aiLanguage": "AI output language",
     "play": "Play video",
-    "settings": "Settings"
+    "settings": "Settings",
+    "signOut": "Sign out",
+    "createPlaylist": "Create playlist",
+    "deletePlaylist": "Delete playlist",
+    "addToPlaylist": "Add to playlist",
+    "deleteMyData": "Delete my Video data",
+    "confirmDelete": "Delete these records? This cannot be undone.",
+    "discardDraft": "Discard saved draft",
+    "removeFromPlaylist": "Remove from playlist",
+    "unsubscribe": "Unsubscribe"
   },
   "zh-CN": {
     "language": "语言",
@@ -45,7 +54,16 @@
     "noMetrics": "不生成虚假观看量、收益、订阅者、版权或推荐。",
     "aiLanguage": "AI 输出语言",
     "play": "播放视频",
-    "settings": "设置"
+    "settings": "设置",
+    "signOut": "退出登录",
+    "createPlaylist": "创建播放列表",
+    "deletePlaylist": "删除播放列表",
+    "addToPlaylist": "加入播放列表",
+    "deleteMyData": "删除我的 Video 数据",
+    "confirmDelete": "确认删除这些记录？此操作无法撤销。",
+    "discardDraft": "放弃保存的草稿",
+    "removeFromPlaylist": "从播放列表移除",
+    "unsubscribe": "取消订阅"
   },
   "zh-TW": {
     "language": "語言",
@@ -69,7 +87,16 @@
     "noMetrics": "不建立虛假觀看次數、收益、訂閱者、版權或推薦。",
     "aiLanguage": "AI 輸出語言",
     "play": "播放影片",
-    "settings": "設定"
+    "settings": "設定",
+    "signOut": "登出",
+    "createPlaylist": "建立播放清單",
+    "deletePlaylist": "刪除播放清單",
+    "addToPlaylist": "加入播放清單",
+    "deleteMyData": "刪除我的 Video 資料",
+    "confirmDelete": "確認刪除這些記錄？此操作無法復原。",
+    "discardDraft": "捨棄已儲存草稿",
+    "removeFromPlaylist": "從播放清單移除",
+    "unsubscribe": "取消訂閱"
   },
   "ja": {
     "language": "言語",
@@ -93,7 +120,16 @@
     "noMetrics": "架空の視聴数、収益、登録者、著作権、推薦は生成しません。",
     "aiLanguage": "AI出力言語",
     "play": "動画を再生",
-    "settings": "設定"
+    "settings": "設定",
+    "signOut": "ログアウト",
+    "createPlaylist": "プレイリストを作成",
+    "deletePlaylist": "プレイリストを削除",
+    "addToPlaylist": "プレイリストに追加",
+    "deleteMyData": "自分の Video データを削除",
+    "confirmDelete": "この記録を削除しますか？元に戻せません。",
+    "discardDraft": "保存した下書きを破棄",
+    "removeFromPlaylist": "プレイリストから削除",
+    "unsubscribe": "登録解除"
   },
   "ko": {
     "language": "언어",
@@ -117,7 +153,16 @@
     "noMetrics": "가짜 조회수, 수익, 구독자, 저작권 또는 추천을 만들지 않습니다.",
     "aiLanguage": "AI 출력 언어",
     "play": "동영상 재생",
-    "settings": "설정"
+    "settings": "설정",
+    "signOut": "로그아웃",
+    "createPlaylist": "재생목록 만들기",
+    "deletePlaylist": "재생목록 삭제",
+    "addToPlaylist": "재생목록에 추가",
+    "deleteMyData": "내 Video 데이터 삭제",
+    "confirmDelete": "이 기록을 삭제할까요? 되돌릴 수 없습니다.",
+    "discardDraft": "저장된 초안 삭제",
+    "removeFromPlaylist": "재생목록에서 제거",
+    "unsubscribe": "구독 취소"
   },
   "es": {
     "language": "Idioma",
@@ -141,7 +186,16 @@
     "noMetrics": "No se inventan vistas, ingresos, suscriptores, derechos ni recomendaciones.",
     "aiLanguage": "Idioma de salida de IA",
     "play": "Reproducir video",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "signOut": "Cerrar sesión",
+    "createPlaylist": "Crear lista",
+    "deletePlaylist": "Eliminar lista",
+    "addToPlaylist": "Añadir a una lista",
+    "deleteMyData": "Eliminar mis datos de Video",
+    "confirmDelete": "¿Eliminar estos registros? No se puede deshacer.",
+    "discardDraft": "Descartar borrador guardado",
+    "removeFromPlaylist": "Quitar de la lista",
+    "unsubscribe": "Cancelar suscripción"
   },
   "fr": {
     "language": "Langue",
@@ -165,7 +219,16 @@
     "noMetrics": "Aucune vue, recette, audience, propriété ou recommandation fictive.",
     "aiLanguage": "Langue de sortie IA",
     "play": "Lire la vidéo",
-    "settings": "Réglages"
+    "settings": "Réglages",
+    "signOut": "Se déconnecter",
+    "createPlaylist": "Créer une liste",
+    "deletePlaylist": "Supprimer la liste",
+    "addToPlaylist": "Ajouter à une liste",
+    "deleteMyData": "Supprimer mes données Video",
+    "confirmDelete": "Supprimer ces données ? Cette action est irréversible.",
+    "discardDraft": "Abandonner le brouillon enregistré",
+    "removeFromPlaylist": "Retirer de la liste",
+    "unsubscribe": "Se désabonner"
   },
   "de": {
     "language": "Sprache",
@@ -189,7 +252,16 @@
     "noMetrics": "Keine erfundenen Aufrufe, Einnahmen, Abonnenten, Rechte oder Empfehlungen.",
     "aiLanguage": "KI-Ausgabesprache",
     "play": "Video abspielen",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "signOut": "Abmelden",
+    "createPlaylist": "Playlist erstellen",
+    "deletePlaylist": "Playlist löschen",
+    "addToPlaylist": "Zur Playlist hinzufügen",
+    "deleteMyData": "Meine Video-Daten löschen",
+    "confirmDelete": "Diese Daten löschen? Dies kann nicht rückgängig gemacht werden.",
+    "discardDraft": "Gespeicherten Entwurf verwerfen",
+    "removeFromPlaylist": "Aus Playlist entfernen",
+    "unsubscribe": "Abonnement beenden"
   },
   "pt": {
     "language": "Idioma",
@@ -213,7 +285,16 @@
     "noMetrics": "Sem visualizações, receita, subscritores, direitos ou recomendações fictícias.",
     "aiLanguage": "Idioma de saída da IA",
     "play": "Reproduzir vídeo",
-    "settings": "Definições"
+    "settings": "Definições",
+    "signOut": "Sair",
+    "createPlaylist": "Criar lista",
+    "deletePlaylist": "Excluir lista",
+    "addToPlaylist": "Adicionar à lista",
+    "deleteMyData": "Excluir meus dados de Video",
+    "confirmDelete": "Excluir estes registros? Esta ação não pode ser desfeita.",
+    "discardDraft": "Descartar rascunho salvo",
+    "removeFromPlaylist": "Remover da lista",
+    "unsubscribe": "Cancelar inscrição"
   },
   "ru": {
     "language": "Язык",
@@ -237,7 +318,16 @@
     "noMetrics": "Без вымышленных просмотров, доходов, подписчиков, прав или рекомендаций.",
     "aiLanguage": "Язык ответа ИИ",
     "play": "Воспроизвести видео",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "signOut": "Выйти",
+    "createPlaylist": "Создать плейлист",
+    "deletePlaylist": "Удалить плейлист",
+    "addToPlaylist": "Добавить в плейлист",
+    "deleteMyData": "Удалить мои данные Video",
+    "confirmDelete": "Удалить эти записи? Это действие нельзя отменить.",
+    "discardDraft": "Удалить сохранённый черновик",
+    "removeFromPlaylist": "Удалить из плейлиста",
+    "unsubscribe": "Отписаться"
   },
   "ar": {
     "language": "اللغة",
@@ -261,7 +351,16 @@
     "noMetrics": "لا مشاهدات أو إيرادات أو مشتركين أو حقوق أو توصيات مصطنعة.",
     "aiLanguage": "لغة مخرجات الذكاء الاصطناعي",
     "play": "تشغيل الفيديو",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "signOut": "تسجيل الخروج",
+    "createPlaylist": "إنشاء قائمة تشغيل",
+    "deletePlaylist": "حذف قائمة التشغيل",
+    "addToPlaylist": "إضافة إلى قائمة تشغيل",
+    "deleteMyData": "حذف بيانات Video الخاصة بي",
+    "confirmDelete": "هل تريد حذف هذه السجلات؟ لا يمكن التراجع عن هذا الإجراء.",
+    "discardDraft": "تجاهل المسودة المحفوظة",
+    "removeFromPlaylist": "إزالة من قائمة التشغيل",
+    "unsubscribe": "إلغاء الاشتراك"
   },
   "id": {
     "language": "Bahasa",
@@ -285,6 +384,15 @@
     "noMetrics": "Tidak ada tayangan, pendapatan, pelanggan, hak cipta, atau rekomendasi palsu.",
     "aiLanguage": "Bahasa keluaran AI",
     "play": "Putar video",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "signOut": "Keluar",
+    "createPlaylist": "Buat daftar putar",
+    "deletePlaylist": "Hapus daftar putar",
+    "addToPlaylist": "Tambahkan ke daftar putar",
+    "deleteMyData": "Hapus data Video saya",
+    "confirmDelete": "Hapus catatan ini? Tindakan ini tidak dapat dibatalkan.",
+    "discardDraft": "Buang draf tersimpan",
+    "removeFromPlaylist": "Hapus dari daftar putar",
+    "unsubscribe": "Berhenti berlangganan"
   }
 }

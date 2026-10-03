@@ -20,7 +20,8 @@ for(const file of swiftFiles){
 }
 const swift=(await Promise.all(swiftFiles.map(file=>readFile(new URL(`ios/YNXVideo/${file}`,root),"utf8")))).join("\n");
 const android=await readFile(new URL("android/app/src/main/java/com/ynxweb4/video/MainActivity.java",root),"utf8"),manifest=await readFile(new URL("android/app/src/main/AndroidManifest.xml",root),"utf8"),plist=await readFile(new URL("ios/YNXVideo/Info.plist",root),"utf8"),web=await readFile(new URL("i18n.js",root),"utf8");
-for(const source of [android,swift])for(const binding of ["ynx_6423-1","ynx-video-mobile-v1","com.ynxweb4.video","p256-sha256","ynxvideo://wallet-auth/callback"])assert(source.includes(binding),`native contract missing ${binding}`);
+const androidContract=(await Promise.all(['MainActivity.java','NativeProductState.java','NativeProtectedRuntime.java','NativeSessionIdentity.java','NativeSessionBridge.java'].map(file=>readFile(new URL(`android/app/src/main/java/com/ynxweb4/video/${file}`,root),'utf8')))).join('\n');
+for(const source of [androidContract,swift])for(const binding of ["ynx_6423-1","ynx-video-mobile-v1","com.ynxweb4.video","p256-sha256","ynxvideo://wallet-auth/callback"])assert(source.includes(binding),`native contract missing ${binding}`);
 assert(manifest.includes('android:supportsRtl="true"')&&android.includes('LAYOUT_DIRECTION_RTL'),"Android RTL missing");
 assert(plist.includes("ynxvideo")&&plist.includes("$(PRODUCT_BUNDLE_IDENTIFIER)"),"iOS identity/deep link missing");
 for(const source of [android,swift])for(const feature of ["formatDate","formatCurrency"]){const alternatives=feature==="formatCurrency"?["formatCurrency","format(currency","formatMoney"]:[feature,"format(date"] ;assert(alternatives.some(x=>source.includes(x)),`${feature} localization missing`)}

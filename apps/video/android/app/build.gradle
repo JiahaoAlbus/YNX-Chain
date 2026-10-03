@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 android {
     namespace 'com.ynxweb4.video'
     compileSdk 36
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
     defaultConfig {
         applicationId 'com.ynxweb4.video'
         minSdk 26
@@ -11,5 +12,5 @@ android {
         versionName '0.1.0-test'
     }
     buildFeatures { buildConfig = true }
-    sourceSets { main.assets.srcDirs = ['../../i18n'] }
+    sourceSets { main.assets.srcDirs = ['../../i18n', 'src/main/assets'] }
 }

@@ -1,0 +1,45 @@
+package com.ynxweb4.video;
+import org.json.*;import java.nio.charset.StandardCharsets;import java.time.Instant;import java.util.*;import java.util.concurrent.atomic.*;import com.sun.net.httpserver.HttpServer;
+// Actual shipped VideoApi/VideoMediaSource with an explicitly labeled software
+// bridge. Actual Native SDK crypto is verified by packaged-engine Node/Go QA.
+public final class NativeVideoApiCheck {
+ static void check(boolean ok,String message){if(!ok)throw new AssertionError(message);}
+ static NativeSessionIdentity identity()throws Exception{return identity("a");}
+ static NativeSessionIdentity otherIdentity()throws Exception{return identity("p");}
+ static NativeSessionIdentity identity(String letter)throws Exception{
+  String app="com.ynxweb4.video",key=Base64.getUrlEncoder().withoutPadding().encodeToString(new byte[33]),account="ynx1"+letter.repeat(38);
+  JSONObject context=new JSONObject().put("applicationId",app).put("platform","android").put("deviceId","fixture-original-video-device").put("deviceKey",key).put("generation",1).put("securityLevel","os-protected").put("account",JSONObject.NULL);
+  JSONObject session=new JSONObject().put("version","2").put("chainId","ynx_6423-1").put("productId","video").put("clientId","ynx-video-mobile-v1").put("applicationId",app).put("platform","android").put("origin","app://android/"+app).put("callback","ynxvideo://wallet-auth/callback").put("bundleId",JSONObject.NULL).put("packageId",app).put("deviceId",context.getString("deviceId")).put("deviceKey",key).put("deviceAlgorithm","p256-sha256").put("account",account).put("scopes",NativeProductState.originalNativeScopes()).put("sessionBinding","a".repeat(64)).put("expiresAt",Instant.now().plusSeconds(180).toString());
+  return new NativeSessionIdentity(session,context);
+ }
+ interface Failing {void run()throws Exception;}
+ static void rejects(Failing action)throws Exception{try{action.run();throw new AssertionError("Retired or unavailable request accepted");}catch(java.io.IOException|SecurityException|IllegalStateException expected){}}
+ public static void main(String[]args)throws Exception{
+  NativeSessionBridge bridge=new NativeSessionBridge(identity());VideoRequestBoundary boundary=new VideoRequestBoundary();long navigation=boundary.advance();
+  AtomicInteger calls=new AtomicInteger(),status=new AtomicInteger(200);AtomicBoolean late=new AtomicBoolean(),wrongRange=new AtomicBoolean();List<byte[]> bodies=new ArrayList<>();Set<String> proofs=new HashSet<>();
+  HttpServer server=HttpServer.create(new java.net.InetSocketAddress("127.0.0.1",0),0);
+  server.createContext("/",exchange->{try{
+   calls.incrementAndGet();byte[] body=exchange.getRequestBody().readAllBytes();bodies.add(body);
+   check(exchange.getRequestHeaders().getFirst("Authorization")==null&&exchange.getRequestHeaders().getFirst("X-YNX-Gateway-Signature")==null,"Legacy authority escaped");
+   check("fixture-introspection-no-auth".equals(exchange.getRequestHeaders().getFirst("X-YNX-Product-Session-Proof-V2")),"Original introspection header missing");String proof=exchange.getRequestHeaders().getFirst("X-YNX-Product-Session-Action-Proof-V2");check(proof!=null&&proof.startsWith(VideoApi.digest(body)+":"+body.length+":"),"Final request bytes changed");check(proofs.add(proof),"Range read replayed one-shot proof");
+   if(late.get())bridge.revision++;byte[] response="{\"account\":\"owned\"}".getBytes(StandardCharsets.UTF_8);int code=status.get();
+   if(exchange.getRequestURI().getPath().startsWith("/media/")&&code==200){String range=exchange.getRequestHeaders().getFirst("Range");check(range!=null,"Actual media request lost Range");String[] pair=range.substring(6).split("-");int start=Integer.parseInt(pair[0]),end=Integer.parseInt(pair[1]);response=Arrays.copyOfRange("0123456789".getBytes(StandardCharsets.UTF_8),start,end+1);exchange.getResponseHeaders().set("Content-Range","bytes "+start+"-"+end+"/"+(wrongRange.get()?11:10));code=206;}
+   exchange.sendResponseHeaders(code,response.length);exchange.getResponseBody().write(response);
+  }catch(Exception failure){throw new AssertionError(failure);}finally{exchange.close();}});server.start();
+  try{
+   VideoApi.Connections transport=path->(java.net.HttpURLConnection)new java.net.URL("http://127.0.0.1:"+server.getAddress().getPort()+path).openConnection();VideoApi api=new VideoApi(bridge,boundary,navigation,transport);
+   android.content.Context context=new android.content.Context(java.nio.file.Files.createTempDirectory("ynx-video-viewer-software-").toFile());
+   VideoViewerState viewer=new VideoViewerState(context,api);JSONObject playback=viewer.playback("video_1");String playbackId=playback.getString("playbackId");JSONObject originalWatch=viewer.position("video_1",playbackId,45,7,false);check(viewer.watchPending().getJSONObject(0).getString("key").equals(originalWatch.getString("key")),"Original watch retry key lost");VideoViewerState reopened=new VideoViewerState(context,api);check(reopened.playback("video_1").getInt("position")==45&&reopened.playback("video_1").getString("playbackId").equals(playbackId),"Resume borrowed watch total or replaced playback ID");check(reopened.watchPending().getJSONObject(0).getInt("seconds")==7,"Cold pending watch lost observed increment");
+   JSONObject draft=viewer.reservePlaylist("original pending name");check(reopened.playlistDraft().getString("key").equals(draft.getString("key")),"Cold draft lost original request key");rejects(()->reopened.reservePlaylist("replacement"));
+   final NativeSessionIdentity first=bridge.active;bridge.active=otherIdentity();VideoApi other=new VideoApi(bridge,boundary,navigation,transport);VideoViewerState otherViewer=new VideoViewerState(context,other);check(otherViewer.watchPending().length()==0&&otherViewer.playlistDraft()==null&&otherViewer.playback("video_1").getInt("position")==0,"New account borrowed old content or pending key");bridge.active=first;viewer=new VideoViewerState(context,api);check(viewer.playlistDraft().getString("key").equals(draft.getString("key")),"Account switch erased original pending content");viewer.finishWatch(originalWatch);check(viewer.watchPending().length()==0,"Acknowledged original watch remained pending");viewer.finishPlaylist(draft);check(viewer.playlistDraft()==null,"Original draft did not clear after acknowledgment");
+   JSONObject body=new JSONObject().put("Name","本人 中文\n<original>");api.json("/v1/playlists","POST",body);check(Arrays.equals(bodies.get(0),body.toString().getBytes(StandardCharsets.UTF_8)),"Final UTF8 body rewritten");
+   VideoMediaSource media=new VideoMediaSource(api,"owned/original.mp4",10);byte[] buffer=new byte[6];check(media.readAt(2,buffer,1,4)==4&&new String(buffer,1,4,StandardCharsets.UTF_8).equals("2345"),"Original range offset/count lost");check(media.readAt(8,buffer,0,6)==2&&new String(buffer,0,2,StandardCharsets.UTF_8).equals("89"),"Final range boundary lost");check(media.readAt(10,buffer,0,2)==-1,"EOF not preserved");
+   wrongRange.set(true);rejects(()->media.readAt(0,buffer,0,2));wrongRange.set(false);
+   status.set(503);rejects(()->api.json("/v1/account","GET",null));check(!bridge.missing,"503 forced logout");status.set(403);rejects(()->api.json("/v1/account","GET",null));check(!bridge.missing,"Resource refusal cleared original session");status.set(200);
+   late.set(true);rejects(()->media.readAt(0,buffer,0,2));int before=calls.get();rejects(()->api.json("/v1/account","GET",null));check(calls.get()==before,"Retired epoch reached network");late.set(false);
+   final VideoApi navigated=new VideoApi(bridge,boundary,navigation,transport);boundary.advance();before=calls.get();rejects(()->navigated.json("/v1/account","GET",null));check(calls.get()==before,"Retired navigation reached network");
+   final VideoApi revoked=new VideoApi(bridge,boundary,boundary.current(),transport);status.set(401);rejects(()->revoked.json("/v1/account","GET",null));check(bridge.missing,"401 did not retire original local authority");media.close();rejects(()->media.getSize());
+   System.out.println("PASS original viewer resume UUID/position persistence, pending playlist original request key, account-switch separation and old-content retention; shipped VideoApi/VideoMediaSource: final UTF8 body and canonical header fields, fresh proof for every Range, exact offset/count/total and EOF, late same-session restore and navigation veto, retryable503 and resource403 retain session, original401 retirement; host software transport only");
+  }finally{server.stop(0);}
+ }
+}
