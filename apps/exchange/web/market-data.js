@@ -23,7 +23,7 @@ const MAX_MARKET_DOCUMENT_BYTES = 8 * 1024 * 1024;
 
 // Keep additive venue audit fields, but do not silently choose the last value
 // of a duplicated JSON key. Scan before materializing deeply nested documents.
-function parseMarketDocument(text) {
+export function parseMarketDocument(text) {
   if (typeof text !== 'string' || text.length > MAX_MARKET_DOCUMENT_BYTES || new TextEncoder().encode(text).byteLength > MAX_MARKET_DOCUMENT_BYTES) throw invalid();
   let cursor = 0;
   const whitespace = () => { while (/[\t\n\r ]/.test(text[cursor] ?? '\0')) cursor++; };

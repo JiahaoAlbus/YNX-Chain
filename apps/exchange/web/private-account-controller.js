@@ -1,5 +1,6 @@
 // Product orchestration only: request, storage, callbacks and proofs belong to
 // the unchanged Wallet SDK. No account permission, native signing or order POST.
+import {parseMarketDocument} from './market-data.js';
 export const PRIVATE_READ_SCOPE='exchange:read';
 const ORIGIN='https://exchange.ynxweb4.com',MAX_BODY=1024*1024;
 const accountPattern=/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
@@ -107,7 +108,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
         return readAccountResponse(response,controller.signal);
       })(),aborted]);
       if(!active(token))return current;
-      let value;try{value=JSON.parse(body)}catch{throw failure('INVALID_ACCOUNT_RESPONSE')}
+      let value;try{value=parseMarketDocument(body)}catch{throw failure('INVALID_ACCOUNT_RESPONSE')}
       const snapshot=validateAccountSnapshot(value,session.account);
       if(!active(token))return current;
       if(Date.parse(session.expiresAt)<=Date.now())throw failure('SESSION_EXPIRED');

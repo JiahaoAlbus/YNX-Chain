@@ -54,6 +54,24 @@ test('security display cannot coerce false strings or invent a default for missi
     const value=snapshot();mutate(value);assert.throws(()=>validateAccountSnapshot(value,account),{code:'INVALID_ACCOUNT_RESPONSE'});
   }
 });
+test('raw duplicate JSON keys cannot conceal account or amount fields and recovery requires one explicit fresh read',async()=>{
+  const standard={status:'connected',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
+  const valid=JSON.stringify(snapshot());let raw=valid,reads=0;
+  const controller=createPrivateAccountController({wallet:{getPrivateWalletContext:()=>standard},
+    createAdapter:async()=>({close(){},createIntrospectionProof:async()=>({proofHeader:'isolated-test-proof'}),client:{restore:async()=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}})}}),
+    fetchImpl:async()=>{reads++;return new Response(raw,{headers:{'content-type':'application/json'}})},
+  });
+  try{
+    assert.equal((await controller.start(origin+'/')).phase,'connected');
+    for(const malformed of ['{"balances":[],'+valid.slice(1),valid.replace('"availableMicro":1234567','"availableMicro":-1,"available\\u004dicro":1234567'),valid.replace('"account":','"account":"not-the-owned-account","account":'),valid.slice(0,-1)+',"extra":{"nested":1,"nested":2}}']){
+      raw=malformed;const before=reads,rejected=await controller.refresh();
+      assert.equal(rejected.phase,'degraded');assert.equal(rejected.code,'INVALID_ACCOUNT_RESPONSE');assert.equal(rejected.snapshot,null);assert.equal(rejected.account,null);
+      assert.equal(reads,before+1);assert.equal(standard.status,'connected');assert.equal(standard.revision,1);
+      raw=valid;assert.equal(reads,before+1,'replacing the response never triggers an automatic read');
+      assert.equal((await controller.refresh()).phase,'connected');assert.equal(reads,before+2);
+    }
+  }finally{controller.close()}
+});
 test('malformed refresh clears owned read data, preserves Standard Wallet and recovers only on a verified new read',async()=>{
   const standard={provider:{},status:'connected',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
   let body=snapshot(),reads=0;
