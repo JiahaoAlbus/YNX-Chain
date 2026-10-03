@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "ynx-music-v2-business-store-source-checkpoint/v1",
+  "sourceCommit": "faf59eb9b56e14dcaa989c4ad513777c9f2678de",
+  "sourceTree": "837d8d3732b61b037ea31719c3924a4bea93ed07",
+  "baseline": "e18dd3d84f999c72e52602665da8184f1d04c613",
+  "completeMediaInheritedFrom": "e18dd3d84f999c72e52602665da8184f1d04c613",
+  "sourceDeltaPins": [
+    {
+      "path": "internal/music/backup.go",
+      "sha256": "9d4417d134e075734e3cbba9b75d378a7eaa42d9a310934ab08252dce1a1ee72",
+      "bytes": 12665,
+      "gitBlob": "999ca96549863e94cee21d05ae357d34fcee56a1"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "sha256": "08127a42d1538b04229d759d6f700d1902e226584db63729ede8515f1cd61db7",
+      "bytes": 8937,
+      "gitBlob": "c53bbdf89c78f71a4f0fad38ae3143d66d7570c1"
+    },
+    {
+      "path": "internal/music/business_request_test.go",
+      "sha256": "6e155d25b0fbce8774a59c37fa948fee9804fc620e32b201275be1cb6e30f611",
+      "bytes": 13925,
+      "gitBlob": "e71941d283f3ac2e5d573cefd10a66f60f446482"
+    },
+    {
+      "path": "internal/music/compatibility.go",
+      "sha256": "abd959018284d5161a05e30e72664b1a258d5d650ccfda50999f00e5a5effd0c",
+      "bytes": 3304,
+      "gitBlob": "3fafa55b847e13a22a0f7bcdb2d581869ab39690"
+    },
+    {
+      "path": "internal/music/server.go",
+      "sha256": "7e7dad86a4d2cc8286c5e6c1fc1b214bdb6d9ee0995b22201f6ddaf168cf6b38",
+      "bytes": 24912,
+      "gitBlob": "923b8edd9d24b4c45270d9aeb6ce2092a2ddbd8f"
+    },
+    {
+      "path": "internal/music/service.go",
+      "sha256": "b83fce3c5cfd8ddbb98c63f4e03645f4b4da7d0fa9dcf6578053343379b26a1f",
+      "bytes": 37840,
+      "gitBlob": "ca35154cc9ba60b87ac3cb2e11d3fed9c611b4ff"
+    },
+    {
+      "path": "internal/music/store.go",
+      "sha256": "5f06e575b64dc6a47782f389fc2e7838a93264ea438b6ada754ca6db12085034",
+      "bytes": 11242,
+      "gitBlob": "7ef0ed2e36f197ea30611153e2368ae31b1debae"
+    },
+    {
+      "path": "internal/music/types.go",
+      "sha256": "6f652cffffd68df44d167514d2c6bf3d660324ed301509262d6168fed51531f6",
+      "bytes": 7513,
+      "gitBlob": "dda0d49362fdf28fc5c2e67db314f4544310c69c"
+    }
+  ],
+  "completeMusicSourceFiles": 147,
+  "checks": {
+    "command": "go test -race -count=1 -json ./internal/music ./apps/music",
+    "packages": {
+      "github.com/JiahaoAlbus/YNX-Chain/apps/music": "pass",
+      "github.com/JiahaoAlbus/YNX-Chain/internal/music": "pass"
+    },
+    "newRegressionLeaves": [
+      {
+        "test": "TestBusinessNonceIsAtomicAndSurvivesRestart",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessFailedPersistenceDoesNotConsumeNonce",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessRevalidationExpiryAndClockRollback/expired_while_awaiting",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessRevalidationExpiryAndClockRollback/clock_rollback",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessRevalidationExpiryAndClockRollback/revoked",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessRevalidationExpiryAndClockRollback/cancelled",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessRevalidationExpiryAndClockRollback",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessParallelRequestsCannotBorrowActor",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessResponseRechecksAfterHeaderAndSuppressesBody",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessAPIRequiresCompleteActualBodyAndInstalledAuthority/absent",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessAPIRequiresCompleteActualBodyAndInstalledAuthority/partial",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessAPIRequiresCompleteActualBodyAndInstalledAuthority/wrong_digest",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessAPIRequiresCompleteActualBodyAndInstalledAuthority/valid",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessAPIRequiresCompleteActualBodyAndInstalledAuthority",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessReplayCapacityAndExpiredCollection",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessIdempotentResponseWithoutMutationConsumesNonce",
+        "result": "pass"
+      },
+      {
+        "test": "TestBusinessV2ExternalEffectsAndUnsignedQueriesStayClosed",
+        "result": "pass"
+      },
+      {
+        "test": "TestSchemaV2MigrationPreservesOriginalProfileAndIdempotency",
+        "result": "pass"
+      },
+      {
+        "test": "TestSchemaV2BackupRestoresWithoutRewritingOriginalBackup",
+        "result": "pass"
+      }
+    ],
+    "vet": "PASS",
+    "diffCheck": "PASS"
+  },
+  "preservedFailure": {
+    "path": "apps/music/central/evidence/business-store-v2-20261003/go-race-run2-fail.jsonl",
+    "reason": "New backup test omitted original mandatory MaxUploadBytes. Corrected fixture only; backup restore and byte preservation assertions unchanged."
+  },
+  "implemented": [
+    "request-local actor/session grant, shared original store",
+    "complete bounded body spool plus independent SHA256 and same parser bytes",
+    "live revalidation and expiry/clock check after await",
+    "business write, action nonce and audit persist together",
+    "idempotent existing result also consumes action nonce",
+    "private response revalidation before headers and each body chunk",
+    "persistent replay survives restart, expired markers only GC, capacity fail closed",
+    "verified schema1/2 migration preserving original business and media",
+    "historic schema2 backups verify read-only; only new restore destination migrates"
+  ],
+  "externalV2Hold": [
+    "POST /api/cases",
+    "POST /api/creator/settlements",
+    "GET /api/ai/proposals/{id}/stream"
+  ],
+  "requiredNext": [
+    "Concrete shared adapter must Authorize sender-bound original session, VerifyHTTPActionStream complete actual bytes and bind Revalidate closure to original grant plus live actor",
+    "Exact Music Web registry tuple admission and protected adapter/key mount by A",
+    "Complete SDK consumer composition (observed source9555 is not admission inferred here)",
+    "Durable V2 external effect dispatch/receipt/recovery in Music owned code",
+    "Formal source build/deploy plus real Wallet approval to original actor readback",
+    "Android/macOS installed/native end-to-end acceptance"
+  ],
+  "release": {
+    "concreteSharedCryptoAdapterInstalled": false,
+    "protectedMount": false,
+    "formalArtifact": false,
+    "publicRuntimeVerified": false,
+    "actualWalletApproval": false,
+    "nativeInstalled": false,
+    "fullMediaGoalComplete": false
+  },
+  "evidencePins": [
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/complete-music-source-manifest.json",
+      "sha256": "cde38f7ab2d8b7d15375a4bef31998df0153d25e5ac4a7cf35a640f90530fd4c",
+      "bytes": 35541
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race-run2-fail.jsonl",
+      "sha256": "bb89e2e344b13c9802cd2fcebd74232f0111fa93d901988b9592d56bc20d6f31",
+      "bytes": 125811
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race-run3.jsonl",
+      "sha256": "1ff0f5682425887fc5a5de8c0eeb5fbd154f276aeaf8cb79795945cac3e4f108",
+      "bytes": 125497
+    },
+    {
+      "path": "apps/music/central/evidence/business-store-v2-20261003/go-race.jsonl",
+      "sha256": "c6204d7112415288c0d69eb35d185ba38f8a36440b5b0121ff2e6e79e01a7087",
+      "bytes": 124578
+    }
+  ]
+}
