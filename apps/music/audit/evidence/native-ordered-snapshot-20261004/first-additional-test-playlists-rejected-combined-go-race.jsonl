@@ -1,0 +1,28 @@
+{"Time":"2026-10-04T06:52:21.084665+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T06:52:21.084809+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T06:52:21.438069+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T06:52:21.43815+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"PASS\n"}
+{"Time":"2026-10-04T06:52:21.551082+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness"}
+{"Time":"2026-10-04T06:52:21.551145+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness\n"}
+{"Time":"2026-10-04T06:52:21.551166+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android"}
+{"Time":"2026-10-04T06:52:21.551175+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness/android\n"}
+{"Time":"2026-10-04T06:52:22.439092+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t1.354s [no tests to run]\n"}
+{"Time":"2026-10-04T06:52:22.439174+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":1.354}
+{"Time":"2026-10-04T06:52:27.779932+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"    music_native_business_test.go:177: missing original same-account playlist readback\n"}
+{"Time":"2026-10-04T06:52:27.780483+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"--- FAIL: TestMusicNativeConsumerAndOriginalBusiness/android (6.23s)\n"}
+{"Time":"2026-10-04T06:52:27.780494+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Elapsed":6.23}
+{"Time":"2026-10-04T06:52:27.780551+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos"}
+{"Time":"2026-10-04T06:52:27.780764+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness/macos\n"}
+{"Time":"2026-10-04T06:52:36.666412+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"    music_native_business_test.go:177: missing original same-account playlist readback\n"}
+{"Time":"2026-10-04T06:52:36.666973+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"--- FAIL: TestMusicNativeConsumerAndOriginalBusiness/macos (8.89s)\n"}
+{"Time":"2026-10-04T06:52:36.666994+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Elapsed":8.89}
+{"Time":"2026-10-04T06:52:36.667023+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/ios"}
+{"Time":"2026-10-04T06:52:36.667031+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/ios","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness/ios\n"}
+{"Time":"2026-10-04T06:52:44.18769+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/ios","Output":"    music_native_business_test.go:177: missing original same-account playlist readback\n"}
+{"Time":"2026-10-04T06:52:44.18835+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/ios","Output":"--- FAIL: TestMusicNativeConsumerAndOriginalBusiness/ios (7.52s)\n"}
+{"Time":"2026-10-04T06:52:44.188365+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/ios","Elapsed":7.52}
+{"Time":"2026-10-04T06:52:44.188385+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"--- FAIL: TestMusicNativeConsumerAndOriginalBusiness (22.64s)\n"}
+{"Time":"2026-10-04T06:52:44.188405+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Elapsed":22.64}
+{"Time":"2026-10-04T06:52:44.188898+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"FAIL\n"}
+{"Time":"2026-10-04T06:52:44.190232+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t23.105s\n"}
+{"Time":"2026-10-04T06:52:44.190249+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":23.105}

@@ -1,0 +1,18 @@
+{"Time":"2026-10-04T06:57:52.233163+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T06:57:52.233293+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T06:57:53.118375+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T06:57:53.11859+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"PASS\n"}
+{"Time":"2026-10-04T06:57:53.201494+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness"}
+{"Time":"2026-10-04T06:57:53.202783+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness\n"}
+{"Time":"2026-10-04T06:57:53.202809+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos"}
+{"Time":"2026-10-04T06:57:53.202834+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness/macos\n"}
+{"Time":"2026-10-04T06:57:54.127733+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t1.894s [no tests to run]\n"}
+{"Time":"2026-10-04T06:57:54.127796+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":1.8940000000000001}
+{"Time":"2026-10-04T06:58:05.337887+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"    music_native_business_test.go:185: actual Native SDK -\u003e own native Music consumer -\u003e original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified\n"}
+{"Time":"2026-10-04T06:58:05.339744+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Output":"--- PASS: TestMusicNativeConsumerAndOriginalBusiness/macos (12.14s)\n"}
+{"Time":"2026-10-04T06:58:05.339797+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/macos","Elapsed":12.14}
+{"Time":"2026-10-04T06:58:05.339967+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"--- PASS: TestMusicNativeConsumerAndOriginalBusiness (12.14s)\n"}
+{"Time":"2026-10-04T06:58:05.340009+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Elapsed":12.14}
+{"Time":"2026-10-04T06:58:05.340402+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T06:58:06.351627+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t14.118s\n"}
+{"Time":"2026-10-04T06:58:06.352964+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":14.12}

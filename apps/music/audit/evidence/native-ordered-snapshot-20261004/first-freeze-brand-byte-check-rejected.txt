@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/tmp/freeze-music-ordered-snapshot-20261004.py", line 37, in <module>
+    assert (resource/'ynx-brand-original.png').read_bytes()==(root/'apps/music/ios/YNXMusic/ynx-brand-original.png').read_bytes()
+AssertionError
