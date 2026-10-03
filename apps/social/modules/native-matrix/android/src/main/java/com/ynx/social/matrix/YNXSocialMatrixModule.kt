@@ -49,6 +49,9 @@ class YNXSocialMatrixModule : Module() {
     @Volatile var verificationPeer: String? = null
     @Volatile var verificationAttempt = 0
     @Volatile var upload: SendAttachmentJoinHandle? = null
+    @Volatile var media: MatrixReceivedMedia? = null
+    @Volatile var mediaSerial: String? = null
+    @Volatile var mediaPeer: String? = null
     val items = mutableListOf<TimelineItem>()
   }
 
@@ -89,7 +92,8 @@ class YNXSocialMatrixModule : Module() {
       "transactionId" to (id as? EventOrTransactionId.TransactionId)?.transactionId,
       "sender" to item.sender, "own" to item.isOwn, "remote" to item.isRemote,
       "kind" to when (kind) { is MsgLikeKind.Message -> "message"; is MsgLikeKind.UnableToDecrypt -> "unable-to-decrypt"; is MsgLikeKind.Redacted -> "redacted"; else -> "other" },
-      "body" to message?.content?.body, "intentId" to originalPacket(item)?.first)
+      "body" to message?.content?.body, "intentId" to originalPacket(item)?.first,
+      "mediaKind" to when (message?.content?.msgType) { is MessageType.Image -> "image"; is MessageType.File -> "file"; else -> null })
   }
 
   private fun extraContent(intent: String, kind: String): String = JSONObject().put("org.ynx.social.intent.v1",
@@ -114,6 +118,8 @@ class YNXSocialMatrixModule : Module() {
   }
 
   private suspend fun closeRoom(h: Handle) {
+    h.mediaSerial = null; h.mediaPeer = null
+    h.media?.close(); h.media = null
     h.upload?.cancel(); h.upload = null
     h.roomId?.let { h.client.getRoom(it)?.enableSendQueue(false) }
     h.timelineTask?.cancel(); h.queueTask?.cancel()
@@ -129,12 +135,12 @@ class YNXSocialMatrixModule : Module() {
     // handles only; a late cleanup cannot pause a newer restored handle.
     Function("invalidate") {
       epoch.incrementAndGet()
-      synchronized(retired) { active?.let { it.upload?.cancel(); retired.add(it) }; active = null }
+      synchronized(retired) { active?.let { it.mediaSerial = null; it.media?.close(); it.upload?.cancel(); retired.add(it) }; active = null }
     }
     OnDestroy {
       epoch.incrementAndGet()
       val handles = synchronized(retired) { active?.let { retired.add(it) }; active = null; retired.toList().also { retired.clear() } }
-      handles.forEach { it.upload?.cancel(); it.syncTask?.cancel(); it.timelineTask?.cancel(); it.queueTask?.cancel() }
+      handles.forEach { it.mediaSerial = null; it.media?.close(); it.upload?.cancel(); it.syncTask?.cancel(); it.timelineTask?.cancel(); it.queueTask?.cancel() }
       cleanupScope.launch { for (h in handles) { h.client.enableAllSendQueues(false); h.sync?.stop(); h.client.pause() } }
     }
     AsyncFunction("suspend") Coroutine { ->
@@ -251,6 +257,38 @@ class YNXSocialMatrixModule : Module() {
     } }
 
     AsyncFunction("closeRoom") Coroutine { generation: Int -> mutex.withLock { closeRoom(current(generation)) } }
+
+    AsyncFunction("openReceivedMedia") Coroutine { generation: Int, id: String, peer: String, event: String -> mutex.withLock {
+      val h = current(generation)
+      require(peer.startsWith("@") && peer != h.binding.userId && event.startsWith("$")) { "MATRIX_MEDIA_PEER_EVENT_REQUIRED" }
+      val timeline = h.timeline ?: error("MATRIX_REVIEWED_ROOM_REQUIRED")
+      check(h.roomId == id) { "MATRIX_REVIEWED_ROOM_REQUIRED" }
+      if (h.media == null || h.mediaPeer != peer) {
+        h.mediaSerial = null; h.media?.close()
+        val serial = UUID.randomUUID().toString()
+        val context = appContext.reactContext ?: error("MATRIX_NATIVE_CONTEXT_REQUIRED")
+        val media = MatrixReceivedMedia(h.client, File(context.cacheDir, "ynx-social-matrix-media/$generation/$serial"), { reviewedId, sender ->
+          check(current(generation) === h && h.roomId == id && reviewedId == id && h.mediaSerial == serial && h.mediaPeer == peer) { "MATRIX_MEDIA_RETIRED" }
+          check(sender == null || sender == h.binding.userId || sender == peer) { "MATRIX_MEDIA_SENDER_MISMATCH" }
+          val members = room(h, id).activeHumanMemberIds()
+          check(members.contains(h.binding.userId) && members.all { it == h.binding.userId || it == peer }) { "MATRIX_PRIVATE_ROOM_POLICY_MISMATCH" }
+          check(current(generation) === h && h.roomId == id && h.mediaSerial == serial) { "MATRIX_MEDIA_RETIRED" }
+        })
+        h.mediaSerial = serial; h.mediaPeer = peer; h.media = media
+      }
+      val media = h.media ?: error("MATRIX_MEDIA_RETIRED")
+      val lease = media.open(timeline, id, event)
+      check(current(generation) === h && h.media === media && h.roomId == id) { "MATRIX_MEDIA_RETIRED" }
+      lease
+    } }
+    AsyncFunction("releaseReceivedMedia") Coroutine { generation: Int, lease: String -> mutex.withLock {
+      require(Regex("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}").matches(lease)) { "MATRIX_MEDIA_LEASE_REQUIRED" }
+      // Cleanup deliberately accepts an expired/retired generation, never a URI
+      // or a new session's handle. Already-drained handles are idempotent.
+      val h = active?.takeIf { it.generation == generation }
+        ?: synchronized(retired) { retired.firstOrNull { it.generation == generation } }
+      h?.media?.release(lease)
+    } }
 
     AsyncFunction("pendingIntents") Coroutine { generation: Int, id: String -> mutex.withLock {
       val h = current(generation)

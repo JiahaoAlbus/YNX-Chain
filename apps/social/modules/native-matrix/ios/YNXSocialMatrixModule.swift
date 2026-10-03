@@ -69,6 +69,9 @@ private actor MatrixEngine {
     var verificationPeer: String?
     var verificationAttempt = 0
     var upload: SendAttachmentJoinHandle?
+    var media: MatrixReceivedMedia?
+    var mediaSerial: String?
+    var mediaPeer: String?
     var sending = false
     init(_ generation: Int, _ binding: MatrixBindingRecord, _ vault: MatrixVault, _ client: Client) {
       self.generation = generation; self.binding = binding; self.vault = vault; self.client = client
@@ -90,10 +93,13 @@ private actor MatrixEngine {
     publish(fields.merging(["generation": h.generation, "type": type]) { _, new in new })
   }
   private func close(_ h: Handle) async {
+    let media = h.media
+    h.media = nil; h.mediaSerial = nil; h.mediaPeer = nil
     h.upload?.cancel(); h.upload = nil
     if let id = h.roomId, let room = try? h.client.getRoom(roomId: id) { room.enableSendQueue(enable: false) }
     h.timelineTask?.cancel(); h.queueTask?.cancel()
     h.timelineTask = nil; h.queueTask = nil; h.timeline = nil; h.roomId = nil; h.items.removeAll()
+    await media?.close()
   }
   func suspend() async {
     guard let h = active, h.generation != gate.current() else { return }
@@ -179,17 +185,19 @@ private actor MatrixEngine {
     case let .eventId(id): event = id
     case let .transactionId(id): transaction = id
     }
-    var kind = "other"; var body: Any = NSNull()
+    var kind = "other"; var body: Any = NSNull(); var mediaKind: Any = NSNull()
     if case let .msgLike(content) = item.content {
       switch content.kind {
-      case let .message(message): kind = "message"; body = message.body
+      case let .message(message):
+        kind = "message"; body = message.body
+        switch message.msgType { case .image: mediaKind = "image"; case .file: mediaKind = "file"; default: break }
       case .unableToDecrypt: kind = "unable-to-decrypt"
       case .redacted: kind = "redacted"
       default: break
       }
     }
     return ["eventId": event, "transactionId": transaction, "sender": item.sender, "own": item.isOwn,
-      "remote": item.isRemote, "kind": kind, "body": body, "intentId": originalPacket(item)?.id as Any? ?? NSNull()]
+      "remote": item.isRemote, "kind": kind, "body": body, "mediaKind": mediaKind, "intentId": originalPacket(item)?.id as Any? ?? NSNull()]
   }
   private func extraContent(_ intent: String, _ kind: String) throws -> String {
     String(decoding: try JSONSerialization.data(withJSONObject: ["org.ynx.social.intent.v1": ["id": intent, "kind": kind]]), as: UTF8.self)
@@ -267,6 +275,42 @@ private actor MatrixEngine {
     } catch { emit(h, "native-journal-error") }
   }
   func closeRoom(_ generation: Int) async throws { await close(try current(generation)) }
+  private func reviewReceivedMedia(_ generation: Int, _ id: String, _ peer: String, _ serial: String, _ sender: String?) async throws {
+    let h = try current(generation)
+    guard h.roomId == id, h.mediaSerial == serial, h.mediaPeer == peer,
+      sender == nil || sender == h.binding.userId || sender == peer else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_RETIRED") }
+    let target = try await room(h, id)
+    let members = try await target.activeHumanMemberIds()
+    guard members.contains(h.binding.userId), members.allSatisfy({ $0 == h.binding.userId || $0 == peer }),
+      try current(generation) === h, h.roomId == id, h.mediaSerial == serial else { throw MatrixBridgeFailure.denied("MATRIX_PRIVATE_ROOM_POLICY_MISMATCH") }
+  }
+  func openReceivedMedia(_ generation: Int, _ id: String, _ peer: String, _ event: String) async throws -> [String: Any] {
+    let h = try current(generation)
+    guard peer.hasPrefix("@"), peer != h.binding.userId, event.hasPrefix("$"), h.roomId == id, let timeline = h.timeline else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_PEER_EVENT_REQUIRED") }
+    if h.media == nil || h.mediaPeer != peer {
+      let previous = h.media
+      h.media = nil; h.mediaSerial = nil; h.mediaPeer = nil
+      await previous?.close()
+      guard try current(generation) === h, h.roomId == id else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_RETIRED") }
+      let serial = UUID().uuidString
+      let root = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        .appendingPathComponent("ynx-social-matrix-media").appendingPathComponent(String(generation)).appendingPathComponent(serial)
+      let media = MatrixReceivedMedia(client: h.client, root: root) { [weak self] reviewedId, sender in
+        guard let self, reviewedId == id else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_RETIRED") }
+        try await self.reviewReceivedMedia(generation, id, peer, serial, sender)
+      }
+      h.media = media; h.mediaSerial = serial; h.mediaPeer = peer
+    }
+    guard let media = h.media else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_RETIRED") }
+    let lease = try await media.open(timeline: timeline, roomId: id, eventId: event)
+    guard try current(generation) === h, h.media === media, h.roomId == id else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_RETIRED") }
+    return lease
+  }
+  func releaseReceivedMedia(_ generation: Int, _ lease: String) async throws {
+    guard UUID(uuidString: lease) != nil else { throw MatrixBridgeFailure.denied("MATRIX_MEDIA_LEASE_REQUIRED") }
+    guard let h = active, h.generation == generation else { return }
+    await h.media?.release(leaseId: lease)
+  }
   func pendingIntents(_ generation: Int, _ id: String) async throws -> [[String: Any]] {
     let h = try current(generation)
     _ = try await room(h, id)
@@ -384,6 +428,8 @@ public final class YNXSocialMatrixModule: Module, @unchecked Sendable {
     AsyncFunction("directRoom") { (generation: Int, peer: String) async throws -> [String: Any] in try await self.engine.directRoom(generation, peer) }
     AsyncFunction("observeRoom") { (generation: Int, id: String) async throws in try await self.engine.observeRoom(generation, id) }
     AsyncFunction("closeRoom") { (generation: Int) async throws in try await self.engine.closeRoom(generation) }
+    AsyncFunction("openReceivedMedia") { (generation: Int, id: String, peer: String, event: String) async throws -> [String: Any] in try await self.engine.openReceivedMedia(generation, id, peer, event) }
+    AsyncFunction("releaseReceivedMedia") { (generation: Int, lease: String) async throws in try await self.engine.releaseReceivedMedia(generation, lease) }
     AsyncFunction("pendingIntents") { (generation: Int, id: String) async throws -> [[String: Any]] in try await self.engine.pendingIntents(generation, id) }
     AsyncFunction("sendText") { (generation: Int, id: String, intent: String, body: String) async throws -> [String: Any] in try await self.engine.sendText(generation, id, intent, body) }
     AsyncFunction("stageFile") { (generation: Int, source: String) async throws -> [String: Any] in try await self.engine.stageFile(generation, source) }

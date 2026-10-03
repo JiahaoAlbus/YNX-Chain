@@ -3,6 +3,7 @@ import { Alert, AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import * as Crypto from 'expo-crypto';
 import * as ImagePicker from 'expo-image-picker';
 import type { MatrixEvent, NativeMatrixConsumer } from './nativeMatrix';
+import { NativeMatrixReceivedAttachment } from './NativeMatrixReceivedAttachment';
 
 // Mounted by the existing product identity integration, never by a discovered
 // URL or Wallet account alone. No custom envelope fallback in this workspace.
@@ -131,6 +132,7 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
       <Text style={styles.sender}>{event.own ? 'You' : event.sender}</Text>
       <Text>{event.body ?? (event.kind === 'unable-to-decrypt' ? 'Waiting for the original encryption keys.' : event.kind)}</Text>
       <Text style={styles.status}>{event.remote ? 'SDK remote event' : 'SDK local echo, not delivered'}</Text>
+      {event.remote && event.eventId && event.mediaKind && <NativeMatrixReceivedAttachment client={client} eventId={event.eventId} />}
     </View>)}</ScrollView>
     {ready && <>
       {originals.length > 0 && <ScrollView style={styles.recovery} nestedScrollEnabled>

@@ -1,6 +1,7 @@
 // This is the credential-free product consumer, not a Wallet->Matrix token
 // conversion. A supplies the original, verified identity and native enrollment.
 import { checkedOriginals, checkedOriginalObservation, type MatrixPendingIntent } from './nativeMatrixRecovery';
+import { MatrixMediaPreview, type MatrixMediaLease } from './nativeMatrixMedia';
 export type MatrixBinding = Readonly<{
   account: string; homeserverUrl: string; userId: string; deviceId: string;
   authorityId: string; expiresAtMs: number;
@@ -15,6 +16,7 @@ export type MatrixEvent = {
   eventId: string | null; transactionId: string | null; sender: string;
   own: boolean; remote: boolean; kind: string; body: string | null;
   intentId?: string | null;
+  mediaKind?: 'image' | 'file' | null;
 };
 export type MatrixNativeEvent = {
   generation: number; roomId?: string; type: string; events?: MatrixEvent[];
@@ -35,6 +37,8 @@ export interface NativeMatrixBridge {
   sendText(generation: number, roomId: string, intentId: string, body: string): Promise<{ queued: true }>;
   sendFile(generation: number, roomId: string, intentId: string, uri: string, mime: string, caption: string): Promise<{ queued: true }>;
   readEvent(generation: number, roomId: string, eventId: string): Promise<MatrixEvent>;
+  openReceivedMedia?(generation: number, roomId: string, peerUserId: string, eventId: string): Promise<MatrixMediaLease>;
+  releaseReceivedMedia?(generation: number, leaseId: string): Promise<void>;
   requestVerification(generation: number, peerUserId: string): Promise<{ attempt: number }>;
   verificationAction(generation: number, action: 'accept' | 'start' | 'approve' | 'reject' | 'cancel', revision: number): Promise<void>;
   logout(generation: number): Promise<void>;
@@ -258,6 +262,47 @@ export class NativeMatrixConsumer {
     if (!room || this.room !== currentRoom || auth.epoch !== this.epoch) throw new Error('MATRIX_STALE_ROOM');
     this.validRoom(room, auth.binding.userId, peer.userId);
     return { ...auth, room };
+  }
+
+  receivedMedia(eventId: string): { roomId: string; preview: MatrixMediaPreview } {
+    const original = this.room, generation = this.generation, epoch = this.epoch;
+    const open = this.bridge.openReceivedMedia?.bind(this.bridge);
+    const release = this.bridge.releaseReceivedMedia?.bind(this.bridge);
+    if (!original || generation === undefined || !eventId.startsWith('$')) throw new Error('MATRIX_REVIEWED_MEDIA_REQUIRED');
+    if (!open || !release) throw new Error('MATRIX_NATIVE_MEDIA_BUILD_REQUIRED');
+    const leases = new Map<string, number>();
+    const review = async (id: string) => {
+      const auth = await this.reviewRoom();
+      if (this.room !== original || this.epoch !== epoch || auth.generation !== generation || id !== original.value.roomId) throw new Error('MATRIX_MEDIA_RETIRED');
+      return auth;
+    };
+    const preview = new MatrixMediaPreview({
+      open: async (id, event) => {
+        if (event !== eventId) throw new Error('MATRIX_MEDIA_EVENT_MISMATCH');
+        const auth = await review(id);
+        const peer = await this.peer(original.personId, auth.binding.authorityId);
+        await review(id);
+        let lease: MatrixMediaLease;
+        try { lease = await open(generation, id, peer.userId, event); }
+        catch (error) {
+          // A failed native call may have no DTO to release. Retire only this
+          // still-current Matrix handle, not a newer session or Standard Wallet.
+          if (epoch === this.epoch && this.room === original) this.lock();
+          throw error;
+        }
+        leases.set(lease.leaseId, generation);
+        // MatrixMediaPreview performs the fresh post-await review and owns
+        // release/retry even when a revoke or new room arrives during download.
+        return lease;
+      },
+      release: async leaseId => {
+        const originalGeneration = leases.get(leaseId);
+        if (originalGeneration === undefined) throw new Error('MATRIX_MEDIA_ORIGINAL_LEASE_REQUIRED');
+        await release(originalGeneration, leaseId);
+        leases.delete(leaseId);
+      },
+    }, async id => { await review(id); });
+    return { roomId: original.value.roomId, preview };
   }
 
   async send(intentId: string, body: string) {
