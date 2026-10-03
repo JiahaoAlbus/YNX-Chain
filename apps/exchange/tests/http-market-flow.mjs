@@ -33,6 +33,8 @@ class HTTPEvents {
   }
 }
 let ready = false;
+let matched = false, recovering = false;
+const statuses = [];
 let finish, fail;
 const done = new Promise((resolve, reject) => {finish = resolve; fail = reject;});
 const feed = createMarketFeed({fetchImpl: localFetch, EventSourceImpl: HTTPEvents,
@@ -48,9 +50,28 @@ const feed = createMarketFeed({fetchImpl: localFetch, EventSourceImpl: HTTPEvent
           assert.deepEqual(candles[0].trades,[{id:snapshot.trades[0].id,sourceDigest:snapshot.trades[0].sourceDigest}]);assert.equal(candles[0].complete,false);
         }
         assert.equal(requests.every(([, method]) => method === 'GET'), true);
-        console.log(`MATCH=${snapshot.trades[0].sourceDigest}`); finish();
+        if (!matched) { matched = true; console.log(`MATCH=${snapshot.trades[0].sourceDigest}`); finish(); }
       }
     } catch (error) { fail(error); }
-  }, onStatus(status) { if (['unavailable', 'reconnecting'].includes(status.phase)) fail(new Error(status.code)); }});
+  }, onStatus(status) { statuses.push(status.phase); if (!recovering && ['unavailable', 'reconnecting'].includes(status.phase)) fail(new Error(status.code)); }});
 const timeout = setTimeout(() => fail(new Error('real HTTP market flow timed out')), 8000);
-try { await feed.start(); await done; } finally {clearTimeout(timeout); feed.stop();}
+try {
+  await feed.start(); await done;
+  const before = structuredClone(feed.snapshot());
+  recovering = true; feed.offline(); assert.equal(statuses.at(-1), 'offline');
+  // Real guest HTTP re-read after transport loss. Cached matches may remain
+  // visible but cannot alone claim a recovered live source.
+  await feed.retry(); assert.equal(statuses.at(-1), 'live');
+  const after = feed.snapshot();
+  assert.deepEqual(after.trades, before.trades);
+  assert.deepEqual(after.orderBook.bids, before.orderBook.bids);
+  assert.deepEqual(after.orderBook.asks, before.orderBook.asks);
+  const {asOf: beforeTime,...beforeSource} = before.orderBook.sourceMetadata;
+  const {asOf: afterTime,...afterSource} = after.orderBook.sourceMetadata;
+  assert.deepEqual(afterSource,beforeSource);
+  assert.ok(Date.parse(afterTime)>=Date.parse(beforeTime));
+  assert.equal(after.revision, before.revision);
+  assert.ok(requests.filter(([path]) => path !== STREAM_PATH).length >= 2);
+  assert.equal(requests.every(([,method]) => method === 'GET'), true);
+  for(const interval of [60000,300000,3600000])assert.deepEqual(aggregateRetainedCandles(after.trades,interval),aggregateRetainedCandles(before.trades,interval));
+} finally {clearTimeout(timeout); feed.stop();}
