@@ -1,0 +1,74 @@
+[
+  {
+    "locale": "en",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "zh-CN",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "zh-TW",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "ja",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "ko",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "es",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "fr",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "de",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "pt",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "ru",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "ar",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  },
+  {
+    "locale": "id",
+    "titleVisible": true,
+    "authorizeVisible": true,
+    "englishPermissionLeak": false
+  }
+]

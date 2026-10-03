@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "status": "SOURCE_AND_LOCAL_PROVIDER_WRAPPER_12_LOCALES_VERIFIED_PUBLIC_UNVERIFIED",
+  "sourceCommit": "479db294598e141b7cafaec1ec4bba62cff30512",
+  "sourceTree": "8f310d1234a78d9b500645750726b72c11066c2f",
+  "parent": "44bae4aab32cb4c8dd28787782bc73346a7829b2",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "scope": "Guest Provider TEST wrapper copy only; extends existing Card Locale union; correct source location is GuestExperience, not App",
+  "coverage": {
+    "title": true,
+    "permissionDescription": true,
+    "authorizeLabel": true,
+    "revokeLabel": true,
+    "safeErrorPrefix": true,
+    "arbitraryErrorTextHidden": true,
+    "boundedErrorCodePreserved": true
+  },
+  "tests": {
+    "copyAndErrors": {
+      "passed": 28,
+      "total": 28
+    },
+    "typecheck": "PASS",
+    "revokeAndDynamicErrorCopy": "Synthetic/source coverage only, no real revoke or error-lifecycle claim"
+  },
+  "localWeb": {
+    "url": "http://localhost:19089/",
+    "mobile": [
+      390,
+      844
+    ],
+    "desktop": [
+      1440,
+      1000
+    ],
+    "englishDefault": true,
+    "explicitLocaleObservations": [
+      {
+        "locale": "en",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "zh-CN",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "zh-TW",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "ja",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "ko",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "es",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "fr",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "de",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "pt",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "ru",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "ar",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      },
+      {
+        "locale": "id",
+        "titleVisible": true,
+        "authorizeVisible": true,
+        "englishPermissionLeak": false
+      }
+    ],
+    "allObserved": true,
+    "englishReturn": true,
+    "errors": 0,
+    "warnings": 1,
+    "warning": "Existing shadow style deprecation",
+    "focusOnlyScreenshot": true,
+    "authorizeClicked": false
+  },
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/copy-tests.log",
+      "bytes": 2263,
+      "sha256": "ec3c6be97337f82d2ab362affebacb9270486deddf64ff4b79ecb2dcc32102e8"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/local-preview.log",
+      "bytes": 816,
+      "sha256": "40db1c8ed2763b71d6feb618a6368f797454768e2b05d663e1a69dc4875bb1a2"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/locale-observations.json",
+      "bytes": 1448,
+      "sha256": "541aba233501089c3f652f24e7cacd58dac036f687da1a8bf6f26efaf326dc36"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/locale-ax.json",
+      "bytes": 78642,
+      "sha256": "d4ad1a172ee686f04cb974ee835be87d4620597f7a0fc248b31f5e744cc77e6d"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/mobile-en.jpg",
+      "bytes": 53904,
+      "sha256": "e5c6e91ef141d1fbc6f26d787cb3e7293ff359f1a52640ef8fb2761110671ed5"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/mobile-zh-TW.jpg",
+      "bytes": 48089,
+      "sha256": "2d5b534557f41f65de4282002057511ee08916c4158f64c9f6f0d5bd2390c0d6"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/mobile-ar.jpg",
+      "bytes": 45627,
+      "sha256": "7da312eec488a223919cf539e42436ec249a90c5c7fd46a1335beabf138d5d34"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/desktop-en.jpg",
+      "bytes": 131931,
+      "sha256": "0ff00b428163ee0a8fda3a98dc80cd93354707ad1ee9180c09d2bad66470a68e"
+    },
+    {
+      "path": "apps/card/evidence/20261003-provider-guest-copy/browser-console.json",
+      "bytes": 337,
+      "sha256": "b7e47ea3ecc94d3ccf85507d49853bad2e2b7e0c614302341d31a3db6503f9f6"
+    }
+  ],
+  "inheritedEvidence": [
+    "apps/card/evidence/20261003-original-brand-final/manifest.json",
+    "apps/card/evidence/20261003-web-style/manifest.json"
+  ],
+  "pending": "A sole shared/Hosted/backend/Host final integration with accepted carrier and exact compiledJS/runtime-identity/backend pairing; Root will issue carrier acceptance. No Card owner deployment.",
+  "truth": {
+    "protocolChanged": false,
+    "scopeChanged": false,
+    "providerChanged": false,
+    "registrationChanged": false,
+    "formalBuild": false,
+    "deployed": false,
+    "publicVerified": false,
+    "installedVerified": false,
+    "realApproval": false,
+    "realRevoke": false,
+    "activeCard": false,
+    "realYNXTTopup": false,
+    "signature": false,
+    "transaction": false,
+    "realCard": false,
+    "panCvv": false,
+    "fiat": false,
+    "productionRealPayments": false,
+    "fullProductComplete": false
+  }
+}

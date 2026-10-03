@@ -1,0 +1,8 @@
+[
+  {
+    "level": "warn",
+    "message": "\"shadow*\" style props are deprecated. Use \"boxShadow\".",
+    "timestamp": "2026-10-03T04:05:57.115Z",
+    "url": "http://localhost:19089/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  }
+]

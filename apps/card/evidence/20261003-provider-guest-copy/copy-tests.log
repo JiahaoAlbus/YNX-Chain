@@ -1,0 +1,36 @@
+✔ en: every guest private-service label has explicit copy (0.453375ms)
+✔ en: classified error preserves code without replacing locale (0.077958ms)
+✔ zh-CN: every guest private-service label has explicit copy (0.054834ms)
+✔ zh-CN: classified error preserves code without replacing locale (0.064ms)
+✔ zh-TW: every guest private-service label has explicit copy (0.041916ms)
+✔ zh-TW: classified error preserves code without replacing locale (0.030166ms)
+✔ ja: every guest private-service label has explicit copy (0.033166ms)
+✔ ja: classified error preserves code without replacing locale (0.028042ms)
+✔ ko: every guest private-service label has explicit copy (0.049583ms)
+✔ ko: classified error preserves code without replacing locale (0.062917ms)
+✔ es: every guest private-service label has explicit copy (0.040625ms)
+✔ es: classified error preserves code without replacing locale (0.037042ms)
+✔ fr: every guest private-service label has explicit copy (0.027541ms)
+✔ fr: classified error preserves code without replacing locale (0.024875ms)
+✔ de: every guest private-service label has explicit copy (0.024667ms)
+✔ de: classified error preserves code without replacing locale (0.018417ms)
+✔ pt: every guest private-service label has explicit copy (0.021291ms)
+✔ pt: classified error preserves code without replacing locale (0.018625ms)
+✔ ru: every guest private-service label has explicit copy (0.0165ms)
+✔ ru: classified error preserves code without replacing locale (0.017667ms)
+✔ ar: every guest private-service label has explicit copy (0.016042ms)
+✔ ar: classified error preserves code without replacing locale (0.030583ms)
+✔ id: every guest private-service label has explicit copy (0.020458ms)
+✔ id: classified error preserves code without replacing locale (0.017583ms)
+✔ undefined preference uses English and explicit traditional Chinese is distinct (0.034875ms)
+✔ unbounded or raw errors cannot expose developer details (0.034292ms)
+✔ locale changes translate the same existing classified failure (0.062917ms)
+✔ Guest consumes locale copy for every wrapper action and error (0.129916ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.773166
