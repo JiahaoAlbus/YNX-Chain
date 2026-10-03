@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "ynx-wallet-owned-continuation/v1",
+  "parent": "e5be8c4821517a5fff88a37ac66feeaec0834963",
+  "status": "OWNED_SOURCE_FIX_NOT_RELEASE_ACCEPTANCE",
+  "change": "Passive WalletConnect view ownership checks retain account, generation and active-app fences without an operation deadline. Active begin() leases retain the original 120-second deadline. No key access, request expiry, SDK, App.tsx or shared policy change.",
+  "counterproof": {
+    "original": {"pass": 5, "fail": 2, "path": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/passive-view-original-e5be.log", "sha256": "69b0ab87d89dea8bdbca958ca3a88d2ccccc37b443e96595044e328b19be202a"},
+    "fixedWithOperationLifecycle": {"pass": 13, "fail": 0, "path": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/passive-view-fixed.log", "sha256": "fc4c899231dec79d7120cd54119d55f4a7a5d2f78cb411c95b87b946ea48b263"},
+    "command": "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/apps/wallet/node_modules/.bin/tsx --test --test-timeout=15000 apps/wallet/src/walletConnect/viewOperations.test.ts apps/wallet/src/security/operationLifecycle.test.ts",
+    "scope": "Real view-operation class and extracted actual Scan callback; builtins and owned lifecycle only. No Wallet Auth or general SDK source import. Synthetic clock, not installed camera acceptance."
+  },
+  "historical274DependencyBoundary": {
+    "cwd": "/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet",
+    "runner": "node_modules/.bin/tsx --test --test-timeout=15000",
+    "tests": ["src/walletConnect/viewReentryUI.test.ts", "src/walletConnect/sessionApproval.test.ts", "src/walletConnect/securityStore.test.ts", "src/walletConnect/runtime.test.ts", "src/walletConnect/pendingReviewRecovery.test.ts", "src/walletConnect/reviewRecovery.test.ts", "src/walletConnect/evm.test.ts", "src/walletConnect/nativeSignIn.test.ts", "src/security/operationLifecycle.test.ts", "src/security/productSessionKeyAccess.test.ts", "src/chain/nativeTransferOutbox.test.ts", "src/storage/walletRepository.test.ts", "src/state/scannerPermissionUI.test.ts"],
+    "log": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/native-provider-reentry-final-related-v2.log",
+    "logSHA256": "067ba5a0301e94d4ed1476b16cd9d0e356fe92099bd9a7d84a2293bcb86508e9",
+    "nodeModulesLinkChain": ["/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet/node_modules", "/tmp/ynx-wallet-native-shared-ios-scan-20261003-0xPFYb/apps/wallet/node_modules", "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/apps/wallet/node_modules"],
+    "walletAuthRealpath": "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/packages/wallet-auth",
+    "currentReadOnlyAudit": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/native-dependency-binding-current.json",
+    "currentReadOnlyAuditSHA256": "6b772d4e2b0b5220e6988fb604fefbe5dd8bebfcf8989a0515af09e4b7aee888",
+    "comparisonBaseline": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "currentFacts": [
+      "Wallet Auth src 95/95 tracked files are byte-exact baseline955. Whole package has 130/214 exact tracked files; 84 non-src tracked files missing, no tracked source differences.",
+      "Wallet Auth package.json is baseline955 exact but differs from e5be historical shared package.json. This is not the e5be whole-repository dependency tree.",
+      "Native package.json and package-lock.json match e5be. Installed node_modules/.package-lock.json is separately hashed; matching the source lock is not an installed graph attestation.",
+      "General sdk/js is not baseline955 exact: 3/13 tracked files equal, 3 differ, 7 missing, plus primitives.js. Do not call consumer955 an entirely byte-exact SDK955 checkout.",
+      "Read-only inspection of Wallet Auth src import/export declarations finds local package modules, external packages and ../product-session-registry.json, not sdk/js. Source text scan is not an exhaustive historical runtime module trace.",
+      "Current tsx is 4.23.1; current TypeScript is 6.0.3. Historical complete dependency hashes were not captured at the time of the 274 run."
+    ],
+    "limits": ["274/274 means owned-source compatibility checks against that supplied QA environment only, not final issuer graph or formal build/install acceptance.", "The current byte audit cannot retroactively prove all loaded modules at the historical run.", "No new installation, alias, shim, dependency rewiring, rejected successor SDK execution or shared-source edit was performed for this investigation."]
+  },
+  "frozenAppSHA256": "c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+  "remainingGates": ["Independent source admission", "Authorized shared dependency and issuer graph", "Installed camera/biometric/account reentry and real business readback", "Signing, release and user acceptance"]
+}

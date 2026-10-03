@@ -8,6 +8,7 @@ export class WalletConnectViewOperations {
   setAccount(account:string){if(this.lifecycle.selectedAccount()!==account){this.scope.cancel();this.lifecycle.setAccount(account);}}
   setAppState(state:string){this.lifecycle.setAppState(state);if(state==="background")this.scope.cancel();}
   cancel(){this.scope.cancel();this.lifecycle.invalidate();}
-  captureCurrent(account:string){const generation=this.lifecycle.capture(),deadline=this.lifecycle.time()+120000;return()=>{try{this.lifecycle.assert(generation,account,false,deadline);return true;}catch{return false;}};}
+  // Passive view ownership has no operation deadline; active begin() leases keep their TTL.
+  captureCurrent(account:string){const generation=this.lifecycle.capture();return()=>{try{this.lifecycle.assert(generation,account,false,Infinity);return true;}catch{return false;}};}
   begin(account:string){return this.scope.begin({account,requireUnlocked:false});}
 }
