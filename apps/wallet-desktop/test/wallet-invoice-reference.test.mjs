@@ -117,6 +117,12 @@ test("mounted renderer opens invoice modal, queries only on explicit submit, and
   runInNewContext(source.slice(start,end),{document,window:{ynxWallet:api},createInvoiceReferenceUI,accountState:{account},keyState:{revision:1},nativeAccountLabel:value=>value});
   get("#open-invoice").listeners.get("click")();assert.equal(get("#invoice-sheet").open,true);assert.equal(calls.length,0);
   const fileInput={value:"chosen-file",files:[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}]};
+  // A synthetic/stale change without the chooser-opening intent is rejected.
+  get("#invoice-qr").listeners.get("change")({target:fileInput});await new Promise(resolve=>setImmediate(resolve));assert.equal(qrReads,0);assert.equal(calls.length,0);
+  get("#invoice-qr").listeners.get("click")();
+  const changedFile={value:"chosen-file",files:[{type:"image/png",size:2,arrayBuffer:async()=>new ArrayBuffer(1)}]};
+  get("#invoice-qr").listeners.get("change")({target:changedFile});await new Promise(resolve=>setImmediate(resolve));assert.equal(qrReads,0);assert.equal(calls.length,0);assert.match(get("#invoice-status").textContent,/No supported Pay invoice reference/);
+  get("#invoice-qr").listeners.get("click")();
   get("#invoice-qr").listeners.get("change")({target:fileInput});await new Promise(resolve=>setImmediate(resolve));
   assert.equal(fileInput.value,"");assert.equal(qrReads,1);assert.equal(calls.length,0);assert.equal(get("#invoice-reference").value,invoice.id);assert.match(get("#invoice-status").textContent,/Nothing was uploaded, queried or paid/);
   get("#invoice-reference").value=invoice.id;get("#invoice-form").listeners.get("submit")({preventDefault(){}});await new Promise(resolve=>setImmediate(resolve));

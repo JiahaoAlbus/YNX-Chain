@@ -105,7 +105,8 @@ test("actual Send submit handler cannot open a late review after close, edit or 
     nodes.get("#send-sheet").open = true; nodes.get("#transfer-to").value = account; nodes.get("#transfer-amount").value = "1";
     const context = { document: { querySelector: id => { assert(nodes.has(id), id); return nodes.get(id); } }, keyState: { locked: false, revision: 1 }, paymentDraftRevision: 0, transferReview: null, window: { ynxWallet: { prepareTransfer: () => pending.promise } } };
     context.invalidatePaymentInput = () => { context.paymentDraftRevision++; };
-    runInNewContext(source.slice(start, end), context);
+    const copyHelper=source.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
+    runInNewContext(copyHelper+"\n"+source.slice(start, end), context);
     const job = submit({ preventDefault() {} });
     if (mutation === "close") nodes.get("#send-sheet").open = false;
     if (mutation === "edit") nodes.get("#transfer-to").value = evm;

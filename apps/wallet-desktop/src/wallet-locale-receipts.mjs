@@ -1,0 +1,17 @@
+/** A node-local snapshot is not consensus finality, in every language. */
+const keys=["Transaction mined successfully in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof.","Transaction failed in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof."];
+const rows={
+en:keys,
+"zh-Hans":["交易在节点已完成的本地快照中成功出块。实际费用：{fee} YNXT。此证明不能确认共识最终性。","交易在节点已完成的本地快照中失败。实际费用：{fee} YNXT。此证明不能确认共识最终性。"],
+"zh-Hant":["交易在節點已完成的本機快照中成功出塊。實際費用：{fee} YNXT。此證明不能確認共識最終性。","交易在節點已完成的本機快照中失敗。實際費用：{fee} YNXT。此證明不能確認共識最終性。"],
+ja:["ノードの完了済みローカルスナップショットでは取引が正常にブロックに含まれています。実際の手数料：{fee} YNXT。この証明は合意の最終確定を示しません。","ノードの完了済みローカルスナップショットでは取引が失敗しています。実際の手数料：{fee} YNXT。この証明は合意の最終確定を示しません。"],
+ko:["노드의 완료된 로컬 스냅샷에서 거래가 성공적으로 블록에 포함됐습니다. 실제 수수료: {fee} YNXT. 이 증거는 합의 최종성을 확립하지 않습니다.","노드의 완료된 로컬 스냅샷에서 거래가 실패했습니다. 실제 수수료: {fee} YNXT. 이 증거는 합의 최종성을 확립하지 않습니다."],
+es:["La transacción se minó correctamente en la instantánea local completada del nodo. Comisión real: {fee} YNXT. Esta prueba no establece la finalidad del consenso.","La transacción falló en la instantánea local completada del nodo. Comisión real: {fee} YNXT. Esta prueba no establece la finalidad del consenso."],
+fr:["La transaction a été minée avec succès dans l’instantané local terminé du nœud. Frais réels : {fee} YNXT. Cette preuve n’établit pas la finalité du consensus.","La transaction a échoué dans l’instantané local terminé du nœud. Frais réels : {fee} YNXT. Cette preuve n’établit pas la finalité du consensus."],
+de:["Die Transaktion wurde im abgeschlossenen lokalen Snapshot des Knotens erfolgreich in einen Block aufgenommen. Tatsächliche Gebühr: {fee} YNXT. Dieser Nachweis belegt keine Konsensfinalität.","Die Transaktion ist im abgeschlossenen lokalen Snapshot des Knotens fehlgeschlagen. Tatsächliche Gebühr: {fee} YNXT. Dieser Nachweis belegt keine Konsensfinalität."],
+pt:["A transação foi minerada com sucesso no snapshot local concluído do nó. Taxa real: {fee} YNXT. Esta prova não estabelece a finalidade do consenso.","A transação falhou no snapshot local concluído do nó. Taxa real: {fee} YNXT. Esta prova não estabelece a finalidade do consenso."],
+ru:["Транзакция успешно включена в блок в завершённом локальном снимке узла. Фактическая комиссия: {fee} YNXT. Это доказательство не подтверждает окончательность консенсуса.","Транзакция завершилась ошибкой в завершённом локальном снимке узла. Фактическая комиссия: {fee} YNXT. Это доказательство не подтверждает окончательность консенсуса."],
+ar:["أُدرجت المعاملة بنجاح في كتلة ضمن اللقطة المحلية المكتملة للعقدة. الرسوم الفعلية: {fee} YNXT. لا يثبت هذا الدليل نهائية الإجماع.","فشلت المعاملة ضمن اللقطة المحلية المكتملة للعقدة. الرسوم الفعلية: {fee} YNXT. لا يثبت هذا الدليل نهائية الإجماع."],
+id:["Transaksi berhasil ditambang dalam snapshot lokal node yang telah selesai. Biaya aktual: {fee} YNXT. Bukti ini tidak menetapkan finalitas konsensus.","Transaksi gagal dalam snapshot lokal node yang telah selesai. Biaya aktual: {fee} YNXT. Bukti ini tidak menetapkan finalitas konsensus."]
+};
+export const RECEIPT_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,values])=>{if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete receipt copy: ${locale}`);return[locale,Object.freeze(Object.fromEntries(keys.map((key,index)=>[key,values[index]])))];})));

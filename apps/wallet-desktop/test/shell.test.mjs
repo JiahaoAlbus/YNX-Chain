@@ -135,7 +135,8 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
     document.querySelector("#unlock-result").textContent = fixture.message;
     let invalidatedInputs = 0, invalidatedContracts = 0;
-    runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
+    const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
+    runInNewContext(`${copyHelper}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
@@ -194,6 +195,7 @@ async function sendEntryHarness() {
     return source.slice(start, end);
   };
   runInNewContext([
+    source.match(/^function copyUI\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual copy helper missing")})(),
     extract("function renderKeyDetail()", "\npasswordUI = createPasswordVaultUI"),
     extract('document.querySelector("#open-send").addEventListener', '\ndocument.querySelector("#send-sheet").addEventListener'),
     extract('document.querySelector("#transfer-form").addEventListener', "\nfunction setView(name)"),

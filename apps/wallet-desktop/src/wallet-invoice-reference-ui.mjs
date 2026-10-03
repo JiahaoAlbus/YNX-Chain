@@ -1,8 +1,19 @@
 import {walletPayInvoiceID} from "./wallet-pay-invoice-reference-id.mjs";
 /** Public reference UI. No signer, payment session or transaction method. */
 export function createInvoiceReferenceUI({getContext,request,render,requestQR,applyReference=()=>{}}) {
-  let revision=0;
-  const clear=()=>{revision++;render({busy:false,result:null,error:null})};
+  let revision=0,qrSelection=null;
+  const clear=()=>{revision++;qrSelection=null;render({busy:false,result:null,error:null})};
+  // Bind the system file chooser before it opens, not to whichever account
+  // happens to be selected when its later change event arrives.
+  function captureQRSelection(){
+    clear();const before=getContext();
+    if(before.open&&before.account)qrSelection={...before,revision};
+  }
+  async function importSelectedQR(readInput){
+    const before=qrSelection;qrSelection=null;const after=getContext();
+    if(!before||before.revision!==revision||!after.open||after.account!==before.account||after.keyRevision!==before.keyRevision)return;
+    await importQR(readInput);
+  }
   async function check(reference){
     const before=getContext(),current=++revision;
     const live=()=>{const after=getContext();return current===revision&&before.open&&after.open&&Boolean(before.account)&&before.account===after.account&&before.keyRevision===after.keyRevision};
@@ -29,5 +40,5 @@ export function createInvoiceReferenceUI({getContext,request,render,requestQR,ap
       render({busy:false,result:null,error:null,notice:"Invoice reference read locally. Review it, then choose Check at Pay service. Nothing was uploaded, queried or paid."});
     }catch{if(live())render({busy:false,result:null,error:"No supported Pay invoice reference was found. Choose another PNG, JPEG or WebP QR image up to 10 MB; nothing was paid."})}
   }
-  return {clear,check,importQR};
+  return {clear,check,importQR,captureQRSelection,importSelectedQR};
 }

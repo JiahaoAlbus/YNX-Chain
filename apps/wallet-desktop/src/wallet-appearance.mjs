@@ -1,3 +1,4 @@
+import {initWalletLocale,setWalletCopy} from "./wallet-locale.mjs";
 export const WALLET_APPEARANCE_KEY = "ynx-wallet-ui-size-v1";
 export const WALLET_UI_SIZES = Object.freeze(["compact", "standard", "larger"]);
 export function parseWalletAppearance(raw) {
@@ -27,13 +28,15 @@ export function initWalletAppearance({ document, getStorage = () => null }) {
     try {
       const storage = getStorage();
       if (!storage) throw new Error("Unavailable display preferences");
-      storage.setItem(WALLET_APPEARANCE_KEY, JSON.stringify({ version: 1, size: input.value }));
-      status.textContent = "Text size saved on this device.";
-    } catch { status.textContent = "Text size changed for this window. It could not be saved on this device."; }
+      const raw=JSON.stringify({ version: 1, size: input.value });storage.setItem(WALLET_APPEARANCE_KEY,raw);
+      if(storage.getItem(WALLET_APPEARANCE_KEY)!==raw)throw Error("Display preference readback failed");
+      setWalletCopy(status,"Text size saved on this device.");
+    } catch { setWalletCopy(status,"Text size changed for this window. It could not be saved on this device."); }
   });
   return Object.freeze({ size: () => document.documentElement.dataset.walletUiSize });
 }
 
 if (typeof document !== "undefined" && typeof window !== "undefined") {
+  if(document.querySelector("#wallet-language"))initWalletLocale({document,getStorage:()=>window.localStorage,systemLanguages:window.navigator?.languages??[]});
   initWalletAppearance({ document, getStorage: () => window.localStorage });
 }

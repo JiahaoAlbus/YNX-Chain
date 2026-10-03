@@ -15,7 +15,8 @@ function harness(){
   const start=source.indexOf("function clearAssetBalance("),refreshStart=source.indexOf("async function refreshAssets()"),end=source.indexOf('document.querySelector("#refresh-balance")',refreshStart);
   const renderStart=source.indexOf("function renderAccount(payload)"),renderEnd=source.indexOf('createAccount.addEventListener("click"',renderStart);
   assert.ok(refreshStart>=0&&end>refreshStart&&renderStart>=0&&renderEnd>renderStart);
-  runInNewContext(source.slice(start>=0?start:refreshStart,end)+"\n"+source.slice(renderStart,renderEnd),context);
+  const copyHelper=source.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
+  runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:refreshStart,end)+"\n"+source.slice(renderStart,renderEnd),context);
   return {context,get,requests};
 }
 for(const response of ["failure","throw","success"]){test(`actual renderer drops late ${response} after failed account status`,async()=>{

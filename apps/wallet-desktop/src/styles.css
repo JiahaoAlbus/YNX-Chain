@@ -45,3 +45,15 @@ h3,.key-security h2{font-size:1.066667rem}
 @media(max-width:620px){.sidebar{padding-top:20px}.brand{padding-bottom:14px}.sidebar nav{flex-wrap:wrap}.nav-item{font-size:.933333rem;min-width:80px}.toolbar{padding:12px 16px}.toolbar button{min-height:44px}.balance{font-size:2.266667rem}.dialog-heading{align-items:flex-start}dialog{padding:18px}}
 .transaction-history{margin-top:36px;padding-top:24px;border-top:1px solid var(--line)}.transaction-history h2{font-size:20px;margin:0}.transaction-history-row{padding:20px 0;border-bottom:1px solid var(--line)}.transaction-history-row dl{display:grid;grid-template-columns:95px minmax(0,1fr);gap:9px;font-size:12px}.transaction-history-row dt{color:var(--muted)}.transaction-history-row dd{margin:0;overflow-wrap:anywhere}.transaction-history .balance-heading{gap:12px;flex-wrap:wrap}@media(max-width:620px){.transaction-history-row dl{grid-template-columns:1fr;gap:4px}.transaction-history-row dd{margin-bottom:9px}}
 .transaction-history h2{font-size:1.333333rem}.transaction-history-row dl{font-size:.866667rem}
+/* Locale changes are display-only. Direction isolation never rewrites raw data. */
+:root[dir="rtl"] .sidebar{left:auto;right:0;border-right:0;border-left:1px solid var(--line)}
+.nav-item,#account-list button{text-align:start}
+.asset-row .asset-value{margin-left:0;margin-inline-start:auto;text-align:end}
+#wallet-language{max-width:100%;min-height:44px}
+#appearance-sheet{overflow-wrap:anywhere}
+#receive-address,#receive-evm-address,#transfer-to,#transfer-amount,#walletconnect-uri,#invoice-reference,#contract-address,#contract-function,
+#auth-origin,#auth-account,#proposal-origin,#proposal-account,#provider-origin,#provider-detail,#transfer-transaction,#contract-result,
+#balance-value,#asset-balance{direction:ltr;unicode-bidi:isolate;text-align:start}
+input[type="password"]{unicode-bidi:plaintext}
+#transfer-summary dd{unicode-bidi:isolate}
+@media(max-width:620px){:root[dir="rtl"] .sidebar{border-left:0;border-bottom:1px solid var(--line)}}

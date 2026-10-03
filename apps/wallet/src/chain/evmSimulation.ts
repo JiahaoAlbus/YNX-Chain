@@ -44,20 +44,25 @@ export class EvmSimulationClient {
     this.#now = now;
   }
 
-  async simulate(raw: EvmSimulationInput): Promise<EvmSimulationResult> {
+  async simulate(raw: EvmSimulationInput, guard: () => void = () => {}): Promise<EvmSimulationResult> {
+    guard();
     const input = parseInput(raw);
-    const chainId = parseQuantity(await this.#rpc("eth_chainId", []), "chainId");
+    const rpc = async (method: string, params: readonly unknown[]) => {
+      guard();const value=await this.#rpc(method,params);guard();return value;
+    };
+    const chainId = parseQuantity(await rpc("eth_chainId", []), "chainId");
     if (chainId !== EVM_CHAIN_ID) throw new Error(`EVM RPC chain mismatch: expected ${EVM_CHAIN_ID}, received ${chainId}`);
-    const blockNumber = parseQuantity(await this.#rpc("eth_blockNumber", []), "blockNumber");
+    const blockNumber = parseQuantity(await rpc("eth_blockNumber", []), "blockNumber");
     const blockTag = quantityHex(BigInt(blockNumber));
-    const code = parseData(await this.#rpc("eth_getCode", [input.to, blockTag]), "contract code", 2_000_000);
+    const code = parseData(await rpc("eth_getCode", [input.to, blockTag]), "contract code", 2_000_000);
     if (code === "0x" || /^0x0*$/.test(code)) throw new Error("EVM target has no deployed contract code");
     const transaction = Object.freeze({ from: input.from, to: input.to, data: input.data, value: quantityHex(BigInt(input.valueWei)) });
-    const returnData = parseData(await this.#rpc("eth_call", [transaction, blockTag]), "simulation return data", 2_000_000);
-    const gasEstimate = parseQuantityBigInt(await this.#rpc("eth_estimateGas", [transaction]), "gasEstimate");
+    const returnData = parseData(await rpc("eth_call", [transaction, blockTag]), "simulation return data", 2_000_000);
+    const gasEstimate = parseQuantityBigInt(await rpc("eth_estimateGas", [transaction]), "gasEstimate");
     if (gasEstimate <= 0n) throw new Error("EVM gas estimate must be positive");
     const asOf = strictNow(this.#now()).toISOString();
     const codeBytes = hexToBytes(code.slice(2));
+    guard();
     return Object.freeze({
       chainId: EVM_CHAIN_ID,
       blockNumber,

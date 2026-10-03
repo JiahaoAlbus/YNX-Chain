@@ -1,4 +1,5 @@
 /** Render a local module matrix without changing the document's image/script CSP. */
+import {setWalletCopy} from "./wallet-locale.mjs";
 export function drawReceiveCode(canvas, code, expectedAccount) {
   if (!expectedAccount || code?.account !== expectedAccount || code.chainId !== "ynx_6423-1" || code.asset !== "YNXT" ||
       code.uri !== `ynx:${expectedAccount}?chainId=ynx_6423-1&asset=YNXT` ||
@@ -29,18 +30,18 @@ export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawRe
     clear();
     if (!account) return;
     const current = revision;
-    status.textContent = "Preparing your receiving code…";
+    setWalletCopy(status,"Preparing your receiving code…");
     try {
       const result = await requestCode(account);
       if (current !== revision) return;
       if (!result?.ok) throw new Error("Receiving account unavailable");
       draw(canvas, result.value, account);
       canvas.hidden = false;
-      status.textContent = "Scan with a Wallet that supports YNX Testnet.";
+      setWalletCopy(status,"Scan with a Wallet that supports YNX Testnet.");
     } catch {
       if (current !== revision) return;
       canvas.hidden = true;
-      status.textContent = "The receiving code is unavailable. Reopen Receive to try again.";
+      setWalletCopy(status,"The receiving code is unavailable. Reopen Receive to try again.");
     }
   }
   return { clear, refresh };

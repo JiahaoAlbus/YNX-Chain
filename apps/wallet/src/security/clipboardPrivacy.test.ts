@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import {readFileSync} from "node:fs";
 import { copyPublicValueWithExpiry, type ClipboardSchedule } from "./clipboardPrivacy";
+import {WalletOperationLifecycle,WalletOperationCancelled} from "./operationLifecycle";
 
 class MemoryClipboard {
   value = "";
@@ -8,6 +10,36 @@ class MemoryClipboard {
   async getStringAsync() { return this.value; }
   async setStringAsync(value: string) { this.value = value; this.writes.push(value); }
 }
+function publicCopyLease(){const operations=new WalletOperationLifecycle();operations.setAccount("original-account");const scope=operations.scope(),lease=scope.begin({requireUnlocked:false});return{operations,scope,lease}}
+test("all native public-copy entries pass a live operation guard and copy errors do not trigger account recovery",()=>{
+  const source=readFileSync(new URL("../../App.tsx",import.meta.url),"utf8"),copies=[...source.matchAll(/copyPublicValueWithExpiry\(Clipboard,[^\n;]+/g)];
+  assert.equal(copies.length,3);for(const call of copies)assert.match(call[0],/guard:lease!?\.assert/);
+  const start=source.indexOf("const copy=async()=>",source.indexOf("function Dashboard(")),end=source.indexOf("\n",start),handler=source.slice(start,end);
+  assert.match(handler,/setCopyError/);assert.doesNotMatch(handler,/onMutationError|recoverAfterMutation|repository\.|nativeOutbox\./);
+});
+
+for(const boundary of ["lock","account","background","close"]){test(`queued clipboard copy after ${boundary} never starts an old-account write or replaces existing expiry`,async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),old=publicCopyLease(),set=clipboard.setStringAsync.bind(clipboard);
+  let entered!:()=>void,release!:()=>void;const started=new Promise<void>(done=>entered=done),waiting=new Promise<void>(done=>release=done);
+  clipboard.setStringAsync=async value=>{if(value==="ynx:first-public-link"){entered();await waiting}await set(value)};
+  const initial=copyPublicValueWithExpiry(clipboard,"ynx:first-public-link",{schedule:first.schedule});await started;
+  let scheduled=0;const queued=copyPublicValueWithExpiry(clipboard,"ynx:obsolete-account-link",{guard:old.lease.assert,schedule:()=>{scheduled++;return{cancel(){}}}});
+  if(boundary==="lock")old.operations.lock();else if(boundary==="account")old.operations.setAccount("other-account");else if(boundary==="background")old.operations.setAppState("background");else old.scope.cancel();
+  const rejected=assert.rejects(queued,WalletOperationCancelled);release();await initial;await rejected;
+  assert.deepEqual(clipboard.writes,["ynx:first-public-link"]);assert.equal(scheduled,0);await first.run();assert.equal(clipboard.value,"");old.lease.finish();
+})}
+test("lease cancellation during an already-started OS copy still arms expiry without reporting successful copy",async()=>{
+  const clipboard=new MemoryClipboard(),timer=controlledSchedule(),old=publicCopyLease(),set=clipboard.setStringAsync.bind(clipboard);
+  let entered!:()=>void,release!:()=>void;const started=new Promise<void>(done=>entered=done),waiting=new Promise<void>(done=>release=done);
+  clipboard.setStringAsync=async value=>{if(value){entered();await waiting}await set(value)};
+  const copy=copyPublicValueWithExpiry(clipboard,"ynx:public-link",{guard:old.lease.assert,schedule:timer.schedule});await started;old.operations.lock();
+  const rejected=assert.rejects(copy,WalletOperationCancelled);release();await rejected;assert.equal(clipboard.value,"ynx:public-link");await timer.run();assert.equal(clipboard.value,"");old.lease.finish();
+});
+test("already-cancelled clipboard intent performs no OS access and does not poison a later valid copy",async()=>{
+  const clipboard=new MemoryClipboard(),timer=controlledSchedule(),old=publicCopyLease();old.scope.cancel();
+  await assert.rejects(copyPublicValueWithExpiry(clipboard,"ynx:obsolete-link",{guard:old.lease.assert}),WalletOperationCancelled);assert.deepEqual(clipboard.writes,[]);
+  await copyPublicValueWithExpiry(clipboard,"ynx:valid-link",{schedule:timer.schedule});assert.equal(clipboard.value,"ynx:valid-link");await timer.run();assert.equal(clipboard.value,"");
+});
 
 function controlledSchedule() {
   let task: (() => void | Promise<void>) | null = null;

@@ -1,4 +1,13 @@
 /** Local forms only. IPC sends credentials directly to the trusted main process. */
+import {setWalletCopy} from "./wallet-locale.mjs";
+export function renderRecoveryReview(node,{account,resetPassword,count},doc=node.ownerDocument){
+  node.replaceChildren();
+  for(const [key,values]of [
+    ["Restore {account}.",{account}],
+    [resetPassword?"A new local password will be set. {count} other account(s) will remain visible and need their own recovery. The old encrypted Wallet is retained.":"The current password and other protected accounts will be retained.",{count}],
+    ["Existing app permissions will be revoked. Pending transactions remain recorded.",{}]
+  ]){const span=doc.createElement("span");setWalletCopy(span,key,values);node.append(span,doc.createTextNode(" "))}
+}
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
   let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, busy = false;
@@ -16,8 +25,8 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     $("#recover-wallet").disabled = state.authenticating;
     $("#unlock-wallet").disabled = !status || !state.unlockAvailable || state.authenticating;
     $("#legacy-copy-notice").hidden = !status?.legacyCleanupPending;
-    $("#legacy-copy-notice").textContent = "Original OS-encrypted Wallet files are retained on this device for recovery. Those old copies are not protected by the new Wallet password.";
-    $("#unlock-wallet").textContent = state.authenticating ? "Unlocking…" : status?.passwordConfigured ? "Unlock with local password" : status?.initialized ? "Set password and migrate accounts" : "Set local Wallet password";
+    setWalletCopy($("#legacy-copy-notice"),"Original OS-encrypted Wallet files are retained on this device for recovery. Those old copies are not protected by the new Wallet password.");
+    setWalletCopy($("#unlock-wallet"),state.authenticating ? "Unlocking…" : status?.passwordConfigured ? "Unlock with local password" : status?.initialized ? "Set password and migrate accounts" : "Set local Wallet password");
   }
   function toggleRecovery() {
     const kind = $("#recovery-kind").value, reset = $("#recovery-password-mode").value === "reset";
@@ -37,19 +46,19 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     if (busy) return;
     viewIntent++; generation++; clear();
     const status = getAccountStatus(); mode = status?.passwordConfigured ? "unlock" : status?.initialized ? "migrate" : "setup";
-    $("#password-title").textContent = mode === "unlock" ? "Unlock Wallet" : "Protect your Wallet";
-    $("#password-explanation").textContent = mode === "unlock" ? "Enter the local password that encrypts this Wallet. It locks after two minutes, when you leave the app, or when you switch accounts." : "Choose a password of 12 to 256 characters. It encrypts your Wallet on this device. Keep your account backups safe; this password cannot be reset by YNX.";
+    setWalletCopy($("#password-title"),mode === "unlock" ? "Unlock Wallet" : "Protect your Wallet");
+    setWalletCopy($("#password-explanation"),mode === "unlock" ? "Enter the local password that encrypts this Wallet. It locks after two minutes, when you leave the app, or when you switch accounts." : "Choose a password of 12 to 256 characters. It encrypts your Wallet on this device. Keep your account backups safe; this password cannot be reset by YNX.");
     $("#local-password").autocomplete = mode === "unlock" ? "current-password" : "new-password";
     $("#local-confirm-group").hidden = mode === "unlock"; $("#local-confirm").required = mode !== "unlock";
     $("#migration-explanation").hidden = mode !== "migrate";
-    $("#submit-password").textContent = mode === "unlock" ? "Unlock Wallet" : mode === "migrate" ? "Encrypt and migrate all accounts" : "Set local password";
+    setWalletCopy($("#submit-password"),mode === "unlock" ? "Unlock Wallet" : mode === "migrate" ? "Encrypt and migrate all accounts" : "Set local password");
     $("#password-result").textContent = ""; $("#unlock-result").textContent = ""; setBusy(false); passwordSheet.showModal(); $("#local-password").focus();
   });
   $("#password-form").addEventListener("submit", async event => {
     event.preventDefault(); if (busy) return;
     const token = generation, operation = mode;
     let password = $("#local-password").value, confirmation = $("#local-confirm").value;
-    if (operation !== "unlock" && password !== confirmation) { $("#password-result").textContent = "The two passwords do not match."; return; }
+    if (operation !== "unlock" && password !== confirmation) { setWalletCopy($("#password-result"),"The two passwords do not match."); return; }
     clear(); setBusy(true);
     try {
       const result = operation === "unlock" ? await api.unlock({ password }) : await api.setupPassword({ password, confirmation, migrateLegacy: operation === "migrate" });
@@ -57,9 +66,9 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       // finally may clear credentials entered in a newly opened dialog.
       if (result.ok) {
         if (token === generation) passwordSheet.close();
-        $("#unlock-result").textContent = operation === "unlock" ? getKeyState().locked ? "The unlock attempt finished, but Wallet is now locked." : "Wallet unlocked. Review each request before approving." : "Password protection is saved. Unlock with your local password to continue.";
+        setWalletCopy($("#unlock-result"),operation === "unlock" ? getKeyState().locked ? "The unlock attempt finished, but Wallet is now locked." : "Wallet unlocked. Review each request before approving." : "Password protection is saved. Unlock with your local password to continue.");
       } else { if (token === generation) $("#password-result").textContent = message(result); $("#unlock-result").textContent = message(result); }
-    } catch { if (token === generation) $("#password-result").textContent = "Wallet did not finish. Reopen the current Wallet before continuing."; }
+    } catch { if (token === generation) setWalletCopy($("#password-result"),"Wallet did not finish. Reopen the current Wallet before continuing."); }
     finally { password = null; confirmation = null; await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   $("#recover-wallet").addEventListener("click", async () => {
@@ -77,10 +86,10 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     if (!response.ok) { $("#unlock-result").textContent = message(response); return; }
     renderAccount(response);
     $("#recovery-account").replaceChildren();
-    for (const item of response.value.accounts) { const option = doc.createElement("option"); option.value = item.account; option.textContent = `${item.ynxAccount}${item.state === "recovery-required" ? " · recovery required" : ""}`; option.selected = item.account === response.value.account; $("#recovery-account").append(option); }
+    for (const item of response.value.accounts) { const option = doc.createElement("option"); option.value = item.account; if(item.state === "recovery-required")setWalletCopy(option,"{account} · recovery required",{account:item.ynxAccount});else option.textContent=item.ynxAccount; option.selected = item.account === response.value.account; $("#recovery-account").append(option); }
     const history = await api.recoveryHistory(); if (token !== generation) return;
     $("#recovery-history").replaceChildren();
-    if (history.ok) for (const item of history.value) { const option = doc.createElement("option"); option.value = item.id; option.textContent = `Saved Wallet revision ${item.revision} · ${item.id.slice(0, 12)}`; $("#recovery-history").append(option); }
+    if (history.ok) for (const item of history.value) { const option = doc.createElement("option"); option.value = item.id; setWalletCopy(option,"Saved Wallet revision {revision} · {id}",{revision:item.revision,id:item.id.slice(0,12)}); $("#recovery-history").append(option); }
     $("#recovery-password-mode").value = response.value.passwordConfigured && !response.value.formatError ? "keep" : "reset";
     $("#recovery-form").hidden = false; $("#recovery-review").hidden = true; $("#recovery-result").textContent = "";
     previewId = null; toggleRecovery(); setBusy(false); recoverySheet.showModal();
@@ -100,8 +109,8 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       if (token !== generation || revision !== getKeyState().revision) return;
       if (!result.ok) { $("#recovery-result").textContent = message(result); return; }
       previewId = result.value.previewId; $("#recovery-form").hidden = true; $("#recovery-review").hidden = false;
-      $("#recovery-summary").textContent = `Restore ${getAccountStatus()?.accounts?.find(item => item.account === result.value.account)?.ynxAccount ?? result.value.account}. ${result.value.resetPassword ? `A new local password will be set. ${result.value.recoveryRequiredAccounts.length} other account(s) will remain visible and need their own recovery. The old encrypted Wallet is retained.` : "The current password and other protected accounts will be retained."} Existing app permissions will be revoked. Pending transactions remain recorded.`;
-      $("#recovery-result").textContent = "The backup matches this exact account. Confirm within one minute.";
+      renderRecoveryReview($("#recovery-summary"),{account:getAccountStatus()?.accounts?.find(item => item.account === result.value.account)?.ynxAccount ?? result.value.account,resetPassword:result.value.resetPassword,count:result.value.recoveryRequiredAccounts.length},doc);
+      setWalletCopy($("#recovery-result"),"The backup matches this exact account. Confirm within one minute.");
     } catch (error) { if (token === generation) $("#recovery-result").textContent = error.message ?? "Recovery did not finish."; }
     finally { input = null; if (token === generation) setBusy(false); }
   });
@@ -110,9 +119,9 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     const token = generation, id = previewId; previewId = null; setBusy(true);
     try {
       const result = await api.commitRecovery(id);
-      if (result.ok) { if (token === generation) recoverySheet.close(); $("#unlock-result").textContent = "Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed."; }
+      if (result.ok) { if (token === generation) recoverySheet.close(); setWalletCopy($("#unlock-result"),"Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed."); }
       else { if (token === generation) $("#recovery-result").textContent = message(result); $("#unlock-result").textContent = message(result); }
-    } catch { if (token === generation) $("#recovery-result").textContent = "Recovery did not finish. Check the current Wallet before retrying."; }
+    } catch { if (token === generation) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
     finally { await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   for (const button of doc.querySelectorAll("[data-custody-cancel]")) button.addEventListener("click", () => { cancel({ explicit: true }); void api.lock(); });

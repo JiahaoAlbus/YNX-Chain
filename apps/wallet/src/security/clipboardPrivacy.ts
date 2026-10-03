@@ -17,7 +17,7 @@ const writes = new WeakMap<ClipboardAdapter, Promise<unknown>>();
 export async function copyPublicValueWithExpiry(
   clipboard: ClipboardAdapter,
   value: string,
-  options: Readonly<{ ttlMs?: number; schedule?: ClipboardSchedule }> = {},
+  options: Readonly<{ ttlMs?: number; schedule?: ClipboardSchedule; guard?: () => void }> = {},
 ): Promise<() => void> {
   if (typeof value !== "string" || value.length < 1 || value.length > 512 || value.trim() !== value) {
     throw new Error("Clipboard value is invalid");
@@ -27,7 +27,11 @@ export async function copyPublicValueWithExpiry(
     throw new Error("Clipboard expiry must be between 1 and 120 seconds");
   }
   const schedule = options.schedule ?? defaultSchedule;
+  const guard=options.guard??(()=>{});
+  guard();
   return serialWrite(clipboard, async () => {
+    // A queued public copy may outlive its account, modal or operation lease.
+    guard();
     await clipboard.setStringAsync(value);
     // Only replace the previous lease after the write succeeds. Invalid input or
     // a denied replacement must not disable the earlier value's expiry.
@@ -63,6 +67,9 @@ export async function copyPublicValueWithExpiry(
         if (copies.get(clipboard) === cancel) copies.delete(clipboard);
       }
     }, ttlMs);
+    // OS writes already started cannot be undone. Even if the lease expired
+    // during that write, retain expiry of the written value before rejecting.
+    guard();
     return cancel;
   });
 }

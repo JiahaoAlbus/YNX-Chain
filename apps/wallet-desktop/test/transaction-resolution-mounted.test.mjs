@@ -13,7 +13,8 @@ function harness(){
   const context={document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
     refreshAssets(){context.assetRefreshes++},transactionHistoryUI:{refresh(){context.historyRefreshes++}},window:{ynxWallet:{pendingTransactions:()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),transactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:false,resolve,reject})),retryTransaction:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:true,resolve,reject}))}}};
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
-  assert.ok(fallback>=0&&end>fallback);runInNewContext(source.slice(start>=0?start:fallback,end),context);
+  const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
+  assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(){const pending=context.refreshTransactions();reads.at(-1)?.resolve({ok:true,value:[record]});await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }

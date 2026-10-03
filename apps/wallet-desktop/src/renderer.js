@@ -7,6 +7,11 @@ import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
+import { setWalletCopy } from "./wallet-locale.mjs";
+import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
+
+// Explicit product copy only; never pass an original request/value container.
+function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -18,7 +23,7 @@ const receiveShareUI=createReceiveShareUI({
   requestCode:account=>window.ynxWallet.receiveCode(account),
   writeClipboard:value=>navigator.clipboard.writeText(value),
   selectAddress:()=>document.querySelector("#receive-address").select(),
-  report:value=>{document.querySelector("#receive-status").textContent=value},
+  report:value=>{copyUI(document.querySelector("#receive-status"),value)},
 });
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
@@ -43,9 +48,10 @@ const invoiceUI=createInvoiceReferenceUI({
 document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;invoiceUI.clear();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
 document.querySelector("#invoice-form").addEventListener("submit",event=>{event.preventDefault();void invoiceUI.check(document.querySelector("#invoice-reference").value)});
 document.querySelector("#invoice-reference").addEventListener("input",()=>invoiceUI.clear());
+document.querySelector("#invoice-qr").addEventListener("click",()=>invoiceUI.captureQRSelection());
 document.querySelector("#invoice-qr").addEventListener("change",event=>{
-  const file=event.target.files?.[0];event.target.value="";if(!file)return;
-  void invoiceUI.importQR(async()=>{if(!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw new Error("Invalid QR image");return {mimeType:file.type,bytes:await file.arrayBuffer()}});
+  const file=event.target.files?.[0];event.target.value="";
+  void invoiceUI.importSelectedQR(async()=>{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw new Error("Invalid QR image");const bytes=await file.arrayBuffer();if(bytes.byteLength!==file.size)throw new Error("Changed QR image");return {mimeType:file.type,bytes}});
 });
 invoiceSheet.addEventListener("close",()=>invoiceUI.clear());invoiceSheet.addEventListener("cancel",()=>invoiceUI.clear());
 const contractSheet = document.querySelector("#contract-sheet");
@@ -97,9 +103,10 @@ const paymentRecipientUI = createPaymentRecipientUI({
     transferReview = null;
     document.querySelector("#transfer-amount").focus();
   },
-  report: message => { document.querySelector("#recipient-status").textContent = message; },
+  report: message => { copyUI(document.querySelector("#recipient-status"),message); },
 });
-function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); }
+const recipientScanUI=createRecipientScanUI({document,getContext:()=>({open:document.querySelector("#send-sheet").open,account:accountState?.account,locked:keyState.locked,keyRevision:keyState.revision,draftRevision:paymentDraftRevision}),image:file=>paymentRecipientUI.image(file)});
+function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); recipientScanUI.invalidate(); }
 // Public metadata was identity-checked by the main-process vault. Protocol keys remain EVM addresses.
 const nativeAccountLabel = account => accountState?.accounts?.find(item => item.account === account)?.ynxAccount ?? account;
 const network = document.querySelector("#network");
@@ -277,7 +284,8 @@ function renderAccount(payload) {
   document.querySelector("#backup-section").hidden = !status?.initialized;
   if (!status?.initialized) setView("accounts");
   else if (!previousAccount) setView("overview");
-  document.querySelector("#toolbar-account").textContent = activeAccount ? `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}` : "My accounts";
+  if(activeAccount)document.querySelector("#toolbar-account").textContent = `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}`;
+  else copyUI(document.querySelector("#toolbar-account"),"My accounts");
   document.querySelector("#receive-address").value = status?.ynxAccount ?? "";
   document.querySelector("#receive-evm-address").value = activeAccount ?? "";
   document.querySelector("#receive-compatibility").open = false;
@@ -291,19 +299,19 @@ function renderAccount(payload) {
   document.querySelector("#transfer-review").close();
   if (status?.initialized) void refreshAssets();
   if (!status?.initialized) {
-    accountTitle.textContent = "No account created";
-    accountShort.textContent = "Not created";
-    signingShort.textContent = "Locked";
+    copyUI(accountTitle,"No account created");
+    copyUI(accountShort,"Not created");
+    copyUI(signingShort,"Locked");
     createAccount.hidden = false;
     addAccount.hidden = true;
     accountList.replaceChildren();
-    accountDetail.textContent = status?.passwordConfigured ? "Unlock with your local password, then create or import an account." : "Set a local password to encrypt your Wallet before creating or importing an account.";
+    copyUI(accountDetail,status?.passwordConfigured ? "Unlock with your local password, then create or import an account." : "Set a local password to encrypt your Wallet before creating or importing an account.");
     return;
   }
-  accountTitle.textContent = "Your account";
+  copyUI(accountTitle,"Your account");
   accountDetail.textContent = status.ynxAccount;
   accountShort.textContent = `${status.ynxAccount.slice(0, 8)}…${status.ynxAccount.slice(-6)}`;
-  signingShort.textContent = keyState.locked ? "Locked" : "Approval required";
+  copyUI(signingShort,keyState.locked ? "Locked" : "Approval required");
   createAccount.hidden = true;
   addAccount.hidden = false;
   accountList.replaceChildren();
@@ -311,7 +319,7 @@ function renderAccount(payload) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.account = item.account;
-    button.textContent = `${item.account === status.account ? `${item.ynxAccount} · active` : `Switch to ${item.ynxAccount}`}${item.state === "recovery-required" ? " · restore from backup" : ""}`;
+    copyUI(button,item.account === status.account ? item.state === "recovery-required" ? "{account} · active · restore from backup" : "{account} · active" : item.state === "recovery-required" ? "Switch to {account} · restore from backup" : "Switch to {account}",{account:item.ynxAccount});
     button.disabled = keyState.locked || item.account === status.account;
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -471,15 +479,17 @@ const transactionHistoryUI = createTransactionHistoryUI({
   request: cursor => window.ynxWallet.transactionHistory(cursor),
   render: view => {
     const list = document.querySelector("#transaction-history-list"); list.replaceChildren();
-    document.querySelector("#transaction-history-status").textContent = view.error ?? (view.busy ? "Reading saved transactions…" : view.loaded && view.records.length === 0 ? "No verified completed transfers for this account on this device." : "");
+    const historyStatus=document.querySelector("#transaction-history-status");
+    if(view.error && view.error!=="Saved transaction history could not be verified. Original records remain on this device.") historyStatus.textContent=view.error;
+    else copyUI(historyStatus,view.error ?? (view.busy ? "Reading saved transactions…" : view.loaded && view.records.length === 0 ? "No verified completed transfers for this account on this device." : ""));
     document.querySelector("#refresh-transaction-history").disabled = view.busy || !activeAccount;
     document.querySelector("#older-transaction-history").hidden = view.nextCursor === null;
     document.querySelector("#older-transaction-history").disabled = view.busy;
     for (const record of view.records) {
       const row = document.createElement("article"), title = document.createElement("h3"), facts = document.createElement("dl"); row.className = "transaction-history-row";
-      title.textContent = `${record.amount} YNXT · ${record.successful ? "Mined locally" : "Failed"}`;
+      copyUI(title,record.successful ? "{amount} YNXT · Mined locally" : "{amount} YNXT · Failed",{amount:record.amount});
       for (const [label, value] of [["Recipient", nativeAccountLabel(record.to)], ["Transaction", record.hash], ["Actual fee", `${record.actualFee} YNXT`], ["Block", record.blockNumber]]) {
-        const term = document.createElement("dt"), detail = document.createElement("dd"); term.textContent = label; detail.textContent = value; facts.append(term, detail);
+        const term = document.createElement("dt"), detail = document.createElement("dd"); copyUI(term,label); detail.textContent = value; detail.dir="ltr"; facts.append(term, detail);
       }
       row.append(title, facts); list.append(row);
     }
@@ -506,10 +516,10 @@ async function refreshTransactions() {
     if (!result.ok) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
     for (const record of result.value) {
       const row = document.createElement("div"), description = document.createElement("p");
-      description.textContent = `${record.amount} YNXT to ${record.to} · ${record.hash}`; row.append(description);
+      copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);
       for (const retry of [false, ...(record.canRetryExact ? [true] : [])]) {
         const button = document.createElement("button"); button.type = "button";
-        button.textContent = retry ? "Retry identical signed transaction" : "Check receipt";
+        copyUI(button,retry ? "Retry identical signed transaction" : "Check receipt");
         button.disabled = retry && keyState.locked;
         if (retry) button.dataset.retryTransaction = "true";
         let actionBusy = false;
@@ -522,9 +532,12 @@ async function refreshTransactions() {
           try {
             const response = await (retry ? window.ynxWallet.retryTransaction(record.hash) : window.ynxWallet.transactionStatus(record.hash));
             if (!actionCurrent()) return;
-            document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "mined successfully" : "failed"} in the node's completed local snapshot. Actual fee: ${response.value.actualFee} YNXT. Consensus finality is not established by this proof.` : response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.";
+            const resultNode=document.querySelector("#transaction-resolution-result");
+            if(!response.ok) resultNode.textContent=errorText(response);
+            else if(response.value.confirmed) copyUI(resultNode,response.value.successful ? "Transaction mined successfully in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof." : "Transaction failed in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof.",{fee:response.value.actualFee});
+            else copyUI(resultNode,response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.");
             if (response.ok && response.value.confirmed) void refreshAssets();
-          } catch { if (actionCurrent()) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
+          } catch { if (actionCurrent()) copyUI(document.querySelector("#transaction-resolution-result"),"The transaction outcome could not be checked. Keep its hash and try checking again."); }
           finally {
             actionBusy = false;
             if (current()) button.disabled = retry && keyState.locked;
@@ -533,10 +546,10 @@ async function refreshTransactions() {
         });
         row.append(button);
       }
-      if (!record.canRetryExact) { const note = document.createElement("p"); note.textContent = "This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."; row.append(note); }
+      if (!record.canRetryExact) { const note = document.createElement("p"); copyUI(note,"This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."); row.append(note); }
       list.append(row);
     }
-  } catch { if (current()) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }
+  } catch { if (current()) { panel.hidden = false; copyUI(document.querySelector("#transaction-resolution-result"),"The local transaction journal is unavailable. New transfers remain blocked."); } }
 }
 function clearAssetBalance() {
   ++balanceRevision;
@@ -583,7 +596,7 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
   let password = document.querySelector("#import-password").value;
   document.querySelector("#import-value").value = "";
   document.querySelector("#import-password").value = "";
-  output.textContent = "Importing and protecting the account…";
+  copyUI(output,"Importing and protecting the account…");
   try {
     if (kind === "encrypted-json") {
       const file = document.querySelector("#import-file").files?.[0];
@@ -592,20 +605,20 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
     }
     if (keyState.locked || keyState.revision !== revision) return;
     const result = await window.ynxWallet.importAccount({ kind, value, password });
-    output.textContent = result.ok ? "Account imported. Save a backup and keep it safe." : errorText(result);
+    if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else output.textContent=errorText(result);
     if (result.ok) renderAccount(result);
-  } catch (error) { output.textContent = error.message ?? "Unable to import the account."; }
+  } catch (error) { copyUI(output,error.message ?? "Unable to import the account."); }
   finally { value = null; password = null; if (keyState.revision === revision) document.querySelector("#import-file").value = ""; button.disabled = keyState.locked; }
 });
 document.querySelector("#backup-form").addEventListener("submit", async event => {
   event.preventDefault();
   const passwordField = document.querySelector("#backup-password"), confirmField = document.querySelector("#backup-confirm");
   const output = document.querySelector("#backup-result"), button = document.querySelector("#save-backup");
-  if (passwordField.value !== confirmField.value) { output.textContent = "The backup passwords do not match."; return; }
+  if (passwordField.value !== confirmField.value) { copyUI(output,"The backup passwords do not match."); return; }
   let password = passwordField.value; passwordField.value = ""; confirmField.value = ""; button.disabled = true;
-  output.textContent = "Encrypting your backup…";
-  try { const result = await window.ynxWallet.saveBackup(password); output.textContent = result.ok ? (result.value.saved ? "Encrypted backup saved. Keep its password separately." : "Backup was not saved.") : errorText(result); }
-  catch { output.textContent = "Unable to save the backup."; }
+  copyUI(output,"Encrypting your backup…");
+  try { const result = await window.ynxWallet.saveBackup(password); if(result.ok)copyUI(output,result.value.saved ? "Encrypted backup saved. Keep its password separately." : "Backup was not saved.");else output.textContent=errorText(result); }
+  catch { copyUI(output,"Unable to save the backup."); }
   finally { password = null; button.disabled = keyState.locked; }
 });
 document.querySelector("#transfer-form").addEventListener("submit", async event => {
@@ -617,23 +630,23 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   const draftRevision = paymentDraftRevision, to = document.querySelector("#transfer-to").value.trim(), amount = document.querySelector("#transfer-amount").value.trim();
   const draftIsCurrent = () => draftRevision === paymentDraftRevision && document.querySelector("#send-sheet").open && to === document.querySelector("#transfer-to").value.trim() && amount === document.querySelector("#transfer-amount").value.trim();
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
-  output.textContent = "Checking recipient, balance and network fee…";
+  copyUI(output,"Checking recipient, balance and network fee…");
   try {
     const result = await window.ynxWallet.prepareTransfer({ to, amount });
     if (keyState.locked || keyState.revision !== revision || !draftIsCurrent()) return;
     if (!result.ok) { output.textContent = errorText(result); return; }
-    if (result.value.account !== activeAccount) { output.textContent = "Account changed. Review again."; return; }
+    if (result.value.account !== activeAccount) { copyUI(output,"Account changed. Review again."); return; }
     transferReview = result.value;
     const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
     for (const [label, value] of [["From", transferReview.ynxFrom], ["To", transferReview.ynxTo], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
-      const term = document.createElement("dt"), description = document.createElement("dd"); term.textContent = label; description.textContent = value; summary.append(term, description);
+      const term = document.createElement("dt"), description = document.createElement("dd"); copyUI(term,label); description.textContent = value; description.dir = "ltr"; summary.append(term, description);
     }
     document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});
     document.querySelector("#transfer-review").hidden = false;
     document.querySelector("#send-sheet").close();
     document.querySelector("#transfer-review").showModal();
-    output.textContent = "Review the details below. Nothing has been signed or sent.";
-  } catch { if (draftIsCurrent()) output.textContent = "Unable to prepare the transfer. Check the network and try again."; }
+    copyUI(output,"Review the details below. Nothing has been signed or sent.");
+  } catch { if (draftIsCurrent()) copyUI(output,"Unable to prepare the transfer. Check the network and try again."); }
   finally { button.disabled = keyState.locked; }
 });
 async function actOnTransfer(action) {
@@ -645,12 +658,13 @@ async function actOnTransfer(action) {
   const id = transferReview.id; transferReview = null;
   const output = document.querySelector("#transfer-result");
   document.querySelector("#confirm-transfer").disabled = true;
-  output.textContent = action === "approve" ? "Submitting the approved transfer…" : "Cancelling…";
+  copyUI(output,action === "approve" ? "Submitting the approved transfer…" : "Cancelling…");
   try {
     const result = await window.ynxWallet.transferAction(id, action);
-    output.textContent = result.ok ? (result.value.rejected ? "Transfer cancelled. Nothing was signed or sent." : `Submitted: ${result.value.hash}. Network confirmation is pending.`) : errorText(result);
+    if(result.ok)copyUI(output,result.value.rejected ? "Transfer cancelled. Nothing was signed or sent." : "Submitted: {hash}. Network confirmation is pending.",{hash:result.value.hash});
+    else output.textContent = errorText(result);
     if (result.ok && !result.value.rejected) void refreshAssets();
-  } catch { output.textContent = "The response was interrupted. Check the network before trying another transfer."; }
+  } catch { copyUI(output,"The response was interrupted. Check the network before trying another transfer."); }
   finally {
     transferInFlight = false;
     void refreshTransactions();
@@ -673,7 +687,7 @@ function setView(name) {
     button.classList.toggle("active", active);
     if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
   }
-  document.querySelector("#page-title").textContent = { overview: "Overview", connections: "Connections", accounts: "Accounts & backup" }[name];
+  copyUI(document.querySelector("#page-title"),{ overview: "Overview", connections: "Connections", accounts: "Accounts & backup" }[name]);
   window.scrollTo({ top: 0 });
 }
 for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
@@ -721,9 +735,9 @@ document.addEventListener("keydown", event => {
 function renderKeyDetail() {
   const detail = document.querySelector("#key-security-detail"), state = keyState;
   const send = document.querySelector("#open-send");
-  send.textContent = state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT";
+  copyUI(send,state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT");
   send.disabled = !accountState?.initialized || state.authenticating || state.locked && !state.unlockAvailable;
-  detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
+  copyUI(detail,!accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.");
 }
 function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invoiceUI.clear();
@@ -732,12 +746,12 @@ function renderKeyState(state) {
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
-  title.textContent = state.locked ? "Wallet locked" : "Wallet unlocked";
+  copyUI(title,state.locked ? "Wallet locked" : "Wallet unlocked");
   renderKeyDetail();
   unlock.hidden = !state.locked;
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
-  signingShort.textContent = state.locked ? "Locked" : "Approval required";
+  copyUI(signingShort,state.locked ? "Locked" : "Approval required");
   for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {

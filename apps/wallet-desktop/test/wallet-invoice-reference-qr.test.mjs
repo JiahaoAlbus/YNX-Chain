@@ -39,3 +39,23 @@ test("nonlocal, uploaded, action-bearing and failed decode results cannot fill t
     const h=harness(),job=h.ui.importQR(async()=>({}));await Promise.resolve();h.decoded.resolve(response);await job;assert.deepEqual(h.references,[]);assert.ok(h.views.at(-1).error);assert.equal(h.queries(),0);
   }
 });
+test("invoice chooser binds the account before opening and consumes selection once",async()=>{
+  const h=harness();h.ui.captureQRSelection();let reads=0;
+  const job=h.ui.importSelectedQR(async()=>{reads++;return {}});await Promise.resolve();
+  await h.ui.importSelectedQR(async()=>{throw Error("second read")});
+  h.decoded.resolve({ok:true,value:{invoiceID:id,decodedLocally:true,uploaded:false}});await job;
+  assert.equal(reads,1);assert.equal(h.decodes(),1);assert.equal(h.queries(),0);assert.deepEqual(h.references,[id]);
+});
+for(const change of ["account","key-revision","close","edit","same-account-return"]){test(`invoice chooser opened before ${change} cannot read or decode its later selected file`,async()=>{
+  const h=harness();h.ui.captureQRSelection();
+  if(change==="account")h.context.account="other";
+  if(change==="key-revision")h.context.keyRevision++;
+  if(change==="close")h.context.open=false;
+  if(change==="edit")h.ui.clear();
+  if(change==="same-account-return"){h.ui.clear();h.context.account="other";h.ui.clear();h.context.account=account}
+  let reads=0;await h.ui.importSelectedQR(async()=>{reads++;return {}});
+  assert.equal(reads,0);assert.equal(h.decodes(),0);assert.equal(h.queries(),0);assert.deepEqual(h.references,[]);
+})}
+test("no account or closed sheet cannot capture a chooser intent",async()=>{
+  for(const change of [{account:null},{open:false}]){const h=harness();Object.assign(h.context,change);h.ui.captureQRSelection();Object.assign(h.context,{account,open:true});await h.ui.importSelectedQR(async()=>{throw Error("must not read")});assert.equal(h.decodes(),0);assert.equal(h.queries(),0)}
+});

@@ -24,6 +24,9 @@ test("mounted settings open, switch and persist without custody calls",()=>{
 test("failed storage remains usable and never claims persistence",()=>{
   const ui=mounted({getItem(){throw Error("blocked")},setItem(){throw Error("blocked")}});assert.equal(ui.control.size(),"standard");ui.inputs[0].checked=true;ui.inputs[0].listeners.change();assert.equal(ui.control.size(),"compact");assert.match(ui.status.textContent,/could not be saved/);
 });
+test("a silently dropped size preference never claims saved",()=>{
+  const ui=mounted({getItem:()=>null,setItem(){}});ui.inputs[2].checked=true;ui.inputs[2].listeners.change();assert.equal(ui.control.size(),"larger");assert.match(ui.status.textContent,/could not be saved/);
+});
 test("source preserves relative text, original wide mark, and 44px interaction targets",async()=>{
   const css=await readFile(new URL("../src/styles.css",import.meta.url),"utf8");
   assert.match(css,/font-size:calc\(100% \* var\(--wallet-ui-scale\)\)/);assert.match(css,/\.brand img,\.dialog-brand img\{width:41\.8px;height:auto;aspect-ratio:798\/420;object-fit:contain/);
