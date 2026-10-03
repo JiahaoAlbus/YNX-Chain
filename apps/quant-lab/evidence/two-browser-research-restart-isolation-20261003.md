@@ -36,3 +36,17 @@ input manifests are immutable historical source checkpoints; this new test
 delta must be included separately by the unique release owner, without waiving
 source hash/pin mismatches. No Host, account request, signature, order or
 transaction action occurred. Ordinary rollback is this isolated test delta.
+
+## Continuation regression
+
+At pushed source `2a620b34c9e185d86d3cfd9317dd75a9f542cd51`, combined
+business-flow, tenant-persistence, records-session and real browser recovery:
+65/65 PASS, 0 skipped, 10383.152042ms. The real browser case passed again with
+two independent contexts and two clean SIGTERM stops. Retained QA root:
+`/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-quant-research-recovery-LotDFh`;
+binary bytes/SHA match the previous run above. Concurrent HTTP fixture also
+passed two tenants/two processes, same-key replay, different-body 409,
+restart persistence and foreign/stale strategy-hash rejection. Its synthetic
+prices and browser-local capability identities are local fixtures only.
+`go test -race ./internal/quantlab ./apps/quant-lab/server` PASS (cached).
+These results do not promote any public/authenticated/installed/trading gate.
