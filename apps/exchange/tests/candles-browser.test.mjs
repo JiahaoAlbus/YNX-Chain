@@ -14,6 +14,33 @@ const marketForClassicScript=market.replace(/^export \{[^}]*\};?$/gm,'').replace
 assert.doesNotMatch(marketForClassicScript,/^export /m);
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
+test('real order preview retires private balances on account transition and fences a delayed public rule read',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];let requests=0;
+    page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>{requests++;return r.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const arithmetic=await readFile(new URL('order-preview.js',root),'utf8'),preview=app.split('\n').find(line=>line.startsWith('function preview()'));
+    const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder(')),controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
+    const rules={schemaVersion:'exchange-limit-rules-v2',market:'YNXT-YUSD_TEST',orderTypes:['limit'],scale:'1000000',minPriceMicro:'1',maxPriceMicro:'1000000000000',minAmountMicro:'1',maxAmountMicro:'1000000000000',maxOrderNotionalMicro:'100000000000',makerFeeBps:17,takerFeeBps:43,notionalRounding:'floor_micro',feeRounding:'ceil_micro_per_fill',quoteAssetType:'venue_only_test_credit_not_token',admissionMinimumQuote:'one_micro_credit',reservationShortfall:'atomic_order_request_rejection'};
+    await page.addScriptTag({content:`${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={account:null,privatePhase:'guest',side:'buy',rules:${JSON.stringify(rules)},marketPhase:'live'},display=v=>(BigInt(v)/1000000n).toString();const toast=()=>{};function renderAccount(){}function resumeDeferredBrowserIdentity(){}function ownedRecordTime(v){return v}function ownedRecordInstant(){return 1}function ownedRecordOrder(){return 0}let finish;const marketFeed={retry:()=>new Promise(resolve=>finish=()=>{state.source={asOf:new Date().toISOString(),authority:'YNX-owned deterministic order state',classification:'testnet',status:'degraded_single_host'};resolve()})};${preview}${review}${controls}\nwindow.ownerPreviewQA={set(account){renderPrivateAccount({phase:account?'connected':'guest',account,snapshot:account?{balances:[{asset:'YUSD_TEST',availableMicro:account==='A'?11000000:22000000}],security:{updatedAt:'2026-10-04T00:00:00Z'},support:[],sourceMetadata:{status:'controlled',coverage:'fixture',asOf:'2026-10-04T00:00:00Z'}}:null})},start(){window.reviewPending=reviewOrder({preventDefault(){}})},finish(){finish()},wait:()=>reviewPending};`});
+    await page.locator('#price').fill('2');await page.locator('#amount').fill('3');
+    await page.evaluate(()=>state.standardWallet={status:'standard-connected',account:'selected-standard-fixture',providerKind:'metamask'});
+    await page.evaluate(()=>{ownerPreviewQA.set('A');ownerPreviewQA.start();ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),true);assert.match(await page.locator('#order-preview-values').textContent(),/11 YUSD_TEST/);
+    await page.evaluate(()=>ownerPreviewQA.set(null));
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false);assert.equal(await page.locator('#order-preview-values').textContent(),'');
+    await page.evaluate(()=>{ownerPreviewQA.set('A');ownerPreviewQA.start();ownerPreviewQA.set('B');ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false);assert.equal(await page.locator('#order-preview-values').textContent(),'');assert.equal(await page.locator('#review-order').isEnabled(),true);
+    await page.evaluate(()=>{ownerPreviewQA.set('A');ownerPreviewQA.start();ownerPreviewQA.set('B');ownerPreviewQA.set('A');ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false,'same account re-entry must not revive a retired preview');
+    await page.evaluate(()=>ownerPreviewQA.set('B'));
+    await page.evaluate(()=>{ownerPreviewQA.start();ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),true);assert.match(await page.locator('#order-preview-values').textContent(),/22 YUSD_TEST/);assert.doesNotMatch(await page.locator('#order-preview-values').textContent(),/11 YUSD_TEST/);
+    assert.equal(await page.locator('#price').inputValue(),'2');assert.equal(await page.locator('#amount').inputValue(),'3');
+    assert.deepEqual(await page.evaluate(()=>state.standardWallet),{status:'standard-connected',account:'selected-standard-fixture',providerKind:'metamask'});
+    assert.deepEqual(errors,[]);assert.equal(requests,0);assert.equal(page.context().pages().length,1);
+  }finally{await browser.close()}
+});
 test('actual read-only order preview uses the selected language for its rule observation time',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
