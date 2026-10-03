@@ -60,7 +60,7 @@ fi
 # callback/client bundle. No file is silently sourced from the working tree.
 if git cat-file -e "${source_commit}:apps/video/product-session.js" 2>/dev/null; then
   files+=(product-session.js product-session-sdk.js product-session-registry.json product-session-sdk-source.json
-    video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)
+    session-events.js video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)
 fi
 
 if git cat-file -e "${source_commit}:apps/video/session-events.js" 2>/dev/null; then

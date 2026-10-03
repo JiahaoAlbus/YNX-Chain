@@ -1,3 +1,4 @@
+import {connectMediaWallet} from './session-events.js';
 import {dispatchPreparedProductRequest} from "./product-session.js";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -58,7 +59,7 @@ async function app(overrides = {}) {
     restoreNativeProductReturn:async()=>null, disconnectProductSession: async () => ({ status: "disconnected" }), productAuthorization: async () => ({}),
     fetch: async () => { throw new Error("Unexpected fetch"); },
     createStandardWalletConnectState: () => ({}), reduceStandardWalletConnectState: state => state,
-    dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
+    connectMediaWallet, dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
     discoverWalletProviders: async () => ({candidates: []}), i18nReady: Promise.resolve(), t: key => key,
     confirm: () => false, prompt: () => null, ...overrides,
   };

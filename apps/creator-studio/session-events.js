@@ -47,3 +47,28 @@ export function createMediaReturnLocation(product, views, environment = globalTh
     },
   };
 }
+
+// Invoke connect during the real click so popup activation is preserved. This
+// bounds transport establishment only; it never substitutes for Wallet approval.
+export function connectMediaWallet({connect, release, signal, isCurrent = () => true}) {
+  return new Promise((resolve, reject) => {
+    let settled = false, timer;
+    const close = () => {try {Promise.resolve(release?.()).catch(() => {});} catch {}};
+    const cancelled = () => Object.assign(new Error('Wallet selection was cancelled.'), {code: 'PRODUCT_APPROVAL_CANCELLED'});
+    const finish = (error, provider) => {
+      if (settled) {if (!error) close();return;}
+      settled = true;clearTimeout(timer);signal?.removeEventListener('abort', abort);
+      if (error) {close();reject(error);} else resolve(provider);
+    };
+    const abort = () => finish(cancelled());
+    if (signal?.aborted || !isCurrent()) {abort();return;}
+    signal?.addEventListener('abort', abort, {once: true});
+    timer = setTimeout(() => finish(Object.assign(new Error('Wallet connection timed out. Choose another wallet or retry.'), {code: 'PRODUCT_CONNECTION_TIMEOUT'})), 15000);
+    try {
+      Promise.resolve(connect()).then(provider => {
+        if (signal?.aborted || !isCurrent()) {if(settled)close();else finish(cancelled());return;}
+        finish(null, provider);
+      }, error => finish(error));
+    } catch(error) {finish(error);}
+  });
+}

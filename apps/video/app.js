@@ -1,3 +1,4 @@
+import {connectMediaWallet} from './session-events.js';
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
 import {connectVideoWallet, restoreVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
 import {ready as i18nReady, t} from "./i18n.js";
@@ -337,7 +338,7 @@ async function prepareVideoSignIn() {
   let provider, invalidate;
   try {
    // Called synchronously by the actual click: Hosted opens before any fetch.
-   provider = await connect();
+   provider = await connectMediaWallet({connect, release, signal: abort.signal, isCurrent: current});
    if (!current()) {release?.(); return;}
    clearProductPair();
    $("#product-wallet-status").textContent = 'Review the Video request in ' + label + '. You may approve or reject it.';
