@@ -13,7 +13,7 @@ import Foundation
             let root=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-creator-qa-"+UUID().uuidString,isDirectory:true)
             try FileManager.default.createDirectory(at:root,withIntermediateDirectories:true)
             defer {try? FileManager.default.removeItem(at:root)}
-            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,dropStream=false,foreignStream=false,streamLines=0,held: CheckedContinuation<Void,Never>?
+            var persisted: Data?,opened="",mismatch=false,dropMutation=false,dropOperation="",assetBackup:Data?,assetWire:URL?,hold=false,dropStream=false,foreignStream=false,streamLines=0,legacyCancelledDelta=false,held: CheckedContinuation<Void,Never>?
             let key=CreatorDeviceKey(read:{(errSecSuccess,original.rawRepresentation)},add:{_ in errSecAuthFailed},create:{fatalError("QA must preserve generated original key")})
             let network=CreatorNativeTransport()
             let sender: CreatorNativeEngine.Sender = { request,limit in
@@ -36,7 +36,9 @@ import Foundation
                 var redirected=request;redirected.url=URL(string:backend.absoluteString+original.path.dropFirst("/video/api".count))!
                 let response=try await network.stream(redirected,limit) {line in
                     streamLines+=1
-                    if foreignStream,var event=try JSONSerialization.jsonObject(with:line) as? [String:Any],var job=event["job"] as? [String:Any] {
+                    if legacyCancelledDelta,var event=try JSONSerialization.jsonObject(with:line) as? [String:Any],event["state"] as? String=="cancelled" {
+                        legacyCancelledDelta=false;event["delta"]="Isolated legacy cancelled partial";try receive(JSONSerialization.data(withJSONObject:event))
+                    } else if foreignStream,var event=try JSONSerialization.jsonObject(with:line) as? [String:Any],var job=event["job"] as? [String:Any] {
                         foreignStream=false;job["ID"]="foreign_original_job";event["job"]=job;try receive(JSONSerialization.data(withJSONObject:event))
                     } else {try receive(line)}
                 }
@@ -105,6 +107,7 @@ import Foundation
                         case "uiReviewAI":await model.reviewAI(command["jobID"] as! String,apply:command["apply"] as! Bool,expectedRevision:model.currentRevision)
                         case "uiDeleteAI":await model.deleteAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
                         case "dropNextStream":dropStream=true
+                        case "legacyCancelledDelta":legacyCancelledDelta=true
                         case "foreignStreamJob":foreignStream=true
                         case "uiRetryOperation":await model.retryOperation()
                         case "uiCancelOperation":model.cancelOperation()

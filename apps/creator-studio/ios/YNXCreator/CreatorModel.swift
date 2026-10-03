@@ -302,7 +302,12 @@ struct CreatorSnapshot: Decodable {
                 job=try await readAI(id,active,captured)
             }
             guard !["awaiting_permission","running"].contains(job.State) else {throw CreatorHTTP.Failure.unexpectedResponse}
-            try require(active,captured);try store.acknowledgeAICancel(operation);pendingAICancel=false
+            try require(active,captured)
+            // A cold original readback can finish the matching saved stream
+            // after cancellation, including older servers that emitted an
+            // invalid terminal delta. Never race the active stream owner.
+            if job.State=="cancelled",!aiStreaming,let stream=try store.pendingOperation(),stream.method=="POST",stream.path=="/v1/ai/jobs/"+id+"/stream",stream.body=="{}" {try store.acknowledge(stream);pendingOperation=false}
+            try store.acknowledgeAICancel(operation);pendingAICancel=false
             if selectedAI?.id==id {selectedAI=job};message=job.State=="cancelled" ? text("aiCancelled") : text("aiCancelTooLate")
             try await refreshCaptured(active,captured)
         }catch {if captured==revision {lastFailure=String(describing:error);message=text("aiCancelUnknown")}}

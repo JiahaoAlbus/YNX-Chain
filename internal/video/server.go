@@ -679,7 +679,7 @@ func (s *Server) streamAI(w http.ResponseWriter, r *http.Request, actor, jobID s
 			if err != nil {
 				continue
 			}
-			if strings.HasPrefix(job.Partial, last) && len(job.Partial) > len(last) {
+			if job.State == "running" && strings.HasPrefix(job.Partial, last) && len(job.Partial) > len(last) {
 				delta := job.Partial[len(last):]
 				last = job.Partial
 				_ = encoder.Encode(map[string]any{"state": job.State, "delta": delta})
