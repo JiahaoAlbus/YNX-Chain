@@ -1,0 +1,403 @@
+{
+  "schemaVersion": "ynx-media-android-source-candidates/v1",
+  "sourceCommit": "a708a855ff811db1da661b94cfdfede0e3afc3a9",
+  "sourceTree": "0275b872c913478e33809a04587d64885c31416a",
+  "sourceInputPins": [
+    {
+      "path": "apps/music/android/.gitignore",
+      "bytes": 44,
+      "sha256": "f0d90fe6dd188cfa5cbac987949cfa3893a2c1ac3cf6dbfcb837e0e2abb698b1",
+      "gitBlob": "a7e04a21b33b84d790a98b011a1680440c74c99e"
+    },
+    {
+      "path": "apps/music/android/app/build.gradle",
+      "bytes": 943,
+      "sha256": "5e6215cf2a08f0670ad843ac4cad218edd36cfb7cd8397cffbd94ab4c94e2bba",
+      "gitBlob": "39e11d9db3cceab4c4ba17c00d9bb0eaee405cad"
+    },
+    {
+      "path": "apps/music/android/app/proguard-rules.pro",
+      "bytes": 75,
+      "sha256": "e3b967b9c0e328f67f6d2a0692deab24d40f8718395812855fb3d505dc8aebbf",
+      "gitBlob": "f6584a14a119bbea5e5e57fd44de58bc6195a26d"
+    },
+    {
+      "path": "apps/music/android/app/src/androidTest/java/com/ynxweb4/music/ContractInstrumentedTest.java",
+      "bytes": 3240,
+      "sha256": "620ce148d688096bb60591051711457435d5101078e2531152a0fcdea0a285b8",
+      "gitBlob": "2ecd5c5ce96f356d270c5fc238a98190c9ae1648"
+    },
+    {
+      "path": "apps/music/android/app/src/main/AndroidManifest.xml",
+      "bytes": 1438,
+      "sha256": "66ae3fc2821369b0fe62534b9c5a77bd2fb505cca5b918c165fb8376f44dc7cc",
+      "gitBlob": "0fe925ad65140cb17fe0deb0c88b1b0344ca71a3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java",
+      "bytes": 9205,
+      "sha256": "2dd48b492c7197beecb0539c1ef91937b662a774592c2a426692cc01bfca8fb2",
+      "gitBlob": "bcfb8374672a69e2aa79626631b7aff0e562ccd3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "d17dc66c4c014f62f4bd10ff6738dc32b14da950ce9ede5cebc65b126cfea6b5",
+      "gitBlob": "81a34431854f13b808d9ada03df58729a609356d"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/LocaleSupport.java",
+      "bytes": 838,
+      "sha256": "4ca6fe8d5630f087e102a30d141fecfa6453e3663e01245b9e09543b2bc5276a",
+      "gitBlob": "fa689d933e664441aa1442444e94440557f90288"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MainActivity.java",
+      "bytes": 38071,
+      "sha256": "5b82e789a342530bcab9dd23d895cde7e068b960e167491112e951bc0ea118c3",
+      "gitBlob": "719a58faa89d83758e844f60b787384c071bf137"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "bytes": 9772,
+      "sha256": "def80b07873bc453030abf8a00cc713ea278afb0f8523cc4d2f3ec25ef56fa64",
+      "gitBlob": "c0a23b4fdfd834f679af77f6d124f8eb410da4bc"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "bytes": 6857,
+      "sha256": "d0cb6e00e53da3b1fdf2ea98a128487c0511daaa7df098330b79f64e55cec4f9",
+      "gitBlob": "e09194e29094ae7d730786044e7053fb49aa56ea"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/PlaybackService.java",
+      "bytes": 7128,
+      "sha256": "9192ef51f841ebfc1ccd4684bff966292083c68ac7bb5815dc95b285fc747599",
+      "gitBlob": "c95cf2eb2b588c67d0564b11f38aa93b28cf84ad"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SecureStore.java",
+      "bytes": 2098,
+      "sha256": "2d62ecf03f9e04f50781955e49db5ca68b1b66093213224f3ec79818db4bd0cc",
+      "gitBlob": "8402db0ac6e691f855364756173319b173b27c72"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable/ic_music.xml",
+      "bytes": 359,
+      "sha256": "d768fb031f375fbedcd4c114c881d926e27c26ea84f530a550c474ccc5d7beb9",
+      "gitBlob": "8bde7e4410f29377d470bf8b3334112a4071c242"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/drawable/ynx_logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "gitBlob": "104a2773172d2b22192271b1ac2c1c16969be2f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ar/strings.xml",
+      "bytes": 5491,
+      "sha256": "4f237cbe8dea705ea3ca6b640102d3e5bcb8bb27a268ed9865c2b7ad0abd027d",
+      "gitBlob": "a455ffcfe922894bc97cc6afb208343dfd227f7d"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-de/strings.xml",
+      "bytes": 4607,
+      "sha256": "670d10b046d999382ff005e81baa8960d9c901a280d709134490213b48566d6f",
+      "gitBlob": "3eed5a8854dd34b263016d3bece0df2aad1060f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-es/strings.xml",
+      "bytes": 4609,
+      "sha256": "8f452f7c9a34f66d39f72a206fa086153e0c1874afcaf30a0facef08f2d08d8c",
+      "gitBlob": "e8645dc4bccd69906a752ec9b32286f00341665a"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-fr/strings.xml",
+      "bytes": 4736,
+      "sha256": "4f095f8fb26d6427fb3432b170c31319b791f157418444c9ec25fd5e508bcd7f",
+      "gitBlob": "dead656104d909c266d46ebaea3d9e8b6828352d"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-in/strings.xml",
+      "bytes": 4426,
+      "sha256": "68761e99f08a4394d304b8eee5a83a5e59c9a3fe98a5efa17e3a72956164e2a3",
+      "gitBlob": "714366588b9d6e69f830a968d63590e348d2f094"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ja/strings.xml",
+      "bytes": 5146,
+      "sha256": "c75b7dc587dcc27ff1efad2285945ea9af13c76771e078fc810945e6711b5c05",
+      "gitBlob": "e3ccf83ea11f143a9cab367388f6b3bfee40c45c"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ko/strings.xml",
+      "bytes": 4773,
+      "sha256": "b1379004c73c120ace7f12169689aa540a8f2f2f29a5b52f7fc7de9a71be4296",
+      "gitBlob": "f4458fb1aa0b37c2f679daaa13344c010f5bdbad"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-night/styles.xml",
+      "bytes": 461,
+      "sha256": "c40484f7f0f194ab6eddc6a331e930a301cf03ea2f0f1710ac04a262186d0127",
+      "gitBlob": "57b3632dfc119645f2a8def81077982ec1efb28c"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-pt/strings.xml",
+      "bytes": 4626,
+      "sha256": "32c23077749b4b8888ce9dfcefe7b3c518639d45a7a36cd57c2262c44e53d230",
+      "gitBlob": "cb0a49fb7d3d317b8619cb0506b2ffa116b8c6f9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ru/strings.xml",
+      "bytes": 6095,
+      "sha256": "4679ae6db45ae81f44edd4ecd90b9c557ea5bf433f64df9987ddbf77f1dc53bf",
+      "gitBlob": "98fdddaadc4e5a3f782fe406a223d0f13d30c3e2"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rCN/strings.xml",
+      "bytes": 4199,
+      "sha256": "e28007d1c799e1af3aa05f570c1ef165b2663a34bba2664b7d9b8b945ced237e",
+      "gitBlob": "636fdcd5c1dfde94ff588cb37e83d1a3a73e61a5"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rTW/strings.xml",
+      "bytes": 4193,
+      "sha256": "f6c940fc6c374d922b202182c2b74f7b04f08c00c41785f089580923e8cc41b2",
+      "gitBlob": "64642c0c29eab9fb70ad786e41be3e53c35bcd9e"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values/strings.xml",
+      "bytes": 4318,
+      "sha256": "89b3dba8493c8c2e293c86a3e184961661bb87bf9c040aee155187cf6f100de4",
+      "gitBlob": "a563aa30275a1fa9c3d22c5a35b56066b366cca4"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values/styles.xml",
+      "bytes": 466,
+      "sha256": "17b63a333481c6d47113f9ed750970d25604cf55f8e3f45eda19ad1ae5413cee",
+      "gitBlob": "42c1e3a301229dc9a8e194b15c8c8e20828eb368"
+    },
+    {
+      "path": "apps/music/android/build.gradle",
+      "bytes": 133,
+      "sha256": "498f04b13506032fefc35d99ee2c006b3e322b5bbb202f1db06bc17141a37cb2",
+      "gitBlob": "17cb3d8aeea592ec7c28ab84a6908fe35d8a7b46"
+    },
+    {
+      "path": "apps/music/android/gradle.properties",
+      "bytes": 135,
+      "sha256": "454d9ea3a6ed271db953f86cb4b02291135b6e543562418b1870a7f6c4856336",
+      "gitBlob": "a2312e87c4d6034d7c1fc30bf8bc5de5a995ff75"
+    },
+    {
+      "path": "apps/music/android/settings.gradle",
+      "bytes": 270,
+      "sha256": "5b51f39d1c58cdc551b0633cdd88aa1550a63c7d6dc1f6f75b1a8c68b6276021",
+      "gitBlob": "f91a413c06524da2ff4b585629872271a4d6cd52"
+    },
+    {
+      "path": "apps/video/android/.gitignore",
+      "bytes": 61,
+      "sha256": "8ff30cd2483d6785014430bf3547be9dca892f79e389215c20d35574f6d45cce",
+      "gitBlob": "3fd896b29456027ea944fe849261d5e1f31dd745"
+    },
+    {
+      "path": "apps/video/android/app/build.gradle",
+      "bytes": 364,
+      "sha256": "c7f993fe050dd5aad8c74a0867eb95c0ef46f850496cea2f145ce2885ae53d07",
+      "gitBlob": "41c82846f4d7696f0947c0db3fa90ceb54dfec89"
+    },
+    {
+      "path": "apps/video/android/app/src/main/AndroidManifest.xml",
+      "bytes": 1677,
+      "sha256": "4a4a7f1596d52083984a68a9ee4a13026b32cc3338a1b7cbcbdd94c312ce505b",
+      "gitBlob": "90aba8f5cf7447bd028872bf7b3ee8facacb38b5"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "305c1cff33cdaa758be51b98e007205e18a67ac6e53aeff40ec74d4ad2ddb231",
+      "gitBlob": "8e13064b97cd668be87ac99a53fa6873fe90046f"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+      "bytes": 27023,
+      "sha256": "9703bfb2d555a272b7ba7eeb9d0d9c91735c21c862f856d7da64bf4a895dfffb",
+      "gitBlob": "c8d7c4457bc15f5e599f6f1afb870fe8844c4aa5"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "bytes": 1740,
+      "sha256": "0075b8105d7bada7361e6e37ffce43731e19fe5ea01d6ddf5fdac8458c265641",
+      "gitBlob": "433db720501c0065624c082b737b4719396006e1"
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/drawable/ic_launcher.xml",
+      "bytes": 342,
+      "sha256": "4f45d51aa361ef844eac5950218fff86b508e0988a8dda6202f9afb07409e18b",
+      "gitBlob": "806f18f46d684e447759094ced66d387aec9695e"
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/values/strings.xml",
+      "bytes": 66,
+      "sha256": "b07246531020b337012168fe8f440e49c3c9437b6a31d2c69503ad305740ed0d",
+      "gitBlob": "4014e1b0d2e420d2303732438c066256f649ddfe"
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/values/styles.xml",
+      "bytes": 415,
+      "sha256": "25de8a45a340ac7d1281a05c2aa36080a5537a29ae1d2c26859576608f50c9b7",
+      "gitBlob": "7668a10edf55a43f853f6b0c6368ef9ddb90c97e"
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/xml/network_security_config.xml",
+      "bytes": 146,
+      "sha256": "dea35ebed76536c24c13f74036f02dc874f944147cb3a49c2ad0550f71e3e0c7",
+      "gitBlob": "6115950862363ee36769a4cc0323679f04e62e83"
+    },
+    {
+      "path": "apps/video/android/build.gradle",
+      "bytes": 133,
+      "sha256": "68fbfbe27ca7effd66c275628b2e48da6be0ef9ec458042d55f738d739f6773b",
+      "gitBlob": "f54dca429dfd2c7de6c9fe3facd44936d5d52106"
+    },
+    {
+      "path": "apps/video/android/gradle.properties",
+      "bytes": 160,
+      "sha256": "8eb351a7a6ee460f78771b01480a9896897db4ca8521d9fe81b8e3d9e058f698",
+      "gitBlob": "8d413dc9a0f0d35132f52dfc0afec0fb7f2d83f7"
+    },
+    {
+      "path": "apps/video/android/settings.gradle",
+      "bytes": 269,
+      "sha256": "d2ce6854cf9c99e7cbc1c69fcf889bd6a31f0130acc69bb3f147ac47c0cf5db5",
+      "gitBlob": "e0b6bc4b71c025cb65cc9258d17d4a8ed3466613"
+    },
+    {
+      "path": "apps/video/i18n/catalog.json",
+      "bytes": 14125,
+      "sha256": "e5d61e1c1b562c767b0593f221559f7cc52c00ca0d75514e8dce93e6bcb36dd2",
+      "gitBlob": "9324d4169309d6f542a209aca0466b85b51cf20c"
+    }
+  ],
+  "build": {
+    "Video": "offline Gradle :app:assembleDebug PASS /32 tasks actually executed",
+    "Music": "offline Gradle :app:assembleDebug PASS",
+    "JAVA_HOME": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+    "ANDROID_HOME": "/Users/huangjiahao/Library/Android/sdk",
+    "AndroidPlugin": "8.12.0",
+    "Gradle": "9.2.1",
+    "VideoCompileTargetMinSDK": [
+      36,
+      36,
+      26
+    ],
+    "MusicCompileTargetMinSDK": [
+      35,
+      35,
+      28
+    ],
+    "signing": "Existing standard Android debug signing only; actual apksigner verify; not release-signed issuer artifact"
+  },
+  "packagedChecks": [
+    "Real manifest/package/version/launchable activity inspected by aapt2",
+    "Both APKs original brand PNG exact source bytes df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "Video original catalog.json exact source bytes",
+    "MainActivity and DisplayPreferences present in both actual DEX containers",
+    "Original callback schemes/host and allowBackup=false present in compiled manifests",
+    "No source edits or native product data/key changes in this build"
+  ],
+  "evidencePins": [
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-apk-contents.json",
+      "bytes": 448,
+      "sha256": "b504b1e657864ee0f6bd4cc1460b457c25ebe794887f1f99a91f845b9d352fe2"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-badging.txt",
+      "bytes": 1591,
+      "sha256": "c4fea93826ebdd10790de92b501388fa2bc992dbe9596db13e62fcb89e3e2819"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-build-first.txt",
+      "bytes": 2801,
+      "sha256": "71f3758333f9d9f48bad20bfd0766e36d3e442a4b802c9f35bf22711f6ef7ccf"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-debug-source-a708a855.apk",
+      "bytes": 459485,
+      "sha256": "fa7028be05beef97cef11a6152cfc57f9088120ba7b0b608b3d9635c2873319e"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-manifest-tree.txt",
+      "bytes": 4795,
+      "sha256": "cb18910ae3e3eba73d455c1638a8c838fcb9b1962e6a1c9d318603b2bef7ddb2"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/music-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-apk-contents.json",
+      "bytes": 477,
+      "sha256": "1d60dccdfc3d04d0e6600891695c8ef038cecd5213845ce914bd3b4da429d5e7"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-badging.txt",
+      "bytes": 947,
+      "sha256": "ffa1757dd4e0bb965fcde839c868491b52d921e759dd7abe39ad5667bd8b266c"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-build-first.txt",
+      "bytes": 2531,
+      "sha256": "f8a384669b252fd7cf7431eb727ce2227a67a64b64067d018b510b012638c891"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-debug-source-a708a855.apk",
+      "bytes": 142107,
+      "sha256": "2080972f09507e23fe327c2e00e6dd5efe07321aae5b2850c99b76c4ccb4c592"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-manifest-tree.txt",
+      "bytes": 4940,
+      "sha256": "a6c4be54c65628d190b55db72e5c58c3b232b4cf5c86aa994cdf60b727cb63c7"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-candidate-20261003/video-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    }
+  ],
+  "acceptance": {
+    "sourceCandidateBuilt": true,
+    "publicReleaseArtifact": false,
+    "deviceInstalled": false,
+    "nativeLayoutActuallyRendered": false,
+    "realWalletCanonicalSDKBridge": false,
+    "nativePrivateBusinessReadback": false,
+    "existingStorePreservationOnInstall": false,
+    "AndroidFullUserFlow": false,
+    "macOSFullUserFlow": false,
+    "formalVideoPublicUserFlow": false,
+    "fullMediaGoalComplete": false
+  },
+  "next": [
+    "Root explicit blank QA target/lease for independent Video/Music debug candidates; no existing-account device taken",
+    "A exact admitted native protected SDK/key/tuple and complete action verifier; old V1/native unavailable boundary not bypassed",
+    "Same full source backend and Web deployment, formal actual person business/readback/recovery/isolation",
+    "Apple installed full build/flow after actual compiler/runtime inputs available"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "app": "video",
+  "apkBytes": 142107,
+  "apkSHA256": "2080972f09507e23fe327c2e00e6dd5efe07321aae5b2850c99b76c4ccb4c592",
+  "logoEntry": "res/drawable-nodpi-v4/ynx_brand_original.png",
+  "logoBytesEqualSource": true,
+  "logoSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "assetEntries": [
+    "assets/catalog.json"
+  ],
+  "dexEntries": [
+    "classes.dex",
+    "classes2.dex"
+  ],
+  "manifestPresent": true,
+  "nativeUserAcceptance": false
+}

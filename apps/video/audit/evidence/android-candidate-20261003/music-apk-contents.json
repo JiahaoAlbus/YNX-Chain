@@ -1,0 +1,15 @@
+{
+  "app": "music",
+  "apkBytes": 459485,
+  "apkSHA256": "fa7028be05beef97cef11a6152cfc57f9088120ba7b0b608b3d9635c2873319e",
+  "logoEntry": "res/drawable-nodpi-v4/ynx_brand_original.png",
+  "logoBytesEqualSource": true,
+  "logoSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "assetEntries": [],
+  "dexEntries": [
+    "classes.dex",
+    "classes2.dex"
+  ],
+  "manifestPresent": true,
+  "nativeUserAcceptance": false
+}
