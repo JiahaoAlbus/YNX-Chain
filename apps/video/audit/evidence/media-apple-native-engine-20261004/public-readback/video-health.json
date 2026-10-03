@@ -1,0 +1,17 @@
+{
+  "url": "https://video.ynxweb4.com/video/api/health",
+  "time": "2026-10-03T16:26:55.205Z",
+  "status": 200,
+  "headers": {
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "cache-control": "no-store",
+    "content-length": "285",
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 16:26:55 GMT",
+    "referrer-policy": "no-referrer",
+    "server": "Caddy",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "x-content-type-options": "nosniff"
+  },
+  "actualPrivateBusiness": false
+}

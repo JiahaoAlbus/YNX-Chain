@@ -1,0 +1,51 @@
+{
+  "schema": "ynx.video.apple-engine.software-qa.v1",
+  "binary": "/tmp/ynx-apple-video-engine-check-20261004/apple-engine-check",
+  "bytes": 942032,
+  "sha256": "b4585caca8dc68afdd3882b46f6b821029af67524eb78f3ce65e0c78fcc3c0de",
+  "sourcePins": [
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeEngine.swift",
+      "bytes": 21781,
+      "sha256": "8d2b660a70e59089a12636bfc9caa51676bb9f225d09ad60e1d62179ca87dec9"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeState.swift",
+      "bytes": 18407,
+      "sha256": "dbfb585fb2b10f71655ea3e1c717c35309af7b8fb9cf555bc8e7dd338ff8bad1"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCustody.swift",
+      "bytes": 2503,
+      "sha256": "0c078a1b30ad44d1f6a8cd3ed59e0c3e45906fc80ba1a77dcd3c3e5bc2990c54"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ProductDeviceKey.swift",
+      "bytes": 4083,
+      "sha256": "c92aa14c65b119c8dd7f7701635ec2a9ac0029a8c9d25093671ecce51f9f1801"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeTransport.swift",
+      "bytes": 1473,
+      "sha256": "49e6e8785ab7a2df2917f646fcaa3889e232a5b11c83e93b46d56eaf30b5719b"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCore.swift",
+      "bytes": 4717,
+      "sha256": "bd402eab16e5f27a4639f0917501f6f0ca314765a2f36edbbc7a0dd5c8b66272"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoModel.swift",
+      "bytes": 11575,
+      "sha256": "c9c12fada282523dddcc7c2991067a28eb74cf28267437dde2489e920765b290"
+    },
+    {
+      "path": "apps/video/scripts/apple-engine-check.swift",
+      "bytes": 7630,
+      "sha256": "8f21476aa1486454f64875cc598e39aae37f25fe235532994df3b1caec4a43e0"
+    }
+  ],
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "installed": false
+}

@@ -1,0 +1,193 @@
+{
+  "schema": "ynx.media.apple-native-engine.freeze.v1",
+  "createdAt": "2026-10-03T16:30:36.009578+00:00",
+  "sourceCommit": "889fca2fa0803aff0a0e189380c30e833c9e1f76",
+  "sourceTree": "5d381637681c6184203ae52bcc29fbb00ca0fd64",
+  "previousAppleState": {
+    "path": "apps/video/audit/media-apple-state-checkpoint-20261003.json",
+    "bytes": 6204,
+    "sha256": "98b860fcd36de1ec020e8ea67b3a309b26ce672c709161364d13cc927fa8f120"
+  },
+  "previousWebAccountTransition": {
+    "path": "apps/video/audit/media-account-transition-checkpoint-20261003.json",
+    "bytes": 3784,
+    "sha256": "3e1996d5af551ce4bcf52fe8d322eeb7b1e8c7743be9bc6205a972c079e348e4"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/media-owned-source-889fca2f.tar.gz",
+    "bytes": 3840147,
+    "sha256": "da82476b1199273877cd826ae2641d5139ed0e14c17d0347a2a4417c8dd8bf78",
+    "fileCount": 568,
+    "everyMemberGitByteExact": true
+  },
+  "videoWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/video-web-889fca2f.tar.gz",
+    "bytes": 632108,
+    "sha256": "66f724934e32d9870ce6a652d06d99b6cffafce6c57cf31a412ac5c0488088b1"
+  },
+  "creatorWeb": {
+    "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/creator-web-889fca2f.tar.gz",
+    "bytes": 638050,
+    "sha256": "ae41677ecb20c6d8780ad73043e2eb20563d5740f2561325ca25afcd9e68828c"
+  },
+  "appleUnsignedCandidates": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/video-ios-simulator-unsigned-889fca2f.tar.gz",
+      "bytes": 816087,
+      "sha256": "90ec5272b65f775d979a11f0110e6d5b4b43aa479f17e5b628a682cfb43e9f2c",
+      "target": "ios-simulator",
+      "fileCount": 11,
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/video-macos-unsigned-889fca2f.tar.gz",
+      "bytes": 540648,
+      "sha256": "08071f432d907129940b8616fe55bb5bfa1bc8c59c20b2cf89665887d064bb3a",
+      "target": "macos",
+      "fileCount": 11,
+      "packagedEngineEveryMemberGitByteExact": true,
+      "signed": false,
+      "installed": false,
+      "realWalletAccepted": false
+    }
+  ],
+  "checks": {
+    "race": "PASS",
+    "vet": "PASS",
+    "GoPassEvents": 444,
+    "GoFailEvents": 0,
+    "inputCount": 463,
+    "MediaInputPinsGitExact": 419,
+    "AppleCompiledSourcePinsGitExact": 8,
+    "actualAppleSwiftWebKitAndModelFlow": true,
+    "iOSIdentityTupleExecutedOnHost": "macOS headless WebKit with generated key and injected custody/transport",
+    "iOSSimulatorCompile": "PASS generic unsigned",
+    "macOSCompile": "PASS unsigned",
+    "originalKeychainAndMediaFilesAccessed": false,
+    "formalSigning": false,
+    "actualWalletConsent": false,
+    "actualNativeOSStorage": false,
+    "actualRenderedNativeUI": false
+  },
+  "capabilities": [
+    "Original pinned NativeSDK5c, exact Apple product tuple and original same-account readback before private identity",
+    "SwiftUI login/callback/restore/disconnect and final wire business proof headers",
+    "Persisted negative retirement and original-target-only revoke signer; current account/device/epoch fences",
+    "Controlled actual original playlist write/read, watch write, fresh Range proofs original206 and replay401, cold original session, wrong-account veto and late-response veto",
+    "Exact backend iOS bundle/origin routing added without borrowing macOS identity"
+  ],
+  "remaining": [
+    "Native AVPlayer private range resource loader and original playback/watch persistence",
+    "Complete account-separated native draft and playlist navigation",
+    "Real iOS/macOS Keychain lifecycle and actual Wallet approval callbacks",
+    "Real rendered native UI and physical/simulator runtime acceptance",
+    "Formal signing original entitlement and TestFlight upload by unique release owner",
+    "Formal public Host/client pair deployment and same-own business; current live manifests remain d56a685a and centralDeploymentVerified=false"
+  ],
+  "temporaryLaunchServices": {
+    "initialAndFinalMacBuildAutoRegisteredTheirOwnTemporaryCandidate": true,
+    "ownTemporaryCandidateUnregisteredAfterBuild": true,
+    "noExistingAppUnregistered": true,
+    "appLaunched": false
+  },
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/apple-compiled-source-receipt.json",
+      "bytes": 1784,
+      "sha256": "ba411de0ad3b5d69aa3f73fc72abf9e24cce6c65cd84e6448d1bdd40c7dbef35"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/apple-state.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/combined-go-race.jsonl",
+      "bytes": 427004,
+      "sha256": "5a69a72768bd1b8627c1ba2748d70fc9867f3be44211c1aea9cbeeb88a4ac280"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/combined-source-receipt.json",
+      "bytes": 118680,
+      "sha256": "9fa4ffacac856910a630bc10706a998ce4661903a381e9bc821c86f6a97ed080"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/first-baseline-race-failed.jsonl",
+      "bytes": 9238,
+      "sha256": "8620238686d1f5c399cc81cdab10f051188abfb8439ad3cb5ad657c2580f5485"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/first-ios-binding-only-repair-race-failed.jsonl",
+      "bytes": 9252,
+      "sha256": "9df41a46a278ddb7a4a9a5c39fdfee07980870d65d3c1d7314a8fe18f53ea554"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/fixture-compile.txt",
+      "bytes": 1476,
+      "sha256": "f9f22f54ae4483fbae0daf65aca1b5c9db4c6476e944121f3727307596c2a4d1"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/ios-build.txt",
+      "bytes": 55969,
+      "sha256": "ffe0117e56b0706ef0849a8820394f110e080319d4be2a04ed11b4cd6c85d202"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/macos-build.txt",
+      "bytes": 60032,
+      "sha256": "254ec226c062c451e68d1c1d402f99a3c754407064e417916d97d23d3c163f9c"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/model-boundary.txt",
+      "bytes": 274,
+      "sha256": "a113278612e4619ac52b8bb224478bf3753c073f8c8de80604e5020a799de21f"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/creator-manifest.body",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/creator-manifest.json",
+      "bytes": 899,
+      "sha256": "937311617ddbe921054c499e0dd4591b1c08a94fdbbe966e87041ac668edc0d1"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/video-health.body",
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/video-health.json",
+      "bytes": 528,
+      "sha256": "7e29dc7ab9aaec9de9fc2d456443ef8c5900ee6da7abb6627a0efcc8df256634"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/video-manifest.body",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/public-readback/video-manifest.json",
+      "bytes": 957,
+      "sha256": "26a636c7e13f1815ef149ee31fdf16457eaf378fa2a14365adb8a1749a9b5f23"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/qa-creator-studio-normal-product-390.png",
+      "bytes": 80768,
+      "sha256": "45ed53e69d180ae1f89711458b7b7116c48d9802cdb0f55b7906eb9610b80bda"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-apple-native-engine-20261004/qa-video-normal-product-390.png",
+      "bytes": 67213,
+      "sha256": "74d1692f8d674749cbba36a56f08362ab96aa971d60520ed1ceb80e7364979ee"
+    }
+  ]
+}

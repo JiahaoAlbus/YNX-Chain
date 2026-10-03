@@ -1,0 +1,492 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/video/ios/YNXVideo.xcodeproj -scheme YNXVideoMac -configuration Debug -sdk macosx -derivedDataPath /tmp/ynx-video-macos-engine-20261004 CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+    SDKROOT = macosx27.0
+
+2026-10-04 00:22:12.746 xcodebuild[63189:4541161] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+--- xcodebuild: WARNING: Using the first of multiple matching destinations:
+{ platform:macOS, arch:arm64, id:00008132-0018682C3C20C01C, name:My Mac }
+{ platform:macOS, arch:x86_64, id:00008132-0018682C3C20C01C, name:My Mac }
+{ platform:macOS, name:Any Mac }
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXVideoMac' in project 'YNXVideo' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: c1d5611e8ae0c12ee1d0852e98a0d5ca
+Build description path: /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/XCBuildData/c1d5611e8ae0c12ee1d0852e98a0d5ca.xcbuilddata
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/CompilationCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/CompilationCache.noindex
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Products
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Products
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk /tmp/ynx-video-macos-engine-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -o /tmp/ynx-video-macos-engine-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideo-00cff81b642b8169b61909bf2a9ca0df-VFS/all-product-headers.yaml
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideo-00cff81b642b8169b61909bf2a9ca0df-VFS/all-product-headers.yaml
+
+CreateBuildDirectory /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo.xcodeproj
+    builtin-create-build-directory /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyMetadataFileList (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyStaticMetadataFileList (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-project-headers.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-project-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-target-headers.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-generated-files.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-generated-files.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-non-framework-target-headers.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-own-target-headers.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-own-target-headers.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.hmap (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.hmap
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_const_extract_protocols.json (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_const_extract_protocols.json
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftConstValuesFileList (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-OutputFileMap.json (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-OutputFileMap.json
+
+WriteAuxiliaryFile /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.LinkFileList (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    write-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.LinkFileList
+
+MkDir /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /bin/mkdir -p /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app
+
+MkDir /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /bin/mkdir -p /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents
+
+MkDir /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /bin/mkdir -p /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS
+
+MkDir /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /bin/mkdir -p /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources
+
+CpResource /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources/native-session /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/native-session (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/native-session /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources
+
+ProcessInfoPlistFile /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Info.plist /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/MacInfo.plist (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-infoPlistUtility /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/MacInfo.plist -producttype com.apple.product-type.application -genpkginfo /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/PkgInfo -expandbuildsettings -platform macosx -o /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Info.plist
+
+CpResource /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources/catalog.json /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/i18n/catalog.json (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/i18n/catalog.json /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources
+
+CopyPNGFile /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources/ynx-brand-original.png /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ynx-brand-original.png (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ynx-brand-original.png /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources/ynx-brand-original.png
+
+SwiftDriver YNXVideoMac normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideoMac -O @/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-macos14.0 -g -module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -F /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-macos-engine-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache -output-file-map /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-generated-files.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-own-target-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-project-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/include -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ptrauth-AEYU8FM3BFHF5VBXTOGC7U82U.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ptrcheck-E6LTNK124W0J4CRS3EK8Y6W06.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_stddef-5YSUA1L699DXR4E8FWPM1KA8Z.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_stdarg-34ESJ48H4CTVNHGDIRW2QOYLX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_AvailabilityInternal-F2FI7U48WVMQ2VDZ7TZ4KZ6Y8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_float-BVIJ98YCEMPZGJY8C9DGJ0QO7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-1OGIRO1VFXF0MTQ13F3I4RIHE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/DeveloperToolsSupport-5PK2CZ0N2JKQH4VHAIK61Y3GP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/SwiftShims-A1D8H0LMUYV3KFPAGELC70LDP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_stdbool-9NWEI07LKUU2DG2RK1BXQBUX7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation1-4E7UPPKHAIC5RBBU1KWO1FUV4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation2-7HRO1RDWS3KQA5X36KXQ7OODQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_limits-EWHTLJAP5M69YI2PMSL9K8J6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/sys_types-D79E95PG8TPWIB8Y501IEU7AO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/string_h-ASAN1FVFHMHHKADH02VBKMNWX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_tgmath-AVBNU34TPTM0ICDPLE4XNWGMF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_stdint-1P28U3X9CULZMUTNZTCYO2YIY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/libDER-X2VC3OQBCKTKVFZG6Q5GXUHD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_intrinsics-BECA438RGGM47JYH6D6KMVCR0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_stdatomic-4761E2M756S8VM5V0IEPYOE2K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_DarwinFoundation3-B7X8LTXREIZ7PLZVKRQ0D4CH2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/_Builtin_inttypes-2HR26D0SS8VTN5SWF4HEO194N.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Darwin-CAUIKNTEIFWPXXWPUPI6NEVBC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/simd-19P4DHNNJPTUZXXOEURV9I8I4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CUPS-8SDSQABB8LMM7IXZ2WGAFEHAY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/MachO-FDJMTOZ8LZUTS63CO23ZJK6W.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/libkern-DCU7835D4WR19SBDBNCN8T5W7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/launch-7JOKUI6PT3EZW38JENP55Q56S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ObjectiveC-7FYFVO9RIAYE4VDTGOGUL5ZX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/os_object-4ZYKV6LLJ8G4D1E3AHLEYVC8F.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Spatial-3OYM4Z202M6302NGQBPWALULU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/os_workgroup-4IDGPIW0I2AKBPFOGP1K2S5WE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Dispatch-1E7YIXON0AVAKARHIEQS8YAK1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreFoundation-787UAWPJEEDUDFOKSNTT90W7T.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/dnssd-2YVP53BZN1DESJKJ351A2BKSA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/XPC-8PUQJAZUBIM9J14W7I2YCW6CT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/os-BOM5FK1OTCNDTWBN0GFOU0IIS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CFNetwork-ADKLVIIOZLVVBJY25MMIY91CF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ColorSync-25HSDRWCDKDP2BR22JC0M56LW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreAudioTypes-7I7Q4A6XY3B0M6SG8XBI4T9J8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Security-CLZHLYCNW5XIYX2D941P1SBA5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/IOKit-CPYA8V1D847U5ZUYATT8E0O1K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/DiskArbitration-AQO15PBPKERGDP8HIAHSPKZ5R.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreGraphics-4L2X12M4FIY548BRUMAL2AGM6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreServices-52ESQX8SFIT9I89N3WKA0ZL2N.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreText-DEZNHK1AACZCEESHF8RNIHKFC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ImageIO-1H49M2JOF6XGXK7ZC186GG8YZ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Foundation-9V33WY8QB752YH2YNH4ZNXHHN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Network-72ZRF5QBQY0DON7JSHC4WS3AJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/OSLog-76LRYMGTEQ8OD8ZAPGAAHDQ9X.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreTransferable-1TGO0H7BSB062QUA6QNWNFKM9.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/ApplicationServices-6BABJUX7YBN32ITORKWCFBTGV.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/IOSurface-8Z16EECSHDQ94OG6GYOFUWDGJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreMIDI-23EUBXQG89M7JWLGG0DMXIK42.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreAudio-90JEUUROLPX92F5YYAL9W7EJD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-93WKW3TJ0IAI4YTYIIPBRUE9X.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/JavaScriptCore-29YT1J3UTUK450ZNEOJNOV7HC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Accessibility-146VSHMWVFUVJ6LMSEKK08Y24.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/DataDetection-BZ0J6TRRY779U7MH6KWJO9HAK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreData-2Y5X6JLVSYDX6CDYCJ96NSMAC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/LocalAuthentication-AN6369IAJXEG6GB5N27SKQH79.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Symbols-22WO3EE2QEV7A1956C7WVTYCM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/OpenGL-A6XXNQK10FTNHY9VCAKWIZLD7.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Metal-8CJL3RS9SWVKJLVWC9U7GPRSO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Carbon-3L7Y5MW4SBIUY4A1GRWBKEO7L.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreVideo-3C3MAZGBW69ZHOC7J3G7AZD01.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/AudioToolbox-56FDHNU5EZE9VELFYNLT9TKDX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreImage-8HIFCV1JHSG67LYOX580VU8BE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/QuartzCore-2DJ0DD3UEZY9RI2PLUA1X36JR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/CoreMedia-E53T57PSH23ZGCK0TQ9SKCTQG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/SwiftUICore-89IDRTH9D9PMRNZPLXOKZ7SO9.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/MediaToolbox-9AZW95DMTW2UJNIGZ6TJDQYJN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/AVFAudio-48VEPT20JGSWNJCE0HLLZ7YQT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/VideoToolbox-53EMGJR12H3BP4AWIF2YU12C1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/AppKit-9NFS5PYIOU97J01ETT15WHCCC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/AVFoundation-5YJX7QCIT1EZJ2AF32CP494X1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/SwiftUI-D18EL07BMDALZ4QEM2PZZIDJT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/Cocoa-2M4B741X9N6P170NZCAQIZEPP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/WebKit-8RNPD28G2QOKWMZY2UPE8DC1I.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules/AVKit-713XKYLC4YW7ICL88EBG0THZW.pcm
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ YNXVideoMac (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    
+
+SwiftCompile normal arm64 Compiling\ VideoNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCustody.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCustody.swift
+
+SwiftCompile normal arm64 Compiling\ VideoNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeEngine.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeEngine.swift
+
+SwiftCompile normal arm64 Compiling\ VideoNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeTransport.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeTransport.swift
+
+SwiftCompile normal arm64 Compiling\ VideoNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeState.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeState.swift
+
+SwiftCompile normal arm64 Compiling\ ProductDeviceKey.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ProductDeviceKey.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ProductDeviceKey.swift
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift:80:32: warning: 'languageCode' was deprecated in macOS 13: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+78 | 
+79 | private func videoDisplayLabels(_ tag:String)->[String] {
+80 |  switch Locale(identifier:tag).languageCode ?? "en" {
+   |                                |- warning: 'languageCode' was deprecated in macOS 13: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+   |                                `- note: use 'language.languageCode.identifier' instead
+81 |  case "zh":return tag.contains("Hant") || tag.contains("TW") ? ["顯示與字級","緊湊","標準","較大"]:["显示与字号","紧凑","标准","较大"]
+82 |  case "ja":return ["表示と文字サイズ","小さめ","標準","大きめ"]
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/ContentView.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftCompile normal arm64 Compiling\ VideoModel.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoModel.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoModel.swift
+
+SwiftCompile normal arm64 Compiling\ YNXVideoApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/YNXVideoApp.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile YNXVideoApp.swift
+
+SwiftCompile normal arm64 Compiling\ VideoNativeCore.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios/YNXVideo/VideoNativeCore.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-SwiftPerFileCompile VideoNativeCore.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling YNXVideoApp.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ProductDeviceKey.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeTransport.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for YNXVideoMac (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriver\ Compilation\ Requirements YNXVideoMac normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideoMac -O @/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-macos14.0 -g -module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -F /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-macos-engine-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache -output-file-map /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-generated-files.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-own-target-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-project-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/include -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources/YNXVideoMac-Swift.h /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-Swift.h (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-swiftHeaderTool -arch arm64 /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-Swift.h -o /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources/YNXVideoMac-Swift.h
+
+Copy /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.abi.json /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.abi.json (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.abi.json /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.abi.json
+
+Copy /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.swiftdoc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftdoc (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftdoc /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.swiftdoc
+
+Copy /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.swiftmodule /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/arm64-apple-macos.swiftmodule
+
+Copy /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftsourceinfo (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftsourceinfo /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeCustody.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeCore.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoModel.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ContentView.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeState.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriverJobDiscovery normal arm64 Compiling VideoNativeEngine.swift (in target 'YNXVideoMac' from project 'YNXVideo')
+
+SwiftDriver\ Compilation YNXVideoMac normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXVideoMac -O @/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -target arm64-apple-macos14.0 -g -module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -F /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /tmp/ynx-video-macos-engine-20261004/SDKStatCaches.noindex/macosx27.0-26A425-7231f6df4def33e022ae2eb8f782df1a.sdkstatcache -output-file-map /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex -sdk-module-cache-path /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /tmp/ynx-video-macos-engine-20261004/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_const_extract_protocols.json -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-generated-files.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-own-target-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-all-target-headers.hmap -Xcc -iquote -Xcc /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac-project-headers.hmap -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/include -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources-normal/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources/arm64 -Xcc -I/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/DerivedSources -emit-objc-header -emit-objc-header-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS/YNXVideoMac normal (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-macos14.0 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug -L/tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -F/tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/EagerLinkingTBDs/Debug -F/tmp/ynx-video-macos-engine-20261004/Build/Products/Debug -filelist /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -object_path_lto -Xlinker /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_lto.o -Xlinker -dependency_info -Xlinker /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.swiftmodule -o /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS/YNXVideoMac
+
+CopySwiftLibs /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS/YNXVideoMac --scan-folder /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Frameworks --scan-folder /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/PlugIns --scan-folder /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Library/SystemExtensions --scan-folder /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Extensions --platform macosx --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name YNXVideoMac --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk --xcode-version 27A266a --platform-family macOS --deployment-target 14.0 --bundle-identifier com.ynxweb4.video --output /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/Resources --target-triple arm64-apple-macos14.0 --binary-file /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app/Contents/MacOS/YNXVideoMac --dependency-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac_dependency_info.dat --stringsdata-file /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftFileList --metadata-file-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyMetadataFileList --static-metadata-file-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/YNXVideoMac.DependencyStaticMetadataFileList --swift-const-vals-list /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/YNXVideo.build/Debug/YNXVideoMac.build/Objects-normal/arm64/YNXVideoMac.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-04 00:22:30.365 appintentsmetadataprocessor[63679:4542813] Starting appintentsmetadataprocessor export
+2026-10-04 00:22:30.373 appintentsmetadataprocessor[63679:4542813] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+RegisterExecutionPolicyException /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-RegisterExecutionPolicyException /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app
+
+Validate /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-validationUtility /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app -no-validate-extension -infoplist-subpath Contents/Info.plist
+
+Touch /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    /usr/bin/touch -c /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app
+
+RegisterWithLaunchServices /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app (in target 'YNXVideoMac' from project 'YNXVideo')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/video/ios
+    builtin-lsregisterurl --record-path /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/XCBuildData/registered-launchservices.txt -- /System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f -R -trusted /tmp/ynx-video-macos-engine-20261004/Build/Products/Debug/YNXVideoMac.app
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-macos-engine-20261004/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /tmp/ynx-video-macos-engine-20261004/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+
