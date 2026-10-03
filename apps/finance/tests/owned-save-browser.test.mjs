@@ -13,6 +13,22 @@ const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function rend
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
 const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
+test('actual export button single-flights downloads and suppresses late previous-account blobs',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({acceptDownloads:true}),downloads=[];page.on('download',item=>downloads.push(item.suggestedFilename()));
+    await page.setContent('<button id="export-json">Export</button>');
+    const exportController=app.slice(app.indexOf('const ownedExportOperations='),app.indexOf('let ownedAIGeneration='));
+    await page.addScriptTag({content:`const state={context:1};let browserSSOIntentGeneration=1;const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.failures=[];const notifyFailure=()=>failures.push('failed');const api=()=>new Promise((resolve,reject)=>calls.push({resolve,reject}));${exportController}window.switchExportOwner=()=>{state.context++;browserSSOIntentGeneration++;};`});
+    await page.locator('#export-json').click();await page.locator('#export-json').click();assert.equal(await page.evaluate(()=>calls.length),1);
+    const first=page.waitForEvent('download');await page.evaluate(()=>calls[0].resolve(new Blob(['{"coverageComplete":false}'],{type:'application/json'})));await first;
+    assert.deepEqual(downloads,['ynx-finance-observed-export.json']);
+    await page.locator('#export-json').click();await page.evaluate(()=>switchExportOwner());await page.locator('#export-json').click();assert.equal(await page.evaluate(()=>calls.length),3);
+    await page.evaluate(()=>calls[1].resolve(new Blob(['old-owner'])));assert.equal(downloads.length,1);
+    const next=page.waitForEvent('download');await page.evaluate(()=>calls[2].resolve(new Blob(['new-owner'])));await next;
+    assert.equal(downloads.length,2);assert.deepEqual(await page.evaluate(()=>failures),[]);
+  }finally{await browser.close();}
+});
 test('invalid reminder date remains a recoverable localized draft rather than an uncaught submit error',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

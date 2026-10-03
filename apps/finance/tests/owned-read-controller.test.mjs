@@ -5,7 +5,7 @@ import {runInNewContext} from 'node:vm';
 
 const source=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const statements=source.slice(source.indexOf('let statementOperation='),source.indexOf("$('#statement-form').addEventListener"));
-const downloads=source.slice(source.indexOf('async function download('),source.indexOf("$('#export-json').addEventListener"));
+const downloads=source.slice(source.indexOf('const ownedExportOperations='),source.indexOf("$('#export-json').addEventListener"));
 function fixture(){
   const form={values:[['from','2026-09-01'],['to','2026-09-30']],attributes:new Map(),setAttribute(k,v){this.attributes.set(k,v)},removeAttribute(k){this.attributes.delete(k)}};
   const panel={...form,attributes:new Map(),classList:{remove(){}}},calls=[],notices=[],rendered=[],urls=[];
@@ -42,4 +42,18 @@ test('late export never downloads old account data or reports its error to a new
     if(reject)f.calls[0].reject(new Error('old export'));else f.calls[0].resolve({});await old;assert.deepEqual(f.urls,[]);assert.deepEqual(f.notices,[]);
   }
   const current=fixture(),download=current.scope.exportOwned('/api/export?format=json','owned.json');current.calls[0].resolve({});await download;assert.deepEqual(current.urls,['created','clicked','revoked']);
+});
+test('repeated export clicks coalesce while a new account can start its own export',async()=>{
+  const f=fixture(),first=f.scope.exportOwned('/api/export?format=json','owned.json');
+  const repeated=f.scope.exportOwned('/api/export?format=json','owned.json');
+  assert.equal(repeated,first);
+  assert.equal(f.calls.length,1);
+  f.scope.state.context++;
+  const next=f.scope.exportOwned('/api/export?format=json','owned.json');assert.equal(f.calls.length,2);
+  f.calls[0].resolve({});await Promise.all([first,repeated]);assert.deepEqual(f.urls,[]);
+  f.calls[1].resolve({});await next;assert.deepEqual(f.urls,['created','clicked','revoked']);
+  const retry=f.scope.exportOwned('/api/export?format=json','owned.json');assert.equal(f.calls.length,3);
+  f.calls[2].reject(new Error('unavailable'));await retry;assert.deepEqual(f.notices,['failed']);
+  const recovered=f.scope.exportOwned('/api/export?format=json','owned.json');assert.equal(f.calls.length,4);f.calls[3].resolve({});await recovered;
+  assert.deepEqual(f.urls,['created','clicked','revoked','created','clicked','revoked']);
 });

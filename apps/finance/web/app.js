@@ -639,7 +639,21 @@ function loadStatement(form){
 }
 $('#statement-form').addEventListener('submit',e=>{e.preventDefault();void loadStatement(e.currentTarget)});
 
-async function download(path,name){const context=state.context,identityRevision=browserSSOIntentGeneration,current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision;try{const blob=await api(path,{responseType:'blob'});if(!current())return;const url=URL.createObjectURL(blob),a=document.createElement('a');try{a.href=url;a.download=name;a.click()}finally{URL.revokeObjectURL(url)}}catch(error){if(current())notifyFailure(error,'unavailable')}}
+const ownedExportOperations=new Map();
+function download(path,name){
+  const context=state.context,identityRevision=browserSSOIntentGeneration,key=JSON.stringify([path,name]);
+  const previous=ownedExportOperations.get(key);
+  if(previous?.context===context&&previous.identityRevision===identityRevision)return previous.promise;
+  const operation={context,identityRevision,promise:null},current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision;
+  ownedExportOperations.set(key,operation);
+  operation.promise=(async()=>{try{
+    const blob=await api(path,{responseType:'blob'});if(!current())return;
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    try{a.href=url;a.download=name;a.click()}finally{URL.revokeObjectURL(url)}
+  }catch(error){if(current())notifyFailure(error,'unavailable');}
+  finally{if(ownedExportOperations.get(key)===operation)ownedExportOperations.delete(key);}})();
+  return operation.promise;
+}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
 let ownedAIGeneration=0,ownedAIStart=null,ownedAIAction=null;
