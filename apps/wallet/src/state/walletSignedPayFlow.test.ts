@@ -87,6 +87,13 @@ test("authority refresh after unknown marker is required before POST, and its fa
     assert.equal((await f.outbox.read(f.account))?.phase,"unknown");assert.ok(await f.flow.read(f.account,f.policy,()=>{}));
   }finally{f.lease.finish()}
 });
+test("final business conflict after original marker cannot POST or allow another payment",async()=>{
+  const f=fixture();try{
+    f.authority.verifyInvoicePayable=async()=>{const raw=f.storage.values.get(NATIVE_OUTBOX_PREFIX+f.account);if(raw&&JSON.parse(raw).phase==="unknown")throw Error("canonical invoice reservation conflict")};
+    await assert.rejects(f.flow.payReviewed(f.input),/reservation conflict/);assert.equal(f.broadcasts(),0);
+    assert.equal((await f.outbox.read(f.account))?.phase,"unknown");assert.equal(await f.legacy.hasRetainedPayment(f.account),true);
+  }finally{f.lease.finish()}
+});
 test("revocation during final signed-record readback suppresses POST but retains both journals",async()=>{
   const f=fixture();try{
     const get=f.storage.getItem.bind(f.storage);f.storage.getItem=async key=>{

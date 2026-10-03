@@ -8,6 +8,7 @@ import type {NativeChainClient} from "../chain/nativeTransfer";
 import type {NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import type {WalletRepository} from "../storage/walletRepository";
 import {verifyWalletPayQuote} from "../chain/walletPayQuote";
+import type {SignedPayInvoice} from "../chain/walletPaySignedInvoice";
 import {sha256} from "@noble/hashes/sha2.js";
 import {bytesToHex} from "@noble/hashes/utils.js";
 
@@ -20,6 +21,11 @@ export type WalletPayAuthorityLease=Readonly<{
   session:ProductSessionV2;
   assertCurrent:()=>void;
   refresh:()=>Promise<ProductSessionV2>;
+  /** Canonical business read/reservation for THIS actor, original intent digest
+   * and request ID. Must reject paid/cancelled/expired invoices and conflicting
+   * requests. Unsigned invoice status or session introspection alone is NOT
+   * this capability. Exact server adapter/reservation contract remains A-owned. */
+  verifyInvoicePayable:(invoice:SignedPayInvoice,intent:PayPaymentIntent)=>Promise<void>;
 }>;
 export type SignedPayTransferPrepared=Readonly<NativeTransferPrepared&{paymentResult:PayPaymentResult}>;
 export class SignedPayAuthorityError extends Error{constructor(readonly code:string){super(code);this.name="SignedPayAuthorityError"}}
@@ -48,6 +54,7 @@ export async function prepareSignedPayTransfer(input:Readonly<{
 }>):Promise<SignedPayTransferPrepared>{
   const {lease,authority}=input,now=input.now??Date.now;
   lease.assert();if(!authority||typeof authority.refresh!=="function"||typeof authority.assertCurrent!=="function")return fail("PAY_CURRENT_AUTHORITY_REQUIRED");
+  if(typeof authority.verifyInvoicePayable!=="function")return fail("PAY_CURRENT_BUSINESS_AUTHORITY_REQUIRED");
   const captured=parseProductSession(authority.session),snapshot=canonicalJSON(captured);
   const quote=verifyWalletPayQuote(input.rawInvoice,input.rawIntent,input.policy,()=>{lease.assert();authority.assertCurrent()},now());
   const review=Object.freeze({...input.review});
@@ -68,7 +75,8 @@ export async function prepareSignedPayTransfer(input:Readonly<{
       return fail("PAY_CURRENT_AUTHORITY_EXPIRED");
   };
   const refresh=async()=>{guard();const fresh=await authority.refresh();guard();if(canonicalJSON(parseProductSession(fresh))!==snapshot)return fail("PAY_CURRENT_SESSION_CHANGED")};
-  await refresh();
+  const payable=async()=>{guard();await authority.verifyInvoicePayable(quote.invoice,quote.intent);guard()};
+  await refresh();await payable();
   const client={
     account:async(account:string)=>{await refresh();const result=await input.client.account(account);guard();await refresh();return result},
     requireDurabilityCapability:async()=>{await refresh();const result=await input.client.requireDurabilityCapability();guard();await refresh();return result},
@@ -77,7 +85,7 @@ export async function prepareSignedPayTransfer(input:Readonly<{
     async(signed,secret,keyGuard)=>{
       // Re-introspect after the protected storage await, before a result is
       // signed. Both signatures use the same existing key read and lease.
-      await refresh();keyGuard();
+      await refresh();await payable();keyGuard();
       const result=createSignedPayPaymentResult({accountSecret:secret,intent:quote.intent,transferPayload:signed.payload,issuedAt:new Date(now()).toISOString()},new Date(now()));
       keyGuard();const paymentResult=verifyPayPaymentResult(result,quote.intent,review.account,new Date(now()));keyGuard();
       if(paymentResult.transactionHash!==signed.hash||paymentResult.accountPublicKey!==review.accountPublicKey)return fail("PAY_SIGNED_RESULT_MISMATCH");

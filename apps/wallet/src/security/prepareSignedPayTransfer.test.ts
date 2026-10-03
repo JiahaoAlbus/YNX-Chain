@@ -10,6 +10,16 @@ for(const version of [2,3,4,5])test(`V${version} preparation preserves the origi
 for(const version of [4,5])test(`V${version} invoice for a different expected payer cannot prompt or use a key`,async()=>{
   const f=fixture(version,"e".repeat(64));try{await assert.rejects(prepareSignedPayTransfer(f.input),/EXPECTED_PAYER_MISMATCH/);assert.equal(f.counts().prompts,0);assert.equal(f.counts().reads,0)}finally{f.lease.finish()}
 });
+test("current session alone cannot authorize an already-paid or unreserved invoice",async()=>{
+  const f=fixture();try{
+    f.authority.verifyInvoicePayable=async()=>{throw Error("invoice already paid on another device")};
+    await assert.rejects(prepareSignedPayTransfer(f.input),/already paid/);assert.equal(f.counts().prompts,0);assert.equal(f.counts().reads,0);
+  }finally{f.lease.finish()}
+  const missing=fixture();try{
+    await assert.rejects(prepareSignedPayTransfer({...missing.input,authority:{...missing.authority,verifyInvoicePayable:undefined} as any}),/BUSINESS_AUTHORITY_REQUIRED/);
+    assert.equal(missing.counts().prompts,0);assert.equal(missing.counts().reads,0);
+  }finally{missing.lease.finish()}
+});
 test("Pay transfer and public result use the original single protected key read and reviewed exact amount",async()=>{
   const f=fixture();try{
     const signed=await prepareSignedPayTransfer(f.input);

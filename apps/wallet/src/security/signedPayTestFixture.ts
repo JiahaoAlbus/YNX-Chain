@@ -33,7 +33,7 @@ export function signedPayFixture(version=1,expectedPayerHash?:string){
   }
   const operations=new WalletOperationLifecycle(()=>now);operations.setAccount(identity.account);
   const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();const lease=operations.scope().begin();
-  const authority={session:parsedSession(),assertCurrent:()=>{if(!valid)throw Error("authority revoked")},refresh:async()=>{refreshes++;return authority.session}};
+  const authority={session:parsedSession(),assertCurrent:()=>{if(!valid)throw Error("authority revoked")},refresh:async()=>{refreshes++;return authority.session},verifyInvoicePayable:async()=>{}};
   const client={account:async()=>({address:evmAddressFromYNX(identity.account),balance:26,nonce:1}),requireDurabilityCapability:async()=>{}};
   const repository={accountSecret:async(_account:string,guard:()=>void)=>{reads++;guard();return seed}};
   const input={rawInvoice:invoice,rawIntent:intent,reviewedIntentDigest:payPaymentIntentDigest(intent),review:{account:identity.account,accountPublicKey:identity.accountPublicKey,to:invoice.payoutAddress,amount:invoice.amount},policy,authority,lease,client,repository,authorize:async()=>{prompts++},now:()=>now};

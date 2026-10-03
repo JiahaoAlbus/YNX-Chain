@@ -53,6 +53,7 @@ export class WalletSignedPayFlow{
       // outward read before outbox dispatch; it cannot create a new session.
       const final=await authority.refresh();dispatchGuard();
       if(canonicalJSON(parseProductSession(final))!==session)throw Error("PAY_CURRENT_SESSION_CHANGED");
+      await authority.verifyInvoicePayable(quote.invoice,quote.intent);dispatchGuard();
     });
   })}
   recovery(account:string,policy:Policy,guard:()=>void):Promise<SignedPayRecovery|null>{return this.serial(async()=>{

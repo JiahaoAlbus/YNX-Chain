@@ -56,6 +56,15 @@ lifetime. It never clamps a substituted quote or silently replaces a session.
 Disabled/pending-review registration must be rejected by the authority adapter;
 local field validation cannot enable it.
 
+The same authority adapter must also implement `verifyInvoicePayable` against
+the canonical business service/reservation for this actor, intent digest and
+request ID. Session validity and merchant signatures alone cannot establish that
+an invoice has not already been paid on another device. This capability is
+mandatory before native authorization, again after key read and immediately
+before dispatch. Unsigned `status` from public invoice GET is not a substitute.
+The server's exact matching atomic business/reservation contract remains A-owned;
+the internal port above does not invent an HTTP path, token or grant.
+
 V4/V5 expected payer restriction uses the original Pay53eb domain/order:
 `SHA256("YNX_PAY_EXPECTED_PAYER_V1|" + canonicalNativeAccount)`. A mismatch blocks
 authorization. Matching that hash is not account-session authority.
