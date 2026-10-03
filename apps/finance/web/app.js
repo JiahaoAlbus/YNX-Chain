@@ -380,10 +380,13 @@ async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetc
     const response=await fetchImpl(path,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});assertCurrent();
     if(response.status===204)return {response,body:null};
     const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+    // This endpoint acknowledges cancellation only; the job readback below
+    // must still prove the exact requested job has actually been cancelled.
+    const emptyAICancel=response.status===202&&options.method==='POST'&&/^\/api\/ai\/jobs\/[^/?#]+\/cancel$/.test(path);
     const exportDocument=options.responseType==='blob'&&response.ok;
     const expected=exportDocument&&new URL(path,location.href).searchParams.get('format')==='csv'?'text/csv':'application/json';
-    const length=response.headers.get('content-length'),limit=8*1024*1024;
-    if(mime!==expected||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>limit))){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw invalid()}
+    const length=response.headers.get('content-length'),limit=emptyAICancel?0:8*1024*1024;
+    if((!emptyAICancel&&mime!==expected)||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>limit))){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw invalid()}
     let text;
     if(typeof response.body?.getReader==='function'){
       const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true}),parts=[];let bytes=0;
@@ -404,6 +407,7 @@ async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetc
       text=await response.text();
     }
     assertCurrent();
+    if(emptyAICancel){if(text!=='')throw invalid();return {response,body:null}}
     if(new TextEncoder().encode(text).byteLength>8*1024*1024)throw invalid();
     let parsed;if(mime==='application/json'){try{parsed=JSON.parse(text)}catch{throw invalid()}}
     return {response,body:exportDocument?new Blob([text],{type:mime}):parsed};

@@ -24,6 +24,20 @@ test('actual Finance product transport verifies JSON/CSV exports and refuses HTM
     const f=fixture(),pending=f.scope.response('/api/export?format=json',{responseType:'blob'},()=>{});f.calls[0].resolve(response);await assert.rejects(pending,{code:'FINANCE_RESPONSE_INVALID',nonRetryable:true});assert.equal(f.timers.size,0);
   }
 });
+test('only the exact AI cancellation POST accepts an empty 202, never a cancellation result or other empty document',async()=>{
+  const path='/api/ai/jobs/owned-job/cancel';
+  const f=fixture(),pending=f.scope.response(path,{method:'POST'},()=>{});f.calls[0].resolve(reply('','',202,'0'));
+  assert.equal((await pending).body,null);assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);
+  for(const [url,method,response] of [
+    [path,'GET',reply('','',202)],['/api/overview','POST',reply('','',202)],
+    [path+'?other=1','POST',reply('','',202)],[path,'POST',reply('{}','application/json',202)],
+    [path,'POST',reply(' ','',202)],[path,'POST',reply('','',202,'1')],
+    [path,'POST',reply('','',200)],
+  ]){
+    const f=fixture(),pending=f.scope.response(url,{method},()=>{});f.calls[0].resolve(response);
+    await assert.rejects(pending,{code:'FINANCE_RESPONSE_INVALID'});assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);
+  }
+});
 test('actual API write timeout covers stalled fetch and stalled body, unlocks without replay, and ignores a late result',async()=>{
   for(const phase of ['fetch','body']){
     const f=fixture(),body=deferred(),pending=f.scope.invoke('/api/notes',{method:'POST',body:'{}'});await new Promise(setImmediate);
