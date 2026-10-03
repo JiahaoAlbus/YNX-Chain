@@ -1,7 +1,6 @@
 package music
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -186,6 +185,10 @@ func (s *Server) api(requiredScope string, next apiHandler) http.HandlerFunc {
 		}
 		if r.Header.Get("X-YNX-Product-Session-Proof-V2") != "" || r.Header.Get("X-YNX-Music-Business-Proof-V2") != "" {
 			s.businessAPI(w, r, requiredScope, next)
+			return
+		}
+		if s.service.cfg.BusinessAuthority != nil {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "canonical V2 Music session and action proof required"})
 			return
 		}
 		sessionBinding := strings.TrimSpace(r.Header.Get("X-YNX-App-Session"))
@@ -490,6 +493,10 @@ func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a string) {
 	_, _ = io.Copy(w, io.LimitReader(resp.Body, 64<<10))
 }
 func (s *Server) aiStream(w http.ResponseWriter, r *http.Request, a string) {
+	if s.service.business != nil {
+		s.aiBusinessStream(w, r, a)
+		return
+	}
 	id := r.PathValue("id")
 	proposal, err := s.service.SetAIStatus(a, id, "streaming", "")
 	if err != nil {
@@ -548,31 +555,25 @@ func (s *Server) aiStream(w http.ResponseWriter, r *http.Request, a string) {
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
-	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 4096), 64<<10)
-	var result strings.Builder
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "data: ") {
-			var token struct {
-				Text string `json:"text"`
-			}
-			if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &token) == nil {
-				result.WriteString(token.Text)
-			}
-		}
-		_, _ = fmt.Fprintln(w, line)
+	result, err := readMusicAIStream(resp.Body, func(text string) error {
+		raw, _ := json.Marshal(map[string]string{"text": text})
+		_, err := fmt.Fprintf(w, "event: token\ndata: %s\n\n", raw)
+		flusher.Flush()
+		return err
+	})
+	if r.Context().Err() != nil {
+		_, _ = s.service.SetAIStatus(a, id, "cancelled", "")
+		return
+	}
+	if err != nil {
+		_, _ = s.service.SetAIStatus(a, id, "provider_failed", "AI stream did not complete")
+		return
+	}
+	if _, err := s.service.SetAIStatus(a, id, "completed", result); err == nil {
+		fmt.Fprint(w, "event: done\ndata: {}\n\n")
 		flusher.Flush()
 	}
-	if r.Context().Err() != nil {
-		_, _ = s.service.SetAIStatus(a, id, "cancelled", result.String())
-		return
-	}
-	if err := scanner.Err(); err != nil {
-		_, _ = s.service.SetAIStatus(a, id, "provider_failed", err.Error())
-		return
-	}
-	_, _ = s.service.SetAIStatus(a, id, "completed", result.String())
+
 }
 func (s *Server) aiReview(w http.ResponseWriter, r *http.Request, a string) {
 	var q struct {

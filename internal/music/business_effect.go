@@ -43,6 +43,14 @@ func effectObject(st *persistentState, actor, kind, id string) error {
 		if v.OpenedBy != actor {
 			return ErrUnauthorized
 		}
+	case "ai":
+		p, ok := st.AIProposals[id]
+		if !ok {
+			return ErrNotFound
+		}
+		if p.Owner != actor {
+			return ErrUnauthorized
+		}
 	case "pay":
 		v, ok := st.Settlements[id]
 		if !ok {

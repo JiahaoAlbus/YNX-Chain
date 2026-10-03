@@ -24,9 +24,9 @@ func StateCompatibility() StateCompatibilityPolicy {
 		CurrentSchemaVersion:         currentStateSchemaVersion,
 		MinimumReadableSchemaVersion: 1,
 		MinimumWritableSchemaVersion: currentStateSchemaVersion,
-		ReadableSchemaVersions:       []int{1, 2, 3, currentStateSchemaVersion},
+		ReadableSchemaVersions:       []int{1, 2, 3, 4, currentStateSchemaVersion},
 		WritableSchemaVersions:       []int{currentStateSchemaVersion},
-		AutoMigratedSchemaVersions:   []int{1, 2, 3},
+		AutoMigratedSchemaVersions:   []int{1, 2, 3, 4},
 		DowngradeSupported:           false,
 		RollbackStrategy:             "restore a verified pre-upgrade backup with the matching older binary; in-place schema downgrade is unsupported",
 	}

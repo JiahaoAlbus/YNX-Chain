@@ -429,7 +429,7 @@ func TestBusinessEffectSchema3BackupMigratesOnlyRestoreDestination(t *testing.T)
 		t.Fatal("schema3 original backup rewritten")
 	}
 	recovered, err := New(Config{StatePath: filepath.Join(root, "state.json"), MediaDir: filepath.Join(root, "media"), MaxUploadBytes: 1 << 20})
-	if err != nil || recovered.state.SchemaVersion != 4 || len(recovered.state.Cases) != 1 {
+	if err != nil || recovered.state.SchemaVersion != currentStateSchemaVersion || len(recovered.state.Cases) != 1 {
 		t.Fatalf("original case lost: %v", err)
 	}
 }

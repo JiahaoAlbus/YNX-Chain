@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const currentStateSchemaVersion = 4
+const currentStateSchemaVersion = 5
 
 type stateDocumentHeader struct {
 	SchemaVersion int `json:"schemaVersion"`
@@ -27,6 +27,7 @@ var stateMigrationRegistry = map[int]stateMigration{
 	1: migrateStateV1ToV2,
 	2: migrateStateV2ToV3,
 	3: migrateStateV3ToV4,
+	4: migrateStateV4ToV5,
 }
 
 func newState() persistentState {
@@ -86,7 +87,9 @@ func loadStateMode(path, mediaDir string, persistMigration bool) (persistentStat
 			return persistentState{}, false, errors.New("music external effect receipt state is invalid")
 		}
 		var err error
-		if e.Kind == "pay" {
+		if e.Kind == "ai" {
+			err = validateAIReceipt(e.Receipt)
+		} else if e.Kind == "pay" {
 			err = validatePayReceipt(e.Receipt)
 		} else {
 			err = validateTrustReceipt(e.Receipt)
@@ -351,4 +354,24 @@ func migrateStateV3ToV4(raw json.RawMessage) (json.RawMessage, error) {
 		return nil, err
 	}
 	return json.Marshal(original)
+}
+
+func migrateStateV4ToV5(raw json.RawMessage) (json.RawMessage, error) {
+	var st persistentState
+	if err := json.Unmarshal(raw, &st); err != nil || st.SchemaVersion != 4 {
+		return nil, errors.New("music schema4 is invalid")
+	}
+	sum, err := stateIntegrity(st)
+	if err != nil || sum != st.IntegrityHash {
+		return nil, errors.New("music schema4 integrity failed")
+	}
+	if err := verifyAuditChain(st.Audit); err != nil {
+		return nil, err
+	}
+	st.SchemaVersion = 5
+	st.IntegrityHash, err = stateIntegrity(st)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(st)
 }

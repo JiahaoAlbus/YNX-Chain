@@ -279,7 +279,7 @@ func TestBusinessV2ExternalEffectsAndUnsignedQueriesStayClosed(t *testing.T) {
 		called = true
 		return MusicBusinessGrant{}, ErrUnauthorized
 	})
-	for _, target := range []string{"/api/ai/proposals/proposal/stream", "/api/me?account=other", "/api/catalog?q=a&q=b", "/api/catalog?owner=other"} {
+	for _, target := range []string{"/api/me?account=other", "/api/catalog?q=a&q=b", "/api/catalog?owner=other"} {
 		r := httptest.NewRequest("POST", target, nil)
 		r.Header.Set("X-YNX-Product-Session-Proof-V2", "fixture")
 		r.Header.Set("X-YNX-Music-Business-Proof-V2", "fixture")

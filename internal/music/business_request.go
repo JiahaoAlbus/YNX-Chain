@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -109,12 +108,6 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 	}
 	if r.Header.Get("X-YNX-Product-Session-Proof-V2") == "" || r.Header.Get("X-YNX-Music-Business-Proof-V2") == "" || r.Header.Get("X-YNX-App-Session") != "" || r.Header.Get("X-YNX-Product-Device-Key") != "" {
 		writeErr(w, ErrUnauthorized)
-		return
-	}
-	// Streaming AI still needs its durable stream/result recovery protocol.
-	// Pay and Trust use the admitted dispatch/receipt journal.
-	if strings.HasPrefix(r.URL.Path, "/api/ai/proposals/") && strings.HasSuffix(r.URL.Path, "/stream") {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Music V2 external-effect recovery is not installed"})
 		return
 	}
 	// Query strings are outside the shared action signature. Admit only the
