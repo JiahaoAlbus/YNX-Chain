@@ -1,0 +1,14 @@
+✔ clean committed Card product inputs pass (0.438166ms)
+✔ untracked implementation, assets, config and dependency inputs fail closed (0.299291ms)
+✔ evidence and disposable output do not falsely prevent a source-bound build (0.071375ms)
+✔ staged or unstaged tracked changes remain forbidden, including release configuration (0.053375ms)
+✔ unknown scope and malformed status fail closed rather than being ignored (0.078541ms)
+✔ lookalike output names cannot bypass the source gate (0.070709ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.316625

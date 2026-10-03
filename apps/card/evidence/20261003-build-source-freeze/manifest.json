@@ -1,0 +1,37 @@
+{
+  "schema": "ynx.card.build-source-freeze.v1",
+  "sourceCommit": "33da47801e95e349896bf73fc02fe1b1afd6c1b1",
+  "sourceTree": "f9d542c1394972ff0b53d47322ae9eaa1932e1ea",
+  "parentCompleteUi": "3582106d847166cb2913259e36e3f07dc8e0aaaf",
+  "files": [
+    {
+      "path": "apps/card/evidence/20261003-build-source-freeze/git-integration.log",
+      "bytes": 42,
+      "sha256": "e97ac0691d82e651b0d618ca7c1976da242e096159bec4e2d711a3622d6422eb"
+    },
+    {
+      "path": "apps/card/evidence/20261003-build-source-freeze/tests.log",
+      "bytes": 618,
+      "sha256": "e1da90052ea26d5fcf735a73613de8b76f9b0ed65d7023292dc6d20f38084978"
+    }
+  ],
+  "checks": {
+    "unitPassed": 6,
+    "unitFailed": 0,
+    "currentCommittedGitPreflight": true,
+    "webBuildExecuted": false,
+    "publicDeployment": false
+  },
+  "limits": [
+    "Checks Git tracked changes and non-ignored untracked paths only. Not a proof of ignored-input exclusion, transitive dependency integrity or compiled artifact parity.",
+    "Known generated/evidence/release paths excluded from untracked blocking; tracked changes still fail.",
+    "No removal, reset, formal build or deployment performed."
+  ],
+  "truth": {
+    "hostedApproval": false,
+    "walletAccountApproval": false,
+    "activeCard": false,
+    "ynxtCredit": false,
+    "realPayment": false
+  }
+}
