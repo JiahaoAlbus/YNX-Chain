@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useRef,useState}from 'react';
-import{Pressable,StyleSheet,Text,View}from 'react-native';
+import{Pressable,StyleSheet,View}from 'react-native';
 import type{Locale}from './i18n';
+import{CardText as Text}from './cardTypography';
 import{CardBusinessClient,CardBusinessError,type CardPrivateIdentity,type CardBusinessSnapshot,type CardStatementView,type CardReconciliationView}from './cardBusinessClient';
 
 const labels:Record<Locale,readonly string[]>={

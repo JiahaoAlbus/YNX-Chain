@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {AccessibilityInfo,ActivityIndicator,findNodeHandle,Linking,Modal,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,View} from 'react-native';
+import {AccessibilityInfo,ActivityIndicator,findNodeHandle,Linking,Modal,Platform,Pressable,ScrollView,StyleSheet,Switch,View} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import {encodeCardApplicationApprovalWalletURL,type CardApplicationApprovalRequest} from '@ynx-chain/wallet-auth-card-provider-v2';
 import registry from '../vendor/product-session-registry-b754ffc42.json';
@@ -9,6 +9,7 @@ import {formatProviderAmount,parseProviderLimit,providerBlockState} from './prov
 import {approvalJournalKey,readApprovalJournal,rememberApproval,savedApproval,type ApprovalContinuation} from './providerApprovalJournal';
 import {providerActionText} from './providerActionCopy';
 import {providerRecordText,providerStatusText,providerTransactionText} from './providerRecordCopy';
+import {CardText as Text,CardTextInput as TextInput} from './cardTypography';
 
 type Program={provider:'immersve';programId:string;environment:'TEST';cardAccountCurrency:string;minorUnitDigits:number;termsVersion:string;termsHash:string;feeDisclosureText:string;feeDisclosureHash:string};
 type Application={id:string;productCardId:string;programId:string;provider:string;status:string;nickname:string;testSpendingLimitMinor:string;cardAccountCurrency:string;minorUnitDigits:number;upstreamCardId:string|null;walletApprovalVerified:boolean;createdAt:string};

@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState}from"react";
-import{Platform,Pressable,StyleSheet,Switch,Text,TextInput,View}from"react-native";
+import{Platform,Pressable,StyleSheet,Switch,View}from"react-native";
 import type{Eip1193WalletSession}from"./wallet";
+import{CardText as Text,CardTextInput as TextInput}from"./cardTypography";
 import{isRTL,type Locale}from"./i18n";
 import{loadCardRegistration,saveCardRegistration}from"./secureState";
 import{cancel,createDraft,degrade,requestApproval,restoreForWallet,submitForBackend,updateDraft,type CardRegistration}from"./registration";

@@ -10,5 +10,5 @@ export function YNXBrandLogo() {
 }
 
 const styles = StyleSheet.create({
-  logo: {width: 76, height: 40, aspectRatio: 798 / 420, flexShrink: 0},
+  logo: {width: 45.6, height: 24, aspectRatio: 798 / 420, flexShrink: 0},
 });
