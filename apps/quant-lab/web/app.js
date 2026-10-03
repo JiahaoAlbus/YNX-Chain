@@ -604,6 +604,22 @@ function applyLocale() {
 }
 // Product API transport only: no Wallet calls, automatic POST retry, or guessed
 // success. The deadline includes response parsing; unknown writes retain intent.
+const quantAPIErrorCopy={
+  en:['The service rejected these inputs. Review the exact values before submitting again.','Access was rejected or expired. Refresh your workspace or authorization; a wallet connection alone does not grant this action.','The request conflicts with saved state. Refresh history and keep any pending exact request; no automatic retry occurred.','The service is unavailable or busy. The outcome is not confirmed. Refresh history before explicitly retrying a pending request.','The service returned an unrecognized failure. No success is confirmed. Refresh history; pending requests are retained.'],
+  'zh-CN':['服务拒绝了输入。请检查精确数值后再提交。','权限被拒绝或已过期。请刷新工作区或授权；钱包连接不等于操作权限。','请求与已保存状态冲突。请刷新历史并保留原待处理请求；未自动重试。','服务不可用或繁忙，结果尚未确认。请刷新历史，再明确重试原请求。','服务返回未知失败，未确认成功。请刷新历史；待处理请求保留。'],
+  'zh-TW':['服務拒絕輸入。請檢查精確數值後再提交。','權限被拒絕或已過期。請重新整理工作區或授權；錢包連線不等於操作權限。','請求與已儲存狀態衝突。請重新整理歷史並保留原待處理請求；未自動重試。','服務不可用或忙碌，結果未確認。請重新整理歷史再明確重試原請求。','服務回傳未知失敗，未確認成功。請重新整理歷史；待處理請求保留。'],
+  ja:['サービスが入力を拒否しました。正確な値を確認して再送してください。','権限が拒否されたか期限切れです。ワークスペースや認可を更新してください。ウォレット接続だけでは許可されません。','保存状態と競合しています。履歴を更新し、未確認の元要求を保持してください。自動再送はありません。','サービスが利用不可または混雑しています。結果は未確認です。履歴を更新してから元要求を明示的に再送してください。','未知のサービスエラーです。成功は未確認です。履歴を更新してください。未確認要求は保持されています。'],
+  ko:['서비스가 입력을 거부했습니다. 정확한 값을 검토한 후 다시 제출하세요.','권한이 거부되거나 만료되었습니다. 작업 공간이나 승인을 새로 확인하세요. 지갑 연결만으로는 권한이 없습니다.','저장된 상태와 충돌합니다. 기록을 새로 읽고 미확인 원본 요청을 유지하세요. 자동 재시도는 없습니다.','서비스가 불가하거나 혼잡합니다. 결과는 미확인입니다. 기록을 확인한 후 원본 요청을 명시적으로 재시도하세요.','알 수 없는 서비스 오류입니다. 성공이 확인되지 않았습니다. 기록을 새로 읽으세요. 미확인 요청은 유지됩니다.'],
+  es:['El servicio rechazó los datos. Revise los valores exactos antes de reenviar.','Acceso rechazado o caducado. Actualice el espacio o la autorización; conectar una cartera no autoriza esta acción.','Conflicto con el estado guardado. Actualice el historial y conserve la solicitud pendiente exacta; no hubo reintento automático.','Servicio no disponible u ocupado. Resultado sin confirmar. Revise el historial antes de reintentar explícitamente la solicitud pendiente.','Fallo desconocido del servicio. No se confirma éxito. Actualice el historial; se conservan las solicitudes pendientes.'],
+  fr:['Le service a refusé ces données. Vérifiez les valeurs exactes avant de renvoyer.','Accès refusé ou expiré. Actualisez l’espace ou l’autorisation ; une connexion au portefeuille ne suffit pas.','Conflit avec l’état enregistré. Actualisez l’historique et conservez la demande exacte en attente ; aucun renvoi automatique.','Service indisponible ou occupé. Résultat non confirmé. Consultez l’historique avant de réessayer explicitement la demande en attente.','Échec inconnu du service. Aucun succès confirmé. Actualisez l’historique ; les demandes en attente sont conservées.'],
+  de:['Der Dienst hat die Eingaben abgelehnt. Prüfen Sie die genauen Werte vor erneutem Senden.','Zugriff abgelehnt oder abgelaufen. Arbeitsbereich oder Freigabe aktualisieren; Wallet-Verbindung allein berechtigt nicht.','Konflikt mit gespeichertem Zustand. Verlauf aktualisieren und genaue offene Anfrage behalten; kein automatischer Wiederholungsversuch.','Dienst nicht verfügbar oder ausgelastet. Ergebnis unbestätigt. Verlauf vor ausdrücklichem Wiederholen der offenen Anfrage prüfen.','Unbekannter Dienstfehler. Erfolg nicht bestätigt. Verlauf aktualisieren; offene Anfragen bleiben erhalten.'],
+  pt:['O serviço rejeitou os dados. Revise os valores exatos antes de reenviar.','Acesso negado ou expirado. Atualize o espaço ou autorização; conectar a carteira não autoriza esta ação.','Conflito com o estado salvo. Atualize o histórico e preserve a solicitação pendente exata; sem repetição automática.','Serviço indisponível ou ocupado. Resultado não confirmado. Consulte o histórico antes de repetir explicitamente a solicitação pendente.','Falha desconhecida do serviço. Sucesso não confirmado. Atualize o histórico; solicitações pendentes preservadas.'],
+  ru:['Сервис отклонил данные. Проверьте точные значения перед повторной отправкой.','Доступ отклонён или истёк. Обновите рабочую область или разрешение; подключение кошелька само по себе не даёт права.','Конфликт с сохранённым состоянием. Обновите историю и сохраните исходный ожидающий запрос; автоматического повтора нет.','Сервис недоступен или занят. Результат не подтверждён. Проверьте историю перед явным повтором ожидающего запроса.','Неизвестная ошибка сервиса. Успех не подтверждён. Обновите историю; ожидающие запросы сохранены.'],
+  ar:['رفضت الخدمة المدخلات. راجع القيم الدقيقة قبل إعادة الإرسال.','رُفض الوصول أو انتهت صلاحيته. حدّث مساحة العمل أو التفويض؛ اتصال المحفظة وحده لا يمنح هذه الصلاحية.','تعارض مع الحالة المحفوظة. حدّث السجل واحتفظ بالطلب المعلق نفسه؛ لا إعادة تلقائية.','الخدمة غير متاحة أو مشغولة. النتيجة غير مؤكدة. راجع السجل قبل إعادة الطلب المعلق صراحةً.','فشل غير معروف من الخدمة. النجاح غير مؤكد. حدّث السجل؛ الطلبات المعلقة محفوظة.'],
+  id:['Layanan menolak input. Periksa nilai tepat sebelum mengirim ulang.','Akses ditolak atau kedaluwarsa. Muat ulang ruang kerja atau izin; koneksi dompet saja tidak memberi kewenangan.','Konflik dengan status tersimpan. Muat ulang riwayat dan pertahankan permintaan tertunda yang sama; tidak ada pengulangan otomatis.','Layanan tidak tersedia atau sibuk. Hasil belum dikonfirmasi. Periksa riwayat sebelum mengulangi permintaan tertunda secara eksplisit.','Kegagalan layanan tidak dikenal. Keberhasilan belum dikonfirmasi. Muat ulang riwayat; permintaan tertunda dipertahankan.']
+};
+for(const [language,values] of Object.entries(quantAPIErrorCopy))Object.assign(businessCopy[language],Object.fromEntries(['apiInputsRejected','apiAccessRejected','apiStateConflict','apiServiceUnavailable','apiFailureUnknown'].map((key,index)=>[key,values[index]])));
+function quantAPIErrorKey(status){return status===400||status===422?'apiInputsRejected':status===401||status===403?'apiAccessRejected':status===409?'apiStateConflict':status===408||status===429||status>=500?'apiServiceUnavailable':'apiFailureUnknown';}
 async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   const controller = new AbortController();
   let rejectDeadline;
@@ -638,10 +654,12 @@ const api = async (path, opt = {}) => {
   }
   const {response:r,body:b} = result;
   if (!r.ok) {
-    const researchError = b?.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
+    const researchError = r.status===400 && b?.error === "invalid_research_parameters" && /\/(?:backtests|research\/backtests|strategies\/[^/]+\/schedule)(?:\/|$)/.test(path);
     const dailyLossError = path === '/v1/paper/orders' && r.status === 403 && b?.error === 'paper_daily_loss_limit';
-    const localeKey = dailyLossError ? 'paperDailyLossLead' : researchError ? 'researchInputInvalid' : null;
-    throw Object.assign(new Error(localeKey ? t(localeKey) : b?.error || `HTTP ${r.status}`), {status: r.status, code: b?.error, localeKey});
+    const localeKey = dailyLossError ? 'paperDailyLossLead' : researchError ? 'researchInputInvalid' : quantAPIErrorKey(r.status);
+    const knownStatus={invalid_request:400,invalid_json:400,single_json_value_required:400,forbidden:403,conflict:409,unavailable:503,request_cancelled:408};
+    const code = dailyLossError ? 'paper_daily_loss_limit' : researchError ? 'invalid_research_parameters' : typeof b?.error==='string'&&Object.hasOwn(knownStatus,b.error)&&knownStatus[b.error]===r.status ? b.error : 'QUANT_API_REJECTED';
+    throw Object.assign(new Error(t(localeKey)), {status: r.status, code, localeKey});
   }
   return b;
 };
@@ -1117,7 +1135,7 @@ $("#backtest").onsubmit = async (e) => {
     if (savedWorkspace) await refresh();
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
-    if(e.status>=400&&e.status<500&&![408,409,429].includes(e.status)){
+    if(e.code!=='QUANT_API_REJECTED'&&e.status>=400&&e.status<500&&![408,409,429].includes(e.status)){
       try{localStorage.removeItem(researchPendingKey);if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');pendingResearchIntent=null;}catch{workspaceStorageAvailable=false;statefulPreview=false;}
     }
     toast(e.message, e.localeKey ?? null);
@@ -1169,7 +1187,7 @@ $("#paper-order").onsubmit = async (e) => {
     toast(t("paperRecorded"), "paperRecorded");
     await refresh();
   } catch (e) {
-    if (e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
+    if (e.code !== 'QUANT_API_REJECTED' && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
       pendingPaperIntent = null;
       try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
     }

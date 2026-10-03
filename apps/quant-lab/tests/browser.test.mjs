@@ -534,6 +534,26 @@ test('actual Chrome retains unreadable Paper intent across reload and explicitly
     assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
   }finally{await context.close()}
 });
+test('actual Chrome localizes service errors without exposing server payload or retrying on language change',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:0,KillSwitch:false}})}));
+    const requests=[],errors=[];
+    await context.route('**/api/v1/backtests/from-market',route=>{requests.push(route.request().postData());return route.fulfill({status:requests.length===1?503:409,contentType:'application/json',body:JSON.stringify({error:requests.length===1?'INTERNAL_SECRET_NOT_FOR_UI':'conflict'})})});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    await page.waitForFunction(()=>lastToastKey==='apiServiceUnavailable'&&!researchSubmitting);
+    const pending=await page.evaluate(()=>localStorage.getItem(researchPendingKey));assert.ok(pending);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('apiServiceUnavailable')));
+      assert.doesNotMatch(await page.locator('body').textContent(),/INTERNAL_SECRET_NOT_FOR_UI/);assert.equal(requests.length,1);
+      assert.equal(await page.evaluate(()=>localStorage.getItem(researchPendingKey)),pending);
+    }
+    await page.locator('#research-submit').click();await page.waitForFunction(()=>lastToastKey==='apiStateConflict'&&!researchSubmitting);
+    assert.equal(requests.length,2);assert.equal(requests[0],requests[1]);assert.equal(await page.evaluate(()=>localStorage.getItem(researchPendingKey)),pending);
+    await page.selectOption('#locale','en');assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('apiStateConflict')));
+    assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome reconciliation preview cancels in twelve locales without any write',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

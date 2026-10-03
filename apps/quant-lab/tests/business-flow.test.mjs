@@ -15,6 +15,43 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('service failures localize in every language without exposing arbitrary error payloads or retrying',async()=>{
+  for(const [status,error,key] of [[400,'invalid_json','apiInputsRejected'],[401,'unrecognized-secret-message','apiAccessRejected'],[403,'forbidden','apiAccessRejected'],[409,'conflict','apiStateConflict'],[429,'busy','apiServiceUnavailable'],[503,'unavailable','apiServiceUnavailable'],[404,{secret:'not-for-ui'},'apiFailureUnknown']]){
+    const app=harness({apiStatus:url=>url.endsWith('/snapshot')?200:status,apiResponse:url=>url.endsWith('/snapshot')?{}:{error}});await settle();
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});
+      await assert.rejects(vm.runInContext('api("/v1/paper/orders",{method:"POST",body:"{}"})',app.context),value=>{
+        assert.equal(value.status,status);assert.equal(value.localeKey,key);assert.equal(value.message,vm.runInContext(`t(${JSON.stringify(key)})`,app.context));assert.doesNotMatch(value.message,/secret|not-for-ui|HTTP 404/);
+        return true;
+      });
+    }
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,12);assert.equal(app.proofs(),0);
+  }
+});
+
+test('unknown HTTP rejection preserves exact research intent instead of assuming definitive refusal',async()=>{
+  const app=harness({apiStatus:url=>url.endsWith('/snapshot')?200:400,apiResponse:url=>url.endsWith('/snapshot')?{}:{error:'unknown-internal-value'}});await settle();
+  await app.submit('backtest');const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending')),raw=app.storage.get(key);
+  assert.ok(raw);assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("apiInputsRejected")',app.context));
+  app.ids.get('locale').onchange({target:{value:'ar'}});assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("apiInputsRejected")',app.context));
+  assert.equal(app.storage.get(key),raw);assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);
+  await app.submit('backtest');assert.equal(app.storage.get(key),raw);
+  const posts=app.calls.filter(call=>call.options.method==='POST');assert.equal(posts.length,2);assert.equal(posts[0].options.body,posts[1].options.body);
+});
+
+test('unknown or status-mismatched Paper failures retain one exact intent without automatic retry or risk refresh',async()=>{
+  const hash='d'.repeat(64);
+  for(const [status,error] of [[400,'internal-secret'],[503,'paper_daily_loss_limit'],[401,{secret:'hidden'}]]){
+    const app=harness({snapshot:{strategies:{one:{Name:'Saved choice',StrategyHash:hash}}},confirmAction:()=>true,apiStatus:url=>url.endsWith('/snapshot')?200:status,apiResponse:url=>url.endsWith('/snapshot')?{strategies:{one:{Name:'Saved choice',StrategyHash:hash}}}:{error}});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';await app.submit('paper-order');
+    const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.paper.pending')),raw=app.storage.get(key);assert.ok(raw);
+    assert.equal(app.calls.filter(call=>call.url.endsWith('/snapshot')).length,1);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);
+    await app.submit('paper-order');const posts=app.calls.filter(call=>call.options.method==='POST');
+    assert.equal(posts.length,2);assert.equal(posts[0].options.body,posts[1].options.body);assert.equal(app.storage.get(key),raw);assert.equal(app.proofs(),0);
+  }
+});
+
 test('Testnet execution readback never promotes reserved or malformed rows to a venue fill',async()=>{
   const app=harness();await settle();
   const good={id:'testnet-000001',market:'YNXT-YUSD_TEST',side:'buy',amount:12,status:'submitted_testnet',venueOrderId:'venue-controlled',venueStatus:'filled',authorizationDigest:'a'.repeat(64),brokerProof:'controlled-proof'};
