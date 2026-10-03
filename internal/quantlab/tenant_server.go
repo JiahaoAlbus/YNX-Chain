@@ -104,7 +104,10 @@ func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.financeAccount(w, r)
 		return
 	}
-	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/ready" || r.URL.Path == "/version" || r.URL.Path == "/metrics") && r.Header.Get(TenantHeader) == "" {
+	// Operational diagnostics are service-level reads, not workspace access.
+	// Clients may attach their usual tenant header; it must not allocate a new
+	// tenant (or expose that tenant's private risk state) merely to probe health.
+	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/ready" || r.URL.Path == "/version" || r.URL.Path == "/metrics") {
 		s.base.ServeHTTP(w, r)
 		return
 	}

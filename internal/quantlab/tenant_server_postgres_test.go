@@ -108,4 +108,29 @@ func TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers(t *testing.
 	if response.StatusCode != http.StatusOK || !health.Ready || health.Storage["backend"] != "postgresql" || health.Storage["multiInstance"] != true {
 		t.Fatalf("health status=%d storage=%#v", response.StatusCode, health.Storage)
 	}
+	handler.mu.Lock()
+	before := len(handler.servers)
+	handler.maxOpen = before // all actual workspace slots are already occupied
+	handler.mu.Unlock()
+	for _, route := range []string{"/health", "/ready", "/version", "/metrics"} {
+		request, err := http.NewRequest(http.MethodGet, server.URL+route, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Header.Set(TenantHeader, strings.Repeat("d", 64))
+		response, err := server.Client().Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("service diagnostic blocked at tenant capacity: %s status=%d", route, response.StatusCode)
+		}
+	}
+	handler.mu.Lock()
+	after := len(handler.servers)
+	handler.mu.Unlock()
+	if after != before {
+		t.Fatalf("PostgreSQL diagnostics allocated workspace: before=%d after=%d", before, after)
+	}
 }
