@@ -1,0 +1,86 @@
+✘ [ERROR] Could not resolve "../src/api.ts"
+
+    private-session-ui.js:3:24:
+      3 │ import {SocialAPI} from '../src/api.ts';
+        ╵                         ~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/durableOutbox.ts"
+
+    private-session-ui.js:4:28:
+      4 │ import {DurableOutbox} from '../src/durableOutbox.ts';
+        ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/invitationIntent.ts"
+
+    private-session-ui.js:11:41:
+      11 │ ...rt {indexedDBInvitationIntents} from '../src/invitationIntent.ts';
+         ╵                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/invitationIntent"
+
+    chat-workspace.ts:2:89:
+      2 │ ...nIntent,type InvitationIntentStore} from '../src/invitationIntent';
+        ╵                                             ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/privacySettings"
+
+    chat-workspace.ts:3:37:
+      3 │ import {checkedPrivacySettings} from '../src/privacySettings';
+        ╵                                      ~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/contactOperation"
+
+    chat-workspace.ts:4:31:
+      4 │ import {ContactOperation} from '../src/contactOperation';
+        ╵                                ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/scopedSessionBridge"
+
+    chat-workspace.ts:5:85:
+      5 │ ...Device,type ScopedSessionClient} from "../src/scopedSessionBridge";
+        ╵                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/chatCrypto"
+
+    chat-workspace.ts:6:93:
+      6 │ ...,verifyMessageSignature,type ChatMessage} from "../src/chatCrypto";
+        ╵                                                   ~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/messageOutbox"
+
+    chat-workspace.ts:8:80:
+      8 │ ...ed,pendingFor,assertPendingRecipients} from "../src/messageOutbox";
+        ╵                                                ~~~~~~~~~~~~~~~~~~~~~~
+
+✘ [ERROR] Could not resolve "../src/scopedSessionBridge"
+
+    protected-chat-devices.ts:2:58:
+      2 │ ...hatDevice,type StoredChatDevice} from "../src/scopedSessionBridge";
+        ╵                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1748
+  let error = new Error(text);
+              ^
+
+Error: Build failed with 10 errors:
+chat-workspace.ts:2:89: ERROR: Could not resolve "../src/invitationIntent"
+chat-workspace.ts:3:37: ERROR: Could not resolve "../src/privacySettings"
+chat-workspace.ts:4:31: ERROR: Could not resolve "../src/contactOperation"
+chat-workspace.ts:5:85: ERROR: Could not resolve "../src/scopedSessionBridge"
+chat-workspace.ts:6:93: ERROR: Could not resolve "../src/chatCrypto"
+...
+    at failureErrorWithLog (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1748:15)
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1207:25
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1159:52
+    at buildResponseToResult (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1205:7)
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1232:16
+    at responseCallbacks.<computed> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:884:9)
+    at handleIncomingPacket (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:939:12)
+    at Socket.readFromStdout (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:862:7)
+    at Socket.emit (node:events:514:20)
+    at addChunk (node:internal/streams/readable:568:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+
+Node.js v26.7.0

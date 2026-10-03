@@ -1,0 +1,9 @@
+source_commit=bfe10c9fdf26946bda8504080acf9c59abe13d8c
+build_stage=/tmp/social-web-carrier-20261004.9zOQDo
+build_command=node web/build.mjs
+output_directory=web/dist
+web_build_exit=1
+complete_source_stage=/tmp/social-web-carrier-complete-20261004.QSiGKu
+complete_web_build_exit=0
+second_web_build_exit=0
+cold_second_file_manifest_equal_exit=0
