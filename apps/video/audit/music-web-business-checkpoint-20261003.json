@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-03",
+  "sourceCommit": "afe8ed36634d21ae519fd57a7d17f12b4cd6a719",
+  "sourceTree": "e12c5cb5219df3e990ce0440278f439340fe0385",
+  "previousCheckpoint": "215ae732402b423460b9e1327573ce905a5bd2ce",
+  "inheritance": "Original Music business controller found at 1bdfb1d2b; business operations retained against original store/API, obsolete manual-signature/bearer browser authentication not restored",
+  "changes": [
+    "Web business UI/controller mounted into original Music page, with canonical request transport integration seam and private API me readback before rendering; production has no adapter yet",
+    "Original catalog/search/artist/album, playback/position, profile, library, playlists, creator upload/release, Trust report, actual revenue allocation, central Pay review, and explicit AI actions wired through captured transport; no fixture content in production",
+    "UI and body/request generation fences, cancellation, actual 30-second deadline, 64MiB media read bound, serialized library writes, late search fencing, failed edit draft preservation and PUT/GET confirmation",
+    "Browser download verifies SHA-256 and hands bytes to download manager without fabricating saved/offline state",
+    "Exact central Pay review route validation in original Music service; unsafe prefix accepted before fix now rejected with record/audit unchanged"
+  ],
+  "validation": {
+    "browser": "PASS 13 controlled behavior groups in actual isolated Chromium; shipped Web source, fixture business responses; actual unshortened 30-second timeout; not canonical Wallet or production provider acceptance",
+    "goRace": "PASS internal/music and apps/music full original store/API race suite, including original malformed central URI failure closed and valid opaque query preserved",
+    "embedding": "PASS final apps/music Go embed/accessibility checks",
+    "diffCheck": "PASS"
+  },
+  "evidence": [
+    {
+      "path": "/tmp/ynx-music-business-web-final-20261003.log",
+      "sha256": "af29961ebdc5f4a668f7f711f5bf9449a2f788d3bb15cfccb88ad8393cda891a"
+    },
+    {
+      "path": "/tmp/ynx-music-business-web-backend-race-20261003.log",
+      "sha256": "1688869a3a788bf87f470a090fb4a17a67c5051c56d6d090e7bb0e16fc82fde6"
+    },
+    {
+      "path": "/tmp/ynx-music-web-embedding-final-20261003.log",
+      "sha256": "8adcf34ab45997e46660de9797c5a7a438561c20aff88b4a473ba7640ca04b80"
+    },
+    {
+      "path": "/tmp/ynx-music-review-uri-old-fail-20261003.log",
+      "sha256": "03d073532b0cf70a9f74a62a08844ca773b375a1ad10dfaadc4eecac8d974f2a"
+    },
+    {
+      "path": "/tmp/ynx-music-business-web-first-ai-probe-20261003.log",
+      "sha256": "b449a11f6f1fe2f5133cc6391dab3b9c944b0bc6c1b5416ab6e46558e588e244"
+    }
+  ],
+  "sources": [
+    {
+      "path": "apps/music/WEB_CANONICAL_INTEGRATION.md",
+      "sha256": "8cc38dc0028879a1af47a1dd1a887dd6e2dfe3a3c3697a1f058d65a131b0c92b"
+    },
+    {
+      "path": "apps/music/scripts/business-web-check.cjs",
+      "sha256": "937bb7fe50865e8e86b8baae92ce46590360fc577a7df791c20727cbefe847d4"
+    },
+    {
+      "path": "apps/music/web/app.js",
+      "sha256": "bbda3064ea2a7fbe1a9367a8252b25e5cc858499fec69af0e8504e13db0de487"
+    },
+    {
+      "path": "apps/music/web/business.js",
+      "sha256": "667fc51d554bfedbfd0281159bb66c424a9cbfaa3cb9fe9eadf501420e523cb0"
+    },
+    {
+      "path": "apps/music/web/index.html",
+      "sha256": "93365d949c0937b45545d03156abbafce8d50b8ab7456bac94fd3acf779b9634"
+    },
+    {
+      "path": "apps/music/web/styles.css",
+      "sha256": "9436717d7af3c9a3181f1f83c9cb4cca114be1ec334142092e156b4bde455797"
+    },
+    {
+      "path": "internal/music/pay_review_test.go",
+      "sha256": "61032958caef2a68c3ec3859da8e0bcdef1df05ba3117c9001f88f6d94ea78b3"
+    },
+    {
+      "path": "internal/music/service.go",
+      "sha256": "daeb040e584e2f3e7276c8dabe9cc2279495080cc88c2cdfe9a5482359a4ec00"
+    }
+  ],
+  "sharedUpdate": {
+    "observedCommit": "c09cb9b8ad13fe879363f7e6ad3d129912740c7e",
+    "observedWorktree": "/Users/huangjiahao/.codex/worktrees/central-finite-go-family-20261002/YNX Chain",
+    "facts": [
+      "Committed generic actual-wire business proof and VerifyHTTPActionStream now exist; internal/productsessionv2 status clean when read",
+      "VerifyHTTPActionStream hashes actual bytes within fixed route maximum and proof deadline; requires final actor/session/object revalidation and nonce consumption in original product transaction"
+    ],
+    "mediaAdmission": "NOT_VERIFIED; requesting exact admitted shared freeze and Music registry contract through Root",
+    "integration": "NOT_IMPLEMENTED in this checkpoint; no shared source copied or modified"
+  },
+  "gates": {
+    "ownedSourceVerified": true,
+    "productionWebPrivateAdapter": false,
+    "sharedMusicCanonicalV2Registration": false,
+    "formalDeployed": false,
+    "realWalletApproval": false,
+    "formalSameAccountBusiness": false,
+    "androidInstalledBusiness": false,
+    "appleInstalledBusiness": false,
+    "macOSStandaloneTarget": false,
+    "productionAIProviderAcceptance": false,
+    "productComplete": false
+  },
+  "remaining": [
+    "Exact shared canonical Music registration and admitted browser/native signer + business wire proof contract from release owner",
+    "Video/Creator/Music original transactions must consume business nonce atomically and revalidate live original session/object after uploads and asynchronous work",
+    "Production canonical adapter invocation and formal same-account public business replay",
+    "Multipart lost-response/resumable upload and playlist-create idempotent recovery",
+    "Web locale coverage/artwork display and broader actual media/creator/device QA",
+    "Unique release-owner deployment/installation; real Mac target/packaging and same-account acceptance"
+  ],
+  "preservation": "No original user data, Wallet/device keys, shared Auth/ProductSession/Host source or original Music worktrees changed; no deployment/issuance/transaction approval claimed"
+}
