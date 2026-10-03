@@ -30,6 +30,7 @@ try{
   // Each case receives a fresh database. The legacy bootstrap intentionally
   // leaves sequence=8 and cannot share the revision=1 CAS fixture namespace.
   const cases=[['TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery','YNX_EXCHANGE_POSTGRES_TEST_URL','integrity'],['TestFinanceReadPostgresCrossInstanceNonceAndPersistedAccount','YNX_EXCHANGE_POSTGRES_TEST_URL','integrity'],['TestPostgresStateRepositoryBootstrapAndCAS','YNX_EXCHANGE_TEST_DATABASE_URL','integrity'],['TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery','YNX_EXCHANGE_POSTGRES_TEST_URL','revision']];
+  for(const layout of ['integrity','revision'])cases.push(['TestPostgreSQLOwnedSupportTwoHTTPInstancesIsolationAndRestart','YNX_EXCHANGE_POSTGRES_TEST_URL',layout]);
   receipt.executed=[];
   for(let round=0;round<2;round++)for(let i=0;i<cases.length;i++){
     const [name,key,layout]=cases[i],database=`exchange_case_${round}_${i}`,phase=`case-${round}-${i}`;
