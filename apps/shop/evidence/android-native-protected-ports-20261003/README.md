@@ -1,0 +1,3 @@
+Actual Android protected-runtime port source for A-adopted Native SDK34f58.
+
+Offline debug assembly and11targeted production-state tests passed. Actual SDK revoke scope/canonical vector matched actual Java source without network, signing or approval. Raw initial compile, native-chain and test-oracle failures are retained. Production AndroidKeyStore/OS implementation is source-compiled, not executed on a device. Ports are not yet connected to MainActivity/API/SDK bridge; actual protected endpoint, callback, private business proof and installed complete flow remain unverified. Original legacy keys/data remain unchanged; no private key export or debug/software runtime fallback.

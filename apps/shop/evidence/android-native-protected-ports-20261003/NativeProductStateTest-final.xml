@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.NativeProductStateTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-03T07:20:25.446Z" hostname="HuangJiahaoMacmini" time="0.026">
+  <properties/>
+  <testcase name="canonicalStringsMatchOriginalSDKWithoutHTMLOrUnicodeRewriting" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.002"/>
+  <testcase name="cleanupOfExactOriginalTargetRemovesOnlyOriginalCancelledRecords" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.009"/>
+  <testcase name="exactTargetCleanupIsOneCommitAndRetainsNewerUnrelatedSession" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.004"/>
+  <testcase name="coldRestartRetainsOriginalDeviceGenerationAndEncryptedEnvelopeBytes" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.001"/>
+  <testcase name="accountChangeInvalidatesEveryOriginalActionWithoutDeletingOldNamespace" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.002"/>
+  <testcase name="originalCanonicalSigningBytesBindDomainProductDeviceAccountAndBuyerScopes" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.001"/>
+  <testcase name="walletOpeningCannotPromptForSellerOrForeignNativeTuple" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.001"/>
+  <testcase name="targetUpgradePreservesOriginalIntentIdAndRefusesReplacement" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.002"/>
+  <testcase name="malformedContextAndWrongScopeCannotRewriteOriginalEvidence" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.002"/>
+  <testcase name="pendingNegativeAuthoritySurvivesColdRestartAndBlocksSignAndOpen" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.0"/>
+  <testcase name="changedIntentAndFailedCleanupPreserveOriginalNegativeAuthority" classname="com.ynxweb4.shop.NativeProductStateTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

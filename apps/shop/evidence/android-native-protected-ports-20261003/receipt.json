@@ -1,0 +1,69 @@
+{
+  "schema": "ynx-commerce-android-native-protected-runtime-ports/v1",
+  "baseCommit": "7a8788296b1a00955e29b1b5e7678f299de61773",
+  "sharedNativeSource": {
+    "commit": "34f58c74a79a35cb7b95fbe46e1cd4b8a51de40e",
+    "tree": "f98bd7a00c1f9bf725735b4629a5666b3fe3676e",
+    "nativeJSHash": "be9711cfa4c28891a86e8c2165ba55408a3794260dcbffea5620353a676088db",
+    "standaloneSHA256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82",
+    "observedFrom": "A shared worktree exact Git source and immutable reviewed artifact; no shared writes"
+  },
+  "changes": [
+    "Actual AndroidKeyStore nonexportable P256, CSPRNG, DER/base64url original protocol signer and exact prepared OS Wallet opener source. Registered package only; no debug/software fallback.",
+    "Owner encrypted single-snapshot storage and monotonically persisted native account/generation. Atomic original expected-context checks for signer/store/open; uncertain write/readback disables live runtime while original evidence remains.",
+    "All seven protected storage ports with durable synchronous negative authority, exact original intent/target cleanup and protection of newer unrelated sessions. Buyer-only registered tuple/scope and original native chain identifier."
+  ],
+  "verification": {
+    "androidOfflineDebugAssembly": "PASS current final source, Java17/Android36/cached dependencies, isolated QA APK",
+    "newNativeStateTests": {
+      "status": "PASS",
+      "tests": 11,
+      "scope": "Actual production state/canonical/domain/Wallet-request validator with memory persistence; no AndroidKeyStore or OS launch"
+    },
+    "wholeJUnitAttempt": "Latest whole suite had 70 passes and one overly specific exception-type assertion failure; raw failure XML/log retained. Refusal remained enforced; corrected only that assertion then final targeted11PASS. No single final whole71PASS is claimed.",
+    "sdkInteropScope": "PASS actual immutable standalone Native SDK disconnect intent scope compared to actual Java production-state scope; actual canonical byte vector matched; zero network/signature/Wallet/authority",
+    "static12Locales": "PASS",
+    "sourceDiffCheck": "PASS",
+    "initialFailures": [
+      "Android JSONObject has no keySet; original compile failure retained and changed to original keys iterator.",
+      "Wrong relative edit/Gradle working-directory calls failed; no product write occurred there; repaired using absolute source and isolated Gradle paths.",
+      "Actual SDK scope comparison caught EVM numeric chain6423 incorrectly used instead of native ynx_6423-1; raw mismatch retained, corrected to exact native protocol.",
+      "Latest negative-chain test expected SecurityException but org.json correctly rejected with JSONException. Corrected test exception oracle, no validation relaxation."
+    ]
+  },
+  "qaArtifact": {
+    "path": "/tmp/ynx-commerce-android-handoff-20261003/project/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "9eab5e2a7dab3e6207cd57b7e45d0501ef3459853cae0bee2719503e3cffd98a",
+    "formalRelease": false
+  },
+  "realGates": {
+    "nativeConsumerBridgeWired": false,
+    "actualKeystoreProtection": false,
+    "actualOSCallback": false,
+    "actualWalletApproval": false,
+    "actualGatewayAuthority": false,
+    "privateBusinessProof": false,
+    "installedAndroid": false,
+    "installedMacOS": false,
+    "AReleaseIntegration": false,
+    "publicEndToEnd": false
+  },
+  "sourcePins": [
+    {
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeProtectedRuntime.java",
+      "sha256": "415b5fb5f6b3a39503542c85f6e37a62ddd317727c39c1b0f6b690a877e4a6fc"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeProductState.java",
+      "sha256": "993a59fa31567371aec11489d824853a09a15eaa84eefe9d522d66ef4d7ca9d2"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeProductStateTest.java",
+      "sha256": "ddd0648145147f04f7c75800e2986a42c90917a15c83e139644a0d548e3eb3fd"
+    },
+    {
+      "path": "apps/shop/native/android/NATIVE_PRODUCT_SESSION_PORTS.md",
+      "sha256": "08f47ca2ce4c6b9ab206db2cc2b0daa2249ba0da0d588d1e532330c68f29cb9f"
+    }
+  ]
+}

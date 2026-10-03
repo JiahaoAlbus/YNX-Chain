@@ -1,0 +1,3 @@
+PASS actual adopted Native SDK revoke scope equals actual Java protected-state scope
+PASS original SDK JSON.stringify string bytes equal actual Java canonical validation
+PASS no network, signature, Wallet opening, private key or approval in vector comparison

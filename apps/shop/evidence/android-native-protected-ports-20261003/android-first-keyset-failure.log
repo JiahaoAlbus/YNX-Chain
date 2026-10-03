@@ -1,0 +1,96 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :app:javaPreCompileDebug
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:mergeDebugResources
+> Task :app:packageDebugResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:parseDebugLocalResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:compressDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeDebugJniLibFolders
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeExtDexDebug
+> Task :app:mergeLibDexDebug
+> Task :app:mergeDebugJavaResource
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:processDebugResources
+
+> Task :app:compileDebugJavaWithJavac FAILED
+/private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:47: error: cannot find symbol
+    private static void validateState(JSONObject state)throws Exception{if(state.length()!=2)throw new SecurityException("Invalid original protected state");validateContext(state.getJSONObject("context"));JSONObject namespaces=state.getJSONObject("namespaces");for(String namespace:namespaces.keySet()){if(!namespace.matches("ynx\\.native-product-session\\.v2:[a-f0-9]{64}"))throw new SecurityException("Invalid original namespace");JSONObject box=namespaces.getJSONObject(namespace);if(box.length()!=3)throw new SecurityException("Invalid original namespace state");validateContext(box.getJSONObject("context"));if(!(box.get("revocationRequested") instanceof Boolean))throw new SecurityException("Invalid revoke signal");JSONObject values=box.getJSONObject("values");for(String key:values.keySet()){checkKey(key);bounded(values.getString(key));}}}
+                                                                                                                                                                                                                                                                                                    ^
+  symbol:   method keySet()
+  location: variable namespaces of type JSONObject
+/private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:47: error: cannot find symbol
+    private static void validateState(JSONObject state)throws Exception{if(state.length()!=2)throw new SecurityException("Invalid original protected state");validateContext(state.getJSONObject("context"));JSONObject namespaces=state.getJSONObject("namespaces");for(String namespace:namespaces.keySet()){if(!namespace.matches("ynx\\.native-product-session\\.v2:[a-f0-9]{64}"))throw new SecurityException("Invalid original namespace");JSONObject box=namespaces.getJSONObject(namespace);if(box.length()!=3)throw new SecurityException("Invalid original namespace state");validateContext(box.getJSONObject("context"));if(!(box.get("revocationRequested") instanceof Boolean))throw new SecurityException("Invalid revoke signal");JSONObject values=box.getJSONObject("values");for(String key:values.keySet()){checkKey(key);bounded(values.getString(key));}}}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ^
+  symbol:   method keySet()
+  location: variable values of type JSONObject
+/private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:53: error: cannot find symbol
+    static String canonical(Object value)throws Exception{if(value==JSONObject.NULL)return "null";if(value instanceof JSONObject){JSONObject object=(JSONObject)value;List<String> keys=new ArrayList<>(object.keySet());Collections.sort(keys);List<String> parts=new ArrayList<>();for(String key:keys)parts.add(JSONObject.quote(key)+":"+canonical(object.get(key)));return "{"+String.join(",",parts)+"}";}if(value instanceof JSONArray){JSONArray array=(JSONArray)value;List<String> parts=new ArrayList<>();for(int i=0;i<array.length();i++)parts.add(canonical(array.get(i)));return "["+String.join(",",parts)+"]";}if(value instanceof String)return JSONObject.quote((String)value);if(value instanceof Boolean)return value.toString();if(value instanceof Number)return JSONObject.numberToString((Number)value);throw new SecurityException("Unsupported canonical protocol value");}
+                                                                                                                                                                                                              ^
+  symbol:   method keySet()
+  location: variable object of type JSONObject
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+3 errors
+
+[Incubating] Problems report is available at: file:///private/tmp/ynx-commerce-android-handoff-20261003/project/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  /private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:47: error: cannot find symbol
+      private static void validateState(JSONObject state)throws Exception{if(state.length()!=2)throw new SecurityException("Invalid original protected state");validateContext(state.getJSONObject("context"));JSONObject namespaces=state.getJSONObject("namespaces");for(String namespace:namespaces.keySet()){if(!namespace.matches("ynx\\.native-product-session\\.v2:[a-f0-9]{64}"))throw new SecurityException("Invalid original namespace");JSONObject box=namespaces.getJSONObject(namespace);if(box.length()!=3)throw new SecurityException("Invalid original namespace state");validateContext(box.getJSONObject("context"));if(!(box.get("revocationRequested") instanceof Boolean))throw new SecurityException("Invalid revoke signal");JSONObject values=box.getJSONObject("values");for(String key:values.keySet()){checkKey(key);bounded(values.getString(key));}}}
+                                                                                                                                                                                                                                                                                                      ^
+    symbol:   method keySet()
+    location: variable namespaces of type JSONObject
+  /private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:47: error: cannot find symbol
+      private static void validateState(JSONObject state)throws Exception{if(state.length()!=2)throw new SecurityException("Invalid original protected state");validateContext(state.getJSONObject("context"));JSONObject namespaces=state.getJSONObject("namespaces");for(String namespace:namespaces.keySet()){if(!namespace.matches("ynx\\.native-product-session\\.v2:[a-f0-9]{64}"))throw new SecurityException("Invalid original namespace");JSONObject box=namespaces.getJSONObject(namespace);if(box.length()!=3)throw new SecurityException("Invalid original namespace state");validateContext(box.getJSONObject("context"));if(!(box.get("revocationRequested") instanceof Boolean))throw new SecurityException("Invalid revoke signal");JSONObject values=box.getJSONObject("values");for(String key:values.keySet()){checkKey(key);bounded(values.getString(key));}}}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ^
+    symbol:   method keySet()
+    location: variable values of type JSONObject
+  /private/tmp/ynx-commerce-android-handoff-20261003/project/app/src/main/java/com/ynxweb4/shop/NativeProductState.java:53: error: cannot find symbol
+      static String canonical(Object value)throws Exception{if(value==JSONObject.NULL)return "null";if(value instanceof JSONObject){JSONObject object=(JSONObject)value;List<String> keys=new ArrayList<>(object.keySet());Collections.sort(keys);List<String> parts=new ArrayList<>();for(String key:keys)parts.add(JSONObject.quote(key)+":"+canonical(object.get(key)));return "{"+String.join(",",parts)+"}";}if(value instanceof JSONArray){JSONArray array=(JSONArray)value;List<String> parts=new ArrayList<>();for(int i=0;i<array.length();i++)parts.add(canonical(array.get(i)));return "["+String.join(",",parts)+"]";}if(value instanceof String)return JSONObject.quote((String)value);if(value instanceof Boolean)return value.toString();if(value instanceof Number)return JSONObject.numberToString((Number)value);throw new SecurityException("Unsupported canonical protocol value");}
+                                                                                                                                                                                                                ^
+    symbol:   method keySet()
+    location: variable object of type JSONObject
+  Note: Some input files use or override a deprecated API.
+  Note: Recompile with -Xlint:deprecation for details.
+  3 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 6s
+28 actionable tasks: 28 executed

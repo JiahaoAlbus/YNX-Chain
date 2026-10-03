@@ -1,0 +1,20 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 'c8dc176a5e6ba1a72c3eee722ef7cd85290e549a822a6aeca8a3cc65c9a0cd12'
+- '3b83d57a46e58e3c62f43e83d3e5d34f254265dcdab1f1cb8eb06cfa3e1b662b'
+
+    at file:///private/tmp/ynx-commerce-native-ports-20261003/sdk-scope-check.mjs:6:534 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'c8dc176a5e6ba1a72c3eee722ef7cd85290e549a822a6aeca8a3cc65c9a0cd12',
+  expected: '3b83d57a46e58e3c62f43e83d3e5d34f254265dcdab1f1cb8eb06cfa3e1b662b',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v26.7.0

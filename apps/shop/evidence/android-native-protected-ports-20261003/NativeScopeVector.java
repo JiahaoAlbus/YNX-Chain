@@ -1,0 +1,3 @@
+package com.ynxweb4.shop;
+import org.json.JSONObject;
+public final class NativeScopeVector {public static void main(String[] args)throws Exception{byte[] key=new byte[33];key[0]=2;String encoded=java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(key);NativeProductState state=new NativeProductState(new NativeProductState.Persistence(){String value="";public String read(){return value;}public void write(String next){value=next;}},"original-native-device-id",encoded,"os-protected");JSONObject ctx=state.context();System.out.println(new JSONObject().put("context",ctx).put("revokeScope",NativeProductState.revocationScope(ctx)).put("canonical",NativeProductState.canonical(new JSONObject().put("purpose","</script>中\u2028").put("a",1))).toString());}}
