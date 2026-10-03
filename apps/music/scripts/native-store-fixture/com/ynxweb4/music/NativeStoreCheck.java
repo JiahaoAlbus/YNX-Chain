@@ -26,6 +26,9 @@ public final class NativeStoreCheck {
         ownerA=MusicStore.selectAccount(context,a);ownerA.clearCurrent();check(!ownerA.offline("track_owned").exists(),"explicit clear removes this account offline file");check(MusicStore.selectAccount(context,a).load().getJSONArray("favorites").length()==0,"explicit clear cannot remigrate deleted legacy cache");
         check(java.util.Arrays.equals(oldBytes,Files.readAllBytes(old)),"original legacy file unchanged");check(Files.exists(directory.resolve("offline/track_owned.wav")),"original legacy offline file unchanged");
         rejected=false;try{ownerA.offline("../other");}catch(IllegalArgumentException expected){rejected=true;}check(rejected,"offline path traversal rejected");
+        Path statePath=ownerA.offline("bound").toPath().getParent().getParent().resolve("music-state.json");byte[] damaged="original-damaged-private-state".getBytes(java.nio.charset.StandardCharsets.UTF_8);Files.write(statePath,damaged);JSONObject recoveredState=ownerA.load();check(recoveredState.optBoolean("recoveryWarning"),"damaged state was exposed");ownerA.save(recoveredState);
+        try(java.util.stream.Stream<Path> retained=Files.list(statePath.getParent())){Path recovery=retained.filter(p->p.getFileName().toString().startsWith("music-state.recovery-")).findFirst().orElseThrow();check(java.util.Arrays.equals(Files.readAllBytes(recovery),damaged),"damaged source overwritten without retained copy");}
+        byte[] oversized=new byte[9*1024*1024];Files.write(statePath,oversized);JSONObject held=ownerA.load();rejected=false;try{ownerA.save(held);}catch(java.io.IOException expected){rejected=true;}check(rejected&&Files.size(statePath)==oversized.length,"unpreserved original state was overwritten");
         System.out.println("PASS: verified legacy preservation, two-account state/offline isolation, stale worker rejection, detach, scoped clear and path binding; host fixture only");
     }
 }

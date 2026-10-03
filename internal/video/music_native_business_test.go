@@ -161,15 +161,23 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
 				ActualAppleSwiftWebKitEngine bool `json:"actualAppleSwiftWebKitEngine"`
 				ActualOriginalAppleModelFlow bool `json:"actualOriginalAppleModelFlow"`
+				ActualJavaMusicUpload        bool `json:"actualJavaMusicUpload"`
 				ActualWalletConsent          bool `json:"actualWalletConsent"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("browser receipt gate invalid")
 			}
+			javaUpload := platform == "android" && os.Getenv("YNX_QA_ANDROID_MUSIC_UPLOAD_CLASSES") != ""
+			if javaUpload && !receipt.ActualJavaMusicUpload {
+				t.Fatal("original Java upload receipt missing")
+			}
 			mu.Lock()
 			defer mu.Unlock()
 			if !bound || actor.Account == "" || owned == nil || len(owned.Playlists(actor.Account)) != 1 {
 				t.Fatal("missing original same-account playlist readback")
+			}
+			if javaUpload && len(owned.CreatorTracks(actor.Account)) != 1 {
+				t.Fatal("original Java upload duplicated or missing")
 			}
 			if apple && len(owned.CreatorTracks(actor.Account)) != 2 {
 				t.Fatal("missing deduplicated original upload readback")

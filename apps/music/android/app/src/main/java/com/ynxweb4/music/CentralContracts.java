@@ -28,7 +28,7 @@ public final class CentralContracts {
     public static final String CLIENT = "ynx-music-v1";
     public static final String BUNDLE = "com.ynxweb4.music";
     public static final String CALLBACK = "ynxmusic://auth/callback";
-    public static final List<String> SCOPES = List.of("music.creator", "music.library", "music.playback", "music.profile");
+    public static final List<String> SCOPES = MusicIO.list("music.creator", "music.library", "music.playback", "music.profile");
     private CentralContracts() {}
 
     public static final class AuthorizationLaunch {
@@ -55,7 +55,7 @@ public final class CentralContracts {
     public static JSONObject walletApproval(String encoded, JSONObject request) throws Exception {
         byte[] raw=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);
         JSONObject approval=new JSONObject(new String(raw,StandardCharsets.UTF_8));
-        for(String key:List.of("nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"))
+        for(String key:MusicIO.list("nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"))
             if(!request.getString(key).equals(approval.optString(key)))throw new SecurityException("Wallet approval binding mismatch: "+key);
         if(!request.getJSONArray("scopes").toString().equals(approval.optJSONArray("grantedScopes").toString()))throw new SecurityException("Wallet scope mismatch");
         return approval;
@@ -83,7 +83,7 @@ public final class CentralContracts {
     }
 
     public static JSONObject aiRequest(String kind, String intent, JSONArray trackIds, String language) throws Exception {
-        if (!List.of("playlist", "metadata", "discovery", "creator_description", "royalty_explanation").contains(kind)) throw new IllegalArgumentException("AI kind");
+        if (!MusicIO.list("playlist", "metadata", "discovery", "creator_description", "royalty_explanation").contains(kind)) throw new IllegalArgumentException("AI kind");
         return new JSONObject().put("kind", kind).put("intent", intent).put("provider", "ynx-ai-gateway").put("model", "operator-selected").put("trackIDs", trackIds).put("permission", true).put("outputLanguage", "system".equals(language) ? java.util.Locale.getDefault().toLanguageTag() : language).put("explanationRequired", true);
     }
 
@@ -93,7 +93,7 @@ public final class CentralContracts {
     }
 
     public static JSONObject trustCase(String kind, String trackId, String reason, String evidenceRef, String idempotencyKey) throws Exception {
-        if (!List.of("report", "takedown", "dispute", "appeal").contains(kind) || reason.trim().length() < 5 || idempotencyKey.isBlank()) throw new IllegalArgumentException("Trust case");
+        if (!MusicIO.list("report", "takedown", "dispute", "appeal").contains(kind) || reason.trim().length() < 5 || idempotencyKey.trim().isEmpty()) throw new IllegalArgumentException("Trust case");
         JSONObject evidence = new JSONObject().put("source", "ynx-music").put("digest", evidenceRef).put("summary", reason).put("collectedAt", Instant.now().toString()).put("visibleToSubject", true);
         return new JSONObject().put("type", "open_case").put("idempotencyKey", idempotencyKey).put("subject", trackId).put("requestScope", "music.rights").put("purpose", reason).put("requestedAction", kind).put("evidence", new JSONArray().put(evidence));
     }

@@ -5,6 +5,7 @@ Reads the shared repository through git show only. Does not install a runtime.
 import argparse, hashlib, json, os, pathlib, shutil, subprocess, tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--shared-repository', required=True)
+parser.add_argument('--android-music-upload-classes', help='Actual isolated JVM Music upload controller with original SDK proofs; compiled source/class pins required')
 parser.add_argument('--apple-music-engine', help='Isolated actual Music Swift model/engine QA binary with source pin sidecar')
 parser.add_argument('--apple-video-engine', help='Compiled isolated Apple Swift/WebKit QA binary with exact source pin sidecar; no installed/OS storage claim')
 parser.add_argument('--packaged-video-engine', action='store_true', help='Exercise actual packaged Android Video driver with disposable software ports')
@@ -97,6 +98,7 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     if fixture_package_receipt is not None and successor:
         browser_inputs = [owned / 'apps/music/scripts/packaged-native-engine-fixture.mjs'] + [owned / name for name in sorted(visible_owned_paths) if name.startswith(('apps/music/android/','apps/video/android/')) and not any(part in ['build','.gradle'] for part in pathlib.PurePosixPath(name).parts)] + list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs', owned / 'apps/video/scripts/media-apple-authority-check.mjs']
         browser_inputs.append(owned / 'apps/music/scripts/apple-native-authority-check.mjs')
+        browser_inputs.append(owned / 'apps/music/scripts/android-upload-original-business-check.mjs')
         for product in ['video', 'creator-studio', 'music']:
             for path in (owned / 'apps' / product).rglob('*'):
                 if path.is_file() and str(path.relative_to(owned)) in visible_owned_paths and not any(part in ['audit', 'evidence', 'android', 'dist', 'build', 'node_modules', 'scripts', 'recovery'] or part.startswith('.') for part in path.relative_to(owned / 'apps' / product).parts) and '.test.' not in path.name:
@@ -120,6 +122,17 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     # neither owned nor shared go.mod/go.sum is overwritten.
     build_env = dict(os.environ, GOTOOLCHAIN='go1.25.13', GOPROXY='off', GOWORK='off', GOFLAGS='-mod=readonly')
     build_env.pop('YNX_QA_CENTRAL_SOURCE', None)
+    java_music_receipt = None
+    if args.android_music_upload_classes:
+        classes = pathlib.Path(args.android_music_upload_classes).resolve()
+        java_music_receipt = json.loads(pathlib.Path(str(classes)+'.json').read_text())
+        for pin in java_music_receipt['sourcePins']:
+            assert hashlib.sha256((owned / pin['path']).read_bytes()).hexdigest()==pin['sha256']
+        for pin in java_music_receipt['classPins']:
+            assert hashlib.sha256((classes / pin['path']).read_bytes()).hexdigest()==pin['sha256']
+        java_json_dependency=java_music_receipt['jsonDependency']
+        assert hashlib.sha256(pathlib.Path(java_json_dependency['path']).read_bytes()).hexdigest()==java_json_dependency['sha256']
+        build_env['YNX_QA_ANDROID_MUSIC_UPLOAD_CLASSES']=str(classes)
     apple_receipt = None
     if args.apple_video_engine:
         binary = pathlib.Path(args.apple_video_engine).resolve()
@@ -186,6 +199,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                    actualAppleMusicSwiftWebKitEngine=bool(apple_music_receipt) and all(any(event.get('Test')=='TestMusicNativeConsumerAndOriginalBusiness/'+platform for event in pass_events) for platform in ['ios','macos']) and all(r['exitCode']==0 for r in results),
                    appleMusicCompiledSource=apple_music_receipt,
                    actualNativeOSStorage=False,
+                   actualOriginalJavaMusicUpload=bool(java_music_receipt) and any(event.get('Test')=='TestMusicNativeConsumerAndOriginalBusiness/android' for event in pass_events) and all(r['exitCode']==0 for r in results),
+                   javaMusicCompiledSource=java_music_receipt,
                    actualSDKActionCrypto=all(r['exitCode'] == 0 for r in results) and len(results) == 2, actualWalletConsent=False, productionInstalled=False,
                    note='Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation.')
     (evidence / 'combined-source-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

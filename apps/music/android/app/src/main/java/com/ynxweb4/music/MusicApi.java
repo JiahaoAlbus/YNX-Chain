@@ -12,7 +12,7 @@ import java.nio.file.Files;
 final class MusicApi {
     private final Context context; private final String base; private final String capturedBinding; private final RuntimeException custodyFailure; private final NativeSessionBridge nativeBridge; private final NativeSessionIdentity capturedNative; private final long capturedNativeEpoch;
     MusicApi(Context c){this(c,null);}
-    MusicApi(Context c,NativeSessionBridge bridge){context=c;nativeBridge=bridge;capturedNative=bridge==null?null:bridge.session();capturedNativeEpoch=bridge==null?0:bridge.epoch();String binding="";RuntimeException failure=null;try{binding=SecureStore.get(c);}catch(RuntimeException error){failure=error;}capturedBinding=binding;custodyFailure=failure;base=BuildConfig.DEFAULT_API;}
+    MusicApi(Context c,NativeSessionBridge bridge){context=c;nativeBridge=bridge;capturedNative=bridge==null?null:bridge.session();capturedNativeEpoch=bridge==null?0:bridge.epoch();String binding="";RuntimeException failure=null;try{if(bridge==null)binding=SecureStore.get(c);}catch(RuntimeException error){failure=error;}capturedBinding=binding;custodyFailure=failure;base=BuildConfig.DEFAULT_API;}
     JSONObject get(String path)throws Exception{return json("GET",path,null);}
     JSONObject post(String path,JSONObject body)throws Exception{return json("POST",path,body);}
     JSONObject put(String path,JSONObject body)throws Exception{return json("PUT",path,body);}
@@ -37,7 +37,7 @@ final class MusicApi {
     File download(String trackId)throws Exception{
         JSONObject metadata=get("/api/tracks/"+trackId);String expected=metadata.getString("audioSha256");
         if(!expected.matches("[0-9a-f]{64}"))throw new IOException("Media verification unavailable");
-        assertCurrent();MusicStore store=new MusicStore(context);File out=store.offline(trackId),tmp=new File(out+"."+java.util.UUID.randomUUID()+".tmp");
+        assertCurrent();MusicStore store=new MusicStore(context);if(nativeBridge!=null)store.requireAccount(account());File out=store.offline(trackId),tmp=new File(out+"."+java.util.UUID.randomUUID()+".tmp");
         if(!out.getParentFile().exists()&&!out.getParentFile().mkdirs())throw new IOException("Offline storage unavailable");
         HttpURLConnection x=open("/api/tracks/"+trackId+"/media");boolean saved=false;
         try{
@@ -47,15 +47,17 @@ final class MusicApi {
                 byte[] buffer=new byte[32768];for(int count;(count=in.read(buffer))!=-1;){length+=count;if(length>64L*1024*1024)throw new IOException("Offline track exceeds the supported limit");assertCurrent();digest.update(buffer,0,count);os.write(buffer,0,count);}os.getFD().sync();
             }
             if(length<44)throw new IOException("Invalid media");
-            try(FileInputStream in=new FileInputStream(tmp)){byte[] header=in.readNBytes(12);if(header.length!=12||header[0]!='R'||header[1]!='I'||header[2]!='F'||header[3]!='F'||header[8]!='W'||header[9]!='A'||header[10]!='V'||header[11]!='E')throw new IOException("Invalid WAV media");}
+            try(FileInputStream in=new FileInputStream(tmp)){byte[] header=MusicIO.prefix(in,12);if(header.length!=12||header[0]!='R'||header[1]!='I'||header[2]!='F'||header[3]!='F'||header[8]!='W'||header[9]!='A'||header[10]!='V'||header[11]!='E')throw new IOException("Invalid WAV media");}
             StringBuilder actual=new StringBuilder();for(byte value:digest.digest())actual.append(String.format(java.util.Locale.ROOT,"%02x",value&255));
             if(!expected.equals(actual.toString()))throw new IOException("Media checksum mismatch");
             assertCurrent();if(!tmp.renameTo(out))throw new IOException("Offline replace failed");saved=true;return out;
         }finally{x.disconnect();if(!saved)tmp.delete();}
     }
-    JSONObject upload(File wav,String title,String artist,String rightsBasis,String evidence,String provenance)throws Exception{
+    JSONObject upload(File wav,String title,String artist,String rightsBasis,String evidence,String provenance)throws Exception{return upload(wav,title,artist,rightsBasis,evidence,provenance,null);}
+    JSONObject upload(File wav,String title,String artist,String rightsBasis,String evidence,String provenance,String key)throws Exception{
+        if(key!=null&&!key.matches("music-upload-[A-Fa-f0-9-]{36}"))throw new IOException("Invalid original upload key");
         assertCurrent();if(wav.length()>50L*1024*1024)throw new IOException("Audio exceeds the original upload limit");
-        String boundary="YNXMusic"+java.util.UUID.randomUUID().toString().replace("-","");File wire=File.createTempFile("music-native-upload-",".wire",context.getFilesDir());
+        String boundary="YNXMusic"+(key==null?java.util.UUID.randomUUID().toString().replace("-",""):key);File wire=File.createTempFile("music-native-upload-",".wire",context.getFilesDir());
         try{
             try(FileOutputStream out=new FileOutputStream(wire)){
                 field(out,boundary,"title",title);field(out,boundary,"artistName",artist);field(out,boundary,"rightsBasis",rightsBasis);field(out,boundary,"territories","WORLDWIDE");field(out,boundary,"evidenceRef",evidence);field(out,boundary,"audioProvenance",provenance);field(out,boundary,"explicit","false");
@@ -65,7 +67,7 @@ final class MusicApi {
             }
             if(wire.length()>64L*1024*1024)throw new IOException("Original Music wire body exceeds limit");
             String digest=fileDigest(wire);HttpURLConnection x=openPrepared("/api/creator/tracks","POST",digest,wire.length());
-            try{x.setDoOutput(true);x.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);x.setFixedLengthStreamingMode(wire.length());
+            try{if(key!=null)x.setRequestProperty("Idempotency-Key",key);x.setDoOutput(true);x.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);x.setFixedLengthStreamingMode(wire.length());
                 try(OutputStream out=x.getOutputStream();InputStream in=new FileInputStream(wire)){byte[] part=new byte[32768];for(int n;(n=in.read(part))!=-1;){assertCurrent();out.write(part,0,n);}}
                 int code=x.getResponseCode();if(code>=300&&code<400)throw new IOException("Music API redirect refused");String text=readResponse(x,code);assertCurrent();if(code>=400){rejected(code);throw new IOException(new JSONObject(text).optString("error"));}return new JSONObject(text);
             }finally{x.disconnect();}
@@ -90,10 +92,10 @@ final class MusicApi {
         else if(capturedBinding.isEmpty()||!capturedBinding.equals(SecureStore.get(context)))throw new IOException("Music account changed. Sign in and retry.");
     }
     String account(){return capturedNative==null?"":capturedNative.account;}
-    private void rejected(int code)throws Exception{if(nativeBridge!=null&&(code==401||code==403))nativeBridge.rejected(capturedNative);}
-    private String readResponse(HttpURLConnection x,int code)throws Exception{try(InputStream in=code<400?x.getInputStream():x.getErrorStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){if(in==null)throw new IOException("Music response unavailable");byte[] part=new byte[8192];int length=0;for(int n;(n=in.read(part))!=-1;){length+=n;if(length>2*1024*1024)throw new IOException("Music response exceeds limit");out.write(part,0,n);}return out.toString(StandardCharsets.UTF_8);}}
-    static void verifyLocal(File file,String expected)throws Exception{if(!expected.matches("[0-9a-f]{64}")||file.length()<44||file.length()>64L*1024*1024||!expected.equals(fileDigest(file)))throw new IOException("Original audio checksum unavailable");try(InputStream in=new FileInputStream(file)){byte[] header=in.readNBytes(12);if(header.length!=12||header[0]!='R'||header[1]!='I'||header[2]!='F'||header[3]!='F'||header[8]!='W'||header[9]!='A'||header[10]!='V'||header[11]!='E')throw new IOException("Original WAV required");}}
-    private static String fileDigest(File file)throws Exception{java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");try(InputStream in=new FileInputStream(file)){byte[] part=new byte[32768];for(int n;(n=in.read(part))!=-1;)digest.update(part,0,n);}return hex(digest.digest());}
+    private void rejected(int code)throws Exception{if(nativeBridge!=null&&code==401)nativeBridge.rejected(capturedNative);}
+    private String readResponse(HttpURLConnection x,int code)throws Exception{try(InputStream in=code<400?x.getInputStream():x.getErrorStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){if(in==null)throw new IOException("Music response unavailable");byte[] part=new byte[8192];int length=0;for(int n;(n=in.read(part))!=-1;){length+=n;if(length>2*1024*1024)throw new IOException("Music response exceeds limit");out.write(part,0,n);}return new String(out.toByteArray(),StandardCharsets.UTF_8);}}
+    static void verifyLocal(File file,String expected)throws Exception{if(!expected.matches("[0-9a-f]{64}")||file.length()<44||file.length()>64L*1024*1024||!expected.equals(fileDigest(file)))throw new IOException("Original audio checksum unavailable");try(InputStream in=new FileInputStream(file)){byte[] header=MusicIO.prefix(in,12);if(header.length!=12||header[0]!='R'||header[1]!='I'||header[2]!='F'||header[3]!='F'||header[8]!='W'||header[9]!='A'||header[10]!='V'||header[11]!='E')throw new IOException("Original WAV required");}}
+    static String fileDigest(File file)throws Exception{java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");try(InputStream in=new FileInputStream(file)){byte[] part=new byte[32768];for(int n;(n=in.read(part))!=-1;)digest.update(part,0,n);}return hex(digest.digest());}
     private static String digest(byte[] bytes)throws Exception{return hex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));}
     private static String hex(byte[] bytes){StringBuilder text=new StringBuilder();for(byte b:bytes)text.append(String.format(java.util.Locale.ROOT,"%02x",b&255));return text.toString();}
     private static void field(OutputStream out,String b,String name,String value)throws Exception{out.write(("--"+b+"\r\nContent-Disposition: form-data; name=\""+name+"\"\r\n\r\n"+value+"\r\n").getBytes(StandardCharsets.UTF_8));}
