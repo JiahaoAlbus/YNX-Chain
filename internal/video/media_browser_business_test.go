@@ -173,16 +173,17 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual protected browser/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
-				ActualBusinessServerReadback      bool `json:"actualBusinessServerReadback"`
-				ActualOriginalBrowserIdentity     bool `json:"actualOriginalBrowserIdentity"`
-				ActualCombinedDecision            bool `json:"actualCombinedDecision"`
-				ActualSiteLogout                  bool `json:"actualSiteLogout"`
-				ActualGoStartAndCallback303       bool `json:"actualGoStartAndCallback303"`
-				RedirectNavigationSoftwareAdapter bool `json:"redirectNavigationSoftwareAdapter"`
-				ActualWalletConsent               bool `json:"actualWalletConsent"`
-				LegacySDK529Preserved             bool `json:"legacySDK529Preserved"`
+				ActualBusinessServerReadback               bool `json:"actualBusinessServerReadback"`
+				ActualOldPrivateRetirementBeforeSiteSignIn bool `json:"actualOldPrivateRetirementBeforeSiteSignIn"`
+				ActualOriginalBrowserIdentity              bool `json:"actualOriginalBrowserIdentity"`
+				ActualCombinedDecision                     bool `json:"actualCombinedDecision"`
+				ActualSiteLogout                           bool `json:"actualSiteLogout"`
+				ActualGoStartAndCallback303                bool `json:"actualGoStartAndCallback303"`
+				RedirectNavigationSoftwareAdapter          bool `json:"redirectNavigationSoftwareAdapter"`
+				ActualWalletConsent                        bool `json:"actualWalletConsent"`
+				LegacySDK529Preserved                      bool `json:"legacySDK529Preserved"`
 			}
-			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved || !receipt.ActualOriginalBrowserIdentity || !receipt.ActualCombinedDecision || !receipt.ActualSiteLogout || !receipt.ActualGoStartAndCallback303 || !receipt.RedirectNavigationSoftwareAdapter {
+			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved || !receipt.ActualOldPrivateRetirementBeforeSiteSignIn || !receipt.ActualOriginalBrowserIdentity || !receipt.ActualCombinedDecision || !receipt.ActualSiteLogout || !receipt.ActualGoStartAndCallback303 || !receipt.RedirectNavigationSoftwareAdapter {
 				t.Fatal("browser receipt gates invalid")
 			}
 			mu.Lock()

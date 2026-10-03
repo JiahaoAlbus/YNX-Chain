@@ -143,6 +143,7 @@ function bindWalletEvents(walletState) {
   provider.on("disconnect", onDisconnect);
 }
 
+let siteAccountBusy=false;
 const browserIdentity=createMediaBrowserIdentity({productId:"video",onExpiry:()=>renderProductState({status:"retry-required",message:"Your YNX account sign-in expired. Sign in and retry your saved product approval."})});
 // Product Session v2 and the EVM provider are independent authorities.
 export const api = createVideoAPI({baseURL: API,
@@ -195,7 +196,7 @@ function renderProductState(state, {identityConfirmed = false} = {}) {
     : state.message || "Sign in with YNX Wallet to save playlists, subscriptions and watch history.";
   $("#product-signin").textContent = connected ? "Video account" : "Sign in";
   $("#product-connect").textContent = connected ? "Switch Video account" : "Sign in with YNX Wallet";
-  $("#product-connect").disabled = productSignOutPending || checking;
+  $("#product-connect").disabled = siteAccountBusy || productSignOutPending || checking;
   $("#product-disconnect").textContent = productSignOutPending ? "Retry sign out" : "Sign out";
   $("#product-disconnect").hidden = !connected && !checking && !productSignOutPending && !retryRequired;
   $("#product-retry").hidden = productSignOutPending || !retryRequired;
@@ -287,6 +288,7 @@ async function signOutVideoAccount() {
     renderProductState(state);
     videoProductSession.announce?.();
     if (!productSignOutPending) notice("Your Video account is signed out.");
+    return state;
   } catch {
     if (revision === productRevision) renderProductState({status: "retry-required", revocationPending: true, message: "Sign-out could not be confirmed. Select Retry sign out when connected."});
   } finally {$("#product-disconnect").disabled = false;}
@@ -331,6 +333,7 @@ function productWalletFailure(error) {
  return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function prepareVideoSignIn() {
+ if (siteAccountBusy) return;
  if (productChooser.open) {$("#product-wallet-status").focus(); return;}
  videoSignInAbort?.abort();
  if (productSignOutPending) return;
@@ -906,8 +909,15 @@ $("#signin").onclick = async () => {
 };
 
 $("#revoke").onclick = () => revokeWallet("user-requested");
-$("#browser-disconnect").onclick=async()=>{try{await signOutVideoAccount();if(productSignOutPending)throw Error("Confirm Video sign out before signing out of your YNX account.");await browserIdentity.logout();notice("Your YNX account is signed out on this site.");}catch(error){notice(error.message,true);}};
-$("#browser-signin").onclick=()=>{cancelVideoSignIn();browserIdentity.invalidate();browserIdentity.signIn("settings");};
+async function changeSiteAccount(signIn){
+ if(siteAccountBusy)return;siteAccountBusy=true;
+ $("#browser-signin").disabled=true;$("#browser-disconnect").disabled=true;$("#product-connect").disabled=true;
+ try{const retired=await signOutVideoAccount();if(!retired||!["disconnected","expired"].includes(retired.status)||retired.revocationPending||productSignOutPending)throw Error("Confirm Video sign out before changing your YNX account.");
+  browserIdentity.invalidate();if(signIn)browserIdentity.signIn("settings");else{await browserIdentity.logout();notice("Your YNX account is signed out on this site.");}
+ }catch(error){notice(error.message,true);}finally{siteAccountBusy=false;$("#browser-signin").disabled=false;$("#browser-disconnect").disabled=false;$("#product-connect").disabled=productSignOutPending;}
+}
+$("#browser-disconnect").onclick=()=>changeSiteAccount(false);
+$("#browser-signin").onclick=()=>changeSiteAccount(true);
 $("#product-signin").onclick = focusSignIn;
 $("#product-connect").onclick = prepareVideoSignIn;
 $("#product-retry").onclick = restoreVideoAccount;

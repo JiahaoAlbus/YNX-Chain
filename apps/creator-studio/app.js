@@ -25,6 +25,7 @@ const CREATOR_RUNTIME_BINDING="ynx-creator-studio-web-v1",CREATOR_BUNDLE_ID="com
 const API=`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
 let creatorSessionRevision=0,creatorAccount=null,creatorPrivateSession=null;
+let siteAccountBusy=false;
 const browserIdentity=createMediaBrowserIdentity({productId:"creator-studio",onExpiry:()=>renderProductState({status:"retry-required",message:"Your YNX account sign-in expired. Sign in and retry your saved product approval."})});
 const authorizeCreator=(path,method,body)=>{const original=creatorPrivateSession,revision=creatorSessionRevision;return browserIdentity.authorization(original,()=>productAuthorization(path,method,body),()=>{if(original!==creatorPrivateSession||revision!==creatorSessionRevision)throw new DOMException("Creator account changed.","AbortError");});};
 let payoutFlight=null;
@@ -293,8 +294,15 @@ walletSendTx.addEventListener("click",async()=>{
     status(error.message||"eth_sendTransaction failed",error.code==="USER_REJECTED");
   }
 });
-$("#browser-disconnect").onclick=async()=>{try{await signOutCreatorAccount();if(creatorSignOutPending)throw Error("Confirm Creator sign out before signing out of your YNX account.");await browserIdentity.logout();status("Your YNX account is signed out on this site.");}catch(error){status(error.message,true);}};
-$("#browser-signin").onclick=()=>{cancelCreatorSignIn();browserIdentity.invalidate();browserIdentity.signIn("overview");};
+async function changeSiteAccount(signIn){
+ if(siteAccountBusy)return;siteAccountBusy=true;
+ $("#browser-signin").disabled=true;$("#browser-disconnect").disabled=true;productConnect.disabled=true;
+ try{const retired=await signOutCreatorAccount();if(!retired||!["disconnected","expired"].includes(retired.status)||retired.revocationPending||creatorSignOutPending)throw Error("Confirm Creator sign out before changing your YNX account.");
+  browserIdentity.invalidate();if(signIn)browserIdentity.signIn("overview");else{await browserIdentity.logout();status("Your YNX account is signed out on this site.");}
+ }catch(error){status(error.message,true);}finally{siteAccountBusy=false;$("#browser-signin").disabled=false;$("#browser-disconnect").disabled=false;productConnect.disabled=siteAccountBusy||creatorSignOutPending;}
+}
+$("#browser-disconnect").onclick=()=>changeSiteAccount(false);
+$("#browser-signin").onclick=()=>changeSiteAccount(true);
 const productStatus=$("#product-status"),productConnect=$("#product-signin"),productOpen=$("#product-open"),productDisconnect=$("#product-disconnect");
 let creatorSignOutPending=false;
 function clearCreatorSession(){
@@ -320,7 +328,7 @@ function renderProductState(state){
   clearTimeout(creatorExpiryTimer);
   if(state.revocationPending)creatorSignOutPending=true;
   if(["disconnected","expired"].includes(state.status))creatorSignOutPending=false;
-  productConnect.disabled=creatorSignOutPending;
+  productConnect.disabled=siteAccountBusy||creatorSignOutPending;
   const connected=state.status==="connected";
   const account=connected?state.session.account:null;
   if(!connected||account!==creatorAccount)clearCreatorSession();
@@ -371,6 +379,7 @@ function productWalletFailure(error) {
  return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function openCreatorSignIn() {
+ if(siteAccountBusy)return;
  if(productChooser.open)return;
  creatorSignInAbort?.abort();
  if (creatorSignOutPending) return;
@@ -528,9 +537,9 @@ async function signOutCreatorAccount(){
   announceSession();
   productStatus.textContent="Signing out…";
   const revision=creatorSessionRevision;
-  try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;creatorSignOutPending=!["disconnected","expired"].includes(state.status);renderProductState(state);announceSession();if(state.status==="disconnected")status("Creator account disconnected.");}
+  try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;creatorSignOutPending=!["disconnected","expired"].includes(state.status);renderProductState(state);announceSession();if(state.status==="disconnected")status("Creator account disconnected.");return state;}
   catch(error){if(revision===creatorSessionRevision){productStatus.textContent=error.message;productDisconnect.hidden=false;productDisconnect.textContent="Retry sign out";}}
-  finally{productDisconnect.disabled=false;productConnect.disabled=creatorSignOutPending;}
+  finally{productDisconnect.disabled=false;productConnect.disabled=siteAccountBusy||creatorSignOutPending;}
 }
 async function restoreCreator(){
   browserIdentity.invalidate();

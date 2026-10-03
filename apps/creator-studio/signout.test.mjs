@@ -636,3 +636,14 @@ test('original BrowserSSO hash landing opens the requested Creator panel',async(
  const c=await app({location:{origin:'https://creator.ynxweb4.com',search:'',hash:'#content',assign(){}}});
  assert.equal(c.element('nav button[data-panel="content"]').clicked,true);
 });
+
+test('site account login drains original Creator retirement before redirect, with one account action',async()=>{
+ const pending=deferred(),calls=[];let prepared=0;
+ const c=await app({disconnectProductSession:()=>{calls.push('retire');return pending.promise},prepareProductSignIn:()=>{prepared++},createMediaBrowserIdentity:()=>({invalidate(){},signIn:t=>calls.push('site:'+t),authorization:(_session,proof)=>proof()})});
+ c.renderProductState(connected('owner-a'));
+ const changing=c.run('browser-signin');await c.run('browser-signin');await c.click('product-signin');assert.deepEqual(calls,['retire']);assert.equal(prepared,0);
+ pending.resolve({status:'disconnected'});await changing;assert.deepEqual(calls,['retire','site:overview']);assert.equal(c.element('#browser-signin').disabled,false);
+});
+test('unconfirmed original Creator retirement cannot start or revoke another site identity',async()=>{
+ for(const id of ['browser-signin','browser-disconnect']){let sites=0;const c=await app({disconnectProductSession:async()=>({status:'retry-required',revocationPending:true}),createMediaBrowserIdentity:()=>({invalidate(){},signIn:()=>sites++,logout:()=>sites++,authorization:(_session,proof)=>proof()})});c.renderProductState(connected('owner-a'));await c.run(id);assert.equal(sites,0);assert.match(c.element('#status').textContent,/Confirm Creator sign out/);assert.equal(c.element('#product-signin').disabled,true);}
+});

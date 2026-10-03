@@ -23,13 +23,13 @@ class Element {
  scrollIntoView(){}
  focus(){this.focused=true;}
 }
-async function controller({search='',hash='',product={atRegisteredOrigin:()=>false},request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
+async function controller({search='',hash='',browser={invalidate(){},signIn(){},logout:async()=>({revoked:true})},product={atRegisteredOrigin:()=>false},request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,new Element());return nodes.get(selector);};
  const nav=['discover','subscriptions','playlists','history','settings'].map(view=>{const e=node(`[data-view="${view}"]`);e.dataset.view=view;return e;});
  node('#page-title').setAttribute('data-i18n','discover');node('#content').setAttribute('aria-busy','true');
  const document={querySelector:node,querySelectorAll:selector=>selector==='nav button'?nav:[],createElement:()=>new Element()};
  const calls=[];
- const dependencies={createMediaBrowserIdentity:()=>({invalidate(){},signIn(){},authorization:(_session,proof)=>proof()}),document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
+ const dependencies={createMediaBrowserIdentity:()=>({...browser,authorization:(_session,proof)=>proof()}),document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
   history:{replaceState(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;},clearTimeout,
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
@@ -239,4 +239,15 @@ test('a recoverable sign-in error opens the chooser and the selected native requ
 test('original BrowserSSO hash landing resumes only an existing Video page',async()=>{
  const returned=await controller({hash:'#settings'});assert.equal(returned.readView(),'settings');
  const foreign=await controller({hash:'#https://other.test/private'});assert.equal(foreign.readView(),'discover');
+});
+
+test('site account login waits for original private retirement and rejects duplicate account actions',async()=>{
+ const pending=deferred(),calls=[];let prepares=0;
+ const c=await controller({browser:{invalidate(){},signIn:t=>calls.push('site:'+t)},product:{atRegisteredOrigin:()=>true,restore:async()=>connected,disconnect:()=>{calls.push('retire');return pending.promise},prepare:()=>{prepares++}}});
+ const changing=c.node('#browser-signin').onclick();await c.node('#browser-signin').onclick();await c.node('#product-connect').onclick();
+ assert.deepEqual(calls,['retire']);assert.equal(prepares,0);assert.equal(c.node('#browser-signin').disabled,true);
+ pending.resolve({status:'disconnected'});await changing;assert.deepEqual(calls,['retire','site:settings']);assert.equal(c.node('#browser-signin').disabled,false);
+});
+test('unconfirmed original Video retirement blocks site login and site logout',async()=>{
+ for(const id of ['#browser-signin','#browser-disconnect']){let sites=0;const c=await controller({browser:{invalidate(){},signIn:()=>sites++,logout:()=>sites++},product:{atRegisteredOrigin:()=>true,restore:async()=>connected,disconnect:async()=>({status:'retry-required',revocationPending:true})}});await c.node(id).onclick();assert.equal(sites,0);assert.match(c.node('#notice').textContent,/Confirm Video sign out/);assert.equal(c.node('#product-connect').disabled,true);}
 });
