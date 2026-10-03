@@ -20,6 +20,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -119,6 +120,9 @@ public final class MainActivity extends Activity {
     private void render() {
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Color.WHITE);
         LinearLayout top = row(); top.setPadding(dp(18), dp(12), dp(18), dp(12)); top.setBackgroundColor(BLUE);
+        top.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        ImageView logo = new ImageView(this); logo.setImageResource(R.drawable.ynx_brand_original); logo.setScaleType(ImageView.ScaleType.FIT_CENTER); logo.setContentDescription("YNX"); logo.setBackgroundColor(Color.WHITE); logo.setPadding(dp(4),dp(4),dp(4),dp(4));
+        LinearLayout.LayoutParams logoLayout = new LinearLayout.LayoutParams(dp(80),dp(46)); logoLayout.setMarginEnd(dp(10)); top.addView(logo,logoLayout);
         TextView brand = label("YNX Video", 22, Color.WHITE); brand.setTypeface(Typeface.DEFAULT_BOLD); top.addView(brand, new LinearLayout.LayoutParams(0, dp(48), 1));
         Button signIn = button(t("signIn")); signIn.setTextColor(BLUE); signIn.setContentDescription(t("signIn")); signIn.setOnClickListener(v -> startWallet()); top.addView(signIn);
         root.addView(top);

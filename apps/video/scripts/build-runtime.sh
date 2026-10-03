@@ -71,6 +71,10 @@ if git cat-file -e "${source_commit}:apps/video/business-wire.js" 2>/dev/null; t
   files+=(business-wire.js)
 fi
 
+if git cat-file -e "${source_commit}:apps/video/assets/ynx-brand-original.png" 2>/dev/null; then
+  files+=(assets/ynx-brand-original.png)
+fi
+
 for file in "${files[@]}"; do
   git show "${source_commit}:apps/video/${file}" > "$stage/runtime/$file"
 done

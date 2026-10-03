@@ -145,3 +145,6 @@ header .wallet-summary{display:none}
 @media(max-width:640px){header .header-brand{display:block;flex:none;width:48px;height:36px;object-fit:contain;background:#fff}}
 
 .media-link{display:block;padding:12px 16px;color:#002fa7;text-decoration:none;border-radius:12px;font-weight:600;min-height:44px;box-sizing:border-box}.media-link:hover{background:#eef3ff}
+
+/* Original YNX mark: preserve 798:420 artwork in a stable brand slot. */
+.brand img,header .header-brand{width:72px;height:38px;object-fit:contain;flex-shrink:0;background:#fff}.brand{gap:12px}

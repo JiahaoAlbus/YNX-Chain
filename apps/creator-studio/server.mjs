@@ -24,7 +24,7 @@ const publicFiles = new Set([
   'product-session-sdk-source.json', 'session-events.js', 'standard-wallet-connect-state.js',
   'wallet-auth.js', 'wallet-callback.js', 'wallet-callback.html', 'wallet-auth/callback', 'callback.css',
   'ynx-wallet-transports-2ece0cb329.mjs', 'ynx-wallet-transports-2ece0cb329.manifest.json',
-  'assets/ynx-logo.png', 'assets/ynx-wallet.svg', 'assets/metamask.svg',
+  'assets/ynx-logo.png', 'assets/ynx-brand-original.png', 'assets/ynx-wallet.svg', 'assets/metamask.svg',
 ]);
 const apiOrigin = new URL(process.env.YNX_VIDEO_API_ORIGIN || 'http://127.0.0.1:8423');
 if (apiOrigin.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(apiOrigin.hostname) ||

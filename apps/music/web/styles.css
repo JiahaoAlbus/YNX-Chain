@@ -14,3 +14,8 @@
 
 .business-dialog .record{flex-wrap:wrap;align-items:center}.business-dialog .record>span{flex-basis:100%;overflow-wrap:anywhere}.business-dialog input,.business-dialog textarea{width:100%;display:block;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--white);color:var(--ink)}.business-dialog button{min-height:44px;margin:4px 0}.business-dialog .error{color:#a50021}button:disabled{cursor:default;opacity:.55}.record{overflow-wrap:anywhere}.record small{display:block;max-width:100%;overflow-wrap:anywhere}@media(prefers-color-scheme:dark){dialog{background:var(--white);color:var(--ink)}.business-dialog .error{color:#ff98a8}}
 @media(max-width:800px){#musicIdentity{display:none}#musicDisconnect{font-size:0;padding:9px 12px}#musicDisconnect::after{content:"Disconnect";font-size:13px}}
+
+/* Original YNX mark: preserve 798:420 artwork in a stable brand slot. */
+.brand{flex-shrink:0;gap:12px}.brand .mark{width:72px;height:38px;flex-shrink:0;border-radius:0;background:#fff!important}.brand .mark img{display:block;object-fit:contain;width:100%;height:100%}.callback-brand{display:flex;align-items:center;gap:12px;text-decoration:none}.callback-brand img{width:72px;height:38px;object-fit:contain;flex-shrink:0;background:#fff}
+header{flex-wrap:wrap;min-height:72px;height:auto}.shell{grid-template-rows:minmax(72px,auto) 1fr var(--player)}
+@media(max-width:800px){header{height:auto;padding:12px 16px;gap:8px}.brand{flex-basis:100%}header .primary,header .secondary,header .wallet{font-size:12px;padding:9px 12px}#musicIdentity{flex-basis:100%;overflow-wrap:anywhere}}

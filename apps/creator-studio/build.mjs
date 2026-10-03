@@ -13,7 +13,7 @@ const upstreamCatalog = Object.freeze({
   sha256: "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
 });
 const runtimeFiles = Object.freeze([
-  "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png",
+  "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png", "assets/ynx-brand-original.png",
   "app.js",
   "session-events.js",
   "business-wire.js",
