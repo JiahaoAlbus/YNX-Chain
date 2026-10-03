@@ -169,7 +169,20 @@
     "aiState_accepted_suggestion": "Suggestion accepted",
     "aiState_rejected": "Suggestion rejected",
     "aiState_cancelled": "Cancelled",
-    "aiState_recovery_required": "Recovery required"
+    "aiState_recovery_required": "Recovery required",
+    "revenueOwner": "Revenue owner",
+    "rightsExclusive": "Exclusive license",
+    "rightsHasStart": "Set rights start date",
+    "rightsHasEnd": "Set rights end date",
+    "rightsStart": "Rights start",
+    "rightsEnd": "Rights end",
+    "rightsContributors": "Contributors and shares",
+    "rightsSharesHelp": "Use each contributor’s YNX account once. Shares must total 100%, with up to two decimal places.",
+    "rightsContributorAccount": "Contributor YNX account",
+    "rightsSharePercent": "Share (%)",
+    "rightsRemoveContributor": "Remove contributor",
+    "rightsAddContributor": "Add contributor",
+    "rightsInvalid": "Check rights details, future expiry, evidence hash and contributor shares totaling 100%."
   },
   "zh-CN": {
     "signIn": "登录",
@@ -341,7 +354,20 @@
     "aiState_accepted_suggestion": "建议已接受",
     "aiState_rejected": "建议已拒绝",
     "aiState_cancelled": "已取消",
-    "aiState_recovery_required": "需要恢复"
+    "aiState_recovery_required": "需要恢复",
+    "revenueOwner": "收益所有者",
+    "rightsExclusive": "独占许可",
+    "rightsHasStart": "设置权利开始日期",
+    "rightsHasEnd": "设置权利结束日期",
+    "rightsStart": "权利开始日期",
+    "rightsEnd": "权利结束日期",
+    "rightsContributors": "贡献者与分成",
+    "rightsSharesHelp": "每个贡献者的 YNX 账号只填写一次。分成合计须为 100%，最多保留两位小数。",
+    "rightsContributorAccount": "贡献者 YNX 账号",
+    "rightsSharePercent": "分成（%）",
+    "rightsRemoveContributor": "移除贡献者",
+    "rightsAddContributor": "添加贡献者",
+    "rightsInvalid": "请检查版权信息、未来到期日期、证据哈希，以及合计为 100% 的贡献者分成。"
   },
   "zh-TW": {
     "signIn": "Sign in",

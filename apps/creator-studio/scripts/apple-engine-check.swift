@@ -90,6 +90,9 @@ import Foundation
                             assetWire=directory.appendingPathComponent(key+".multipart");assetBackup=try Data(contentsOf:assetWire!);if name=="corruptAssetWire" {try (assetBackup!+Data([1])).write(to:assetWire!)}
                         case "restoreAssetWire":guard let assetWire,let assetBackup else {throw CreatorDraftState.Failure.invalid};try assetBackup.write(to:assetWire)
                         case "retainedAssetWire":value["retained"]=assetWire.map{FileManager.default.fileExists(atPath:$0.path)} ?? false
+                        case "uiDeclareRights":
+                            let rows=(command["contributors"] as! [[String:String]]).map{CreatorModel.Contribution(account:$0["account"]!,percent:$0["percent"]!)}
+                            await model.declareRights(videoID:command["videoID"] as! String,basis:"licensed",license:"Isolated original license",territories:"WORLDWIDE",start:Date().addingTimeInterval(-3600),end:Date().addingTimeInterval(365*86400),exclusive:true,contributors:rows,evidence:String(repeating:"b",count:64),expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
                         case "uiAIProvider":await model.checkAIProvider()
                         case "uiPrepareAI":await model.prepareAI(videoID:command["videoID"] as! String,kind:command["kind"] as? String ?? "summary",classes:["metadata"],language:"zh-CN",expectedRevision:command["stale"] as? Bool==true ? model.currentRevision &+ 1 : model.currentRevision)
                         case "uiOpenAI":await model.openAI(command["jobID"] as! String,expectedRevision:model.currentRevision)
@@ -138,9 +141,11 @@ import Foundation
                         value["videos"]=(model.snapshot?.videos ?? []).map{["id":$0.id,"owner":$0.owner,"sha256":$0.sha256,"bytes":$0.bytes,"workflow":$0.workflow_state,"visibility":$0.visibility,"version":$0.version ?? 0,"reviewedBy":$0.reviewed_by ?? "","thumbnail":$0.thumbnail_key ?? "","captions":($0.captions ?? []).map{["key":$0.object_key,"language":$0.language,"label":$0.label,"aiProposed":$0.ai_proposed,"humanApproved":$0.human_approved] as [String:Any]}] as [String:Any]}
                         value["reviewableVideos"]=(model.snapshot?.videos ?? []).filter{model.canReview($0)}.count
                         value["team"]=(model.snapshot?.team ?? []).map {team in ["channelID":team.channel_id,"members":(team.members ?? []).map{["account":$0.account,"role":$0.role,"state":$0.state]},"invites":(team.invites ?? []).map{["id":$0.id,"account":$0.account,"role":$0.role,"state":$0.state]}] as [String:Any]}
-                        value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? ""]}
+                        value["rights"]=(model.snapshot?.rights ?? []).map{["id":$0.id,"videoID":$0.video_id,"declaredBy":$0.declared_by,"state":$0.state,"reviewer":$0.reviewer ?? "","license":$0.license_reference ?? "","start":$0.starts_at ?? "","end":$0.ends_at ?? "","exclusive":$0.exclusive ?? false,"splits":($0.contributor_splits ?? []).map{["account":$0.account,"points":$0.basis_points] as [String:Any]}]}
                         value["reports"]=(model.snapshot?.reports ?? []).map{["id":$0.id,"videoID":$0.VideoID,"state":$0.State,"canAppeal":model.canAppeal($0)] as [String:Any]}
                         value["appeals"]=(model.snapshot?.appeals ?? []).map{["id":$0.id,"reportID":$0.ReportID,"appellant":$0.Appellant,"state":$0.State,"reason":$0.Reason]}
+                        value["revenue"]=(model.snapshot?.revenue ?? []).map{["id":$0.id,"videoID":$0.VideoID,"owner":$0.Owner,"receipt":$0.PayReceiptID,"amount":$0.AmountYNXT,"canDispute":model.canDispute($0)] as [String:Any]}
+                        value["canRequestPayout"]=model.canRequestPayout
                         value["disputes"]=(model.snapshot?.disputes ?? []).map{["id":$0.id,"recordID":$0.RevenueRecordID,"owner":$0.Owner,"state":$0.State]}
                         value["aiStreaming"]=model.aiStreaming;value["aiPartial"]=model.aiPartial;value["aiStreamLines"]=streamLines;value["aiCancelPending"]=model.pendingAICancel;value["aiProvider"]=model.aiProviderAvailable as Any? ?? NSNull()
                         value["aiJobs"]=(model.snapshot?.ai_jobs ?? []).map{["id":$0.id,"owner":$0.Owner,"state":$0.State,"language":$0.OutputLanguage,"provider":$0.Provider,"result":$0.Result]}

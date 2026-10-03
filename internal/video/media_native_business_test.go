@@ -219,7 +219,11 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				h.ServeHTTP(w, r)
 			}))
 			defer server.Close()
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			qaTimeout := 60 * time.Second
+			if creatorReview {
+				qaTimeout = 120 * time.Second
+			} // full original Creator journey includes explicit AI and finance steps
+			ctx, cancel := context.WithTimeout(context.Background(), qaTimeout)
 			defer cancel()
 			script := "../../apps/video/scripts/media-native-authority-check.mjs"
 			apple := product == "video" && (platform == "ios" || platform == "macos") && os.Getenv("YNX_QA_APPLE_VIDEO_ENGINE_BIN") != ""
@@ -253,13 +257,15 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualAssetOriginalReadback  bool   `json:"actualAssetOriginalByteReadback"`
 				ActualAIStreamRecovery       bool   `json:"actualAIStreamAndColdRecovery"`
 				ActualAICancelBoundary       bool   `json:"actualAICancelAndHumanBoundary"`
+				ActualRightsFullFields       bool   `json:"actualNativeRightsFullFields"`
+				ActualDelegatedFinance       bool   `json:"actualDelegatedFinanceRecovery"`
 				ActualWalletConsent          bool   `json:"actualWalletConsent"`
 				QAProtectedPorts             bool   `json:"qaProtectedPorts"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()
@@ -301,8 +307,11 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 					if err != nil || len(studio.Videos) != 1 || studio.Videos[0].Owner != actor.Account || studio.Videos[0].WorkflowState != WorkflowPublished || studio.Videos[0].Visibility != VisibilityPublic {
 						t.Fatal("missing exact original Creator upload and independent-review readback")
 					}
-					if len(studio.Reports) != 1 || len(studio.Appeals) != 1 || studio.Appeals[0].Appellant != actor.Account || studio.Appeals[0].State != "accepted" || studio.Reports[0].State != "appeal_accepted" || studio.Appeals[0].ReportID != studio.Reports[0].ID || len(studio.Disputes) != 0 {
+					if len(studio.Reports) != 1 || len(studio.Appeals) != 1 || studio.Appeals[0].Appellant != actor.Account || studio.Appeals[0].State != "accepted" || studio.Reports[0].State != "appeal_accepted" || studio.Appeals[0].ReportID != studio.Reports[0].ID || len(studio.Disputes) != 1 {
 						t.Fatal("missing original single recovered owner appeal and independent human acceptance")
+					}
+					if len(studio.Revenue) != 1 || studio.Revenue[0].Owner != actor.Account || studio.Disputes[0].Owner != actor.Account || studio.Disputes[0].RevenueRecordID != studio.Revenue[0].ID || len(studio.PayoutIntents) != 0 {
+						t.Fatal("missing original owner revenue/delegated dispute or finance redirected payout")
 					}
 					if len(studio.AIJobs) != 0 || aiStarts.Load() != 3 {
 						t.Fatal("AI recovery reran provider or original tasks/results were not explicitly deleted")
@@ -324,7 +333,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 					if original.ReviewedBy != creatorModerator || original.SubmittedBy == original.ReviewedBy || len(actors) != 2 {
 						t.Fatal("missing two exact original SDK actors and independent publication reviewer")
 					}
-					if len(studio.Rights) != 1 || studio.Rights[0].State != "verified" || studio.Rights[0].Reviewer != creatorModerator {
+					if len(studio.Rights) != 1 || studio.Rights[0].State != "verified" || studio.Rights[0].Reviewer != creatorModerator || !studio.Rights[0].Exclusive || studio.Rights[0].StartsAt == nil || studio.Rights[0].EndsAt == nil || len(studio.Rights[0].ContributorSplits) != 2 {
 						t.Fatal("missing independently reviewed original rights")
 					}
 					team, err := owned.Team(actor.Account, original.ChannelID)

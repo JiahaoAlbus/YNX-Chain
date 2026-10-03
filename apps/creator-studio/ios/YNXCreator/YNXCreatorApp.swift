@@ -175,28 +175,18 @@ struct CreatorView: View {
         if video.workflow_state=="published" {Button(model.text("unpublish")) {Task {await model.perform("/v1/videos/"+video.id+"/unpublish")}}}
         Button(model.text("monetization")) {Task {await model.perform("/v1/videos/"+video.id+"/monetization")}}
     }
-    private func rights(_ video:CreatorVideo) -> some View {
-        NavigationStack {
-            Form {
-                Text(video.title)
-                Picker(model.text("rightsBasis"),selection:$basis) {ForEach(["owned","licensed","public-domain"],id:\.self) {Text(model.text($0)).tag($0)}}
-                TextField(model.text("license"),text:$rightsLicense)
-                TextField(model.text("territories"),text:$territories)
-                TextField(model.text("evidence"),text:$rightsEvidence)
-                Text(model.text("independentReview")).foregroundStyle(.secondary)
-                Button(model.text("declareRights")) {Task {await model.perform("/v1/videos/"+video.id+"/rights",body:["basis":basis=="public-domain" ? "public_domain" : basis,"license_reference":rightsLicense,"territories":territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespaces)},"contributor_splits":[],"evidence_sha256":rightsEvidence.lowercased(),"source_sha256":video.sha256]);if !model.pendingOperation {selectedVideo=nil}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || rightsEvidence.count != 64)
-            }.navigationTitle(model.text("rights")).toolbar {Button(model.text("close")) {selectedVideo=nil}}
-        }.frame(minWidth:320,minHeight:360)
-    }
+    private func rights(_ video:CreatorVideo) -> some View {CreatorRightsForm(videoID:video.id,expectedRevision:model.currentRevision)}
     private var earnings: some View {
         VStack(alignment:.leading,spacing:16) {
             Text(model.text("earn")).font(.title2)
-            ForEach(model.snapshot?.revenue ?? []) {record in VStack(alignment:.leading) {Text(model.number(record.AmountYNXT)+" YNXT");Text(record.PayReceiptID).font(.caption).textSelection(.enabled)}}
+            ForEach(model.snapshot?.revenue ?? []) {record in VStack(alignment:.leading) {Text(model.number(record.AmountYNXT)+" YNXT");Text(record.PayReceiptID).font(.caption).textSelection(.enabled);Text(model.text("revenueOwner")+": "+record.Owner).font(.caption).textSelection(.enabled)}}
             if (model.snapshot?.revenue ?? []).isEmpty {Text(model.text("noRevenue")).foregroundStyle(.secondary)}
             ForEach(model.snapshot?.payout_intents ?? []) {intent in HStack {Text(model.number(intent.AmountYNXT)+" YNXT");Spacer();Text(intent.State).foregroundStyle(.secondary)}}
+            if model.canRequestPayout {
             TextField(model.text("payoutAmount"),text:$payout).textFieldStyle(.roundedBorder)
             Text(model.text("payoutConsent")).font(.caption).foregroundStyle(.secondary)
             Button(model.text("createPayout")) {if let amount=Int(payout),amount>0 {Task {await model.perform("/v1/studio/payout-intents",body:["amount_ynxt":amount])}}}.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || (Int(payout) ?? 0)<=0)
+            }
         }
     }
 }
@@ -339,7 +329,7 @@ struct CreatorDisputeView:View {
             if (model.snapshot?.revenue ?? []).isEmpty {Text(model.text("noRevenue")).foregroundStyle(.secondary)}
             ForEach(model.snapshot?.revenue ?? []) {record in
                 VStack(alignment:.leading,spacing:8) {
-                    Text(model.number(record.AmountYNXT)+" YNXT");Text(record.PayReceiptID).font(.caption).textSelection(.enabled)
+                    Text(model.number(record.AmountYNXT)+" YNXT");Text(record.PayReceiptID).font(.caption).textSelection(.enabled);Text(model.text("revenueOwner")+": "+record.Owner).font(.caption).textSelection(.enabled)
                     if model.canDispute(record) {Button(model.text("submitDispute")) {selected=Request(id:record.id,appeal:false,revision:model.currentRevision)}}
                 }.padding().frame(maxWidth:.infinity,alignment:.leading).background(.quaternary,in:RoundedRectangle(cornerRadius:14))
             }
@@ -532,5 +522,65 @@ struct CreatorAIView:View {
             Button(model.text("aiReject")) {let captured=(job.id,model.currentRevision);Task {await model.reviewAI(captured.0,apply:false,expectedRevision:captured.1)}}.disabled(blocked)
         }
         if job.State != "running",!model.aiStreaming {Button(model.text("aiDelete"),role:.destructive) {deletion=job.id}.disabled(blocked)}
+    }
+}
+
+struct CreatorRightsForm:View {
+    @EnvironmentObject private var model:CreatorModel
+    @Environment(\.dismiss) private var dismiss
+    let videoID:String
+    let expectedRevision:UInt64
+    @State private var basis="owned"
+    @State private var license=""
+    @State private var territories="WORLDWIDE"
+    @State private var evidence=""
+    @State private var exclusive=false
+    @State private var hasStart=false
+    @State private var hasEnd=false
+    @State private var start=Date()
+    @State private var end=Date().addingTimeInterval(365*86400)
+    @State private var contributors:[CreatorModel.Contribution]=[]
+    private var video:CreatorVideo? {model.snapshot?.videos?.first(where:{$0.id==videoID})}
+    var body:some View {
+        NavigationStack {
+            Form {
+                if let video {
+                    Text(video.title).font(.headline)
+                    Text(video.sha256).font(.caption).textSelection(.enabled)
+                    Picker(model.text("rightsBasis"),selection:$basis) {ForEach(["owned","licensed","public-domain"],id:\.self) {Text(model.text($0)).tag($0)}}
+                    TextField(model.text("license"),text:$license)
+                    TextField(model.text("territories"),text:$territories)
+                    TextField(model.text("evidence"),text:$evidence)
+                    Toggle(model.text("rightsExclusive"),isOn:$exclusive)
+                    Toggle(model.text("rightsHasStart"),isOn:$hasStart)
+                    if hasStart {DatePicker(model.text("rightsStart"),selection:$start)}
+                    Toggle(model.text("rightsHasEnd"),isOn:$hasEnd)
+                    if hasEnd {DatePicker(model.text("rightsEnd"),selection:$end)}
+                    Section(model.text("rightsContributors")) {
+                        Text(model.text("rightsSharesHelp")).font(.caption).foregroundStyle(.secondary)
+                        ForEach($contributors) {$contributor in
+                            VStack(alignment:.leading,spacing:8) {
+                                TextField(model.text("rightsContributorAccount"),text:$contributor.account)
+                                TextField(model.text("rightsSharePercent"),text:$contributor.percent)
+                                Button(model.text("rightsRemoveContributor"),role:.destructive) {contributors.removeAll(where:{$0.id==contributor.id})}.disabled(contributors.count<=1)
+                            }
+                        }
+                        Button(model.text("rightsAddContributor")) {contributors.append(CreatorModel.Contribution(account:"",percent:""))}.disabled(contributors.count>=64)
+                    }
+                    Text(model.text("independentReview")).foregroundStyle(.secondary)
+                    Button(model.text("declareRights")) {
+                        let captured=(basis,license,territories,hasStart ? start : nil,hasEnd ? end : nil,exclusive,contributors,evidence)
+                        Task {
+                            await model.declareRights(videoID:videoID,basis:captured.0,license:captured.1,territories:captured.2,start:captured.3,end:captured.4,exclusive:captured.5,contributors:captured.6,evidence:captured.7,expectedRevision:expectedRevision)
+                            if model.pendingOperation {dismiss()}
+                            else if model.message.isEmpty {dismiss()}
+                        }
+                    }.disabled(model.busy || model.pendingOperation || !model.pendingAssetKind.isEmpty || expectedRevision != model.currentRevision || CreatorModel.contributorBody(contributors)==nil || evidence.count != 64 || hasEnd && (end<=Date() || hasStart && end<=start))
+                } else {Text(model.text("rightsInvalid"))}
+            }.navigationTitle(model.text("rights"))
+            .toolbar {Button(model.text("close")) {dismiss()}}
+            .onAppear {if contributors.isEmpty,let video {contributors=[CreatorModel.Contribution(account:video.owner,percent:"100")]}}
+            .onChange(of:model.currentRevision) {_,_ in license="";evidence="";contributors=[];dismiss()}
+        }.frame(minWidth:320,minHeight:480)
     }
 }

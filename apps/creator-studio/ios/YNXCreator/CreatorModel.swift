@@ -32,8 +32,15 @@ struct CreatorSnapshot: Decodable {
         let invites: [Invite]?
         var id:String {channel_id}
     }
-    struct Rights: Decodable,Identifiable {let id,video_id,declared_by,basis,state,evidence_sha256,source_sha256: String;let reviewer: String?}
-    struct Revenue: Decodable,Identifiable { let recordID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {recordID};enum CodingKeys:String,CodingKey {case recordID="ID",Owner,PayReceiptID,AmountYNXT} }
+    struct Rights:Decodable,Identifiable {
+        struct Split:Decodable {let account:String;let basis_points:Int}
+        let id,video_id,declared_by,basis,state,evidence_sha256,source_sha256:String
+        let reviewer,license_reference,starts_at,ends_at:String?
+        let territories:[String]?
+        let exclusive:Bool?
+        let contributor_splits:[Split]?
+    }
+    struct Revenue: Decodable,Identifiable { let recordID,VideoID,Owner,PayReceiptID: String;let AmountYNXT: Int;var id:String {recordID};enum CodingKeys:String,CodingKey {case recordID="ID",VideoID,Owner,PayReceiptID,AmountYNXT} }
     struct Report: Decodable,Identifiable {
         let recordID,VideoID,Reporter,Reason,Details,State:String
         var id:String {recordID}
@@ -160,7 +167,7 @@ struct CreatorSnapshot: Decodable {
     private func refreshCaptured(_ active: CreatorNativeEngine,_ captured: UInt64) async throws {
         let data=try await CreatorHTTP.shared.accountData("/v1/studio",engine:active,guardRequest:{try self.require(active,captured)})
         try require(active,captured);let fresh=try JSONDecoder().decode(CreatorSnapshot.self,from:data)
-        guard let identity=active.identity,(fresh.revenue ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.payout_intents ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.ai_jobs ?? []).allSatisfy({$0.valid(identity.account)}),
+        guard let identity=active.identity,(fresh.revenue ?? []).allSatisfy({Self.financialAccess(fresh,identity.account,$0)}),(fresh.payout_intents ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.disputes ?? []).allSatisfy({dispute in fresh.revenue?.contains(where:{$0.id==dispute.RevenueRecordID && $0.Owner==dispute.Owner && Self.financialAccess(fresh,identity.account,$0)})==true}),(fresh.ai_jobs ?? []).allSatisfy({$0.valid(identity.account)}),
               (fresh.videos ?? []).allSatisfy({CreatorDraftState.validID($0.id) && CreatorDraftState.validID($0.channel_id) && CreatorNativeState.matches($0.owner,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$")}) else {throw CreatorHTTP.Failure.unexpectedResponse}
         snapshot=fresh
         if let selectedAI {self.selectedAI=fresh.ai_jobs?.first(where:{$0.id==selectedAI.id})}
@@ -321,8 +328,13 @@ struct CreatorSnapshot: Decodable {
     func canAppeal(_ report:CreatorSnapshot.Report) -> Bool {
         connected && report.State=="takedown" && snapshot?.videos?.contains(where:{$0.id==report.VideoID && $0.owner==account})==true && !(snapshot?.appeals ?? []).contains(where:{$0.ReportID==report.id && $0.State=="submitted"})
     }
+    private static func financialAccess(_ snapshot:CreatorSnapshot,_ account:String,_ record:CreatorSnapshot.Revenue) -> Bool {
+        guard CreatorDraftState.validID(record.id),let video=snapshot.videos?.first(where:{$0.id==record.VideoID && $0.owner==record.Owner}),let member=snapshot.team?.first(where:{$0.channel_id==video.channel_id})?.members?.first(where:{$0.account==account && $0.state=="active"}) else {return false}
+        return ["owner","finance"].contains(member.role)
+    }
+    var canRequestPayout:Bool {connected && snapshot?.team?.contains(where:{$0.members?.contains(where:{$0.account==account && $0.role=="owner" && $0.state=="active"})==true})==true}
     func canDispute(_ record:CreatorSnapshot.Revenue) -> Bool {
-        connected && record.Owner==account && !(snapshot?.disputes ?? []).contains(where:{$0.RevenueRecordID==record.id && $0.State=="submitted"})
+        connected && snapshot.map{Self.financialAccess($0,account,record)}==true && !(snapshot?.disputes ?? []).contains(where:{$0.RevenueRecordID==record.id && $0.State=="submitted"})
     }
     func submitAppeal(_ reportID:String,reason:String,expectedRevision:UInt64) async {
         let reason=reason.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -333,6 +345,24 @@ struct CreatorSnapshot: Decodable {
         let reason=reason.trimmingCharacters(in:.whitespacesAndNewlines)
         guard expectedRevision==revision,let record=snapshot?.revenue?.first(where:{$0.id==recordID}),canDispute(record),CreatorDraftState.validID(recordID),!reason.isEmpty,reason.count<=2000 else {return}
         await perform("/v1/revenue/"+recordID+"/disputes",body:["reason":reason],expectedRevision:expectedRevision)
+    }
+    struct Contribution:Identifiable {let id=UUID();var account:String;var percent:String}
+    static func contributorBody(_ rows:[Contribution]) -> [[String:Any]]? {
+        guard !rows.isEmpty,rows.count<=64 else {return nil};var total=0,seen=Set<String>(),body=[[String:Any]]()
+        for row in rows {
+            let account=row.account.trimmingCharacters(in:.whitespacesAndNewlines),text=row.percent.trimmingCharacters(in:.whitespacesAndNewlines).replacingOccurrences(of:",",with:".")
+            guard CreatorNativeState.matches(account,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$"),seen.insert(account).inserted,CreatorNativeState.matches(text,"^[0-9]{1,3}(\\.[0-9]{1,2})?$"),let value=Decimal(string:text),value>0,value<=100 else {return nil}
+            let points=NSDecimalNumber(decimal:value*100).intValue;total+=points;body.append(["account":account,"basis_points":points])
+        }
+        return total==10000 ? body : nil
+    }
+    func declareRights(videoID:String,basis:String,license:String,territories:String,start:Date?,end:Date?,exclusive:Bool,contributors:[Contribution],evidence:String,expectedRevision:UInt64) async {
+        guard expectedRevision==revision,connected,!busy else {return}
+        guard let video=snapshot?.videos?.first(where:{$0.id==videoID}),["owner","editor"].contains(role(video.channel_id) ?? ""),let splits=Self.contributorBody(contributors),["owned","licensed","public-domain"].contains(basis),license.utf8.count<=512,basis != "licensed" || !license.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,CreatorNativeState.matches(evidence.lowercased(),"^[a-f0-9]{64}$"),end==nil || end!>Date(),start==nil || end==nil || end!>start! else {message=text("rightsInvalid");return}
+        let places=territories.split(separator:",").map{String($0).trimmingCharacters(in:.whitespacesAndNewlines)};guard !places.isEmpty,places.count<=64 else {message=text("rightsInvalid");return}
+        var body:[String:Any]=["basis":basis=="public-domain" ? "public_domain" : basis,"license_reference":license,"territories":places,"exclusive":exclusive,"contributor_splits":splits,"evidence_sha256":evidence.lowercased(),"source_sha256":video.sha256]
+        if let start {body["starts_at"]=ISO8601DateFormatter().string(from:start)};if let end {body["ends_at"]=ISO8601DateFormatter().string(from:end)}
+        await perform("/v1/videos/"+videoID+"/rights",body:body,expectedRevision:expectedRevision)
     }
     func role(_ channel: String) -> String? {snapshot?.team?.first(where:{$0.channel_id==channel})?.members?.first(where:{$0.account==account && $0.state=="active"})?.role}
     func canReview(_ video: CreatorVideo) -> Bool {connected && video.owner != account && role(video.channel_id)=="moderator"}
