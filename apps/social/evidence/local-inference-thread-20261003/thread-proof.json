@@ -1,0 +1,361 @@
+{
+  "status": "ACTUAL_NODE_MODEL_WORKER_QA_ONLY",
+  "node": "26.7.0",
+  "pipelineSHA256": "ba86a789f47dde48aa0aecad34bf982922885901b0c176d29825b518bbe9f911",
+  "checks": [
+    {
+      "mode": "complete",
+      "initialThreadId": 1,
+      "threadIdAfterExit": -1,
+      "exitCode": 0,
+      "ticks": 164,
+      "maximumParentGapMs": 22.375040999999953,
+      "phases": [
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 391.513542
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 440.001375
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 1445.980792
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 1461.923042
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 1497.203584
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 2493.131125
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 2502.639459
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 2537.306667
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 3541.304209
+        }
+      ],
+      "actualPipeline": {
+        "status": "ACTUAL_THREE_CATEGORY_COMPOSITION_QA_ONLY",
+        "pins": {
+          "xs": {
+            "repository": "OwenElliott/image-safety-classifier-xs",
+            "revision": "54f4560bd9c5ee92d45dc30418a8f8680e80de6d",
+            "bytes": 13137569,
+            "sha256": "8c28c49d9075f3ad15ebdc2961f02d5b3f99be944815b848b49c9f0e6f3fb689"
+          },
+          "encoder256": {
+            "repository": "onnx-community/siglip2-base-patch16-256-ONNX",
+            "revision": "d1114256522a37ffa257a0a58017348ab0058db2",
+            "bytes": 63451786,
+            "sha256": "712064dae0cce3fb4c94497c7dfd65d11f4ad34eadafe09442208474068cf777"
+          },
+          "violenceHead": {
+            "repository": "khasinski/siglip2-moderation-heads",
+            "revision": "b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5",
+            "bytes": 869,
+            "sha256": "268b8702e8e373ab0fea4de55250f506650ff87be532d1809ba70513bd5fa5b4"
+          },
+          "violenceData": {
+            "bytes": 788480,
+            "sha256": "433df42d2b884d598a65f41d1cb16e2c44b60000f0f46da6b7c380f3851ce2ef"
+          }
+        },
+        "runtime": "1.30.0",
+        "loadMs": 243.04029200000002,
+        "checks": [
+          {
+            "sample": "solid-gray",
+            "scores": {
+              "gore": 0.026861755177378654,
+              "explicit_violence": 0.1919000265742721,
+              "sexual_content": 0.053573668003082275
+            },
+            "xsMs": 48.42616599999997,
+            "encoderMs": 1005.6858339999999,
+            "headMs": 0.24370900000008078,
+            "normalizedEmbeddingNorm": 0.9999999748846554,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          },
+          {
+            "sample": "original-public-logo",
+            "scores": {
+              "gore": 0.03726654127240181,
+              "explicit_violence": 0.15660492571578372,
+              "sexual_content": 0.04060399532318115
+            },
+            "xsMs": 35.25866599999995,
+            "encoderMs": 995.789792,
+            "headMs": 0.14008400000011534,
+            "normalizedEmbeddingNorm": 1.0000000029827731,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          },
+          {
+            "sample": "original-public-logo-repeat",
+            "scores": {
+              "gore": 0.03726654127240181,
+              "explicit_violence": 0.15660492571578372,
+              "sexual_content": 0.04060399532318115
+            },
+            "xsMs": 34.63804100000016,
+            "encoderMs": 1003.7862500000001,
+            "headMs": 0.12887499999987995,
+            "normalizedEmbeddingNorm": 1.0000000029827731,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          }
+        ],
+        "publicImageSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+        "publicImageDimensions": [
+          798,
+          420
+        ],
+        "encoderQuantization": "q4; fp32 parity/calibration NOT_VERIFIED",
+        "fetchAttempts": 0,
+        "osNetworkIsolation": "NOT_VERIFIED",
+        "realContentCalibration": "NOT_RUN",
+        "signedArtifactAdmission": "NOT_ADMITTED",
+        "productMount": "NOT_MOUNTED",
+        "timestamp": "2026-10-03T13:17:01.945Z"
+      },
+      "stderr": ""
+    },
+    {
+      "mode": "cancel-at-encoder-entry",
+      "initialThreadId": 2,
+      "threadIdAfterExit": -1,
+      "exitCode": 1,
+      "ticks": 16,
+      "maximumParentGapMs": 22.627750000000106,
+      "termination": {
+        "exitCode": 1,
+        "elapsedMs": 3.737749999999778
+      },
+      "finalScoreDocumentPublished": false,
+      "phases": [
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 3861.001709
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 3909.15625
+        }
+      ],
+      "instructionLevelCancellation": "NOT_VERIFIED; cancellation at actual encoder run entry"
+    },
+    {
+      "mode": "complete-after-cancel",
+      "initialThreadId": 3,
+      "threadIdAfterExit": -1,
+      "exitCode": 0,
+      "ticks": 160,
+      "maximumParentGapMs": 22.362624999999753,
+      "phases": [
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 4221.126834
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 4269.076875
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 5276.173917
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 5285.596
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 5321.778834
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 6312.58025
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "image"
+          ],
+          "workerTimeMs": 6321.927292
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "pixel_values"
+          ],
+          "workerTimeMs": 6356.938167
+        },
+        {
+          "phase": "real-session-run-entry",
+          "inputNames": [
+            "embedding"
+          ],
+          "workerTimeMs": 7346.353334
+        }
+      ],
+      "actualPipeline": {
+        "status": "ACTUAL_THREE_CATEGORY_COMPOSITION_QA_ONLY",
+        "pins": {
+          "xs": {
+            "repository": "OwenElliott/image-safety-classifier-xs",
+            "revision": "54f4560bd9c5ee92d45dc30418a8f8680e80de6d",
+            "bytes": 13137569,
+            "sha256": "8c28c49d9075f3ad15ebdc2961f02d5b3f99be944815b848b49c9f0e6f3fb689"
+          },
+          "encoder256": {
+            "repository": "onnx-community/siglip2-base-patch16-256-ONNX",
+            "revision": "d1114256522a37ffa257a0a58017348ab0058db2",
+            "bytes": 63451786,
+            "sha256": "712064dae0cce3fb4c94497c7dfd65d11f4ad34eadafe09442208474068cf777"
+          },
+          "violenceHead": {
+            "repository": "khasinski/siglip2-moderation-heads",
+            "revision": "b88fe03369e3dc6aa9887cd3b4cd3e9b7cf76ee5",
+            "bytes": 869,
+            "sha256": "268b8702e8e373ab0fea4de55250f506650ff87be532d1809ba70513bd5fa5b4"
+          },
+          "violenceData": {
+            "bytes": 788480,
+            "sha256": "433df42d2b884d598a65f41d1cb16e2c44b60000f0f46da6b7c380f3851ce2ef"
+          }
+        },
+        "runtime": "1.30.0",
+        "loadMs": 237.44437499999958,
+        "checks": [
+          {
+            "sample": "solid-gray",
+            "scores": {
+              "gore": 0.026861755177378654,
+              "explicit_violence": 0.1919000265742721,
+              "sexual_content": 0.053573668003082275
+            },
+            "xsMs": 47.920874999999796,
+            "encoderMs": 1006.892417,
+            "headMs": 0.17641699999967386,
+            "normalizedEmbeddingNorm": 0.9999999748846554,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          },
+          {
+            "sample": "original-public-logo",
+            "scores": {
+              "gore": 0.03726654127240181,
+              "explicit_violence": 0.15660492571578372,
+              "sexual_content": 0.04060399532318115
+            },
+            "xsMs": 36.1528330000001,
+            "encoderMs": 990.6714170000005,
+            "headMs": 0.14974999999958527,
+            "normalizedEmbeddingNorm": 1.0000000029827731,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          },
+          {
+            "sample": "original-public-logo-repeat",
+            "scores": {
+              "gore": 0.03726654127240181,
+              "explicit_violence": 0.15660492571578372,
+              "sexual_content": 0.04060399532318115
+            },
+            "xsMs": 34.98795800000062,
+            "encoderMs": 989.2237910000003,
+            "headMs": 0.14624999999978172,
+            "normalizedEmbeddingNorm": 1.0000000029827731,
+            "allThreeNumericalOutputsPresent": true,
+            "safetyConclusion": "NOT_EVALUATED"
+          }
+        ],
+        "publicImageSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+        "publicImageDimensions": [
+          798,
+          420
+        ],
+        "encoderQuantization": "q4; fp32 parity/calibration NOT_VERIFIED",
+        "fetchAttempts": 0,
+        "osNetworkIsolation": "NOT_VERIFIED",
+        "realContentCalibration": "NOT_RUN",
+        "signedArtifactAdmission": "NOT_ADMITTED",
+        "productMount": "NOT_MOUNTED",
+        "timestamp": "2026-10-03T13:17:05.750Z"
+      },
+      "stderr": ""
+    }
+  ],
+  "browserWorker": "NOT_VERIFIED",
+  "nativeMobileWorker": "NOT_VERIFIED",
+  "productConsumer": "NOT_MOUNTED",
+  "modelAdmission": "NOT_ADMITTED",
+  "realContentCalibration": "NOT_RUN",
+  "timestamp": "2026-10-03T13:17:05.760Z"
+}
