@@ -100,3 +100,35 @@ test("independent clipboard adapters keep independent expiry leases",async()=>{
   await first.run();assert.equal(a.value,"");assert.equal(b.value,"ynx:public-b");
   await second.run();assert.equal(b.value,"");
 });
+
+test("a clearing write already inside the OS finishes before the next Wallet copy",async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),latest=controlledSchedule(),set=clipboard.setStringAsync.bind(clipboard);
+  let beginClear!:()=>void,finishClear!:()=>void;
+  const entered=new Promise<void>(done=>beginClear=done),completion=new Promise<void>(done=>finishClear=done);
+  clipboard.setStringAsync=async value=>{if(value===""){beginClear();await completion}await set(value)};
+  await copyPublicValueWithExpiry(clipboard,"ynx:old-link",{schedule:first.schedule});
+  const expiry=first.run();await entered;
+  const newer=copyPublicValueWithExpiry(clipboard,"ynx:new-link",{schedule:latest.schedule});
+  finishClear();await Promise.all([expiry,newer]);
+  assert.deepEqual(clipboard.writes,["ynx:old-link","","ynx:new-link"]);assert.equal(clipboard.value,"ynx:new-link");
+  await latest.run();assert.equal(clipboard.value,"");
+});
+
+test("a failed in-flight OS clear does not poison the following copy or its expiry",async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),latest=controlledSchedule(),set=clipboard.setStringAsync.bind(clipboard);
+  let entered!:()=>void,release!:()=>void;const started=new Promise<void>(done=>entered=done),finish=new Promise<void>(done=>release=done);let fail=true;
+  clipboard.setStringAsync=async value=>{if(value===""&&fail){entered();await finish;throw new Error("OS rejected clear")}await set(value)};
+  await copyPublicValueWithExpiry(clipboard,"ynx:old-link",{schedule:first.schedule});const expiry=first.run();await started;
+  const newer=copyPublicValueWithExpiry(clipboard,"ynx:new-link",{schedule:latest.schedule});release();await Promise.all([expiry,newer]);
+  assert.equal(clipboard.value,"ynx:new-link");fail=false;await latest.run();assert.equal(clipboard.value,"");
+});
+
+test("an older expiry queued while a new copy write awaits cannot clear the new value",async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),latest=controlledSchedule(),set=clipboard.setStringAsync.bind(clipboard);
+  let entered!:()=>void,release!:()=>void;const started=new Promise<void>(done=>entered=done),finish=new Promise<void>(done=>release=done);
+  await copyPublicValueWithExpiry(clipboard,"ynx:old-link",{schedule:first.schedule});
+  clipboard.setStringAsync=async value=>{if(value==="ynx:new-link"){entered();await finish}await set(value)};
+  const newer=copyPublicValueWithExpiry(clipboard,"ynx:new-link",{schedule:latest.schedule});await started;
+  const expiry=first.run();release();await Promise.all([newer,expiry]);assert.equal(clipboard.value,"ynx:new-link");
+  assert.deepEqual(clipboard.writes,["ynx:old-link","ynx:new-link"]);
+});
