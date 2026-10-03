@@ -49,7 +49,9 @@ func normalizeResearchParameters(strategy StrategySpec, a Assumptions) (Strategy
 // instead of silently converting them into compatible omitted defaults.
 func decodeResearch(w http.ResponseWriter, r *http.Request, v any) bool {
 	var raw json.RawMessage
-	if !decode(w, r, &raw) {
+	// Keep research's existing null/duplicate-specific error contract. Ordinary
+	// business routes use the bounded ambiguity guard before typed decoding.
+	if !decodeBusinessBody(w, r, &raw, false) {
 		return false
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))

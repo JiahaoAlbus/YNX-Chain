@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -489,8 +490,17 @@ func exchangeSession(r *http.Request) string {
 	return strings.TrimSpace(r.Header.Get("X-YNX-Quant-Product-Session-Proof"))
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
+	return decodeBusinessBody(w, r, v, true)
+}
+
+func decodeBusinessBody(w http.ResponseWriter, r *http.Request, v any, rejectAmbiguous bool) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)
-	d := json.NewDecoder(r.Body)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || rejectAmbiguous && !unambiguousQuantBusinessJSON(raw) {
+		writeProblem(w, r, http.StatusBadRequest, "invalid_json")
+		return false
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
 	if e := d.Decode(v); e != nil {
 		writeProblem(w, r, http.StatusBadRequest, "invalid_json")
