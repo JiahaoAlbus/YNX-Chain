@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Penilaian</string>
+    <string name="order_rating_select">Pilih penilaian</string>
+    <string name="order_review_text">Ulasan (opsional)</string>
+    <string name="order_reason">Alasan</string>
+    <string name="order_explanation">Rincian (opsional)</string>
+    <string name="order_submit">Kirim</string>
+    <string name="order_input_required">Pilih penilaian 1 sampai 5 atau isi alasan. Alasan: maksimal 1000 byte UTF-8; rincian: maksimal 5000.</string>
+    <string name="order_request_pending">Permintaan sebelumnya untuk pesanan ini belum dikonfirmasi. Simpan permintaan asli sebelum membuat perubahan lain.</string>
+</resources>

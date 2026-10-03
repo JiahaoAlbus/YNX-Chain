@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Calificación</string>
+    <string name="order_rating_select">Elige una calificación</string>
+    <string name="order_review_text">Reseña (opcional)</string>
+    <string name="order_reason">Motivo</string>
+    <string name="order_explanation">Detalles (opcionales)</string>
+    <string name="order_submit">Enviar</string>
+    <string name="order_input_required">Elige una calificación de 1 a 5 o escribe un motivo. Motivo: hasta 1000 bytes UTF-8; detalles: hasta 5000.</string>
+    <string name="order_request_pending">Una solicitud anterior de este pedido sigue sin confirmar. Conserva la solicitud original antes de realizar otro cambio.</string>
+</resources>

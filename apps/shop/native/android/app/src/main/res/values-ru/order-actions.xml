@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Оценка</string>
+    <string name="order_rating_select">Выберите оценку</string>
+    <string name="order_review_text">Отзыв (необязательно)</string>
+    <string name="order_reason">Причина</string>
+    <string name="order_explanation">Подробности (необязательно)</string>
+    <string name="order_submit">Отправить</string>
+    <string name="order_input_required">Выберите оценку от 1 до 5 или укажите причину. Причина: до 1000 байт UTF-8; подробности: до 5000.</string>
+    <string name="order_request_pending">Предыдущий запрос по этому заказу ещё не подтверждён. Сохраните исходный запрос, прежде чем вносить другое изменение.</string>
+</resources>

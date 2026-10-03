@@ -26,6 +26,8 @@ public final class MainActivity extends Activity {
     private final PrivacyExport privacyExport=new PrivacyExport();
     private final android.os.Handler sessionClock=new android.os.Handler(android.os.Looper.getMainLooper());
     private final Set<AlertDialog> privateDialogs=new HashSet<>();
+    private AlertDialog orderActionDialog;
+    private void cancelOrderAction(){if(orderActionDialog!=null)orderActionDialog.dismiss();}
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
@@ -60,7 +62,7 @@ public final class MainActivity extends Activity {
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
     @Override protected void onResume(){super.onResume();if(api!=null){reconcileSession();resumePaymentReadback();}}
-    @Override protected void onPause(){payHandoffWork=null;paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
+    @Override protected void onPause(){cancelOrderAction();payHandoffWork=null;paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
     @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
@@ -108,7 +110,7 @@ public final class MainActivity extends Activity {
 
     private void openCommerceService(String url){payHandoffWork=null;clearAI();try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(ActivityNotFoundException error){status.setText(getString(R.string.unavailable));}}
 
-    private void showCatalog(){viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showCatalog(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
         content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),24,true);content.addView(heading);
         TextView boundary=text(getString(R.string.payment_boundary),14,false);boundary.setTextColor(BLUE);boundary.setPadding(0,dp(8),0,dp(14));content.addView(boundary);
         LinearLayout search=row();EditText query=input(getString(R.string.search_hint));search.addView(query,new LinearLayout.LayoutParams(0,dp(52),1));Button run=primary(getString(R.string.search));search.addView(run);content.addView(search);
@@ -150,7 +152,7 @@ public final class MainActivity extends Activity {
     private void syncCartContext()throws Exception{String key=cartKey();if(!key.equals(loadedCartKey)||!secure.get(key).equals(loadedCartText))restoreCart();}
     private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
-    private void showCart(){viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showCart(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
         if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
@@ -196,7 +198,7 @@ public final class MainActivity extends Activity {
         }catch(Exception error){status.setText(cartError(error));}
     }
 
-    private void showOrders(){viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showOrders(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));if(!hasSession()){content.addView(primaryWallet());return;}
         final long view=viewRevision;final ProductSession expected;try{expected=api.session();}catch(Exception error){status.setText(message(error));return;}LinearLayout list=column();content.addView(list);content.addView(action(getString(R.string.retry),this::showOrders));status.setText(getString(R.string.loading));api.request("GET","/orders",null,()->view==viewRevision,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(message(error));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->showOrders());list.addView(retry);return;}
@@ -210,11 +212,12 @@ public final class MainActivity extends Activity {
         card.addView(text(order.getString("ID"),14,true));card.addView(text(state+" · "+formatYNXT(order.getLong("TotalYNXT")),16,true));
         card.addView(text(getString(R.string.tax_unavailable)+" · "+order.optString("LogisticsStatus",getString(R.string.logistics_unavailable)),12,false));
         if(order.has("Settlement")&&!order.isNull("Settlement")){JSONObject proof=order.getJSONObject("Settlement");card.addView(text("Block "+proof.getLong("BlockHeight")+" · "+proof.getString("TransactionHash"),12,false));}
-        if(state.equals("payment_pending")){card.addView(action(getString(R.string.pay_handoff),()->pay(order)));card.addView(action(getString(R.string.check_payment),()->checkPayment(order)));card.addView(action(getString(R.string.cancel_order),()->transition(order,"cancelled","")));}
-        if(state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->transition(order,"delivered","")));
-        if(state.equals("delivered")){card.addView(action(getString(R.string.write_review),()->transition(order,"reviewed","Verified delivery review")));card.addView(action(getString(R.string.return_request),()->transition(order,"return_requested","Return requested by buyer")));}
-        if(List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested").contains(state))card.addView(action(getString(R.string.dispute),()->transition(order,"disputed","Buyer dispute evidence")));
-        if(List.of("paid","return_requested","return_approved").contains(state))card.addView(action(getString(R.string.refund_request),()->transition(order,"refund_requested","Refund requested; no transfer claimed")));
+        if(state.equals("payment_pending")){card.addView(action(getString(R.string.pay_handoff),()->pay(order)));card.addView(action(getString(R.string.check_payment),()->checkPayment(order)));card.addView(action(getString(R.string.cancel_order),()->reviewOrderAction(order,"cancelled",R.string.cancel_order)));}
+        if(state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->reviewOrderAction(order,"delivered",R.string.confirm_delivery)));
+        if(state.equals("delivered")){card.addView(action(getString(R.string.write_review),()->reviewOrderAction(order,"reviewed",R.string.write_review)));}
+        if(List.of("delivered","reviewed").contains(state))card.addView(action(getString(R.string.return_request),()->reviewOrderAction(order,"return_requested",R.string.return_request)));
+        if(List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested").contains(state))card.addView(action(getString(R.string.dispute),()->reviewOrderAction(order,"disputed",R.string.dispute)));
+        if(List.of("paid","return_requested","return_approved").contains(state))card.addView(action(getString(R.string.refund_request),()->reviewOrderAction(order,"refund_requested",R.string.refund_request)));
         card.addView(action(getString(R.string.ai_compare),()->runAI("support_draft","owned_order","Owned order "+order.optString("ID")+" status "+state,10)));
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(8),0,dp(8));card.setLayoutParams(params);return card;
     }
@@ -238,10 +241,30 @@ public final class MainActivity extends Activity {
     }
     private void checkPayment(JSONObject order){final long view=viewRevision;api.request("POST","/orders/"+order.optString("ID")+"/confirm-payment",new JSONObject(),()->view==viewRevision,(value,error)->{if(error!=null){status.setText(message(error));return;}showOrders();resumePaymentReadback();});}
 
-    private void postOrder(JSONObject order,String endpoint,JSONObject body){api.request("POST","/orders/"+order.optString("ID")+"/"+endpoint,body,(v,e)->runOnUiThread(()->{status.setText(e==null?getString(R.string.loading):message(e));if(e==null)showOrders();}));}
-    private void transition(JSONObject order,String action,String explanation){JSONObject body=new JSONObject();try{body.put("Action",action).put("Reason",explanation).put("Explanation",explanation).put("Body",explanation).put("Rating",action.equals("reviewed")?5:0).put("IdempotencyKey",UUID.randomUUID().toString());if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));return;}postOrder(order,"transition",body);}catch(Exception e){status.setText(message(e));}}
+    private void requireOrderActionAvailable(ProductSession session,JSONObject order)throws Exception{
+        String path="/orders/"+order.getString("ID")+"/transition";if(queue.hasOriginalTransition(session.account,path))throw new IllegalStateException("Original order request pending");JSONObject requests=api.privacy().snapshot(session.account).getJSONObject("requests");Iterator<String> ids=requests.keys();while(ids.hasNext())if(path.equals(requests.getJSONObject(ids.next()).optString("path")))throw new IllegalStateException("Original order request pending");
+    }
+    private void reviewOrderAction(JSONObject original,String action,int title){
+        cancelOrderAction();final ProductSession expected;final long generation;final long view=viewRevision;final JSONObject order;
+        try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);order=new JSONObject(original.toString());BuyerOrderReadback.validate(order,expected);requireOrderActionAvailable(expected,order);if(!BuyerOrderActionInput.allowed(order.getString("Status"),action))throw new SecurityException("Invalid buyer action");}catch(IllegalStateException pending){status.setText(R.string.order_request_pending);return;}catch(Exception error){status.setText(getString(R.string.security_error));return;}
+        LinearLayout fields=column();fields.setPadding(dp(20),dp(8),dp(20),dp(8));fields.addView(text(order.optString("ID"),14,true));
+        boolean review=action.equals("reviewed"),resolution=List.of("return_requested","refund_requested","disputed").contains(action);
+        RatingBar rating=new RatingBar(this);rating.setNumStars(5);rating.setStepSize(1);rating.setRating(0);rating.setContentDescription(getString(R.string.order_rating));
+        EditText reason=new EditText(this);reason.setHint(R.string.order_reason);reason.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        EditText detail=new EditText(this);detail.setHint(review?R.string.order_review_text:R.string.order_explanation);detail.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);detail.setMinLines(3);
+        if(review){fields.addView(text(getString(R.string.order_rating),16,false));fields.addView(rating);fields.addView(detail);}else if(resolution){fields.addView(reason);fields.addView(detail);}else fields.addView(text(getString(title),16,false));
+        TextView error=text("",14,false);fields.addView(error);ScrollView scroll=new ScrollView(this);scroll.addView(fields);AlertDialog dialog=new AlertDialog.Builder(this).setTitle(title).setView(scroll).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.order_submit,null).create();orderActionDialog=dialog;
+        showDialog(dialog,()->{if(orderActionDialog==dialog)orderActionDialog=null;});dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            if(view!=viewRevision||!isCurrent(expected,generation)){dialog.dismiss();return;}
+            try{BuyerOrderReadback.validate(order,expected);requireOrderActionAvailable(expected,order);JSONObject body=BuyerOrderActionInput.build(order.getString("Status"),action,review?(int)rating.getRating():0,resolution?reason.getText().toString():"",review||resolution?detail.getText().toString():"");body.put("IdempotencyKey",UUID.randomUUID().toString());
+                if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));}
+                else api.request("POST","/orders/"+order.getString("ID")+"/transition",body,()->view==viewRevision&&isCurrent(expected,generation),(value,failure)->{status.setText(failure==null?getString(R.string.loading):message(failure));if(failure==null)showOrders();});
+                dialog.dismiss();
+            }catch(IllegalArgumentException invalid){error.setText(R.string.order_input_required);}catch(IllegalStateException pending){error.setText(R.string.order_request_pending);}catch(Exception rejected){error.setText(R.string.security_error);}
+        });
+    }
 
-    private void showAccount(){viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showAccount(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_account),24,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);

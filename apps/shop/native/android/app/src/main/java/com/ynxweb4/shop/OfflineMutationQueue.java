@@ -20,6 +20,9 @@ final class OfflineMutationQueue {
         secure.put("offline_mutations",queue.toString());return id;
         }
     }
+    synchronized boolean hasOriginalTransition(String account,String path)throws Exception{
+        synchronized(secure){JSONArray rows=read();for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(path.equals(row.optString("path"))&&(account.equals(row.optString("account"))||row.optString("account").isEmpty()))return true;}return false;}
+    }
     synchronized int size() throws Exception{return read().length();}
     int flush(ApiClient api,ProductSession expected,long generation) throws Exception{return flush(new Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession session,long generation)throws Exception{return api.requestForSession(method,path,body,session,generation);}},expected,generation);}
     int flush(Sender api) throws Exception{return flush(api,api.session());}

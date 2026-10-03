@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">التقييم</string>
+    <string name="order_rating_select">اختر تقييماً</string>
+    <string name="order_review_text">المراجعة (اختياري)</string>
+    <string name="order_reason">السبب</string>
+    <string name="order_explanation">التفاصيل (اختياري)</string>
+    <string name="order_submit">إرسال</string>
+    <string name="order_input_required">اختر تقييماً من 1 إلى 5 أو أدخل السبب. السبب: حتى 1000 بايت UTF-8؛ التفاصيل: حتى 5000.</string>
+    <string name="order_request_pending">لم يتم تأكيد طلب سابق لهذا الطلب بعد. احتفظ بالطلب الأصلي قبل إجراء تغيير آخر.</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Rating</string>
+    <string name="order_rating_select">Choose a rating</string>
+    <string name="order_review_text">Review (optional)</string>
+    <string name="order_reason">Reason</string>
+    <string name="order_explanation">Details (optional)</string>
+    <string name="order_submit">Submit</string>
+    <string name="order_input_required">Choose a rating from 1 to 5, or enter a reason. Reason: up to 1000 UTF-8 bytes; details: up to 5000.</string>
+    <string name="order_request_pending">An earlier request for this order is still unconfirmed. Keep the original request before making another change.</string>
+</resources>

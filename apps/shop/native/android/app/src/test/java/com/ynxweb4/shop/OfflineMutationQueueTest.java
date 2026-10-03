@@ -78,4 +78,9 @@ public final class OfflineMutationQueueTest {
   assertEquals(1,queue.flush(new OfflineMutationQueue.Sender(){public ProductSession session()throws Exception{return ProductSession.parse(memory.get("commerce_session"),Instant.now());}public JSONObject requestForSession(String method,String path,JSONObject request,ProductSession expected,long generation){return new JSONObject();}}));
   assertEquals("[]",memory.get("cart:"+A));assertEquals("",memory.get("checkout:"+A));assertEquals("preserved foreign cart",memory.get("cart:"+B));assertEquals(0,queue.size());
  }
+ @Test public void orderActionAdmissionKeepsColdOriginalAndForeignRowsUnchanged()throws Exception{
+  Memory memory=new Memory();memory.login(A);String path="/orders/original/transition";JSONArray original=new JSONArray().put(new JSONObject().put("id","unknown-original").put("account",A).put("path",path).put("body",new JSONObject().put("IdempotencyKey","original-key"))).put(new JSONObject().put("id","foreign").put("account",B).put("path","/orders/foreign/transition"));memory.put("offline_mutations",original.toString());String bytes=memory.get("offline_mutations");OfflineMutationQueue cold=new OfflineMutationQueue(memory);
+  assertTrue(cold.hasOriginalTransition(A,path));assertFalse(cold.hasOriginalTransition(B,path));assertEquals(bytes,memory.get("offline_mutations"));
+  original.put(new JSONObject().put("id","legacy-unbound").put("path","/orders/legacy/transition"));memory.put("offline_mutations",original.toString());assertTrue(cold.hasOriginalTransition(A,"/orders/legacy/transition"));assertEquals(original.toString(),memory.get("offline_mutations"));
+ }
 }

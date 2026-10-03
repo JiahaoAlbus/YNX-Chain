@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">評価</string>
+    <string name="order_rating_select">評価を選択</string>
+    <string name="order_review_text">レビュー（任意）</string>
+    <string name="order_reason">理由</string>
+    <string name="order_explanation">詳細（任意）</string>
+    <string name="order_submit">送信</string>
+    <string name="order_input_required">1〜5の評価を選択するか、理由を入力してください。理由はUTF-8で1000バイト、詳細は5000バイトまで。</string>
+    <string name="order_request_pending">この注文の以前のリクエストは未確認です。別の変更を行う前に、元のリクエストを保持してください。</string>
+</resources>

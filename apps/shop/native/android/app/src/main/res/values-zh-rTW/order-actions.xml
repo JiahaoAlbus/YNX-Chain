@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">評分</string>
+    <string name="order_rating_select">請選擇評分</string>
+    <string name="order_review_text">評價（選填）</string>
+    <string name="order_reason">原因</string>
+    <string name="order_explanation">詳細說明（選填）</string>
+    <string name="order_submit">提交</string>
+    <string name="order_input_required">請選擇 1 至 5 分，或填寫原因。原因最多 1000 個 UTF-8 位元組，說明最多 5000 個。</string>
+    <string name="order_request_pending">此訂單先前的請求尚未確認。請保留原請求，再處理新的變更。</string>
+</resources>

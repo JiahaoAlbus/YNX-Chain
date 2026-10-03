@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Note</string>
+    <string name="order_rating_select">Choisissez une note</string>
+    <string name="order_review_text">Avis (facultatif)</string>
+    <string name="order_reason">Motif</string>
+    <string name="order_explanation">Détails (facultatifs)</string>
+    <string name="order_submit">Envoyer</string>
+    <string name="order_input_required">Choisissez une note de 1 à 5 ou saisissez un motif. Motif : 1000 octets UTF-8 maximum ; détails : 5000.</string>
+    <string name="order_request_pending">Une demande précédente pour cette commande reste non confirmée. Conservez la demande initiale avant toute autre modification.</string>
+</resources>

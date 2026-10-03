@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="order_rating">Bewertung</string>
+    <string name="order_rating_select">Bewertung auswählen</string>
+    <string name="order_review_text">Rezension (optional)</string>
+    <string name="order_reason">Grund</string>
+    <string name="order_explanation">Weitere Angaben (optional)</string>
+    <string name="order_submit">Absenden</string>
+    <string name="order_input_required">Wählen Sie eine Bewertung von 1 bis 5 oder geben Sie einen Grund ein. Grund: maximal 1000 UTF-8-Bytes; Details: maximal 5000.</string>
+    <string name="order_request_pending">Eine frühere Anfrage zu dieser Bestellung ist noch unbestätigt. Bewahren Sie die ursprüngliche Anfrage vor einer weiteren Änderung auf.</string>
+</resources>

@@ -7,6 +7,7 @@ const android = new URL('android/app/src/main/res/', root);
 const dirs = (await readdir(android)).filter(name => name === 'values' || name.startsWith('values-')).sort();
 assert.equal(dirs.length, 12, 'Android must ship exactly 12 audited locale catalogs');
 
+const orderActionKeys=['order_rating','order_rating_select','order_review_text','order_reason','order_explanation','order_submit','order_input_required','order_request_pending'];
 const privacyKeys = [
   'privacy_data_title',
   'privacy_data_description',
@@ -35,6 +36,7 @@ const required = [
   'signing_text',
   'accessibility_status',
   ...privacyKeys,
+  ...orderActionKeys,
 ];
 const parse = xml => Object.fromEntries(
   [...xml.matchAll(/<string name="([^"]+)">([^<]+)<\/string>/g)].map(match => [match[1], match[2]]),
@@ -67,7 +69,7 @@ for (const key of privacyKeys) assert.match(arabic[key], /\p{Script=Arabic}/u, `
 
 const catalog = JSON.parse(await readFile(new URL('ios/YNXShop/Localizable.xcstrings', root), 'utf8'));
 const iosLanguages = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'id'];
-for (const key of privacyKeys) {
+for (const key of [...privacyKeys,...orderActionKeys]) {
   const entry = catalog.strings[key];
   assert.ok(entry, `iOS catalog missing ${key}`);
   for (const language of iosLanguages) {

@@ -139,3 +139,24 @@ enum AppleBuyerReceipt {
     func observed(_ account:String,order:Order,journal:InvoiceHandoffJournal)throws {try AppleBuyerReceipt.validate(order,account:account);var d=try load(account);guard var r=d.review,r.original.orderID==order.orderID,r.digest == (try journal.digest(order)),r.invoiceID==nil || (r.invoiceID==order.invoiceID && r.intentID==order.payIntentID) else{throw ShopError.security};r.observed=order;d.review=r;try save(d)}
     static func wakeHint(_ url:URL)->Bool {url.absoluteString=="ynxshop://orders"}
 }
+
+// Uses the existing transition envelope; never supplies a rating or reason for the buyer.
+enum BuyerOrderActionInput {
+    static func allowed(_ status:String,_ action:String)->Bool {
+        switch action {
+        case "cancelled": return status=="payment_pending"
+        case "delivered": return status=="shipped"
+        case "reviewed": return status=="delivered"
+        case "return_requested": return ["delivered","reviewed"].contains(status)
+        case "refund_requested": return ["paid","return_requested","return_approved"].contains(status)
+        case "disputed": return ["paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested"].contains(status)
+        default: return false
+        }
+    }
+    static func build(status:String,action:String,rating:Int,reason:String,detail:String)throws->[String:Any] {
+        let reason=reason.trimmingCharacters(in:.whitespacesAndNewlines),detail=detail.trimmingCharacters(in:.whitespacesAndNewlines)
+        let review=action=="reviewed",resolution=["return_requested","refund_requested","disputed"].contains(action)
+        guard allowed(status,action),review ? (1...5).contains(rating):rating==0,reason.utf8.count<=1000,detail.utf8.count<=5000,!resolution || !reason.isEmpty,!(review && !reason.isEmpty),!(!review && !resolution && (!reason.isEmpty || !detail.isEmpty)) else{throw ShopError.invalidResponse}
+        return ["Action":action,"Rating":rating,"Reason":reason,"Explanation":resolution ? detail:"","Body":review ? detail:""]
+    }
+}
