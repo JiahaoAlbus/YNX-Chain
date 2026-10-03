@@ -141,6 +141,31 @@ test('actual Chrome recovers saved research history after malformed readback wit
     assert.equal(await context.pages().length,1);assert.equal(posts,0);assert.deepEqual(errors,[]);
   }finally{await context.close()}
 });
+test('actual Chrome distinguishes unknown Testnet execution from venue readback across locales and reload without writes',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const good={id:'testnet-000001',market:'YNXT-YUSD_TEST',side:'buy',amount:12,status:'submitted_testnet',venueOrderId:'controlled-venue-order',venueStatus:'filled',authorizationDigest:'a'.repeat(64),brokerProof:'controlled-readback-only'};
+    const records={good,reserved:{...good,id:'testnet-000002',status:'reserved_outcome_unknown'},malformed:null,unsafe:{...good,id:'testnet-000003',amount:Number.MAX_SAFE_INTEGER+1}};
+    let writes=0;const errors=[];
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.testnetOrders=records;await route.fulfill({response,json:body})});
+    context.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes++});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});
+    const original=JSON.stringify(records);
+    for(const language of await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value))){
+      await page.selectOption('#locale',language);
+      const text=await page.locator('#testnet-execution-rows').textContent();
+      assert.equal((text.match(/controlled-venue-order/g)||[]).length,1);assert.equal((text.match(/filled/g)||[]).length,1);
+      assert.ok(text.includes(await page.evaluate(()=>t('executionOutcomeUnknown'))));
+      assert.ok(text.includes(await page.evaluate(()=>t('executionRecordsUnavailable'))));
+      assert.match(text,/12 YNXT_MICRO/);assert.doesNotMatch(text,/9007199254740992/);
+      assert.equal(await page.evaluate(()=>JSON.stringify(snapshot.testnetOrders)),original);
+    }
+    await page.locator('#refresh').click();await page.reload({waitUntil:'networkidle'});
+    assert.equal(await page.locator('#testnet-execution-rows tr').count(),4);
+    assert.equal(writes,0);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome reads controlled persisted Paper records without creating orders or horizontal page overflow',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

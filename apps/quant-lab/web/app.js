@@ -752,6 +752,32 @@ function researchAmount(attribution, key) {
   return attribution?.currency === "YUSD_TEST_MICRO" && Number.isSafeInteger(value)
     ? `${value} YUSD_TEST_MICRO` : "—";
 }
+const executionReadCopy={
+  en:['Execution record unavailable; no venue outcome is inferred.','Reserved request — outcome unknown; not a confirmed venue execution.','No Wallet-authorized Testnet execution yet.'],
+  'zh-CN':['执行记录不可用；未推断交易场所结果。','请求已预留，结果未知；不是已确认的交易场所执行。','尚无钱包授权的测试网执行。'],
+  'zh-TW':['執行紀錄無法讀取；未推定交易場所結果。','請求已預留，結果未知；不是已確認的交易場所執行。','尚無錢包授權的測試網執行。'],
+  ja:['実行記録を確認できません。取引結果は推定しません。','リクエスト予約済み・結果不明。取引の実行は未確認です。','ウォレット承認済みTestnet実行はありません。'],
+  ko:['실행 기록을 확인할 수 없습니다. 거래 결과를 추정하지 않습니다.','요청 예약됨 — 결과 미확인. 거래 실행이 확인되지 않았습니다.','지갑 승인 Testnet 실행이 없습니다.'],
+  es:['Registro no disponible; no se supone ningún resultado.','Solicitud reservada; resultado desconocido, ejecución sin confirmar.','Aún no hay ejecución Testnet autorizada por Wallet.'],
+  fr:['Exécution indisponible ; aucun résultat n’est déduit.','Demande réservée ; résultat inconnu, exécution non confirmée.','Aucune exécution Testnet autorisée par Wallet.'],
+  de:['Ausführungsdatensatz fehlt; kein Ergebnis wird angenommen.','Anfrage reserviert — Ergebnis unbekannt, Ausführung unbestätigt.','Noch keine Wallet-autorisierte Testnet-Ausführung.'],
+  pt:['Registro indisponível; nenhum resultado é presumido.','Pedido reservado; resultado desconhecido, execução não confirmada.','Nenhuma execução Testnet autorizada pela Wallet.'],
+  ru:['Запись недоступна; результат не предполагается.','Запрос зарезервирован; результат неизвестен, исполнение не подтверждено.','Нет Testnet-исполнений с разрешением Wallet.'],
+  ar:['سجل التنفيذ غير متاح؛ لا نفترض نتيجة للتداول.','طلب محجوز؛ النتيجة غير معروفة والتنفيذ غير مؤكد.','لا يوجد تنفيذ Testnet مصرح به من المحفظة.'],
+  id:['Catatan tidak tersedia; hasil eksekusi tidak diasumsikan.','Permintaan dicadangkan; hasil belum diketahui, eksekusi belum dikonfirmasi.','Belum ada eksekusi Testnet yang diizinkan Wallet.']
+};
+for(const [language,[executionRecordsUnavailable,executionOutcomeUnknown,executionRecordsEmpty]] of Object.entries(executionReadCopy))Object.assign(businessCopy[language],{executionRecordsUnavailable,executionOutcomeUnknown,executionRecordsEmpty});
+function renderTestnetExecutions(records){
+  const unavailable=`<tr><td colspan="6">${safe(t('executionRecordsUnavailable'))}</td></tr>`;
+  if(!records||typeof records!=='object'||Array.isArray(records)){$('#testnet-execution-rows').innerHTML=unavailable;return;}
+  const rows=Object.values(records);
+  $('#testnet-execution-rows').innerHTML=rows.length?rows.map(order=>{
+    if(!order||typeof order!=='object'||!/^testnet-[0-9]+$/.test(order.id||'')||order.market!=='YNXT-YUSD_TEST'||!['buy','sell'].includes(order.side)||!Number.isSafeInteger(order.amount)||order.amount<=0)return unavailable;
+    if(order.status==='reserved_outcome_unknown')return `<tr><td><code>${safe(order.id)}</code></td><td>${safe(order.market)}</td><td>${safe(order.side)}</td><td>${order.amount} YNXT_MICRO</td><td>${safe(t('executionOutcomeUnknown'))}</td><td>—</td></tr>`;
+    if(order.status!=='submitted_testnet'||typeof order.venueOrderId!=='string'||!order.venueOrderId.trim()||!['open','partially_filled','filled'].includes(order.venueStatus)||typeof order.authorizationDigest!=='string'||!/^[a-f0-9]{64}$/i.test(order.authorizationDigest)||typeof order.brokerProof!=='string'||!order.brokerProof.trim())return unavailable;
+    return `<tr><td><code>${safe(order.venueOrderId)}</code></td><td>${safe(order.market)}</td><td>${safe(order.side)}</td><td>${order.amount} YNXT_MICRO</td><td>${safe(order.venueStatus)}</td><td><code>${safe(order.authorizationDigest)}</code></td></tr>`;
+  }).join(''):`<tr><td colspan="6">${safe(t('executionRecordsEmpty'))}</td></tr>`;
+}
 function render() {
   const strategies = Object.values(snapshot.strategies || {}),
     experiments = [
@@ -797,8 +823,7 @@ function render() {
   if (!$("#mandate-strategy").value && firstReadableStrategy) {
     $("#mandate-strategy").value = firstReadableStrategy.StrategyHash;
   }
-  const executions = Object.values(snapshot.testnetOrders || {});
-  $("#testnet-execution-rows").innerHTML = executions.length ? executions.map(order => `<tr><td><code>${safe(order.venueOrderId || "Pending")}</code></td><td>${safe(order.market)}</td><td>${safe(order.side)}</td><td>${safe(order.amount)}</td><td>${safe(order.venueStatus || "Outcome pending")}</td><td><code>${safe(order.authorizationDigest || "—")}</code></td></tr>`).join("") : '<tr><td colspan="6">No Wallet-authorized Testnet execution yet.</td></tr>';
+  renderTestnetExecutions(Object.hasOwn(snapshot,'testnetOrders')?snapshot.testnetOrders:{});
 }
 $("#strategy-rows").addEventListener("click", async event => {
   const button = event.target.closest(".schedule-toggle");

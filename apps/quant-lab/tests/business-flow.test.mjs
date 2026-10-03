@@ -15,6 +15,29 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('Testnet execution readback never promotes reserved or malformed rows to a venue fill',async()=>{
+  const app=harness();await settle();
+  const good={id:'testnet-000001',market:'YNXT-YUSD_TEST',side:'buy',amount:12,status:'submitted_testnet',venueOrderId:'venue-controlled',venueStatus:'filled',authorizationDigest:'a'.repeat(64),brokerProof:'controlled-proof'};
+  app.context.executionFixture={good,missing:null,bad:{...good,id:'testnet-000002',amount:'12'},reserved:{...good,id:'testnet-000003',status:'reserved_outcome_unknown'}};
+  vm.runInContext('snapshot.testnetOrders=executionFixture;render()',app.context);
+  const rows=app.ids.get('testnet-execution-rows').innerHTML;
+  assert.equal((rows.match(/venue-controlled/g)||[]).length,1);
+  assert.equal((rows.match(/filled/g)||[]).length,1);
+  assert.match(rows,/12 YNXT_MICRO/);
+  for(const override of [{authorizationDigest:'bad'},{brokerProof:''},{venueOrderId:null},{venueStatus:'complete'},{status:'reserved'},{amount:0},{amount:Number.MAX_SAFE_INTEGER+1},{market:'BTC-USD'}]){
+    app.context.badExecution={...good,...override};vm.runInContext('renderTestnetExecutions({bad:badExecution})',app.context);
+    assert.ok(app.ids.get('testnet-execution-rows').innerHTML.includes(vm.runInContext('safe(t("executionRecordsUnavailable"))',app.context)));
+  }
+  vm.runInContext('render()',app.context);
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.ok(app.ids.get('testnet-execution-rows').innerHTML.includes(vm.runInContext('safe(t("executionOutcomeUnknown"))',app.context)));
+  }
+  app.context.executionFixture=null;vm.runInContext('snapshot.testnetOrders=executionFixture;render()',app.context);
+  assert.ok(app.ids.get('testnet-execution-rows').innerHTML.includes(vm.runInContext('safe(t("executionRecordsUnavailable"))',app.context)));
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+});
+
 test('schedule observations reject normalized invalid dates without inventing a runnable schedule',async()=>{
   const app=harness();await settle();
   for(const value of ['2026-02-30T00:00:00Z','0','2026-10-03','0001-01-01T00:00:00Z',null,undefined]){
