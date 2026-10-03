@@ -1,0 +1,35 @@
+{
+  "actualReact": true,
+  "actualChromium": true,
+  "backend": "controlled browser routes",
+  "calls": [
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/chain/contracts/call",
+      "body": {
+        "csrf": "review",
+        "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "function": "count"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/chain/contracts/0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "body": null
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "public": false,
+  "realContractCall": false
+}

@@ -23,7 +23,7 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
       throw fault("YNX branding changed. Review it before replacing user files.", "core_brand_review_required", 409);
   }
   const toolsRoot = fileURLToPath(new URL("../../../native/ynx-tools", import.meta.url));
-  const toolsTarget = join(context.projectDirectory, "extensions", "ynx.ynx-tools-0.1.0");
+  const toolsTarget = join(context.projectDirectory, "extensions", "ynx.ynx-tools-0.2.0");
   try { const stat = await lstat(toolsTarget); if (!stat.isDirectory() || stat.isSymbolicLink()) throw fault("YNX Tools directory changed.", "core_tools_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(toolsRoot, toolsTarget, { recursive: true, errorOnExist: true, force: false }); }
   for (const file of ["package.json", "activity.svg", "ynx-logo.png", "LICENSE.txt", "src/extension.cjs", "src/guards.cjs", "src/template.cjs"]) {

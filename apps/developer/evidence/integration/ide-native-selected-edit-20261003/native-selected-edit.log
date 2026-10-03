@@ -1,0 +1,1 @@
+{"passed":true,"checks":["Explicit selected-edit preview and one-use send produce exact copied and downloaded version/digest/session-bound replacement; no apply","Saved selected edit reopens with review bundle and no model replay","Retired native identity removes generated and saved private edit bundles"],"errors":[]}

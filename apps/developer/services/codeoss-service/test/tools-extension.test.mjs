@@ -5,12 +5,12 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 const localRequire = createRequire(import.meta.url), source = await readFile(new URL('../../../native/ynx-tools/src/extension.cjs', import.meta.url), 'utf8');
 const { digest } = localRequire('../../../native/ynx-tools/src/guards.cjs');
-function harness({ answer, exists = false, onModal } = {}) {
+function harness({ answer, exists = false, onModal, selectionEdit = false } = {}) {
   const commands = new Map(), errors = [], calls = [], id = '12345678-1234-1234-1234-123456789012';
   class FileSystemError extends Error { constructor() { super('absent'); this.code = 'FileNotFound'; } }
   let text = 'saved draft', version = 1;
   const uri = { fsPath: '/project/a.ts', toString: () => 'file:///project/a.ts' }, doc = { uri, languageId: 'typescript', get version() { return version; }, getText: () => text, positionAt: offset => offset };
-  const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), text: 'suggested' }] });
+  const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), ...(selectionEdit ? {replacements:[{find:'saved draft',replace:'suggested'}]} : {text:'suggested'}) }] });
   class WorkspaceEdit { constructor() { this.operations = []; } createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } replace(uri, range, text) { this.operations.push({ type: 'replace', uri, text }); } }
   const vscode = { FileSystemError, WorkspaceEdit, Position: class {}, Range: class {}, Uri: { parse: value => value, joinPath: (_, name) => name },
     env: { clipboard: { writeText: async value => calls.push({ type: 'clipboard', value }) }, openExternal: async url => calls.push({ type: 'open', url }) },
@@ -33,4 +33,11 @@ test('actual template command never overwrites existing file; creation uses atom
 });
 test('actual diff command previews then rejects edit made during approval; no changes applied', async () => {
   const h = harness({ answer: 'Apply reviewed changes', onModal: change => change() }); await h.commands.get('ynx.applyReviewedDiff')(); assert.deepEqual(h.calls.map(x => x.type), ['preview']); assert.match(h.errors[0], /changed/);
+});
+
+test('actual extension previews a selected replacement and applies only after explicit unchanged-document approval',async()=>{
+ const accepted=harness({answer:'Apply reviewed changes',selectionEdit:true});await accepted.commands.get('ynx.applyReviewedDiff')();
+ assert.deepEqual(accepted.errors,[]);assert.deepEqual(accepted.calls.map(call=>call.type),['preview','edit']);assert.equal(accepted.calls[1].operations[0].text,'suggested');
+ const changed=harness({answer:'Apply reviewed changes',selectionEdit:true,onModal:change=>change()});await changed.commands.get('ynx.applyReviewedDiff')();
+ assert.deepEqual(changed.calls.map(call=>call.type),['preview']);assert.match(changed.errors[0],/changed/);
 });

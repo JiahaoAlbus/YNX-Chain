@@ -158,7 +158,7 @@ test('reviewed document changes reject concurrent edits, digest mismatch and dup
 test('pinned tools install survives reopen and never overwrites tampered extension or symlink', async () => {
   const projectDirectory = await mkdtemp(join(tmpdir(), 'ynx-tools-install-')), context = { projectDirectory };
   await prepareCoreProject(context); await prepareCoreProject(context);
-  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.1.0', 'src', 'guards.cjs');
+  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.0', 'src', 'guards.cjs');
   assert.match(await readFile(path, 'utf8'), /validateChanges/); await writeFile(path, 'changed by project');
   await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' }); assert.equal(await readFile(path, 'utf8'), 'changed by project');
   await import('node:fs/promises').then(fs => fs.unlink(path)); await symlink('/etc/passwd', path); await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' });
@@ -248,3 +248,43 @@ for (const transition of ['changeAccount','changeProject','changeReference','rev
     assert.equal(router.catalog().active,0);assert.equal(router.catalog().queued,0);
   });
 }
+
+test('actual Tools selected-edit approval exports and reopens a version-bound replacement without applying it',async t=>{
+ const text='prefix\nselected passage\nsuffix', selection={uri:'file:///project/a.ts',version:7,fullTextDigest:digest(text),selectedText:'selected passage',sessionId};
+ const answer=JSON.stringify({summary:'Replace selected passage',replacement:'new passage'});
+ const h=await harness(t,{modelWork:async()=>({model:'qwen3:4b',text:answer})}),c=await h.send('context');
+ const p=await h.send('proposals',{csrf:c.value.csrf,prompt:'Improve the selected text',context:JSON.stringify(selection),mode:'selected-edit'});
+ assert.equal(p.status,200);assert.equal(p.value.mode,'selected-edit');assert.match(p.value.wirePrompt,/Return JSON only/);
+ const result=await h.send('approve',{csrf:p.value.csrf,proposalId:p.value.proposalId,approval:'send-reviewed-context-once'});
+ assert.equal(result.status,200);assert.equal(result.value.applied,false);assert.equal(result.value.signed,false);
+ const changes=validateChanges(result.value.edit.bundle,new Map([[selection.uri,{version:7,getText:()=>text}]]),sessionId);
+ assert.equal(changes[0].text,'prefix\nnew passage\nsuffix');assert.equal(h.calls.length,1);
+ const restored=await h.send('ai/conversations/'+result.value.conversationId);assert.equal(restored.status,200);assert.deepEqual(restored.value.conversation.edit,result.value.edit);assert.equal(h.calls.length,1);
+});
+test('invalid capture or model-invented edit metadata cannot produce a native edit or reusable approval',async t=>{
+ const h=await harness(t,{modelWork:async()=>({model:'qwen3:4b',text:JSON.stringify({summary:'Wrong target',replacement:'new',uri:'file:///foreign'})})});
+ let c=await h.send('context');const bad=await h.send('proposals',{csrf:c.value.csrf,prompt:'Improve selection',context:JSON.stringify({sessionId:'foreign'}),mode:'selected-edit'});
+ assert.equal(bad.status,400);assert.equal(h.calls.length,0);
+ c=await h.send('context');const capture={uri:'file:///project/a.ts',version:1,fullTextDigest:digest('selected'),selectedText:'selected',sessionId};
+ const p=await h.send('proposals',{csrf:c.value.csrf,prompt:'Improve selection',context:JSON.stringify(capture),mode:'selected-edit'});
+ const body={csrf:p.value.csrf,proposalId:p.value.proposalId,approval:'send-reviewed-context-once'},response=await h.send('approve',body);
+ assert.equal(response.status,502);assert.equal(response.value.code,'tools_edit_output_invalid');assert.equal(response.value.edit,undefined);
+ const records=h.aiStore.list('verified-A','project-A');assert.equal(records[0].status,'failed');assert.equal(h.aiStore.get('verified-A','project-A',records[0].id).text,undefined);
+ assert.equal((await h.send('approve',body)).status,403);assert.equal(h.calls.length,1);
+});
+test('a saved selected edit from an earlier runtime remains readable without rebinding its edit to the new session',async t=>{
+ const h=await harness(t),context=JSON.stringify({kind:'ynx-native-selected-edit/v1',context:JSON.stringify({uri:'file:///project/a.ts',version:2,fullTextDigest:digest('selected'),selectedText:'selected',sessionId:'00000000-0000-4000-8000-000000000099'})});
+ const record=h.aiStore.create({owner:'verified-A',projectId:'project-A',prompt:'Earlier selection',context,model:'qwen3:4b'});
+ const text=JSON.stringify({summary:'Earlier edit',replacement:'new'});h.aiStore.complete('verified-A','project-A',record.id,{text,model:'qwen3:4b'});
+ const reopened=await h.send('ai/conversations/'+record.id);assert.equal(reopened.status,200);assert.equal(reopened.value.conversation.text,text);
+ assert.equal(reopened.value.conversation.edit,undefined);assert.equal(reopened.value.conversation.editRequiresRecapture,true);assert.equal(h.calls.length,0);
+});
+test('versioned Tools upgrade preserves legacy extension files and installs the new exact bundle separately',async t=>{
+ const fs=await import('node:fs/promises'),root=await mkdtemp(join(tmpdir(),'ynx-tools-versioned-'));
+ t.after(()=>fs.rm(root,{recursive:true,force:true}));const legacy=join(root,'extensions','ynx.ynx-tools-0.1.0','src');await fs.mkdir(legacy,{recursive:true});await writeFile(join(legacy,'guards.cjs'),'legacy user file preserved');
+ await prepareCoreProject({projectDirectory:root});
+ assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
+ const current=join(root,'extensions','ynx.ynx-tools-0.2.0');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.0');
+ assert.match(await readFile(join(current,'src','guards.cjs'),'utf8'),/replacements/);await prepareCoreProject({projectDirectory:root});
+ assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
+});

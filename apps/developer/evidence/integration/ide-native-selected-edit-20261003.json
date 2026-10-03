@@ -1,0 +1,99 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "a55512040620299b96d0ec4a31fc38cf70c743b4",
+  "changes": {
+    "explicitSelectedEditMode": true,
+    "serverReviewedCaptureBoundToCurrentSession": true,
+    "modelCannotChooseTargetMetadata": true,
+    "copyAndDownloadExactReviewBundle": true,
+    "uniqueSelectionReplacementPreservesSurroundingText": true,
+    "nativeVersionDigestPathAndModalChecksPreserved": true,
+    "savedReadbackWithoutModelReplay": true,
+    "oldSessionCannotExportReboundEdit": true,
+    "legacyOpaqueAnswersRemainReadable": true,
+    "toolsVersion": "0.2.0",
+    "versionedExtensionUpgradePreservesOldFiles": true
+  },
+  "verification": {
+    "serviceTests": {
+      "pass": 98,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-native-selected-edit-20261003/service-tests.log"
+    },
+    "browserSuites": [
+      {
+        "name": "native-tools",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-tools.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      },
+      {
+        "name": "native-contract",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-contract.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      },
+      {
+        "name": "native-wallet",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-wallet.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      },
+      {
+        "name": "native-ai-history",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-ai-history.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      },
+      {
+        "name": "native-ai-cancel",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-ai-cancel.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      },
+      {
+        "name": "native-selected-edit",
+        "exitCode": 0,
+        "receipt": "ide-native-selected-edit-20261003/native-selected-edit.json",
+        "scope": "Actual React/Chromium; controlled HTTP and injected Wallet/clipboard where relevant"
+      }
+    ],
+    "typescript": {
+      "exitCode": 0
+    },
+    "frontendBuild": {
+      "exitCode": 0,
+      "warning": "Existing large chunks; sourcemaps preserved"
+    },
+    "staticCheck": {
+      "exitCode": 0
+    },
+    "verifiedBuildInputs": 71,
+    "editorCommandScope": "Actual extension source executed in VM with controlled VSCode API; real filesystem guards and versioned extension copy tested independently",
+    "clipboardScope": "Controlled browser clipboard API; actual downloaded JSON bytes verified",
+    "originalFailuresPreserved": true,
+    "corrections": [
+      "Made Review mode an explicit HTML label/control association after initial exact accessible-name failure",
+      "Browser saved-record assertion now waits for its rendered heading after HTTP completion"
+    ],
+    "testServerStopped": {
+      "pid": 69996,
+      "signal": "SIGTERM"
+    },
+    "packageNetworkInstalls": 0
+  },
+  "limits": {
+    "configuredRealModel": false,
+    "formalPublication": false,
+    "fullNativeEditorApplyJourney": "NOT_RUN",
+    "installedUserAcceptance": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  }
+}

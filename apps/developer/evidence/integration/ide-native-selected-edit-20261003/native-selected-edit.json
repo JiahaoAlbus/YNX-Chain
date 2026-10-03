@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "checks": [
+    "Explicit selected-edit preview and one-use send produce exact copied and downloaded version/digest/session-bound replacement; no apply",
+    "Saved selected edit reopens with review bundle and no model replay",
+    "Retired native identity removes generated and saved private edit bundles"
+  ],
+  "errors": [],
+  "calls": [
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/proposals",
+      "body": {
+        "csrf": "fresh",
+        "prompt": "Improve selection",
+        "context": "{\"uri\":\"file:///project/a.ts\",\"version\":4,\"fullTextDigest\":\"2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0\",\"selectedText\":\"selected passage\",\"sessionId\":\"12345678-1234-1234-1234-123456789012\"}",
+        "mode": "selected-edit"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/approve",
+      "body": {
+        "csrf": "review",
+        "proposalId": "selection-1",
+        "approval": "send-reviewed-context-once"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/ai/conversations",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/ai/conversations/00000000-0000-4000-8000-000000000001",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/wallet/readiness",
+      "body": null
+    }
+  ],
+  "actualReact": true,
+  "actualChromium": true,
+  "backend": "controlled browser HTTP fixtures",
+  "public": false,
+  "nativeEditorJourney": "NOT_RUN"
+}
