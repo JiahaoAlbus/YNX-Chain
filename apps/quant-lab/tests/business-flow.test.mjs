@@ -13,6 +13,27 @@ const settle = async () => {await new Promise(setImmediate);};
 const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
+test('saved research never displays returns for failed, running or unknown completion status',async()=>{
+  for(const status of [undefined,null,'','running','failed','completed','COMPLETED_OOS']){
+    const invalid={...researchFixture('unconfirmed-history'),status,metrics:{...researchFixture('base').metrics,ReturnBPS:9876}};
+    const app=harness({snapshot:{experiments:{invalid,valid:researchFixture('verified-neighbor')}}});await settle();
+    const rows=app.ids.get('experiment-rows').innerHTML;
+    assert.match(rows,/verified-neighbor/);assert.doesNotMatch(rows,/9876 bps|unconfirmed-history/);
+    assert.ok(rows.includes(vm.runInContext('safe(t("researchInvalid"))',app.context)));
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+  }
+});
+test('invalid completion cannot replace the last verified chart or localized result',async()=>{
+  const app=harness();await settle();app.context.completedResult=researchFixture('verified-chart');
+  vm.runInContext('renderResult(completedResult,false)',app.context);
+  const chart=app.ids.get('equity-chart').innerHTML,previousReturn=app.ids.get('result-return').textContent;
+  for(const status of [null,'running','failed']){
+    app.context.invalidResult={...researchFixture('invalid-chart'),status};
+    assert.throws(()=>vm.runInContext('renderResult(invalidResult,false)',app.context));
+    assert.equal(app.ids.get('equity-chart').innerHTML,chart);assert.equal(app.ids.get('result-return').textContent,previousReturn);
+    assert.equal(vm.runInContext('latestResearchResult.id',app.context),'verified-chart');
+  }
+});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
 test('configured research split never claims a fixed 50 percent and follows every selected language',async()=>{

@@ -1002,7 +1002,7 @@ const reuseResearchCopy = {
 };
 for (const [language,[reuseSavedLabel,reuseSavedAction,reuseSavedDone]] of Object.entries(reuseResearchCopy)) Object.assign(businessCopy[language],{reuseSavedLabel,reuseSavedAction,reuseSavedDone});
 function verifiedResearchResult(result) {
-  return typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
+  return result?.status === "completed_oos" && typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
 }
 function researchRequestMatches(result, submitted) {
   // Check the immutable submitted parameters, not the user's next edited draft.

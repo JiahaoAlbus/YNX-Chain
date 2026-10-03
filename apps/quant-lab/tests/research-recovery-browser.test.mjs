@@ -105,6 +105,13 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     await stop();await start();await page.reload({waitUntil:'networkidle'});await otherPage.reload({waitUntil:'networkidle'});
     assert.deepEqual(await page.evaluate(()=>snapshot.paper),killedBefore,'Paper fill and kill latch survive another complete service stop/start');
     assert.deepEqual(await otherPage.evaluate(()=>snapshot.paper),otherPaperBefore,'one tenant Paper risk/fill cannot leak into the second browser');
+    // Corrupt only the local displayed readback copy, not server storage or
+    // authority: an unconfirmed completion must not turn into return history.
+    for(const status of [null,'running','failed']){
+      await page.evaluate(status=>{const completed=Object.values(snapshot.experiments)[0];snapshot.experiments.unconfirmed={...completed,id:'unconfirmed-local-copy',status,strategy:{...completed.strategy,Name:'Unconfirmed local readback'},metrics:{...completed.metrics,ReturnBPS:9876}};render()},status);
+      const history=await page.locator('#experiment-rows').textContent();assert.match(history,/Controlled lost-return research/);assert.doesNotMatch(history,/9876 bps|Unconfirmed local readback/);assert.match(history,/unconfirmed/i);
+    }
+    await page.evaluate(()=>{delete snapshot.experiments.unconfirmed;render()});
     await page.locator('nav button[data-view="paper"]').click();await page.locator('#paper-strategy').selectOption(firstReceipt.strategy.StrategyHash);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     assert.deepEqual(errors,[]);assert.deepEqual(otherErrors,[]);assert.equal(posts,2);
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
