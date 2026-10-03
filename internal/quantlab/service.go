@@ -528,7 +528,7 @@ func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
 	if _, exists := s.state.Datasets[key]; exists {
 		return DatasetRecord{}, ErrConflict
 	}
-	s.state.Datasets[key] = record
+	s.state.Datasets[key] = copyDatasetObservation(record)
 	s.audit("dataset_registered", key, record.ContentSHA256)
 	return record, s.save()
 }
@@ -919,7 +919,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 	if err := s.save(); err != nil {
 		return Experiment{}, err
 	}
-	return e, nil
+	return copyResearchReceipt(e)
 }
 
 func (s *Service) RunBacktestFromMarket(strategy StrategySpec, assumptions Assumptions) (Experiment, error) {
@@ -1174,6 +1174,33 @@ func cloneParams(input map[string]int64) map[string]int64 {
 	return out
 }
 
+// Business responses are observations, not mutable handles into stored state.
+func copyDatasetObservation(record DatasetRecord) DatasetRecord {
+	record.PermittedUses = append([]string(nil), record.PermittedUses...)
+	record.DataTypes = append([]string(nil), record.DataTypes...)
+	record.BiasControls = append([]string(nil), record.BiasControls...)
+	record.Lineage = append([]string(nil), record.Lineage...)
+	return record
+}
+
+func copyStrategyObservation(strategy StrategySpec) StrategySpec {
+	if strategy.Params != nil {
+		strategy.Params = cloneParams(strategy.Params)
+	}
+	return strategy
+}
+
+func copyPaperObservation(paper PaperState) PaperState {
+	if paper.Orders != nil {
+		paper.Orders = append([]PaperOrder{}, paper.Orders...)
+	}
+	if paper.DailyRisk != nil {
+		risk := *paper.DailyRisk
+		paper.DailyRisk = &risk
+	}
+	return paper
+}
+
 func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (StrategySpec, error) {
 	approval.TargetStage = strings.TrimSpace(approval.TargetStage)
 	approval.Actor = strings.TrimSpace(approval.Actor)
@@ -1223,7 +1250,7 @@ func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (Strate
 		Strategy StrategySpec
 		Approval LifecycleApproval
 	}{v, approval}))
-	return v, s.save()
+	return copyStrategyObservation(v), s.save()
 }
 
 func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSeconds int64, assumptions Assumptions) (StrategySpec, error) {
@@ -1245,7 +1272,7 @@ func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSec
 		strategy.Runtime.LastRunStatus = "stopped_by_user"
 		s.state.Strategies[id] = strategy
 		s.audit("strategy_schedule_stopped", id, hash(strategy.Runtime))
-		return strategy, s.save()
+		return copyStrategyObservation(strategy), s.save()
 	}
 	if _, err := normalizeResearchParameters(strategy, assumptions); err != nil {
 		return StrategySpec{}, err
@@ -1256,7 +1283,7 @@ func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSec
 	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}
 	s.state.Strategies[id] = strategy
 	s.audit("strategy_schedule_started", id, hash(strategy.Runtime))
-	return strategy, s.save()
+	return copyStrategyObservation(strategy), s.save()
 }
 
 type scheduledRunClaim struct {
@@ -1619,7 +1646,7 @@ func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (Pap
 		s.state.Paper.KillSwitch = true
 	}
 	s.audit("paper_reconciled", "paper", hash(struct{ Cash, Position, Delta int64 }{authoritativeCash, authoritativePosition, delta}))
-	return s.state.Paper, s.save()
+	return copyPaperObservation(s.state.Paper), s.save()
 }
 func (s *Service) Kill(reason string) (PaperState, error) {
 	if len(strings.TrimSpace(reason)) < 3 {
@@ -1634,7 +1661,7 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 	defer release()
 	s.state.Paper.KillSwitch = true
 	s.audit("kill_switch_activated", "paper", hash(reason))
-	return s.state.Paper, s.save()
+	return copyPaperObservation(s.state.Paper), s.save()
 }
 func (s *Service) Snapshot() map[string]any {
 	snapshot, _ := s.snapshotWithFingerprint()
