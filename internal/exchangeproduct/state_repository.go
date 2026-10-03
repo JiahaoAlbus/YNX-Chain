@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -53,9 +54,10 @@ func (repository fileStateRepository) Save(expectedIntegrity string, state *pers
 }
 
 type postgresStateRepository struct {
-	db            *sql.DB
-	bootstrapPath string
-	schemaMode    string
+	db               *sql.DB
+	bootstrapPath    string
+	schemaMode       string
+	bootstrapRetired atomic.Bool
 }
 
 func (*postgresStateRepository) Mode() string { return "postgres-cas-multi-instance" }
@@ -141,7 +143,9 @@ func (repository *postgresStateRepository) Load() (persistentState, bool, error)
 		err = repository.db.QueryRow(`SELECT state_json FROM ynx_exchange_state WHERE singleton = TRUE`).Scan(&raw)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		if repository.bootstrapPath == "" {
+		// Startup import is not an outage-recovery mechanism. Once this
+		// repository has observed/imported authority, absence must propagate.
+		if repository.bootstrapRetired.Swap(true) || repository.bootstrapPath == "" {
 			return newState(), false, nil
 		}
 		state, exists, loadErr := loadState(repository.bootstrapPath)
@@ -159,6 +163,7 @@ func (repository *postgresStateRepository) Load() (persistentState, bool, error)
 	if err != nil {
 		return persistentState{}, false, fmt.Errorf("load exchange database state: %w", err)
 	}
+	repository.bootstrapRetired.Store(true)
 	state, err := decodeStateBytes(raw)
 	if err != nil {
 		return persistentState{}, false, fmt.Errorf("decode exchange database state: %w", err)
