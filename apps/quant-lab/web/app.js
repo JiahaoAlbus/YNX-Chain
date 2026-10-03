@@ -667,6 +667,33 @@ async function quantResponseText(response,signal){
   }catch{cancel();throw invalid();}
   finally{signal.removeEventListener('abort',cancel);try{reader.releaseLock()}catch{}}
 }
+// Product API JSON must have one meaning across readers. Reject repeated keys
+// (including escaped aliases) and excessive nesting before materialization.
+function quantResponseDocument(text) {
+  let cursor=0;
+  const invalid=()=>{throw new Error('Ambiguous product API document')};
+  const whitespace=()=>{while(/[\t\n\r ]/.test(text[cursor]??'\0'))cursor++};
+  const stringToken=()=>{
+    const start=cursor++;
+    while(cursor<text.length){if(text[cursor]==='\\'){cursor+=2;continue}if(text[cursor++]==='"')return text.slice(start,cursor)}
+    invalid();
+  };
+  const scan=depth=>{
+    if(depth>64)invalid();whitespace();
+    if(text[cursor]==='"'){stringToken();return}
+    if(text[cursor]==='{'||text[cursor]==='['){
+      const object=text[cursor++]==='{',end=object?'}':']',keys=new Set();whitespace();
+      if(text[cursor]===end){cursor++;return}
+      while(cursor<text.length){
+        if(object){if(text[cursor]!=='"')invalid();const key=JSON.parse(stringToken());if(keys.has(key))invalid();keys.add(key);whitespace();if(text[cursor++]!==':')invalid()}
+        scan(depth+1);whitespace();if(text[cursor]===end){cursor++;return}if(text[cursor++]!==',')invalid();whitespace();
+      }
+      invalid();
+    }
+    const start=cursor;while(cursor<text.length&&!/[\t\n\r ,}\]]/.test(text[cursor]))cursor++;if(cursor===start)invalid();
+  };
+  scan(0);whitespace();if(cursor!==text.length)invalid();return JSON.parse(text);
+}
 async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   const controller = new AbortController();
   let rejectDeadline;
@@ -684,7 +711,7 @@ async function quantHTTP(path, options, {fetchImpl = fetch, setTimer = setTimeou
         throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
       }
       const text = await quantResponseText(response,controller.signal);
-      let body;try { body = JSON.parse(text); } catch { throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'}); }
+      let body;try { body = quantResponseDocument(text); } catch { throw Object.assign(new Error('Invalid product API response'), {code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'}); }
       return {response,body};
     })(),deadline]);
   } finally { clearTimer(timeout);controller.abort(); }

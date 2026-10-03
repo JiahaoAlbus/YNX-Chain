@@ -696,6 +696,18 @@ test('shipped Quant HTTP streams fragmented UTF8 and cancels oversized bodies be
   await assert.rejects(transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response(new Uint8Array([123,34,120,34,58,34,255,34,125]),{headers:{'content-type':'application/json'}})}),{code:'QUANT_API_RESPONSE_INVALID'});
 });
 
+test('Quant HTTP rejects duplicate or overnested financial documents without choosing a final value or retrying',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
+  for(const raw of ['{"paper":{"Cash":1,"Cash":999999}}','{"access":{"statefulPreview":false,"statefulPreview":true}}','{"metrics":{"ReturnBPS":-9000,"Return\\u0042PS":9000}}','{"orders":[{"IdempotencyKey":"old","IdempotencyKey":"new"}]}','['.repeat(66)+'0'+']'.repeat(66)]){
+    let requests=0;
+    await assert.rejects(transport('/v1/backtests/from-market',{method:'POST',body:'retained-exact-intent'},{fetchImpl:async()=>{requests++;return new Response(raw,{headers:{'content-type':'application/json'}})}}),{code:'QUANT_API_RESPONSE_INVALID'});
+    assert.equal(requests,1);assert.equal(app.proofs(),0);
+  }
+  const raw='{"rows":[{"id":"one","label":"quote: \\\" and brackets [] {}"},{"id":"two"}],"empty":{},"negative":-2,"unicode":"測試"}';
+  const result=await transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response(raw,{headers:{'content-type':'application/json'}})});
+  assert.equal(JSON.stringify(result.body),JSON.stringify(JSON.parse(raw)));
+});
+
 test('invalid response length declarations cancel before a body read and never replay a research request',async()=>{
   const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
   for(const length of ['-1','1.5','1e3','NaN','Infinity','9007199254740993','8388609']){

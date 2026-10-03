@@ -271,6 +271,21 @@ test('actual Chrome keeps a malformed Paper receipt pending and retries only the
     assert.match(await page.locator('#paper-record-rows').textContent(),/1200000 \/ 100 \/ 100/);assert.equal(await page.locator('#paper-record-status').textContent(),'');
   }finally{await context.close()}
 });
+test('actual Chrome rejects duplicate financial keys and preserves prior workspace until verified refresh',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let reads=0,writes=0;const errors=[],hash='d'.repeat(64);
+    await context.route('**/api/v1/snapshot',async route=>{
+      reads++;const body={access:{statefulPreview:true},strategies:{saved:{Name:'Controlled saved strategy',StrategyHash:hash}},paper:{Cash:777,Position:0,KillSwitch:false},experiments:{},audit:[]};
+      const raw=JSON.stringify(body);return route.fulfill({status:200,contentType:'application/json',body:reads===2?raw.replace('"Cash":777','"Cash":777,"Cash":999999'):raw});
+    });
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(request.method()==='POST')writes++});
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
+    await assert.rejects(page.evaluate(()=>refresh()),/Request outcome is unconfirmed/);assert.equal(await page.evaluate(()=>workspaceReadUnavailable),true);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    await page.evaluate(()=>refresh());assert.equal(await page.evaluate(()=>workspaceReadUnavailable),false);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
+    assert.equal(reads,3);assert.equal(writes,0);assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+  }finally{await context.close()}
+});
 test('actual Chrome blocks fresh Paper intent after silent pending removal failure and reload keeps exact retry',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
