@@ -1,0 +1,22 @@
+Exception in thread "main" java.io.IOException: Original Music account selection is unconfirmed
+	at com.ynxweb4.music.MusicStore.selectAccount(MusicStore.java:25)
+	at com.ynxweb4.music.NativeStoreCheck.main(NativeStoreCheck.java:17)
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home/bin/java -classpath /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-owned-store-host-HqtrxI:/tmp/ynx-music-json-20240303.jar com.ynxweb4.music.NativeStoreCheck
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/music/scripts/verify-native-store.mjs:16:1 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 34858,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0

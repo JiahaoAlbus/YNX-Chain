@@ -1,0 +1,244 @@
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MusicStore.java:35: Warning: Consider using apply() instead; commit writes its data to persistent storage immediately, whereas apply will handle it in the background [ApplySharedPref]
+    static void detach(Context c){synchronized(WRITE_LOCK){DETACHED_ROOTS.add(c.getFilesDir().getAbsolutePath());c.getSharedPreferences("music-identity",0).edit().remove("account").commit();}}
+                                                                                                                                                                                     ~~~~~~~~
+
+   Explanation for issues of type "ApplySharedPref":
+   Consider using apply() instead of commit on shared preferences. Whereas
+   commit blocks and writes its data to persistent storage immediately, apply
+   will handle it in the background.
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/build.gradle:9: Warning: Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details. [OldTargetApi]
+        targetSdk 35
+        ~~~~~~~~~~~~
+
+   Explanation for issues of type "OldTargetApi":
+   When your application or sdk runs on a version of Android that is more
+   recent than your targetSdkVersion specifies that it has been tested with,
+   various compatibility modes kick in. This ensures that your application
+   continues to work, but it may look out of place. For example, if the
+   targetSdkVersion is less than 14, your app may get an option button in the
+   UI.
+
+   To fix this issue, set the targetSdkVersion to the highest available value.
+   Then test your app to make sure everything works correctly. You may want to
+   consult the compatibility notes to see what changes apply to each version
+   you are adding support for:
+   https://developer.android.com/reference/android/os/Build.VERSION_CODES.html
+   as well as follow this guide:
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.
+   html
+
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.html
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/LocaleSupport.java:9: Warning: Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the bundle configuration [AppBundleLocaleChanges]
+    static Context wrap(Context base){String tag=base.getSharedPreferences("settings",0).getString("locale","system");if("system".equals(tag))return base;Locale locale=Locale.forLanguageTag(tag);LocaleList.setDefault(new LocaleList(locale));android.content.res.Configuration c=new android.content.res.Configuration(base.getResources().getConfiguration());c.setLocales(new LocaleList(locale));c.setLayoutDirection(locale);return base.createConfigurationContext(c);}
+                                                                                                                                                                                                                                                                                                                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AppBundleLocaleChanges":
+   When changing locales at runtime (e.g. to provide an in-app language
+   switcher), the Android App Bundle must be configured to not split by locale
+   or the Play Core library must be used to download additional locales at
+   runtime.
+
+   https://developer.android.com/guide/app-bundle/configure-base#handling_language_changes
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/build.gradle:5: Warning: A newer version of compileSdkVersion than 35 is available: 36 [GradleDependency]
+    compileSdk 35
+    ~~~~~~~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/NativeSessionBridge.java:31: Warning: Using setJavaScriptEnabled can introduce XSS vulnerabilities into your application, review carefully [SetJavaScriptEnabled]
+ private NativeSessionBridge(Context context){this.context=context;NativeProtectedRuntime ports=null;WebView view=null;JSONObject registrations=null;try{if(Looper.myLooper()!=Looper.getMainLooper())throw new SecurityException("Native engine must be created on UI thread");byte[] sdk=asset("wallet-auth-native-consumer.mjs");if(!SDK_SHA.equals(hex(MessageDigest.getInstance("SHA-256").digest(sdk))))throw new SecurityException("Pinned Native SDK bytes changed");verifyAssets();registrations=new JSONObject(new String(asset("registry.json"),StandardCharsets.UTF_8));ports=new NativeProtectedRuntime(context);view=new WebView(context);WebSettings settings=view.getSettings();settings.setJavaScriptEnabled(true);settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setDomStorageEnabled(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);view.setWebViewClient(new WebViewClient(){@Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){try{Uri url=request.getUrl();String name=url.getLastPathSegment();if(!request.getMethod().equals("GET")||!url.toString().equals(ENGINE+name)||!MusicIO.set("index.html","client.mjs","media-native-consumer.mjs","wallet-auth-native-consumer.mjs").contains(name))return blocked();return new WebResourceResponse(name.endsWith("html")?"text/html":"text/javascript","utf-8",new ByteArrayInputStream(asset(name)));}catch(Exception failure){return blocked();}}@Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){return !request.getUrl().toString().equals(ENGINE+"index.html");}});view.addJavascriptInterface(new Ports(),"NativePorts");}catch(Exception failure){ready.completeExceptionally(failure);}runtime=ports;engine=view;registry=registrations;if(engine!=null){engine.loadUrl(ENGINE+"index.html");main.postDelayed(()->{if(!ready.isDone())ready.completeExceptionally(new IOException("Native engine initialization timed out"));},15000);}}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SetJavaScriptEnabled":
+   Your code should not invoke setJavaScriptEnabled if you are not sure that
+   your app really requires JavaScript support.
+
+   https://goo.gle/SetJavaScriptEnabled
+   https://developer.android.com/training/articles/security-tips
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/AndroidManifest.xml:8: Warning: The attribute android:allowBackup is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute android:dataExtractionRules specifying an @xml resource which configures cloud backups and device transfers on Android 12 and higher. [DataExtractionRules]
+    <application android:allowBackup="false" android:usesCleartextTraffic="true" android:supportsRtl="true" android:label="@string/app_name" android:theme="@style/AppTheme" android:icon="@drawable/ic_music">
+                                      ~~~~~
+
+   Explanation for issues of type "DataExtractionRules":
+   Before Android 12, the attributes android:allowBackup and
+   android:fullBackupContent were used to configure all forms of backup,
+   including cloud backups, device-to-device transfers and adb backup.
+
+   In Android 12 and higher, these attributes have been deprecated and will
+   only apply to cloud backups. You should instead use the attribute
+   android:dataExtractionRules, specifying an @xml resource that configures
+   which files to back up, for cloud backups and for device-to-device
+   transfers, separately. If your minSdkVersion supports older versions,
+   you'll still want to specify an android:fullBackupContent resource if the
+   default behavior is not right for your app.
+
+   https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   https://goo.gle/DataExtractionRules
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:44: Warning: Unnecessary; SDK_INT is always >= 28 [ObsoleteSdkInt]
+                if(Build.VERSION.SDK_INT>=26)startForegroundService(intent);else startService(intent);now.setText(track.optString("title"));status.setText(R.string.ready);
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/PlaybackService.java:42: Warning: Unnecessary; SDK_INT is always >= 28 [ObsoleteSdkInt]
+    private void createChannel(){if(Build.VERSION.SDK_INT>=26)getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel("playback",getString(R.string.background_playback),NotificationManager.IMPORTANCE_LOW));}
+                                    ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ObsoleteSdkInt":
+   This check flags version checks that are not necessary, because the
+   minSdkVersion (or surrounding known API level) is already at least as high
+   as the version checked for.
+
+   Similarly, it also looks for resources in -vNN folders, such as values-v14
+   where the version qualifier is less than or equal to the minSdkVersion,
+   where the contents should be merged into the best folder.
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/NativeSessionBridge.java:32: Warning: Do not place Android context classes in static fields (static reference to NativeSessionBridge which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+ private static NativeSessionBridge shared;
+         ~~~~~~
+
+   Explanation for issues of type "StaticFieldLeak":
+   A static field will leak contexts.
+
+   Non-static inner classes have an implicit reference to their outer class.
+   If that outer class is for example a Fragment or Activity, then this
+   reference means that the long-running handler/loader/task will hold a
+   reference to the activity which prevents it from getting garbage
+   collected.
+
+   Similarly, direct field references to activities and fragments from these
+   longer running instances can cause leaks.
+
+   ViewModel classes should never point to Views or non-application Contexts.
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/res/drawable/ynx_logo.png: Warning: The resource R.drawable.ynx_logo appears to be unused [UnusedResources]
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+   Available options:
+
+   **skip-libraries** (default is true):
+   Whether the unused resource check should skip reporting unused resources in libraries.
+
+   Many libraries will declare resources that are part of the library surface; other modules depending on the library will also reference the resources. To avoid reporting all these resources as unused (in the context of a library), the unused resource check normally skips reporting unused resources in libraries. Instead, run the unused resource check on the consuming app module (along with `checkDependencies=true`).
+
+   However, there are cases where you want to check that all the resources declared in a library are used; in that case, you can disable the skip option.
+
+   To configure this option, use a `lint.xml` file with an <option> like this:
+
+   ```xml
+   <lint>
+       <issue id="UnusedResources">
+           <option name="skip-libraries" value="true" />
+       </issue>
+   </lint>
+   ```
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/res/drawable/ynx_logo.png: Warning: Found bitmap drawable res/drawable/ynx_logo.png in densityless folder [IconLocation]
+
+   Explanation for issues of type "IconLocation":
+   The res/drawable folder is intended for density-independent graphics such
+   as shapes defined in XML. For bitmaps, move it to drawable-mdpi and
+   consider providing higher and lower resolution versions in drawable-ldpi,
+   drawable-hdpi and drawable-xhdpi. If the icon really is density independent
+   (for example a solid color) you can place it in drawable-nodpi.
+
+   https://developer.android.com/guide/practices/screens_support.html
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:32: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void refresh(){if(nativeBridge.session()==null){recover();return;}final long generation=authGeneration;final MusicApi requestApi=api;status.setText(R.string.loading);new Thread(()->{try{JSONObject remote=requestApi.get("/api/me");runOnUiThread(()->{if(generation!=authGeneration)return;try{JSONObject profile=remote.optJSONObject("profile");if(profile==null)throw new IOException("Verified Music profile missing");String account=profile.getString("account");requestApi.assertCurrent();if(!account.equals(requestApi.account()))throw new IOException("Original Music account readback mismatch");store=MusicStore.selectAccount(this,account);state=store.load();state=merge(remote);visibleNativeEpoch=nativeBridge.epoch();status.setText(R.string.ready);render();}catch(Exception e){status.setText(getString(R.string.auth_rejected)+": "+e.getMessage());}});}catch(Exception e){runOnUiThread(()->{if(generation!=authGeneration)return;status.setText(getString(R.string.offline_mode)+": "+e.getMessage());render();});}}).start();}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:32: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void refresh(){if(nativeBridge.session()==null){recover();return;}final long generation=authGeneration;final MusicApi requestApi=api;status.setText(R.string.loading);new Thread(()->{try{JSONObject remote=requestApi.get("/api/me");runOnUiThread(()->{if(generation!=authGeneration)return;try{JSONObject profile=remote.optJSONObject("profile");if(profile==null)throw new IOException("Verified Music profile missing");String account=profile.getString("account");requestApi.assertCurrent();if(!account.equals(requestApi.account()))throw new IOException("Original Music account readback mismatch");store=MusicStore.selectAccount(this,account);state=store.load();state=merge(remote);visibleNativeEpoch=nativeBridge.epoch();status.setText(R.string.ready);render();}catch(Exception e){status.setText(getString(R.string.auth_rejected)+": "+e.getMessage());}});}catch(Exception e){runOnUiThread(()->{if(generation!=authGeneration)return;status.setText(getString(R.string.offline_mode)+": "+e.getMessage());render();});}}).start();}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:45: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+            }catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}});
+                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:46: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        }catch(Exception error){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+error.getMessage()));}});
+                                                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:48: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void download(JSONObject t){status.setText(R.string.downloading);runAccountTask((requestApi,requestState,generation)->{try{requestApi.download(t.optString("id"));requestState.optJSONObject("downloads").put(t.optString("id"),"available");store.save(requestState);requestApi.saveLibrary(requestState.optJSONArray("favorites"),requestState.optJSONArray("queue"),requestState.optJSONObject("downloads"));runAccountUI(generation,()->status.setText(R.string.download_ready));}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.download_failed)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:49: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void toggle(String key,String id){JSONArray a=state.optJSONArray(key);JSONArray next=new JSONArray();boolean found=false;for(int i=0;i<a.length();i++){String x=a.optString(i);if(x.equals(id))found=true;else next.put(x);}if(!found)next.put(id);try{state.put(key,next);store.save(state);}catch(Exception ignored){}render();runAccountTask((requestApi,requestState,generation)->{try{requestApi.saveLibrary(requestState.optJSONArray("favorites"),requestState.optJSONArray("queue"),requestState.optJSONObject("downloads"));}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.offline_mode)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:61: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+                catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}
+                                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:150: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void requestAI(){JSONArray ids=state.optJSONArray("favorites");if(ids==null||ids.length()==0){status.setText(R.string.empty_library);return;}status.setText(R.string.loading);runAccountTask((requestApi,requestState,generation)->{try{JSONObject candidate=requestApi.createAI(ids,getSharedPreferences("settings",0).getString("aiLanguage","system"));requestApi.streamAI(candidate.getString("id"));JSONObject p=requestApi.get("/api/ai/proposals/"+candidate.getString("id"));if(!"completed".equals(p.optString("status")))throw new IOException("AI result is not complete");runAccountUI(generation,()->new AlertDialog.Builder(this).setTitle("YNX AI · "+p.optString("status")).setMessage(p.optString("result")+"\n\n"+getString(R.string.ai_explanation)).setNegativeButton(R.string.cancel,(d,w)->reviewAI(p,"reject",generation)).setPositiveButton(R.string.upload,(d,w)->reviewAI(p,"apply",generation)).show());}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:151: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void reviewAI(JSONObject p,String action,long expectedGeneration){runAccountTask(expectedGeneration,(requestApi,requestState,generation)->{try{requestApi.reviewAI(p.getString("id"),action,"AI reviewed library");runAccountUI(generation,()->{status.setText(R.string.ready);refresh();});}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:152: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void release(JSONObject t){runAccountTask((requestApi,requestState,generation)->{try{requestApi.release(t.getString("id"),"published","");runAccountUI(generation,()->refresh());}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:153: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void settle(JSONObject allocation){JSONObject remote=state.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");String account=profile==null?"":profile.optString("account");runAccountTask((requestApi,requestState,generation)->{try{JSONObject intent=requestApi.settlement(allocation.getString("id"),account);String review=intent.optString("reviewUri");runAccountUI(generation,()->{status.setText(intent.optString("status"));if(review.startsWith("ynxpay://"))startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(review)));});}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:154: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void caseDialog(JSONObject track){final long openedGeneration=authGeneration;LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);Spinner kind=new Spinner(this);kind.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,MusicIO.list("report","dispute","appeal")));EditText reason=new EditText(this);reason.setHint(R.string.rights_declaration);EditText evidence=new EditText(this);evidence.setHint(R.string.rights_evidence);form.addView(kind);form.addView(reason);form.addView(evidence);new AlertDialog.Builder(this).setTitle(R.string.rights).setView(form).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.upload,(d,w)->runAccountTask(openedGeneration,(requestApi,requestState,generation)->{try{requestApi.openCase(String.valueOf(kind.getSelectedItem()),track.optString("id"),reason.getText().toString(),evidence.getText().toString());runAccountUI(generation,()->{status.setText(R.string.ready);refresh();});}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}})).show();}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:169: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        Button cancel=button(getString(R.string.cancel_upload));cancel.setEnabled(uploadBusyGeneration!=generation);cancel.setOnClickListener(v->{if(generation!=authGeneration||uploadBusyGeneration==generation)return;uploadDialog=new AlertDialog.Builder(this).setMessage(R.string.cancel_upload_draft).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.cancel_upload,(d,w)->runAccountTask(generation,(requestApi,requestState,captured)->{try{new MusicUpload(requestApi,selected).cancel(key);runAccountUI(captured,()->{state=store.load();render();});}catch(Exception e){runAccountUI(captured,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}})).show();});content.addView(cancel);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:171: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void renderSettings(){final long openedGeneration=authGeneration;heading(R.string.settings);Button display=button(DisplayPreferences.labels(getResources().getConfiguration().getLocales().get(0))[0]);display.setOnClickListener(v->DisplayPreferences.show(this,getResources().getConfiguration().getLocales().get(0),this::recreate));content.addView(display);content.addView(text(getString(R.string.language),14));Spinner locales=new Spinner(this);ArrayAdapter<String>a=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,LocaleSupport.TAGS);locales.setAdapter(a);String current=getSharedPreferences("settings",0).getString("locale","system");locales.setSelection(Math.max(0,Arrays.asList(LocaleSupport.TAGS).indexOf(current)));locales.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){boolean first=true;public void onNothingSelected(android.widget.AdapterView<?>p){}public void onItemSelected(android.widget.AdapterView<?>p,View v,int pos,long id){if(first){first=false;return;}LocaleSupport.set(MainActivity.this,LocaleSupport.TAGS[pos]);recreate();}});content.addView(locales);content.addView(text(getString(R.string.profile),14));JSONObject profile=state.optJSONObject("remote")==null?null:state.optJSONObject("remote").optJSONObject("profile");Switch explicit=new Switch(this);explicit.setText(R.string.explicit_content);explicit.setChecked(profile!=null&&profile.optBoolean("explicitAllowed"));Switch history=new Switch(this);history.setText(R.string.private_history);history.setChecked(profile==null||profile.optBoolean("privateHistory",true));CompoundButton.OnCheckedChangeListener saveProfile=(b,on)->saveProfile(explicit.isChecked(),history.isChecked());explicit.setOnCheckedChangeListener(saveProfile);history.setOnCheckedChangeListener(saveProfile);content.addView(explicit);content.addView(history);Switch ai=new Switch(this);ai.setText(R.string.ai_enabled);ai.setChecked(state.optBoolean("aiEnabled",true));ai.setOnCheckedChangeListener((b,on)->{try{state.put("aiEnabled",on);store.save(state);}catch(Exception ignored){}});content.addView(ai);content.addView(text(getString(R.string.ai_explanation),13));content.addView(text(getString(R.string.ai_output_language),14));Spinner aiLanguage=new Spinner(this);aiLanguage.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,LocaleSupport.TAGS));String aiTag=getSharedPreferences("settings",0).getString("aiLanguage","system");aiLanguage.setSelection(Math.max(0,Arrays.asList(LocaleSupport.TAGS).indexOf(aiTag)));aiLanguage.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener(){boolean first=true;public void onNothingSelected(android.widget.AdapterView<?>p){}public void onItemSelected(android.widget.AdapterView<?>p,View v,int pos,long id){if(first){first=false;return;}getSharedPreferences("settings",0).edit().putString("aiLanguage",LocaleSupport.TAGS[pos]).apply();}});content.addView(aiLanguage);Button signout=button(getString(R.string.sign_out));signout.setOnClickListener(v->signOut());content.addView(signout);Button clear=button(getString(R.string.clear_private_data));clear.setOnClickListener(v->new AlertDialog.Builder(this).setMessage(R.string.clear_confirm).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.delete,(d,w)->{if(openedGeneration!=authGeneration)return;stopService(new Intent(this,PlaybackService.class));try{store.clearCurrent();}catch(Exception e){status.setText(getString(R.string.retry)+": "+e.getMessage());return;}signOut();}).show());content.addView(clear);}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:172: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+    private void saveProfile(boolean explicit,boolean privateHistory){JSONObject remote=state.optJSONObject("remote"),current=remote==null?null:remote.optJSONObject("profile");JSONObject p=new JSONObject();try{p.put("displayName",current==null?"YNX listener":current.optString("displayName","YNX listener")).put("bio",current==null?"":current.optString("bio")).put("explicitAllowed",explicit).put("privateHistory",privateHistory);}catch(Exception ignored){}runAccountTask((requestApi,requestState,generation)->{try{JSONObject saved=requestApi.updateProfile(p);if(remote!=null)remote.put("profile",saved);store.save(requestState);runAccountUI(generation,()->status.setText(R.string.ready));}catch(Exception e){runAccountUI(generation,()->status.setText(getString(R.string.retry)+": "+e.getMessage()));}});}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:176: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        nativeBridge.disconnect((value,error)->{if(generation!=authGeneration)return;if(error!=null){status.setText(getString(R.string.retry)+": "+error.getMessage());return;}try{
+                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:180: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        }catch(RuntimeException e){status.setText(getString(R.string.retry)+": "+e.getMessage());}});return true;
+                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:187: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        nativeBridge.disconnect((value,error)->{if(generation!=authGeneration)return;if(error!=null){status.setText(getString(R.string.retry)+": "+error.getMessage());return;}
+                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:188: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+            nativeBridge.connect((launched,failure)->{if(generation!=authGeneration)return;if(failure!=null){status.setText(getString(R.string.wallet_unavailable)+": "+failure.getMessage());return;}status.setText(R.string.sign_in_wallet);});
+                                                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:193: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        nativeBridge.restore((result,error)->{if(generation!=authGeneration)return;if(error!=null){status.setText(getString(R.string.offline_mode)+": "+error.getMessage());render();return;}
+                                                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-abfZuW/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:202: Warning: Do not concatenate text displayed with setText. Use resource string with placeholders. [SetTextI18n]
+        nativeBridge.handleReturn(uri.toString(),(result,error)->{if(generation!=authGeneration)return;if(error!=null||nativeBridge.session()==null){status.setText(getString(R.string.auth_rejected)+(error==null?"":": "+error.getMessage()));return;}
+                                                                                                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "SetTextI18n":
+   When calling TextView#setText
+   * Never call Number#toString() to format numbers; it will not handle
+   fraction separators and locale-specific digits properly. Consider using
+   String#format with proper format specifications (%d or %f) instead.
+   * Do not pass a string literal (e.g. "Hello") to display text. Hardcoded
+   text can not be properly translated to other languages. Consider using
+   Android resource strings instead.
+   * Do not build messages by concatenating text chunks. Such messages can not
+   be properly translated.
+
+   https://developer.android.com/guide/topics/resources/localization.html
+
+0 errors, 32 warnings

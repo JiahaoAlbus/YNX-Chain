@@ -1,0 +1,244 @@
+{
+  "schema": "ynx.music.android.upload-recovery.freeze.v1",
+  "createdAt": "2026-10-03T19:00:08.405089+00:00",
+  "sourceCommit": "4f2c63940358658e7961a59a50200b34877e6c3c",
+  "sourceTree": "10b847d16237bcb68b6a49ee635077e00e72b22f",
+  "sourceArchive": {
+    "path": "apps/music/audit/evidence/android-upload-recovery-20261004/media-owned-source-4f2c6394.tar.gz",
+    "bytes": 4006387,
+    "sha256": "ec4c900a9f522629ec768d307ec35dc4fe13af62013a16ab599730cfe9c6a953",
+    "fileCount": 597,
+    "everyMemberGitByteExact": true,
+    "everyMemberVerified": true
+  },
+  "androidCandidate": {
+    "path": "apps/music/audit/evidence/android-upload-recovery-20261004/ynx-music-android-4f2c6394-debug.apk",
+    "bytes": 690493,
+    "sha256": "ef1a0b72b80d513b45f3a263ef0e3e752e4079e1d913ae02dcda7e9ef563344a",
+    "applicationId": "com.ynxweb4.music",
+    "debugSigned": true,
+    "releaseSigned": false,
+    "installed": false,
+    "launched": false
+  },
+  "androidCompiledSourcePinsGitExact": 48,
+  "javaCompiledSourcePinsGitExact": 12,
+  "compositionInputPins": 651,
+  "ownedCompositionPinsGitExact": 600,
+  "checks": {
+    "fullAndroidGradleBuild": "PASS",
+    "fullAndroidLint": "PASS 0 errors, 32 warnings retained",
+    "APKDebugSignature": "PASS",
+    "originalSDKAndRegistryPackagedGitExact": true,
+    "compiledOriginalBrandPixels": true,
+    "actualJavaControllerOriginalPackagedSDKGoBusiness": "PASS lost reply, cold SDK restore, same intent one track, original owner/audio readback",
+    "originalSameAccountSignedAudioDownloadCache": "PASS",
+    "explicitDraftCancelRetainsLocalAndServerAudio": "PASS",
+    "unconfirmedDetachHidesPrivateCache": "PASS injected preferences",
+    "damagedOriginalStateRetainedBeforeReplacement": "PASS; unpreserved oversized original remains held",
+    "goRacePassEvents": 446,
+    "goRaceFailEvents": 0,
+    "goVet": "PASS",
+    "actualAndroidWebViewOrJNI": false,
+    "actualOSKeyStore": false,
+    "actualAPI28DeviceRuntime": false,
+    "actualRenderedNativeUI": false,
+    "actualWalletConsent": false,
+    "formalPublicPair": false
+  },
+  "changes": [
+    "Normal Android original creator picker stages bounded original audio and durable operation under verified same-account directory; retry uses fresh original SDK proof and same upload key",
+    "Actual original Java controller/API/store plus pinned packaged Native SDK and original Go service prove lost upload reply, cold original SDK restore, one original track and verified owned audio cache; isolated JVM/protected adapters only",
+    "SDK restore/account readback must precede cache presentation; native withdrawal/expiry clears private UI and stops original playback; failed local preference commits remain locally withdrawn",
+    "Missing legacy ciphertext does not block independently verified native-v2 requests; forbidden business responses retain otherwise valid original session; unauthorized responses retire it",
+    "Atomic account-scoped draft state updates preserve other private library data; explicit cancel retains original audio; scoped private-data clear includes own draft files",
+    "Original minSdk28 collection and bounded streaming primitives replace API30/33 calls; inherited equivalent Typeface constants repaired; original device key aliases/metadata/callback and content retained"
+  ],
+  "remaining": [
+    "Actual installed Android WebView/JNI/KeyStore, real Wallet consent, API28/device UI/codec acceptance",
+    "32 Android lint warnings retained; formal release signing and user acceptance",
+    "Creator Apple complete own native app and upload/publish/revenue flows",
+    "A original formal Host/currentActor matching client deployment and public normal-user business readback"
+  ],
+  "publicReadback": [
+    {
+      "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "checkedAt": "2026-10-03T19:00:05.018400+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/android-upload-recovery-20261004/video-manifest-public-readback.json",
+        "bytes": 4499,
+        "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+      },
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null
+    },
+    {
+      "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "checkedAt": "2026-10-03T19:00:05.739913+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/android-upload-recovery-20261004/creator-manifest-public-readback.json",
+        "bytes": 3753,
+        "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+      },
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/health",
+      "checkedAt": "2026-10-03T19:00:06.925914+00:00",
+      "method": "GET",
+      "authenticated": false,
+      "status": 200,
+      "body": {
+        "path": "apps/music/audit/evidence/android-upload-recovery-20261004/video-health-public-readback.json",
+        "bytes": 285,
+        "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+      },
+      "sourceCommit": null,
+      "centralDeploymentVerified": false
+    }
+  ],
+  "inheritedAppleCheckpoint": {
+    "path": "apps/music/audit/apple-upload-recovery-checkpoint-20261004.json",
+    "bytes": 12300,
+    "sha256": "5a13858960fd9502e19fb2b4c81116799e0bf9b4bdeec91658775130c3a81ccf"
+  },
+  "evidence": [
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/actual-java-compile.txt",
+      "bytes": 99,
+      "sha256": "26ef285338b9f0f4bccbe63a2905d5f7260adff99a95eb6b1aee58eba4adeefa"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/actual-java-compiled-source.json",
+      "bytes": 6115,
+      "sha256": "149d94ba269a197292f081b60d2146e5e91e63beafabc1cf2f7e4d1127917e87"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/actual-java-store-http-checks.txt",
+      "bytes": 845,
+      "sha256": "bd2e7e9e274647b819f9ca98a15fe60dcb52bb27e42b94fd6e8fba47022fdecb"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/android-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/android-lint.txt",
+      "bytes": 47163,
+      "sha256": "bdc7525cf5f8907906cd35aa41584181408737cb809c97055b374c9602dd48c2"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/apk-badging.txt",
+      "bytes": 1605,
+      "sha256": "c82232cee01db96ddba11fecb60fd35ab89a761c9d97f7d150ee8c5f993cb987"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/apk-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 429169,
+      "sha256": "119603fe24c57a6b119e2fba6308dac18efaac2b303d287567b5ae2a70016d7f"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/combined-source-receipt.json",
+      "bytes": 178166,
+      "sha256": "7d81f34ac86ea56892c2030b5c4e2250be635514bc11dfaacd4758e9c4962e93"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/compiled-original-brand.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/creator-manifest-public-readback.json",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/first-fixture-path-compilation-failure.txt",
+      "bytes": 2878,
+      "sha256": "032a6423eead1748a860fffbe686d699d75079e85c0ad2cc66b241caf40be551"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/first-full-ui-compile-failure.txt",
+      "bytes": 3386,
+      "sha256": "99bdc4256351f5a1ab3a1c046a2d4867468c2830ed13b3b3b64a804adae90b4e"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/freeze-preparation.py",
+      "bytes": 9758,
+      "sha256": "4d19bcfe1b335690d018f8b9f31208bc36868a5cff7fa03d552a6beaf69572c4"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/full-android-build-receipt.json",
+      "bytes": 11802,
+      "sha256": "befa71a1926be19a6135cedf87796c3e8380916d2a0d299694dfa4b17553a331"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/gradle-full-build-lint.txt",
+      "bytes": 3361,
+      "sha256": "e0196ab9afe4809f14daac60304e7e1d385242159b168c69ca38688dfebc86b1"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/inherited-typeface-lint-failure.txt",
+      "bytes": 16543,
+      "sha256": "66ce865b9d60ac3c71dcfce6343a5c478d0e1913c234ed26d6ff1851aa0d0ab6"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/media-owned-source-4f2c6394.tar.gz",
+      "bytes": 4006387,
+      "sha256": "ec4c900a9f522629ec768d307ec35dc4fe13af62013a16ab599730cfe9c6a953"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/public-readback-receipt.json",
+      "bytes": 1568,
+      "sha256": "6f8067d6c236b6dd569396e5aca36e2c80a78ec6671ed850c9c2b5be296d5c5d"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/video-health-public-readback.json",
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/video-manifest-public-readback.json",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/withdrawal-selection-original-business-failed.jsonl",
+      "bytes": 434493,
+      "sha256": "9a89364941f087abbfb2993a07e6df3f3cad5d6595f3fab7a8f2065b6e4ec111"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/withdrawal-selection-regression-failed.txt",
+      "bytes": 1024,
+      "sha256": "16f216a6abe62e3225dff242a80e50fa643c421487fc68f83ec39e14c14c0033"
+    },
+    {
+      "path": "apps/music/audit/evidence/android-upload-recovery-20261004/ynx-music-android-4f2c6394-debug.apk",
+      "bytes": 690493,
+      "sha256": "ef1a0b72b80d513b45f3a263ef0e3e752e4079e1d913ae02dcda7e9ef563344a"
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugBuildConfig
+> Task :app:javaPreCompileDebug
+> Task :app:checkDebugAarMetadata
+> Task :app:generateDebugResValues
+> Task :app:mapDebugSourceSetPaths
+> Task :app:generateDebugResources
+> Task :app:mergeDebugResources
+> Task :app:packageDebugResources
+> Task :app:parseDebugLocalResources
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:processDebugManifestForPackage
+> Task :app:processDebugResources
+
+> Task :app:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :app:mergeDebugShaders
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets
+> Task :app:compressDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:dexBuilderDebug
+> Task :app:mergeDebugGlobalSynthetics
+> Task :app:processDebugJavaRes NO-SOURCE
+> Task :app:mergeDebugJavaResource
+> Task :app:checkDebugDuplicateClasses
+> Task :app:mergeExtDexDebug
+> Task :app:mergeLibDexDebug
+> Task :app:mergeProjectDexDebug
+> Task :app:mergeDebugJniLibFolders
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug
+> Task :app:writeDebugAppMetadata
+> Task :app:writeDebugSigningConfigVersions
+> Task :app:packageDebug
+> Task :app:createDebugApkListingFileRedirect
+> Task :app:assembleDebug
+> Task :app:bundleDebugClassesToCompileJar
+> Task :app:preDebugAndroidTestBuild SKIPPED
+> Task :app:generateDebugAndroidTestResValues
+> Task :app:generateDebugAndroidTestLintModel
+> Task :app:extractProguardFiles
+> Task :app:generateDebugLintReportModel
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:generateDebugUnitTestLintModel
+> Task :app:lintAnalyzeDebug
+> Task :app:lintAnalyzeDebugAndroidTest
+> Task :app:lintAnalyzeDebugUnitTest
+
+> Task :app:lintReportDebug
+Wrote HTML report to file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/build/reports/lint-results-debug.html
+Lint found 3 errors and 32 warnings. First failure:
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:31: Error: Must be one of: Typeface.NORMAL, Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD_ITALIC [WrongConstant]
+    private void build(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(canvas);LinearLayout branding=new LinearLayout(this);branding.setOrientation(LinearLayout.HORIZONTAL);branding.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);branding.setGravity(Gravity.CENTER_VERTICAL);branding.setPadding(dp(12),dp(12),dp(12),dp(8));ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ynx_brand_original);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("YNX");logo.setBackgroundColor(Color.WHITE);logo.setPadding(0,0,0,0);LinearLayout.LayoutParams logoLayout=new LinearLayout.LayoutParams(dp(46),dp(24));logoLayout.setMarginEnd(dp(12));branding.addView(logo,logoLayout);TextView title=text(getString(R.string.app_name),16);title.setTextColor(primaryText);title.setTypeface(null,1);branding.addView(title,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));root.addView(branding);Button wallet=button(getString(R.string.sign_in_wallet));wallet.setOnClickListener(v->wallet());root.addView(wallet);status=text(getString(R.string.loading),13);status.setTextColor(secondaryText);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);search=new EditText(this);search.setHint(R.string.search_hint);search.setSingleLine();search.setContentDescription(getString(R.string.search));search.setOnEditorActionListener((v,a,e)->{renderCatalog();return true;});root.addView(search,new LinearLayout.LayoutParams(-1,-2));LinearLayout nav=new LinearLayout(this);String[] labels={getString(R.string.home),getString(R.string.library),getString(R.string.settings)};String[] ids={"home","library","settings"};for(int i=0;i<ids.length;i++){Button n=button(labels[i]);final String id=ids[i];n.setOnClickListener(v->{view=id;render();});nav.addView(n,new LinearLayout.LayoutParams(0,-2,1));}root.addView(nav);ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(16),dp(10),dp(16),dp(120));scroll.addView(content);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));LinearLayout player=new LinearLayout(this);player.setGravity(Gravity.CENTER_VERTICAL);player.setBackgroundColor(canvas);now=text(getString(R.string.nothing_playing),16);player.addView(now,new LinearLayout.LayoutParams(0,-2,1));Button play=button(getString(R.string.play));play.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PLAY)));Button pause=button(getString(R.string.pause));pause.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PAUSE)));player.addView(play);player.addView(pause);root.addView(player);setContentView(root);}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ~
+
+
+> Task :app:lintDebug FAILED
+Lint found 3 errors, 32 warnings. First failure:
+
+/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:31: Error: Must be one of: Typeface.NORMAL, Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD_ITALIC [WrongConstant]
+    private void build(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(canvas);LinearLayout branding=new LinearLayout(this);branding.setOrientation(LinearLayout.HORIZONTAL);branding.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);branding.setGravity(Gravity.CENTER_VERTICAL);branding.setPadding(dp(12),dp(12),dp(12),dp(8));ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ynx_brand_original);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("YNX");logo.setBackgroundColor(Color.WHITE);logo.setPadding(0,0,0,0);LinearLayout.LayoutParams logoLayout=new LinearLayout.LayoutParams(dp(46),dp(24));logoLayout.setMarginEnd(dp(12));branding.addView(logo,logoLayout);TextView title=text(getString(R.string.app_name),16);title.setTextColor(primaryText);title.setTypeface(null,1);branding.addView(title,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));root.addView(branding);Button wallet=button(getString(R.string.sign_in_wallet));wallet.setOnClickListener(v->wallet());root.addView(wallet);status=text(getString(R.string.loading),13);status.setTextColor(secondaryText);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);search=new EditText(this);search.setHint(R.string.search_hint);search.setSingleLine();search.setContentDescription(getString(R.string.search));search.setOnEditorActionListener((v,a,e)->{renderCatalog();return true;});root.addView(search,new LinearLayout.LayoutParams(-1,-2));LinearLayout nav=new LinearLayout(this);String[] labels={getString(R.string.home),getString(R.string.library),getString(R.string.settings)};String[] ids={"home","library","settings"};for(int i=0;i<ids.length;i++){Button n=button(labels[i]);final String id=ids[i];n.setOnClickListener(v->{view=id;render();});nav.addView(n,new LinearLayout.LayoutParams(0,-2,1));}root.addView(nav);ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(16),dp(10),dp(16),dp(120));scroll.addView(content);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));LinearLayout player=new LinearLayout(this);player.setGravity(Gravity.CENTER_VERTICAL);player.setBackgroundColor(canvas);now=text(getString(R.string.nothing_playing),16);player.addView(now,new LinearLayout.LayoutParams(0,-2,1));Button play=button(getString(R.string.play));play.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PLAY)));Button pause=button(getString(R.string.pause));pause.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PAUSE)));player.addView(play);player.addView(pause);root.addView(player);setContentView(root);}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         ~
+
+The full lint text report is located at:
+  /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+[Incubating] Problems report is available at: file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintDebug'.
+> Lint found errors in the project; aborting build.
+  
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+  
+  Lint found 3 errors, 32 warnings. First failure:
+  
+  /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/src/main/java/com/ynxweb4/music/MainActivity.java:31: Error: Must be one of: Typeface.NORMAL, Typeface.BOLD, Typeface.ITALIC, Typeface.BOLD_ITALIC [WrongConstant]
+      private void build(){LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(canvas);LinearLayout branding=new LinearLayout(this);branding.setOrientation(LinearLayout.HORIZONTAL);branding.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);branding.setGravity(Gravity.CENTER_VERTICAL);branding.setPadding(dp(12),dp(12),dp(12),dp(8));ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ynx_brand_original);logo.setScaleType(ImageView.ScaleType.FIT_CENTER);logo.setContentDescription("YNX");logo.setBackgroundColor(Color.WHITE);logo.setPadding(0,0,0,0);LinearLayout.LayoutParams logoLayout=new LinearLayout.LayoutParams(dp(46),dp(24));logoLayout.setMarginEnd(dp(12));branding.addView(logo,logoLayout);TextView title=text(getString(R.string.app_name),16);title.setTextColor(primaryText);title.setTypeface(null,1);branding.addView(title,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));root.addView(branding);Button wallet=button(getString(R.string.sign_in_wallet));wallet.setOnClickListener(v->wallet());root.addView(wallet);status=text(getString(R.string.loading),13);status.setTextColor(secondaryText);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);search=new EditText(this);search.setHint(R.string.search_hint);search.setSingleLine();search.setContentDescription(getString(R.string.search));search.setOnEditorActionListener((v,a,e)->{renderCatalog();return true;});root.addView(search,new LinearLayout.LayoutParams(-1,-2));LinearLayout nav=new LinearLayout(this);String[] labels={getString(R.string.home),getString(R.string.library),getString(R.string.settings)};String[] ids={"home","library","settings"};for(int i=0;i<ids.length;i++){Button n=button(labels[i]);final String id=ids[i];n.setOnClickListener(v->{view=id;render();});nav.addView(n,new LinearLayout.LayoutParams(0,-2,1));}root.addView(nav);ScrollView scroll=new ScrollView(this);content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setPadding(dp(16),dp(10),dp(16),dp(120));scroll.addView(content);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));LinearLayout player=new LinearLayout(this);player.setGravity(Gravity.CENTER_VERTICAL);player.setBackgroundColor(canvas);now=text(getString(R.string.nothing_playing),16);player.addView(now,new LinearLayout.LayoutParams(0,-2,1));Button play=button(getString(R.string.play));play.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PLAY)));Button pause=button(getString(R.string.pause));pause.setOnClickListener(v->startService(new Intent(this,PlaybackService.class).setAction(PlaybackService.PAUSE)));player.addView(play);player.addView(pause);root.addView(player);setContentView(root);}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           ~
+  
+  The full lint text report is located at:
+    /private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-android-native-SFpuOn/project/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 14s
+44 actionable tasks: 44 executed
