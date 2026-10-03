@@ -1,0 +1,9 @@
+# Order book best-price recovery
+
+The market contract permits equivalent same-revision row reordering. The shipped renderer previously truncated the first seven raw rows, so best bids/asks could be omitted or displayed incorrectly. The new actual Chrome regression failed before repair: bids displayed 1,3,7,5,9,2,8 instead of 9,8,7,6,5,4,3.
+
+Ordinary renderer fix: sort copies of validated orders by descending bid/ascending ask price with deterministic ID tie-break, select the best seven, then reverse selected asks for the existing top-to-spread presentation. Do not modify the service snapshot, quantities, matching engine, revision, provenance, remaining-order arithmetic or price formatting. Rows remain venue orders, not fabricated aggregated price levels. No fill priority is inferred from display tie order.
+
+Executed market/K-line direct tests 38/38 PASS, 90.986458ms. Full actual-browser candle/depth suite 4/4 PASS, 7197.17325ms: best-seven and reversed-input equivalence with byte-identical input JSON; remaining quantity1.50 exact; bounded stalled preview read; revision conflict/stale/retry; 1440/390/320 widths, twelve languages, three candle periods, exact provenance/volume and no synthetic gaps. Controlled local display screenshots retained in /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-exchange-candle-display-sixPwd. This is shipped renderer testing with declared local inputs and network aborted, not public exchange or actual orders.
+
+Integration scope: one ordinary renderBook hunk and actual browser regression. Release owner must rebuild the formal coherent asset graph; do not overwrite shared Wallet/SSO/pins/Host or waive historical manifest hashes. Rollback only this display hunk, retaining all account/venue state. Public source-bound deployment and approved-account trading remain separate unverified release gates. Full financial objective is incomplete.

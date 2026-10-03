@@ -10,6 +10,24 @@ const root=new URL('../web/',import.meta.url);
 const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
+test('actual order book shows best seven prices independent of equivalent snapshot row order',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const bookRenderer=app.split('\n').filter(line=>line.startsWith('function renderBook(')||line.startsWith('function renderRows(')).join('\n');
+    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={book:null},display=v=>formatMicro(v);${bookRenderer} window.bookQA=book=>{state.book=book;renderBook();return JSON.stringify(state.book)};`});
+    const row=(price,id)=>({id,priceMicro:price*1000000,amountMicro:2000000,filledMicro:500000});
+    const book={bids:[1,3,7,5,9,2,8,6,4].map(price=>row(price,'b'+price)),asks:[19,16,18,12,14,11,17,15,13].map(price=>row(price,'a'+price))};
+    for(const input of [book,{bids:[...book.bids].reverse(),asks:[...book.asks].reverse()}]){
+      assert.equal(await page.evaluate(input=>bookQA(input),input),JSON.stringify(input));
+      assert.deepEqual(await page.locator('#bids > div > span:first-child').allTextContents(),['9.00','8.00','7.00','6.00','5.00','4.00','3.00']);
+      assert.deepEqual(await page.locator('#asks > div > span:first-child').allTextContents(),['17.00','16.00','15.00','14.00','13.00','12.00','11.00']);
+      assert.equal(await page.locator('#bids > div > span:nth-child(2)').first().textContent(),'1.50');
+    }
+    assert.equal(page.context().pages().length,1);
+  }finally{await browser.close()}
+});
 test('actual preview control unlocks after a bounded stalled read without showing or submitting an order',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
