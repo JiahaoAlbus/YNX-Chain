@@ -36,11 +36,12 @@ export function centralBrowserCookieToken(header,name=CENTRAL_BROWSER_COOKIE){
 // Identity-only grants are separate from existing Wallet ProductSession proofs.
 // No caller may use this grant to bypass a native/sensitive product scope.
 export class CentralBrowserSessionAuthority {
-  #store;#registry;#now;#random;#backendVerify;#familySeal;#oidc;#socialConsentClient;#productRevalidator;
-  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random,backendClients=[],familySealKey=null,oidc=null,productRevalidator=null}={}){
+  #store;#registry;#now;#random;#backendVerify;#familySeal;#oidc;#socialConsentClient;#productRevalidator;#businessRevalidation;
+  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random,backendClients=[],familySealKey=null,oidc=null,productRevalidator=null,businessRevalidation=false}={}){
     if(!Array.isArray(registry)||!store?.transaction||typeof now!=='function'||typeof tokenFactory!=='function')fail('SSO_AUTHORITY_INVALID');
     this.#registry=registry;this.#store=store;this.#now=now;this.#random=tokenFactory;this.#backendVerify=createCentralBackendVerifier(backendClients);this.#familySeal=createCentralFamilySeal(familySealKey);this.#oidc=createCentralOIDCProvider(oidc);this.#socialConsentClient=registry.find(c=>c.productId==='social')?.clientId;
     if(productRevalidator!==null&&typeof productRevalidator!=='function')fail('SSO_AUTHORITY_INVALID');this.#productRevalidator=productRevalidator;
+    if(typeof businessRevalidation!=='boolean')fail('SSO_AUTHORITY_INVALID');this.#businessRevalidation=businessRevalidation;
     if(this.#oidc&&(!this.#socialConsentClient||registry.some(c=>c.clientId===this.#oidc.clientId)))fail('OIDC_CONFIG_INVALID');
   }
   challenge(initiator,transactionToken){
@@ -208,7 +209,11 @@ export class CentralBrowserSessionAuthority {
     if(!this.#productRevalidator)fail('SSO_BACKEND_NOT_CONFIGURED');
     return this.#transaction((state,now)=>{
       const client=this.#registry.find(c=>c.clientId===input.clientId);
-      if(!client||client.productId!=='social'||input.session?.productId!==client.productId||input.session?.origin!==client.origin||input.session?.platform!=='web')fail('SSO_CLIENT_MISMATCH');
+      // The confidential key is installed for one exactly registered product.
+      // The original Product Session authority below validates the complete
+      // platform/application/origin/callback tuple and live revocation state.
+      if(!client||input.session?.productId!==client.productId||input.clientId!==`${input.session?.clientId}-sso-v1`||!['web','android','ios','linux','macos','windows'].includes(input.session?.platform)||input.session.platform==='web'&&input.session.origin!==client.origin)fail('SSO_CLIENT_MISMATCH');
+      if(!this.#businessRevalidation&&(client.productId!=='social'||input.session.platform!=='web'))fail('SSO_CLIENT_MISMATCH');
       if(state.backendNonces?.some(n=>n.hash===backendBodyDigest(proof?.nonce)&&n.clientId===input.clientId))fail('SSO_BACKEND_AUTH_REPLAY');
       this.#authenticateBackend(state,now,'/v2/browser-sessions/product-revalidate',input,proof);
       const result=this.#productRevalidator(input.session,input.requiredScopes,client.productId,new Date(now));

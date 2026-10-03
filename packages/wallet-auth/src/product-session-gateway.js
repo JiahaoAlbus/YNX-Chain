@@ -30,9 +30,9 @@ export class ProductSessionGatewayKernel {
   }
 
   // Trusted server-only read: no device proof replay, no new grant, no writes.
-  revalidate(sessionInput, requiredScopes, productId, at = new Date()) {
+  revalidate(sessionInput, requiredScopes, productId, at = new Date(), businessRevalidation = false) {
     const session=parseProductSession(sessionInput);
-    if(session.productId!==productId||session.platform!=='web')fail('CROSS_PRODUCT_SESSION','Backend cannot inspect another registered product or native platform');
+    if(typeof businessRevalidation!=='boolean'||session.productId!==productId||(!businessRevalidation&&session.platform!=='web'))fail('CROSS_PRODUCT_SESSION','Backend cannot inspect another registered product or an unregistered platform');
     const current=this.#authority.snapshot().sessions.find(value=>value.sessionBinding===session.sessionBinding);
     if(!current||canonicalJSON(current)!==canonicalJSON(session))fail('CROSS_PRODUCT_SESSION','Revalidation must retain the original complete verified session');
     const lastSeen=this.#controlIntents===null?walletSessionControlClockFloor({consumedProofs:this.#proofs,audit:this.#audit}):productSessionControlClockFloor(this.snapshot());

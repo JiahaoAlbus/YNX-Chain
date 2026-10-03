@@ -432,6 +432,32 @@ export class RecoverableProductSessionClient {
     return this.#createAPIProof(["social.contacts", "social.feed", "social.messaging", "social.profile"], Object.freeze({ path, body }));
   }
 
+  // Generic business request proof: independent from one-shot introspection.
+  // The server supplies route-required scopes and consumes the returned nonce
+  // with its original actor/object transaction; proof alone is not permission.
+  async createBusinessProof(input) {
+    exactFields(input, ["method", "path", "body", "requiredScopes"], "Product business request");
+    const method = input.method, path = input.path, raw = input.body instanceof Uint8Array ? Uint8Array.from(input.body) : input.body;
+    if (typeof method !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path) || path.includes("//") || path.endsWith("/") || path.split("/").some(part => part === "." || part === "..") || path.startsWith("/v2/product-sessions/") || path.startsWith("/v2/browser-sessions/")) fail("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if ((typeof raw !== "string" && !(raw instanceof Uint8Array)) || (typeof raw === "string" ? new TextEncoder().encode(raw).length : raw.length) > 16_777_216) fail("INVALID_FIELD", "Business request body is not bounded");
+    if (method === "GET") { if (raw.length !== 0) fail("HTTP_BINDING_MISMATCH", "GET business proof binds an empty HTTP body"); }
+    // The signed proof remains canonical; the product validates its own body
+    // schema. Never rewrite actual HTTP bytes to accommodate this verifier.
+    return this.#createAPIProof(input.requiredScopes, Object.freeze({ method, path, body: null, rawBody: raw }));
+  }
+
+  // Hash FINAL wire serialization, including multipart boundaries. The server
+  // hashes its bounded actual incoming stream before accepting the proof.
+  // A caller-supplied hash is never evidence that actual bytes were delivered.
+  async createBusinessProofCommitment(input) {
+    exactFields(input, ["method", "path", "bodyDigest", "bodyBytes", "requiredScopes"], "Product business commitment");
+    const {method, path, bodyDigest, bodyBytes} = input;
+    if (typeof method !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path) || path.includes("//") || path.endsWith("/") || path.split("/").some(part => part === "." || part === "..") || path.startsWith("/v2/product-sessions/") || path.startsWith("/v2/browser-sessions/")) fail("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if (typeof bodyDigest !== "string" || !/^[0-9a-f]{64}$/.test(bodyDigest) || !Number.isSafeInteger(bodyBytes) || bodyBytes < 0 || bodyBytes > 536_870_912) fail("INVALID_FIELD", "Commitment requires SHA-256 and bounded final wire byte count");
+    if (method === "GET" && (bodyBytes !== 0 || bodyDigest !== httpBodyDigest(""))) fail("HTTP_BINDING_MISMATCH", "GET commitment must bind an empty body");
+    return this.#createAPIProof(input.requiredScopes, Object.freeze({method,path,body:null,bodyDigest,bodyBytes}));
+  }
+
   async #createAPIProof(requiredScopes, action = null) {
     const expected = this.current, epoch = this.#beginEpoch, networkEpoch = this.#networkEpoch;
     const active = () => {
@@ -484,9 +510,9 @@ export class RecoverableProductSessionClient {
     if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body, now, { active, readback });
     const result = Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: gatewayRequestId("i", this.#tokens()), body: canonicalJSON(body) });
-    const actionProof = action === null ? null : await this.#proof(session, action.path, action.body, now, { active, readback });
+    const actionProof = action === null ? null : await this.#proof(session, action.path, action.body, now, { active, readback }, action.method ?? "POST", action.rawBody ?? null, action.bodyDigest ?? null);
     await readback(); active();
-    if (actionProof !== null) return Object.freeze({ introspection: result, proof: actionProof, proofHeader: encodeProductSessionGatewayProofHeaderV2(actionProof), body: canonicalJSON(action.body) });
+    if (actionProof !== null) return Object.freeze({ introspection: result, proof: actionProof, proofHeader: encodeProductSessionGatewayProofHeaderV2(actionProof), body: action.bodyDigest ? null : action.rawBody ?? canonicalJSON(action.body), ...(action.bodyDigest ? {commitment: Object.freeze({bodyDigest: action.bodyDigest, bodyBytes: action.bodyBytes})} : {}) });
     // This proof remains unused. The consumer sends the exact returned body
     // and header once; calling Gateway introspect here would consume it early.
     return result;
@@ -504,7 +530,7 @@ export class RecoverableProductSessionClient {
     if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;
   }
-  async #proof(session, path, body, authorityTime, guard = null) {
+  async #proof(session, path, body, authorityTime, guard = null, method = "POST", rawBody = null, committedDigest = null) {
     if (path !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
     const now = authorityTime ?? await this.#now();
@@ -512,7 +538,7 @@ export class RecoverableProductSessionClient {
     const expiresAt = new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString();
     if (expiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
     const input = {
-      method: "POST", path, bodyDigest: httpBodyDigest(canonicalJSON(body)),
+      method, path, bodyDigest: committedDigest ?? httpBodyDigest(rawBody ?? canonicalJSON(body)),
       nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt,
     };
     if (guard !== null) { await guard.readback(); guard.active(); }

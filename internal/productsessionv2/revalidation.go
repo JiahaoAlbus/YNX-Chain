@@ -24,16 +24,29 @@ const revalidationPath = "/v2/browser-sessions/product-revalidate"
 // must additionally recheck its original live actor binding and current object
 // permissions. Credentials stay exclusively in the product backend.
 type Revalidator struct {
-	client *Client
-	keyID  string
-	key    ed25519.PrivateKey
+	client          *Client
+	keyID           string
+	key             ed25519.PrivateKey
+	backendClientID string
+	business        bool
 }
 
 func NewRevalidator(client *Client, keyID string, key ed25519.PrivateKey) (*Revalidator, error) {
 	if client == nil || client.endpoint != "https://wallet-auth.ynxweb4.com" || client.policy.ProductID != "social" || client.policy.ClientID != "ynx-social-v1" || client.policy.Platform != "web" || client.policy.Origin != "https://social.ynxweb4.com" || keyID == "" || len(key) != ed25519.PrivateKeySize {
 		return nil, fail("INVALID_REVALIDATION_CONFIG", 500)
 	}
-	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...)}, nil
+	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...), backendClientID: client.policy.ClientID + "-sso-v1"}, nil
+}
+
+// NewBusinessRevalidator binds one confidential product backend to its original
+// registered product policy. The public key must separately be installed in the
+// authority for this exact backend client. This does not register a client,
+// create identity consent, or authorize any action/object/route.
+func NewBusinessRevalidator(client *Client, backendClientID, keyID string, key ed25519.PrivateKey) (*Revalidator, error) {
+	if client == nil || client.endpoint != "https://wallet-auth.ynxweb4.com" || backendClientID != client.policy.ClientID+"-sso-v1" || !slices.Contains([]string{"finance", "exchange", "quant", "social", "ai", "developer", "calendar", "cloud", "docs", "mail", "shop", "video", "creator-studio"}, client.policy.ProductID) || keyID == "" || len(key) != ed25519.PrivateKeySize {
+		return nil, fail("INVALID_REVALIDATION_CONFIG", 500)
+	}
+	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...), backendClientID: backendClientID, business: true}, nil
 }
 
 func (r *Revalidator) Revalidate(ctx context.Context, original Session, requiredScopes []string) (Session, error) {
@@ -46,7 +59,7 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	var fields map[string]any
 	d := json.NewDecoder(bytes.NewReader(encoded))
 	d.UseNumber()
-	if d.Decode(&fields) != nil || !validSessionFields(fields) || !c.matchesPolicy(fields) || original.Platform != "web" || original.Version != "2" || original.ChainID != "ynx_6423-1" || !validFiniteConsent(original) {
+	if d.Decode(&fields) != nil || !validSessionFields(fields) || !c.matchesPolicy(fields) || original.Platform != c.policy.Platform || (!r.business && original.Platform != "web") || original.Version != "2" || original.ChainID != "ynx_6423-1" || !validFiniteConsent(original) {
 		return zero, fail("SESSION_BINDING_MISMATCH", 403)
 	}
 	if len(requiredScopes) == 0 || !validScopes(requiredScopes) {
@@ -62,7 +75,7 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	if e1 != nil || e2 != nil || issued.After(c.clock()) || !expires.After(c.clock()) {
 		return zero, fail("SESSION_EXPIRED", 401)
 	}
-	clientID := c.policy.ClientID + "-sso-v1"
+	clientID := r.backendClientID
 	body := map[string]any{"clientId": clientID, "session": fields, "requiredScopes": requiredScopes}
 	raw, err := canonical(body)
 	if err != nil {
