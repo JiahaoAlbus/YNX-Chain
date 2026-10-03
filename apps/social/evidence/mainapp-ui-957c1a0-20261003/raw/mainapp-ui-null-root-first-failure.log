@@ -1,0 +1,17 @@
+ERROR: null root node returned by UiTestAutomationBridge.
+/private/tmp/ynx-social-native-matrix-qa.aZcKcz/mainapp-ui-check.cjs:7
+function tap(text,xml){const nodes=[...xml.matchAll(/<node\s+[^>]+>/g)].map(m=>m[0]);const node=nodes.find(s=>s.includes('text="'+text+'"'));if(!node)throw Error('missing '+text);const m=node.match(/bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);if(!m)throw Error('bounds '+text);run('shell','input','tap',String((+m[1]+ +m[3])/2|0),String((+m[2]+ +m[4])/2|0));delay();}
+                                                                                                                                                      ^
+
+Error: missing Settings
+    at tap (/private/tmp/ynx-social-native-matrix-qa.aZcKcz/mainapp-ui-check.cjs:7:157)
+    at Object.<anonymous> (/private/tmp/ynx-social-native-matrix-qa.aZcKcz/mainapp-ui-check.cjs:14:155)
+    at Module._compile (node:internal/modules/cjs/loader:1934:14)
+    at Object..js (node:internal/modules/cjs/loader:2074:10)
+    at Module.load (node:internal/modules/cjs/loader:1656:32)
+    at Module._load (node:internal/modules/cjs/loader:1448:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v26.7.0
