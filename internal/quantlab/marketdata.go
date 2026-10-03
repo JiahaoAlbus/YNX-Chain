@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -87,7 +88,11 @@ func (h HTTPExchangeMarketData) tapeContext(ctx context.Context) (tradeTape, err
 		return tradeTape{}, ErrUnavailable
 	}
 	var tape tradeTape
-	d := json.NewDecoder(io.LimitReader(resp.Body, 4<<20))
+	payload, readErr := io.ReadAll(io.LimitReader(resp.Body, (4<<20)+1))
+	if readErr != nil || len(payload) > 4<<20 || !unambiguousMarketTapeDocument(payload) {
+		return tradeTape{}, ErrUnavailable
+	}
+	d := json.NewDecoder(bytes.NewReader(payload))
 	// Exchange trade records carry settlement/audit fields in addition to the
 	// three market-data fields consumed here. Keep the adapter forward
 	// compatible with additive fields while still fail-closing on the owned
@@ -96,6 +101,74 @@ func (h HTTPExchangeMarketData) tapeContext(ctx context.Context) (tradeTape, err
 		return tradeTape{}, ErrUnavailable
 	}
 	return tape, nil
+}
+
+// Additive audit fields remain compatible, but one complete document cannot
+// contain duplicate/case-folded keys or an omitted/null external-price boundary.
+func unambiguousMarketTapeDocument(payload []byte) bool {
+	d := json.NewDecoder(bytes.NewReader(payload))
+	d.UseNumber()
+	var scan func(int) bool
+	scan = func(depth int) bool {
+		if depth > 64 {
+			return false
+		}
+		token, err := d.Token()
+		if err != nil {
+			return false
+		}
+		delim, container := token.(json.Delim)
+		if !container {
+			return true
+		}
+		switch delim {
+		case '{':
+			seen := map[string]bool{}
+			for d.More() {
+				token, err := d.Token()
+				key, ok := token.(string)
+				if err != nil || !ok {
+					return false
+				}
+				key = strings.ToLower(key)
+				if seen[key] {
+					return false
+				}
+				seen[key] = true
+				if !scan(depth + 1) {
+					return false
+				}
+			}
+			end, err := d.Token()
+			return err == nil && end == json.Delim('}')
+		case '[':
+			for d.More() {
+				if !scan(depth + 1) {
+					return false
+				}
+			}
+			end, err := d.Token()
+			return err == nil && end == json.Delim(']')
+		default:
+			return false
+		}
+	}
+	if !scan(0) {
+		return false
+	}
+	if _, err := d.Token(); err != io.EOF {
+		return false
+	}
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(payload, &fields) != nil {
+		return false
+	}
+	for key, value := range fields {
+		if strings.EqualFold(key, "externalPrice") {
+			return bytes.Equal(bytes.TrimSpace(value), []byte("false"))
+		}
+	}
+	return false
 }
 
 func ownedExchangeTapeSource(source string) bool {
