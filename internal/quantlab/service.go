@@ -183,25 +183,26 @@ type EquityPoint struct {
 	PeriodReturnBPS int64     `json:"periodReturnBps"`
 }
 type PnLAttribution struct {
-	Currency                 string   `json:"currency"`
-	CostRoundingPolicy       string   `json:"costRoundingPolicy,omitempty"`
-	Alpha                    int64    `json:"alpha"`
-	Beta                     int64    `json:"beta"`
-	CarryFunding             int64    `json:"carryFunding"`
-	MakerRebateLPFee         int64    `json:"makerRebateLpFee"`
-	TradingFee               int64    `json:"tradingFee"`
-	Gas                      int64    `json:"gas"`
-	Slippage                 int64    `json:"slippage"`
-	MEV                      int64    `json:"mev"`
-	OracleDrift              int64    `json:"oracleDrift"`
-	AverageIdleCapital       int64    `json:"averageIdleCapital"`
-	ComputeDataFee           int64    `json:"computeDataFee"`
-	ManagementPerformanceFee int64    `json:"managementPerformanceFee"`
-	UserRealizedPnL          int64    `json:"userRealizedPnl"`
-	UserUnrealizedPnL        int64    `json:"userUnrealizedPnl"`
-	UserNetPnL               int64    `json:"userNetPnl"`
-	Reconciled               bool     `json:"reconciled"`
-	UnsupportedComponents    []string `json:"unsupportedComponents"`
+	Currency                  string   `json:"currency"`
+	CostRoundingPolicy        string   `json:"costRoundingPolicy,omitempty"`
+	IdleCapitalSamplingPolicy string   `json:"idleCapitalSamplingPolicy,omitempty"`
+	Alpha                     int64    `json:"alpha"`
+	Beta                      int64    `json:"beta"`
+	CarryFunding              int64    `json:"carryFunding"`
+	MakerRebateLPFee          int64    `json:"makerRebateLpFee"`
+	TradingFee                int64    `json:"tradingFee"`
+	Gas                       int64    `json:"gas"`
+	Slippage                  int64    `json:"slippage"`
+	MEV                       int64    `json:"mev"`
+	OracleDrift               int64    `json:"oracleDrift"`
+	AverageIdleCapital        int64    `json:"averageIdleCapital"`
+	ComputeDataFee            int64    `json:"computeDataFee"`
+	ManagementPerformanceFee  int64    `json:"managementPerformanceFee"`
+	UserRealizedPnL           int64    `json:"userRealizedPnl"`
+	UserUnrealizedPnL         int64    `json:"userUnrealizedPnl"`
+	UserNetPnL                int64    `json:"userNetPnl"`
+	Reconciled                bool     `json:"reconciled"`
+	UnsupportedComponents     []string `json:"unsupportedComponents"`
 }
 type Experiment struct {
 	ID                    string             `json:"id"`
@@ -986,6 +987,10 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 	previousEquity := start
 	benchmarkStart := b[startIndex].Close
 	recordEquity := func(index int) {
+		// Sample every retained observation, not just fills. This is a bar
+		// sample mean of cash, not elapsed-time weighting across missing bars.
+		idleCapitalSum.Add(&idleCapitalSum, big.NewInt(cash))
+		idleCapitalSamples++
 		equity := numbers.sum(cash, numbers.mulDiv(pos, b[index].Close, 1_000_000))
 		// Risk follows the marked equity curve, not only fill events. Holding
 		// periods, zero-volume rows and disclosed data gaps still carry risk.
@@ -1085,8 +1090,6 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 		cash = numbers.difference(numbers.difference(cash, cost), friction)
 		pos += fill
 		trades++
-		idleCapitalSum.Add(&idleCapitalSum, big.NewInt(cash))
-		idleCapitalSamples++
 		recordEquity(i)
 	}
 	end := numbers.sum(cash, numbers.mulDiv(pos, b[endIndex-1].Close, 1_000_000))
@@ -1110,6 +1113,7 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 		return Metrics{}, PnLAttribution{}, nil, researchInvalid("numeric_range")
 	}
 	attribution.CostRoundingPolicy = "independent_cost_component_floor_micro_v1"
+	attribution.IdleCapitalSamplingPolicy = "observed_bar_cash_mean_truncate_micro_v1"
 	return metrics, attribution, equityCurve, nil
 }
 
