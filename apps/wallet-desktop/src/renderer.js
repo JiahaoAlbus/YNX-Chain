@@ -32,6 +32,8 @@ const receiveShareUI=createReceiveShareUI({
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
+let accountViewRevision = 0;
+let securityViewRevision = 0;
 const invoiceSheet=document.querySelector("#invoice-sheet");
 const invoiceUI=createInvoiceReferenceUI({
   getContext:()=>({open:invoiceSheet.open,account:accountState?.account,keyRevision:keyState.revision}),
@@ -237,12 +239,14 @@ document.querySelector("#approve-auth").addEventListener("click", () => act("app
 document.querySelector("#auth-create-account").addEventListener("click", async () => {
   if (creatingAuthorizationAccount || approvalQueue.busy || approvalQueue.current?.type !== "authorization" || approvalQueue.current.review.account) return;
   creatingAuthorizationAccount = true;
+  const view=accountViewRevision;
   presentApproval();
   try {
     const result = await window.ynxWallet.createAccount();
+    if(view!==accountViewRevision)return;
     if (result.ok) renderAccount(result);
     else authResult.textContent = "Your account could not be created. Try again or return to the app.";
-  } catch { authResult.textContent = "Your account could not be created. Try again or return to the app."; }
+  } catch { if(view===accountViewRevision)authResult.textContent = "Your account could not be created. Try again or return to the app."; }
   finally { creatingAuthorizationAccount = false; presentApproval(); }
 });
 
@@ -256,6 +260,7 @@ const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   clearAssetBalance();
   clearTransactionResolution();
+  accountViewRevision++;
   clearInvoiceInput();
   contractUI.clear();
   invalidatePaymentInput();
@@ -325,30 +330,48 @@ function renderAccount(payload) {
     copyUI(button,item.account === status.account ? item.state === "recovery-required" ? "{account} · active · restore from backup" : "{account} · active" : item.state === "recovery-required" ? "Switch to {account} · restore from backup" : "Switch to {account}",{account:item.ynxAccount});
     button.disabled = keyState.locked || item.account === status.account;
     button.addEventListener("click", async () => {
+      const view = accountViewRevision;
       button.disabled = true;
-      const result = await window.ynxWallet.selectAccount(item.account);
-      if (!result.ok) showAccountError(accountDetail,result.error);
-      else renderAccount(result);
+      try {
+        const result = await window.ynxWallet.selectAccount(item.account);
+        if(view !== accountViewRevision)return;
+        if (!result.ok) showAccountError(accountDetail,result.error);
+        else renderAccount(result);
+      } catch {if(view === accountViewRevision)copyUI(accountDetail,"Wallet did not finish. Reopen the current Wallet before continuing.");}
+      finally {if(view === accountViewRevision)button.disabled=keyState.locked||item.account===activeAccount;}
     });
     accountList.append(button);
   }
 }
 createAccount.addEventListener("click", async () => {
+  const view = accountViewRevision;
   createAccount.disabled = true;
-  const result = await window.ynxWallet.createAccount();
-  createAccount.disabled = keyState.locked;
-  if (!result.ok) showAccountError(accountDetail,result.error);
-  else renderAccount(result);
+  try {
+    const result = await window.ynxWallet.createAccount();
+    if(view !== accountViewRevision)return;
+    if (!result.ok) showAccountError(accountDetail,result.error);
+    else renderAccount(result);
+  } catch {if(view === accountViewRevision)copyUI(accountDetail,"Wallet did not finish. Reopen the current Wallet before continuing.");}
+  finally {if(view===accountViewRevision||keyState.locked)createAccount.disabled = keyState.locked;}
 });
 addAccount.addEventListener("click", async () => {
+  const view = accountViewRevision;
   addAccount.disabled = true;
-  const result = await window.ynxWallet.addAccount();
-  addAccount.disabled = keyState.locked;
-  if (!result.ok) showAccountError(accountDetail,result.error);
-  else renderAccount(result);
+  try {
+    const result = await window.ynxWallet.addAccount();
+    if(view !== accountViewRevision)return;
+    if (!result.ok) showAccountError(accountDetail,result.error);
+    else renderAccount(result);
+  } catch {if(view === accountViewRevision)copyUI(accountDetail,"Wallet did not finish. Reopen the current Wallet before continuing.");}
+  finally {if(view===accountViewRevision||keyState.locked)addAccount.disabled = keyState.locked;}
 });
 window.ynxWallet.onAccountStatus(renderAccount);
-window.ynxWallet.accountStatus().then(renderAccount);
+const initialAccountView = accountViewRevision;
+window.ynxWallet.accountStatus().then(result => {
+  if(initialAccountView === accountViewRevision)renderAccount(result);
+}).catch(() => {
+  if(initialAccountView === accountViewRevision)renderAccount({ok:false,error:{code:"ACCOUNT_STATUS_UNAVAILABLE",message:"Wallet did not finish. Reopen the current Wallet before continuing."}});
+});
 
 const walletConnectTitle = document.querySelector("#walletconnect-title");
 const walletConnectDetail = document.querySelector("#walletconnect-detail");
@@ -606,7 +629,7 @@ document.querySelector("#import-kind").addEventListener("change", event => {
 });
 document.querySelector("#import-form").addEventListener("submit", async event => {
   event.preventDefault();
-  const revision = keyState.revision;
+  const revision = keyState.revision, view = accountViewRevision;
   const button = event.target.querySelector("button"); button.disabled = true;
   const output = document.querySelector("#import-result");
   const kind = document.querySelector("#import-kind").value;
@@ -623,21 +646,30 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
     }
     if (keyState.locked || keyState.revision !== revision) return;
     const result = await window.ynxWallet.importAccount({ kind, value, password });
+    if(view !== accountViewRevision){
+      // The normal main-process commit publishes its account event before the
+      // IPC receipt. Acknowledge that exact current commit without rendering its
+      // older status a second time; intervening views/unlocks own their notice.
+      if(result.ok&&accountViewRevision===view+1&&result.value.account===activeAccount&&keyState.account===activeAccount&&keyState.locked&&!keyState.authenticating)copyUI(output,"Account imported. Save a backup and keep it safe.");
+      return;
+    }
     if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else if(!renderPermissionError(output,result.error))output.textContent=errorText(result);
     if (result.ok) renderAccount(result);
-  } catch (error) { copyUI(output,error.message ?? "Unable to import the account."); }
-  finally { value = null; password = null; if (keyState.revision === revision) document.querySelector("#import-file").value = ""; button.disabled = keyState.locked; }
+  } catch (error) { if(view === accountViewRevision&&revision === keyState.revision)copyUI(output,error.message ?? "Unable to import the account."); }
+  finally { value = null; password = null; if (view===accountViewRevision&&keyState.revision === revision) document.querySelector("#import-file").value = ""; if(view===accountViewRevision||keyState.locked)button.disabled = keyState.locked; }
 });
 document.querySelector("#backup-form").addEventListener("submit", async event => {
   event.preventDefault();
+  const revision=keyState.revision,view=accountViewRevision;
+  const current=()=>revision===keyState.revision&&view===accountViewRevision&&!keyState.locked;
   const passwordField = document.querySelector("#backup-password"), confirmField = document.querySelector("#backup-confirm");
   const output = document.querySelector("#backup-result"), button = document.querySelector("#save-backup");
   if (passwordField.value !== confirmField.value) { copyUI(output,"The backup passwords do not match."); return; }
   let password = passwordField.value; passwordField.value = ""; confirmField.value = ""; button.disabled = true;
   copyUI(output,"Encrypting your backup…");
-  try { const result = await window.ynxWallet.saveBackup(password); if(result.ok)copyUI(output,result.value.saved ? "Encrypted backup saved. Keep its password separately." : "Backup was not saved.");else output.textContent=errorText(result); }
-  catch { copyUI(output,"Unable to save the backup."); }
-  finally { password = null; button.disabled = keyState.locked; }
+  try { const result = await window.ynxWallet.saveBackup(password); if(!current())return;if(result.ok)copyUI(output,result.value.saved ? "Encrypted backup saved. Keep its password separately." : "Backup was not saved.");else output.textContent=errorText(result); }
+  catch { if(current())copyUI(output,"Unable to save the backup."); }
+  finally { password = null; if(view===accountViewRevision||keyState.locked)button.disabled = keyState.locked; }
 });
 document.querySelector("#transfer-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -758,6 +790,8 @@ function renderKeyDetail() {
   copyUI(detail,!accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.");
 }
 function renderKeyState(state) {
+  if(Number.isSafeInteger(state?.revision)&&Number.isSafeInteger(keyState.revision)&&state.revision<keyState.revision)return;
+  securityViewRevision++;
   const accountChanged = state.account !== keyState.account;
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) clearInvoiceInput();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
@@ -776,6 +810,8 @@ function renderKeyState(state) {
   if (state.locked) {
     if (invalidated) {
       document.querySelector("#unlock-result").textContent = "";
+      document.querySelector("#import-result").textContent = "";
+      document.querySelector("#backup-result").textContent = "";
       if(accountChanged){approvalQueue.clear();authorizationChoices.clear();}
       else approvalQueue.suspend();
       transferReview = null; passwordUI?.cancel();
@@ -787,7 +823,12 @@ function renderKeyState(state) {
 }
 passwordUI = createPasswordVaultUI({ api: window.ynxWallet, getKeyState: () => keyState, getAccountStatus: () => accountState, renderAccount });
 window.ynxWallet.onSecurityState?.(renderKeyState);
-if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(renderKeyState);
+const initialSecurityView=securityViewRevision;
+if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(state=>{
+  if(initialSecurityView===securityViewRevision)renderKeyState(state);
+}).catch(()=>{
+  if(initialSecurityView===securityViewRevision){renderKeyState(keyState);copyUI(document.querySelector("#key-security-detail"),"Wallet did not finish. Reopen the current Wallet before continuing.");}
+});
 else renderKeyState(keyState);
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
 mountDesktopPayUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.ynxAccount??null,keyRevision:keyState.revision,locked:keyState.locked})});

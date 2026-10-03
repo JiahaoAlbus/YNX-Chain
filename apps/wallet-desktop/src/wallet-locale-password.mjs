@@ -1,3 +1,4 @@
+export const RECOVERY_HISTORY_NOTICE="Saved Wallet history is unavailable. Existing accounts were retained. Use an offline backup or reopen Wallet to try again.";
 export const PASSWORD_COPY_KEYS=Object.freeze([
 "Protect your Wallet","Unlock with local password","Set password and migrate accounts","Encrypt and migrate all accounts","Set local password",
 "Enter the local password that encrypts this Wallet. It locks after two minutes, when you leave the app, or when you switch accounts.",
@@ -5,7 +6,7 @@ export const PASSWORD_COPY_KEYS=Object.freeze([
 "The two passwords do not match.","The unlock attempt finished, but Wallet is now locked.","Wallet unlocked. Review each request before approving.",
 "Password protection is saved. Unlock with your local password to continue.","Wallet did not finish. Reopen the current Wallet before continuing.",
 "Original OS-encrypted Wallet files are retained on this device for recovery. Those old copies are not protected by the new Wallet password.",
-"All existing accounts in this profile will be read with OS protection, verified and encrypted with your new password. Original OS-encrypted files remain on this device for recovery. No keys are uploaded."
+"All existing accounts in this profile will be read with OS protection, verified and encrypted with your new password. Original OS-encrypted files remain on this device for recovery. No keys are uploaded.",RECOVERY_HISTORY_NOTICE
 ]);
 const rows={
 en:PASSWORD_COPY_KEYS.join("|"),
@@ -21,6 +22,20 @@ ru:"Защитить Wallet|Разблокировать локальным па
 ar:"حماية Wallet|فتح القفل بكلمة المرور المحلية|تعيين كلمة مرور ونقل الحسابات|تشفير جميع الحسابات ونقلها|تعيين كلمة مرور محلية|أدخل كلمة المرور المحلية التي تشفر Wallet هذه. تُقفل بعد دقيقتين أو عند مغادرة التطبيق أو تبديل الحسابات.|اختر كلمة مرور من 12 إلى 256 حرفًا. تشفر Wallet على هذا الجهاز. احتفظ بنسخ حساباتك الاحتياطية بأمان؛ لا تستطيع YNX إعادة تعيين هذه الكلمة.|كلمتا المرور غير متطابقتين.|انتهت محاولة فتح القفل لكن Wallet مقفلة الآن.|Wallet مفتوحة. راجع كل طلب قبل الموافقة.|حُفظت الحماية بكلمة المرور. افتح القفل بكلمة المرور المحلية للمتابعة.|لم تكتمل عملية Wallet. أعد فتح Wallet الحالية قبل المتابعة.|تُحفظ ملفات Wallet الأصلية المشفرة بنظام التشغيل على هذا الجهاز للاستعادة. لا تحمي كلمة مرور Wallet الجديدة تلك النسخ القديمة.|ستُقرأ جميع حسابات هذا الملف الشخصي بحماية نظام التشغيل وتُتحقق وتُشفر بكلمة المرور الجديدة. تبقى الملفات الأصلية المشفرة على الجهاز للاستعادة. لا تُرفع أي مفاتيح.",
 id:"Lindungi Wallet Anda|Buka dengan kata sandi lokal|Atur kata sandi dan migrasikan akun|Enkripsi dan migrasikan semua akun|Atur kata sandi lokal|Masukkan kata sandi lokal yang mengenkripsi Wallet ini. Wallet terkunci setelah dua menit, saat meninggalkan aplikasi, atau saat berganti akun.|Pilih kata sandi 12 hingga 256 karakter. Kata sandi mengenkripsi Wallet pada perangkat ini. Simpan cadangan akun dengan aman; YNX tidak dapat mengatur ulang kata sandi ini.|Kedua kata sandi tidak cocok.|Upaya membuka kunci selesai, tetapi Wallet sekarang terkunci.|Wallet terbuka. Tinjau setiap permintaan sebelum menyetujui.|Perlindungan kata sandi disimpan. Buka dengan kata sandi lokal untuk melanjutkan.|Operasi Wallet belum selesai. Buka kembali Wallet saat ini sebelum melanjutkan.|File Wallet asli yang dienkripsi OS tetap disimpan pada perangkat ini untuk pemulihan. Salinan lama tidak dilindungi kata sandi Wallet yang baru.|Semua akun yang ada pada profil ini akan dibaca dengan perlindungan OS, diverifikasi, dan dienkripsi dengan kata sandi baru. File asli yang dienkripsi OS tetap di perangkat untuk pemulihan. Tidak ada kunci yang diunggah."
 };
+const historyRows={
+"zh-Hans":"暂时无法读取已保存的 Wallet 历史。已有账户已保留。请使用离线备份，或重新打开 Wallet 后重试。",
+"zh-Hant":"暫時無法讀取已儲存的 Wallet 歷史。既有帳戶已保留。請使用離線備份，或重新開啟 Wallet 後重試。",
+ja:"保存済みの Wallet 履歴を読み込めません。既存のアカウントは保持されています。オフラインのバックアップを使用するか、Wallet を開き直して再試行してください。",
+ko:"저장된 Wallet 기록을 읽을 수 없습니다. 기존 계정은 유지됩니다. 오프라인 백업을 사용하거나 Wallet을 다시 열고 시도하세요.",
+es:"El historial guardado de Wallet no está disponible. Se conservaron las cuentas existentes. Usa una copia sin conexión o vuelve a abrir Wallet para intentarlo de nuevo.",
+fr:"L’historique enregistré de Wallet est indisponible. Les comptes existants sont conservés. Utilisez une sauvegarde hors ligne ou rouvrez Wallet pour réessayer.",
+de:"Der gespeicherte Wallet-Verlauf ist nicht verfügbar. Bestehende Konten bleiben erhalten. Verwenden Sie eine Offline-Sicherung oder öffnen Sie Wallet erneut.",
+pt:"O histórico salvo de Wallet está indisponível. As contas existentes foram preservadas. Use uma cópia offline ou reabra Wallet para tentar novamente.",
+ru:"Сохранённая история Wallet недоступна. Существующие аккаунты сохранены. Используйте офлайн-копию или откройте Wallet заново и повторите попытку.",
+ar:"سجل Wallet المحفوظ غير متاح. تم الاحتفاظ بالحسابات الحالية. استخدم نسخة احتياطية غير متصلة أو أعد فتح Wallet للمحاولة مجددًا.",
+id:"Riwayat Wallet tersimpan tidak tersedia. Akun yang ada tetap disimpan. Gunakan cadangan offline atau buka kembali Wallet untuk mencoba lagi."
+};
+for(const locale of Object.keys(rows))if(locale!=="en")rows[locale]+="|"+historyRows[locale];
 export const PASSWORD_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{
 const values=row.split("|");if(values.length!==PASSWORD_COPY_KEYS.length||values.some(value=>!value))throw Error(`Incomplete password copy: ${locale}`);
 return[locale,Object.freeze(Object.fromEntries(PASSWORD_COPY_KEYS.map((key,index)=>[key,values[index]])))];

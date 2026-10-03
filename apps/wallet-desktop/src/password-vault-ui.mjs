@@ -1,6 +1,7 @@
 /** Local forms only. IPC sends credentials directly to the trusted main process. */
 import {setWalletCopy} from "./wallet-locale.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
+import {RECOVERY_HISTORY_NOTICE} from "./wallet-locale-password.mjs";
 export function renderRecoveryReview(node,{account,resetPassword,count},doc=node.ownerDocument){
   node.replaceChildren();
   for(const [key,values]of [
@@ -85,16 +86,23 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     // view opened in that interval owns its draft; this old click cannot close it.
     if (intent !== viewIntent || locked?.revision !== expectedRevision || getKeyState().revision !== expectedRevision || !getKeyState().locked) return;
     const token = generation;
-    const response = await api.accountStatus(); if (token !== generation) return;
+    let response;
+    try {response=await api.accountStatus();}
+    catch {if(token===generation&&intent===viewIntent)setWalletCopy($("#unlock-result"),"Wallet did not finish. Reopen the current Wallet before continuing.");return;}
+    if (token !== generation) return;
     if (!response.ok) { showError($("#unlock-result"),response); return; }
     renderAccount(response);
     $("#recovery-account").replaceChildren();
     for (const item of response.value.accounts) { const option = doc.createElement("option"); option.value = item.account; if(item.state === "recovery-required")setWalletCopy(option,"{account} · recovery required",{account:item.ynxAccount});else option.textContent=item.ynxAccount; option.selected = item.account === response.value.account; $("#recovery-account").append(option); }
-    const history = await api.recoveryHistory(); if (token !== generation) return;
+    let history;
+    try {history=await api.recoveryHistory();}
+    catch {history={ok:false};}
+    if (token !== generation) return;
     $("#recovery-history").replaceChildren();
     if (history.ok) for (const item of history.value) { const option = doc.createElement("option"); option.value = item.id; setWalletCopy(option,"Saved Wallet revision {revision} · {id}",{revision:item.revision,id:item.id.slice(0,12)}); $("#recovery-history").append(option); }
     $("#recovery-password-mode").value = response.value.passwordConfigured && !response.value.formatError ? "keep" : "reset";
     $("#recovery-form").hidden = false; $("#recovery-review").hidden = true; $("#recovery-result").textContent = "";
+    if(!history.ok)setWalletCopy($("#recovery-result"),RECOVERY_HISTORY_NOTICE);
     previewId = null; toggleRecovery(); setBusy(false); recoverySheet.showModal();
   });
   $("#recovery-kind").addEventListener("change", toggleRecovery);

@@ -138,7 +138,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
     const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
     runInNewContext(`${copyHelper}\n${invoiceClear}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
-      document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      document, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
@@ -188,7 +188,7 @@ async function sendEntryHarness() {
     async prepareTransfer() { calls.push(["prepare"]); return { ok: false, error: { message: "Fixture refuses transfer" } }; },
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
-  const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+  const context = { document, window: { ynxWallet: api }, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
@@ -310,6 +310,58 @@ test("a successful explicit unlock still needs a new Send click and subsequent l
   assert.equal(h.get("#prepare-transfer").disabled, true); assert.equal(h.get("#confirm-transfer").disabled, true);
   await h.get("#transfer-form").emit("submit");
   assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+
+for(const outcome of ["old-locked-same-generation","old-unlocked-before-lock","failure"])test(`initial security ${outcome} cannot undo a newer real security event`,async()=>{
+  const h=await sendEntryHarness(),source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
+  let notify,resolve,reject;
+  h.api.onSecurityState=callback=>{notify=callback;};h.api.securityStatus=()=>new Promise((yes,no)=>{resolve=yes;reject=no;});
+  const start=source.indexOf("window.ynxWallet.onSecurityState?.(renderKeyState)"),end=source.indexOf('document.querySelector("#lock-wallet").addEventListener',start);
+  assert.ok(start>=0&&end>start);runInNewContext(source.slice(start,end),h.context);
+  const next=outcome==="old-locked-same-generation"?{...h.context.keyState,locked:false}:{...h.context.keyState,locked:true,revision:2};notify(next);
+  h.get("#key-security-detail").textContent="new security notice";
+  if(outcome==="failure")reject(Error("old status failed"));else resolve({...next,locked:!next.locked,revision:outcome==="old-unlocked-before-lock"?1:next.revision});
+  await new Promise(done=>setImmediate(done));
+  assert.equal(h.context.keyState.locked,next.locked);assert.equal(h.context.keyState.revision,next.revision);assert.equal(h.get("#key-security-detail").textContent,"new security notice");
+});
+test("an older generation security notification cannot unlock the current locked view",async()=>{
+  const h=await sendEntryHarness();h.render({locked:true,revision:4});h.get("#local-password").value="new draft";
+  h.render({locked:false,revision:3});assert.equal(h.context.keyState.locked,true);assert.equal(h.context.keyState.revision,4);assert.equal(h.get("#local-password").value,"new draft");
+});
+
+for(const source of ["accountStatus","recoveryHistory"])for(const outcome of ["failure","throw"])test(`recovery opening retains records and reports ${source} ${outcome} without unhandled rejection`,async()=>{
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>({ok:true,value:[]});
+  h.api[source]=async()=>{if(outcome==="throw")throw Error("local read failed");return {ok:false,error:{message:"retained-file refusal"}};};
+  await h.get("#recover-wallet").click();
+  assert.equal(h.context.keyState.locked,true);assert.equal(h.account.accounts.length,1);
+  if(source==="accountStatus"){assert.equal(h.get("#recovery-sheet").open,false);assert.match(h.get("#unlock-result").textContent,outcome==="throw"?/Reopen the current Wallet/:/retained-file refusal/);}
+  else {assert.equal(h.get("#recovery-sheet").open,true);assert.match(h.get("#recovery-result").textContent,/history is unavailable/);}
+  assert.equal(h.calls.some(([kind])=>["setup","prepare","send"].includes(kind)),false);
+});
+for(const source of ["accountStatus","recoveryHistory"])test(`late recovery ${source} rejection cannot overwrite a newer password draft`,async()=>{
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>({ok:true,value:[]});
+  let reject,entered;const ready=new Promise(resolve=>{entered=resolve;});
+  h.api[source]=()=>new Promise((_resolve,no)=>{reject=no;entered();});
+  const pending=h.get("#recover-wallet").click();await ready;
+  await h.get("#unlock-wallet").click();h.get("#local-password").value="new-fixture-draft";h.get("#unlock-result").textContent="new journey notice";
+  reject(Error("old read failed"));await pending;
+  assert.equal(h.get("#password-sheet").open,true);assert.equal(h.get("#local-password").value,"new-fixture-draft");assert.equal(h.get("#unlock-result").textContent,"new journey notice");assert.equal(h.get("#recovery-sheet").open,false);
+});
+test("actual unavailable recovery history notice covers all twelve locales without disabling offline-backup recovery",async()=>{
+  const {initWalletLocale,WALLET_LOCALES,WALLET_COPY}=await import("../src/wallet-locale.mjs");
+  const {RECOVERY_HISTORY_NOTICE}=await import("../src/wallet-locale-password.mjs");
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>{throw Error("history unavailable");};
+  const doc={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]};h.get("#recovery-result").ownerDocument=doc;const locale=initWalletLocale({document:doc});
+  await h.get("#recover-wallet").click();
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(h.get("#recovery-result").textContent,WALLET_COPY[language][RECOVERY_HISTORY_NOTICE]);}
+  assert.equal(h.get("#recovery-sheet").open,true);assert.equal(h.get("#recovery-form").hidden,false);assert.equal(h.get("#recovery-kind").disabled,false);assert.equal(h.get("#prepare-recovery").disabled,false);
+  assert.equal(h.account.accounts.length,1);assert.equal(h.context.keyState.locked,true);
 });
 
 for (const operation of ["unlock", "setup", "migrate"]) for (const outcome of ["success", "failure", "throw"]) test(`cancelled password ${operation} ${outcome} cannot publish into a newer password journey`, async () => {
