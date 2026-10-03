@@ -25,7 +25,7 @@ function runRecord(account, projectId, intent, sequence) {
 async function harness() {
   const page = await browser.newPage(), pending = [], runs = new Map(), owners = new Map();
   page.on('pageerror', error => errors.push(error.message));
-  const state = { account: 'account-A', generation: 1, identityKey: 'identity-A-1', projects: projects(), projectsStatus: 200, modelStatus: 200, nextProjects: null, nextRun: null, nextMemory: null, projectReads: 0, modelReads: 0, healthReads: 0, runCalls: [], memoryCalls: [], deniedCalls: [], bindings: [] };
+  const state = { account: 'account-A', generation: 1, identityKey: 'identity-A-1', projects: projects(), projectsStatus: 200, modelStatus: 200, nextProjects: null, nextRun: null, nextMemory: null, nextPlan: null, projectReads: 0, modelReads: 0, healthReads: 0, runCalls: [], memoryCalls: [], deniedCalls: [], bindings: [] };
   await page.route('**/runtime/**', async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     if (!path.startsWith('/runtime/')) { await route.continue(); return; }
@@ -58,10 +58,10 @@ async function harness() {
       else value = { run: runs.get(id) };
     } else if (path === '/runtime/agent/runs' || path.startsWith('/runtime/agent/runs/')) {
       const body = request.postDataJSON();
-      state.runCalls.push({ projectId: body.projectId, action: body.action || 'create', approval: body.approval, activePath: body.activePath });
+      state.runCalls.push({ projectId: body.projectId, action: body.action || 'create', approval: body.approval, activePath: body.activePath, paths: body.paths, createPaths: body.createPaths, deletePaths: body.deletePaths });
       let run;
       if (path === '/runtime/agent/runs') {
-        run = runRecord(state.account, body.projectId, body.intent, runs.size + 1); runs.set(run.runId, run); owners.set(run.runId, state.account);
+        run = runRecord(state.account, body.projectId, body.intent, runs.size + 1); if (state.nextPlan) { run.plan = { ...run.plan, ...state.nextPlan }; state.nextPlan = null; } runs.set(run.runId, run); owners.set(run.runId, state.account);
       } else {
         run = structuredClone(runs.get(path.split('/').at(-1)));
         if (body.action === 'approve-plan') run.status = 'context_review';
@@ -92,6 +92,26 @@ async function advanceToApply(page) {
 }
 
 try {
+  {
+    const h = await harness();
+    try {
+      h.state.nextPlan = { contextPaths: Array.from({length:9}, (_, i) => 'source-' + i + '.ts'), createPaths: ['new.ts'], deletePaths: ['old.ts'] };
+      await h.open(); await h.page.getByLabel('Software change', {exact:true}).waitFor();
+      await createPlan(h.page); await h.page.getByRole('button', {name:'Approve plan',exact:true}).click();
+      const approval = h.page.getByRole('button', {name:/^Approve context once/});
+      assert.equal(await approval.isDisabled(), true);
+      await h.page.getByRole('alert').filter({hasText:'Select no more than 8 files'}).waitFor();
+      await h.page.getByRole('checkbox', {name:'read · source-8.ts',exact:true}).uncheck();
+      await h.page.getByRole('checkbox', {name:'create · new.ts',exact:true}).uncheck();
+      await h.page.getByRole('checkbox', {name:'recoverable delete · old.ts',exact:true}).uncheck();
+      assert.equal(await approval.isEnabled(), true);
+      await approval.click(); await h.page.getByText('Approved context reads:', {exact:false}).waitFor();
+      const sent = h.state.runCalls.find(call => call.action === 'approve-context');
+      assert.deepEqual(sent.paths, Array.from({length:8}, (_, i) => 'source-' + i + '.ts'));
+      assert.deepEqual(sent.createPaths, []); assert.deepEqual(sent.deletePaths, []);
+      checks.push('Explicit read/create/delete selection: ninth read blocks approval, unchecked paths never sent');
+    } finally { await h.close(); }
+  }
   {
     const h = await harness();
     try {

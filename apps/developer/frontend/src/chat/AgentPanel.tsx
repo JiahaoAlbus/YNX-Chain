@@ -36,6 +36,7 @@ type AgentAction =
   | "reconcile-git"
   | "prepare-deployment"
   | "approve-deployment";
+type ContextSelection = { paths: string[]; createPaths: string[]; deletePaths: string[] };
 
 type AgentPanelProps = {
   projectId: string;
@@ -219,7 +220,7 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
     if (enabled) void refreshSavedRuns();
   }, [enabled, lifecycleEpoch, requests]);
 
-  const execute = async (action: AgentAction) => {
+  const execute = async (action: AgentAction, selection?: ContextSelection) => {
     const captured = requests.capture(), runEpoch = runRequests.capture();
     const valid = () => current(captured) && runRequests.current(runEpoch);
     if (!valid() || !reconciled.current || recovering || uncertainCreate || run?.operation?.status === "running") return;
@@ -251,9 +252,9 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           approvalId,
           ...(action === "approve-context"
             ? {
-                paths: run!.plan?.contextPaths || [],
-                createPaths: run!.plan?.createPaths || [],
-                deletePaths: run!.plan?.deletePaths || [],
+                paths: selection?.paths || [],
+                createPaths: selection?.createPaths || [],
+                deletePaths: selection?.deletePaths || [],
                 approval: "context-read-once",
               }
             : {}),
@@ -526,7 +527,7 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           </Button>
         </>
       ) : (
-        <AgentRunView run={run} busy={busy || recovering || !runReady || run.operation?.status === "running"} execute={execute} />
+        <AgentRunView key={`${run.runId}:${run.status}`} run={run} busy={busy || recovering || !runReady || run.operation?.status === "running"} execute={execute} />
       )}
       {error && <div className="agent-error">{error}</div>}
       <div className="honest-boundary">
@@ -545,8 +546,10 @@ function AgentRunView({
 }: {
   run: AgentRun;
   busy: boolean;
-  execute: (action: AgentAction) => void;
+  execute: (action: AgentAction, selection?: ContextSelection) => void;
 }) {
+  const [selection, setSelection] = useState<ContextSelection>(() => ({ paths: run.plan?.contextPaths || [], createPaths: run.plan?.createPaths || [], deletePaths: run.plan?.deletePaths || [] }));
+  const toggle = (kind: keyof ContextSelection, path: string, checked: boolean) => setSelection(previous => ({ ...previous, [kind]: checked ? [...previous[kind], path] : previous[kind].filter(value => value !== path) }));
   const gitRecovery = run.operation?.status === "interrupted" && run.operation.action === "approve-git" && run.operation.recoveryEvidence?.recheckRequired;
   const usage = run.usage.reportedCalls
     ? `${run.usage.inputTokens} input + ${run.usage.outputTokens} output tokens`
@@ -588,9 +591,11 @@ function AgentRunView({
       {run.status === "context_review" && (
         <div className="agent-proposal">
           <strong>Requested context</strong>
-          {run.plan?.contextPaths.map((path) => <code key={path}>read · {path}</code>)}
-          {run.plan?.createPaths.map((path) => <code key={path}>create · {path}</code>)}
-          {run.plan?.deletePaths.map((path) => <code key={path}>recoverable delete · {path}</code>)}
+          <small>Choose the files to share with Coder and Reviewer: up to 8 nonempty text files, 256 KiB each. Only checked reads are sent. Create and delete permissions are separate.</small>
+          {run.plan?.contextPaths.map((path) => <label key={`read:${path}`}><input type="checkbox" disabled={busy} checked={selection.paths.includes(path)} onChange={event => toggle("paths", path, event.target.checked)} />read · {path}</label>)}
+          {run.plan?.createPaths.map((path) => <label key={`create:${path}`}><input type="checkbox" disabled={busy} checked={selection.createPaths.includes(path)} onChange={event => toggle("createPaths", path, event.target.checked)} />create · {path}</label>)}
+          {run.plan?.deletePaths.map((path) => <label key={`delete:${path}`}><input type="checkbox" disabled={busy} checked={selection.deletePaths.includes(path)} onChange={event => toggle("deletePaths", path, event.target.checked)} />recoverable delete · {path}</label>)}
+          {selection.paths.length > 8 && <p role="alert">Select no more than 8 files before approving context.</p>}
         </div>
       )}
       {(run.approvedPaths.length > 0 ||
@@ -677,8 +682,8 @@ function AgentRunView({
         </Button>
       )}
       {run.status === "context_review" && (
-        <Button disabled={busy} onClick={() => execute("approve-context")}>
-          Approve context once · {run.plan?.contextPaths.length || 0} reads + {run.plan?.createPaths.length || 0} creates + {run.plan?.deletePaths.length || 0} recoverable deletes
+        <Button disabled={busy || selection.paths.length > 8} onClick={() => execute("approve-context", selection)}>
+          Approve context once · {selection.paths.length} reads + {selection.createPaths.length} creates + {selection.deletePaths.length} recoverable deletes
         </Button>
       )}
       {run.status === "proposal_generation" && (
