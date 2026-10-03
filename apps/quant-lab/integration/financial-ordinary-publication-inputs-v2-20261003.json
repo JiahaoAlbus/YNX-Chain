@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "ynx-financial-ordinary-inputs-v2",
+  "classification": "ORDINARY_HUNKS_NOT_RELEASE_AUTHORITY",
+  "integrationMode": "ORDINARY_HUNKS_ONLY",
+  "releaseAuthority": "wallet_release_owner",
+  "sourceCommit": "cc2a7b203b0cfd4345690dc3f14e8d60b0d92dd1",
+  "sourceTree": "d9c6d7c4629bc05aac7e04b5602c1dfa5371b03e",
+  "baseSourceCommit": "4bb47c6687e587d500bc4dc547b0deb062898996",
+  "baseSourceTree": "f7fecc66eaf53d4bab3e6568bc7f69819bafab12",
+  "baseManifest": "apps/quant-lab/integration/ordinary-publication-successor-20261003.json",
+  "retainBaseStorageFences": true,
+  "handling": "These are source identities, not a complete runtime or user installer. Preserve the historical Quant lifecycle/storage inputs and writer compatibility fences. Finance app.js and other inherited mixed files must be ordinary-hunk integrated into A's current authority, never wholesale copied. A rebuilds a coherent formal HTML/module/style/SDK graph and verifies the public version; old pins may not be waived.",
+  "objects": [
+    {"path":"apps/finance/web/app.js","blob":"7becba361fe5e2a759bd61136648749d86d33c04","bytes":111239,"sha256":"cac1930dceab2342758099a4301adc8e3a2aa2969e542bc3c060d250b20ace9e"},
+    {"path":"apps/finance/tests/broker-snapshot-view-ownership.test.mjs","blob":"d35d933078b374932469016ab0055fabf24c8291","bytes":9158,"sha256":"d853af4739ad47db1ab65634e3ff131739f10b2d2aa0f72c6a1724dbe1cacdee"},
+    {"path":"apps/exchange/web/app.js","blob":"9c17181f5c19640b1e79359c468351cf8b31ded7","bytes":44228,"sha256":"ca7c5ca8d7aefad52ca79f76dfb2d72b633fb3159347c6a8707f1492d8331309"},
+    {"path":"apps/exchange/web/market-data.js","blob":"c526c0f0f486ccad24dd9cb1f2a0a0d01069c186","bytes":15941,"sha256":"cd6c06338a9fdfaf1889f79ac324b527412197a35ef2ce0e025fbcfd644525b6"},
+    {"path":"apps/exchange/tests/market-data.test.mjs","blob":"2c5a3da2e0a8d1af266b237c220b57a812df454b","bytes":22371,"sha256":"b30ec2f42b21196ee13cede7adc9af3d74d0fa47157d07c5583400beca89472b"},
+    {"path":"apps/exchange/tests/owned-controls-browser.test.mjs","blob":"acb841b2cac0176ff1c43efaf2d162484e6f553e","bytes":23058,"sha256":"0ed072676967c705f7221bf677fe057a26be0c7f87ce593ca776516c9057f69b"},
+    {"path":"apps/exchange/tests/locale-browser.test.mjs","blob":"51cd17e2a0428d4a2e2a4e91de199f1b7ca88b44","bytes":67389,"sha256":"87abd38af1f61879ca432f55e11f67728da91d21a74da05abf8762d17e4ea87d"},
+    {"path":"apps/quant-lab/web/app.js","blob":"a17bec2f33bc17f6e258ec347af8cda27121056f","bytes":158453,"sha256":"4154384fe70646e4c4c771926dd7f4a9909850e1a51434176f98a40469f1c139"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"0ead457eb8a2d34efff32f920be964773d62ed93","bytes":83814,"sha256":"1649cdce7363f1ffc6f5bece8b546a71f31b8a516f20e94476793af0dd1ed777"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"272a5bc47950ede093911d29508a4181f1b3c321","bytes":59529,"sha256":"88ffc856a738be0a5b78b6a1bcdbe08d5006717e63fae7e5b63645cf39e156ce"},
+    {"path":"apps/quant-lab/tests/research-recovery-browser.test.mjs","blob":"f1970cb1d68f7f702c5504c180898c3c23f3c876","bytes":9166,"sha256":"7d86cfbf75fb652a6ae5e7b3afebe5fe1625b00fd98660582ad517026fa01d89"}
+  ],
+  "ordinaryHunks": {
+    "finance": ["refreshBrokerSnapshot revision/context display fence", "refreshBrokerWorkspace context/connected fence", "searchBrokerAssets context fence", "refreshBrokerQuote input/context/revision fence"],
+    "exchange": ["ownedRecordInstant/ownedRecordOrder/ownedRecordTime", "renderOrders time/sort", "renderActivity time/sort", "market rate-limit/restart direct tests; carry exact market-data input"],
+    "quant": ["two-browser research/restart direct test", "applyConfirmedRiskReceipt and risk write lane", "paperFreshIntentBlocked/renderPaperSubmitControl", "paperObservedInteger and reconcile input checks", "renderAuditRecords/auditTimeValid and 12-language audit messages"]
+  },
+  "evidence": [
+    "apps/finance/evidence/broker-snapshot-display-ownership-20261003.md",
+    "apps/finance/evidence/broker-associated-read-ownership-20261003.md",
+    "apps/exchange/evidence/market-restart-revision-recovery-20261003.md",
+    "apps/exchange/evidence/owned-record-time-recovery-20261003.md",
+    "apps/quant-lab/evidence/two-browser-research-restart-isolation-20261003.md",
+    "apps/quant-lab/evidence/confirmed-risk-read-recovery-20261003.md",
+    "apps/quant-lab/evidence/paper-kill-new-intent-boundary-20261003.md",
+    "apps/quant-lab/evidence/paper-observed-amount-boundary-20261003.md",
+    "apps/quant-lab/evidence/audit-read-recovery-20261003.md"
+  ],
+  "rollback": "Reverse only accepted ordinary hunks; preserve pending research/Paper keys, durable state, audit records and current shared authority. Never downgrade to an incompatible storage writer or reset another owner.",
+  "nextReleaseGates": ["A ordinary-hunk integration and coherent formal graph", "actual production PostgreSQL/readiness and multiple authenticated users", "exact public source/runtime/asset hashes", "real Wallet approval/callback/refresh/disconnect", "real test orders and final platform installers"],
+  "truth": {"deployed":false,"publicSourceBound":false,"publicMultiUserVerified":false,"walletApprovalVerified":false,"productSessionVerified":false,"installedVerified":false,"productComplete":false},
+  "forbidden": ["No wholesale inherited checkout publication", "No shared authority/SDK/grants/pin overwrite", "No Host mutation", "No account/signature/transaction action", "No source proof promoted to release proof"]
+}
