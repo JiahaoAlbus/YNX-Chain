@@ -113,6 +113,9 @@ func (s *Store) appendEffectStep(ctx context.Context, d effectDispatch, step Bus
 	if !ok || record.Phase != "dispatching" || record.Admission != businessNonceDigest(verified.proof.SessionBinding, verified.proof.Nonce) {
 		return 0, ErrConflict
 	}
+	if readBusinessEffect(record.Kind) && step.Method != http.MethodGet {
+		return 0, ErrInvalidState
+	}
 	before, err := cloneSnapshot(s.s)
 	if err != nil {
 		return 0, err

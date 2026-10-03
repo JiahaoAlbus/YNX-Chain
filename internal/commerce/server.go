@@ -144,7 +144,7 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{
 		"walletAuth": wallet, "walletProtocol": protocol,
 		"sellerStoreAuthorizationRevocation": authorizationRevocation,
-		"paySettlement":                      availability(s.cfg.businessV2 == nil && s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
+		"paySettlement":                      availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
 		"payInvoiceHandoff":                  availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
 		"logistics":                          "unavailable",
 		"tax":                                "unavailable",
@@ -552,25 +552,11 @@ func (s *Server) orderTransition(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var in struct {
-		Action, Carrier, TrackingNumber, Reason, Explanation, Body, IdempotencyKey string
-		Rating                                                                     int
-	}
+	var in orderTransitionInput
 	if !decode(w, r, &in) {
 		return
 	}
-	var ship *Shipment
-	var res *Resolution
-	var review *Review
-	if in.Action == "shipped" {
-		ship = &Shipment{Carrier: in.Carrier, TrackingNumber: in.TrackingNumber}
-	}
-	if strings.Contains(in.Action, "return") || strings.Contains(in.Action, "refund") || in.Action == "disputed" {
-		res = &Resolution{Kind: strings.Split(in.Action, "_")[0], Reason: in.Reason, Explanation: in.Explanation}
-	}
-	if in.Action == "reviewed" {
-		review = &Review{Rating: in.Rating, Body: in.Body}
-	}
+	ship, res, review := in.parts()
 	v, err := s.store.transition(sess.Account, sess.Role, r.PathValue("id"), in.Action, ship, res, review, in.IdempotencyKey)
 	if err != nil {
 		fail(w, status(err), err)

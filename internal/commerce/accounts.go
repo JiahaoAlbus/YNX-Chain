@@ -308,7 +308,7 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 		}
 	}
 	for _, effect := range s.s.BusinessEffects {
-		if effect.Actor == actor && effect.Phase != "completed" && effect.Phase != "abandoned" {
+		if effect.Actor == actor && !readBusinessEffect(effect.Kind) && effect.Phase != "completed" && effect.Phase != "abandoned" {
 			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: external operation outcome requires recovery before deletion", ErrInvalidState)
 		}
 	}

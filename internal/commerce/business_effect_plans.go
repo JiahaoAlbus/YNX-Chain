@@ -11,6 +11,10 @@ import (
 )
 
 func decodeBusinessBody(body []byte, out any) error {
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return errors.New("single JSON object required")
+	}
 	d := json.NewDecoder(bytes.NewReader(body))
 	d.DisallowUnknownFields()
 	if err := d.Decode(out); err != nil {
@@ -216,6 +220,20 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 	switch pattern {
 	case "POST /api/orders/{id}/pay-handoff":
 		plan, err = s.payInvoiceEffect(r.PathValue("id"), body)
+	case "POST /api/orders/{id}/confirm-payment":
+		plan, err = s.settlementEffect(r.PathValue("id"), body, verified.proof)
+	case "POST /api/orders/{id}/transition":
+		response, err := s.runBusinessOrderTransition(r.Context(), verified, r.PathValue("id"), body)
+		if err != nil {
+			failBusiness(w, err)
+			return
+		}
+		if err := verified.current(r.Context()); err != nil {
+			failBusiness(w, err)
+			return
+		}
+		write(w, 200, response)
+		return
 	case "POST /api/ai/jobs/{id}/run":
 		plan, err = s.aiGenerationEffect(r.PathValue("id"), body)
 	default:

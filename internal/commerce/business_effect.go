@@ -27,6 +27,9 @@ func validateBusinessEffects(snapshot Snapshot) error {
 			return ErrInvalidState
 		}
 		for _, step := range record.Steps {
+			if readBusinessEffect(record.Kind) && step.Method != http.MethodGet {
+				return ErrInvalidState
+			}
 			if step.Method == "" || step.Origin == "" || step.Path == "" || !validDigest(step.RequestDigest) || effectDigest(string(step.Request)) != step.RequestDigest || (len(step.Request) > 0 && !json.Valid(step.Request)) {
 				return ErrInvalidState
 			}
@@ -44,6 +47,10 @@ func validateBusinessEffects(snapshot Snapshot) error {
 			}
 		}
 		switch record.Phase {
+		case "observed":
+			if !readBusinessEffect(record.Kind) {
+				return ErrInvalidState
+			}
 		case "admitted", "dispatching", "unknown", "abandoned":
 		case "received", "completed":
 			if !json.Valid(record.Result) {
@@ -74,6 +81,10 @@ type businessEffectPlan struct {
 	status            int
 }
 
+// This list is owner-defined, never caller supplied. A fresh signed settlement
+// observation may repeat its GET after an unavailable or pending response.
+func readBusinessEffect(kind string) bool { return kind == "pay.settlement" }
+
 func effectDigest(parts ...string) string {
 	raw, _ := json.Marshal(parts)
 	sum := sha256.Sum256(append([]byte("YNX_COMMERCE_EXTERNAL_V2\n"), raw...))
@@ -99,6 +110,9 @@ func (s *Store) effectReceipt(id string, result json.RawMessage, received bool) 
 		record.Phase = "received"
 	} else {
 		record.Phase = "unknown"
+	}
+	if readBusinessEffect(record.Kind) {
+		record.Phase = "observed"
 	}
 	if record.Kind == "ai.generate" {
 		if job, ok := s.s.AIJobs[record.Target]; ok && job.Actor == record.Actor {
@@ -174,7 +188,7 @@ func (s *Server) runBusinessEffect(ctx context.Context, verified *verifiedBusine
 		} else {
 			// An alternative client key cannot escape an unresolved operation.
 			for _, other := range tx.s.BusinessEffects {
-				if other.Actor == actor && other.Kind == plan.kind && other.Target == plan.target && other.Phase != "completed" {
+				if !readBusinessEffect(plan.kind) && other.Actor == actor && other.Kind == plan.kind && other.Target == plan.target && other.Phase != "completed" {
 					return &businessHTTPError{"BUSINESS_OUTCOME_UNCONFIRMED", http.StatusConflict}
 				}
 			}
@@ -236,6 +250,9 @@ func (s *Server) runBusinessEffect(ctx context.Context, verified *verifiedBusine
 			return nil, 0, err
 		}
 		if sendErr != nil {
+			if readBusinessEffect(plan.kind) {
+				return nil, 0, sendErr
+			}
 			return nil, 0, &businessHTTPError{"BUSINESS_OUTCOME_UNCONFIRMED", http.StatusConflict}
 		}
 		record.Phase = "received"
@@ -257,7 +274,7 @@ func (s *Server) runBusinessEffect(ctx context.Context, verified *verifiedBusine
 			response, err = plan.view(tx, actor, current)
 			return err
 		}
-		if current.Phase != "received" {
+		if current.Phase != "received" && !(readBusinessEffect(current.Kind) && current.Phase == "observed" && json.Valid(current.Result)) {
 			return ErrConflict
 		}
 		if err := plan.check(tx, actor, current); err != nil {

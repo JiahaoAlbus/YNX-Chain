@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -83,7 +84,19 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 			active := true
 			revokeAfterAuthorize := false
 			var payCalls atomic.Int32
+			var settlementCalls atomic.Int32
 			payProvider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/pay/invoices/signed-invoice/settlement" && r.Method == "GET" {
+					settlementCalls.Add(1)
+					var observed Order
+					for _, candidate := range store.Orders(account, "buyer") {
+						if candidate.InvoiceID == "signed-invoice" {
+							observed = candidate
+						}
+					}
+					json.NewEncoder(w).Encode(SettlementEvidence{InvoiceID: observed.InvoiceID, IntentID: observed.PayIntentID, Merchant: observed.PayMerchant, Payer: ready.Account, PayoutAddress: ready.Account, Status: "paid", Currency: NativeSymbol, AmountYNXT: observed.TotalYNXT, BlockHeight: 47, ConfirmedAt: time.Now().UTC(), TransactionHash: "0x" + strings.Repeat("a", 64), AuditHash: strings.Repeat("b", 64)})
+					return
+				}
 				payCalls.Add(1)
 				if r.URL.Path == "/pay/intents" {
 					w.Write([]byte(`{"id":"signed-intent"}`))
@@ -173,6 +186,29 @@ func TestCommerceV2ActualSDKAndGoHTTPProfileBoundary(t *testing.T) {
 			}
 			if w := request("POST", payPath, payBody, payScopes, false, payBody); w.Code != 201 || payCalls.Load() != 2 {
 				t.Fatal("fresh authorization did not recover actual receipt", w.Code, w.Body.String())
+			}
+			settlementPath := "/api/orders/" + order.ID + "/confirm-payment"
+			if w := request("POST", settlementPath, `{}`, payScopes, false, `{}`); w.Code != 200 || settlementCalls.Load() != 1 {
+				t.Fatal("actual signed settlement failed", w.Code, w.Body.String())
+			}
+			if w := request("POST", settlementPath, `{}`, payScopes, true, `{}`); w.Code != 409 || settlementCalls.Load() != 1 {
+				t.Fatal("settlement action replay queried again", w.Code)
+			}
+			settled, err := store.Order(account, "buyer", order.ID)
+			if err != nil || settled.Status != "paid" || settled.Settlement == nil || settled.Settlement.Payer != ready.Account {
+				t.Fatal("original raw Wallet representation lost from settlement", err)
+			}
+			cancelOrder, err := store.CreateOrder(account, orderInput(shop, product, "actual-sdk-cancel-order"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			cancelBody := `{"Action":"cancelled","IdempotencyKey":"actual-sdk-cancel-action"}`
+			cancelPath := "/api/orders/" + cancelOrder.ID + "/transition"
+			if w := request("POST", cancelPath, cancelBody, ShopScopes, false, cancelBody); w.Code != 200 {
+				t.Fatal("signed buyer cancel failed", w.Code, w.Body.String())
+			}
+			if w := request("POST", cancelPath, cancelBody, ShopScopes, true, cancelBody); w.Code != 409 {
+				t.Fatal("cancel action replay accepted", w.Code)
 			}
 			revokeAfterAuthorize = true
 			nonces := len(store.s.BusinessNonces)

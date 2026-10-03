@@ -23,6 +23,18 @@ func businessActorAliases(actor string) []string {
 	return []string{canonical, native}
 }
 
+func sameBusinessAccount(a, b string) bool {
+	if a == b {
+		return true
+	}
+	left, err := accountaddress.Normalize(a)
+	if err != nil {
+		return false
+	}
+	right, err := accountaddress.Normalize(b)
+	return err == nil && left == right
+}
+
 // Resolve only a cryptographically verified Wallet account using the existing
 // checked address codec. Never rewrite signed proof/session fields. This runs
 // on the transaction's staged Store, so the namespace decision and nonce commit

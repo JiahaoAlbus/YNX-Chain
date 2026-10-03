@@ -1,0 +1,16 @@
+=== RUN   TestBusinessTransitionPermissionsAndWalletSensitiveBoundary
+    business_order_transition_test.go:66: role created foreign authority 409
+--- FAIL: TestBusinessTransitionPermissionsAndWalletSensitiveBoundary (0.15s)
+=== RUN   TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce
+=== RUN   TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce/disk
+    business_order_transition_test.go:112: changed snapshot field RequestWindow
+    business_order_transition_test.go:115: failed cancel changed inventory or nonce 400
+=== RUN   TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce/actor
+    business_order_transition_test.go:112: changed snapshot field RequestWindow
+    business_order_transition_test.go:115: failed cancel changed inventory or nonce 403
+--- FAIL: TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce (0.13s)
+    --- FAIL: TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce/disk (0.07s)
+    --- FAIL: TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce/actor (0.06s)
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	0.777s
+FAIL

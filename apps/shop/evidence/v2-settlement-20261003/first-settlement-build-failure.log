@@ -1,0 +1,6 @@
+Captured initial compilation failure before adding encoding/hex:
+# github.com/JiahaoAlbus/YNX-Chain/internal/commerce [github.com/JiahaoAlbus/YNX-Chain/internal/commerce.test]
+internal/commerce/service.go:547:15: undefined: hex
+internal/commerce/service.go:550:15: undefined: hex
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce [build failed]
+FAIL

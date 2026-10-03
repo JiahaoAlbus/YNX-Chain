@@ -1,6 +1,7 @@
 package commerce
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -509,10 +510,13 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	if !ok {
 		return Order{}, ErrNotFound
 	}
+	if !settlementMatchesOrder(o, e) {
+		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
+	}
 	if o.Status == "paid" && o.Settlement != nil && o.Settlement.TransactionHash == e.TransactionHash {
 		return cloneOrder(o), nil
 	}
-	if o.Status != "payment_pending" || o.InvoiceID == "" || e.InvoiceID != o.InvoiceID || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.PayoutAddress != o.PayPayoutAddress || e.Status != "paid" || e.Currency != NativeSymbol || len(e.TransactionHash) != 66 || !strings.HasPrefix(e.TransactionHash, "0x") || len(e.AuditHash) != 64 || e.Payer != o.Buyer || e.BlockHeight == 0 || e.AmountYNXT != o.TotalYNXT || e.ConfirmedAt.IsZero() {
+	if o.Status != "payment_pending" {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
 	}
 	for _, line := range o.Lines {
@@ -538,6 +542,16 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 		return Order{}, err
 	}
 	return cloneOrder(o), nil
+}
+
+func settlementMatchesOrder(o Order, e SettlementEvidence) bool {
+	if _, err := hex.DecodeString(strings.TrimPrefix(e.TransactionHash, "0x")); err != nil {
+		return false
+	}
+	if _, err := hex.DecodeString(e.AuditHash); err != nil {
+		return false
+	}
+	return o.InvoiceID != "" && e.InvoiceID == o.InvoiceID && e.IntentID == o.PayIntentID && e.Merchant == o.PayMerchant && sameBusinessAccount(e.PayoutAddress, o.PayPayoutAddress) && e.Status == "paid" && e.Currency == NativeSymbol && len(e.TransactionHash) == 66 && strings.HasPrefix(e.TransactionHash, "0x") && len(e.AuditHash) == 64 && sameBusinessAccount(e.Payer, o.Buyer) && e.BlockHeight > 0 && e.AmountYNXT == o.TotalYNXT && !e.ConfirmedAt.IsZero()
 }
 
 func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Order, error) {

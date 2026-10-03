@@ -96,7 +96,7 @@ func TestV2HTTPUnsupportedExternalRouteRemainsClosed(t *testing.T) {
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(200) }))
 	defer provider.Close()
 	server := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}, Pay: HTTPPayVerifier{BaseURL: provider.URL, APIKey: "qa", MerchantID: "qa"}})
-	w := businessHTTPRequest(server, "POST", "/api/orders/order_abc/confirm-payment", strings.Repeat("b", 43), `{}`)
+	w := businessHTTPRequest(server, "POST", "/api/orders/order_abc/transition", strings.Repeat("b", 43), `{"Action":"disputed"}`)
 	if w.Code != 503 || calls != 0 || len(s.s.BusinessNonces) != 0 {
 		t.Fatal("external effect dispatched or silently consumed", w.Code, calls)
 	}
