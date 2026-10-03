@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
 import {createPrivateAccountController,validateAccountSnapshot} from '../web/private-account-controller.js';
 import {createExchangePrivateAccount,PRIVATE_SDK_SOURCE} from '../web/private-session-entry.js';
 const origin='https://exchange.ynxweb4.com',account='ynx1'+'q'.repeat(38),other='ynx1'+'p'.repeat(38);
@@ -16,7 +17,7 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
   const done=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve)});let browser,base;
   try{
     base=await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>{child.kill();reject(new Error('controller QA startup deadline'))},15000);child.stdout.on('data',chunk=>{output=(output+chunk).slice(-8192);const match=output.match(/EXCHANGE_CONTROLLER_QA_LISTEN=(http:\/\/127\.0\.0\.1:[0-9]+)/u);if(match){clearTimeout(timer);resolve(match[1])}});child.on('close',()=>{clearTimeout(timer);reject(new Error('controller QA ended before readiness'))})});
-    browser=await chromium.launch({headless:true});const context=await browser.newContext(),page=await context.newPage();
+    browser=await chromium.launch(await financeBrowserLaunchOptions());const context=await browser.newContext(),page=await context.newPage();
     const cdp=await context.newCDPSession(page);await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
     cdp.on('Fetch.requestPaused',async({requestId,request})=>{try{
       const url=new URL(request.url);if(url.origin!==origin)throw new Error('unregistered QA network');let response;

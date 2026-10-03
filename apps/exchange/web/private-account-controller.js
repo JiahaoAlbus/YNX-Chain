@@ -17,6 +17,31 @@ export function validateAccountSnapshot(value,account){
   if(source?.classification!=='testnet'||source.authority!=='YNX-owned deterministic order state'||source.version!=='exchange-public-state-v1'||source.coverage!=='account-ledger-orders-trades-fees-audit'||!['live','degraded_single_host'].includes(source.status)||!Number.isFinite(Date.parse(source.asOf))||Math.abs(Date.now()-Date.parse(source.asOf))>120000||source.status==='live'&&(source.stateBackend!=='postgres-cas-multi-instance'||source.multiInstance!==true)||source.status==='degraded_single_host'&&(source.stateBackend!=='file-cas-single-host'||source.multiInstance!==false))throw failure('INVALID_ACCOUNT_SOURCE');
   // Refuse unsafe JSON integers instead of silently rounding a venue balance.
   const check=(v)=>{if(v&&typeof v==='object')for(const [key,n]of Object.entries(v)){if(typeof n==='number'&&!Number.isSafeInteger(n))throw failure('UNSAFE_ACCOUNT_AMOUNT');if(/Micro$/.test(key)&&typeof n!=='number')throw failure('UNSAFE_ACCOUNT_AMOUNT');check(n)}};check(value);
+  // Validate business records before rendering or summing them. Signed ledger
+  // deltas are valid; balances, fills and fees are not signed deltas. Do not
+  // deduplicate silently: that would invent an apparently verified total.
+  const text=v=>typeof v==='string'&&v.trim().length>0;
+  const amounts=(row,keys)=>{for(const key of keys)if(!Number.isSafeInteger(row[key])||row[key]<0)throw failure('UNSAFE_ACCOUNT_AMOUNT')};
+  for(const key of ['balances','ledger','depositIntents','orders','trades','fees','deposits','withdrawals','support','ai','audit']){
+    const seen=new Set();
+    for(const row of value[key]){
+      const id=key==='balances'?row.asset:row.id;
+      if(!text(id)||seen.has(id))throw failure('INVALID_ACCOUNT_RESPONSE');seen.add(id);
+      if(key==='balances')amounts(row,['availableMicro','reservedMicro']);
+      if(key==='ledger')for(const field of ['availableDelta','reservedDelta'])if(!Number.isSafeInteger(row[field]))throw failure('UNSAFE_ACCOUNT_AMOUNT');
+      if(key==='orders'){
+        amounts(row,['priceMicro','amountMicro','filledMicro','reservedMicro']);
+        if(row.filledMicro>row.amountMicro)throw failure('UNSAFE_ACCOUNT_AMOUNT');
+      }
+      if(key==='trades')amounts(row,['priceMicro','amountMicro','buyerFeeMicro','sellerFeeMicro']);
+      if(key==='fees'||key==='deposits')amounts(row,['amountMicro']);
+      if(key==='withdrawals'){
+        amounts(row,['amountMicro','feeMicro','receiveMicro']);
+        if(BigInt(row.receiveMicro)+BigInt(row.feeMicro)!==BigInt(row.amountMicro))throw failure('UNSAFE_ACCOUNT_AMOUNT');
+      }
+    }
+  }
+  if(typeof value.security.withdrawalLock!=='boolean'||!Number.isSafeInteger(value.security.sessionTtlMinutes)||value.security.sessionTtlMinutes<15||value.security.sessionTtlMinutes>480)throw failure('INVALID_ACCOUNT_RESPONSE');
   return value;
 }
 

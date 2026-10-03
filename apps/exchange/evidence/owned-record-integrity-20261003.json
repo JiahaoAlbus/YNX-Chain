@@ -1,0 +1,46 @@
+{
+  "classification": "OWNER_SOURCE_AND_ISOLATED_QA_NOT_PUBLIC_RELEASE",
+  "predecessor": "d9cfd45a0c6b42e299191fe87b14cc66e53f98bc",
+  "branch": "codex/exchange-sso-cookie-binding-20261002",
+  "scope": "Existing Exchange owned read business records only; Wallet SDK, proof, permission and service protocols unchanged",
+  "defectsFixed": [
+    "Missing or negative balance quantities accepted as a verified account snapshot",
+    "Duplicate asset/record identities capable of double-counting balances or owned trade volume",
+    "Missing trade fees and filled amount exceeding order amount",
+    "Withdrawal receive plus fee inconsistent with amount",
+    "Malformed security boolean or TTL coerced into apparently verified display"
+  ],
+  "compatibility": [
+    "Signed ledger changes retained",
+    "Zero market-order price retained",
+    "Unknown raw venue status retained",
+    "Existing security TTL policy 15..480 minutes",
+    "Unsafe response clears owned display and degrades private service only; Standard Wallet unchanged",
+    "No silent deduplication, rounding or invented totals"
+  ],
+  "objects": [
+    {"path":"apps/exchange/web/private-account-controller.js","blob":"9cab07fd98d4cae6e94d6f1219684c223419da89","bytes":14209,"sha256":"d81121210d1dda4aa3daef0492ec8924f35357af6cb808cad36bdbcb2284323c"},
+    {"path":"apps/exchange/tests/owned-record-integrity.test.mjs","blob":"cb59e3c72e1af1850fdd3418266709094d2a2596","bytes":5545,"sha256":"cadcd328fdd99b2dd707190b70fb38b840e6aa509f6dfc1fc84c068b338b8f98"},
+    {"path":"apps/exchange/tests/private-account.test.mjs","blob":"f1d11b7db2342d80e5e5e9e5a658faf8bc5129f2","bytes":26120,"sha256":"562a03678b019d7241817bef212ed6b45d5e5c81d6bf8d5d1048817abcd2a09a"}
+  ],
+  "tests": [
+    {"command":"node --test apps/exchange/tests/owned-record-integrity.test.mjs apps/exchange/tests/private-account.test.mjs apps/exchange/tests/owned-controls-browser.test.mjs apps/exchange/tests/locale-browser.test.mjs","pass":51,"skip":1,"fail":0,"durationMs":21579.751875,"note":"Opt-in HTTP QA skipped here; subsequently explicitly executed below"},
+    {"command":"YNX_EXCHANGE_CONTROLLER_HTTP_QA=1 node --test apps/exchange/tests/private-account.test.mjs","pass":25,"skip":0,"fail":0,"durationMs":3276.579292,"note":"Actual Chrome plus actual isolated Go HTTP service; controlled signing/proof fixtures, not real Wallet approval or official website"},
+    {"command":"go test -race ./internal/exchangeproduct -count=1","result":"PASS","seconds":14.413},
+    {"command":"git diff --check; node --check apps/exchange/web/private-account-controller.js; node --check apps/exchange/tests/owned-record-integrity.test.mjs","result":"PASS"}
+  ],
+  "releaseDependency": "A must integrate owned delta into exact compatible final Wallet/Auth/runtime/asset graph; Exchange final packaging must include locale.js, ynx-logo.png and ui-preferences.js with coherent version pins",
+  "rollback": "Before official publication, omit this isolated owner delta from A candidate; no production mutation occurred. After publication, use A approved immutable previous release rollback, never reset user work.",
+  "truth": {
+    "sourceTestsPassed": true,
+    "isolatedGoChromeReadBoundaryPassed": true,
+    "currentSourcePublicVerified": false,
+    "installedVerified": false,
+    "realWalletApproval": false,
+    "productSessionLifecycle": false,
+    "signatures": false,
+    "transactions": false,
+    "computerControl": false,
+    "productComplete": false
+  }
+}
