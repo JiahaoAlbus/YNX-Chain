@@ -24,14 +24,14 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 		_ = seed.Close()
 		t.Fatal("PostgreSQL store was not selected")
 	}
-	if store.schemaMode != "revision" {
-		_ = seed.Close()
-		t.Skip("revision-layout PostgreSQL database is required; integrity layout has separate CAS tests")
-	}
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		if store.schemaMode == "revision" {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		} else {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE singleton = TRUE`)
+		}
 	})
 	if err := seed.Close(); err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer restarted.Close()
-	if backend, multiInstance := restarted.StorageStatus(); backend != "postgresql" || !multiInstance || restarted.state.Revision != 2 {
+	if backend, multiInstance := restarted.StorageStatus(); backend != "postgresql" || !multiInstance || restarted.state.Sequence != 1 || store.schemaMode == "revision" && restarted.state.Revision != 2 {
 		t.Fatalf("storage=%q/%t revision=%d", backend, multiInstance, restarted.state.Revision)
 	}
 	if _, err := restarted.CreditTestQuote(adminKey, bob, AmountScale, "postgres-restart-credit"); err != nil {
@@ -86,7 +86,7 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer readback.Close()
-	if readback.state.Revision != 3 {
+	if store.schemaMode == "revision" && readback.state.Revision != 3 {
 		t.Fatalf("revision=%d", readback.state.Revision)
 	}
 	for _, balance := range readback.Snapshot(bob).Balances {
