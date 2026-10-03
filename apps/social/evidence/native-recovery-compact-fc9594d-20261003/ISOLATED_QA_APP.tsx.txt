@@ -1,0 +1,20 @@
+import React, { useState } from 'react';
+import { SafeAreaView, Text, Pressable } from 'react-native';
+import { NativeMatrixWorkspace } from './src/NativeMatrixWorkspace';
+import { installedMatrixConsumer } from './src/nativeMatrixInstalled';
+
+// Isolated native UI QA, not canonical auth, a product mount, or an E2E grant.
+// No account, credential, Matrix enrollment, sign, or transaction is requested.
+const client = installedMatrixConsumer(
+  async () => { throw new Error('MATRIX_CANONICAL_AUTHORITY_REQUIRED'); },
+  async () => { throw new Error('MATRIX_ACCEPTED_PEER_REQUIRED'); },
+);
+export default function App() {
+  const [opened, setOpened] = useState(true);
+  return <SafeAreaView style={{ flex: 1, backgroundColor: '#faf8f2' }}>
+    <Text accessibilityRole="header">YNX Social isolated Native Matrix UI QA</Text>
+    <Text>Canonical authority unavailable. No account authorization will be requested.</Text>
+    {opened ? <NativeMatrixWorkspace client={client} personId="" onClose={() => setOpened(false)} /> :
+      <Pressable accessibilityRole="button" onPress={() => setOpened(true)}><Text>Reopen Native Matrix</Text></Pressable>}
+  </SafeAreaView>;
+}

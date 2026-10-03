@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "kind": "SOURCE_AND_ISOLATED_LOCAL_QA_NOT_RELEASE_OR_E2E",
+  "source": "fc9594d1046ee1752f2f3ee7b415986da554e48f",
+  "tree": "02558eb5045a184d81fa23f008e26c7d254deee0",
+  "parent": "5318df6577b7599037fcac5055c6666979392872",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sourcePins": [
+    {
+      "path": "apps/social/App.tsx",
+      "bytes": 147316,
+      "sha256": "165544567b2a42cf0fa8f65c78a544168f6c4f27f4582c0191b2a0279876ef6a",
+      "blob": "b93011f0f1ee8d145d91f03242eb0fd437f902c6"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/IMPLEMENTATION.md",
+      "bytes": 7833,
+      "sha256": "605d1212cf6a73649f0c49271a2f85e03917bb1bae55ff2bad198231d0e9955a",
+      "blob": "39ac7269ff642ddf48e4cfc09928d1d2c607a5cf"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixVault.kt",
+      "bytes": 9360,
+      "sha256": "8449c94d94715a11471ad983735d3fa51d154e4b11464de9cd82099df68263fd",
+      "blob": "cba2292e93ea7c7f1f9b4f28cdfe40135dc1533a"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt",
+      "bytes": 20205,
+      "sha256": "8a980e8f771db9141938c17033e4daced55b105cb51c87222a5f35fd30324863",
+      "blob": "f00994b3ca5dd3a8dfee2aedd036131f106b97d7"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/MatrixVault.swift",
+      "bytes": 10237,
+      "sha256": "f77062851f61e481541ae620a5c18974523dc4735a16e5d6426c9fc138ae5349",
+      "blob": "068f4d783d12a94e9ce7da31f65fddc554f1bb96"
+    },
+    {
+      "path": "apps/social/modules/native-matrix/ios/YNXSocialMatrixModule.swift",
+      "bytes": 23516,
+      "sha256": "5f47c59ae6507309f11a18273c2827b31a92e754135a0e4bf40984b37bed8a31",
+      "blob": "08a35d61ee82a7d52bcdcc206ec45f1f512a761d"
+    },
+    {
+      "path": "apps/social/src/BrandRoot.tsx",
+      "bytes": 1356,
+      "sha256": "bf1d11954f81897755c91a4a63fecadc4c29915d3b8457627a6158b3e048c387",
+      "blob": "9e3d9afc3421e9a725e2678102420a86ff388620"
+    },
+    {
+      "path": "apps/social/src/NativeMatrixWorkspace.tsx",
+      "bytes": 13095,
+      "sha256": "840a41f24ca312175240dfef38ea0b424fbaa831eecf832d52adbb8a02d7e587",
+      "blob": "0d6efd77155853efbc5ab09fdb0fab2e6c33cab1"
+    },
+    {
+      "path": "apps/social/src/branding.test.ts",
+      "bytes": 2249,
+      "sha256": "6fb308c42367ad083d48524b7260e78e991af10e64098e2fba1e08a7a8509090",
+      "blob": "cb247c4cf80141656bd1c3c66c6141e58c230173"
+    },
+    {
+      "path": "apps/social/src/nativeMatrix.test.ts",
+      "bytes": 10596,
+      "sha256": "1f1ae4e35feb6425e0e5d14b80c25cac75ecf00334feae46e5b45ea4888ad7d7",
+      "blob": "c6e7f4f1ebc196e0d01316ed729b8332d922c784"
+    },
+    {
+      "path": "apps/social/src/nativeMatrix.ts",
+      "bytes": 17418,
+      "sha256": "ed7328f6b71801845cea6c5085d2c550b47a88a5eeb3d09effdbd57dd5c481a6",
+      "blob": "bd8728a674e599131e2ceea599620cce4e6d295c"
+    },
+    {
+      "path": "apps/social/src/nativeMatrixRecovery.ts",
+      "bytes": 1783,
+      "sha256": "4b29a93f9a55fdf4d70646feffab7e0370f02a9bc7e2c01b0398cfe4bb07e1f8",
+      "blob": "713973edb4637813a07ee6ef67a2f95467ff705d"
+    },
+    {
+      "path": "apps/social/web/styles.css",
+      "bytes": 7164,
+      "sha256": "450138dbe2a0adf850437b0a1829c8a2df3fcd70376a5d8d23f946b227fc81c7",
+      "blob": "cf402a19acd2b91552061b64a1bddf5e999764d3"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "recovery-typecheck-first.log",
+      "bytes": 132,
+      "sha256": "53e4afe33246f9d987d08cb210f096878a7f2cc1c5e5fd289a897b5769447a40"
+    },
+    {
+      "path": "recovery-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "recovery-tests-first.log",
+      "bytes": 19933,
+      "sha256": "14a59a336dfae342cd1cff1bad185125ca499cd9e28cff6d53eca6cb01710245"
+    },
+    {
+      "path": "recovery-tests-final.log",
+      "bytes": 19969,
+      "sha256": "dc6270083e9138abc5332618887dfd84af121fed96cf0948e5f1fdc962307c08"
+    },
+    {
+      "path": "recovery-native-compile-first.log",
+      "bytes": 8008,
+      "sha256": "c4afd180a15def3096637f8b54aa02fa974ace4b448521ed27579dfc0cb94227"
+    },
+    {
+      "path": "recovery-ui-embed-final.log",
+      "bytes": 529,
+      "sha256": "47ef1cf53457ea3fe7146adbe2455cbd9c8593d8d71325f6b3ada7c73b4df377"
+    },
+    {
+      "path": "recovery-ui-build-final.log",
+      "bytes": 21852,
+      "sha256": "88de075eefb4dc4c80b9b5457abe90d2da9048ca0444f9138fefe6039c5d11ed"
+    },
+    {
+      "path": "recovery-js-export-final.log",
+      "bytes": 875,
+      "sha256": "b45bfa56fa88b7fd8c5b3c3c5693f0528b325a1e7a66347b45b6c5bd16770d45"
+    },
+    {
+      "path": "recovery-swift-parse-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "recovery-final-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "recovery-ui-final.xml",
+      "bytes": 7664,
+      "sha256": "b0422e67689fe7a331b44df6ef70f94509ff58f04d2643f558751df2190ee868"
+    },
+    {
+      "path": "recovery-ui-final.png",
+      "bytes": 23821,
+      "sha256": "6b6876caf8597540a5f9f1130ec15ba888c078171842b75146a9eba0442bee86"
+    },
+    {
+      "path": "recovery-final-error.xml",
+      "bytes": 7652,
+      "sha256": "f17bc44aebfcfe10b7c9bb7ca2b17570a317b0baa3bf46b62b178c889fd7e0a0"
+    },
+    {
+      "path": "recovery-final-error.png",
+      "bytes": 23927,
+      "sha256": "5aa30f5f038600a96f642a2e1f11af6bb0e4030f1e543b34e1e270ae2c7d8248"
+    },
+    {
+      "path": "recovery-final-closed.xml",
+      "bytes": 5490,
+      "sha256": "ab85f2024915d70e9debe3199cd23748ae5e269e24ab2ea1cff766875305ad1c"
+    },
+    {
+      "path": "recovery-final-closed.png",
+      "bytes": 15347,
+      "sha256": "9dc82039724f8e0242d4213806e6e89ea50f172d912e795193d9824cc0ef74e8"
+    },
+    {
+      "path": "recovery-final-reopened.xml",
+      "bytes": 7664,
+      "sha256": "b0422e67689fe7a331b44df6ef70f94509ff58f04d2643f558751df2190ee868"
+    },
+    {
+      "path": "recovery-final-reopened.png",
+      "bytes": 23821,
+      "sha256": "6b6876caf8597540a5f9f1130ec15ba888c078171842b75146a9eba0442bee86"
+    },
+    {
+      "path": "compact-web-390-stable.png",
+      "bytes": 32211,
+      "sha256": "decae09ad5208f2c261b47f8c9e40729dab6acbefe93501a22f33a73bb3ea96e"
+    },
+    {
+      "path": "compact-web-console.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    }
+  ],
+  "apk": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/recovery-compact-fc9594d-debug.apk",
+    "bytes": 130152277,
+    "sha256": "08af8306ae89bc1521ba2d680a7d7b6d756a69c0622ce53bba59f26517671cff",
+    "temporaryQAApp": true,
+    "canonicalAuthorityUnavailable": true
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "sourceTests": "203/203 PASS",
+    "pinnedAndroidModuleCompile": "PASS",
+    "androidDebugBuild": "PASS",
+    "androidIosJSExport": "PASS_WITH_EXPO_PROCESS_EXIT_WARNING",
+    "swiftParse": "PASS_NOT_SDK_TYPECHECK",
+    "actualIsolatedAndroidUI": [
+      "canonical authority rejected",
+      "close",
+      "reopen resets error",
+      "logo 46x24dp",
+      "close 48x48dp"
+    ],
+    "actualLocalWeb": {
+      "viewport": [
+        390,
+        844
+      ],
+      "logo": [
+        45.59375,
+        24
+      ],
+      "hero": 24,
+      "body": 16,
+      "consoleErrors": 0,
+      "url": "http://127.0.0.1:8769/"
+    }
+  },
+  "notVerified": [
+    "native product mount and canonical enrollment",
+    "authenticated SDK/server/index original intent settlement",
+    "real text/file and human SAS lifecycle",
+    "Apple SDK compile/link/install",
+    "new size setting and all-language/OS-large-font QA",
+    "compatible public release and source binding",
+    "dot MONSTER invocation and acceptance",
+    "C01-C07/V01-V17 full product acceptance"
+  ],
+  "sensitiveActions": [],
+  "deployments": [],
+  "coordinator": "01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}

@@ -1,0 +1,5 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+src/nativeMatrix.test.ts(81,16): error TS2532: Object is possibly 'undefined'.
