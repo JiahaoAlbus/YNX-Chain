@@ -2,12 +2,14 @@ package quantlab
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPostgreSQLReadinessRejectsClosedPoolAndRecoversOnReopen(t *testing.T) {
@@ -15,7 +17,7 @@ func TestPostgreSQLReadinessRejectsClosedPoolAndRecoversOnReopen(t *testing.T) {
 	if databaseURL == "" {
 		t.Skip("YNX_QUANT_POSTGRES_TEST_URL is not configured")
 	}
-	cfg := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), DatabaseURL: databaseURL, StateNamespace: "quant-it-readiness-closed-pool"}
+	cfg := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), DatabaseURL: databaseURL, StateNamespace: fmt.Sprintf("quant-it-readiness-%d", time.Now().UnixNano())}
 	service, err := New(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -37,6 +39,12 @@ func TestPostgreSQLReadinessRejectsClosedPoolAndRecoversOnReopen(t *testing.T) {
 		if response.StatusCode != status || payload.Reason != reason {
 			t.Fatalf("readiness=%d payload=%+v", response.StatusCode, payload)
 		}
+	}
+	// A reachable empty namespace is not persisted readiness. Explicitly seed
+	// controlled local risk state, then require readable authoritative state.
+	check(server.URL, http.StatusServiceUnavailable, "authoritative state is temporarily unavailable")
+	if _, err := service.Kill("controlled PostgreSQL readiness seed"); err != nil {
+		t.Fatal(err)
 	}
 	check(server.URL, http.StatusOK, "")
 	if err := service.Close(); err != nil {

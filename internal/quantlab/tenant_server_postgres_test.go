@@ -42,6 +42,10 @@ func TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers(t *testing.
 	})
 	server := httptest.NewServer(handler)
 	defer server.Close()
+	// Tenant writes cannot substitute for missing root diagnostic state.
+	if _, err := handler.baseService.Kill("controlled root diagnostic seed"); err != nil {
+		t.Fatal(err)
+	}
 	tenantA := strings.Repeat("a", 64)
 	tenantB := strings.Repeat("b", 64)
 	kill := func(tenant string) *http.Response {
