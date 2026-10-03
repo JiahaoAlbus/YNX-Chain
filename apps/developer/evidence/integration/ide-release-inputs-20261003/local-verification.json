@@ -1,0 +1,14 @@
+{
+  "launcherTests": {
+    "passed": 9,
+    "failed": 0,
+    "scope": "Actual launcher subprocess; gateway import observer fixture; no native acceptance"
+  },
+  "shellSyntax": "PASS",
+  "staticClaimWorkflow": "PASS",
+  "diffWhitespace": "PASS",
+  "historicalMetadataExactBytes": true,
+  "historicalMetadataSha256": "d89c0ee90b571f0ff55344760093c42211d4b5dce14da52586eba1248bff8348",
+  "installedCurrentSource": false,
+  "formalPublication": false
+}

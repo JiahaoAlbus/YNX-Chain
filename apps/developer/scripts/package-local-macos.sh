@@ -12,7 +12,7 @@ fi
 source_commit=$(/usr/bin/git -C "$repo_root" rev-parse HEAD)
 source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
-runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
+runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
 macos_min_version=$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' desktop/macos/Info.plist)

@@ -50,7 +50,7 @@ node scripts/verify-macos-compatibility.mjs "$app" "$macos_min_version" "$machin
 cmp "$app/Contents/Resources/macos-compatibility.json" "$work/macos-compatibility.json"
 expected_source_commit="${YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT:-$(/usr/bin/git rev-parse HEAD)}"
 expected_source_tree="${YNX_DEVELOPER_EXPECTED_SOURCE_TREE:-$(/usr/bin/git rev-parse "$expected_source_commit^{tree}")}"
-expected_runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
+expected_runtime_checkpoint="$expected_source_commit"
 node -e '
 const crypto = require("crypto");
 const fs = require("fs");
