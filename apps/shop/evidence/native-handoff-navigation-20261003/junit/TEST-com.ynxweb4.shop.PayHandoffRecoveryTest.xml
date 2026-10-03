@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.PayHandoffRecoveryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:45:43.719Z" hostname="HuangJiahaoMacmini" time="0.041">
+  <properties/>
+  <testcase name="anotherActorCannotPrepareOriginalOrderOrUseItsPendingKey" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.011"/>
+  <testcase name="mismatchedActorAmountInvoiceOrRedirectPreservesOriginalIntent" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.012"/>
+  <testcase name="changedOrderCannotRotateUnknownHandoff" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.003"/>
+  <testcase name="exactReceiptClearsOnlyOriginalIntentAndReturnsExactReviewLink" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.004"/>
+  <testcase name="malformedStorageAndWriteFailureNeverLoseOriginalEvidence" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.003"/>
+  <testcase name="unknownHandoffKeepsOriginalOpaqueKeyAcrossRestartAndCallerMutation" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.005"/>
+  <testcase name="fractionalAndOverflowAmountsCannotMatchAnOriginalIntegerOrder" classname="com.ynxweb4.shop.PayHandoffRecoveryTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

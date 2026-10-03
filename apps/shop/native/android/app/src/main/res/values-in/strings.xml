@@ -26,4 +26,7 @@
     <string name="text_compact">Ringkas</string>
     <string name="text_standard">Standar</string>
     <string name="text_larger">Lebih besar</string>
+    <string name="commerce_services">Layanan Commerce</string>
+    <string name="seller_console">Konsol penjual</string>
+    <string name="merchant_invoices">Faktur merchant</string>
 </resources>

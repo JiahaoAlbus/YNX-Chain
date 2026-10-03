@@ -30,4 +30,7 @@
     <string name="text_compact">緊湊</string>
     <string name="text_standard">標準</string>
     <string name="text_larger">較大</string>
+    <string name="commerce_services">Commerce 服務</string>
+    <string name="seller_console">賣家控制台</string>
+    <string name="merchant_invoices">商戶發票</string>
 </resources>

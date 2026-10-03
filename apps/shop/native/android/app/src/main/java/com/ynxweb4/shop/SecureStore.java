@@ -16,7 +16,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
-final class SecureStore implements OfflineMutationQueue.Storage, PrivacyLifecycle.Storage, NativeCart.Storage {
+final class SecureStore implements PayHandoffRecovery.Storage, OfflineMutationQueue.Storage, PrivacyLifecycle.Storage, NativeCart.Storage {
     private static final String ALIAS = "ynx_shop_secure_store_v1";
     private final SharedPreferences prefs;
     private final StableValues values;

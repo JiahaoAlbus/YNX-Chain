@@ -29,7 +29,7 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
-    private Object cartWork;
+    private Object cartWork,payHandoffWork;
     private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
     private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
     private void runCartTask(CartTask task,Runnable success){
@@ -45,7 +45,7 @@ public final class MainActivity extends Activity {
     private String presentationPrivacyPhase="";
     private void showDialog(AlertDialog dialog){showDialog(dialog,()->{});}
     private void showDialog(AlertDialog dialog,Runnable dismissed){privateDialogs.add(dialog);dialog.setOnDismissListener(d->{privateDialogs.remove(dialog);dismissed.run();});dialog.show();}
-    private void clearPrivatePresentation(){cartWork=null;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void clearPrivatePresentation(){cartWork=null;payHandoffWork=null;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -60,7 +60,7 @@ public final class MainActivity extends Activity {
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
     @Override protected void onResume(){super.onResume();if(api!=null)reconcileSession();}
-    @Override protected void onPause(){clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
+    @Override protected void onPause(){payHandoffWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
     @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
@@ -95,6 +95,7 @@ public final class MainActivity extends Activity {
         TextView brandName=text(getString(R.string.shop_name),16,true);brandName.setTextColor(INK);brandName.setPadding(dp(8),0,0,0);brand.addView(brandName);
         header.addView(brand,new LinearLayout.LayoutParams(compactBrandHeader?LinearLayout.LayoutParams.MATCH_PARENT:0,LinearLayout.LayoutParams.WRAP_CONTENT,compactBrandHeader?0:1));
         Button walletButton=button(getString(R.string.wallet_sign_in));walletButton.setContentDescription(getString(R.string.wallet_sign_in));walletButton.setOnClickListener(v->signIn());header.addView(walletButton);
+        Button services=button(getString(R.string.commerce_services));services.setOnClickListener(v->{PopupMenu menu=new PopupMenu(this,services);menu.getMenu().add(0,1,0,R.string.nav_catalog);menu.getMenu().add(0,2,1,R.string.seller_console);menu.getMenu().add(0,3,2,R.string.merchant_invoices);menu.setOnMenuItemClickListener(item->{if(item.getItemId()==1)showCatalog();else openCommerceService(item.getItemId()==2?"https://shop.ynxweb4.com/seller/":"https://pay.ynxweb4.com/merchant/");return true;});menu.show();});header.addView(services);
         root.addView(header);
         status=text(getString(R.string.loading),13,false);status.setContentDescription(getString(R.string.accessibility_status));status.setPadding(dp(18),dp(8),dp(18),dp(8));status.setTextColor(Color.DKGRAY);root.addView(status);
         HorizontalScrollView navigation=new HorizontalScrollView(this);navigation.setHorizontalScrollBarEnabled(false);LinearLayout tabs=row();
@@ -105,7 +106,9 @@ public final class MainActivity extends Activity {
         setContentView(root);
     }
 
-    private void showCatalog(){clearAI();
+    private void openCommerceService(String url){payHandoffWork=null;clearAI();try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(ActivityNotFoundException error){status.setText(getString(R.string.unavailable));}}
+
+    private void showCatalog(){payHandoffWork=null;clearAI();
         content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),24,true);content.addView(heading);
         TextView boundary=text(getString(R.string.payment_boundary),14,false);boundary.setTextColor(BLUE);boundary.setPadding(0,dp(8),0,dp(14));content.addView(boundary);
         LinearLayout search=row();EditText query=input(getString(R.string.search_hint));search.addView(query,new LinearLayout.LayoutParams(0,dp(52),1));Button run=primary(getString(R.string.search));search.addView(run);content.addView(search);
@@ -147,7 +150,7 @@ public final class MainActivity extends Activity {
     private void syncCartContext()throws Exception{String key=cartKey();if(!key.equals(loadedCartKey)||!secure.get(key).equals(loadedCartText))restoreCart();}
     private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
-    private void showCart(){clearAI();
+    private void showCart(){payHandoffWork=null;clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
         if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
@@ -193,7 +196,7 @@ public final class MainActivity extends Activity {
         }catch(Exception error){status.setText(cartError(error));}
     }
 
-    private void showOrders(){clearAI();
+    private void showOrders(){payHandoffWork=null;clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));if(!hasSession()){content.addView(primaryWallet());return;}
         LinearLayout list=column();content.addView(list);status.setText(getString(R.string.loading));api.request("GET","/orders",null,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(message(error));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->showOrders());list.addView(retry);return;}
@@ -207,7 +210,7 @@ public final class MainActivity extends Activity {
         card.addView(text(order.getString("ID"),14,true));card.addView(text(state+" · "+formatYNXT(order.getLong("TotalYNXT")),16,true));
         card.addView(text(getString(R.string.tax_unavailable)+" · "+order.optString("LogisticsStatus",getString(R.string.logistics_unavailable)),12,false));
         if(order.has("Settlement")&&!order.isNull("Settlement")){JSONObject proof=order.getJSONObject("Settlement");card.addView(text("Block "+proof.getLong("BlockHeight")+" · "+proof.getString("TransactionHash"),12,false));}
-        if(state.equals("payment_pending")){card.addView(action(getString(R.string.pay_handoff),()->pay(order)));card.addView(action(getString(R.string.check_payment),()->postOrder(order,"confirm-payment",new JSONObject())));card.addView(action(getString(R.string.cancel_order),()->transition(order,"cancelled","")));}
+        if(state.equals("payment_pending")){card.addView(action(getString(R.string.pay_handoff),()->pay(order)));card.addView(action(getString(R.string.check_payment),()->checkPayment(order)));card.addView(action(getString(R.string.cancel_order),()->transition(order,"cancelled","")));}
         if(state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->transition(order,"delivered","")));
         if(state.equals("delivered")){card.addView(action(getString(R.string.write_review),()->transition(order,"reviewed","Verified delivery review")));card.addView(action(getString(R.string.return_request),()->transition(order,"return_requested","Return requested by buyer")));}
         if(List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested").contains(state))card.addView(action(getString(R.string.dispute),()->transition(order,"disputed","Buyer dispute evidence")));
@@ -216,11 +219,20 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(8),0,dp(8));card.setLayoutParams(params);return card;
     }
 
-    private void pay(JSONObject order){api.request("POST","/orders/"+order.optString("ID")+"/pay-handoff",json("IdempotencyKey",UUID.randomUUID().toString()),(value,error)->runOnUiThread(()->{if(error!=null){status.setText(message(error));return;}try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(value.getString("deepLink"))));}catch(Exception e){status.setText(getString(R.string.unavailable));}}));}
+    private void pay(JSONObject order){
+        if(payHandoffWork!=null)return;final ProductSession expected;final long generation;final PayHandoffRecovery.Prepared original;final Object work=new Object();
+        try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);original=PayHandoffRecovery.prepare(secure,expected,order);}catch(Exception error){status.setText(message(error));return;}
+        payHandoffWork=work;status.setText(getString(R.string.loading));
+        new Thread(()->{JSONObject result=null;Exception failure=null;try{result=api.requestForSession("POST","/orders/"+original.order.getString("ID")+"/pay-handoff",original.body(),expected,generation);}catch(Exception error){failure=error;}final JSONObject receipt=result;final Exception error=failure;
+            runOnUiThread(()->{if(payHandoffWork!=work)return;payHandoffWork=null;if(!isCurrent(expected,generation))return;if(error!=null){status.setText(message(error));return;}try{String link=PayHandoffRecovery.confirmed(secure,original,receipt);startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(link)));}catch(Exception rejected){status.setText(getString(R.string.unavailable));}});
+        },"shop-invoice-handoff").start();
+    }
+    private void checkPayment(JSONObject order){api.request("GET","/orders/"+order.optString("ID")+"/settlement",null,(value,error)->{if(error!=null){status.setText(message(error));return;}showOrders();});}
+
     private void postOrder(JSONObject order,String endpoint,JSONObject body){api.request("POST","/orders/"+order.optString("ID")+"/"+endpoint,body,(v,e)->runOnUiThread(()->{status.setText(e==null?getString(R.string.loading):message(e));if(e==null)showOrders();}));}
     private void transition(JSONObject order,String action,String explanation){JSONObject body=new JSONObject();try{body.put("Action",action).put("Reason",explanation).put("Explanation",explanation).put("Body",explanation).put("Rating",action.equals("reviewed")?5:0).put("IdempotencyKey",UUID.randomUUID().toString());if(!isOnline()){queue.enqueue("POST","/orders/"+order.getString("ID")+"/transition",body);status.setText(getString(R.string.queued_offline));return;}postOrder(order,"transition",body);}catch(Exception e){status.setText(message(e));}}
 
-    private void showAccount(){clearAI();
+    private void showAccount(){payHandoffWork=null;clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_account),24,true));content.addView(text(getString(R.string.wallet_security),14,false));content.addView(text(getString(R.string.privacy_boundary),14,false));content.addView(primaryWallet());
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);

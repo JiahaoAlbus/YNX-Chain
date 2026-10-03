@@ -26,4 +26,7 @@
     <string name="text_compact">작게</string>
     <string name="text_standard">표준</string>
     <string name="text_larger">크게</string>
+    <string name="commerce_services">Commerce 서비스</string>
+    <string name="seller_console">판매자 콘솔</string>
+    <string name="merchant_invoices">가맹점 청구서</string>
 </resources>

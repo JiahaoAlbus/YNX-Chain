@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.NativeCartTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:45:43.643Z" hostname="HuangJiahaoMacmini" time="0.029">
+  <properties/>
+  <testcase name="receiptStorageFailureRetainsCartIntentAndSyncStateTogether" classname="com.ynxweb4.shop.NativeCartTest" time="0.005"/>
+  <testcase name="deletionSealsUnknownCartAndArchivesStateWhilePreservingForeignAccount" classname="com.ynxweb4.shop.NativeCartTest" time="0.003"/>
+  <testcase name="lostReplyRestartResendsSameKeyWithoutOverwritingLaterRemoteEdit" classname="com.ynxweb4.shop.NativeCartTest" time="0.002"/>
+  <testcase name="offlineEmptyDraftStillRequiresReviewOfExistingRemoteCart" classname="com.ynxweb4.shop.NativeCartTest" time="0.002"/>
+  <testcase name="unresolvedCheckoutCannotRotateKeyOrAcceptForeignReceipt" classname="com.ynxweb4.shop.NativeCartTest" time="0.004"/>
+  <testcase name="inheritedOrOfflineConflictRequiresExplicitChoiceAndArchivesBothVersions" classname="com.ynxweb4.shop.NativeCartTest" time="0.004"/>
+  <testcase name="failedIntentStorageCannotSendAndAccountSwitchCannotPublishReceipt" classname="com.ynxweb4.shop.NativeCartTest" time="0.003"/>
+  <testcase name="newCheckoutCarriesRevisionAndReceiptDoesNotEraseIdenticalReaddedDraft" classname="com.ynxweb4.shop.NativeCartTest" time="0.002"/>
+  <testcase name="editDuringNetworkAndStaleReviewNeverLoseDraft" classname="com.ynxweb4.shop.NativeCartTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

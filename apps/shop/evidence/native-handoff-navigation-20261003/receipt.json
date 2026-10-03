@@ -1,0 +1,209 @@
+{
+  "schema": "ynx-commerce-native-handoff-navigation/v1",
+  "baseCommit": "4d7f67c3a446a9812bed7745726f889b61002ab7",
+  "writeRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "changes": [
+    "Android invoice handoff persists actor/order/amount-bound opaque original request key before dispatch; failed/unknown result retries original key. Receipt validates original order and exact original invoice URI before clearing only that intent.",
+    "Current session/privacy generation and UI work fence late outcomes; navigation, backgrounding and logout cancel presentation without destroying recovery. Offline mutation queue still excludes payment execution.",
+    "Payment checking reads original GET /orders/{id}/settlement. Android PopupMenu and Apple Menu expose original Seller and Web-only Merchant HTTPS routes without attaching Buyer credentials. Three labels translated across 12 inherited locales."
+  ],
+  "verification": {
+    "androidIsolatedOfflineDebugBuild": "PASS with existing Java17/Android36/cached Gradle dependencies; isolated QA APK only",
+    "androidJUnit": {
+      "status": "PASS",
+      "tests": 60,
+      "suites": [
+        {
+          "suite": "TEST-com.ynxweb4.shop.AIPresentationTest.xml",
+          "tests": 2,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.ApprovalFenceTest.xml",
+          "tests": 2,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.CheckoutIntentTest.xml",
+          "tests": 7,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.ImageLoaderPolicyTest.xml",
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.NativeCartTest.xml",
+          "tests": 9,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.OfflineMutationQueueTest.xml",
+          "tests": 8,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.PayHandoffRecoveryTest.xml",
+          "tests": 7,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.PrivacyExportTest.xml",
+          "tests": 3,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.PrivacyLifecycleTest.xml",
+          "tests": 10,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.PrivacyLocaleCatalogTest.xml",
+          "tests": 1,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.ProductSessionTest.xml",
+          "tests": 2,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.SecureStoreCommitTest.xml",
+          "tests": 2,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.SessionRevocationTest.xml",
+          "tests": 4,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        },
+        {
+          "suite": "TEST-com.ynxweb4.shop.WalletAuthContractTest.xml",
+          "tests": 2,
+          "skipped": 0,
+          "failures": 0,
+          "errors": 0
+        }
+      ]
+    },
+    "nativeStatic": "PASS",
+    "swiftCurrentNavigationSyntax": "PASS",
+    "appleFullApp": "NOT_VERIFIED; prior full compile blocked by missing SwiftUIMacros plugin, unchanged restriction",
+    "initialBuildFailure": "Existing default Java24 incompatible Gradle test task Type T not present; raw failure retained, existing Java17 build succeeded"
+  },
+  "qaArtifact": {
+    "path": "/tmp/ynx-commerce-android-handoff-20261003/project/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "8fafec14a6c72426f925b1c04397c0832082506d064710f1535adeb873793d19",
+    "formalRelease": false
+  },
+  "realGates": {
+    "installedAndroid": false,
+    "installedApple": false,
+    "realWalletApproval": false,
+    "canonicalNativeSDK": false,
+    "publicEndToEnd": false,
+    "AIntegration": false,
+    "MerchantCanonicalActor": false
+  },
+  "sourcePins": [
+    {
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/MainActivity.java",
+      "sha256": "4543fead0ac4ad3b379dbd2c7d14a2860a9111abe0f62e3002090326e120da70"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/SecureStore.java",
+      "sha256": "70eb8444ee5d808dd4f65c2284238c3950349c9106773c61af12557fb1224950"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-ar/strings.xml",
+      "sha256": "5c2c45306298888f154b23941ab8d4b65b1f1818ee3b2cde99b8277643013429"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-de/strings.xml",
+      "sha256": "32eb8909374ff5750e40460b9aaf6a282668302cac7628c432f832a57e14dd73"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-es/strings.xml",
+      "sha256": "5a00896a82031e933c97420e71280c7fb5d876b55946eef7657322b3bdc440b8"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-fr/strings.xml",
+      "sha256": "a6c33a93f9965db10385a10229bb854004dbbbc82bf807e8eebcac4ce2b877cf"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-in/strings.xml",
+      "sha256": "4bbb57a894661ee2753de8bd83a8622b87c0648693f6db80906adbe1e758a096"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-ja/strings.xml",
+      "sha256": "ee90c9559ee06e587a6a4ae95780bca99194c10b6f1399a17bef6d65f6f575ac"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-ko/strings.xml",
+      "sha256": "bb5e4747e041b1c9af3a47f3865cfdac79d271eda2f9f54747f02ae9658716c9"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-pt/strings.xml",
+      "sha256": "ad0d1be1eeb6a6d0651df0595211d027fbb67b45dcd6ecc15330f1f48c5a4314"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-ru/strings.xml",
+      "sha256": "b56230d7310b50c6e8fc3ee9c31199db0b0c2d684bbaec96e641c21b888fa619"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/strings.xml",
+      "sha256": "4c2bc22eb6d97f4f0daa3ead0c50dbf8412da5e021b7836f98618774a5e30402"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/strings.xml",
+      "sha256": "71a0c7edf2d0107b6a44f25d7e6d554ae951058f03d88b2dc6f0a5f373c7a519"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/res/values/strings.xml",
+      "sha256": "7f8e97c418cdbd81cc5e921222c42c4f861114f6b7dfbad895fe70d1eb1f17f8"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/ContentView.swift",
+      "sha256": "58511da76eebd0c3bee36b8359aa3e4bebfec7ffded5c3e9d8a9dde82b27c378"
+    },
+    {
+      "path": "apps/shop/native/ios/YNXShop/Localizable.xcstrings",
+      "sha256": "69cb05eed407e65f9822f8bded2866f4e3817a124355f5a56a56d3b1db0418c8"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/PayHandoffRecovery.java",
+      "sha256": "ba653f5da5a54f850b7431db9c2effd50abc2e1d4b920830a96bb1442e19252c"
+    },
+    {
+      "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/PayHandoffRecoveryTest.java",
+      "sha256": "aec839d8c73b0684dc1a77fa9ff87ce547d268d60976b6d023ecdaa1c78fdc79"
+    }
+  ]
+}

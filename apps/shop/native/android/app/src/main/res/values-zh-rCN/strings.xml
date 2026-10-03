@@ -33,4 +33,7 @@
     <string name="text_compact">紧凑</string>
     <string name="text_standard">标准</string>
     <string name="text_larger">较大</string>
+    <string name="commerce_services">Commerce 服务</string>
+    <string name="seller_console">卖家控制台</string>
+    <string name="merchant_invoices">商户发票</string>
 </resources>

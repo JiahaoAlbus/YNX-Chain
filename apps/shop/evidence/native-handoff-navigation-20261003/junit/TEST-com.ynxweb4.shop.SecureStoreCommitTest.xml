@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.SecureStoreCommitTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:45:43.941Z" hostname="HuangJiahaoMacmini" time="0.002">
+  <properties/>
+  <testcase name="failedPlanDoesNotExposeMemoryOnlySendingOrCarryItIntoAnotherCommit" classname="com.ynxweb4.shop.SecureStoreCommitTest" time="0.001"/>
+  <testcase name="failedRemoveAndMultiRecordWriteRemainUnacknowledgedAndAreNotPiggybacked" classname="com.ynxweb4.shop.SecureStoreCommitTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

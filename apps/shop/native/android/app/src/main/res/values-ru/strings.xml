@@ -26,4 +26,7 @@
     <string name="text_compact">Компактный</string>
     <string name="text_standard">Стандартный</string>
     <string name="text_larger">Крупный</string>
+    <string name="commerce_services">Сервисы Commerce</string>
+    <string name="seller_console">Консоль продавца</string>
+    <string name="merchant_invoices">Счета продавца</string>
 </resources>

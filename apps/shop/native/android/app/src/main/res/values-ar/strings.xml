@@ -64,4 +64,7 @@
     <string name="text_compact">صغير</string>
     <string name="text_standard">قياسي</string>
     <string name="text_larger">أكبر</string>
+    <string name="commerce_services">خدمات Commerce</string>
+    <string name="seller_console">لوحة البائع</string>
+    <string name="merchant_invoices">فواتير التاجر</string>
 </resources>

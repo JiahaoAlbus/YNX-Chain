@@ -26,4 +26,7 @@
     <string name="text_compact">Compacto</string>
     <string name="text_standard">Padrão</string>
     <string name="text_larger">Maior</string>
+    <string name="commerce_services">Serviços Commerce</string>
+    <string name="seller_console">Console do vendedor</string>
+    <string name="merchant_invoices">Faturas do comerciante</string>
 </resources>

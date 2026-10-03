@@ -26,4 +26,7 @@
     <string name="text_compact">コンパクト</string>
     <string name="text_standard">標準</string>
     <string name="text_larger">大きめ</string>
+    <string name="commerce_services">Commerce サービス</string>
+    <string name="seller_console">出店者コンソール</string>
+    <string name="merchant_invoices">加盟店請求書</string>
 </resources>

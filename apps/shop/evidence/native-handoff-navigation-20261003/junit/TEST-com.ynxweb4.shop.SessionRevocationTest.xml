@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.SessionRevocationTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-03T06:45:43.944Z" hostname="HuangJiahaoMacmini" time="0.003">
+  <properties/>
+  <testcase name="oldRejectionDoesNotRemoveNewSessionAndFailedRemovalStillBlocksReaders" classname="com.ynxweb4.shop.SessionRevocationTest" time="0.0"/>
+  <testcase name="onlyPrivateAuthoritative401RejectsCredentials" classname="com.ynxweb4.shop.SessionRevocationTest" time="0.001"/>
+  <testcase name="rejectionStillRunsWhenJournalCommitFails" classname="com.ynxweb4.shop.SessionRevocationTest" time="0.0"/>
+  <testcase name="rejectionRecordsWriteOutcomeAndStopsAnAlreadyDispatchedLateRead" classname="com.ynxweb4.shop.SessionRevocationTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
