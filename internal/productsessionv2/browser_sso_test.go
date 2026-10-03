@@ -18,7 +18,7 @@ import (
 
 // Backend response fixture only: these tests are not Wallet/public approval.
 func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T) {
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
 		s, err := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("q", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
 			t.Fatal("expired transaction reached token exchange")
 			return nil, nil
@@ -65,7 +65,7 @@ func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T)
 }
 
 func TestBrowserSSOSilentGuestAndLogoutSuppressionAreBounded(t *testing.T) {
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
 		s, _ := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("s", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
 			t.Fatal("quiet guest tried token exchange")
 			return nil, nil
@@ -152,7 +152,7 @@ func mustParseURL(t *testing.T, value string) *url.URL {
 
 func TestBrowserSSORegisteredConsumersKeepIdentityAndPrivatePermissionSeparate(t *testing.T) {
 	account := fixture(t).Session.Account
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
 		t.Run(product, func(t *testing.T) {
 			var degraded, revoked bool
 			var remembered string
@@ -163,7 +163,13 @@ func TestBrowserSSORegisteredConsumersKeepIdentityAndPrivatePermissionSeparate(t
 				}
 				var input map[string]string
 				_ = json.NewDecoder(r.Body).Decode(&input)
-				if input["clientId"] != "ynx-"+product+"-v1-sso-v1" {
+				expectedClient := "ynx-" + product + "-v1-sso-v1"
+				if product == "cloud" {
+					expectedClient = "ynx-cloud-web-v1-sso-v1"
+				} else if product == "docs" {
+					expectedClient = "ynx-docs-mobile-v1-sso-v1"
+				}
+				if input["clientId"] != expectedClient {
 					t.Fatal("client was not registry-owned")
 				}
 				status := 200

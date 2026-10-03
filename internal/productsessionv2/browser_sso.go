@@ -54,10 +54,11 @@ type BrowserSSO struct {
 	now                                                                           func() time.Time
 }
 
-// NewBrowserSSO has a fixed first-batch registry. Callers cannot supply a new
+// NewBrowserSSO uses the original six clients plus approved Cloud/Docs/Calendar
+// Web identity clients. Callers cannot supply a new
 // origin, audience, scope or issuer, and must opt in at their existing server.
 func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string, transport http.RoundTripper) (*BrowserSSO, error) {
-	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com"}[product]
+	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com", "cloud": "https://web4.ynxweb4.com", "docs": "https://docs.ynxweb4.com", "calendar": "https://calendar.ynxweb4.com"}[product]
 	if origin == "" || len(cookieKey) < 32 || len(targets) == 0 {
 		return nil, errors.New("browser SSO policy invalid")
 	}
@@ -72,7 +73,15 @@ func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string
 	key := sha256.Sum256(append([]byte(domain), cookieKey...))
 	block, _ := aes.NewCipher(key[:])
 	aead, _ := cipher.NewGCM(block)
-	s := &BrowserSSO{product: product, origin: origin, clientID: "ynx-" + product + "-v1-sso-v1", audience: "ynx:" + product + ":identity", authority: authority, identityCookie: "__Host-ynx-" + product + "-identity", pendingCookie: "__Host-ynx-" + product + "-signin", aead: aead, client: &http.Client{Timeout: 5 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, targets: map[string]bool{}, now: time.Now}
+	clientID := "ynx-" + product + "-v1-sso-v1"
+	// Approved ecosystem clients preserve their actual product registry IDs.
+	// Cloud/Docs intentionally do not follow the original six-client pattern.
+	if product == "cloud" {
+		clientID = "ynx-cloud-web-v1-sso-v1"
+	} else if product == "docs" {
+		clientID = "ynx-docs-mobile-v1-sso-v1"
+	}
+	s := &BrowserSSO{product: product, origin: origin, clientID: clientID, audience: "ynx:" + product + ":identity", authority: authority, identityCookie: "__Host-ynx-" + product + "-identity", pendingCookie: "__Host-ynx-" + product + "-signin", aead: aead, client: &http.Client{Timeout: 5 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, targets: map[string]bool{}, now: time.Now}
 	for _, target := range targets {
 		if target == "" || strings.ContainsAny(target, "/?#\\\r\n") || len(target) > 64 {
 			return nil, errors.New("browser SSO target invalid")
