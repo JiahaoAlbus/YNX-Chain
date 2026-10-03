@@ -32,19 +32,30 @@ for(const product of products) test(`${product.name} original YNX logo remains c
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
   try{
-    for(const width of [1440,390]){
+    for(const width of [1440,390,320]){
       const context=await browser.newContext({viewport:{width,height:900}});
       try{
         await context.route('**/*',route=>new URL(route.request().url()).origin===base?route.continue():route.abort());
         const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
         const logo=page.locator(product.selector(width));await logo.waitFor({state:'visible'});await logo.evaluate(image=>image.decode());
-        const inspect=()=>logo.evaluate(image=>{const box=image.getBoundingClientRect(),style=getComputedStyle(image);return {width:image.naturalWidth,height:image.naturalHeight,fit:style.objectFit,shrink:style.flexShrink,x:box.x,right:box.right,visible:box.width>0&&box.height>0}});
+        const inspect=()=>logo.evaluate(image=>{const box=image.getBoundingClientRect(),style=getComputedStyle(image);return {width:image.naturalWidth,height:image.naturalHeight,fit:style.objectFit,shrink:style.flexShrink,x:box.x,right:box.right,boxHeight:box.height,visible:box.width>0&&box.height>0}});
         for(const phase of ['guest','business']){
           if(phase==='business')await page.locator(product.navigation).click();
-          const observed=await inspect();assert.equal(observed.width,798);assert.equal(observed.height,420);assert.equal(observed.fit,'contain');assert.equal(observed.shrink,'0');assert.equal(observed.visible,true);assert.ok(observed.x>=0&&observed.right<=width);
+          const observed=await inspect();assert.equal(observed.width,798);assert.equal(observed.height,420);assert.equal(observed.fit,'contain');assert.equal(observed.shrink,'0');assert.equal(observed.visible,true);assert.equal(observed.boxHeight,22);assert.ok(observed.x>=0&&observed.right<=width);
           assert.equal(context.pages().length,1);
           const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(sizes[0]<=sizes[1],`${product.name} ${width}: ${sizes}`);
-          const evidence=path.join(repo,'tmp','financial-brand-evidence');await mkdir(evidence,{recursive:true});await page.screenshot({path:path.join(evidence,`${product.name}-${width}-${phase}.png`),fullPage:false});
+          const evidence=path.join(repo,'tmp','financial-sizing-evidence');await mkdir(evidence,{recursive:true});await page.screenshot({path:path.join(evidence,`${product.name}-${width}-${phase}.png`),fullPage:false});
+        }
+        await page.locator('.ui-preferences summary').click();
+        const standard=await page.evaluate(()=>parseFloat(getComputedStyle(document.body).fontSize));
+        await page.selectOption('#ui-text-size','large');const large=await page.evaluate(()=>parseFloat(getComputedStyle(document.body).fontSize));assert.ok(large>standard);
+        await page.reload();await logo.waitFor({state:'visible'});assert.equal(await page.locator('#ui-text-size').inputValue(),'large');
+        for(const language of ['zh-CN','ar']){
+          await page.evaluate(language=>{document.documentElement.lang=language;document.documentElement.dir=language==='ar'?'rtl':'ltr'},language);
+          await page.waitForFunction(()=>document.querySelector('#ui-display-label').textContent!=='Display');
+          await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+          const enlarged=await page.evaluate(()=>({font:parseFloat(getComputedStyle(document.body).fontSize),width:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,selectHeight:document.querySelector('#ui-text-size').getBoundingClientRect().height,overflow:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&(r.right>innerWidth+1||r.left<-1)&&!e.closest('.table-wrap')}).slice(0,8).map(e=>({tag:e.tagName,id:e.id,cls:e.className,width:e.getBoundingClientRect().width}))}));assert.ok(enlarged.font>large);assert.ok(enlarged.selectHeight>=44);assert.ok(enlarged.width<=enlarged.client,`${product.name} ${width} ${language} enlarged: ${JSON.stringify(enlarged)}`);
+          const evidence=path.join(repo,'tmp','financial-sizing-evidence');await page.screenshot({path:path.join(evidence,`${product.name}-${width}-${language}-enlarged.png`),fullPage:false});
         }
       }finally{await context.close()}
     }

@@ -157,3 +157,22 @@ body.finance-route-broker #wallet-connect,body.finance-route-broker #broker-nav{
 .mobile-product-brand{display:none}.mobile-product-brand img,.brand .mark{flex-shrink:0;object-fit:contain;object-position:center}.mobile-product-brand img{width:58px;height:32px}
 @media(max-width:720px){.mobile-product-brand{display:flex;align-items:center;gap:12px;padding-top:18px;color:var(--ink);text-decoration:none;font-weight:700}}
 @media(max-width:390px){#wallet-picker{padding:20px 16px}#wallet-picker .wallet-choice button{padding:12px;gap:10px}#wallet-picker .picker-choice-status{max-width:72px;text-align:end}}
+
+/* Product UI sizing; OS/browser zoom remains unrestricted. */
+.hero h2{font-size:1.375rem;line-height:1.3}.hero p{font-size:.875rem;line-height:1.5}
+html{font-size:var(--ui-scale,107.142857%)}
+body{font-size:.875rem;line-height:1.5}
+h1,.market-strip h1,.section-title h1,.topbar h1{font-size:1.375rem;line-height:1.3;overflow-wrap:anywhere}
+h2,dialog h2{font-size:1.25rem;line-height:1.35}
+p,button,input,select,textarea{font-size:inherit}
+table,label,dt,dd{font-size:.8125rem}
+small,.source-note,.form-help{font-size:.75rem}
+.brand,.mobile-product-brand{font-size:1rem;min-height:44px;line-height:1.35}
+.brand .mark,.mobile-product-brand img,.product-logo{width:auto;height:22px;max-width:none;object-fit:contain;flex-shrink:0}
+.product-brand{gap:10px;min-height:44px}
+.product-brand h1{font-size:1rem}
+.ui-preferences{position:relative;max-width:100%;font-size:.875rem}
+.ui-preferences summary{min-height:44px;display:flex;align-items:center;cursor:pointer;padding:8px 12px}
+.ui-preferences label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px}
+.ui-preferences select{width:auto;max-width:100%;min-height:44px;margin:0}
+@media(max-width:720px){button,select,input,summary{min-height:44px}.topbar,header{height:auto;min-height:0;flex-wrap:wrap}.brand,.mobile-product-brand{font-size:1rem}.product-brand{max-width:100%}.ui-preferences{width:100%}}

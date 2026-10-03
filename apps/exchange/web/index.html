@@ -14,6 +14,7 @@
     <a class="brand" href="#market" aria-label="YNX Exchange home"><img class="mark" src="/ynx-logo.png?v=df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" alt="YNX"><span>YNX <b>Exchange</b></span></a>
     <div class="truth" role="status"><span></span> YNX-owned deterministic testnet venue</div>
     <nav aria-label="Primary"><button data-view="market" data-exchange-locale="market" class="nav-active">Trade</button><button data-view="assets" data-exchange-locale="assets">Assets</button><button data-view="activity" data-exchange-locale="activity">Activity</button><button data-view="controls" data-exchange-locale="controls">Controls</button></nav>
+<details class="ui-preferences"><summary id="ui-display-label">Display</summary><label><span id="ui-size-label">Text size</span><select id="ui-text-size" aria-label="Text size"><option value="compact">Compact</option><option value="standard">Standard</option><option value="large">Larger</option></select></label></details>
     <button id="connect" class="primary">Connect YNX Wallet</button>
   </header>
 
@@ -80,5 +81,6 @@
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="/wallet-connect.js?v=a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6" defer></script><script src="/app.js?v=92d641cbe0e8000161cc6333dc3a0d61295a368083c602abdca0ea83da4a0185" type="module"></script>
+    <script src="/ui-preferences.js" defer></script>
 </body>
 </html>

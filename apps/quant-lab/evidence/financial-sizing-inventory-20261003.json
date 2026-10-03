@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "predecessor": "fb627797245e0bb7374ad527b5cda0a096b8ff8c",
+  "sourceIdentity": "immutable containing commit",
+  "products": ["finance","exchange","quant-lab"],
+  "files": [
+    {"path":"apps/finance/web/index.html","blob":"12673544a4163cb18f467f430cacd5ff7f1220bb","bytes":37500,"sha256":"03f9fc55a086026f996b1d40cc06fde6bfa52984be07809303ba0ebed0911121"},
+    {"path":"apps/finance/web/styles.css","blob":"c7907c9d9077c85a25def6aa64dd0a3a6a8715d1","bytes":29583,"sha256":"198e904e9b229ca5cc4dd5880e6601091f52b0c7a695dd200d0dad3c7342c624"},
+    {"path":"apps/exchange/web/index.html","blob":"9d5ea940e527536553305f8f7a114fb74a3a2ca0","bytes":19171,"sha256":"9991529ffe46ccd2c282bc221318eb008eef5f416e15553d7d769a7f5e3e15e8"},
+    {"path":"apps/exchange/web/styles.css","blob":"a8e9229715842e192e19fff6c0cbc87dfa5c7dad","bytes":12365,"sha256":"094563b32cc612230cb5b0b336997ff65804763630d37f3643f2c4fa4d3b94b6"},
+    {"path":"apps/quant-lab/web/index.html","blob":"15573c5d01a0469a79558cc2687658c9ca50b1cc","bytes":27297,"sha256":"9fd1509ac35edc687fe050e619624f1ff9a41377ce8facccd9ca44e807378315"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"474d0b72f1d12bae9ad5b180c14a3adace260d13","bytes":12040,"sha256":"ac1eeee852992a936a0d28dc546c8e80a5923eb7a8ec7d305fa7889d3368a46d"}
+  ],
+  "productLocalPreferences": {
+    "paths":["apps/finance/web/ui-preferences.js","apps/exchange/web/ui-preferences.js","apps/quant-lab/web/ui-preferences.js"],
+    "blob":"bc9afab56074071d45d1d3f225364b37254b6c61","bytesEach":2241,"sha256Each":"5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"
+  },
+  "fixture":{"path":"apps/quant-lab/tests/financial-brand-browser.test.mjs","blob":"2faf30db2ee5fa1aa01f70d1b065c0fabbd836fc","sha256":"3f09a9c959775761733026c561c372dbb9adb8399bea260d1797552c3127f65f"},
+  "screenshots": {
+    "directory":"apps/quant-lab/evidence/financial-sizing-20261003",
+    "count":36,"totalBytes":3216793,
+    "inventorySha256":"23ed08b6c80e37df33c3f4125afee4542d3eb64ea38225c027fc63c255834b03",
+    "algorithm":"SHA256 of sorted PNG entries: basename + NUL + decimal bytes + NUL + content SHA256 + newline",
+    "scope":"Actual local Chrome; unavailable API; not ComputerControl/public/native/account acceptance"
+  },
+  "gates":{"browserRegressionPassed":22,"finalSizingMatrixPassed":3,"localePassed":20,"syntax":true,"diff":true},
+  "truth":{"localSourceTested":true,"publicCurrentSource":false,"installed":false,"walletApproval":false,"productSession":false,"computerControl":false,"complete":false},
+  "releaseOwner":"A wallet_release_owner: coherent final bundle/cache/native/package graph; include all three ui-preferences.js assets",
+  "reportTo":"01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}
