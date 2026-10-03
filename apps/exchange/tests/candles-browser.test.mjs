@@ -10,6 +10,31 @@ const root=new URL('../web/',import.meta.url);
 const [html,css,app,market,locale]=await Promise.all(['index.html','styles.css','app.js','market-data.js','locale.js'].map(name=>readFile(new URL(name,root),'utf8')));
 const render=app.slice(app.indexOf('function renderPublicMarket('),app.indexOf('async function reviewOrder('));
 const logo=await readFile(new URL('ynx-logo.png',root));
+test('actual read-only order preview uses the selected language for its rule observation time',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();let requests=0;const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({type:'module',content:`${locale}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    const arithmetic=await readFile(new URL('order-preview.js',root),'utf8');
+    const preview=app.split('\n').find(line=>line.startsWith('function preview()'));
+    const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('function cancelOrder('));
+    const rules={schemaVersion:'exchange-limit-rules-v2',market:'YNXT-YUSD_TEST',orderTypes:['limit'],scale:'1000000',minPriceMicro:'1',maxPriceMicro:'1000000000000',minAmountMicro:'1',maxAmountMicro:'1000000000000',maxOrderNotionalMicro:'100000000000',makerFeeBps:17,takerFeeBps:43,notionalRounding:'floor_micro',feeRounding:'ceil_micro_per_fill',quoteAssetType:'venue_only_test_credit_not_token',admissionMinimumQuote:'one_micro_credit',reservationShortfall:'atomic_order_request_rejection'};
+    await page.addScriptTag({content:`${market.replace(/^export /gm,'')}${arithmetic.replace(/^export /gm,'')}const $=s=>document.querySelector(s),state={side:'buy',rules:${JSON.stringify(rules)},source:null,marketPhase:'live'},display=v=>formatMicro(v,document.documentElement.lang);const toast=()=>{};window.previewReads=0;const marketFeed={retry:async()=>{previewReads++;state.source={asOf:new Date().toISOString(),authority:'YNX-owned deterministic order state',classification:'testnet',status:'degraded_single_host'}}};${preview}${review}$('#review-order').onclick=reviewOrder;window.previewSource=()=>JSON.stringify({rules:state.rules,source:state.source});`});
+    await page.locator('#price').fill('2.000001');await page.locator('#amount').fill('3.000001');
+    for(const language of ['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.locator('#exchange-language').selectOption(language);await page.locator('#review-order').click();
+      await page.waitForFunction(()=>document.querySelector('#order-preview-dialog').open);
+      const original=await page.evaluate(()=>previewSource());
+      const expected=await page.evaluate(()=>`degraded_single_host · ${new Date(JSON.parse(previewSource()).source.asOf).toLocaleString(document.documentElement.lang)}`);
+      assert.equal(await page.locator('#order-preview-values > div').last().locator('dd').textContent(),expected);
+      assert.equal(await page.evaluate(()=>previewSource()),original);
+      await page.locator('#order-preview-dialog [aria-label="Close preview"]').click();
+    }
+    assert.equal(await page.evaluate(()=>previewReads),12);assert.equal(requests,0);assert.deepEqual(errors,[]);assert.equal(page.context().pages().length,1);
+  }finally{await browser.close()}
+});
 test('actual order book shows best seven prices independent of equivalent snapshot row order',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
@@ -88,6 +113,8 @@ test('desktop/mobile candle controls and exact trace rows remain read-only, loca
       for(const language of ['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
         await page.locator('#exchange-language').selectOption(language);
         await page.evaluate(()=>window.candleQA.render(window.candleQA.rows));
+        assert.equal(await page.locator('#public-trades tr').first().locator('td').first().textContent(),await page.evaluate(instant=>new Date(instant).toLocaleString(document.documentElement.lang),trades[19].createdAt),'match display must use the chosen product language, not the browser default');
+        assert.equal(await page.evaluate(()=>JSON.stringify(window.candleQA.rows)),JSON.stringify(trades),'language switches must preserve canonical source records');
         assert.equal(await page.locator('#market-last-match').getAttribute('data-match-time'),trades[19].createdAt);
         assert.equal(await page.locator('#market-last-match').getAttribute('data-match-id'),trades[19].id);
         assert.equal(await page.locator('#market-last-match').getAttribute('data-match-digest'),trades[19].sourceDigest);
