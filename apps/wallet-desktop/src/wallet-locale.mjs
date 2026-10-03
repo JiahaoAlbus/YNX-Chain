@@ -11,6 +11,7 @@ import {FLOW_NOTICE_COPY} from "./wallet-locale-flow-notices.mjs";
 import {TRANSACTION_COPY} from "./wallet-locale-transactions.mjs";
 import {RECEIPT_COPY} from "./wallet-locale-receipts.mjs";
 import {HISTORY_COPY} from "./wallet-locale-history.mjs";
+import {TRANSACTION_NOTICE_COPY} from "./wallet-locale-transaction-notices.mjs";
 export const WALLET_LOCALE_KEY = "ynx-wallet-locale-v1";
 export const WALLET_LOCALES = Object.freeze(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"]);
 export const WALLET_LANGUAGE_NAMES = Object.freeze({en:"English","zh-Hans":"简体中文","zh-Hant":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"});
@@ -43,7 +44,7 @@ keys.push(zoomKey);for(const locale of WALLET_LOCALES)rows[locale]+="|"+zoomRows
 export const WALLET_COPY = Object.freeze(Object.fromEntries(WALLET_LOCALES.map(locale=>{
   const values=rows[locale].split("|");
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete Wallet copy: ${locale}`);
-  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale]})];
+  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale]})];
 })));
 export function systemWalletLocale(languages=[]) {
   for(const tag of languages){if(typeof tag!=="string")continue;const value=tag.toLowerCase();if(value.startsWith("zh"))return /(?:hant|tw|hk|mo)/.test(value)?"zh-Hant":"zh-Hans";const locale=WALLET_LOCALES.find(item=>value===item.toLowerCase()||value.startsWith(item.toLowerCase()+"-"));if(locale)return locale}
@@ -59,6 +60,9 @@ const instances=new WeakMap();
 // Explicit application-owned UI labels. Raw request/account/value containers
 // deliberately do not appear here, including auth-purpose and all review pre.
 export const WALLET_STATIC_COPY=Object.freeze({
+  "#transaction-resolution > h2":"Transaction needs confirmation",
+  "#transaction-resolution > p:first-of-type":"A recorded transaction must be resolved before creating another transfer from this account. A missing receipt does not mean it was never submitted.",
+  "#transaction-history > p.muted":"Verified completed transfers saved on this device. Local snapshot confirmation is not consensus finality. Unresolved transactions remain in their recovery panel.",
   "#transaction-history-title":"Transfer history","#refresh-transaction-history":"Refresh history","#older-transaction-history":"Older transfers",
   '[data-view="overview"]':"Overview",'[data-view="connections"]':"Connections",'[data-view="accounts"]':"Accounts & backup",
   '[data-panel="accounts"] .page-heading h1':"Accounts & backup",

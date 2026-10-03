@@ -20,11 +20,12 @@ socket.addEventListener("message",event=>{const response=JSON.parse(event.data);
 socket.send(JSON.stringify({id:1,method:"Runtime.evaluate",params:{returnByValue:true,expression:`(()=>{
 const selectors=${JSON.stringify(Object.keys(WALLET_STATIC_COPY))},attributes=${JSON.stringify(WALLET_STATIC_ATTRIBUTES)};
 const copySelectorCoverage=selectors.map(selector=>({selector,count:document.querySelectorAll(selector).length}));
+const criticalTransactionNotices=['#transaction-resolution > h2','#transaction-resolution > p:first-of-type','#transaction-history > p.muted'].map(selector=>{const node=document.querySelector(selector);return{selector,text:node?.textContent??null,visible:Boolean(node&&node.getClientRects().length)}});
 const attributeCopy=Object.entries(attributes).flatMap(([selector,labels])=>Array.from(document.querySelectorAll(selector),node=>({selector,attributes:Object.fromEntries(Object.keys(labels).map(attribute=>[attribute,node.getAttribute(attribute)]))})));
 const sizeInputs=Array.from(document.querySelectorAll('input[name="wallet-ui-size"]'),node=>({value:node.value,checked:node.checked}));
 const dialogs=Array.from(document.querySelectorAll('dialog[open]'),node=>{const bounds=node.getBoundingClientRect();return{id:node.id,text:node.innerText,width:bounds.width,height:bounds.height,scrollWidth:node.scrollWidth,clientWidth:node.clientWidth,insideViewport:bounds.left>=0&&bounds.top>=0&&bounds.right<=innerWidth&&bounds.bottom<=innerHeight}});
 const logo=document.querySelector('dialog[open] .dialog-brand img')??document.querySelector('.brand img'),bounds=logo.getBoundingClientRect();
-return{url:location.href,locale:document.documentElement.lang,direction:document.documentElement.dir,size:document.documentElement.dataset.walletUiSize,sizeInputs,selectedLanguage:document.querySelector('#wallet-language').value,rootFontSize:getComputedStyle(document.documentElement).fontSize,viewport:{width:innerWidth,height:innerHeight},dialogs,copySelectorCoverage,attributeCopy,logo:{width:bounds.width,height:bounds.height,naturalWidth:logo.naturalWidth,naturalHeight:logo.naturalHeight,fit:getComputedStyle(logo).objectFit},passwordInputLengths:Array.from(document.querySelectorAll('input[type=password]'),node=>node.value.length)};
+return{url:location.href,locale:document.documentElement.lang,direction:document.documentElement.dir,size:document.documentElement.dataset.walletUiSize,sizeInputs,selectedLanguage:document.querySelector('#wallet-language').value,rootFontSize:getComputedStyle(document.documentElement).fontSize,viewport:{width:innerWidth,height:innerHeight},dialogs,copySelectorCoverage,criticalTransactionNotices,attributeCopy,logo:{width:bounds.width,height:bounds.height,naturalWidth:logo.naturalWidth,naturalHeight:logo.naturalHeight,fit:getComputedStyle(logo).objectFit},passwordInputLengths:Array.from(document.querySelectorAll('input[type=password]'),node=>node.value.length)};
 })()`}}));
 });
 assert.equal(state.locale,expectedLocale);assert.equal(state.selectedLanguage,expectedLocale);assert.equal(state.direction,expectedLocale==="ar"?"rtl":"ltr");assert.equal(state.size,expectedSize);
@@ -33,6 +34,7 @@ for(const dialog of state.dialogs){assert.ok(dialog.insideViewport,`${dialog.id}
 assert.equal(state.logo.fit,"contain");assert.equal(state.logo.naturalWidth,798);assert.equal(state.logo.naturalHeight,420);
 assert.ok(state.logo.width>0&&state.logo.height>0);assert.ok(Math.abs(state.logo.width/state.logo.height-798/420)<0.01);
 for(const copy of state.copySelectorCoverage)assert.ok(copy.count>0,`Missing owned copy target: ${copy.selector}`);
+for(const copy of state.criticalTransactionNotices)assert.equal(copy.text,WALLET_COPY[expectedLocale][WALLET_STATIC_COPY[copy.selector]],`Untranslated critical transaction notice: ${copy.selector}`);
 for(const copy of state.attributeCopy)for(const [attribute,value]of Object.entries(copy.attributes))assert.equal(value,WALLET_COPY[expectedLocale][WALLET_STATIC_ATTRIBUTES[copy.selector][attribute]],`Untranslated owned attribute: ${copy.selector} ${attribute}`);
 console.log(JSON.stringify({...state,gatePassed:true,inputActionsPerformed:false,completeJourneyVerified:false,installedReleaseVerified:false}));
 }finally{socket.close()}

@@ -60,3 +60,9 @@ test("dynamic parameters use isolated text, retain exact bytes and survive local
 test("unknown transaction recovery is explicit in every locale and never relaxes receipt or exact-retry guards",()=>{
   for(const locale of WALLET_LOCALES)for(const key of ["Retry identical signed transaction","Check receipt","The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer.","A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.","The transaction outcome could not be checked. Keep its hash and try checking again.","This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction.","The local transaction journal is unavailable. New transfers remain blocked."]){assert.ok(WALLET_COPY[locale][key]);if(locale!=="en")assert.notEqual(WALLET_COPY[locale][key],key)}
 });
+test("critical recovery and local-finality disclaimers are enrolled explicitly in all twelve locales",()=>{
+  const selectors=["#transaction-resolution > h2","#transaction-resolution > p:first-of-type","#transaction-history > p.muted"];
+  for(const selector of selectors){const key=WALLET_STATIC_COPY[selector];assert.ok(key,selector);for(const locale of WALLET_LOCALES){assert.ok(WALLET_COPY[locale][key]);if(locale!=="en")assert.notEqual(WALLET_COPY[locale][key],key)}}
+  assert.match(WALLET_STATIC_COPY[selectors[1]],/missing receipt does not mean it was never submitted/);
+  assert.match(WALLET_STATIC_COPY[selectors[2]],/not consensus finality/);
+});
