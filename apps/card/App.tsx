@@ -866,7 +866,7 @@ function TabBar({tab,setTab,c,tr}:{tab:Tab;setTab:(v:Tab)=>void;c:Colors;tr:T}){
     ["support",<LifeBuoy/>,tr("support")]
   ];
   return <View style={[s.tabs,{backgroundColor:c.surface,borderTopColor:c.separator}]}>
-    {items.map(([value,icon,label])=><Pressable key={value} accessibilityRole="tab" accessibilityState={{selected:tab===value}} onPress={()=>setTab(value)} style={s.tab}>{React.cloneElement(icon as React.ReactElement<{color:string;size:number}>,{color:tab===value?BLUE:c.secondary,size:21})}<Text style={[s.tabText,{color:tab===value?BLUE:c.secondary}]}>{label}</Text></Pressable>)}
+    {items.map(([value,icon,label])=><Pressable key={value} accessibilityRole="tab" accessibilityState={{selected:tab===value}} {...(Platform.OS==="web"?{"aria-selected":tab===value}:{})} onPress={()=>setTab(value)} style={s.tab}>{React.cloneElement(icon as React.ReactElement<{color:string;size:number}>,{color:tab===value?BLUE:c.secondary,size:21})}<Text style={[s.tabText,{color:tab===value?BLUE:c.secondary}]}>{label}</Text></Pressable>)}
   </View>
 }
 
