@@ -1,0 +1,10 @@
+PASS same serialized curve key retry is idempotent without replacement
+PASS different curve key under enrolled ID rejects without state mutation
+PASS consumed curve ID remains retired even if the original key is supplied again
+PASS signed key replacement or reuse after retirement cannot reset a key slot
+PASS KEM enrollment requires explicit protected purpose
+PASS KEM purpose cannot silently change after enrollment
+PASS one-time KEM consumption retires ID and blocks re-enrollment
+PASS last-resort tuple reuse rejects while independent base and retained key remain valid
+PASS 8 SDK-backed lifecycle checks; synthetic proof/memory port only
+final_adapter_lifecycle_exit=0

@@ -1,0 +1,10 @@
+commit=b900924172e214a30b71fdf791581ede2a72f93c
+tree=5d51d26a3325d705d249ec519108beecc8bc47fe
+parent=4ca2d60ab6559a70c4da78baac6d77e46644f7cb
+cebd0ce59b9567c0b71bf6adb4ddbf72232a8c83decc3623f3940f03775ac108  /tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/classes/com/ynx/social/matrix/VeilPrekeyLifecycleCheck.class
+77af330c900f1b620b004356e82c56d480cea994fbecb783b45a73176845867e  /tmp/social-veil-independent-keyless-20261004.PC41jf/classes/com/ynx/social/matrix/VeilSignalProtocolStore.class
+2dbd1be0867639d7cee8b9433b60809a4e0a2e109463021af8fb3cea174bd2ad  /tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar
+[0.015s][info][class,load] com.ynx.social.matrix.VeilPrekeyLifecycleCheck source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/classes/
+[0.020s][info][class,load] com.ynx.social.matrix.VeilRecordTransaction source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar
+[0.474s][info][class,load] com.ynx.social.matrix.VeilSignalProtocolStore source: file:/private/tmp/social-veil-independent-keyless-20261004.PC41jf/classes/
+[0.485s][info][class,load] com.ynx.social.matrix.VeilRecordKind source: file:/private/tmp/social-veil-prekey-lifecycle-20261004.lk4xY9/native-port.jar

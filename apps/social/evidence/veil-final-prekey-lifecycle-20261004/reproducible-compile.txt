@@ -1,0 +1,3 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.Lz7905
+mode=compile
+PASS fresh dormant native port and adapter compilation

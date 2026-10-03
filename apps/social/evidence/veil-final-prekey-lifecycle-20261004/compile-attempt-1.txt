@@ -1,0 +1,3 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.UjwkC1
+mode=compile
+Failed with Kotlin NoClassDefFoundError: org/jetbrains/annotations/NotNull; externally selected annotations artifact was not the binary JAR. Retry selects exact artifact-version.jar binaries; product source unchanged.
