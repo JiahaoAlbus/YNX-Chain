@@ -4,7 +4,6 @@ import android.net.Uri
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
-import org.json.JSONArray
 import org.json.JSONObject
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.EventOrTransactionId
@@ -72,7 +71,7 @@ internal class MatrixReceivedMedia(
         require(encrypted.optString("v") == "v2" && encrypted.optString("url").startsWith("mxc://")) {
             "MATRIX_MEDIA_ENCRYPTED_FILE_REQUIRED"
         }
-        require(canonical(encrypted) == canonical(sdkFile) && source.url() == encrypted.getString("url")) {
+        require(MatrixMediaDescriptor.matches(encrypted, sdkFile) && source.url() == encrypted.getString("url")) {
             "MATRIX_MEDIA_DESCRIPTOR_MISMATCH"
         }
         require(!filename.contains('\u0000')) { "MATRIX_MEDIA_FILENAME_INVALID" }
@@ -113,17 +112,6 @@ internal class MatrixReceivedMedia(
             handles.values.toList().also { handles.clear() }
         }
         old.forEach { it.close() }
-    }
-
-    private fun canonical(value: Any): String = when (value) {
-        is JSONObject -> value.keys().asSequence().toList().sorted().joinToString(",", "{", "}") {
-            JSONObject.quote(it) + ":" + canonical(value.get(it))
-        }
-        is JSONArray -> (0 until value.length()).joinToString(",", "[", "]") { canonical(value.get(it)) }
-        is String -> JSONObject.quote(value)
-        is Number, is Boolean -> value.toString()
-        JSONObject.NULL -> "null"
-        else -> error("MATRIX_MEDIA_DESCRIPTOR_INVALID")
     }
 
     companion object {

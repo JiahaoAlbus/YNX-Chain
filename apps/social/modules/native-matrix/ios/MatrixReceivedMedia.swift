@@ -85,7 +85,16 @@ actor MatrixReceivedMedia {
   func close() { epoch &+= 1; handles.removeAll() }
 
   private func canonical(_ object: [String: Any]) throws -> Data {
-    try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+    var normalized = object
+    guard object["v"] as? String == "v2", var key = object["key"] as? [String: Any],
+          let operations = key["key_ops"] as? [String], operations.contains("decrypt"),
+          Set(operations).count == operations.count,
+          operations.allSatisfy({ $0 == "encrypt" || $0 == "decrypt" }) else {
+      throw failure("MATRIX_MEDIA_KEY_OPS_INVALID")
+    }
+    key["key_ops"] = operations.sorted()
+    normalized["key"] = key
+    return try JSONSerialization.data(withJSONObject: normalized, options: [.sortedKeys])
   }
   private func failure(_ reason: String) -> NSError {
     NSError(domain: "YNXSocialMatrix", code: 409, userInfo: [NSLocalizedDescriptionKey: reason])

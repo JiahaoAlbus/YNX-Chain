@@ -11,6 +11,9 @@ Timeline.getEventTimelineItemByEventId. The event ID, sender, original encrypted
 file descriptor and SDK descriptor must agree. Edited content needs a separate
 review and is not silently substituted. The SDK performs media retrieval and
 decryption; source tests do not prove successful cryptographic verification.
+The installed offline SDK probe observed Ruma reordering JWK key_ops. Comparison
+normalizes only this non-duplicate encrypt/decrypt set; keys, IVs, hashes, URL,
+other fields and arrays are still compared strictly. This is not hash verification.
 
 The caller MUST supply review(roomId, sender), backed by the current native handle,
 canonical unexpired authority, encrypted direct-room audience, and original
