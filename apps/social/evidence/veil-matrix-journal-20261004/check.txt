@@ -1,0 +1,1 @@
+PASS native protected-journal model assertions=17; synthetic cipher/memory only; no SDK send, OS, or trust admission proof
