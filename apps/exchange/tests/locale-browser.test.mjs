@@ -309,6 +309,36 @@ test('actual preview errors retain exact codes in every locale, clear on correct
   }finally{await browser.close()}
 });
 
+test('actual private panel translations preserve pending routes and forget unverified placeholders after account recovery',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,standardWallet:{status:'standard-connected',account:'standard-only'}};const renderAccount=()=>{const span=document.createElement('span');span.textContent='RETURNED_BALANCE_ONLY';$('#balances').replaceChildren(span)};const resumeDeferredBrowserIdentity=()=>{};${privateRender}\nwindow.privateQA={render:renderPrivateAccount,state};`});
+    const staticKeys=['private-title','private-read-boundary','private-prepare','private-open','private-retry','private-refresh','private-guest','private-revoke','private-native-label','private-expiry-label'];
+    const route='https://wallet.ynxweb4.com/?controlled-read-only-request=exact';
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const key of staticKeys)assert.equal(await page.locator(`[data-exchange-locale="${key}"]`).textContent(),catalogs[locale][key]);
+      await page.evaluate(route=>window.privateQA.render({phase:'approval-pending',account:null,snapshot:null,route}),route);
+      assert.equal(await page.locator('#private-open').getAttribute('href'),route);assert.equal(await page.locator('#private-open').isVisible(),true);
+      assert.equal(await page.locator('#balances').textContent(),catalogs[locale]['private-no-balances']);assert.equal(await page.locator('#private-source').textContent(),catalogs[locale]['private-no-snapshot']);
+      await page.evaluate(()=>window.privateQA.render({phase:'loading',account:null,snapshot:null}));
+      for(const id of ['private-begin','private-retry','private-refresh','private-disconnect'])assert.equal(await page.locator('#'+id).isDisabled(),true);
+      await page.evaluate(()=>window.privateQA.render({phase:'connected',account:'native-returned-account',expiresAt:'2030-01-01T00:00:00Z',snapshot:{sourceMetadata:{status:'EXACT_SOURCE',coverage:'OWNED_ONLY',asOf:'2026-10-03T00:00:00Z'},security:{updatedAt:'2026-10-03T00:00:00Z'},support:[]}}));
+      await page.evaluate(locale=>window.YNXExchangeLocale.set(locale),locale);
+      assert.equal(await page.locator('#balances').textContent(),'RETURNED_BALANCE_ONLY','old unverified placeholder cannot overwrite recovered balance DOM');
+      assert.match(await page.locator('#private-source').textContent(),/^EXACT_SOURCE · OWNED_ONLY · /);assert.equal(await page.locator('#private-native-account').textContent(),'native-returned-account');
+      assert.equal(await page.locator('#private-refresh').isVisible(),true);assert.equal(await page.locator('#private-open').getAttribute('href'),null);
+      assert.equal(await page.evaluate(()=>window.privateQA.state.standardWallet.account),'standard-only');
+      await page.evaluate(()=>window.privateQA.render({phase:'guest',account:null,snapshot:null}));
+      assert.equal(await page.locator('#private-details').evaluate(el=>el.hidden),true);assert.equal(await page.locator('#balances').textContent(),catalogs[locale]['private-no-balances']);
+    }
+    assert.equal(requests,0,'controlled render results do not prove authorization, readback or private session creation');
+  }finally{await browser.close()}
+});
+
 test('actual locale module and renderers update late account/market states in 12 languages without identity or network effects',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

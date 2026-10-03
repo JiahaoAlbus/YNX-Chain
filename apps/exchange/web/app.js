@@ -132,8 +132,8 @@ function renderPrivateAccount(value){
   $('#private-details').hidden=value.phase!=='connected';$('#private-native-account').textContent=value.account||'—';$('#private-expiry').textContent=value.expiresAt?new Date(value.expiresAt).toLocaleString():'—';
   for(const id of ['private-begin','private-retry','private-refresh','private-disconnect'])$('#'+id).disabled=value.phase==='loading';
   $('#private-refresh').hidden=value.phase!=='connected';
-  if(value.snapshot){renderAccount();$('#private-source').textContent=`${value.snapshot.sourceMetadata.status} · ${value.snapshot.sourceMetadata.coverage} · ${new Date(value.snapshot.sourceMetadata.asOf).toLocaleString()}`}
-  else{for(const id of ['balances','orders','activity-head','activity-body'])$('#'+id).replaceChildren();$('#balances').textContent='Private balances are not currently verified.';$('#owned-volume').textContent='—';$('#private-source').textContent='No verified account snapshot.'}
+  if(value.snapshot){window.YNXExchangeLocale?.forget($('#balances'));window.YNXExchangeLocale?.forget($('#private-source'));renderAccount();$('#private-source').textContent=`${value.snapshot.sourceMetadata.status} · ${value.snapshot.sourceMetadata.coverage} · ${new Date(value.snapshot.sourceMetadata.asOf).toLocaleString()}`}
+  else{for(const id of ['balances','orders','activity-head','activity-body'])$('#'+id).replaceChildren();$('#balances').textContent='Private balances are not currently verified.';window.YNXExchangeLocale?.write($('#balances'),'private-no-balances');$('#owned-volume').textContent='—';$('#private-source').textContent='No verified account snapshot.';window.YNXExchangeLocale?.write($('#private-source'),'private-no-snapshot')}
   renderOwnedControls();
   if(location.pathname==='/wallet-auth/callback'&&(value.phase==='connected'||value.code==='PRIVATE_SESSION_DISCONNECTED'))history.replaceState(null,'','/');
   resumeDeferredBrowserIdentity();
