@@ -982,8 +982,27 @@ test('invalid research acknowledgements cannot replace a verified result or repo
   }
 });
 
+test('negative measured strategy equity stays visible without changing its signed loss metrics',async()=>{
+  const app=harness();await settle();const result=researchFixture('short-loss');
+  result.metrics.ReturnBPS=-10100;result.metrics.MaxDrawdownBPS=10100;
+  result.equityCurve[1].equity=-10;
+  app.context.signedLoss=result;
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});
+    vm.runInContext('renderResult(signedLoss,true)',app.context);
+    assert.equal(app.ids.get('equity-figure').hidden,false);
+    assert.match(app.ids.get('equity-chart').innerHTML,/equity-line/);
+    assert.equal(app.ids.get('result-return').textContent,'-10100 bps');
+    assert.equal(app.ids.get('result-drawdown').textContent,'10100 bps');
+    assert.equal(vm.runInContext('latestResearchResult.equityCurve[1].equity',app.context),-10);
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+});
 test('malformed research curves are omitted without fabricating equity or losing valid metrics', async () => {
-  for(const curve of [{length:2},[null,{}],[{equity:1,benchmarkEquity:1},{equity:Number.MAX_SAFE_INTEGER+1,benchmarkEquity:2}],[{equity:1,benchmarkEquity:1},{equity:-1,benchmarkEquity:2}],[]]){
+  for(const curve of [{length:2},[null,{}],[{equity:1,benchmarkEquity:1},{equity:Number.MAX_SAFE_INTEGER+1,benchmarkEquity:2}],[{equity:1,benchmarkEquity:1},{equity:-1,benchmarkEquity:2}],[],
+    [{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:-10,benchmarkEquity:-1}],
+    [{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:Number.MIN_SAFE_INTEGER-1,benchmarkEquity:1}]
+  ]){
     const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:{...researchFixture('valid-metrics'),equityCurve:curve}});await settle();await app.submit('backtest');assert.equal(app.ids.get('equity-figure').hidden,true);assert.equal(app.ids.get('equity-chart').innerHTML,'');assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-submit').disabled,false);
   }
 });

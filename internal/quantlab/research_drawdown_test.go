@@ -25,6 +25,44 @@ func curveDrawdownBPS(curve []EquityPoint) int64 {
 	return worst
 }
 
+func TestResearchRetainsNegativeMarkedEquityAfterShortLoss(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	s, err := New(Config{StatePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := request()
+	for i := range r.Bars {
+		price := int64(1_000_000_000 - i*1_000_000)
+		r.Bars[i].Open, r.Bars[i].Close = price, price
+		r.Bars[i].High, r.Bars[i].Low = price+1000, price-1000
+	}
+	last := &r.Bars[len(r.Bars)-1]
+	last.Open, last.Close, last.High, last.Low, last.Volume = 200_000_000_000, 200_000_000_000, 200_000_001_000, 199_999_999_000, 0
+	x, err := s.RunBacktest(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if x.EquityCurve[len(x.EquityCurve)-1].Equity >= 0 || x.Metrics.ReturnBPS >= -10000 || x.Metrics.MaxDrawdownBPS <= 10000 {
+		t.Fatalf("short loss was not retained: metrics=%+v final=%+v", x.Metrics, x.EquityCurve[len(x.EquityCurve)-1])
+	}
+	if x.Metrics.MaxDrawdownBPS != curveDrawdownBPS(x.EquityCurve) {
+		t.Fatal("signed curve/drawdown mismatch")
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := New(Config{StatePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restarted.Close()
+	stored := restarted.Snapshot()["experiments"].(map[string]Experiment)[x.ID]
+	if stored.EquityCurve[len(stored.EquityCurve)-1].Equity != x.EquityCurve[len(x.EquityCurve)-1].Equity || stored.Metrics != x.Metrics {
+		t.Fatal("restart changed signed loss receipt")
+	}
+}
+
 func TestResearchDrawdownIncludesMarksWithoutTrades(t *testing.T) {
 	for _, kind := range []string{"unchanged-position", "zero-volume", "data-gap"} {
 		t.Run(kind, func(t *testing.T) {

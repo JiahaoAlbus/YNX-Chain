@@ -1078,7 +1078,10 @@ function renderResult(result, savedWorkspace) {
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
   const points = result.equityCurve || [];
   const times = Array.isArray(points) ? points.map(point => auditTimeValid(point?.time) ? Date.parse(point.time) : NaN) : [];
-  const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every((point,index) => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.equity >= 0 && point.benchmarkEquity >= 0 && Number.isFinite(times[index]) && (index === 0 || times[index] > times[index - 1]));
+  // The existing short-capable research engine can mark strategy equity below
+  // zero. Preserve that measured loss; the positive-price buy/hold benchmark
+  // remains nonnegative. This is display validation, not an execution grant.
+  const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every((point,index) => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.benchmarkEquity >= 0 && Number.isFinite(times[index]) && (index === 0 || times[index] > times[index - 1]));
   $("#equity-figure").hidden = !valid;
   if (!valid) { $("#equity-chart").innerHTML = ""; return; }
   const values = points.flatMap(point => [point.equity, point.benchmarkEquity]);

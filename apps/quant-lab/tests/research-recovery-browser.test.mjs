@@ -18,9 +18,10 @@ test('actual Go two-browser saved research stays isolated through lost-return an
   const root=fileURLToPath(new URL('../../../',import.meta.url)),work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-research-recovery-'));
   const binary=path.join(work,'ynx-quant');
   await promisify(execFile)('go',['build','-o',binary,'./apps/quant-lab/server'],{cwd:root,timeout:20000});
+  let negativeTape=false;
   const tape=createServer((request,response)=>{
     if(request.url!=='/v1/market-data/trades'){response.writeHead(404).end();return;}
-    const trades=Array.from({length:48},(_,i)=>({id:'controlled-tape-'+i,priceMicro:1000000+i*1000,amountMicro:20000000,createdAt:new Date(Date.UTC(2026,0,1,0,i)).toISOString()}));
+    const trades=Array.from({length:48},(_,i)=>({id:'controlled-tape-'+i,priceMicro:negativeTape?(i===47?200000000000:1000000000-i*1000000):1000000+i*1000,amountMicro:20000000,createdAt:new Date(Date.UTC(2026,0,1,0,i)).toISOString()}));
     response.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify({market:'YNXT-YUSD_TEST',source:'persisted deterministic matching-engine fills only',externalPrice:false,trades}));
   });
   await new Promise(resolve=>tape.listen(0,'127.0.0.1',resolve));
@@ -149,8 +150,29 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     await page.evaluate(()=>{delete snapshot.experiments.unconfirmed;render()});
     await page.locator('nav button[data-view="paper"]').click();await page.locator('#paper-strategy').selectOption(firstReceipt.strategy.StrategyHash);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     assert.deepEqual(errors,[]);assert.deepEqual(otherErrors,[]);assert.equal(posts,2);
+    // Actual engine, controlled falling tape then adverse short mark. Never
+    // replace stored results with a fabricated curve or start capital trading.
+    negativeTape=true;otherSnapshotUnavailable=false;
+    await otherPage.locator('nav button[data-view="research"]').click();
+    await otherPage.locator('#strategy').fill('Controlled short-loss research');
+    await otherPage.locator('#research-submit').click();
+    await otherPage.waitForFunction(()=>latestResearchResult?.strategy.Name==='Controlled short-loss research'&&!researchSubmitting);
+    const signedLoss=await otherPage.evaluate(()=>latestResearchResult);
+    assert.ok(signedLoss.equityCurve.at(-1).equity<0);assert.ok(signedLoss.metrics.ReturnBPS<-10000);assert.ok(signedLoss.metrics.MaxDrawdownBPS>10000);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await otherPage.selectOption('#locale',language);
+      assert.equal(await otherPage.locator('#equity-figure').isVisible(),true);
+      assert.equal(await otherPage.locator('#equity-chart polyline').count(),2);
+      assert.equal(await otherPage.locator('#result-return').textContent(),signedLoss.metrics.ReturnBPS+' bps');
+      assert.deepEqual(await otherPage.evaluate(()=>latestResearchResult),signedLoss);
+    }
+    otherSnapshotUnavailable=false;await otherPage.evaluate(()=>refresh());
+    await stop();await start();await otherPage.reload({waitUntil:'networkidle'});
+    assert.deepEqual(await otherPage.evaluate(id=>Object.values(snapshot.experiments).find(result=>result.id===id),signedLoss.id),signedLoss);
+    await otherPage.evaluate(id=>renderResult(Object.values(snapshot.experiments).find(result=>result.id===id),true),signedLoss.id);
+    assert.equal(await otherPage.locator('#equity-figure').isVisible(),true);assert.equal(otherPosts,2);assert.deepEqual(otherErrors,[]);
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
-  assert.equal(cleanStops,3,'all three service launches drain successfully');
+  assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
 });
