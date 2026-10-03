@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -779,14 +780,21 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics, attribution, equityCurve := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	metrics, attribution, equityCurve, err := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	if err != nil {
+		return Experiment{}, err
+	}
 	walkForward := make([]Metrics, 0, req.Assumptions.WalkForwardWindows)
 	oos := len(req.Bars) - req.Assumptions.TrainEnd
 	for i := 0; i < req.Assumptions.WalkForwardWindows; i++ {
 		start := req.Assumptions.TrainEnd + i*oos/req.Assumptions.WalkForwardWindows
 		end := req.Assumptions.TrainEnd + (i+1)*oos/req.Assumptions.WalkForwardWindows
 		if end > start {
-			walkForward = append(walkForward, simulateRange(req.Bars, strategy, req.Assumptions, start, end))
+			value, err := simulateRange(req.Bars, strategy, req.Assumptions, start, end)
+			if err != nil {
+				return Experiment{}, err
+			}
+			walkForward = append(walkForward, value)
 		}
 	}
 	sensitivity := map[string]Metrics{}
@@ -795,14 +803,22 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		variant.Params = cloneParams(strategy.Params)
 		variant.Params["fast"] += delta
 		label := fmt.Sprintf("fast%+d", delta)
-		sensitivity[label] = simulate(req.Bars, variant, req.Assumptions)
+		value, err := simulate(req.Bars, variant, req.Assumptions)
+		if err != nil {
+			return Experiment{}, err
+		}
+		sensitivity[label] = value
 	}
 	for _, delta := range []int64{-1, 1} {
 		variant := strategy
 		variant.Params = cloneParams(strategy.Params)
 		variant.Params["slow"] += delta
 		label := fmt.Sprintf("slow%+d", delta)
-		sensitivity[label] = simulate(req.Bars, variant, req.Assumptions)
+		value, err := simulate(req.Bars, variant, req.Assumptions)
+		if err != nil {
+			return Experiment{}, err
+		}
+		sensitivity[label] = value
 	}
 	minReturn, maxReturn := metrics.ReturnBPS, metrics.ReturnBPS
 	for _, m := range sensitivity {
@@ -814,7 +830,20 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		}
 	}
 	mid := req.Assumptions.TrainEnd + oos/2
-	regimes := map[string]Metrics{"oos-first-half": simulateRange(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, mid), "oos-second-half": simulateRange(req.Bars, strategy, req.Assumptions, mid, len(req.Bars))}
+	firstHalf, err := simulateRange(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, mid)
+	if err != nil {
+		return Experiment{}, err
+	}
+	secondHalf, err := simulateRange(req.Bars, strategy, req.Assumptions, mid, len(req.Bars))
+	if err != nil {
+		return Experiment{}, err
+	}
+	regimes := map[string]Metrics{"oos-first-half": firstHalf, "oos-second-half": secondHalf}
+	arithmetic := researchArithmetic{}
+	spread := arithmetic.difference(maxReturn, minReturn)
+	if arithmetic.invalid {
+		return Experiment{}, researchInvalid("numeric_range")
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, lockErr := s.lockAndReload()
@@ -840,7 +869,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
-	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, EquityCurve: equityCurve, MetricDefinitions: map[string]string{
+	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: spread, Regimes: regimes, NoTradeReturnBPS: 0, EquityCurve: equityCurve, MetricDefinitions: map[string]string{
 		"returnBPS":      "(ending equity - starting equity) / starting equity × 10,000",
 		"buyHoldBPS":     "(ending close - starting close) / starting close × 10,000",
 		"maxDrawdownBPS": "maximum peak-to-trough equity loss / prior peak × 10,000",
@@ -899,14 +928,15 @@ func validateBacktest(r BacktestRequest) error {
 	return nil
 }
 
-func simulate(b []Bar, st StrategySpec, a Assumptions) Metrics {
+func simulate(b []Bar, st StrategySpec, a Assumptions) (Metrics, error) {
 	return simulateRange(b, st, a, a.TrainEnd, len(b))
 }
-func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) Metrics {
-	metrics, _, _ := simulateDetailed(b, st, a, startIndex, endIndex)
-	return metrics
+func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, error) {
+	metrics, _, _, err := simulateDetailed(b, st, a, startIndex, endIndex)
+	return metrics, err
 }
-func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint) {
+func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint, error) {
+	numbers := researchArithmetic{}
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -919,7 +949,7 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	slippageCosts := int64(0)
 	realizedGross := int64(0)
 	averageEntry := int64(0)
-	idleCapitalSum := int64(0)
+	var idleCapitalSum big.Int
 	idleCapitalSamples := int64(0)
 	fast := int(st.Params["fast"])
 	slow := int(st.Params["slow"])
@@ -940,13 +970,13 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	previousEquity := start
 	benchmarkStart := b[startIndex].Close
 	recordEquity := func(index int) {
-		equity := cash + pos*b[index].Close/1_000_000
+		equity := numbers.sum(cash, numbers.mulDiv(pos, b[index].Close, 1_000_000))
 		periodReturn := int64(0)
 		if previousEquity != 0 {
-			periodReturn = (equity - previousEquity) * 10000 / previousEquity
-			periodReturns = append(periodReturns, float64(equity-previousEquity)/float64(previousEquity))
+			periodReturn = numbers.mulDiv(numbers.difference(equity, previousEquity), 10000, previousEquity)
+			periodReturns = append(periodReturns, float64(numbers.difference(equity, previousEquity))/float64(previousEquity))
 		}
-		benchmark := start * b[index].Close / benchmarkStart
+		benchmark := numbers.mulDiv(start, b[index].Close, benchmarkStart)
 		equityCurve = append(equityCurve, EquityPoint{Time: b[index].Time, Equity: equity, BenchmarkEquity: benchmark, PeriodReturnBPS: periodReturn})
 		previousEquity = equity
 	}
@@ -961,17 +991,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 			recordEquity(i)
 			continue
 		}
-		f, sma := int64(0), int64(0)
-		for j := 0; j < fast; j++ {
-			f += b[signalAt-j].Close
-		}
-		for j := 0; j < slow; j++ {
-			sma += b[signalAt-j].Close
-		}
+		f := numbers.averagePrices(b[signalAt-fast+1 : signalAt+1])
+		sma := numbers.averagePrices(b[signalAt-slow+1 : signalAt+1])
 		signal := int64(0)
-		if f/int64(fast) > sma/int64(slow) {
+		if f > sma {
 			signal = 1
-		} else if f/int64(fast) < sma/int64(slow) {
+		} else if f < sma {
 			signal = -1
 		}
 		target := signal * 1_000_000
@@ -980,7 +1005,7 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 			recordEquity(i)
 			continue
 		}
-		capFill := b[i].Volume * a.ParticipationBPS / 10000
+		capFill := numbers.mulDiv(b[i].Volume, a.ParticipationBPS, 10000)
 		if capFill <= 0 {
 			recordEquity(i)
 			continue
@@ -997,17 +1022,18 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		if price <= 0 {
 			price = b[i].Close
 		}
-		cost := fill * price / 1_000_000
-		friction := abs(cost) * (a.FeeBPS + a.SlippageBPS) / 10000
-		fee := abs(cost) * a.FeeBPS / 10000
-		slippage := abs(cost) * a.SlippageBPS / 10000
-		tradingFees += fee
-		slippageCosts += slippage
+		cost := numbers.mulDiv(fill, price, 1_000_000)
+		magnitude := numbers.absolute(cost)
+		friction := numbers.mulDiv(magnitude, numbers.sum(a.FeeBPS, a.SlippageBPS), 10000)
+		fee := numbers.mulDiv(magnitude, a.FeeBPS, 10000)
+		slippage := numbers.mulDiv(magnitude, a.SlippageBPS, 10000)
+		tradingFees = numbers.sum(tradingFees, fee)
+		slippageCosts = numbers.sum(slippageCosts, slippage)
 		priorPosition := pos
 		if priorPosition == 0 || (priorPosition > 0 && fill > 0) || (priorPosition < 0 && fill < 0) {
 			total := abs(priorPosition) + abs(fill)
 			if total > 0 {
-				averageEntry = (abs(priorPosition)*averageEntry + abs(fill)*price) / total
+				averageEntry = numbers.productsDiv(total, [2]int64{abs(priorPosition), averageEntry}, [2]int64{abs(fill), price})
 			}
 		} else {
 			closed := abs(fill)
@@ -1018,49 +1044,54 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 			if priorPosition < 0 {
 				direction = -1
 			}
-			realizedGross += closed * (price - averageEntry) * direction / 1_000_000
+			realizedGross = numbers.sum(realizedGross, numbers.mulDiv(closed*direction, numbers.difference(price, averageEntry), 1_000_000))
 			if abs(fill) > abs(priorPosition) {
 				averageEntry = price
 			} else if abs(fill) == abs(priorPosition) {
 				averageEntry = 0
 			}
 		}
-		cash -= cost
-		cash -= friction
+		cash = numbers.difference(numbers.difference(cash, cost), friction)
 		pos += fill
 		trades++
-		idleCapitalSum += cash
+		idleCapitalSum.Add(&idleCapitalSum, big.NewInt(cash))
 		idleCapitalSamples++
-		equity := cash + pos*b[i].Close/1_000_000
+		equity := numbers.sum(cash, numbers.mulDiv(pos, b[i].Close, 1_000_000))
 		if equity > peak {
 			peak = equity
 		}
-		dd := (peak - equity) * 10000 / peak
+		dd := numbers.mulDiv(numbers.difference(peak, equity), 10000, peak)
 		if dd > maxDD {
 			maxDD = dd
 		}
 		recordEquity(i)
 	}
-	end := cash + pos*b[endIndex-1].Close/1_000_000
-	buyHold := (b[endIndex-1].Close - b[startIndex].Close) * 10000 / b[startIndex].Close
-	sharpeMilli, volatilityBPS := riskAdjustedMetrics(periodReturns)
-	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, SharpeMilli: sharpeMilli, VolatilityBPS: volatilityBPS, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
-	net := end - start
-	beta := buyHold * start / 10000
-	gross := net + tradingFees + slippageCosts
+	end := numbers.sum(cash, numbers.mulDiv(pos, b[endIndex-1].Close, 1_000_000))
+	buyHold := numbers.mulDiv(numbers.difference(b[endIndex-1].Close, b[startIndex].Close), 10000, b[startIndex].Close)
+	sharpeMilli, volatilityBPS, riskErr := riskAdjustedMetrics(periodReturns)
+	if riskErr != nil {
+		return Metrics{}, PnLAttribution{}, nil, riskErr
+	}
+	metrics := Metrics{ReturnBPS: numbers.mulDiv(numbers.difference(end, start), 10000, start), BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, SharpeMilli: sharpeMilli, VolatilityBPS: volatilityBPS, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	net := numbers.difference(end, start)
+	beta := numbers.mulDiv(buyHold, start, 10000)
+	gross := numbers.sum(net, tradingFees, slippageCosts)
 	averageIdle := start
 	if idleCapitalSamples > 0 {
-		averageIdle = idleCapitalSum / idleCapitalSamples
+		averageIdle = numbers.narrow(new(big.Int).Quo(&idleCapitalSum, big.NewInt(idleCapitalSamples)))
 	}
-	userRealized := realizedGross - tradingFees - slippageCosts
-	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: gross - beta, Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: net - userRealized, UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
+	userRealized := numbers.difference(numbers.difference(realizedGross, tradingFees), slippageCosts)
+	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: numbers.difference(gross, beta), Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: numbers.difference(net, userRealized), UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
 	attribution.Reconciled = attribution.Alpha+attribution.Beta+attribution.CarryFunding+attribution.MakerRebateLPFee-attribution.TradingFee-attribution.Gas-attribution.Slippage-attribution.MEV-attribution.OracleDrift-attribution.ComputeDataFee-attribution.ManagementPerformanceFee == attribution.UserNetPnL && attribution.UserRealizedPnL+attribution.UserUnrealizedPnL == attribution.UserNetPnL
-	return metrics, attribution, equityCurve
+	if numbers.invalid {
+		return Metrics{}, PnLAttribution{}, nil, researchInvalid("numeric_range")
+	}
+	return metrics, attribution, equityCurve, nil
 }
 
-func riskAdjustedMetrics(returns []float64) (int64, int64) {
+func riskAdjustedMetrics(returns []float64) (int64, int64, error) {
 	if len(returns) < 2 {
-		return 0, 0
+		return 0, 0, nil
 	}
 	mean := 0.0
 	for _, value := range returns {
@@ -1075,9 +1106,14 @@ func riskAdjustedMetrics(returns []float64) (int64, int64) {
 	variance /= float64(len(returns) - 1)
 	deviation := math.Sqrt(variance)
 	if deviation == 0 {
-		return 0, 0
+		return 0, 0, nil
 	}
-	return int64(math.Round(mean / deviation * math.Sqrt(float64(len(returns))) * 1000)), int64(math.Round(deviation * 10000))
+	sharpe, err := checkedResearchFloat(mean / deviation * math.Sqrt(float64(len(returns))) * 1000)
+	if err != nil {
+		return 0, 0, err
+	}
+	volatility, err := checkedResearchFloat(deviation * 10000)
+	return sharpe, volatility, err
 }
 
 func cloneParams(input map[string]int64) map[string]int64 {

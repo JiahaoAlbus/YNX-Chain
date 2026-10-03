@@ -75,11 +75,14 @@ func TestBacktestIsDeterministicOOSAndPersistent(t *testing.T) {
 }
 
 func TestRiskAdjustedMetricsUseSampleDeviationAndZeroRiskFreeRate(t *testing.T) {
-	sharpeMilli, volatilityBPS := riskAdjustedMetrics([]float64{0.01, -0.005, 0.02, 0.015})
+	sharpeMilli, volatilityBPS, riskErr := riskAdjustedMetrics([]float64{0.01, -0.005, 0.02, 0.015})
+	if riskErr != nil {
+		t.Fatal(riskErr)
+	}
 	if sharpeMilli != 1852 || volatilityBPS != 108 {
 		t.Fatalf("risk-adjusted metrics sharpeMilli=%d volatilityBPS=%d", sharpeMilli, volatilityBPS)
 	}
-	if sharpe, volatility := riskAdjustedMetrics([]float64{0.01}); sharpe != 0 || volatility != 0 {
+	if sharpe, volatility, err := riskAdjustedMetrics([]float64{0.01}); sharpe != 0 || volatility != 0 || err != nil {
 		t.Fatalf("insufficient sample was not zeroed: %d %d", sharpe, volatility)
 	}
 }
