@@ -141,6 +141,19 @@ test('actual export button single-flights downloads and suppresses late previous
     const owned=page.waitForEvent('download');await page.evaluate(()=>calls[4].resolve(new Blob(['new-owner-only-transition'])));
     const delivered=await owned;assert.equal(await readFile(await delivered.path(),'utf8'),'new-owner-only-transition');
     assert.equal(downloads.length,3);assert.deepEqual(await page.evaluate(()=>failures),[]);
+    for(const reject of [false,true]){
+      const offset=await page.evaluate(()=>calls.length),count=downloads.length;
+      await page.locator('#export-json').click();
+      await page.evaluate(()=>{state.overview.portfolio.account='controlled-owner-A'});
+      await page.locator('#export-json').click();
+      await page.evaluate(()=>{state.overview.portfolio.account='controlled-owner-B'});
+      await page.locator('#export-json').click();
+      await page.evaluate(({offset,reject})=>{if(reject)calls[offset].reject(new Error('retired ABA'));else calls[offset].resolve(new Blob(['retired ABA']));calls[offset+1].resolve(new Blob(['middle ABA']));},{offset,reject});
+      assert.equal(downloads.length,count);assert.deepEqual(await page.evaluate(()=>failures),[]);
+      await page.locator('#export-json').click();assert.equal(await page.evaluate(()=>calls.length),offset+3);
+      const fresh=page.waitForEvent('download');await page.evaluate(offset=>calls[offset+2].resolve(new Blob(['current ABA bytes'])),offset);
+      const receipt=await fresh;assert.equal(await readFile(await receipt.path(),'utf8'),'current ABA bytes');assert.equal(downloads.length,count+1);
+    }
   }finally{await browser.close();}
 });
 test('invalid reminder date remains a recoverable localized draft rather than an uncaught submit error',async()=>{

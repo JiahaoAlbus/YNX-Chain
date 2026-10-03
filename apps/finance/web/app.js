@@ -810,7 +810,7 @@ function download(path,name){
   const context=state.context,identityRevision=browserSSOIntentGeneration,account=state.overview?.portfolio?.account,key=JSON.stringify([path,name]);
   const previous=ownedExportOperations.get(key);
   if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.account===account)return previous.promise;
-  const operation={context,identityRevision,account,promise:null},current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision&&state.overview?.portfolio?.account===account;
+  const operation={context,identityRevision,account,promise:null},current=()=>ownedExportOperations.get(key)===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision&&state.overview?.portfolio?.account===account;
   ownedExportOperations.set(key,operation);
   operation.promise=(async()=>{try{
     const blob=await api(path,{responseType:'blob'});if(!current())return;

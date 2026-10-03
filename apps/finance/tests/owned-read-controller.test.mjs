@@ -108,6 +108,27 @@ test('export follows the displayed owner even when its identity epochs are uncha
   const f=fixture(),old=f.scope.exportOwned('/api/export?format=json','owned.json');
   f.scope.state.overview=null;f.calls[0].resolve({});await old;assert.deepEqual(f.urls,[]);
 });
+test('export ABA retires old successes and errors without removing the new same-owner operation',async()=>{
+  for(const reject of [false,true]){
+    const f=fixture(),path='/api/export?format=json',name='owned.json';
+    const old=f.scope.exportOwned(path,name);
+    f.scope.state.overview={portfolio:{account:'other-account'}};
+    const middle=f.scope.exportOwned(path,name);
+    f.scope.state.overview={portfolio:{account:'owned-account'}};
+    const current=f.scope.exportOwned(path,name);
+    assert.notEqual(current,old);assert.equal(f.calls.length,3);
+    if(reject)f.calls[0].reject(new Error('retired A export'));else f.calls[0].resolve({});
+    await old;assert.deepEqual(f.urls,[]);assert.deepEqual(f.notices,[]);
+    assert.equal(f.scope.exportOwned(path,name),current);
+    f.calls[1].resolve({});await middle;assert.deepEqual(f.urls,[]);
+    assert.equal(f.scope.exportOwned(path,name),current);
+    f.calls[2].resolve({});await current;
+    assert.deepEqual(f.urls,['created','clicked','revoked']);assert.deepEqual(f.notices,[]);
+    const next=f.scope.exportOwned(path,name);assert.equal(f.calls.length,4);
+    f.calls[3].resolve({});await next;
+    assert.deepEqual(f.urls,['created','clicked','revoked','created','clicked','revoked']);
+  }
+});
 test('repeated export clicks coalesce while a new account can start its own export',async()=>{
   const f=fixture(),first=f.scope.exportOwned('/api/export?format=json','owned.json');
   const repeated=f.scope.exportOwned('/api/export?format=json','owned.json');
