@@ -7,6 +7,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, PackagePlus, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
+import { QuickPicker } from "../components/QuickPicker";
 import { DebugPanel } from "../debug/DebugPanel";
 import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
@@ -123,6 +124,7 @@ export function Workbench() {
     [split, setSplit] = useState(false),
     [diff] = useState<{ path: string; base: string } | null>(null),
     [palette, setPalette] = useState(false),
+    [quickOpen, setQuickOpen] = useState(false),
     [settingsOpen, setSettingsOpen] = useState(false),
     [editorPreferences, setEditorPreferences] = useState(loadEditorPreferences),
     [runReview, setRunReview] = useState(false),
@@ -902,7 +904,12 @@ export function Workbench() {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
+        setQuickOpen(false);
         setPalette(true);
+      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        setPalette(false);
+        setQuickOpen(true);
       }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
@@ -917,6 +924,10 @@ export function Workbench() {
     return () => removeEventListener("keydown", handler);
   });
   const commands = [
+    {
+      label: "File: Quick Open",
+      run: () => setQuickOpen(true),
+    },
     {
       label: "File: New File",
       run: () => {
@@ -976,7 +987,8 @@ export function Workbench() {
           <span className="edition">TESTNET</span>
         </div>
         <nav>
-          <button onClick={() => setPalette(true)}>Commands</button>
+          <button onClick={() => { setPalette(false); setQuickOpen(true); }} title="Quick Open (⌘P / Ctrl+P)">Open file…</button>
+          <button onClick={() => { setQuickOpen(false); setPalette(true); }}>Commands</button>
           <button onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}>{theme === "dark" ? "Light" : "Dark"} theme</button>
         </nav>
         <div className="runtime-state" role="status" aria-live="polite">
@@ -1154,19 +1166,13 @@ export function Workbench() {
           <span>YNX Testnet · 6423</span>
         </footer>
       </main>
-      <Dialog.Root open={palette} onOpenChange={setPalette}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay" />
-          <Dialog.Content className="palette">
-            <Dialog.Title>Command Palette</Dialog.Title>
-            {commands.map((command) => (
-              <button key={command.label} onClick={command.run}>
-                {command.label}
-              </button>
-            ))}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {palette && <QuickPicker title="Command Palette" placeholder="Type a command…"
+        items={commands.map(command => ({ id: command.label, ...command }))} onClose={() => setPalette(false)} />}
+      {quickOpen && <QuickPicker title="Quick Open" placeholder="Search files by name or path…"
+        items={Object.keys(project.files).sort((a, b) => Number(b === project.active) - Number(a === project.active) || a.localeCompare(b)).map(path => ({
+          id: path, label: path.split('/').pop() || path, description: path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : undefined,
+          search: path, run: () => open(path),
+        }))} onClose={() => setQuickOpen(false)} />}
       <Dialog.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="dialog-overlay" />

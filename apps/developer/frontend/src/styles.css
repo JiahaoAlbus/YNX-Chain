@@ -583,6 +583,49 @@ html[data-theme="dark"] .tree-row.file.active {
 .palette > button:hover {
   background: var(--hover);
 }
+.quick-picker input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+.quick-picker input:focus {
+  outline: 1px solid var(--accent);
+}
+.quick-picker-hint {
+  margin: 0 8px 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.quick-picker-results {
+  max-height: min(360px, 55vh);
+  overflow-y: auto;
+  margin-top: 5px;
+}
+.quick-picker-results [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.quick-picker-results [aria-selected="true"] {
+  background: var(--hover);
+}
+.quick-picker-results span, .quick-picker-results small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-picker-results small, .quick-picker-empty {
+  color: var(--muted);
+}
+.quick-picker-empty {
+  margin: 12px 10px;
+}
 .run-dialog {
   top: 18%;
   padding: 18px;
