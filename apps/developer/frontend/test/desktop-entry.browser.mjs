@@ -86,6 +86,29 @@ try {
   await readyHost(page);
   assert.equal((await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }))).state.projectId, project.id);
   checks.push('explicit /projects route stays on Wallet home despite desktop state polling; guest entry reopens the preserved project with its host contract');
+  for (let index = 0; index < 8; index++) {
+    const reply = await page.evaluate(path => window.__ynxDesktopHost({ command: 'new-file', path }), `tab-${index}.ts`);
+    assert.equal(reply.status, 'handled');
+  }
+  await page.setViewportSize({ width: 960, height: 720 });
+  const tabs = page.getByRole('tablist', { name: 'Open files' });
+  await tabs.getByRole('tab', { name: 'tab-7.ts', exact: true }).waitFor();
+  await page.waitForFunction(() => { const strip = document.querySelector('.editor-tab-strip'), active = strip?.querySelector('[aria-selected="true"]')?.getBoundingClientRect(), box = strip?.getBoundingClientRect(); return active && box && active.left >= box.left - 1 && active.right <= box.right + 1; });
+  const geometry = await tabs.evaluate(element => ({ width: element.clientWidth, scrollWidth: element.scrollWidth, widths: [...element.querySelectorAll('.editor-tab')].map(tab => tab.getBoundingClientRect().width), selectedVisible: (() => { const active = element.querySelector('[aria-selected="true"]').getBoundingClientRect(), strip = element.getBoundingClientRect(); return active.left >= strip.left - 1 && active.right <= strip.right + 1; })() }));
+  assert.ok(geometry.scrollWidth > geometry.width);
+  assert.ok(geometry.widths.every(width => width >= 110));
+  assert.ok(geometry.selectedVisible);
+  await tabs.getByRole('tab', { name: 'tab-7.ts', exact: true }).focus();
+  await page.keyboard.press('ArrowLeft');
+  assert.equal(await tabs.getByRole('tab', { name: 'tab-6.ts', exact: true }).getAttribute('aria-selected'), 'true');
+  await page.locator('.monaco-editor .view-lines').first().click();
+  await page.keyboard.insertText('const retained = 6;');
+  await page.waitForFunction(async () => { const value = await window.__ynxDesktopHost({ command: 'export-project' }); return JSON.parse(value.content).files['tab-6.ts'].includes('const retained = 6;'); });
+  await page.getByRole('button', { name: 'Close tab-6.ts', exact: true }).click();
+  assert.equal(await tabs.getByRole('tab', { name: 'tab-7.ts', exact: true }).getAttribute('aria-selected'), 'true');
+  const closed = await page.evaluate(() => window.__ynxDesktopHost({ command: 'export-project' }));
+  assert.match(JSON.parse(closed.content).files['tab-6.ts'], /const retained = 6;/);
+  checks.push('overflow tabs retain width and selected visibility; keyboard selection and separate close choose a neighbor while retaining closed dirty file content');
   await page.close();
   const damaged = await context.newPage(); damaged.on('pageerror', e => errors.push(e.message));
   await damaged.addInitScript(() => localStorage.setItem('ynx-code-project-v1', '{original damaged desktop draft'));

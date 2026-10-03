@@ -2,6 +2,7 @@ import { readOpenedFiles } from "../explorer/openFiles";
 import { applyPackageMetadata, persistTerminalWorkspace, terminalCommonBase, mergeTerminalFiles, mergeStoppedTerminalWorkspace, stopSelectedTerminals } from "../terminal/admission";
 import { installHostCommands } from "../desktop/host-commands";
 import { desktopEditorReady } from "../editor/native-edit";
+import { EditorTabs } from "../editor/EditorTabs";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, PackagePlus, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -605,11 +606,12 @@ export function Workbench() {
   };
   const close = (path: string) =>
     setProject((current) => {
+      const index = current.open.indexOf(path);
       const open = current.open.filter((item) => item !== path);
       return {
         ...current,
         open,
-        active: current.active === path ? open.at(-1) || "" : current.active,
+        active: current.active === path ? open[Math.min(index, open.length - 1)] || "" : current.active,
       };
     });
   const toggleBreakpoint = (line: number) =>
@@ -1057,21 +1059,7 @@ export function Workbench() {
       </aside>
       <main className="main">
         <div className="editor-tabs">
-          <div>
-            {project.open.map((path) => (
-              <button key={path} className={path === project.active ? "active" : ""} onClick={() => open(path)}>
-                <span>{path.split("/").pop()}</span>
-                {dirty.has(path) && <i />}
-                <X
-                  size={12}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    close(path);
-                  }}
-                />
-              </button>
-            ))}
-          </div>
+          <EditorTabs paths={project.open} active={project.active} dirty={dirty} onOpen={open} onClose={close} />
           <div className="editor-actions">
             <Button variant="ghost" title="Save" onClick={save}>
               <Save size={14} />
