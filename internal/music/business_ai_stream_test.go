@@ -114,6 +114,13 @@ func TestMusicAIActualV2StreamDurableRecoveryAndUnknown(t *testing.T) {
 }
 func TestMusicV2MountCannotFallThroughLegacy(t *testing.T) {
 	s := testService(t)
+	var legacyCalls atomic.Int32
+	s.cfg.WalletVerifyURL = "https://legacy.invalid/verify"
+	s.cfg.WalletGatewayKey = "fixture-only"
+	s.cfg.HTTPClient = &http.Client{Transport: musicEffectTransport(func(*http.Request) (*http.Response, error) {
+		legacyCalls.Add(1)
+		return nil, fmt.Errorf("unexpected legacy transport")
+	})}
 	s.cfg.BusinessAuthority = fixtureBusinessAuthority(func(context.Context, *http.Request, string, io.Reader, int64) (MusicBusinessGrant, error) {
 		t.Fatal("unexpected V2 call")
 		return MusicBusinessGrant{}, nil
@@ -123,7 +130,7 @@ func TestMusicV2MountCannotFallThroughLegacy(t *testing.T) {
 	r.Header.Set("X-YNX-Product-Device-Key", strings.Repeat("a", 44))
 	w := httptest.NewRecorder()
 	NewServer(s, "", nil).Handler().ServeHTTP(w, r)
-	if w.Code != 401 {
-		t.Fatal("legacy fallback allowed")
+	if w.Code != 401 || legacyCalls.Load() != 0 {
+		t.Fatalf("legacy fallback allowed: HTTP%d transport calls%d", w.Code, legacyCalls.Load())
 	}
 }
