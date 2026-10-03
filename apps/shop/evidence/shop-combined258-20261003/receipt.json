@@ -1,0 +1,202 @@
+{
+  "status": "SOURCE_ONLY_ISOLATED_QA",
+  "sourceCommit": "83a2a760fc03b87389e0e9376e035319c5f6a9e3",
+  "sourceTree": "40e8d005a19d4a3717ac0a445fd473bc459ec8c4",
+  "baseline": "b1aa495d352075c76dae298673f8322887afe1a6",
+  "ownerWorktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state",
+  "branch": "codex/shop-shared-connect-state-20260821",
+  "shared": {
+    "complete641": {
+      "commit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "tree": "f70c782e828b81b5aea955c6481edd079176e88c"
+    },
+    "approved258": {
+      "commit": "2587012a7eaf9c2b827596b7914d6304d91840ab",
+      "tree": "e33264c7c12d8b3d6283bfcdfd915a20c25c0a6b",
+      "overlay": "internal/productsessionv2/browser_sso.go",
+      "sha256": "0209a870ba2bab6c04e78ed1ce7e1248e2461c489b6b1416eab946710ed06250"
+    },
+    "ownership": "Shared source, modules, keys, registration and Host unchanged in owner checkout"
+  },
+  "qaStage": "/tmp/ynx-commerce-shop258-HjnZ1y",
+  "checks": {
+    "go": {
+      "race": true,
+      "cases": 304,
+      "topLevel": 181,
+      "packages": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "node": {
+      "shop": 36,
+      "seller": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    "build": {
+      "shop": "PASS",
+      "seller": "PASS",
+      "isolatedOnly": true
+    },
+    "browser": {
+      "shop": 22,
+      "failed": 0,
+      "skipped": 0,
+      "controlledBusinessResponses": true
+    }
+  },
+  "actualAuthorityCases": [
+    "original secure Browser callback/cookie/local CSRF",
+    "actual protected private control and Central Browser joint decision",
+    "profile write",
+    "device/action proof and exact body",
+    "action replay",
+    "Origin/CSRF rejection",
+    "actual private revoke",
+    "actual Browser revoke",
+    "actual generation logout",
+    "original actor invalidation",
+    "replacement cookie under original private binding",
+    "schema14 profile preservation to schema15",
+    "durable original association and restore/rollback protection",
+    "original cancellation unavailable"
+  ],
+  "persistence": {
+    "schema": 15,
+    "previous": 14,
+    "newAccountStore": false,
+    "originalDataReplaced": false
+  },
+  "qualification": {
+    "shopWeb": "APPROVED_ROSTER_SOURCE_ONLY",
+    "merchant": "HOLD_UNREGISTERED",
+    "separateSeller": "HOLD_UNREGISTERED",
+    "music": "HOLD_UNREGISTERED",
+    "card": "HOLD_UNREGISTERED"
+  },
+  "notVerified": [
+    "actual deployed Host and request-entry actor binder",
+    "confidential production key registration/configuration",
+    "current distributed product source/version/manifest",
+    "real Wallet private and Browser approval",
+    "public business readback",
+    "formal Android/macOS installation",
+    "Merchant combined positive path",
+    "distributed revocation lock"
+  ],
+  "sourceArchive": {
+    "path": "/tmp/ynx-shop-combined258-source-83a2a760f.tar",
+    "size": 266240,
+    "sha256": "1eb8f28d659ad5bb4ce2f7efb2a2d87bd7282b89b90f8126346aa1b05ae03df4",
+    "files": 26
+  },
+  "sourceManifest": {
+    "file": "source-manifest.json",
+    "sha256": "1bb24a896e43c108639a655b448ff1626f6a8f133d331bfaf2047e5a8d42280d"
+  },
+  "logs": [
+    {
+      "file": "commerce-shop258-first.jsonl",
+      "size": 291875,
+      "sha256": "9934fb977472e44954fbbef99982f9a714da8afd0533f24e8b35d07833eed6ab"
+    },
+    {
+      "file": "shop-browser-first.log",
+      "size": 687,
+      "sha256": "b58a75555811009a897de8a2ec0d21491aae01d26e816b48139514d2ae9a60eb"
+    },
+    {
+      "file": "shop-browser-second.log",
+      "size": 1035,
+      "sha256": "02f52aaf55aa49c254b8afb445914886cb1f9409b0c7a3fb94d8e2aa5509ad31"
+    },
+    {
+      "file": "shop-browser-third.log",
+      "size": 939,
+      "sha256": "d3517c09f67e88ce2446ea02b24f0f656b5fb278401864cb747f45429c303e30"
+    },
+    {
+      "file": "shop-browser-fourth.log",
+      "size": 356,
+      "sha256": "078829c5bd7c7f3be8dd238854a3cb639ffc8e2eedee253a01c999a507e097bc"
+    },
+    {
+      "file": "shop-browser-fifth.log",
+      "size": 63,
+      "sha256": "31c1340a00861c6bbe811a9380124c4f6e98b21895a1a560cd718de710751882"
+    },
+    {
+      "file": "browser-binding-first.log",
+      "size": 287,
+      "sha256": "447b121f2d330fb60a34911518e8816ccd83799e2060fc396361d1239af42946"
+    },
+    {
+      "file": "commerce-shop258-delivery.jsonl",
+      "size": 299284,
+      "sha256": "4fcb36b9a7f3d41ed98475cda82e301a16909d70556a9834e72df25051dd2263"
+    },
+    {
+      "file": "apps__shop__shop-node-final.log",
+      "size": 3632,
+      "sha256": "4651121d84632b43671624e748d939b929b864d743e79981ec3ca99abc179fbf"
+    },
+    {
+      "file": "apps__shop__shop-node-matching.log",
+      "size": 3364,
+      "sha256": "36ace1790df055f748538403a73bab04eda9033febdaaca3c503edd0f668fcef"
+    },
+    {
+      "file": "apps__shop__shop-build-final.log",
+      "size": 3231,
+      "sha256": "37635076a3bcf427627b1616e602a8bfa06b1be8fb561e19cbfed948e1c1911f"
+    },
+    {
+      "file": "apps__shop__shop-build-matching.log",
+      "size": 26,
+      "sha256": "a75e746e4fad173556983e5f3769a17f1a14841044da4dcd3d668f8c79e8b262"
+    },
+    {
+      "file": "apps__seller-console__seller-node-matching.log",
+      "size": 3603,
+      "sha256": "54a3aa83ba4993075264c53c299bacad3dad5898c4cad523815ac6ab5dbb628d"
+    },
+    {
+      "file": "apps__seller-console__seller-node-complete.log",
+      "size": 3568,
+      "sha256": "dc3b23a9931921ef6091f4385a92476fa82d6887963815c673ede01c9112acdd"
+    },
+    {
+      "file": "apps__seller-console__seller-build-matching.log",
+      "size": 36,
+      "sha256": "f36a8fdbf4515f0be4136671b824852179c287944a2828ad30a96c6fc006332a"
+    },
+    {
+      "file": "apps__shop__shop-browser-ui-first.log",
+      "size": 15186,
+      "sha256": "9ded09fd1b9b959c4f89eda2def45a4b74e83819cbbc712e5840815fa53355bb"
+    },
+    {
+      "file": "apps__shop__shop-browser-ui-second.log",
+      "size": 24067,
+      "sha256": "42925b8a84cd5207ca80e950457edd846505560e29ee17df5f004f3492b31afd"
+    },
+    {
+      "file": "apps__shop__shop-browser-ui-third.log",
+      "size": 11461,
+      "sha256": "b4366c2e1eb01d55edca5ed6c116bf64022baa743d10882d43cea89471caf2cc"
+    },
+    {
+      "file": "apps__shop__shop-browser-ui-fourth.log",
+      "size": 1117,
+      "sha256": "764e1b23ef55c539ed3acdb105b9c89b37ad5fe03931ca3c3b41cfdac58f34d6"
+    },
+    {
+      "file": "apps__shop__shop-browser-full.log",
+      "size": 3555,
+      "sha256": "4a5f6f1523471fe4c85cb294cd5e5451def66bd2979c2ebb4082cf790cf22680"
+    }
+  ],
+  "rawPrivatePipesStored": false,
+  "knownFirstFailures": "Test-only Handler method/prompt/strict protocol field/signature corrections; denial rate-window accounting retained; cached legacy SDK mismatch and missing Merchant QA copy corrected. Original test assertions retained. No proof verifier relaxed."
+}

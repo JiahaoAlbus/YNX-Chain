@@ -1,0 +1,137 @@
+{
+  "sourceCommit": "83a2a760fc03b87389e0e9376e035319c5f6a9e3",
+  "sourceTree": "40e8d005a19d4a3717ac0a445fd473bc459ec8c4",
+  "baseline": "b1aa495d352075c76dae298673f8322887afe1a6",
+  "files": [
+    {
+      "path": "apps/seller-console/product-session.js",
+      "size": 4780,
+      "sha256": "4f70c0ecc16eb7a8a5e6fb7528fe581b2014a74c60f0fed862f7fdb08de1bbbd"
+    },
+    {
+      "path": "apps/shop/app.js",
+      "size": 31976,
+      "sha256": "0cdc813fcaa6c0891fedfe5f9b10108d424cb02e860f60af63b1835e1bf9259f"
+    },
+    {
+      "path": "apps/shop/browser-business.js",
+      "size": 2446,
+      "sha256": "1fce58c5c18f1260d7a87da053c70b3c5a620bcfcefc633c9265029e10e19bf6"
+    },
+    {
+      "path": "apps/shop/index.html",
+      "size": 8402,
+      "sha256": "9e88514960f18cbf935056af88b983f5e1cc58161c00bf4adae82a2381afb33f"
+    },
+    {
+      "path": "apps/shop/scripts/build.mjs",
+      "size": 1038,
+      "sha256": "36447446fb7898fb9203cf8e64a257f1d18a4835815f6fdb2480c030df1db2cb"
+    },
+    {
+      "path": "apps/shop/sw.js",
+      "size": 1433,
+      "sha256": "8617302ba1ff722609f68a1086eccadef96a1e2cb3c7b302dd586e4cd980e941"
+    },
+    {
+      "path": "apps/shop/test/browser-business.test.mjs",
+      "size": 3103,
+      "sha256": "a518805b54523bfb65ce123d380b4ba5a115e1ee3acaa30269310572283cb116"
+    },
+    {
+      "path": "apps/shop/test/browser/browser-identity-fixture.mjs",
+      "size": 2873,
+      "sha256": "098b80c7dd82f4a78ab871907e8755dd8c255e97c21965b62fe9395da147ae84"
+    },
+    {
+      "path": "apps/shop/test/browser/browser-identity-required.spec.mjs",
+      "size": 1061,
+      "sha256": "21c0e6675c82ec7a223098e8315d55d5fa4b6fc9fa5841a31ee013780c3e8e7b"
+    },
+    {
+      "path": "apps/shop/test/browser/shop-fixture.mjs",
+      "size": 9730,
+      "sha256": "77c50d1644302f45b96e191a8cec20508cb8dd13bf8bf832a1fd3596fd710c1f"
+    },
+    {
+      "path": "apps/shop/test/offline-boundary.test.mjs",
+      "size": 1901,
+      "sha256": "265d1f31ecc86763bf3646a63a19afc0cb0ffe9d5c81a11c33f50f9fbb8a77ff"
+    },
+    {
+      "path": "apps/shop/wallet-auth.js",
+      "size": 11936,
+      "sha256": "f9932db61661d42cd1a58cb52db40c91736c656dd43bce43c6f61064bf539dc8"
+    },
+    {
+      "path": "internal/commerce/COMBINED_WEB_INTEGRATION.md",
+      "size": 4294,
+      "sha256": "ade6bc60394efdd5da3b01b6315b47d4fd2955545de360d67b93930c0a397103"
+    },
+    {
+      "path": "internal/commerce/auth_browser_v2.go",
+      "size": 2103,
+      "sha256": "6bb09c0b9282c93d7549f5d2ae5b13a1a213f15faf0c5565fd9d8ba444420b20"
+    },
+    {
+      "path": "internal/commerce/auth_browser_v2_test.go",
+      "size": 8702,
+      "sha256": "89b0c54864995b747a914e6880bd2583e568f85c5e4afa34f96e2470e644a449"
+    },
+    {
+      "path": "internal/commerce/auth_v2.go",
+      "size": 8300,
+      "sha256": "62df802b2f0407244c5b4a10878b7ea784ea42af1b64e8f3f734f05dedc90849"
+    },
+    {
+      "path": "internal/commerce/browser_binding_test.go",
+      "size": 2861,
+      "sha256": "d04eab39ae55f1f2f773f4607cd542873e6bef7cccf64036260657d058bc6b6f"
+    },
+    {
+      "path": "internal/commerce/business_effect.go",
+      "size": 10071,
+      "sha256": "2b957cbe397eb5f55ab1969186202c114f7b95e0bf50a841a8011d5071545ace"
+    },
+    {
+      "path": "internal/commerce/business_http.go",
+      "size": 6063,
+      "sha256": "9b02a43bc19f9b0eff43b1a0ecaf6679e938e1364ee999ba3b0cdc352b33404b"
+    },
+    {
+      "path": "internal/commerce/business_transaction.go",
+      "size": 4421,
+      "sha256": "d7e2cce705ce974cf9922061dc689c41c15fc9618fcc3fc4b25bf575bdd7f334"
+    },
+    {
+      "path": "internal/commerce/model.go",
+      "size": 12610,
+      "sha256": "ccd5f64656fa10a5dfb0a34608eb80d9019b1b7b858dd8cd3daa1e7a0a97e513"
+    },
+    {
+      "path": "internal/commerce/server.go",
+      "size": 37328,
+      "sha256": "5f19066ebaff156066a5f0f4299013cf1655ff898249fe89e063be8743ce536e"
+    },
+    {
+      "path": "internal/commerce/store.go",
+      "size": 27869,
+      "sha256": "1c5a200a1c0d1c6b6bf6b6c9507552deb4d0339b871d1fb1d478f747112cacf0"
+    },
+    {
+      "path": "internal/commerce/testdata/browser-business-node.mjs",
+      "size": 11236,
+      "sha256": "53bb4872b5cd63c424120bcce9dcbe2ff6e336b22a1222e4ba9f1d0de7ea2df5"
+    },
+    {
+      "path": "internal/payproduct/CANONICAL_SUCCESSOR.md",
+      "size": 10853,
+      "sha256": "7c5d44b9c8a739e7875630e0f2a5ce987b5c4f832f033e3b2a05e472f57b1093"
+    },
+    {
+      "path": "internal/payproduct/merchant_combined_v2_test.go",
+      "size": 5701,
+      "sha256": "d3982398d7904d22ce9d27537858fae8bee2cb62e4551e62b483d59785358fb9"
+    }
+  ]
+}
