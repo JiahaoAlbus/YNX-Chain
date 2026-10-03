@@ -163,14 +163,14 @@ function renderOwnedControls(){
   const snapshot=state.snapshot,security=$('#security-read-state'),root=$('#owned-support-cases');window.YNXExchangeLocale?.forget(root);root.replaceChildren();
   if(!snapshot){$('#security-form').reset();$('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;security.textContent='No verified account settings. Saving controls requires a separate write approval.';window.YNXExchangeLocale?.write(security,'controls-unverified');root.textContent='Existing support cases are not currently verified. Restore Exchange read access to view them.';window.YNXExchangeLocale?.write(root,'support-unverified');return}
   $('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;
-  const asOf=Number.isFinite(Date.parse(snapshot.security.updatedAt))?new Date(snapshot.security.updatedAt).toLocaleString():'Source timestamp unavailable';
+  const timestampKnown=ownedRecordInstant(snapshot.security.updatedAt)!==null,asOf=timestampKnown?ownedRecordTime(snapshot.security.updatedAt):'Source timestamp unavailable';
   security.textContent=`Verified read-only settings · ${asOf}. Saving controls requires a separate write approval.`;
-  window.YNXExchangeLocale?.write(security,Number.isFinite(Date.parse(snapshot.security.updatedAt))?'controls-read-verified':'controls-read-no-time',Number.isFinite(Date.parse(snapshot.security.updatedAt))?` · ${asOf}`:'');
+  window.YNXExchangeLocale?.write(security,timestampKnown?'controls-read-verified':'controls-read-no-time',timestampKnown?` · ${asOf}`:'');
   const cases=snapshot.support.filter(item=>item.account===state.account);
   if(!cases.length){root.textContent='No existing support cases for this approved account.';window.YNXExchangeLocale?.write(root,'support-empty');return}
-  for(const item of [...cases].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))){
+  for(const item of [...cases].sort(ownedRecordOrder)){
     const article=document.createElement('article'),title=document.createElement('strong'),detail=document.createElement('p'),message=document.createElement('p');
-    title.textContent=`${item.category} · ${item.status}`;detail.textContent=`${item.id} · ${new Date(item.createdAt).toLocaleString()}`;message.textContent=item.message;article.append(title,detail,message);root.append(article);
+    title.textContent=`${item.category} · ${item.status}`;detail.textContent=`${item.id} · ${ownedRecordTime(item.createdAt)}`;message.textContent=item.message;article.append(title,detail,message);root.append(article);
   }
 }
 function renderBook(){const best=(rows,direction)=>rows.slice().sort((a,b)=>direction*(a.priceMicro-b.priceMicro)||(a.id<b.id?-1:a.id>b.id?1:0)).slice(0,7);renderRows('#asks',best(state.book?.asks||[],1).reverse());renderRows('#bids',best(state.book?.bids||[],-1));const all=[...(state.book?.asks||[]),...(state.book?.bids||[])];const key=all.length?'Owned venue open orders':'No public market depth';$('#spread').textContent=key;window.YNXExchangeLocale?.write($('#spread'),key)}

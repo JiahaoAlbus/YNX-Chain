@@ -187,7 +187,7 @@ test('verified support reads, local support drafts and security state remain bou
     const page=await browser.newPage({viewport:{width:390,height:844}});await page.route('**/*',route=>route.abort());
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
     await page.addStyleTag({content:css});await page.evaluate(()=>{document.querySelectorAll('.view').forEach(element=>element.classList.remove('active'));document.querySelector('#controls').classList.add('active')});
-    await page.addScriptTag({content:`const $=selector=>document.querySelector(selector);const state={account:null};const resumeDeferredBrowserIdentity=()=>{};const renderAccount=()=>{$('#withdraw-lock').checked=!!state.snapshot.security.withdrawalLock;$('#session-ttl').value=String(state.snapshot.security.sessionTtlMinutes);};${controls}`});
+    await page.addScriptTag({content:`const $=selector=>document.querySelector(selector);const state={account:null};const resumeDeferredBrowserIdentity=()=>{};const renderAccount=()=>{$('#withdraw-lock').checked=!!state.snapshot.security.withdrawalLock;$('#session-ttl').value=String(state.snapshot.security.sessionTtlMinutes);};${ownedTimes}${controls}`});
     const snapshot=(account,message)=>({phase:'connected',account,expiresAt:new Date(Date.now()+60_000).toISOString(),snapshot:{security:{account,withdrawalLock:true,sessionTtlMinutes:60,updatedAt:new Date().toISOString()},sourceMetadata:{status:'degraded_single_host',coverage:'account-ledger-orders-trades-fees-audit',asOf:new Date().toISOString()},support:[{id:account+'-case',account,category:'security',status:'open',createdAt:new Date().toISOString(),message}]}});
     await page.evaluate(value=>renderPrivateAccount(value),snapshot('isolated-native-A','<img src=x onerror=alert(1)> A case'));
     assert.match(await page.locator('#owned-support-cases').innerText(),/A case/u);assert.equal(await page.locator('#owned-support-cases img').count(),0);
@@ -204,4 +204,27 @@ test('verified support reads, local support drafts and security state remain bou
     await page.evaluate(value=>renderPrivateAccount(value),snapshot('isolated-native-B','B case'));
     assert.equal(await page.locator('#support-message').inputValue(),'B unfinished support draft');
   }finally{await browser.close();}
+});
+
+test('support and settings timestamps use actual source instants, preserve unknown and follow every locale',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',snapshot:null};${ownedTimes}${controls}window.sourceQA={set(value){state.snapshot=value;renderOwnedControls()},source(){return JSON.stringify(state.snapshot)}};`});
+    const record=(id,createdAt)=>({id,createdAt,account:'A',category:'security',status:'open',message:id});
+    const value={security:{updatedAt:'2026-02-30T00:00:00Z'},support:[record('offset-earlier','2026-10-03T09:00:00+09:00'),record('utc-later','2026-10-03T01:00:00Z'),record('unknown','0')]},original=JSON.stringify(value);
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.evaluate(({language,value})=>{document.documentElement.lang=language;sourceQA.set(value)},{language,value});
+      const cases=await page.locator('#owned-support-cases article').allTextContents();assert.match(cases[0],/utc-later/);assert.match(cases[1],/offset-earlier/);assert.match(cases[2],/unknown/);
+      assert.equal(await page.locator('#owned-support-cases article').last().locator('p').first().textContent(),'unknown · —');
+      assert.equal(await page.locator('#owned-support-cases article').first().locator('p').first().textContent(),await page.evaluate(()=>`utc-later · ${new Date('2026-10-03T01:00:00Z').toLocaleString(document.documentElement.lang)}`));
+      assert.match(await page.locator('#security-read-state').textContent(),/Source timestamp unavailable/);assert.equal(await page.evaluate(()=>sourceQA.source()),original);
+      const known={...value,security:{updatedAt:'2026-10-03T01:00:00Z'}};
+      await page.evaluate(value=>sourceQA.set(value),known);
+      assert.ok((await page.locator('#security-read-state').textContent()).includes(await page.evaluate(()=>new Date('2026-10-03T01:00:00Z').toLocaleString(document.documentElement.lang))));
+      assert.equal(await page.evaluate(()=>sourceQA.source()),JSON.stringify(known));
+    }
+    assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
 });
