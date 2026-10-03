@@ -94,6 +94,20 @@ test('late export never downloads old account data or reports its error to a new
   }
   const current=fixture(),download=current.scope.exportOwned('/api/export?format=json','owned.json');current.calls[0].resolve({});await download;assert.deepEqual(current.urls,['created','clicked','revoked']);
 });
+test('export follows the displayed owner even when its identity epochs are unchanged',async()=>{
+  for(const reject of [false,true]){
+    const f=fixture(),old=f.scope.exportOwned('/api/export?format=json','owned.json');
+    f.scope.state.overview.portfolio.account='next-owned-account';
+    const next=f.scope.exportOwned('/api/export?format=json','owned.json');
+    assert.notEqual(next,old);assert.equal(f.calls.length,2);
+    if(reject)f.calls[0].reject(new Error('old owner export'));else f.calls[0].resolve({});
+    await old;assert.deepEqual(f.urls,[]);assert.deepEqual(f.notices,[]);
+    assert.equal(f.scope.exportOwned('/api/export?format=json','owned.json'),next);
+    f.calls[1].resolve({});await next;assert.deepEqual(f.urls,['created','clicked','revoked']);
+  }
+  const f=fixture(),old=f.scope.exportOwned('/api/export?format=json','owned.json');
+  f.scope.state.overview=null;f.calls[0].resolve({});await old;assert.deepEqual(f.urls,[]);
+});
 test('repeated export clicks coalesce while a new account can start its own export',async()=>{
   const f=fixture(),first=f.scope.exportOwned('/api/export?format=json','owned.json');
   const repeated=f.scope.exportOwned('/api/export?format=json','owned.json');

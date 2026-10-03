@@ -807,10 +807,10 @@ $('#statement-form').addEventListener('submit',e=>{e.preventDefault();void loadS
 
 const ownedExportOperations=new Map();
 function download(path,name){
-  const context=state.context,identityRevision=browserSSOIntentGeneration,key=JSON.stringify([path,name]);
+  const context=state.context,identityRevision=browserSSOIntentGeneration,account=state.overview?.portfolio?.account,key=JSON.stringify([path,name]);
   const previous=ownedExportOperations.get(key);
-  if(previous?.context===context&&previous.identityRevision===identityRevision)return previous.promise;
-  const operation={context,identityRevision,promise:null},current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision;
+  if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.account===account)return previous.promise;
+  const operation={context,identityRevision,account,promise:null},current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision&&state.overview?.portfolio?.account===account;
   ownedExportOperations.set(key,operation);
   operation.promise=(async()=>{try{
     const blob=await api(path,{responseType:'blob'});if(!current())return;

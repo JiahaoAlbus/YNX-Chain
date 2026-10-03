@@ -125,7 +125,7 @@ test('actual export button single-flights downloads and suppresses late previous
     const page=await browser.newPage({acceptDownloads:true}),downloads=[];page.on('download',item=>downloads.push(item.suggestedFilename()));
     await page.setContent('<button id="export-json">Export</button>');
     const exportController=app.slice(app.indexOf('const ownedExportOperations='),app.indexOf('let ownedAIGeneration='));
-    await page.addScriptTag({content:`const state={context:1};let browserSSOIntentGeneration=1;const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.failures=[];const notifyFailure=()=>failures.push('failed');const api=()=>new Promise((resolve,reject)=>calls.push({resolve,reject}));${exportController}window.switchExportOwner=()=>{state.context++;browserSSOIntentGeneration++;};`});
+    await page.addScriptTag({content:`const state={context:1,overview:{portfolio:{account:'controlled-owner-A'}}};let browserSSOIntentGeneration=1;const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.failures=[];const notifyFailure=()=>failures.push('failed');const api=()=>new Promise((resolve,reject)=>calls.push({resolve,reject}));${exportController}window.switchExportOwner=()=>{state.context++;browserSSOIntentGeneration++;};`});
     await page.locator('#export-json').click();await page.locator('#export-json').click();assert.equal(await page.evaluate(()=>calls.length),1);
     const first=page.waitForEvent('download');await page.evaluate(()=>calls[0].resolve(new Blob(['{"coverageComplete":false}'],{type:'application/json'})));await first;
     assert.deepEqual(downloads,['ynx-finance-observed-export.json']);
@@ -133,6 +133,14 @@ test('actual export button single-flights downloads and suppresses late previous
     await page.evaluate(()=>calls[1].resolve(new Blob(['old-owner'])));assert.equal(downloads.length,1);
     const next=page.waitForEvent('download');await page.evaluate(()=>calls[2].resolve(new Blob(['new-owner'])));await next;
     assert.equal(downloads.length,2);assert.deepEqual(await page.evaluate(()=>failures),[]);
+    await page.locator('#export-json').click();
+    await page.evaluate(()=>{state.overview.portfolio.account='controlled-owner-B'});
+    await page.locator('#export-json').click();await page.locator('#export-json').click();
+    assert.equal(await page.evaluate(()=>calls.length),5,'new displayed owner gets an independent export without changing epochs');
+    await page.evaluate(()=>calls[3].resolve(new Blob(['old-owner-only-transition'])));assert.equal(downloads.length,2);
+    const owned=page.waitForEvent('download');await page.evaluate(()=>calls[4].resolve(new Blob(['new-owner-only-transition'])));
+    const delivered=await owned;assert.equal(await readFile(await delivered.path(),'utf8'),'new-owner-only-transition');
+    assert.equal(downloads.length,3);assert.deepEqual(await page.evaluate(()=>failures),[]);
   }finally{await browser.close();}
 });
 test('invalid reminder date remains a recoverable localized draft rather than an uncaught submit error',async()=>{
