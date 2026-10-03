@@ -446,6 +446,43 @@ test('reconcile and kill share one pending risk lane so late receipts cannot cro
   }
 });
 
+test('confirmed kill blocks fresh Paper intents before confirmation and survives selection changes',async()=>{
+  const strategyHash='e'.repeat(64),app=harness({snapshot:{paper:{KillSwitch:true},strategies:{saved:{Name:'Stopped Paper fixture',StrategyHash:strategyHash}}},confirmAction:()=>{throw Error('kill must block before confirmation')}});await settle();
+  app.ids.get('paper-strategy').value=strategyHash;app.ids.get('paper-strategy').onchange();
+  assert.equal(app.ids.get('paper-submit').disabled,true);
+  app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});await app.submit('paper-order');
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("killActive")',app.context));
+    assert.equal(app.ids.get('paper-submit').disabled,true);
+  }
+  assert.equal(app.calls.filter(c=>c.url.endsWith('/paper/orders')).length,0);
+  assert.equal([...app.storage.keys()].some(k=>k.startsWith('ynx.quant.paper.pending.v1:')),false);
+});
+
+test('kill arriving during Paper confirmation prevents creating a new request',async()=>{
+  const strategyHash='e'.repeat(64),app=harness({snapshot:{paper:{KillSwitch:false},strategies:{saved:{StrategyHash:strategyHash}}}});await settle();
+  app.ids.get('paper-strategy').value=strategyHash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';
+  app.context.confirm=()=>{vm.runInContext('snapshot.paper.KillSwitch=true',app.context);return true};
+  await app.submit('paper-order');
+  assert.equal(app.calls.filter(c=>c.url.endsWith('/paper/orders')).length,0);
+  assert.equal(app.ids.get('paper-submit').disabled,true);
+});
+
+test('kill preserves an uncertain intent and permits only its confirmed same-key receipt recovery',async()=>{
+  const strategyHash='e'.repeat(64),workspace={paper:{KillSwitch:false},strategies:{saved:{Name:'Saved fixture',StrategyHash:strategyHash}}};
+  const app=harness({snapshot:workspace,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?workspace:Promise.reject(Error('Controlled lost response'))});await settle();
+  app.ids.get('paper-strategy').value=strategyHash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';await app.submit('paper-order');
+  const original=JSON.parse(app.calls.find(c=>c.url.endsWith('/paper/orders')).options.body);
+  const key=[...app.storage.keys()].find(k=>k.startsWith('ynx.quant.paper.pending.v1:')),raw=app.storage.get(key);
+  const killed={...workspace,paper:{KillSwitch:true}},replay=harness({snapshot:killed,savedStorage:app.storage,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?killed:{...paperRecord({Status:'filled',Filled:100,Amount:100}),...original}});await settle();
+  assert.equal(replay.storage.get(key),raw);assert.equal(replay.ids.get('paper-submit').disabled,false);
+  await replay.submit('paper-order');
+  assert.deepEqual(JSON.parse(replay.calls.find(c=>c.url.endsWith('/paper/orders')).options.body),original);
+  assert.equal(replay.storage.has(key),false);assert.equal(replay.ids.get('paper-submit').disabled,true);
+  await replay.submit('paper-order');assert.equal(replay.calls.filter(c=>c.url.endsWith('/paper/orders')).length,1);
+});
+
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
   const experiment = researchFixture('public-test-result','Explicit synthetic UI fixture');
   const app = harness({apiResponse: async url => {

@@ -304,7 +304,7 @@ test('mobile Arabic risk confirmation is localized and cancellation leaves persi
   assert.match(await page.locator('#paper-state').textContent(),/النقد المحاكى.*المركز المحاكى.*المطابقة.*مفتاح الإيقاف.*جاهز/);
   await page.screenshot({path:path.join(evidence,'risk-arabic-confirmation-cancelled.png'),fullPage:true});
 });
-test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();await page.getByRole('button',{name:'Risk'}).click();await page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.getByText('Kill switch active').waitFor();await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true})});
+test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();await page.getByRole('button',{name:'Risk'}).click();await page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.locator('#toast').filter({hasText:'Kill switch active'}).waitFor();await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true})});
 test('confirmed actual-service kill survives follow-up network loss and delayed pre-write snapshot',{timeout:15000},async()=>{
   // Delay a real isolated Go response, not a fabricated risk-state result.
   const context=await browser.newContext();let release;
@@ -327,6 +327,16 @@ test('confirmed actual-service kill survives follow-up network loss and delayed 
     assert.equal(failFollowup,false,'follow-up read really failed rather than refreshing away the display bug');
     release();await page.evaluate(()=>window.quantSnapshotTest);
     assert.match(await page.locator('#paper-state').textContent(),/ACTIVE/);
+    // A declared saved-strategy UI fixture exercises selection under the real
+    // service's confirmed kill. It is not engine-created research or an order.
+    let paperPosts=0;await context.route('**/api/v1/paper/orders',route=>{paperPosts++;return route.abort('failed');});
+    await page.evaluate(()=>{snapshot.strategies={fixture:{Name:'Controlled selection fixture',StrategyHash:'e'.repeat(64)}};render();});
+    await page.getByRole('button',{name:'Paper',exact:true}).click();
+    await page.selectOption('#paper-strategy','e'.repeat(64));
+    assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    await page.evaluate(()=>document.getElementById('paper-order').onsubmit({preventDefault(){}}));
+    assert.equal(paperPosts,0);assert.match(await page.locator('#toast').textContent(),/Kill switch active/);
+    assert.equal(await page.evaluate(()=>pendingPaperIntent),null);
     await page.reload({waitUntil:'networkidle'});
     assert.match(await page.locator('#paper-state').textContent(),/ACTIVE/);
     assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');

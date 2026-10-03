@@ -47,6 +47,10 @@ function readPendingResearchIntent() {
   } catch { pendingResearchInvalid = true; return null; }
 }
 let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
+// A pending exact-key replay may retrieve an already committed receipt even
+// after a kill. The service still rejects new execution under the kill switch.
+function paperFreshIntentBlocked() { return snapshot.paper?.KillSwitch === true && !pendingPaperIntent; }
+function renderPaperSubmitControl() { $('#paper-submit').disabled = !statefulPreview || paperSubmitting || !$('#paper-strategy').value || paperFreshIntentBlocked(); }
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
   try {
@@ -670,12 +674,12 @@ function renderPaperStrategies(strategies) {
   const preferred = previous || pendingPaperIntent?.StrategyHash || "";
   selection.value = available.some(strategy => strategy.StrategyHash === preferred) ? preferred : "";
   selection.disabled = available.length === 0;
-  $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !selection.value;
+  renderPaperSubmitControl();
   if (pendingPaperIntent && !previous) {
     $("#side").value = pendingPaperIntent.Side;
     $("#paper-amount").value = String(pendingPaperIntent.Amount);
   }
-  $("#paper-strategy-status").textContent = available.length ? "" : t("strategyMissing");
+  $("#paper-strategy-status").textContent = paperFreshIntentBlocked() ? t('killActive') : available.length ? "" : t("strategyMissing");
 }
 function researchAmount(attribution, key) {
   const value = attribution?.[key];
@@ -867,7 +871,7 @@ $$("nav button").forEach(
 );
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
-$("#paper-strategy").onchange = () => { $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !$("#paper-strategy").value; };
+$("#paper-strategy").onchange = renderPaperSubmitControl;
 $("#research-saved-strategy").onchange = () => { $("#research-reuse").disabled = researchSubmitting || !$("#research-saved-strategy").value; };
 $("#research-reuse").onclick = () => {
   if (researchSubmitting) return;
@@ -1008,6 +1012,7 @@ $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
   if (paperSubmitting || !statefulPreview) return;
   try {
+    if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
     const strategyHash = $("#paper-strategy").value;
     if (!Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
     const Side = $("#side").value, Amount = +$("#paper-amount").value;
@@ -1017,6 +1022,7 @@ $("#paper-order").onsubmit = async (e) => {
     paperSubmitting = true;
     $("#paper-submit").disabled = true;
     if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${t("paperExecutionBoundary")}`)) return;
+    if (paperFreshIntentBlocked()) throw Object.assign(Error(t('killActive')),{localeKey:'killActive'});
     if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
@@ -1046,7 +1052,7 @@ $("#paper-order").onsubmit = async (e) => {
     $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
     $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
     renderRiskControls();
-    $("#paper-submit").disabled = !statefulPreview || !$("#paper-strategy").value;
+    renderPaperSubmitControl();
   }
 };
 function quantDeviceId() {
