@@ -98,6 +98,12 @@ export function parseNativeContractArtifact(value, expectedAddress) {
         const name = text(item.name), signature = text(item.signature, 1024), selector = text(item.selector);
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name) || !signature.startsWith(name + "(") || !signature.endsWith(")") || !/^0x[0-9a-f]{8}$/.test(selector))
             return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
+        // Original chain.hashParts analyzer selectors are not Ethereum Keccak.
+        const analyzer = value.artifactKind === "source-analyzer-artifact";
+        const expectedSelector = analyzer ? "0x" + digest("evm-selector\0" + signature + "\0").slice(0, 8) : abiSignatureID(signature).slice(0, 10);
+        const selectorSource = analyzer ? "local-deterministic-source-signature" : "hardhat-ethers-keccak-selector-metadata";
+        if (selector !== expectedSelector || item.selectorSource !== undefined && item.selectorSource !== selectorSource || analyzer && item.bytecodeSelectorMatched === true)
+            return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
         return Object.freeze({ name, signature, selector, stateMutability: item.stateMutability, inputCount: item.inputs?.length ?? 0, bytecodeSelectorMatched: item.bytecodeSelectorMatched === true });
     });
     if (new Set(functions.map(row => row.signature)).size !== functions.length)
@@ -191,6 +197,7 @@ export class NativeContractClient {
         if (!object(value) || value.address !== target || value.function !== selected.name || value.signature !== selected.signature || value.selector !== selected.selector ||
             value.artifactKind !== artifact.artifactKind || value.runtimeMode !== artifact.runtimeMode || typeof value.returnValue !== "string" || value.returnValue.length > 32768 ||
             typeof value.encodedResult !== "string" || value.encodedResult.length > 65538 || !/^0x(?:[0-9a-f]{2})*$/.test(value.encodedResult) || typeof value.bytecodeSelectorMatched !== "boolean" ||
+            artifact.artifactKind === "source-analyzer-artifact" && value.bytecodeSelectorMatched ||
             ["transactionHash", "stateTransition", "storageWrites", "executionLogs", "logCount"].some(key => Object.hasOwn(value, key)))
             return fail("NATIVE_CONTRACT_READ_BINDING_MISMATCH");
         const status = text(value.executionStatus);
@@ -254,5 +261,4 @@ export class NativeContractClient {
 function contractOrigin(value) { const parsed = new URL(value); if (parsed.username || parsed.password || parsed.search || parsed.hash || parsed.pathname !== "/" && parsed.pathname !== "")
     fail("NATIVE_CONTRACT_INVALID_ORIGIN"); if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && ["127.0.0.1", "localhost", "10.0.2.2"].includes(parsed.hostname)))
     fail("NATIVE_CONTRACT_INVALID_ORIGIN"); return parsed.origin; }
-
 

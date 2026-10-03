@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { NativeContractClient, parseBFTNativeContract, bftNativeReadMethods } from "../src/native-contract.mjs";
+import { NativeContractClient, parseBFTNativeContract, bftNativeReadMethods, parseNativeContractArtifact } from "../src/native-contract.mjs";
 const target = "0x" + "1".repeat(40), origin = "https://rpc-testnet.ynxweb4.com", guard = () => { };
 const artifact = { address: target, name: "Original contract", sourceHash: "a".repeat(64), artifactHash: "b".repeat(64), bytecodeHash: "c".repeat(64), deployedBytecodeHash: "d".repeat(64),
     artifactKind: "source-analyzer-artifact", runtimeMode: "deterministic-devnet-pure-view-runtime", limitations: ["Local analyzer literal returns only; no remote public proof"],
-    functions: [{ name: "readValue", signature: "readValue()", selector: "0x20965255", stateMutability: "view" }] };
-const result = { address: target, function: "readValue", signature: "readValue()", selector: "0x20965255", returnValue: "12", encodedResult: "0x" + "0".repeat(63) + "c",
+    functions: [{ name: "readValue", signature: "readValue()", selector: "0x56e5e2f3", stateMutability: "view" }] };
+const result = { address: target, function: "readValue", signature: "readValue()", selector: "0x56e5e2f3", returnValue: "12", encodedResult: "0x" + "0".repeat(63) + "c",
     artifactKind: artifact.artifactKind, runtimeMode: artifact.runtimeMode, executionStatus: "source_analyzer_literal_return", bytecodeSelectorMatched: false, limitations: artifact.limitations };
 // Standard Go encoding/json + SHA-256 generated this synthetic record using the
 // original public pinned bytecode. This is not a remote node/state receipt.
@@ -22,6 +22,39 @@ function fixture(meta = artifact, read = result) {
     });
     return { client, calls };
 }
+test("legacy metadata preserves the original analyzer selector separately from Keccak bytecode metadata", async () => {
+    const analyzer={...artifact,functions:[{...artifact.functions[0],selector:"0x56e5e2f3",selectorSource:"local-deterministic-source-signature"}]};
+    assert.equal(parseNativeContractArtifact(analyzer,target).functions[0].selector,"0x56e5e2f3");
+    const pinned={...analyzer,artifactKind:"pinned-solc-bytecode-artifact",runtimeMode:"hardhat-artifact-local-evm-opcode-staticcall-subset",
+      functions:[{...analyzer.functions[0],selector:"0x82da2e57",selectorSource:"hardhat-ethers-keccak-selector-metadata",bytecodeSelectorMatched:true}]};
+    assert.equal(parseNativeContractArtifact(pinned,target).functions[0].selector,"0x82da2e57");
+    for(const meta of [
+      {...analyzer,functions:[{...analyzer.functions[0],selector:"0x82da2e57"}]},
+      {...analyzer,functions:[{...analyzer.functions[0],selectorSource:"hardhat-ethers-keccak-selector-metadata"}]},
+      {...pinned,functions:[{...pinned.functions[0],selector:"0x56e5e2f3"}]},
+      {...pinned,functions:[{...pinned.functions[0],selectorSource:"local-deterministic-source-signature"}]},
+    ]){
+      const f=fixture(meta);await assert.rejects(()=>f.client.read(target,"readValue",guard),/NATIVE_CONTRACT_INVALID_RESPONSE/);
+      assert.equal(f.calls.some(call=>call.route==="/ide/call"),false);
+    }
+});
+test("source analyzer metadata and results cannot assert a solc bytecode selector match", async () => {
+    const meta={...artifact,functions:[{...artifact.functions[0],selector:"0x56e5e2f3"}]};
+    assert.throws(()=>parseNativeContractArtifact({...meta,functions:[{...meta.functions[0],bytecodeSelectorMatched:true}]},target),/NATIVE_CONTRACT_INVALID_RESPONSE/);
+    const f=fixture(meta,{...result,selector:"0x56e5e2f3",bytecodeSelectorMatched:true});
+    await assert.rejects(()=>f.client.read(target,"readValue",guard),/NATIVE_CONTRACT_READ_BINDING_MISMATCH/);
+});
+test("actual original Go analyzer artifacts and uint/bool results are consumed without Ethereum relabelling", async () => {
+    const generated=JSON.parse(readFileSync(new URL("../../wallet/src/chain/testdata/source-analyzer-go-v1.json",import.meta.url),"utf8"));
+    const meta=parseNativeContractArtifact(generated.artifact,generated.artifact.address);
+    assert.deepEqual(meta.functions.map(row=>row.selector),["0xc0a40ef8","0x1350e754"]);
+    for(const value of generated.reads){
+      const f=fixture(generated.artifact,value),read=await f.client.read(generated.artifact.address,value.selector,guard);
+      assert.equal(read.returnValue,value.function==="ping"?"7":"true");assert.equal(read.encodedResult,value.encodedResult);
+      assert.equal(read.bytecodeSelectorMatched,false);assert.equal(read.executionEngine,null);assert.equal(read.executionStatus,"source_analyzer_literal_return");
+      assert.equal(f.calls.some(call=>call.route==="/ide/deploy"||call.route==="/ide/execute"||call.route.startsWith("/ide/contracts/")),false);
+    }
+});
 test("native pure/view reads use original contract lookup and IDE read-only route, not Ethereum simulation", async () => {
     const f = fixture(), read = await f.client.read(target, "readValue()", guard);
     assert.equal(read.truthfulStatus, "native-local-pure-view-read-no-sign-no-broadcast");
@@ -55,8 +88,8 @@ test("read response must bind ABI/runtime and cannot smuggle a write result or i
     }
 });
 test("pinned bytecode subset must retain selector match and bounded interpreter evidence", async () => {
-    const meta = { ...artifact, functions: artifact.functions.map(row => ({ ...row, bytecodeSelectorMatched: true })), artifactKind: "pinned-solc-bytecode-artifact", runtimeMode: "hardhat-artifact-local-evm-opcode-staticcall-subset" };
-    const read = { ...result, artifactKind: meta.artifactKind, runtimeMode: meta.runtimeMode, executionStatus: "evm_opcode_interpreter_staticcall_subset", bytecodeSelectorMatched: true, executionEngine: "local-bounded-evm-opcode-interpreter", opcodeStepCount: 24 };
+    const meta = { ...artifact, functions: artifact.functions.map(row => ({ ...row, selector: "0x82da2e57", bytecodeSelectorMatched: true })), artifactKind: "pinned-solc-bytecode-artifact", runtimeMode: "hardhat-artifact-local-evm-opcode-staticcall-subset" };
+    const read = { ...result, selector: "0x82da2e57", artifactKind: meta.artifactKind, runtimeMode: meta.runtimeMode, executionStatus: "evm_opcode_interpreter_staticcall_subset", bytecodeSelectorMatched: true, executionEngine: "local-bounded-evm-opcode-interpreter", opcodeStepCount: 24 };
     assert.equal((await fixture(meta, read).client.read(target, "readValue", guard)).opcodeStepCount, 24);
     for (const patch of [{ bytecodeSelectorMatched: false }, { opcodeStepCount: 0 }, { executionEngine: "remote-evm" }])
         await assert.rejects(() => fixture(meta, { ...read, ...patch }).client.read(target, "readValue", guard));
@@ -111,5 +144,3 @@ test("BFT read responses cannot smuggle writes, exceed the original interpreter 
     await assert.rejects(() => client.readBFT(bft.address, "0x06661abd", guard));
     assert.equal(lookups, 2);
 });
-
-

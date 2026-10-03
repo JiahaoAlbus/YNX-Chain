@@ -80,6 +80,12 @@ export function parseNativeContractArtifact(value:unknown,expectedAddress:string
       item.inputs!==undefined&&!Array.isArray(item.inputs)||item.bytecodeSelectorMatched!==undefined&&typeof item.bytecodeSelectorMatched!=="boolean")return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
     const name=text(item.name),signature=text(item.signature,1024),selector=text(item.selector);
     if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)||!signature.startsWith(name+"(")||!signature.endsWith(")")||!/^0x[0-9a-f]{8}$/.test(selector))return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
+    // Original source-analyzer selectors use chain.hashParts, not Ethereum
+    // Keccak. Never infer bytecode execution from that different wire identity.
+    const analyzer=value.artifactKind==="source-analyzer-artifact";
+    const expectedSelector=analyzer?"0x"+digest("evm-selector\0"+signature+"\0").slice(0,8):abiSignatureID(signature).slice(0,10);
+    const selectorSource=analyzer?"local-deterministic-source-signature":"hardhat-ethers-keccak-selector-metadata";
+    if(selector!==expectedSelector||item.selectorSource!==undefined&&item.selectorSource!==selectorSource||analyzer&&item.bytecodeSelectorMatched===true)return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
     return Object.freeze({name,signature,selector,stateMutability:item.stateMutability as NativeContractFunction["stateMutability"],inputCount:(item.inputs as unknown[]|undefined)?.length??0,bytecodeSelectorMatched:item.bytecodeSelectorMatched===true});
   });
   if(new Set(functions.map(row=>row.signature)).size!==functions.length)return fail("NATIVE_CONTRACT_INVALID_RESPONSE");
@@ -138,6 +144,7 @@ export class NativeContractClient{
     if(!object(value)||value.address!==target||value.function!==selected.name||value.signature!==selected.signature||value.selector!==selected.selector||
       value.artifactKind!==artifact.artifactKind||value.runtimeMode!==artifact.runtimeMode||typeof value.returnValue!=="string"||value.returnValue.length>32768||
       typeof value.encodedResult!=="string"||value.encodedResult.length>65538||!/^0x(?:[0-9a-f]{2})*$/.test(value.encodedResult)||typeof value.bytecodeSelectorMatched!=="boolean"||
+      artifact.artifactKind==="source-analyzer-artifact"&&value.bytecodeSelectorMatched||
       ["transactionHash","stateTransition","storageWrites","executionLogs","logCount"].some(key=>Object.hasOwn(value,key)))return fail("NATIVE_CONTRACT_READ_BINDING_MISMATCH");
     const status=text(value.executionStatus);
     const allowed=artifact.artifactKind==="source-analyzer-artifact"?["source_analyzer_literal_return"]:["hardhat_abi_selector_matched_deployed_bytecode_staticcall_subset","evm_opcode_interpreter_staticcall_subset"];
