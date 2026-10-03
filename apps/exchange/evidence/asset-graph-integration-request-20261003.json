@@ -3,8 +3,8 @@
   "classification": "OWNER_SOURCE_INVENTORY_NOT_RELEASE_AUTHORITY",
   "product": "exchange",
   "reviewedSource": {
-    "commit": "d1eae2232ba56e17bfe30e15f9be485d2808347b",
-    "tree": "74cd49ae1284e93ed746215bf32fd826faea8988",
+    "commit": "a4165946aebce11323fbec8528e4d7a93234e7e7",
+    "tree": "ca8f87eb96c2b146767799622685184b0ab4106a",
     "branch": "codex/exchange-sso-cookie-binding-20261002"
   },
   "integrationOwner": "wallet_release_owner",
@@ -13,7 +13,7 @@
     {"path": "apps/exchange/web/index.html", "bytes": 20271, "sha256": "c24b5388851c40b55aee1708713830de57a3ca56bfeda54a6a393e45617119d8"},
     {"path": "apps/exchange/web/app.js", "bytes": 43447, "sha256": "a07426927c8479bf7d0d8ba4d960f244278c81ee6c15916e36e98d038540b8a8"},
     {"path": "apps/exchange/web/styles.css", "bytes": 13302, "sha256": "05cc5bb35872b4f3c33182bc25a9055760fabde6d548a999ebcca3992626f198"},
-    {"path": "apps/exchange/web/market-data.js", "bytes": 11219, "sha256": "1c80867e018669d262d0a74e4b0db68ff0b9efcef11f2a719b075f5aa2b776b0"},
+    {"path": "apps/exchange/web/market-data.js", "blob": "69e5abc9d6ae98adae2c51b0b23b5c6b9c99af3a", "bytes": 14335, "sha256": "ed82f760aa6a4cc93eafb42992900dc6ef777dd7038b532b818c72e230557865"},
     {"path": "apps/exchange/web/order-preview.js", "bytes": 4550, "sha256": "5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3"},
     {"path": "apps/exchange/web/private-session.js", "bytes": 136529, "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675"},
     {"path": "apps/exchange/web/locale.js", "bytes": 170803, "sha256": "b8b7ce7e1a7e3ea487c246f5cbdba733db88f2fd74a8442e764f9341bfae0781"},
@@ -22,6 +22,7 @@
     {"path": "apps/exchange/web/ui-preferences.js", "blob": "bc9afab56074071d45d1d3f225364b37254b6c61", "bytes": 2241, "sha256": "5557ed0d8c0ea3bbf36c5aae73b4f17453ce346ee3910788d50af19997f15d45"}
   ],
   "requestedIntegration": [
+    "Consume the reviewed bounded/unambiguous market document consumer and retain its cancellation/revision fences; source-only compatibility with current public snapshot is not deployment evidence.",
     "Consume current owner pages with the accepted matching shared runtime; do not copy stale bundles over owner fixes.",
     "Refresh index.html styles.css, app.js and the retained ui-preferences.js cache identities from actual final bytes, after any authorized shared integration; preserve the existing display/text-size helper.",
     "Refresh app.js market-data.js import identity; add locale.js to the explicit module inventory and bind its actual bytes.",
