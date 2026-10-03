@@ -23,6 +23,7 @@ import { WalletConnectButton, walletConnectRuntime } from "./src/walletConnect/W
 import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 import { WalletPayFlow, type WalletPayReceipt } from "./src/state/walletPayFlow";
 import type { WalletPayReview } from "./src/state/walletPayReview";
+import { ModalActionGate } from "./src/state/modalActionGate";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
@@ -70,6 +71,7 @@ const WalletRecoveryContext=createContext<()=>void>(()=>{});
 const EMPTY_WALLET_ACCOUNTS:readonly WalletAccount[]=[];
 function useWalletOperations(){const value=useContext(WalletOperationsContext);if(!value)throw new Error("Wallet operation lifecycle is unavailable");return value}
 function useOperationScope(visible=true,account?:string){const operations=useWalletOperations(),scope=useMemo(()=>operations.scope(),[operations]);useEffect(()=>operations.subscribe(()=>scope.cancel()),[operations,scope]);useEffect(()=>{if(!visible)scope.cancel();return()=>scope.cancel()},[scope,visible,account]);return scope}
+function useModalActionGate(account:string){const gate=useMemo(()=>new ModalActionGate(),[account]);useEffect(()=>{gate.open();return()=>gate.close()},[gate]);return gate}
 const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const walletPayFlow=new WalletPayFlow(platformSecureStorage,nativeOutbox,new WalletPayInvoiceClient());
@@ -521,14 +523,15 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
 
 function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const gate=useModalActionGate(account.account);
   const [records,setRecords]=useState<readonly NativeTransferHistoryRecord[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
-  const dismiss=()=>{scope.cancel();close()};
-  const load=async(more:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{
+  const dismiss=()=>{gate.close();scope.cancel();close()};
+  const load=async(more:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{
     lease=scope.begin({account:account.account});const page=await nativeOutbox.history(account.account,lease.assert,more?cursor:null,10);lease.assert();
     if(more&&page.records.some(item=>records.some(prior=>prior.hash===item.hash)))throw new Error("Repeated history page");
     setRecords(previous=>more?[...previous,...page.records]:page.records);setCursor(page.nextCursor);setLoaded(true);
-  }catch{if(!lease||lease.isCurrent())setError(c("Saved transfers could not be verified. Existing records and the original transfer remain protected. Try again; no replacement is permitted.","暂时无法核对转账记录。已有记录和原交易仍受保护。请重试，不可签署替代交易。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  }catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Saved transfers could not be verified. Existing records and the original transfer remain protected. Try again; no replacement is permitted.","暂时无法核对转账记录。已有记录和原交易仍受保护。请重试，不可签署替代交易。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   useEffect(()=>{void load(false);return()=>scope.cancel()},[account.account,scope]);
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Confirmed transfer history","已确认转账记录")} close={dismiss}>
     <ReviewRow label={c("Account","账户")} value={account.account}/><InfoCard title={c("Verified history saved on this device","本设备保存的已核对记录")} body={c("These original transfers were acknowledged after a verified local snapshot checkpoint. This is not consensus finality or complete chain history. Incoming transfers and older records never saved by this device are not implied. Unresolved transfers remain in Review stored transfer.","以下原交易经本地快照持久性核验后由你确认。此记录不代表共识最终确认或完整链上历史，也不包含本设备从未保存的收款及更早交易。未确认交易仍保留在原交易核对入口。")}/>
@@ -540,18 +543,19 @@ function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close
 
 function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const gate=useModalActionGate(account.account);
   const [receipts,setReceipts]=useState<readonly WalletPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [recovery,setRecovery]=useState<WalletPayReview|null>(null);
   const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
-  const dismiss=()=>{scope.cancel();close()};
-  const load=async(more:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});const retained=await walletPayFlow.recovery(account.account,lease.assert);lease.assert();setRecovery(retained);const page=await walletPayFlow.history(account.account,lease.assert,more?cursor:null,10);lease.assert();setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true)}catch{if(!lease||lease.isCurrent())setError(c("Saved receipts could not be verified. Original records are kept; this does not permit paying again.","暂时无法核对已保存收据。原记录仍被保留，不代表可以重新付款。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  const dismiss=()=>{gate.close();scope.cancel();close()};
+  const load=async(more:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});const retained=await walletPayFlow.recovery(account.account,lease.assert);lease.assert();setRecovery(retained);const page=await walletPayFlow.history(account.account,lease.assert,more?cursor:null,10);lease.assert();if(more&&page.receipts.some(item=>receipts.some(prior=>prior.binding.hash===item.binding.hash)))throw new Error("Repeated receipt page");setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true)}catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Saved receipts could not be verified. Original records are kept; this does not permit paying again.","暂时无法核对已保存收据。原记录仍被保留，不代表可以重新付款。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   useEffect(()=>{setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false);void load(false);return()=>scope.cancel()},[account.account,scope]);
-  const recover=async(mode:"check"|"done")=>{if(!recovery?.hash||!recovery.actions.includes(mode))return;const reviewedHash=recovery.hash;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});
+  const recover=async(mode:"check"|"done")=>{if(!recovery?.hash||!recovery.actions.includes(mode))return;const action=gate.acquire();if(!action)return;const reviewedHash=recovery.hash;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=scope.begin({account:account.account});
     if(mode==="check")await walletPayFlow.checkOriginal(account.account,chainClient(),lease.assert);
     else await walletPayFlow.acknowledgeSettled(account.account,reviewedHash,lease.assert);
     lease.assert();const retained=await walletPayFlow.recovery(account.account,lease.assert);lease.assert();setRecovery(retained);
     const page=await walletPayFlow.history(account.account,lease.assert,null,10);lease.assert();setReceipts(page.receipts);setCursor(page.nextCursor);setLoaded(true);
-  }catch{if(!lease||lease.isCurrent())setError(c("Recovery could not be verified. Keep the original payment and try again; no replacement was signed.","恢复结果暂时无法核对。请保留原付款后重试，未签署替代交易。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  }catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("Recovery could not be verified. Keep the original payment and try again; no replacement was signed.","恢复结果暂时无法核对。请保留原付款后重试，未签署替代交易。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Pay payment receipts","Pay 付款收据")} close={dismiss}>
     <ReviewRow label={c("Account","账户")} value={account.account}/><InfoCard title={c("Verified records on this device","本设备经核对的记录")} body={c("Every listed receipt binds the original signed transfer, local durability checkpoint and matching invoice settlement. A local checkpoint is not consensus finality. Records on other devices are not implied.","每张收据均绑定原签名交易、本地持久性检查点和相符的发票结算。本地检查点不代表共识最终确认，也不代表其他设备的记录。")}/>
     {recovery?<View style={styles.auditRow}><Text style={styles.infoTitle}>{c("Retained payment recovery","保留付款恢复")}</Text><ReviewRow label={c("Invoice / merchant","发票 / 商家")} value={`${recovery.invoice.id}\n${recovery.invoice.merchant}`}/><ReviewRow label={c("Recipient","收款地址")} value={recovery.invoice.payoutAddress}/><ReviewRow label={c("Amount / fee","金额 / 手续费")} value={`${recovery.invoice.amount} / 1 YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={recovery.hash!}/>
@@ -566,10 +570,11 @@ function WalletPayHistoryModal({account,close}:{account:WalletAccount;close:()=>
 
 function WalletInvoiceReferenceModal({account,invoiceID,close}:{account:WalletAccount;invoiceID:string;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const gate=useModalActionGate(account.account);
   const [invoice,setInvoice]=useState<WalletPayInvoice|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
-  const dismiss=()=>{scope.cancel();close()};
-  const load=async()=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);setInvoice(null);try{lease=scope.begin({account:account.account});const result=await new WalletPayInvoiceClient().invoice(invoiceID,lease.assert);lease.assert();setInvoice(result)}catch{if(!lease||lease.isCurrent())setError(c("The invoice could not be verified at the configured Pay service. Nothing was signed. Try again or cancel.","无法在指定 Pay 服务核对发票，未签署任何付款。请重试或取消。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  const dismiss=()=>{gate.close();scope.cancel();close()};
+  const load=async()=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);setInvoice(null);try{lease=scope.begin({account:account.account});const result=await new WalletPayInvoiceClient().invoice(invoiceID,lease.assert);lease.assert();setInvoice(result)}catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(c("The invoice could not be verified at the configured Pay service. Nothing was signed. Try again or cancel.","无法在指定 Pay 服务核对发票，未签署任何付款。请重试或取消。"))}finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Review invoice reference","核对发票编号")} close={dismiss}>
     <ReviewRow label={c("Invoice","发票")} value={invoiceID}/><ReviewRow label={c("Selected account","当前账户")} value={account.account}/>
     <InfoCard title={c("A QR code is not payment authorization","二维码不是付款授权")} body={c("Only the invoice reference was read. QR-provided URLs, amounts and signing keys are not trusted. This view queries the configured Pay service and does not sign or transfer assets.","仅读取发票编号，不信任二维码中的服务地址、金额或签名公钥。此页面仅查询指定 Pay 服务，不签名、不转账。")}/>

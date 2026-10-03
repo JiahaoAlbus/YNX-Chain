@@ -1,4 +1,5 @@
-import { evmAddressFromYNX } from "@ynx-chain/wallet-auth";
+import { evmAddressFromYNX, type createPayInvoiceSignerPolicy } from "@ynx-chain/wallet-auth";
+import { verifySignedPayInvoice, SignedPayInvoiceError } from "./walletPaySignedInvoice";
 import { parsePaymentRecipient } from "./paymentRequest";
 import { verifyNativeDurability } from "./nativeDurability";
 import type { NativeTransferOutboxEntry } from "./nativeTransferOutbox";
@@ -132,6 +133,17 @@ export class WalletPayInvoiceClient {
     const id=walletPayInvoiceID(reference);assertCurrent();
     const value=await this.read(`/app/pay/invoices/${id}`,signal);assertCurrent();
     return parseWalletPayInvoice(value,id);
+  }
+  /** Original Pay-product wire, never the legacy projection above. The policy
+   * must be supplied by the protected issuer, not by this HTTP response or QR.
+   * Reading/verifying an invoice grants no account session or payment consent. */
+  async signedInvoice(reference:string,policy:ReturnType<typeof createPayInvoiceSignerPolicy>,assertCurrent:()=>void,signal?:AbortSignal,now:()=>number=Date.now) {
+    assertCurrent();
+    if(!policy||typeof policy.resolve!=="function")throw new SignedPayInvoiceError("PAY_SIGNED_TRUST_POLICY_REQUIRED");
+    const id=walletPayInvoiceID(reference);
+    if(!/^inv_[a-f0-9]{20}$/.test(id))throw new SignedPayInvoiceError("PAY_SIGNED_INVALID_INVOICE");
+    const value=await this.read(`/app/pay-product/v1/invoices/${id}`,signal);assertCurrent();
+    return verifySignedPayInvoice(value,id,policy,assertCurrent,now());
   }
   async settlement(invoice:WalletPayInvoice,account:string,transfer:NativeTransferOutboxEntry,assertCurrent:()=>void,signal?:AbortSignal):Promise<WalletPaySettlement> {
     assertCurrent();const value=await this.read(`/app/pay/invoices/${identifier(invoice.id)}/settlement`,signal);assertCurrent();

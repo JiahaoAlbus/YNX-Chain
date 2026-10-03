@@ -3,6 +3,7 @@
 // projection, not a trusted signed invoice. Never used for signing or payment.
 import { evmAddressFromYNX, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import {WalletPayError,walletPayInvoiceID} from "./wallet-pay-invoice-reference-id.mjs";
+import {verifySignedPayInvoice,SignedPayInvoiceError} from "./wallet-pay-signed-invoice.mjs";
 export {WalletPayError,walletPayInvoiceID};
 function fail(code) { throw new WalletPayError(code); }
 const object = (v) => !!v && typeof v === "object" && !Array.isArray(v);
@@ -117,6 +118,19 @@ export class WalletPayInvoiceClient {
         const value = await this.read(`/app/pay/invoices/${id}`, signal);
         assertCurrent();
         return parseWalletPayInvoice(value, id);
+    }
+    /** Original signed wire, separate from legacy projection. Protected issuer
+     * policy is mandatory; HTTP/QR keys cannot supply their own trust. */
+    async signedInvoice(reference, policy, assertCurrent, signal, now = Date.now) {
+        assertCurrent();
+        if (!policy || typeof policy.resolve !== "function")
+            throw new SignedPayInvoiceError("PAY_SIGNED_TRUST_POLICY_REQUIRED");
+        const id = walletPayInvoiceID(reference);
+        if (!/^inv_[a-f0-9]{20}$/.test(id))
+            throw new SignedPayInvoiceError("PAY_SIGNED_INVALID_INVOICE");
+        const value = await this.read(`/app/pay-product/v1/invoices/${id}`, signal);
+        assertCurrent();
+        return verifySignedPayInvoice(value, id, policy, assertCurrent, now());
     }
     async read(route, signal) {
         const controller = new AbortController();

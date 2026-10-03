@@ -7,6 +7,7 @@ import {execFileSync} from "node:child_process";
 import {resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {verifyWalletPayQuote} from "./walletPayQuote";
+import {WalletPayInvoiceClient} from "./walletPayInvoice";
 const now=Date.parse("2026-10-03T01:00:00Z"),seed=new Uint8Array(32).fill(11),publicKey=bytesToHex(ed25519.getPublicKey(seed));
 const configuration={schemaVersion:"ynx-pay-invoice-signers/v1",signers:[{keyId:"controlled-quote-key",publicKey,algorithm:"ed25519",merchantIds:["controlled-merchant"]}]};
 const policy=createPayInvoiceSignerPolicy(configuration);
@@ -64,4 +65,38 @@ test("Native and Desktop quote bindings agree on original signed input and every
   const script=`import {verifyWalletPayQuote} from ${JSON.stringify(moduleURL)};import {createPayInvoiceSignerPolicy} from '@ynx-chain/wallet-auth';import {readFileSync} from 'node:fs';const data=JSON.parse(readFileSync(0,'utf8')),policy=createPayInvoiceSignerPolicy(data.configuration);console.log(JSON.stringify(data.rows.map(row=>{try{return verifyWalletPayQuote(row.invoice,row.intent,policy,()=>{},data.now).quoteBound}catch{return false}})));`;
   const actual=JSON.parse(execFileSync(process.execPath,["--input-type=module","-e",script],{cwd:resolve("../wallet-desktop"),input:JSON.stringify({rows,configuration,now}),encoding:"utf8"}));
   assert.deepEqual(actual,rows.map(row=>row.valid));
+});
+test("signed invoice client reads the exact original product route and preserves all signed versions",async()=>{
+  for(const version of [1,2,3,4,5]){
+    const f=fixture(version);let reads=0;
+    const client=new WalletPayInvoiceClient("https://api.ynxweb4.com",async(url,options)=>{
+      reads++;assert.equal(url,`https://api.ynxweb4.com/app/pay-product/v1/invoices/${f.invoice.id}`);
+      assert.equal(options.method,"GET");assert.equal(options.redirect,"error");assert.equal(options.credentials,"omit");
+      return new Response(JSON.stringify({...f.invoice,status:"committed",settlement:{status:"committed"}}));
+    });
+    const verified=await client.signedInvoice(f.invoice.id,policy,()=>{},undefined,()=>now);
+    assert.equal(reads,1);assert.equal(verified.invoice.version,version);assert.equal(verified.signatureVerified,true);
+    assert.equal(verified.paymentAuthorized,false);assert.equal(verified.accountSessionVerified,false);
+    assert.equal("status" in verified.invoice,false);assert.equal("settlement" in verified.invoice,false);
+  }
+});
+test("missing protected policy and noncanonical signed ID fail before any HTTP read",async()=>{
+  let reads=0;const client=new WalletPayInvoiceClient("https://api.ynxweb4.com",async()=>{reads++;throw Error("must not fetch")});
+  await assert.rejects(client.signedInvoice(fixture().invoice.id,undefined as any,()=>{}),/TRUST_POLICY_REQUIRED/);
+  await assert.rejects(client.signedInvoice("legacy-invoice",policy,()=>{}),/INVALID_INVOICE/);
+  assert.equal(reads,0);
+});
+test("signed invoice fetch cannot publish after account context cancellation or accept a service-selected signer",async()=>{
+  const f=fixture();let current=true;
+  const client=new WalletPayInvoiceClient("https://api.ynxweb4.com",async()=>{current=false;return new Response(JSON.stringify(f.invoice))});
+  await assert.rejects(client.signedInvoice(f.invoice.id,policy,()=>{if(!current)throw Error("account changed")},undefined,()=>now),/account changed/);
+  const forged=new WalletPayInvoiceClient("https://api.ynxweb4.com",async()=>new Response(JSON.stringify({...f.invoice,signingPublicKey:"a".repeat(64)})));
+  await assert.rejects(forged.signedInvoice(f.invoice.id,policy,()=>{},undefined,()=>now));
+});
+test("Desktop original signed-invoice transport agrees on all five Native signed wires",()=>{
+  const moduleURL=pathToFileURL(resolve("../wallet-desktop/src/wallet-pay-invoice-reference.mjs")).href;
+  const rows=[1,2,3,4,5].map(version=>fixture(version).invoice);
+  const script=`import {WalletPayInvoiceClient} from ${JSON.stringify(moduleURL)};import {createPayInvoiceSignerPolicy} from '@ynx-chain/wallet-auth';import {readFileSync} from 'node:fs';const data=JSON.parse(readFileSync(0,'utf8')),policy=createPayInvoiceSignerPolicy(data.configuration);const results=[];for(const invoice of data.rows){const client=new WalletPayInvoiceClient('https://api.ynxweb4.com',async(url,options)=>{if(url!=='https://api.ynxweb4.com/app/pay-product/v1/invoices/'+invoice.id||options.method!=='GET'||options.credentials!=='omit'||options.redirect!=='error')throw Error('route mismatch');return new Response(JSON.stringify(invoice))});results.push(await client.signedInvoice(invoice.id,policy,()=>{},undefined,()=>data.now))}console.log(JSON.stringify(results));`;
+  const actual=JSON.parse(execFileSync(process.execPath,["--input-type=module","-e",script],{cwd:resolve("../wallet-desktop"),input:JSON.stringify({rows,configuration,now}),encoding:"utf8"}));
+  assert.deepEqual(actual,rows.map(invoice=>({invoice:verifyWalletPayQuote(invoice,{...fixture(invoice.version).intent},policy,()=>{},now).invoice,signatureVerified:true,checkedAt:new Date(now).toISOString(),quoteTimeCurrent:true,paymentAuthorized:false,accountSessionVerified:false,settlementVerified:false,truthfulStatus:"pinned-merchant-signature-only-not-payment-authorization"})));
 });
