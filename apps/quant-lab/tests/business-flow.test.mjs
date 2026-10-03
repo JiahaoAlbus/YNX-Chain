@@ -254,7 +254,25 @@ test('saved research schedules render source failures and disable unknown or ine
   for(const Runtime of [undefined,{enabled:false},{enabled:true,running:false,intervalSeconds:60,nextRunAt:'not-a-date',lastRunStatus:'scheduled'},{enabled:false,running:true,intervalSeconds:60}]){
     const strategy=savedResearchStrategy({Runtime}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/>Stopped</);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
   }
-  const strategy=savedResearchStrategy({ID:'saved"><img src=x>',Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'failed_market_data_unavailable',lastExperiment:''}}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();const rows=app.ids.get('strategy-rows').innerHTML;assert.match(rows,/failed_market_data_unavailable/);assert.doesNotMatch(rows,/<img src=x>/);assert.match(rows,/Stop schedule/);
+  const strategy=savedResearchStrategy({ID:'saved"><img src=x>',Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'failed_market_data_unavailable',lastExperiment:''}}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();const rows=app.ids.get('strategy-rows').innerHTML;assert.match(rows,/Market data unavailable/);assert.doesNotMatch(rows,/failed_market_data_unavailable|<img src=x>/);assert.match(rows,/Stop schedule/);
+});
+
+test('schedule source states remain distinct and localize on language change without inventing completion',async()=>{
+  const statuses=['scheduled','running','completed','stopped_by_user','cancelled_before_execution','failed_invalid_or_cancelled_configuration','failed_market_data_unavailable'];
+  for(const status of statuses){
+    const enabled=!['stopped_by_user','cancelled_before_execution'].includes(status);
+    const strategy=savedResearchStrategy({Runtime:{enabled,running:status==='running',intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:status}});
+    const app=harness({snapshot:{strategies:{saved:strategy}}});await settle();
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});
+      const expected=vm.runInContext(`scheduleStatusText({lastRunStatus:${JSON.stringify(status)}})`,app.context);
+      assert.ok(expected.length>0);assert.ok(app.ids.get('strategy-rows').innerHTML.includes(expected));assert.notEqual(expected,status);
+    }
+  }
+  for(const status of ['unknown_future','toString','<img src=x>']){
+    const strategy=savedResearchStrategy({Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:status}}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();
+    assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);await app.schedule(strategy,false);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+  }
 });
 
 test('schedule configuration coalesces through rerender and binds the exact saved assumptions receipt',async()=>{
