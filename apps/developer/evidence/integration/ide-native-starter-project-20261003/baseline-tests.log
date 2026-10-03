@@ -1,0 +1,52 @@
+✔ actual extension command opens only fixed trusted host locator; canceled context stays local (1.789083ms)
+✔ actual template command never overwrites existing file; creation uses atomic no-overwrite edit (0.750417ms)
+✔ actual diff command previews then rejects edit made during approval; no changes applied (0.418917ms)
+✔ actual extension previews a selected replacement and applies only after explicit unchanged-document approval (0.583084ms)
+✔ copy command uses real filesystem project containment before and after approval (4.343291ms)
+✔ copy approval rejects missing runtime, changed session and document mutation during final path check (0.9855ms)
+✖ starter creation validates real project root/subfolder and refuses external or swapped folders (2.714667ms)
+✖ starter approval is retired on runtime or displayed workspace-folder change (0.641834ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54.354167
+
+✖ failing tests:
+
+test at services/codeoss-service/test/tools-extension.test.mjs:64:1
+✖ starter creation validates real project root/subfolder and refuses external or swapped folders (2.714667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-extension.test.mjs:68:181)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/codeoss-service/test/tools-extension.test.mjs:71:1
+✖ starter approval is retired on runtime or displayed workspace-folder change (0.641834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/codeoss-service/test/tools-extension.test.mjs:72:122)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

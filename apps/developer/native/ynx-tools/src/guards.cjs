@@ -28,4 +28,10 @@ async function assertWorkspacePath(documentPath, workspacePath) {
   const root = await fs.realpath(workspacePath), file = await fs.realpath(documentPath);
   if (!file.startsWith(root + path.sep)) throw Error('The reviewed file is outside this project workspace.');
 }
-module.exports = { digest, capture, validateChanges, assertWorkspacePath };
+async function assertWorkspaceDirectory(directoryPath, workspacePath) {
+  const root = await fs.realpath(workspacePath), directory = await fs.realpath(directoryPath);
+  if ((directory !== root && !directory.startsWith(root + path.sep)) || !(await fs.stat(directory)).isDirectory())
+    throw Error('The selected folder is outside this project workspace.');
+  return { realWorkspace: root, realDirectory: directory };
+}
+module.exports = { digest, capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory };

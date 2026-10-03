@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const { capture, validateChanges, assertWorkspacePath } = require('./guards.cjs');
+const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
   const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Copy selected context', 'ynx.copyContext'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
@@ -30,9 +30,16 @@ function activate(context) {
   });
   register('ynx.createTemplate', async () => {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri; if (!root) throw Error('Open a project first.');
+    const sessionId = process.env.YNX_CORE_SESSION_ID, workspace = process.env.YNX_CORE_WORKSPACE, rootKey = root.toString();
+    if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace) throw Error('Create this starter from an active YNX project runtime.');
+    const reviewedFolder = await assertWorkspaceDirectory(root.fsPath, workspace);
     const target = vscode.Uri.joinPath(root, 'ynx-testnet-readonly.mjs');
     try { await vscode.workspace.fs.stat(target); throw Error('The starter already exists. No files were changed.'); } catch (error) { if (!(error instanceof vscode.FileSystemError) || error.code !== 'FileNotFound') throw error; }
-    if (await vscode.window.showInformationMessage('Create a new read-only YNX Testnet SDK starter? This does not install libraries, sign or deploy.', { modal: true }, 'Create starter') !== 'Create starter') return;
+    if (await vscode.window.showInformationMessage(`Create the read-only YNX Testnet SDK starter at ${target.fsPath}? This does not install libraries, sign or deploy.`, { modal: true }, 'Create starter') !== 'Create starter') return;
+    const currentFolder = await assertWorkspaceDirectory(root.fsPath, workspace);
+    if (currentFolder.realWorkspace !== reviewedFolder.realWorkspace || currentFolder.realDirectory !== reviewedFolder.realDirectory ||
+      process.env.YNX_CORE_SESSION_ID !== sessionId || process.env.YNX_CORE_WORKSPACE !== workspace || vscode.workspace.workspaceFolders?.[0]?.uri.toString() !== rootKey)
+      throw Error('The selected project folder or runtime changed. Review the starter destination again.');
     const edit = new vscode.WorkspaceEdit(); edit.createFile(target, { overwrite: false, ignoreIfExists: false });
     edit.insert(target, new vscode.Position(0, 0), require('./template.cjs'));
     if (!await vscode.workspace.applyEdit(edit)) throw Error('The starter could not be created. Existing files are preserved.');

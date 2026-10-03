@@ -1,0 +1,49 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "e5da4989423adeb9786dd793787005e85875756d",
+  "changes": {
+    "starterRequiresActiveProjectRuntime": true,
+    "starterRealDirectoryBoundBeforeAndAfterConfirmation": true,
+    "starterDestinationShownInDialog": true,
+    "starterRejectsChangedRealRootOrFolder": true,
+    "starterRejectsRuntimeAndWorkspaceFolderSwitch": true,
+    "atomicNoOverwriteCreationPreserved": true,
+    "toolsVersion": "0.2.2"
+  },
+  "verification": {
+    "serviceTests": {
+      "pass": 102,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-native-starter-project-20261003/service-tests.log"
+    },
+    "baseline": {
+      "pass": 6,
+      "fail": 2,
+      "log": "ide-native-starter-project-20261003/baseline-tests.log"
+    },
+    "scope": "Actual extension source in controlled VSCode VM; real filesystem directory/symlink changes; existing identity/model/SQLite tests",
+    "staticCheck": {
+      "exitCode": 0
+    },
+    "frontendBuild": {
+      "mode": "Reused exact unchanged 59260ad70 artifact",
+      "verifiedInputs": 71,
+      "artifactSHA256": "fea37e44cd433941b3441c813770c9435e6e2eba4663441ca6179f4129c0c310"
+    },
+    "networkPackageInstalls": 0
+  },
+  "limits": {
+    "formalPublication": false,
+    "fullNativeWorkbench": "NOT_RUN",
+    "configuredRealModel": false,
+    "installedUserAcceptance": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  }
+}
