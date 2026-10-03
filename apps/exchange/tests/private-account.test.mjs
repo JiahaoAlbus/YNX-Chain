@@ -136,7 +136,7 @@ test('private response and body cancellation settle callers; retry needs a fresh
       setTimer:(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id},clearTimer:id=>timers.delete(id),
       fetchImpl:async()=>{reads++;if(reads>1)return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}});
         if(stalled==='response')return wait;
-        return {ok:true,headers:new Headers({'content-type':'application/json'}),text:()=>wait};},
+        return {ok:true,headers:new Headers({'content-type':'application/json'}),body:{getReader:()=>({read:()=>wait.then(body=>({done:false,value:new TextEncoder().encode(body)})),cancel:async()=>{},releaseLock(){}})}};},
     }});
     const running=controller.start(origin+'/').then(value=>{completed=true;return value});
     await new Promise(setImmediate);

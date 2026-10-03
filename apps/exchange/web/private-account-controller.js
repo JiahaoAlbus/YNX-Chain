@@ -4,6 +4,25 @@ export const PRIVATE_READ_SCOPE='exchange:read';
 const ORIGIN='https://exchange.ynxweb4.com',MAX_BODY=1024*1024;
 const accountPattern=/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
 const failure=code=>Object.assign(new Error(code),{code});
+export async function readAccountResponse(response,signal){
+  const length=response.headers.get('content-length');
+  if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>MAX_BODY))||!response.body?.getReader){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw failure('INVALID_ACCOUNT_RESPONSE')}
+  const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='';
+  const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+  const abort=()=>cancel();signal.addEventListener('abort',abort,{once:true});
+  try{
+    while(true){
+      if(signal.aborted)throw failure('PRIVATE_CONTEXT_CHANGED');
+      const chunk=await reader.read();
+      if(signal.aborted)throw failure('PRIVATE_CONTEXT_CHANGED');
+      if(chunk.done)break;
+      if(!(chunk.value instanceof Uint8Array)||(bytes+=chunk.value.byteLength)>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
+      text+=decoder.decode(chunk.value,{stream:true});
+    }
+    text+=decoder.decode();return text;
+  }catch(error){cancel();if(['PRIVATE_CONTEXT_CHANGED','INVALID_ACCOUNT_RESPONSE'].includes(error?.code))throw error;throw failure('INVALID_ACCOUNT_RESPONSE')}
+  finally{signal.removeEventListener('abort',abort);try{reader.releaseLock()}catch{}}
+}
 export function validateAccountSnapshot(value,account){
   if(!accountPattern.test(account)||!value||typeof value!=='object'||Array.isArray(value))throw failure('INVALID_ACCOUNT_RESPONSE');
   for(const key of ['balances','ledger','depositIntents','orders','trades','fees','deposits','withdrawals','support','ai','audit']){
@@ -85,9 +104,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
         const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
         if(!active(token))return null;
         if(!response.ok)throw failure([401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE');
-        if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||Number(response.headers.get('content-length'))>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
-        const body=await response.text();if(body.length>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
-        return body;
+        return readAccountResponse(response,controller.signal);
       })(),aborted]);
       if(!active(token))return current;
       let value;try{value=JSON.parse(body)}catch{throw failure('INVALID_ACCOUNT_RESPONSE')}
