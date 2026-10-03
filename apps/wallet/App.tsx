@@ -226,7 +226,6 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const [payHistory,setPayHistory]=useState(false);
   const [nativeHistory,setNativeHistory]=useState(false);
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
-  const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
   const chainRefreshGeneration=useRef(0),chainMounted=useRef(false);
   const chainReadAbort=useRef<AbortController|null>(null);
@@ -245,7 +244,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     const sub=AppState.addEventListener("change",state=>{if(state!=="active"){chainRefreshGeneration.current++;chainReadAbort.current?.abort()}else void refreshChain()});
     return()=>{chainMounted.current=false;chainRefreshGeneration.current++;chainReadAbort.current?.abort();sub.remove()};
   },[refreshChain]);
-  const copy=async()=>{cancelClipboardClear.current?.();cancelClipboardClear.current=await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
+  const copy=async()=>{await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
   return <ScrollView contentContainerStyle={styles.dashboard}>
     <Text style={styles.eyebrow}>{translate(locale,"nativeAccount")}</Text>
@@ -396,13 +395,12 @@ function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];valu
 function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>void}){
   const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
   const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
-  const cancelExpiry=useRef<null|(()=>void)>(null);
   const c=(en:string,zh:string)=>locale.startsWith("zh")?zh:en;
   const uri=createPaymentURI(account.account);
   const dismiss=()=>{scope.cancel();close()};
   const copy=async(link:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
     lease=scope.begin({account:account.account});lease.assert();
-    cancelExpiry.current?.();cancelExpiry.current=await copyPublicValueWithExpiry(Clipboard,link?uri:account.account);lease.assert();
+    await copyPublicValueWithExpiry(Clipboard,link?uri:account.account);lease.assert();
     setFeedback(c(link?"Receiving link copied for 30 seconds.":"Address copied for 30 seconds.",link?"收款链接已复制，30 秒后自动清除。":"收款地址已复制，30 秒后自动清除。"));
   }catch{if(!lease||lease.isCurrent())setFeedback(c("Clipboard unavailable. Select and copy the address below.","暂时无法使用剪贴板，请选择并复制下方地址。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Receive YNXT","接收 YNXT")} close={dismiss}>

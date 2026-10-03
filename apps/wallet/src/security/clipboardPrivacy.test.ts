@@ -57,3 +57,46 @@ test("clipboard policy rejects whitespace and unbounded retention", async () => 
   await assert.rejects(copyPublicValueWithExpiry(clipboard, "ynx1", { ttlMs: 999 }), /between/);
   await assert.rejects(copyPublicValueWithExpiry(clipboard, "ynx1", { ttlMs: 120_001 }), /between/);
 });
+
+test("reopening Receive and copying the same public link starts a new complete expiry interval",async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),latest=controlledSchedule();
+  const oldCancel=await copyPublicValueWithExpiry(clipboard,"ynx:public-receiving-link",{schedule:first.schedule});
+  await copyPublicValueWithExpiry(clipboard,"ynx:public-receiving-link",{schedule:latest.schedule});
+  await first.run();assert.equal(clipboard.value,"ynx:public-receiving-link","an earlier modal must not clear the new copy");
+  oldCancel();await latest.run();assert.equal(clipboard.value,"");
+});
+
+test("an expiry already reading clipboard cannot erase a later successful Wallet copy",async()=>{
+  const clipboard=new MemoryClipboard(),first=controlledSchedule(),latest=controlledSchedule();
+  let resolve!:(value:string)=>void;const pending=new Promise<string>(done=>resolve=done),get=clipboard.getStringAsync.bind(clipboard);
+  await copyPublicValueWithExpiry(clipboard,"ynx:public-link",{schedule:first.schedule});
+  clipboard.getStringAsync=()=>pending;const expiry=first.run();
+  await copyPublicValueWithExpiry(clipboard,"ynx:public-link",{schedule:latest.schedule});
+  resolve("ynx:public-link");await expiry;assert.equal(clipboard.value,"ynx:public-link");
+  clipboard.getStringAsync=get;await latest.run();assert.equal(clipboard.value,"");
+});
+
+test("cancelling an expiry during its asynchronous read prevents its clearing write",async()=>{
+  const clipboard=new MemoryClipboard(),timer=controlledSchedule();let resolve!:(value:string)=>void;
+  const cancel=await copyPublicValueWithExpiry(clipboard,"ynx:public-link",{schedule:timer.schedule});
+  clipboard.getStringAsync=()=>new Promise<string>(done=>resolve=done);
+  const expiry=timer.run();cancel();resolve("ynx:public-link");await expiry;
+  assert.deepEqual(clipboard.writes,["ynx:public-link"]);
+});
+
+test("invalid or failed replacement does not discard the prior successful copy expiry",async()=>{
+  const clipboard=new MemoryClipboard(),timer=controlledSchedule(),set=clipboard.setStringAsync.bind(clipboard);
+  await copyPublicValueWithExpiry(clipboard,"ynx:public-link",{schedule:timer.schedule});
+  await assert.rejects(()=>copyPublicValueWithExpiry(clipboard," invalid"),/invalid/);
+  clipboard.setStringAsync=async()=>{throw new Error("permission denied")};
+  await assert.rejects(()=>copyPublicValueWithExpiry(clipboard,"ynx:replacement"),/permission denied/);
+  clipboard.setStringAsync=set;await timer.run();assert.equal(clipboard.value,"");
+});
+
+test("independent clipboard adapters keep independent expiry leases",async()=>{
+  const a=new MemoryClipboard(),b=new MemoryClipboard(),first=controlledSchedule(),second=controlledSchedule();
+  await copyPublicValueWithExpiry(a,"ynx:public-a",{schedule:first.schedule});
+  await copyPublicValueWithExpiry(b,"ynx:public-b",{schedule:second.schedule});
+  await first.run();assert.equal(a.value,"");assert.equal(b.value,"ynx:public-b");
+  await second.run();assert.equal(b.value,"");
+});

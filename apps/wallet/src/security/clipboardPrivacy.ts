@@ -9,6 +9,9 @@ export type ClipboardSchedule = (
 ) => Readonly<{ cancel(): void }>;
 
 const DEFAULT_TTL_MS = 30_000;
+// A successful new copy supersedes timers from every Wallet surface, including
+// a Receive modal that has since unmounted. Values here contain no account keys.
+const copies = new WeakMap<ClipboardAdapter, () => void>();
 
 export async function copyPublicValueWithExpiry(
   clipboard: ClipboardAdapter,
@@ -24,21 +27,34 @@ export async function copyPublicValueWithExpiry(
   }
   const schedule = options.schedule ?? defaultSchedule;
   await clipboard.setStringAsync(value);
+  // Only replace the previous lease after the write succeeds. Invalid input or
+  // a denied replacement must not disable the earlier value's expiry.
+  copies.get(clipboard)?.();
   let active = true;
-  const scheduled = schedule(async () => {
-    if (!active) return;
+  let scheduled: Readonly<{ cancel(): void }> | undefined;
+  const cancel = () => {
     active = false;
+    scheduled?.cancel();
+    if (copies.get(clipboard) === cancel) copies.delete(clipboard);
+  };
+  copies.set(clipboard, cancel);
+  scheduled = schedule(async () => {
+    if (!active || copies.get(clipboard) !== cancel) return;
     try {
-      if (await clipboard.getStringAsync() === value) await clipboard.setStringAsync("");
+      const unchanged = await clipboard.getStringAsync() === value;
+      // Cancel/new-copy may have happened while the OS clipboard read awaited.
+      if (!active || copies.get(clipboard) !== cancel) return;
+      active = false;
+      if (unchanged) await clipboard.setStringAsync("");
     } catch {
       // Clipboard access may disappear while the app backgrounds. Do not retry
       // indefinitely or surface OS clipboard contents in logs.
+    } finally {
+      active = false;
+      if (copies.get(clipboard) === cancel) copies.delete(clipboard);
     }
   }, ttlMs);
-  return () => {
-    active = false;
-    scheduled.cancel();
-  };
+  return cancel;
 }
 
 function defaultSchedule(task: () => void | Promise<void>, delayMs: number) {
