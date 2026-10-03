@@ -56,12 +56,13 @@ const activity: [View, React.ReactNode, string][] = [
 ];
 type EditorPreferences = {
   fontSize: number;
+  uiSize: "compact" | "standard" | "large";
   minimap: boolean;
   wordWrap: "off" | "on";
   autoSave: boolean;
   autoSaveDelay: number;
 };
-const defaultEditorPreferences: EditorPreferences = { fontSize: 13, minimap: true, wordWrap: "off", autoSave: true, autoSaveDelay: 700 };
+const defaultEditorPreferences: EditorPreferences = { fontSize: 13, uiSize: "standard", minimap: true, wordWrap: "off", autoSave: true, autoSaveDelay: 700 };
 const exactPackageSpec = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const exactPythonPackageSpec = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}==\d+\.\d+\.\d+(?:[A-Za-z0-9._+-]*)?$/;
 function loadEditorPreferences(): EditorPreferences {
@@ -69,6 +70,7 @@ function loadEditorPreferences(): EditorPreferences {
     const value = JSON.parse(localStorage.getItem("ynx-code-editor-preferences/v1") || "null");
     return {
       fontSize: Number.isInteger(value?.fontSize) ? Math.max(10, Math.min(24, value.fontSize)) : 13,
+      uiSize: value?.uiSize === "compact" || value?.uiSize === "large" ? value.uiSize : "standard",
       minimap: typeof value?.minimap === "boolean" ? value.minimap : true,
       wordWrap: value?.wordWrap === "on" ? "on" : "off",
       autoSave: typeof value?.autoSave === "boolean" ? value.autoSave : true,
@@ -218,6 +220,8 @@ export function Workbench() {
   }, [theme]);
   useEffect(() => {
     localStorage.setItem("ynx-code-editor-preferences/v1", JSON.stringify(editorPreferences));
+    document.documentElement.style.setProperty("--ynx-ui-font-factor", String(editorPreferences.uiSize === "compact" ? 0.9 : editorPreferences.uiSize === "large" ? 1.2 : 1));
+    return () => { document.documentElement.style.removeProperty("--ynx-ui-font-factor"); };
   }, [editorPreferences]);
   useEffect(() => {
     localStorage.setItem("ynx-extension-theme", extensionTheme);
@@ -1140,8 +1144,16 @@ export function Workbench() {
         <Dialog.Portal>
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="settings-dialog">
-            <Dialog.Title>Editor settings</Dialog.Title>
+            <Dialog.Title>Workbench settings</Dialog.Title>
             <Dialog.Description>These device-local preferences apply immediately and persist across restarts.</Dialog.Description>
+            <label>
+              <span>Application text size</span>
+              <select value={editorPreferences.uiSize} onChange={(event) => setEditorPreferences((current) => ({ ...current, uiSize: event.target.value === "compact" ? "compact" : event.target.value === "large" ? "large" : "standard" }))}>
+                <option value="compact">Compact</option>
+                <option value="standard">Standard</option>
+                <option value="large">Larger</option>
+              </select>
+            </label>
             <label>
               <span>Editor font size</span>
               <output>{editorPreferences.fontSize}px</output>
