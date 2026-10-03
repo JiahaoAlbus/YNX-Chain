@@ -242,6 +242,27 @@ test('actual activity tabs and all headers use 12 locales without mutating owned
   }finally{await browser.close()}
 });
 
+test('actual public disclosure localization preserves market visibility, inputs and all action boundaries',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    await page.locator('#price').fill('2.000001');await page.locator('#amount').fill('3.000001');
+    const keys=['testnet-disclosure','chart-no-fabrication','book-owned-source','ai-draft-boundary','market-stale-warning'];
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const key of keys){const element=page.locator(`[data-exchange-locale="${key}"]`);assert.equal(await element.textContent(),catalogs[locale][key]);if(locale!=='en')assert.notEqual(catalogs[locale][key],catalogs.en[key]);}
+      assert.equal(await page.locator('#market-stale').evaluate(el=>el.hidden),true,'translation cannot mark fresh data stale or manufacture a recovery');
+      assert.equal(await page.locator('#chart-svg').evaluate(el=>el.hasAttribute('hidden')),true);assert.equal(await page.locator('#chart-empty').isVisible(),true);
+      assert.equal(await page.locator('#price').inputValue(),'2.000001');assert.equal(await page.locator('#amount').inputValue(),'3.000001');
+      assert.equal(await page.locator('#market').isVisible(),true);
+    }
+    assert.equal(requests,0,'language preferences cannot request data, authorization or execution');
+  }finally{await browser.close()}
+});
+
 test('every supported locale has all connected/degraded/recovery messages without silent English fallback',()=>{
   assert.equal(locales.length,12);
   const keys=Object.keys(catalogs.en);

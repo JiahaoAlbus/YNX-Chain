@@ -18,7 +18,7 @@
   </header>
 
   <div class="language-controls"><label for="exchange-language" data-exchange-locale="language">Language</label><select id="exchange-language"><option value="en">English</option><option value="zh-Hans">简体中文</option><option value="zh-Hant">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select></div>
-  <div class="disclosure" role="note"><strong>TESTNET ONLY</strong> Not an exchange listing or production custody venue. No third-party price, liquidity, public volume, users or counterparties are represented.</div>
+  <div class="disclosure" role="note"><strong>TESTNET ONLY</strong> <span data-exchange-locale="testnet-disclosure">Not an exchange listing or production custody venue. No third-party price, liquidity, public volume, users or counterparties are represented.</span></div>
 
   <main id="main" tabindex="-1">
     <section id="private-account" class="panel private-account" aria-labelledby="private-title">
@@ -36,10 +36,10 @@
         <dl><div><dt>Last matched</dt><dd id="last-price">—</dd></div><div><dt>Your volume</dt><dd id="owned-volume">—</dd></div><div><dt>Venue source</dt><dd>Owned orders only</dd></div><div><dt>Network</dt><dd>ynx_6423-1</dd></div></dl>
       </div>
 
-      <div class="market-feed" role="status" aria-live="polite"><strong id="market-connection">Loading venue market data…</strong><button id="market-retry" class="text-button" type="button">Reconnect market data</button><p id="market-source">No verified market snapshot received.</p><p id="market-stale" hidden>Showing the last verified snapshot. Prices and depth may have changed.</p></div>
+      <div class="market-feed" role="status" aria-live="polite"><strong id="market-connection">Loading venue market data…</strong><button id="market-retry" class="text-button" type="button">Reconnect market data</button><p id="market-source">No verified market snapshot received.</p><p id="market-stale" data-exchange-locale="market-stale-warning" hidden>Showing the last verified snapshot. Prices and depth may have changed.</p></div>
       <div class="terminal-grid">
-        <section class="panel chart" aria-labelledby="chart-title"><header><h2 id="chart-title">Market activity</h2><span>Actual matched trades</span></header><div id="chart-empty" class="empty"><strong>No matched price yet</strong><p>The venue never invents candles or volume. The chart appears after real test-venue orders match.</p></div><svg id="chart-svg" viewBox="0 0 800 280" role="img" aria-label="Owned test venue trade price chart" hidden></svg></section>
-        <section class="panel book" aria-labelledby="book-title"><header><h2 id="book-title">Order book</h2><span>Price · Amount · Total</span></header><div class="book-head"><span>Price</span><span>YNXT</span><span>YUSD_TEST</span></div><div id="asks" class="rows asks"></div><div class="mid" id="spread">No public market depth</div><div id="bids" class="rows bids"></div><p class="source-note">Only persistent, currently open YNX venue orders. No external liquidity.</p></section>
+        <section class="panel chart" aria-labelledby="chart-title"><header><h2 id="chart-title">Market activity</h2><span>Actual matched trades</span></header><div id="chart-empty" class="empty"><strong>No matched price yet</strong><p data-exchange-locale="chart-no-fabrication">The venue never invents candles or volume. The chart appears after real test-venue orders match.</p></div><svg id="chart-svg" viewBox="0 0 800 280" role="img" aria-label="Owned test venue trade price chart" hidden></svg></section>
+        <section class="panel book" aria-labelledby="book-title"><header><h2 id="book-title">Order book</h2><span>Price · Amount · Total</span></header><div class="book-head"><span>Price</span><span>YNXT</span><span>YUSD_TEST</span></div><div id="asks" class="rows asks"></div><div class="mid" id="spread">No public market depth</div><div id="bids" class="rows bids"></div><p class="source-note" data-exchange-locale="book-owned-source">Only persistent, currently open YNX venue orders. No external liquidity.</p></section>
         <section class="panel order-entry" aria-labelledby="order-title">
           <header><h2 id="order-title">Limit order</h2><span>Guest preview · no submission</span></header>
           <div class="segmented" role="tablist" aria-label="Order side"><button id="buy-tab" role="tab" aria-selected="true">Buy</button><button id="sell-tab" role="tab" aria-selected="false">Sell</button></div>
@@ -49,7 +49,7 @@
             <dl class="review"><div><dt data-exchange-locale="Maker / taker fee">Maker / taker fee</dt><dd id="order-fees">Unavailable</dd></div><div><dt data-exchange-locale="Initial reservation">Initial reservation</dt><dd id="reservation">—</dd></div></dl>
             <p id="order-limits" class="source-note">Waiting for verified venue rules. Market/stop orders are not supported.</p><p id="order-error" class="source-note" role="status" aria-live="polite"></p>
             <button type="button" id="draft-order" class="secondary">Ask AI to draft fields</button><button class="primary wide" id="review-order">Preview order · no submission</button>
-            <p class="form-help">AI can draft values only. It cannot place, cancel, sign, or change risk controls.</p>
+            <p class="form-help" data-exchange-locale="ai-draft-boundary">AI can draft values only. It cannot place, cancel, sign, or change risk controls.</p>
           </form>
         </section>
       </div>
