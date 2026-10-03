@@ -441,11 +441,11 @@ struct MusicPlaylistEditor:View {
                 }
                 if failed {Text(l.t("playlist_save_failed")).foregroundStyle(.red)}
             }
-            .disabled(saving||!m.isCurrent(operation))
+            .disabled(saving || !m.isCurrent(operation))
             .navigationTitle(l.t("edit_playlist"))
             .toolbar {
                 ToolbarItem(placement:.cancellationAction){Button(l.t("cancel")){dismiss()}}
-                ToolbarItem(placement:.confirmationAction){Button(l.t("save")){save()}.disabled(saving||draft.name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty||!m.isCurrent(operation))}
+                ToolbarItem(placement:.confirmationAction){Button(l.t("save")){save()}.disabled(saving||draft.name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty || !m.isCurrent(operation))}
             }
         }.interactiveDismissDisabled(saving)
         .onChange(of:m.viewGeneration){_ in dismiss()}
@@ -456,7 +456,7 @@ struct MusicPlaylistEditor:View {
         Task {
             guard await m.perform(operation,{try await $0.savePlaylist(submitted)}) != nil else{saving=false;failed=true;return}
             guard let readback=await m.perform(operation,{try await $0.playlist(submitted.id)}),m.isCurrent(operation) else{saving=false;failed=true;return}
-            guard readback.name==submitted.name,(readback.description ?? "")== (submitted.description ?? ""),readback.trackIds==submitted.trackIds else{saving=false;failed=true;return}
+            guard readback.name==submitted.name,(readback.description ?? "") == (submitted.description ?? ""),readback.trackIds==submitted.trackIds else{saving=false;failed=true;return}
             await m.refresh(operation)
             guard m.isCurrent(operation) else{return}
             saving=false;dismiss()
