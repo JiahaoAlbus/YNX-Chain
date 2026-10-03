@@ -1,0 +1,16 @@
+Starting Metro Bundler
+
+| (node:23535) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 6333ms index.ts (2760 modules)
+
+› Assets (1):
+../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/assets/ynx-original-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-3818b9b67384fd007c93445dc1880b35.hbc (5.8MB)
+
+› Files (1):
+metadata.json (212B)
+
+Exported: /tmp/social-native-device-54c9de3d-android

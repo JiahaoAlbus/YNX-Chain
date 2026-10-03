@@ -1,0 +1,28 @@
+Starting Metro Bundler
+
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:23522) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 8876ms index.ts (2762 modules)
+
+› Assets (1):
+../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/assets/ynx-original-logo.png (104KB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-59b03e70b19adb36b924c173dd06dbe3.hbc (5.8MB)
+
+› Files (1):
+metadata.json (204B)
+
+Exported: /tmp/social-native-device-54c9de3d-ios

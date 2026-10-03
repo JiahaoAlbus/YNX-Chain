@@ -1,0 +1,3 @@
+src/nativeChatDeviceStore.test.ts(19,15): error TS7006: Parameter 'key' implicitly has an 'any' type.
+src/nativeChatDeviceStore.test.ts(20,15): error TS7006: Parameter 'key' implicitly has an 'any' type.
+src/nativeChatDeviceStore.test.ts(20,20): error TS7006: Parameter 'raw' implicitly has an 'any' type.

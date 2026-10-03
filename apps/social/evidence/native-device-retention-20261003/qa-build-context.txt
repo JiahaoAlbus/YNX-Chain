@@ -1,0 +1,2 @@
+QA node_modules symlink target: /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules
+QA package-lock.json: absent; dependency lock is original owner apps/social/package-lock.json
