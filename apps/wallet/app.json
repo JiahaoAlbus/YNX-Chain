@@ -8,6 +8,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/ynx-original-square-1024.png",
       "supportsTablet": true,
       "buildNumber": "22",
       "bundleIdentifier": "com.ynxweb4.wallet",
