@@ -19,6 +19,9 @@ func (s *Service) RevokeInvite(actor Session, id string) (Invite, error) {
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return Invite{}, err
+	}
 	record, exists := s.state.Invites[id]
 	if !exists || record.Owner != actor.Account {
 		return Invite{}, ErrNotFound

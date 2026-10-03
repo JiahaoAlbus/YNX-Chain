@@ -49,6 +49,9 @@ func (s *Service) createInvite(actor Session, ttl time.Duration, key string) (In
 	if s.stateWriteError != nil {
 		return Invite{}, "", s.stateWriteError
 	}
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return Invite{}, "", err
+	}
 	stateKey := idempotencyStateKey(actor.Account, key)
 	if key != "" {
 		if previous, exists := s.state.Idempotency[stateKey]; exists {
@@ -109,6 +112,9 @@ func (s *Service) ReadInvitations(actor Session, key string) (InvitationSnapshot
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return InvitationSnapshot{}, err
+	}
 	result := InvitationSnapshot{Invitations: make([]InvitationView, 0)}
 	now := s.cfg.Now().UTC()
 	for _, record := range s.state.Invites {

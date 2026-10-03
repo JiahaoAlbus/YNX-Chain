@@ -299,6 +299,9 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 		return unavailableResult0, unavailableResult1, writeUnavailable
 	}
 
+	if err := s.requireCurrentProductActor(actor, "social.profile"); err != nil {
+		return ProfileSettings{}, false, err
+	}
 	if !identifierPattern.MatchString(in.IdempotencyKey) || !contains([]string{"everyone", "contacts", "nobody"}, in.AllowRequestsFrom) || len(in.AvatarURL) > 2048 {
 		return ProfileSettings{}, false, ErrInvalid
 	}
@@ -332,6 +335,9 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.profile"); err != nil {
+		return ProfileSettings{}, false, err
+	}
 	stateKey := idempotencyStateKey(actor.Account, in.IdempotencyKey)
 	if previous, ok := s.state.Idempotency[stateKey]; ok {
 		if previous.Action != "settings" || previous.Digest != digest || previous.ObjectID != actor.Account {
@@ -433,6 +439,9 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return ContactRequest{}, false, err
+	}
 	if s.blockedLocked(actor.Account, target) {
 		return ContactRequest{}, false, ErrUnauthorized
 	}
@@ -497,6 +506,9 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return ContactRequest{}, err
+	}
 	record, ok := s.state.Requests[id]
 	if !ok {
 		return ContactRequest{}, ErrNotFound
@@ -588,6 +600,9 @@ func (s *Service) relationshipAction(actor Session, target, action string) error
 	}
 
 	defer s.mu.Unlock()
+	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
+		return err
+	}
 	now := s.cfg.Now().UTC()
 	before := cloneState(s.state)
 	key := directedKey(actor.Account, target)
