@@ -50,6 +50,17 @@ test('translated metric registry matches the actual current Go research definiti
     assert.ok(literal,key);assert.equal(JSON.parse(literal),text,key);
   }
 });
+test('reported new cost rounding policy is localized but old and unknown receipts never inherit it',async()=>{
+  const result=researchFixture('rounded-cost-receipt');result.attribution={costRoundingPolicy:'independent_cost_component_floor_micro_v1'};
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:result});await settle();await app.submit('backtest');
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('research-cost-rounding').textContent,vm.runInContext('t("runCostRoundingRule")',app.context));
+  }
+  for(const costRoundingPolicy of [undefined,null,'combined_cost_old','<script>']){
+    result.attribution={costRoundingPolicy};await app.submit('backtest');assert.equal(app.ids.get('research-cost-rounding').textContent,'—');
+  }
+});
 
 test('typed research HTTP rejection preserves prior results and localizes through all 12 languages without retry',async()=>{
   let rejected=false;

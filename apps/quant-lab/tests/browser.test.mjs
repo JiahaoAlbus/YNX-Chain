@@ -29,13 +29,14 @@ test('actual Chrome renders service-bound metric formulas in all locales and pre
       posts++;const submitted=route.request().postDataJSON();
       const metricDefinitions={returnBPS:'(ending equity - starting equity) / starting equity × 10,000',buyHoldBPS:'(ending close - starting close) / starting close × 10,000',maxDrawdownBPS:'maximum peak-to-trough equity loss / prior peak × 10,000',sharpeMilli:'mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero',volatilityBPS:'sample standard deviation of OOS period returns × 10,000; not annualized'};
       if(posts===2)metricDefinitions.maxDrawdownBPS='Unknown historical formula <script>not executed</script>';
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-formulas-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions:Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:54,SharpeMilli:1500,VolatilityBPS:7,Trades:1,PartialFills:0,DataGaps:0},metricDefinitions})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-formulas-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions:Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:54,SharpeMilli:1500,VolatilityBPS:7,Trades:1,PartialFills:0,DataGaps:0},metricDefinitions,attribution:posts===1?{costRoundingPolicy:'independent_cost_component_floor_micro_v1'}:undefined})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-drawdown').getByText('54 bps',{exact:true}).waitFor();
     await page.locator('#research-run-details summary').click();
     const english=await page.locator('#research-metric-definitions dd').allTextContents();
+    const englishRounding=await page.locator('#research-cost-rounding').textContent();assert.match(englishRounding,/separately rounded down/);
     assert.equal(english.length,5);assert.match(english[3],/sample standard deviation/);assert.match(english[4],/not annualized/);
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);
@@ -43,10 +44,12 @@ test('actual Chrome renders service-bound metric formulas in all locales and pre
       assert.equal(text.length,5);assert.ok(text.every(value=>value.length>20));
       if(language==='en')assert.deepEqual(text,english);else for(let i=0;i<5;i++)assert.notEqual(text[i],english[i],language);
       assert.equal(await page.locator('#result-sharpe').textContent(),'1.500');assert.equal(posts,1);
+      const rounding=await page.locator('#research-cost-rounding').textContent();assert.ok(rounding.length>30);if(language!=='en')assert.notEqual(rounding,englishRounding);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     }
     await page.locator('#research-submit').click();await page.locator('#research-metric-definitions dd').nth(2).getByText('Unknown historical formula <script>not executed</script>',{exact:true}).waitFor();
     assert.equal(await page.locator('#research-metric-definitions script').count(),0);assert.equal(context.pages().length,1);assert.equal(posts,2);
+    assert.equal(await page.locator('#research-cost-rounding').textContent(),'—');
     await page.screenshot({path:path.join(evidence,'research-localized-service-formulas.png'),fullPage:true});
   }finally{await context.close()}
 });

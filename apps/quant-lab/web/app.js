@@ -311,6 +311,24 @@ function researchMetricDefinition(result, key) {
   if (typeof text !== 'string' || !text.trim()) return '—';
   return text === reportedMetricDefinitions[key] ? t('formula' + key[0].toUpperCase() + key.slice(1)) : text;
 }
+const researchCostRoundingCopy = {
+  en:["Cost rounding","For each fill, fee and slippage are separately rounded down to whole quote-asset micro-units, then added. Cash and cost attribution use that same total."],
+  "zh-CN":["成本取整","每次成交的手续费和滑点分别向下取整为计价资产的整数微单位，再相加。现金扣款与成本归因使用同一总额。"],
+  "zh-TW":["成本取整","每次成交的手續費與滑價分別向下取整為計價資產的整數微單位，再相加。現金扣款與成本歸因使用同一總額。"],
+  ja:["費用の丸め","約定ごとに手数料とスリッページを建値資産の整数マイクロ単位へ個別に切り捨て、合算します。現金と費用内訳は同じ合計を使います。"],
+  ko:["비용 반올림 규칙","체결마다 수수료와 슬리피지를 호가 자산의 정수 마이크로 단위로 각각 내림한 뒤 합산합니다. 현금 차감과 비용 귀속은 같은 합계를 사용합니다."],
+  es:["Redondeo de costes","En cada ejecución, comisión y deslizamiento se redondean por separado hacia abajo a microunidades enteras del activo cotizado y se suman. Efectivo y desglose usan el mismo total."],
+  fr:["Arrondi des coûts","À chaque exécution, frais et glissement sont arrondis séparément vers le bas en microunités entières de l'actif de cotation, puis additionnés. Trésorerie et attribution utilisent le même total."],
+  de:["Kostenrundung","Je Ausführung werden Gebühren und Slippage getrennt auf ganze Mikroeinheiten des Kurswährungswerts abgerundet und dann addiert. Barmittel und Kostenaufteilung verwenden dieselbe Summe."],
+  pt:["Arredondamento dos custos","Em cada execução, taxas e slippage são arredondados separadamente para baixo em microunidades inteiras do ativo de cotação e somados. Caixa e atribuição usam o mesmo total."],
+  ru:["Округление издержек","Для каждого исполнения комиссия и проскальзывание отдельно округляются вниз до целых микроединиц актива котировки, затем складываются. Денежный баланс и разбивка затрат используют одну сумму."],
+  ar:["تقريب التكاليف","لكل تنفيذ، تُقرّب الرسوم والانزلاق كل على حدة إلى الأسفل بوحدات ميكرو صحيحة لأصل التسعير ثم تُجمع. يستخدم النقد وتوزيع التكاليف المجموع نفسه."],
+  id:["Pembulatan biaya","Untuk tiap eksekusi, biaya dan slippage dibulatkan ke bawah secara terpisah ke satuan mikro bulat aset kuotasi, lalu dijumlahkan. Kas dan atribusi biaya memakai total yang sama."],
+};
+for (const [language,[runCostRounding,runCostRoundingRule]] of Object.entries(researchCostRoundingCopy)) Object.assign(businessCopy[language],{runCostRounding,runCostRoundingRule});
+function researchCostRoundingText(result) {
+  return result?.attribution?.costRoundingPolicy === 'independent_cost_component_floor_micro_v1' ? t('runCostRoundingRule') : '—';
+}
 const runPresentationCopy = {
   en:["Latest research result","Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns."],
   "zh-CN":["最新研究结果","蓝色：测得的策略权益；灰色：买入持有基准。成本按本次模型计算，收益并无承诺。"],
@@ -693,6 +711,7 @@ $("#strategy-rows").addEventListener("click", async event => {
 });
 function renderRunDetails() {
   const result = latestResearchResult, strategy = result?.strategy;
+  $("#research-cost-rounding").textContent = researchCostRoundingText(result);
   $("#research-source").textContent = typeof strategy?.Source === "string" && strategy.Source.trim() ? strategy.Source : "—";
   for (const [id, key] of [["data", "DataHash"], ["strategy", "StrategyHash"]]) $("#research-" + id + "-hash").textContent = /^[0-9a-f]{64}$/i.test(strategy?.[key] || "") ? strategy[key] : "—";
   for (const [id, key] of [["fee", "FeeBPS"], ["slippage", "SlippageBPS"], ["latency", "LatencyBars"], ["participation", "ParticipationBPS"], ["training", "TrainEnd"], ["windows", "WalkForwardWindows"], ["seed", "Seed"]]) $("#research-" + id).textContent = Number.isSafeInteger(result?.assumptions?.[key]) ? String(result.assumptions[key]) : "—";

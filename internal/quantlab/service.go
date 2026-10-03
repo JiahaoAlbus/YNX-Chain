@@ -183,6 +183,7 @@ type EquityPoint struct {
 }
 type PnLAttribution struct {
 	Currency                 string   `json:"currency"`
+	CostRoundingPolicy       string   `json:"costRoundingPolicy,omitempty"`
 	Alpha                    int64    `json:"alpha"`
 	Beta                     int64    `json:"beta"`
 	CarryFunding             int64    `json:"carryFunding"`
@@ -1041,9 +1042,12 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 		}
 		cost := numbers.mulDiv(fill, price, 1_000_000)
 		magnitude := numbers.absolute(cost)
-		friction := numbers.mulDiv(magnitude, numbers.sum(a.FeeBPS, a.SlippageBPS), 10000)
 		fee := numbers.mulDiv(magnitude, a.FeeBPS, 10000)
 		slippage := numbers.mulDiv(magnitude, a.SlippageBPS, 10000)
+		// Apply the same independently rounded components to cash and its
+		// attribution. Rounding their combined rate would debit hidden units
+		// that later masquerade as alpha or unrealized loss on a closed trade.
+		friction := numbers.sum(fee, slippage)
 		tradingFees = numbers.sum(tradingFees, fee)
 		slippageCosts = numbers.sum(slippageCosts, slippage)
 		priorPosition := pos
@@ -1095,6 +1099,7 @@ func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptio
 	if numbers.invalid {
 		return Metrics{}, PnLAttribution{}, nil, researchInvalid("numeric_range")
 	}
+	attribution.CostRoundingPolicy = "independent_cost_component_floor_micro_v1"
 	return metrics, attribution, equityCurve, nil
 }
 
