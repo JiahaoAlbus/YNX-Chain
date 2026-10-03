@@ -505,6 +505,10 @@ const researchCatalogs = {
 for (const [language, values] of Object.entries(researchCatalogs)) {
   Object.assign(Q[language], Object.fromEntries(researchLabels.map((key, index) => [key, values[index]])));
 }
+const displayedSharpeLabels = {
+  en:"Sharpe ratio", "zh-CN":"Sharpe 比率", "zh-TW":"Sharpe 比率", ja:"シャープレシオ", ko:"샤프 비율", es:"Ratio de Sharpe", fr:"Ratio de Sharpe", de:"Sharpe-Verhältnis", pt:"Índice de Sharpe", ru:"Коэффициент Шарпа", ar:"نسبة شارب", id:"Rasio Sharpe",
+};
+for (const [language, researchSharpe] of Object.entries(displayedSharpeLabels)) Q[language].researchSharpe = researchSharpe;
 const researchBoundaries = {
   en: "Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.",
   "zh-CN": "公开研究无状态，使用可追溯行情历史。保存策略、定时任务和模拟资金需要本地授权工作区；Wallet 私有登录不授予该权限。未启用真实资金执行。",

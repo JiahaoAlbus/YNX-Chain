@@ -8,7 +8,7 @@ test('actual Chrome translates research fields and experiment columns in every l
     const page=await context.newPage();let writes=0;page.on('request',request=>{if(request.method()==='POST')writes++});
     await page.goto(base,{waitUntil:'networkidle'});
     await page.locator('#strategy').fill('Preserved research draft');await page.locator('#fee').fill('34');
-    const keys=['researchBoundary','researchName','fastWindow','slowWindow','created','tradeCount','partialFills','sensitivity','dataGaps','netPnl','realized','unrealized','tradingFee'];
+    const keys=['researchBoundary','researchName','fastWindow','slowWindow','created','tradeCount','partialFills','sensitivity','dataGaps','netPnl','realized','unrealized','tradingFee','researchSharpe'];
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);
       const result=await page.evaluate(keys=>({lang:document.documentElement.lang,dir:document.documentElement.dir,labels:keys.map(key=>({key,expected:window.QuantI18n.catalogs[document.documentElement.lang][key],actual:[...document.querySelectorAll(`[data-i18n="${key}"]`)].map(node=>node.textContent)}))}),keys);
@@ -34,6 +34,8 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-return').getByText('120 bps',{exact:true}).waitFor();assert.equal(posts,1);
+    assert.equal(await page.locator('#result-sharpe').textContent(),'1.500');
+    assert.equal(await page.locator('#experiments th').nth(5).textContent(),'Sharpe ratio');
     await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'Research result is unconfirmed'}).waitFor();
     assert.equal(posts,2);assert.equal(await page.locator('#result-return').textContent(),'120 bps');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');
     await page.waitForTimeout(150);assert.equal(posts,2);
@@ -291,6 +293,10 @@ test('early public research retains temporary provenance in the real page throug
     await page.getByRole('button',{name:'Run out-of-sample backtest',exact:true}).click();await startedResearch;
     releaseSnapshot();await page.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);
     releaseResearch();await page.locator('#research-result-status').getByText('Temporary result on this page only — not saved or audited. Reloading the page discards it.',{exact:true}).waitFor();
+    assert.equal(await page.locator('#result-sharpe').textContent(),'1.500');
+    assert.equal(await page.locator('#experiments th').nth(5).textContent(),'Sharpe ratio');
+    assert.equal(await page.locator('#experiment-rows tr td').nth(5).textContent(),'1.500');
+    assert.match(await page.locator('#research-run-details').textContent(),/1,000/,'stored-integer formula remains explicit and separate from displayed ratio');
     assert.equal(await page.locator('#result-return').textContent(),'120 bps');
     assert.equal(await page.locator('#equity-figure').isVisible(),true);
     assert.match(await page.locator('#equity-chart .equity-line').getAttribute('points'),/^12\.00,[\d.]+ 23\.60,[\d.]+ 708\.00,[\d.]+$/);
