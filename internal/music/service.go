@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -777,7 +778,8 @@ func (s *Service) LinkCentralSettlement(actor, id, centralID, reviewURI string) 
 	if err != nil {
 		return SettlementIntent{}, err
 	}
-	if strings.TrimSpace(centralID) == "" || !strings.HasPrefix(reviewURI, "ynxpay://settlement/review") {
+	reviewURL, parseErr := url.Parse(reviewURI)
+	if strings.TrimSpace(centralID) == "" || parseErr != nil || reviewURL.Scheme != "ynxpay" || reviewURL.Host != "settlement" || reviewURL.Path != "/review" || reviewURL.RawPath != "" || reviewURL.User != nil || reviewURL.Fragment != "" || reviewURL.Opaque != "" {
 		return SettlementIntent{}, ErrInvalid
 	}
 	var out SettlementIntent

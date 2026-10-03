@@ -1,3 +1,4 @@
+import {createMusicBusiness} from './business.js';
 import {connectMusicWallet,WALLET_INSTALLATION_OPTIONS} from './wallet-connection.js';
 
 const $=selector=>document.querySelector(selector);
@@ -9,6 +10,7 @@ let wallet=null;
 function tell(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
 function walletMessage(message,error=false){const target=$('#walletStatus');target.textContent=message;target.classList.toggle('error',error)}
 async function connectWallet(choice){
+  business.dispose();
   const buttons=$$('#walletDialog button[data-wallet]');
   buttons.forEach(button=>button.disabled=true);
   walletMessage(`Discovering ${choice==='ynx'?'YNX Wallet':'MetaMask'}…`);
@@ -24,29 +26,21 @@ async function connectWallet(choice){
     walletMessage(missing?`${choice==='ynx'?'YNX Wallet':'MetaMask'} was not found. Choose the official install link below, then reconnect.`:`Connection was not completed: ${error?.message||'Wallet request failed'}. No Music account or private session was created.`,true);
   }finally{buttons.forEach(button=>button.disabled=false)}
 }
-function showView(view){
-  $$('nav a').forEach(link=>link.classList.toggle('active',link.dataset.view===view));
-  $('#libraryPanel').classList.toggle('hidden',view!=='library');
-  $('#creatorPanel').classList.toggle('hidden',view!=='creator');
-  $('.hero').classList.toggle('hidden',view!=='home');
-  $('#trackGrid').classList.add('hidden');
-  $('#empty').classList.toggle('hidden',view==='library'||view==='creator');
-  if(view==='search'){$('#searchInput').focus();tell('Search becomes available after canonical sign-in in an installed app.')}
-}
+function showView(view){business.showView(view)}
 
 $$('[data-view]').forEach(control=>control.addEventListener('click',event=>{event.preventDefault();showView(control.dataset.view)}));
-$('#searchInput').addEventListener('input',()=>tell('No public commercial catalog is bundled. Sign in on an installed app to search owned or licensed releases.'));
-$('#playLibrary').onclick=()=>tell('Playback needs an installed app, a live canonical Wallet session, and an authorized track.',true);
-$('#playPause').onclick=()=>tell('Nothing is playing. This public surface never invents catalog activity.',true);
-$('#previous').onclick=$('#next').onclick=()=>tell('The queue is empty.');
 $('#seek').oninput=event=>{if(Number.isFinite(audio.duration))audio.currentTime=audio.duration*Number(event.target.value)/100};
 $('#volume').oninput=event=>audio.volume=Number(event.target.value);
-for(const form of $$('form'))form.addEventListener('submit',event=>{event.preventDefault();tell('Creator and settlement changes require the installed app and a canonical Wallet session.',true)});
-for(const button of $$('#libraryPanel button, #creatorPanel button, #trackDialog button:not(.close)'))button.onclick=()=>tell('This action is available after canonical Wallet sign-in in the installed app.',true);
 $('#trackDialog .close').onclick=()=>$('#trackDialog').close();
 $('#authButton').onclick=()=>$('#walletDialog').showModal();
 $('#walletDialog .close').onclick=()=>$('#walletDialog').close();
 $$('#walletDialog button[data-wallet]').forEach(button=>button.onclick=()=>connectWallet(button.dataset.wallet));
 $('#ynxWalletDownload').href=WALLET_INSTALLATION_OPTIONS.ynx;
 $('#metaMaskDownload').href=WALLET_INSTALLATION_OPTIONS.metamask;
-fetch('health').then(async response=>{const health=await response.json();if(!response.ok)throw new Error('service integrity check failed');const release=health.build?.release||'local';tell(`Service healthy · ${release} · central registry merge pending. No licensed public catalog or production streaming is claimed.`)}).catch(error=>tell(`Service unavailable · ${error.message}`,true));
+const business=createMusicBusiness({document,audio,tell});
+// Integration seam for the release owner's frozen canonical adapter. There is
+// deliberately no invocation from StandardWalletConnection or browser storage.
+export async function activateMusicBusiness(request){return business.activate(request)}
+export function invalidateMusicBusiness(){business.dispose()}
+
+fetch('health').then(async response=>{const health=await response.json();if(!response.ok)throw new Error('service integrity check failed');const release=health.build?.release||'local';if(business.isActive())return;tell(`Service healthy · ${release} · central registry merge pending. No licensed public catalog or production streaming is claimed.`)}).catch(error=>tell(`Service unavailable · ${error.message}`,true));
