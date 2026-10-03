@@ -19,6 +19,8 @@ test('web navigation is not an authorization grant and is included in the produc
   const build = readFileSync(new URL('../web/build.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(script, /eth_requestAccounts|personal_sign|sendTransaction|\.hidden\s*=\s*false|removeAttribute\(['"]hidden/);
   assert.match(css, /\[hidden\]\{display:none!important;\}/);
+  assert.match(script, /viewport\.append\(chat\)/);
+  assert.match(css, /social-page=settings\] #private-auth-panel\{display:block/);
   assert.match(build, /'product-shell\.css','product-shell\.js'/);
   assert.match(build, /SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH/);
 });

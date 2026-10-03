@@ -5,6 +5,11 @@ const routes = new Map([
   ['#people-panel', 'contacts'], ['#profile-form', 'settings'],
 ]);
 const nav = document.querySelector('.topbar nav');
+// The inherited page placed the mature chat after main. Move that same root,
+// not its permission-controlled children, into the product viewport.
+const viewport = document.querySelector('main');
+const chat = document.querySelector('#matrix-social-workspace');
+if (viewport && chat && chat.parentElement !== viewport) viewport.append(chat);
 const titles = { chats: 'Chats', contacts: 'Contacts', moments: 'Moments', settings: 'Settings' };
 function select(route) {
   document.body.dataset.socialPage = route;

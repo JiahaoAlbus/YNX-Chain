@@ -9,6 +9,7 @@ body[data-social-page] .topbar nav a[aria-current=page]{background:#eaf0ff;color
 body[data-social-page] .hero,body[data-social-page] #experience,body[data-social-page] #privacy,body[data-social-page] #downloads{display:none;}
 body[data-social-page] .section{padding:24px;max-width:none;}
 body[data-social-page] #private-auth-panel{display:none;}
+body[data-social-page=settings] #private-auth-panel{display:block;background:#fff;}
 body[data-social-page] #social-workspace{display:none;background:#fff;}
 body[data-social-page=contacts] #social-workspace,body[data-social-page=settings] #social-workspace{display:block;min-height:100%;}
 body[data-social-page=contacts] #profile-form,body[data-social-page=contacts] #profile-share-panel,body[data-social-page=contacts] #workspace-content > section[aria-label="Discovery privacy"],body[data-social-page=contacts] .social-chat-layout{display:none;}
