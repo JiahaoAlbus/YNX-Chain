@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "kind": "OWNED_FINANCIAL_ORIGINAL_BRAND",
+  "predecessor": "d1e5ecef397b22bfd914d53d4f7544f50e1af2ba",
+  "sourceIdentity": "Immutable commit containing this inventory",
+  "authority": {
+    "originalResource": "website-wallet-release-20261001/public/ynx-logo.png",
+    "width": 798,
+    "height": 420,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "blob": "9857f146c2c53077e208dc063715b5d236e24346"
+  },
+  "inventory": [
+    {
+      "path": "apps/finance/web/index.html",
+      "bytes": 37123,
+      "sha256": "14f811938b2b75652807f80156cdca0dd506b2156f53cfbdb6fd6ae199b1fe90",
+      "blob": "b4cb753cb13eb2b309aaa83d7ba8434d44e1845e"
+    },
+    {
+      "path": "apps/finance/web/styles.css",
+      "bytes": 28208,
+      "sha256": "e29c664e46f6ca07cba93a0534a44aa7c94bd87969aeef4f4354d3b5b810797c",
+      "blob": "7ebf92d71dabef2b221e01d6c1f5a33f4af11ea0"
+    },
+    {
+      "path": "apps/finance/web/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/exchange/web/index.html",
+      "bytes": 18794,
+      "sha256": "3bf48006832f98a82aa9abaae76d45871f37d6ac56a250fbe73654116a738d7f",
+      "blob": "8b4a5330e92132c680b291b73ee8d669166366a7"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "bytes": 10540,
+      "sha256": "d7903ffb758f1ee8fe7115c0b596289a94adfe484038e75f07e72ed276039259",
+      "blob": "6d555be8b9a5e18e163030bad22e3230eff269d5"
+    },
+    {
+      "path": "apps/exchange/web/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/quant-lab/web/app.js",
+      "bytes": 90327,
+      "sha256": "6b6ded9a90a78c3805e1a590849524830f854457ec016384d2a60ba13bb2b5a3",
+      "blob": "1165bb13829aa1a9c5f21997ccbad8187e7c7dad"
+    },
+    {
+      "path": "apps/quant-lab/web/index.html",
+      "bytes": 26677,
+      "sha256": "a5d5c13c977a6add516f096e6bc27ed243e86bf7ee63528e0eb7aa056086d191",
+      "blob": "9d5f82601c38634da61ad490d37cd4d65f6d3099"
+    },
+    {
+      "path": "apps/quant-lab/web/styles.css",
+      "bytes": 10752,
+      "sha256": "c8dbaa4004deda041e6be4fe4b92ca23e4f4a11e5d7c02ec2178c92d17007158",
+      "blob": "6f1e0fcc1b157de3add3f66388dd9a073fae9ea6"
+    },
+    {
+      "path": "apps/quant-lab/web/ynx-brand-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "blob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/quant-lab/tests/financial-brand-browser.test.mjs",
+      "bytes": 4213,
+      "sha256": "e803195d72fce4ec2a3f552410c933ceb3d4a7826c681bcd77d5262e307b717f",
+      "blob": "3b0f891d49c4eb4f9f6d109fee05149f3bed6371"
+    },
+    {
+      "path": "apps/exchange/tests/browser.test.mjs",
+      "bytes": 4603,
+      "sha256": "02b1ff41bd9f65224429ba369d75603c74e79aa7bb4cd979c61011710b5527e1",
+      "blob": "86efb8cef062d4bf4171f273f0107ecc9f0ea307"
+    },
+    {
+      "path": "apps/finance/tests/finance-12-locales.test.mjs",
+      "bytes": 8237,
+      "sha256": "0042aa6296be583c6b07abb9ef9cb2b658c8579a5b9388590d826f508d15d2a7",
+      "blob": "d7b82ea0d9c67c8533e8e8711774017444d70537"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/exchange-1440-business.png",
+      "bytes": 119815,
+      "sha256": "1db81ddf2fbd5966cb489e8c110ae0395f17d8159e943ea584d18a47863201c7",
+      "blob": "32f56571a271fe1864c8d586335ef7ed78f463e8"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/exchange-1440-guest.png",
+      "bytes": 134302,
+      "sha256": "5df073711c4016c8461c2561475b1fdd4ebf6e36ffec072e6829d6186f91fdb6",
+      "blob": "7d20a465f5a4d743e38bed12748ab5f47ccf323d"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/exchange-390-business.png",
+      "bytes": 51707,
+      "sha256": "7dad82473eb19295ed7b09cb1a10d2d2dc7516435b8435896ea379108749a67a",
+      "blob": "39495ce423abb7451cc6cf17c8b3d895c43099c7"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/exchange-390-guest.png",
+      "bytes": 79615,
+      "sha256": "071c77c7b3fa55d2a0b3da2e78faa8fe79c2b33ea60fa773f7c54205e5a269d0",
+      "blob": "ba096d50cef9a23987cbca016cd5bb75e04e3a1f"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/finance-1440-business.png",
+      "bytes": 129692,
+      "sha256": "0e0ca0b5c0a28cedeb08c463ed94b5e0b3b8102677388258af08d569cce60ba3",
+      "blob": "f7bd254292af0092ec8930f15cad7a047b830354"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/finance-1440-guest.png",
+      "bytes": 174223,
+      "sha256": "bd08aa6d1ee04b98fd9c10d100864ee3665c8f4abf3812994f888131b123d7f7",
+      "blob": "0e07d77872c58fe1f90d01a7bd9b915da8159184"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/finance-390-business.png",
+      "bytes": 54086,
+      "sha256": "59fab1a93fcbf3561dd22e867bc5db339004a0203077bed72cc34bc37b84ded7",
+      "blob": "e1df6504841ead5317a5c3f9a363c02ab0cedffd"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/finance-390-guest.png",
+      "bytes": 60661,
+      "sha256": "3cb5a4c99900a9559552cf9c3a251f1cefc7a10464058befb99d3d5062b52dec",
+      "blob": "f22b87dcda8e73936a23bd9e9a5f2075940dc9ef"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/quant-lab-1440-business.png",
+      "bytes": 132795,
+      "sha256": "b5ea283ffbf9809aa2fcae7f5547f896f54f4baadbe64f8bdabcbc24fbc97809",
+      "blob": "99d8c00844855a6527b4bce565560fc6a6e09c7b"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/quant-lab-1440-guest.png",
+      "bytes": 106858,
+      "sha256": "dabd2ebad51d521fb676d7fb1b3c6140ce678854d18c61e65750ef7d62e9ba02",
+      "blob": "7a55734872bda1fa575a5bde1c86bdeab540b5aa"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/quant-lab-390-business.png",
+      "bytes": 74165,
+      "sha256": "adcb483ef7459c4de4ccee287390580a9d39d8fa57f0d0ae3b63865a5797a622",
+      "blob": "c99b9df85b120a42734ad7764d2aa234556711ec"
+    },
+    {
+      "path": "apps/quant-lab/evidence/financial-brand-20261003/quant-lab-390-guest.png",
+      "bytes": 65722,
+      "sha256": "0a4ef6b9b07c1b9380e61f0f291bbf4d716ce620c265ff7fb16a33f021a2411b",
+      "blob": "696e4f9014544c19e572a9fd41e2a45340fdcf62"
+    }
+  ],
+  "tests": {
+    "command": "node --test apps/quant-lab/tests/financial-brand-browser.test.mjs apps/quant-lab/tests/business-flow.test.mjs apps/exchange/tests/browser.test.mjs apps/finance/tests/finance-12-locales.test.mjs",
+    "pass": 35,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 3497.165875
+  },
+  "bounds": {
+    "guestAndUnauthenticatedBusinessViewOnly": true,
+    "brandFixturesServeExactOwnedBytesWithUnavailableAPIs": true,
+    "original798x420ContainNoShrink": true,
+    "providerBrandsAndAccountAvatarsUnchanged": true,
+    "noAuthoritySDKAuthHostEngineChanges": true,
+    "staleTestAssertionsCorrectedWithoutDroppingLanguageOrFallbackGates": true
+  },
+  "integration": {
+    "releaseOwner": "wallet_release_owner A",
+    "required": "Rebuild coherent asset/cache/package graph from containing commit. Include Exchange ynx-logo.png and Quant ynx-brand-logo.png in Web/native served inventory. Do not treat old content-hash query strings as current publication.",
+    "platform": "Owned Web and embedded native Web UI source only. Actual installed/native/published app gates remain unverified."
+  },
+  "truth": {
+    "localChromeBrandVerified": true,
+    "sourceBoundPublic": false,
+    "installed": false,
+    "realSignedIn": false,
+    "realProviderApproval": false,
+    "realProductSession": false,
+    "computerControl": false,
+    "userAcceptance": false
+  },
+  "rollback": "Normal reviewed revert with coherent A rebuild. No deployment in this batch."
+}

@@ -154,4 +154,6 @@ body.finance-route-broker #wallet-connect,body.finance-route-broker #broker-nav{
 #wallet-picker #wallet-picker-back,#wallet-picker #wallet-picker-close{width:100%;margin-block:8px;background:#fff;border:1px solid #dbe3f2;color:#002FA7}
 #wallet-picker #wallet-picker-details{text-align:start;font-size:13px;color:#53617a;margin-block:16px 4px}
 #wallet-picker #wallet-picker-diagnostic{font-size:12px}
+.mobile-product-brand{display:none}.mobile-product-brand img,.brand .mark{flex-shrink:0;object-fit:contain;object-position:center}.mobile-product-brand img{width:58px;height:32px}
+@media(max-width:720px){.mobile-product-brand{display:flex;align-items:center;gap:12px;padding-top:18px;color:var(--ink);text-decoration:none;font-weight:700}}
 @media(max-width:390px){#wallet-picker{padding:20px 16px}#wallet-picker .wallet-choice button{padding:12px;gap:10px}#wallet-picker .picker-choice-status{max-width:72px;text-align:end}}
