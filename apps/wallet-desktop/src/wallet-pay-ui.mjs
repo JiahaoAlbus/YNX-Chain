@@ -21,7 +21,7 @@ export function createDesktopPayUI({getContext,api,render}){
   let revision=0,busy=false,review=null,retained=null,available=false,historyRecords=[],historyCursor=null,settleBlocked=false;
   const view=(notice="",error=null)=>render({busy,review,original:retained,available,notice,error,historyCursor,settleBlocked});
   function clear(){revision++;busy=false;review=null;retained=null;available=false;historyRecords=[];historyCursor=null;settleBlocked=false;view();return Promise.resolve(api.payCancel()).catch(()=>{})}
-  const capture=()=>{const before=getContext(),current=revision;return {before,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}}};
+  const capture=(before=getContext(),current=revision)=>({before,owns:()=>current===revision,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}});
   const request=async(fn,accept,{notice="Checking Pay…",failure="Pay could not be verified. Preserve the original; restore it and check its original hash or receipt."}={})=>{
     if(busy)return;const {before,live}=capture();if(!live()){view("Unlock Wallet before reviewing or restoring Pay.");return}busy=true;view(notice);
     try{const response=await fn();if(!live())return;if(!response?.ok)throw Error("Pay request failed");accept(response.value,before.account);busy=false;view()}
@@ -31,9 +31,14 @@ export function createDesktopPayUI({getContext,api,render}){
   const ui=Object.freeze({
     clear,
     async open(){
-      await clear();const {before,live}=capture();
-      try{const result=await api.payStatus();if(!live()){if(before.locked)view("Unlock Wallet before reviewing or restoring Pay.");return}if(!result?.ok||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
-        if(!available){view("Protected Pay is unavailable in this build. No payment was approved. Your saved originals remain on this device.");return}view();await ui.restore();
+      // Capture the original actor and the reset's own epoch BEFORE cancellation
+      // or rendering can await/reenter. A late cancel must never adopt a newer
+      // sheet/review/account simply because it is current when IPC returns.
+      const {before,live,owns}=capture(getContext(),revision+1),cancelled=clear();
+      if(!live()){if(owns()&&before.locked)view("Unlock Wallet before reviewing or restoring Pay.");await cancelled;return}
+      await cancelled;if(!live())return;
+      try{const result=await api.payStatus();if(!live())return;if(!result?.ok||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
+        if(!available){view("Protected Pay is unavailable in this build. No payment was approved. Your saved originals remain on this device.");return}view();if(live())await ui.restore();
       }catch{if(live())view("","Pay readiness could not be verified. Nothing was signed.")}
     },
     async review(reference){if(!available||retained)return;review=null;return request(()=>api.payReview(reference),(value,account)=>{

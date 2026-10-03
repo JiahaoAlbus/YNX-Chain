@@ -29,7 +29,7 @@ test("a locked, closed or missing-account Send draft never opens a scan chooser"
 test("late file chooser change cannot borrow a new same-account Send intent",()=>{
   const h=mounted();h.entry.listeners.click();const old=h.input;
   h.ui.invalidate();h.context.draftRevision++;h.entry.listeners.click();const fresh=h.input,file={type:"image/png",name:"old"};
-  old.files=[file];old.listeners.change();assert.deepEqual(h.calls,[]);assert.equal(old.value,"");
+  old.listeners.cancel();old.files=[file];old.listeners.change();assert.deepEqual(h.calls,[]);assert.equal(old.value,"");
   fresh.files=[{type:"image/png",name:"fresh"}];fresh.listeners.change();assert.equal(h.calls[0].name,"fresh");
 });
 

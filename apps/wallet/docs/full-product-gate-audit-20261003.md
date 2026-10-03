@@ -1,5 +1,11 @@
 # Full Wallet goal audit — incomplete, not a source-checkpoint definition of done
 
+## Follow-up readback after b44f652bb
+
+The table below is the retained 003cc audit snapshot, not a claim that its App wiring gap remains unchanged. A's exact frozen f7c reopen hunk was consumed in b44f652bb (App SHA256 963440f27c71144040ec6b17cd613ce87d6431ff2aa2b3ee82ac867ff7caf52f). Native 908 and Desktop 659 full regression targets, typecheck and Android/iOS Hermes exports passed there; installed and production business gates remain unverified. Subsequent tests now compose the actual App effect, actual lifecycle, NativeTransferOutbox, NativeChainClient and durability validator with a synthetic persisted original and controlled HTTP. Lock/account/close during receipt I/O preserve the exact original checkpoint but cannot update the old UI. A fresh same-account cold reconstruction retains accepted and blocks new signing/send without automatically publishing Done/history. These are source integration tests, not actual SecureStore/OS or public transaction observations.
+
+The new Native protected ports interface card has 37 entries verified against its original byte/SHA manifest. It identifies a real incompatibility between Pay's current fixed HTTPS session origin and SDK non-Web's original app://platform application tuple. Exact contract authorization has been requested through Root; no signed field rewrite, registry widening, software device-key fallback, or fake authority composition is permitted. Account vault approval signing and native P256 device challenge/proof signing are independent custody models. The Wallet package is not com.ynxweb4.pay; port/registration adoption must not impersonate the old Pay package merely because the consumer UI is consolidated. Missing production policy/business/current authority/settlement and OS ports are implementation/integration work, not external-input completion exemptions.
+
 Current product source: `003cc84afd95166ee4406100466b1baefc936659`, tree `6e2d8c7ed8ef831d234f9ea6d7deb10712f9be6d`. This audit adds evidence only; no product source, dependencies, A-owned App.tsx/assets/versions, profile, keys, Host or installer changes.
 
 ## Requirement-by-requirement current state

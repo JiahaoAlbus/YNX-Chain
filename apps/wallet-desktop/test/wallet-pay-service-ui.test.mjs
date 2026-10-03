@@ -17,6 +17,29 @@ import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
 import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
 
+for(const boundary of ["reopen","account","key","lock","locked-entry"])test(`old open cancellation cannot capture a new ${boundary} epoch or clear its review`,async()=>{
+  const context={open:true,account:"original",keyRevision:1,locked:false},views=[];let cancelCalls=0,resolveOld,statusCalls=0,restoreCalls=0;
+  const api={payCancel:()=>++cancelCalls===2?new Promise(resolve=>resolveOld=resolve):{ok:true},payStatus:async()=>{statusCalls++;return {ok:true,value:{available:true,paymentAuthorized:false}}},payRestore:async()=>{restoreCalls++;return {ok:true,value:{kind:"original",original:null}}},payReview:async()=>({ok:true,value:{kind:"review",review:{account:context.account,id:"new-review",invoiceId:"inv_"+"a".repeat(20),merchant:"merchant",recipient:"payee",amount:25,fee:1,total:26,intentDigest:"a".repeat(64),expiresAt:"2026-10-03T23:00:00Z",paymentAuthorized:false}}})};
+  const ui=createDesktopPayUI({api,getContext:()=>({...context}),render:view=>views.push(view)});
+  await ui.open();if(boundary==="locked-entry")context.locked=true;const pending=ui.open();await Promise.resolve();assert.equal(typeof resolveOld,"function");
+  if(boundary==="reopen"){context.open=false;await ui.clear();context.open=true}
+  if(boundary==="account")context.account="new-account";if(boundary==="key")context.keyRevision++;if(boundary==="lock"){context.locked=true;await ui.clear();context.locked=false;context.keyRevision++}
+  if(boundary==="locked-entry"){context.locked=false;context.keyRevision++}
+  await ui.open();await ui.review("inv_"+"a".repeat(20));assert.equal(views.at(-1).review.id,"new-review");const last=views.at(-1),counts=[statusCalls,restoreCalls];
+  resolveOld({ok:true});await pending;assert.equal(views.at(-1),last);assert.equal(views.at(-1).review.id,"new-review");assert.deepEqual([statusCalls,restoreCalls],counts,'old cancellation must perform no fresh-epoch reads');
+});
+
+test("actual mounted picker cancellation awaiting IPC cannot erase a new reopened service review",async()=>{
+  const f=await harness(),nodes=new Map();let cancelCalls=0,resolveOld;
+  const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
+  const api={...f.api,payCancel:async()=>{const call=++cancelCalls,result=await f.api.payCancel();if(call===3)await new Promise(resolve=>resolveOld=resolve);return result}};
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  const tick=()=>new Promise(resolve=>setImmediate(resolve)),until=async condition=>{for(let i=0;i<1000;i++){if(condition())return;await tick()}assert.fail("Mounted service did not reach its controlled boundary")};get("#open-protected-pay").emit("click");await until(()=>!get("#protected-pay-review").disabled);const qr=get("#protected-pay-qr");qr.emit("click");await tick();const pending=qr.emit("cancel");await until(()=>typeof resolveOld==="function");
+  get("#protected-pay-sheet").close();get("#open-protected-pay").emit("click");await until(()=>!get("#protected-pay-review").disabled);get("#protected-pay-reference").value=f.input.rawInvoice.id;get("#protected-pay-form").emit("submit",{preventDefault(){}});await until(()=>!get("#protected-pay-approve").hidden);
+  const facts=get("#protected-pay-facts").children.map(node=>node.textContent),before=f.calls.length;resolveOld();await pending;await tick();
+  assert.equal(get("#protected-pay-approve").hidden,false);assert.deepEqual(get("#protected-pay-facts").children.map(node=>node.textContent),facts);assert.equal(f.calls.length,before);assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);get("#protected-pay-sheet").close();f.lifecycle.lock();
+});
+
 for(const cancellation of ["cancel","change"])test(`mounted Pay ${cancellation} restores current controls without review, key, or payment`,async()=>{
   const f=await harness(),nodes=new Map();let decodes=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
@@ -27,6 +50,15 @@ for(const cancellation of ["cancel","change"])test(`mounted Pay ${cancellation} 
   const statuses=f.calls.filter(c=>c.channel==="wallet:pay-status").length;await qr.emit("cancel");assert.equal(f.calls.filter(c=>c.channel==="wallet:pay-status").length,statuses);
   qr.emit("click");get("#protected-pay-sheet").close();const before=f.calls.length;await qr.emit("cancel");assert.equal(f.calls.length,before);
   assert.equal(decodes,0);assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);assert.equal(f.calls.filter(c=>c.channel==="wallet:pay-review").length,0);f.lifecycle.lock();
+});
+
+for(const boundary of ["lock","account"])test(`mounted Pay stale cancellation after ${boundary} never starts current status or decoding`,async()=>{
+  const f=await harness(),nodes=new Map();
+  const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api:{...f.api,invoiceReferenceQR:async()=>{throw Error("No decoding")}},getContext:()=>({account:f.lifecycle.status().account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  get("#open-protected-pay").emit("click");await new Promise(resolve=>setImmediate(resolve));const old=get("#protected-pay-qr");old.emit("click");
+  if(boundary==="lock")f.lifecycle.lock();else f.lifecycle.setAccount("0x"+"3".repeat(40));await new Promise(resolve=>setImmediate(resolve));
+  const before=f.calls.length;await old.emit("cancel");old.files=[];await old.emit("change");assert.equal(f.calls.length,before);assert.equal(f.posts(),0);assert.equal(f.decryptions(),0);assert.equal(f.submits(),0);get("#protected-pay-sheet").close();f.lifecycle.lock();
 });
 async function harness({configured=true}={}){
   const f=signedPayFixture(5),directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-service-"));let decryptions=0,posts=0,submits=0;
