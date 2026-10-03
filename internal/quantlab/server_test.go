@@ -62,6 +62,7 @@ func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing
 			t.Fatal(err)
 		}
 		var payload struct {
+			Ready   *bool `json:"ready"`
 			Storage struct {
 				Backend                      string `json:"backend"`
 				RestartPersistent            bool   `json:"restartPersistent"`
@@ -77,6 +78,9 @@ func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing
 		}
 		if response.StatusCode != http.StatusOK || payload.Storage.Backend != "filesystem_json_snapshot" || !payload.Storage.RestartPersistent || !payload.Storage.CrossProcessSharedFilesystem || payload.Storage.MultiInstance || !payload.Storage.ProductionDatabaseRequired {
 			t.Fatalf("path=%s status=%d storage=%+v", path, response.StatusCode, payload.Storage)
+		}
+		if path == "/health" && (payload.Ready == nil || *payload.Ready) {
+			t.Fatalf("filesystem liveness must not claim deployment readiness: %+v", payload)
 		}
 	}
 }

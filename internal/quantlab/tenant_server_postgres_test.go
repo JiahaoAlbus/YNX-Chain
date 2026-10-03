@@ -99,12 +99,13 @@ func TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers(t *testing.
 	}
 	defer response.Body.Close()
 	var health struct {
+		Ready   bool           `json:"ready"`
 		Storage map[string]any `json:"storage"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&health); err != nil {
 		t.Fatal(err)
 	}
-	if response.StatusCode != http.StatusOK || health.Storage["backend"] != "postgresql" || health.Storage["multiInstance"] != true {
+	if response.StatusCode != http.StatusOK || !health.Ready || health.Storage["backend"] != "postgresql" || health.Storage["multiInstance"] != true {
 		t.Fatalf("health status=%d storage=%#v", response.StatusCode, health.Storage)
 	}
 }

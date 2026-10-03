@@ -205,7 +205,9 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 			pendingUnknown++
 		}
 	}
-	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "storage": s.service.StorageStatus(), "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
+	storage := s.service.StorageStatus()
+	multiInstance, _ := storage["multiInstance"].(bool)
+	write(w, 200, map[string]any{"status": "ok", "ready": multiInstance, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "storage": storage, "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
 }
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	storage := s.service.StorageStatus()
