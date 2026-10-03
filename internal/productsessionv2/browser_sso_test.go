@@ -18,7 +18,7 @@ import (
 
 // Backend response fixture only: these tests are not Wallet/public approval.
 func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T) {
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar", "mail"} {
 		s, err := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("q", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
 			t.Fatal("expired transaction reached token exchange")
 			return nil, nil
@@ -65,7 +65,7 @@ func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T)
 }
 
 func TestBrowserSSOSilentGuestAndLogoutSuppressionAreBounded(t *testing.T) {
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar", "mail"} {
 		s, _ := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("s", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
 			t.Fatal("quiet guest tried token exchange")
 			return nil, nil
@@ -152,7 +152,7 @@ func mustParseURL(t *testing.T, value string) *url.URL {
 
 func TestBrowserSSORegisteredConsumersKeepIdentityAndPrivatePermissionSeparate(t *testing.T) {
 	account := fixture(t).Session.Account
-	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar"} {
+	for _, product := range []string{"finance", "exchange", "quant", "social", "ai", "developer", "cloud", "docs", "calendar", "mail"} {
 		t.Run(product, func(t *testing.T) {
 			var degraded, revoked bool
 			var remembered string

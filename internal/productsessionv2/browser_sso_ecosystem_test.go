@@ -94,7 +94,7 @@ func TestBrowserSSOWorkspaceRealCentralHTTP(t *testing.T) {
 		var result map[string]any
 		control("/__qa/mode", map[string]string{"mode": value}, &result)
 	}
-	for _, product := range []string{"cloud", "docs", "calendar"} {
+	for _, product := range []string{"cloud", "docs", "calendar", "mail"} {
 		t.Run(product, func(t *testing.T) {
 			s, err := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("k", 32)), []string{"overview", "editor"}, transport)
 			if err != nil {
@@ -175,6 +175,20 @@ func TestBrowserSSOWorkspaceRealCentralHTTP(t *testing.T) {
 			request, binding, grant := login("editor")
 			if grant.Audience != s.audience || len(grant.Scopes) != 1 || grant.Scopes[0] != "identity:read" || grant.Identity.Generation < 1 {
 				t.Fatal("identity grant widened")
+			}
+			if product == "mail" {
+				foreign := grant
+				foreign.Audience = "ynx:social:identity"
+				if s.valid(foreign) {
+					t.Fatal("Social identity audience substituted for Mail")
+				}
+				for _, scope := range []string{"mail:account", "mail:recover", "social.feed"} {
+					private := grant
+					private.Scopes = []string{scope}
+					if s.valid(private) {
+						t.Fatal("Mail private/foreign scope accepted as browser identity")
+					}
+				}
 			}
 			fresh, status := s.VerifyBinding(ctx, binding, grant.Identity.Account)
 			if status != 200 || fresh.Identity != grant.Identity {
@@ -261,7 +275,7 @@ func TestBrowserSSOWorkspaceCookieAndConstructorBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, product := range []string{"docs", "calendar", "social", "finance"} {
+	for _, product := range []string{"docs", "calendar", "mail", "social", "finance"} {
 		s, err := NewBrowserSSO(product, browserIssuer, key, []string{"home"}, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -271,7 +285,7 @@ func TestBrowserSSOWorkspaceCookieAndConstructorBoundaries(t *testing.T) {
 			t.Fatal("Cloud cookie crossed product AES/AAD boundary")
 		}
 	}
-	for _, product := range []string{"music", "card", "mail", "video", "creator-studio", "unknown"} {
+	for _, product := range []string{"music", "card", "shop", "video", "creator-studio", "mail-web", "mail-mobile", "ynx-mail-v1", "unknown"} {
 		if _, err := NewBrowserSSO(product, browserIssuer, key, []string{"home"}, nil); err == nil {
 			t.Fatal("unimplemented/unapproved constructor product admitted", product)
 		}

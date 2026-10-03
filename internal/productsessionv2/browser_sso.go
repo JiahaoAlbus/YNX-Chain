@@ -54,11 +54,11 @@ type BrowserSSO struct {
 	now                                                                           func() time.Time
 }
 
-// NewBrowserSSO uses the original six clients plus approved Cloud/Docs/Calendar
+// NewBrowserSSO uses the original six clients plus approved Cloud/Docs/Calendar/Mail
 // Web identity clients. Callers cannot supply a new
 // origin, audience, scope or issuer, and must opt in at their existing server.
 func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string, transport http.RoundTripper) (*BrowserSSO, error) {
-	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com", "cloud": "https://web4.ynxweb4.com", "docs": "https://docs.ynxweb4.com", "calendar": "https://calendar.ynxweb4.com"}[product]
+	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com", "cloud": "https://web4.ynxweb4.com", "docs": "https://docs.ynxweb4.com", "calendar": "https://calendar.ynxweb4.com", "mail": "https://mail.ynxweb4.com"}[product]
 	if origin == "" || len(cookieKey) < 32 || len(targets) == 0 {
 		return nil, errors.New("browser SSO policy invalid")
 	}
