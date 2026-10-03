@@ -486,6 +486,40 @@ const Q = {
       "Kinerja historis atau simulasi tidak memprediksi keuntungan.",
   },
 };
+// Ordinary research labels; shared Wallet branding and authorization are separate.
+const researchLabels = ["researchName", "fastWindow", "slowWindow", "created", "tradeCount", "partialFills", "sensitivity", "dataGaps", "netPnl", "realized", "unrealized", "tradingFee"];
+const researchCatalogs = {
+  en: ["Strategy name", "Fast window", "Slow window", "Created", "Trades", "Partial fills", "Sensitivity", "Data gaps", "Net PnL", "Realized", "Unrealized", "Trading fee"],
+  "zh-CN": ["策略名称", "快周期", "慢周期", "创建时间", "成交次数", "部分成交", "敏感性", "数据缺口", "净盈亏", "已实现盈亏", "未实现盈亏", "交易费用"],
+  "zh-TW": ["策略名稱", "快週期", "慢週期", "建立時間", "成交次數", "部分成交", "敏感性", "資料缺口", "淨損益", "已實現損益", "未實現損益", "交易費用"],
+  ja: ["戦略名", "短期期間", "長期期間", "作成日時", "取引数", "部分約定", "感応度", "データ欠損", "純損益", "実現損益", "未実現損益", "取引手数料"],
+  ko: ["전략 이름", "단기 기간", "장기 기간", "생성 시간", "거래 수", "부분 체결", "민감도", "데이터 누락", "순손익", "실현 손익", "미실현 손익", "거래 수수료"],
+  es: ["Nombre de estrategia", "Ventana rápida", "Ventana lenta", "Creado", "Operaciones", "Ejecuciones parciales", "Sensibilidad", "Lagunas de datos", "PnL neto", "Realizado", "No realizado", "Comisión de negociación"],
+  fr: ["Nom de stratégie", "Fenêtre courte", "Fenêtre longue", "Création", "Transactions", "Exécutions partielles", "Sensibilité", "Données manquantes", "PnL net", "Réalisé", "Non réalisé", "Frais de transaction"],
+  de: ["Strategiename", "Kurzes Fenster", "Langes Fenster", "Erstellt", "Trades", "Teilausführungen", "Sensitivität", "Datenlücken", "Netto-Gewinn/Verlust", "Realisiert", "Unrealisiert", "Handelsgebühr"],
+  pt: ["Nome da estratégia", "Janela curta", "Janela longa", "Criado", "Operações", "Execuções parciais", "Sensibilidade", "Lacunas de dados", "PnL líquido", "Realizado", "Não realizado", "Taxa de negociação"],
+  ru: ["Название стратегии", "Короткое окно", "Длинное окно", "Создано", "Сделки", "Частичное исполнение", "Чувствительность", "Пробелы данных", "Чистая прибыль/убыток", "Реализовано", "Не реализовано", "Торговая комиссия"],
+  ar: ["اسم الاستراتيجية", "النافذة القصيرة", "النافذة الطويلة", "وقت الإنشاء", "الصفقات", "التنفيذ الجزئي", "الحساسية", "فجوات البيانات", "صافي الربح والخسارة", "المحقق", "غير المحقق", "رسوم التداول"],
+  id: ["Nama strategi", "Jendela pendek", "Jendela panjang", "Dibuat", "Transaksi", "Eksekusi parsial", "Sensitivitas", "Celah data", "Laba/rugi bersih", "Terealisasi", "Belum terealisasi", "Biaya perdagangan"],
+};
+for (const [language, values] of Object.entries(researchCatalogs)) {
+  Object.assign(Q[language], Object.fromEntries(researchLabels.map((key, index) => [key, values[index]])));
+}
+const researchBoundaries = {
+  en: "Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.",
+  "zh-CN": "公开研究无状态，使用可追溯行情历史。保存策略、定时任务和模拟资金需要本地授权工作区；Wallet 私有登录不授予该权限。未启用真实资金执行。",
+  "zh-TW": "公開研究無狀態，使用可追溯行情歷史。儲存策略、排程和模擬資金需要本地授權工作區；Wallet 私有登入不授予該權限。未啟用真實資金執行。",
+  ja: "公開研究は状態を保存せず、追跡可能な市場履歴を使います。戦略保存・スケジュール・ペーパー資金にはローカルで承認されたワークスペースが必要です。Wallet の私的ログインはこの権限を付与しません。実資金の執行は無効です。",
+  ko: "공개 연구는 상태를 저장하지 않으며 추적 가능한 시장 이력을 사용합니다. 전략 저장, 일정 및 모의 자금에는 로컬 승인 작업 공간이 필요합니다. Wallet 비공개 로그인은 이 권한을 부여하지 않습니다. 실제 자금 실행은 비활성화되어 있습니다.",
+  es: "La investigación pública no guarda estado y usa historial verificable. Guardar estrategias, programaciones y fondos simulados requiere un espacio autorizado localmente; iniciar sesión privada con Wallet no concede esa autoridad. La ejecución con fondos reales está desactivada.",
+  fr: "La recherche publique est sans état et utilise un historique traçable. Stratégies sauvegardées, planifications et fonds simulés nécessitent un espace autorisé localement ; la connexion privée Wallet ne donne pas cette autorité. L’exécution avec fonds réels est désactivée.",
+  de: "Öffentliche Forschung ist zustandslos und nutzt nachvollziehbare Markthistorie. Gespeicherte Strategien, Zeitpläne und simulierte Mittel benötigen einen lokal autorisierten Arbeitsbereich; private Wallet-Anmeldung erteilt diese Berechtigung nicht. Echtes Kapital wird nicht ausgeführt.",
+  pt: "A pesquisa pública não salva estado e usa histórico rastreável. Estratégias salvas, agendamentos e fundos simulados exigem um espaço autorizado localmente; o login privado Wallet não concede essa autoridade. A execução com fundos reais está desativada.",
+  ru: "Публичное исследование не сохраняет состояние и использует проверяемую историю рынка. Сохранение стратегий, расписания и условные средства требуют локально авторизованного пространства; приватный вход Wallet не даёт этих прав. Исполнение с реальными средствами отключено.",
+  ar: "البحث العام لا يحفظ الحالة ويستخدم سجل سوق قابلاً للتتبع. تتطلب الاستراتيجيات المحفوظة والجداول والأموال الافتراضية مساحة عمل مصرحاً بها محلياً؛ تسجيل الدخول الخاص عبر Wallet لا يمنح هذه الصلاحية. تنفيذ الأموال الحقيقية معطل.",
+  id: "Riset publik tidak menyimpan status dan memakai riwayat pasar terlacak. Strategi tersimpan, jadwal dan dana simulasi memerlukan ruang kerja berizin lokal; login privat Wallet tidak memberikan wewenang itu. Eksekusi dana nyata dinonaktifkan.",
+};
+for (const [language, researchBoundary] of Object.entries(researchBoundaries)) Q[language].researchBoundary = researchBoundary;
 window.QuantI18n = {
   catalogs: Q,
   locales: Object.keys(Q),

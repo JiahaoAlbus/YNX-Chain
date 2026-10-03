@@ -63,7 +63,7 @@
         </footer>
       </aside>
       <main id="workspace">
-        <p id="workspace-boundary" class="notice" role="status">Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.</p>
+        <p id="workspace-boundary" class="notice" role="status" data-i18n="researchBoundary">Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.</p>
         <p id="workspace-storage-boundary" class="notice" role="status" hidden>Browser storage is unavailable. Public research remains usable; saved workspace and Paper writes require durable local recovery records.</p>
         <div class="toolbar">
           <div>
@@ -90,35 +90,35 @@
                 </div>
                 <div class="fields">
                   <label
-                    >Strategy name<input
+                    ><span data-i18n="researchName">Strategy name</span><input
                       id="strategy"
                       value="Transparent MA crossover"
                       maxlength="80" /></label
                   ><label
-                    >Random seed<input
+                    ><span data-business-i18n="runSeed">Random seed</span><input
                       id="seed"
                       type="number"
                       value="7" /></label
                   ><label
-                    >Fast window<input
+                    ><span data-i18n="fastWindow">Fast window</span><input
                       id="fast"
                       type="number"
                       value="3"
                       min="2" /></label
                   ><label
-                    >Slow window<input
+                    ><span data-i18n="slowWindow">Slow window</span><input
                       id="slow"
                       type="number"
                       value="8"
                       min="3" /></label
                   ><label
-                    >Fee (bps)<input
+                    ><span data-business-i18n="runFee">Fee (bps)</span><input
                       id="fee"
                       type="number"
                       value="10"
                       min="0" /></label
                   ><label
-                    >Slippage (bps)<input
+                    ><span data-business-i18n="runSlippage">Slippage (bps)</span><input
                       id="slippage"
                       type="number"
                       value="5"
@@ -209,22 +209,22 @@
             <table>
               <thead>
                 <tr>
-                  <th>Created</th>
-                  <th>Strategy</th>
-                  <th>OOS return</th>
-                  <th>Buy/hold</th>
-                  <th>Drawdown</th>
-                  <th>Sharpe</th>
-                  <th>Volatility</th>
-                  <th>Trades</th>
-                  <th>Partial</th>
-                  <th>Sensitivity</th>
-                  <th>Data gaps</th>
-                  <th>Net PnL</th>
-                  <th>Realized</th>
-                  <th>Unrealized</th>
-                  <th>Trading fee</th>
-                  <th>Slippage</th>
+                  <th data-i18n="created">Created</th>
+                  <th data-i18n="researchName">Strategy</th>
+                  <th data-business-i18n="runReturn">OOS return</th>
+                  <th data-business-i18n="runBuyHold">Buy/hold</th>
+                  <th data-business-i18n="runDrawdown">Drawdown</th>
+                  <th data-business-i18n="runSharpe">Sharpe</th>
+                  <th data-business-i18n="runVolatility">Volatility</th>
+                  <th data-i18n="tradeCount">Trades</th>
+                  <th data-i18n="partialFills">Partial</th>
+                  <th data-i18n="sensitivity">Sensitivity</th>
+                  <th data-i18n="dataGaps">Data gaps</th>
+                  <th data-i18n="netPnl">Net PnL</th>
+                  <th data-i18n="realized">Realized</th>
+                  <th data-i18n="unrealized">Unrealized</th>
+                  <th data-i18n="tradingFee">Trading fee</th>
+                  <th data-business-i18n="runSlippage">Slippage</th>
                 </tr>
               </thead>
               <tbody id="experiment-rows"></tbody>
