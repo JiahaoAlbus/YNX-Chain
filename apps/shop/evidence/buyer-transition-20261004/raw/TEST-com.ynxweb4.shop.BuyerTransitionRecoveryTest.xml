@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.BuyerTransitionRecoveryTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-03T19:55:18.839Z" hostname="HuangJiahaoMacmini" time="0.007">
+  <properties/>
+  <testcase name="canonicalDraftUsesCurrentAccountAndPreservesRetiredLegacyToken" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.001"/>
+  <testcase name="mismatchedReceiptCannotClearOriginalQueue" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.001"/>
+  <testcase name="onlineUnknownOriginalRequiresExactReadbackAndCurrentGeneration" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.001"/>
+  <testcase name="malformedSuccessRemainsUnknownBeforeLedgerAcknowledgement" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.002"/>
+  <testcase name="accountOrPrivacyReplacementAfterLookupKeepsOriginalUnknown" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.001"/>
+  <testcase name="coldQueueOnlyLooksUpOriginalTypedRequestAndRetainsForeignRows" classname="com.ynxweb4.shop.BuyerTransitionRecoveryTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,2137 @@
+[
+  {
+    "path": "apps/merchant-console/.gitignore",
+    "bytes": 52,
+    "sha256": "1f4e3543ee9e9064a2789dce235b96962cdaa5d7d37116c295a667c64ab4a3ec"
+  },
+  {
+    "path": "apps/merchant-console/CANONICAL_BUSINESS_CONTRACT.md",
+    "bytes": 3244,
+    "sha256": "cd099ffd599e268e5532232d2bd90c17674e249ffa4c591326d5390faccac3f9"
+  },
+  {
+    "path": "apps/merchant-console/P0_WALLET_CONNECTIVITY_HANDOFF.md",
+    "bytes": 1806,
+    "sha256": "31e2f6220b1fa470ac1638f40378eef5ee436b3c4bad22b6dcc1d51c610f85cb"
+  },
+  {
+    "path": "apps/merchant-console/README.md",
+    "bytes": 1957,
+    "sha256": "7ce98546f94217d16b73b3d59e33fb00eebe56054d961d893788d8df03e303fd"
+  },
+  {
+    "path": "apps/merchant-console/UI_DESIGN_AUDIT.md",
+    "bytes": 1380,
+    "sha256": "6e377975bd3a06b87b1708818dd69f0dabcd27976569373d7286c5f08cd29ba9"
+  },
+  {
+    "path": "apps/merchant-console/package-lock.json",
+    "bytes": 66872,
+    "sha256": "f21ba36b1a2b24fb5fe1b2409aed75b0d0b5b8865f61c2eca0182c0f04ddfe6b"
+  },
+  {
+    "path": "apps/merchant-console/package.json",
+    "bytes": 560,
+    "sha256": "c04db49e40e0a898d34ed75cf3197dea7f6d1b8b78a5fd1de4ae0e9cae73347c"
+  },
+  {
+    "path": "apps/merchant-console/playwright.config.mjs",
+    "bytes": 458,
+    "sha256": "094a20c5897eb8307a403645927b50d9e4d95bdfa7d64f98b7d13e52a3dad98a"
+  },
+  {
+    "path": "apps/merchant-console/product-release.json",
+    "bytes": 2779,
+    "sha256": "1738ec9b6fe4517a548ae6b205d1ad164275fe1821f81af439db371054451108"
+  },
+  {
+    "path": "apps/merchant-console/scripts/build.mjs",
+    "bytes": 1074,
+    "sha256": "d148cbbc4fc66adc14902391964bce3403d0119a29d505feac698883e440e1c4"
+  },
+  {
+    "path": "apps/merchant-console/src/api.js",
+    "bytes": 5890,
+    "sha256": "30c9723ea678115585d450db5f637602c4b4d9fce3d5b3ee50cc3b4c8b005d38"
+  },
+  {
+    "path": "apps/merchant-console/src/app.js",
+    "bytes": 40966,
+    "sha256": "604a74693721598fbe161c6355c39b1566c5b4c97f9f3e5a754d09753d3c0d94"
+  },
+  {
+    "path": "apps/merchant-console/src/assets/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "apps/merchant-console/src/auth.js",
+    "bytes": 9928,
+    "sha256": "7a08e017c7b27e107bd6c0bd9963c7b3039155a125c38d3e73eb9415e150bb88"
+  },
+  {
+    "path": "apps/merchant-console/src/display-settings.js",
+    "bytes": 2371,
+    "sha256": "51f8e8ca6ec3e25b87718a64a21bae81b57078a293718ffd4d6f4650911abc48"
+  },
+  {
+    "path": "apps/merchant-console/src/form-state.js",
+    "bytes": 1288,
+    "sha256": "e2a9e029edc28d1765d169553afc68158683e1a689f016c7a17a25730e2233da"
+  },
+  {
+    "path": "apps/merchant-console/src/i18n.js",
+    "bytes": 24872,
+    "sha256": "a05e6088af42a874899ed38eacd0ecdc70ffc39c35fa0bf3920b1e5b6c0a75eb"
+  },
+  {
+    "path": "apps/merchant-console/src/index.html",
+    "bytes": 1230,
+    "sha256": "fb56a54e94302b28d9882dd023928ec6fff45c51df63c46a4081f18fcf6eacda"
+  },
+  {
+    "path": "apps/merchant-console/src/invoice-presentation.js",
+    "bytes": 3204,
+    "sha256": "8f3e19e830cb372164d16c06cfbeda1278ef1fc081e3a8d4ee0d31a077666c0f"
+  },
+  {
+    "path": "apps/merchant-console/src/manifest.webmanifest",
+    "bytes": 228,
+    "sha256": "7cdab34fc2558a2651f7c7444a502f0fedd56dbfca180642dbc98186af99d7ed"
+  },
+  {
+    "path": "apps/merchant-console/src/merchant-session.js",
+    "bytes": 9638,
+    "sha256": "a9836bd539524bf23d33ea282446d1746cd82e63a1790ed7f3ca72680a872824"
+  },
+  {
+    "path": "apps/merchant-console/src/mutation-recovery.js",
+    "bytes": 6103,
+    "sha256": "8a1a7754636c848c6efd37e6271ae397247045543c6de492b7ce97f44b7d11d4"
+  },
+  {
+    "path": "apps/merchant-console/src/request-context.js",
+    "bytes": 1826,
+    "sha256": "fdc3af2dbf9fa01792339d6308f3e164a9e8b4a3046257ae14123414ec2ba7e3"
+  },
+  {
+    "path": "apps/merchant-console/src/runtime-config.js",
+    "bytes": 585,
+    "sha256": "c848319c7f105cd55bc096d7dbb612bb6cc2bd960c94fc02e1ee99eb479fdee3"
+  },
+  {
+    "path": "apps/merchant-console/src/styles.css",
+    "bytes": 11156,
+    "sha256": "b82037a640da4f98aba495b66e8d1f5db23b5b323bbbdae03304c1e64701f9af"
+  },
+  {
+    "path": "apps/merchant-console/test/api.test.js",
+    "bytes": 2522,
+    "sha256": "75861dd010664473daf7ebe8018184dfa552bbf197ddf42f6c6b68bcda66e3f4"
+  },
+  {
+    "path": "apps/merchant-console/test/auth.test.js",
+    "bytes": 10885,
+    "sha256": "bdbb9272e16b8f900ba0e84733370b0474b099de20445bd324259b57123688e7"
+  },
+  {
+    "path": "apps/merchant-console/test/browser/wallet-visible.spec.mjs",
+    "bytes": 18625,
+    "sha256": "bd7c46dbc6b1fd1cb998ac06ea5f120dfb05f4c638d3119509c9c925a624bd8d"
+  },
+  {
+    "path": "apps/merchant-console/test/form-state.test.js",
+    "bytes": 1308,
+    "sha256": "1329bfb3e1e0bf027f39405818e33133cc484e2fe6cab24b6c948e3a84cef6ea"
+  },
+  {
+    "path": "apps/merchant-console/test/i18n.test.js",
+    "bytes": 1666,
+    "sha256": "955e037da29780107bcd0015b3111ea9b5b5f58fdab7a8646b68199070ecd6f6"
+  },
+  {
+    "path": "apps/merchant-console/test/invoice-presentation.test.js",
+    "bytes": 5039,
+    "sha256": "b00ae6cf28dc844da2d8fcef15994e72eccc444b1082b20d088e785379b98832"
+  },
+  {
+    "path": "apps/merchant-console/test/merchant-session.test.js",
+    "bytes": 11968,
+    "sha256": "7e7245a19df17ac915d515998fdcd3fd752f03861161808af06fc65b85ff9d35"
+  },
+  {
+    "path": "apps/merchant-console/test/mutation-recovery.test.js",
+    "bytes": 11391,
+    "sha256": "6c6b89889cb66c468b31df0850495d6adc8496a17d66ff9d9397e5c5e8f0d065"
+  },
+  {
+    "path": "apps/merchant-console/test/release.test.js",
+    "bytes": 1934,
+    "sha256": "91e524ff25a838027c38150f9c00380eeb3c916f979fbcb587314a11fb6149f3"
+  },
+  {
+    "path": "apps/merchant-console/test/request-boundary.test.js",
+    "bytes": 3851,
+    "sha256": "bd34ca9b57be8248b3d4808e3eb69a06e10cb04c037048aa72e336fa66cf2caf"
+  },
+  {
+    "path": "apps/merchant-console/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "bytes": 79802,
+    "sha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb"
+  },
+  {
+    "path": "apps/merchant-console/vendor/ynx-chain-wallet-auth-1.0.0.tgz",
+    "bytes": 11181,
+    "sha256": "3feb86824135d5143e4e72e506d4efef9f530d3d931081c15500f16b1347bf2f"
+  },
+  {
+    "path": "apps/merchant-console/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+    "bytes": 553264,
+    "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+  },
+  {
+    "path": "apps/seller-console/.gitignore",
+    "bytes": 52,
+    "sha256": "8ba98b05748afdfb1749d5648ceaec9eb8fb958c9963ce7aa58faf4e7b57c8c2"
+  },
+  {
+    "path": "apps/seller-console/EVIDENCE_INDEX.md",
+    "bytes": 2492,
+    "sha256": "617fa3f6539721361d7c4fa3081cff5ecde57dc5581719cfb49ba13fba67be9f"
+  },
+  {
+    "path": "apps/seller-console/FEATURE_COMPLETION_EVIDENCE.md",
+    "bytes": 2431,
+    "sha256": "87d4230b70925e64b8885bb71318d51c9b61e44b6d362ae274365d742368277a"
+  },
+  {
+    "path": "apps/seller-console/ai-stream.js",
+    "bytes": 1367,
+    "sha256": "67cb1a7818ad0674b8dd490e35646a22f97174dfc98945dd07ce24ccfca5b38c"
+  },
+  {
+    "path": "apps/seller-console/app.js",
+    "bytes": 44335,
+    "sha256": "28d185121cac5c11b13e92dc5e31c41c53221e1cd4ae975e9721adff620e8a50"
+  },
+  {
+    "path": "apps/seller-console/assets/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "apps/seller-console/display-settings.js",
+    "bytes": 2369,
+    "sha256": "e5a67d767b85cd5a7f5a92ab234fb4e33856fe561bf23cdd46bbaa5b55b2f5ec"
+  },
+  {
+    "path": "apps/seller-console/i18n.js",
+    "bytes": 11320,
+    "sha256": "083485bc9c8857ec3c03a4a0f900a25799e82876fa3d20ba2544a466f116700e"
+  },
+  {
+    "path": "apps/seller-console/index.html",
+    "bytes": 9889,
+    "sha256": "bb4a47a7bec16d6fb37514dd1e16715456633ab495e770706ebae1633b1dcd7a"
+  },
+  {
+    "path": "apps/seller-console/mutation-intents.js",
+    "bytes": 6277,
+    "sha256": "7654d5c5940a4831f740e874721c7f118f02dbca478a83d9b41ab74f241676af"
+  },
+  {
+    "path": "apps/seller-console/package-lock.json",
+    "bytes": 66890,
+    "sha256": "5c3ba7aa45b7db6f7ab76cf079b8ab2e1792a93eb2eee50e258b8834e3ac32b7"
+  },
+  {
+    "path": "apps/seller-console/package.json",
+    "bytes": 540,
+    "sha256": "2b6d970bd8686c616b0e4cf0b431e09d697960c497487da6b9c611c8976668c5"
+  },
+  {
+    "path": "apps/seller-console/playwright.config.mjs",
+    "bytes": 367,
+    "sha256": "7ca3f1d3a06e97769487f6d4706b59e782dcbcb6b46a00f76041625103a4daee"
+  },
+  {
+    "path": "apps/seller-console/private-copy.js",
+    "bytes": 4633,
+    "sha256": "5ffcd4b4b0cee53e23bd5d60cad4b9383618d3c08abe88a0f4989ba3592c168e"
+  },
+  {
+    "path": "apps/seller-console/product-release.json",
+    "bytes": 4045,
+    "sha256": "ba06e18a1c2908d9ab2d2107de826ec6e00e5e3984f9064b113886f08091a1cd"
+  },
+  {
+    "path": "apps/seller-console/product-session-registry.json",
+    "bytes": 10361,
+    "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+  },
+  {
+    "path": "apps/seller-console/product-session.js",
+    "bytes": 4780,
+    "sha256": "4f70c0ecc16eb7a8a5e6fb7528fe581b2014a74c60f0fed862f7fdb08de1bbbd"
+  },
+  {
+    "path": "apps/seller-console/request-context.js",
+    "bytes": 1826,
+    "sha256": "fdc3af2dbf9fa01792339d6308f3e164a9e8b4a3046257ae14123414ec2ba7e3"
+  },
+  {
+    "path": "apps/seller-console/responsive.css",
+    "bytes": 533,
+    "sha256": "f0847f12458429f1853d77aa6bd173a776667d954a29a9568e6f38911869b2e9"
+  },
+  {
+    "path": "apps/seller-console/runtime-config.js",
+    "bytes": 504,
+    "sha256": "9e011f3c5d2a941397069193c554cda07d4f4602ac503e148de6b25edf7354b1"
+  },
+  {
+    "path": "apps/seller-console/scripts/build.mjs",
+    "bytes": 790,
+    "sha256": "93e5a0f22df4ebdd3645ace50898d5b7ed9d9352be7270a0a8a437b16062e197"
+  },
+  {
+    "path": "apps/seller-console/scripts/smoke.mjs",
+    "bytes": 357,
+    "sha256": "04ef87f4ed56f89fdde800cedb9932b2248ec926c4bd0b0c3a67359d7f5777c5"
+  },
+  {
+    "path": "apps/seller-console/standard-wallet.js",
+    "bytes": 3530,
+    "sha256": "0d199e29e02afec8bcf3348b354a97bc14186211d61ec5d8849f33a90d95bf94"
+  },
+  {
+    "path": "apps/seller-console/styles.css",
+    "bytes": 7308,
+    "sha256": "63a3512c4bf2aa4c145352d7e4df66d76b3441183146e7720df9440517fbd097"
+  },
+  {
+    "path": "apps/seller-console/test/ai-stream.test.mjs",
+    "bytes": 1652,
+    "sha256": "410a0a487d1223144d21278775a5b957cc48e4509a900ef4d7a03ee9e453f6d9"
+  },
+  {
+    "path": "apps/seller-console/test/browser/wallet-visible.spec.mjs",
+    "bytes": 17522,
+    "sha256": "7936c52a42fbdbdf042b08738ce8ff63a8df2041a84b821d2710633ae51a1be6"
+  },
+  {
+    "path": "apps/seller-console/test/canonical_transport.test.mjs",
+    "bytes": 4280,
+    "sha256": "5cbaa39bc941d6396fb993408f3b2053da250694ccb60009a126be81d27d1824"
+  },
+  {
+    "path": "apps/seller-console/test/mutation-intents.test.mjs",
+    "bytes": 7223,
+    "sha256": "a5d79f849e69186428a310f03e64162db75fc3e82a95065834aaea6497faaeb3"
+  },
+  {
+    "path": "apps/seller-console/test/private_controller.test.mjs",
+    "bytes": 4539,
+    "sha256": "4758baaccbbfd73dd454db7e173f1ed258fe8ccfe7449f18bae41b41db29b4c6"
+  },
+  {
+    "path": "apps/seller-console/test/release_wallet.test.mjs",
+    "bytes": 2490,
+    "sha256": "9c335488cbb191d78de8937024bb565be606a4032bdbb4298af47e2241dbc8cd"
+  },
+  {
+    "path": "apps/seller-console/test/request-context.test.mjs",
+    "bytes": 2088,
+    "sha256": "094ff0c820bb3dd0d6a30775a6167a9938873d450da04d492335b74712d90ab3"
+  },
+  {
+    "path": "apps/seller-console/test/security_i18n.test.mjs",
+    "bytes": 1160,
+    "sha256": "3eabd8dd950349bd706247662dce08a368370b5b7151cfdb040df286a59c973a"
+  },
+  {
+    "path": "apps/seller-console/test/standard_wallet.test.mjs",
+    "bytes": 2685,
+    "sha256": "595b54e5ca1e768fec80552262096e8b4d1efc63bc926edd5a8fb0ad649bd739"
+  },
+  {
+    "path": "apps/seller-console/test/ui.test.mjs",
+    "bytes": 2383,
+    "sha256": "50be46248dd8d1c33986a2cfcc459ed73ac5b32aa790b8f7129250152edad5b3"
+  },
+  {
+    "path": "apps/seller-console/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "bytes": 79802,
+    "sha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb"
+  },
+  {
+    "path": "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+    "bytes": 553264,
+    "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+  },
+  {
+    "path": "apps/seller-console/wallet-auth.js",
+    "bytes": 1487,
+    "sha256": "75c6d40af08b416be1851b92a8ab3cb19e8d5443f74bcb3631bc07f7043b8d97"
+  },
+  {
+    "path": "apps/seller-console/workflow.css",
+    "bytes": 2321,
+    "sha256": "8b8e605645a5d44a91101e1f8d5772e8cca75d0113211d82c763eb1c3f741372"
+  },
+  {
+    "path": "apps/shop/.gitignore",
+    "bytes": 87,
+    "sha256": "6784e16fffcd992f9a805cff3271af30dd59f30f7a0b0079ef4b8f9160adf549"
+  },
+  {
+    "path": "apps/shop/BUYER_TRANSITION_RECOVERY_20261004.md",
+    "bytes": 4578,
+    "sha256": "b367dd40229022cfa3105550b96b4ccb33f26fe0644ef1601db516276b236185"
+  },
+  {
+    "path": "apps/shop/COMMERCE_CONTINUATION_20261002.md",
+    "bytes": 57496,
+    "sha256": "5d8c6126035d4d1dde08a3413de0a25ff9320da6bfc945224e6ac4a5df701859"
+  },
+  {
+    "path": "apps/shop/COMMERCE_MUTATION_RECOVERY_20261003.md",
+    "bytes": 11238,
+    "sha256": "3d24085a9aa124c9c903cbb7333978b0e6ed1935d9cf509b12ef55323d258324"
+  },
+  {
+    "path": "apps/shop/COMMERCE_V2_INTEGRATION_CONTRACT_20261003.json",
+    "bytes": 39155,
+    "sha256": "64099ddad911db5c2203b13667cb96fb6d29538c36e8dbadcf9b5682a73ab81e"
+  },
+  {
+    "path": "apps/shop/ai-stream.js",
+    "bytes": 1367,
+    "sha256": "67cb1a7818ad0674b8dd490e35646a22f97174dfc98945dd07ce24ccfca5b38c"
+  },
+  {
+    "path": "apps/shop/app.js",
+    "bytes": 38819,
+    "sha256": "17a0fba599b0be494a9ab06962fb125beb90437254369f0762e4b85d3981c58b"
+  },
+  {
+    "path": "apps/shop/assets/brand/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "apps/shop/assets/catalog/developer-console-kit.png",
+    "bytes": 2097347,
+    "sha256": "b1b3aa2c4a977727ad6e7fe20ad8537149a90cfb1860f7d530b4011830582c43"
+  },
+  {
+    "path": "apps/shop/assets/catalog/modular-desk-light.png",
+    "bytes": 1609037,
+    "sha256": "62efbc964148045c985b19b287bf9a984847a95976cc385281f057c8c8f25783"
+  },
+  {
+    "path": "apps/shop/assets/catalog/solar-power-kit.png",
+    "bytes": 2430045,
+    "sha256": "31a58f1fbf0e1499b7704b53ec2ed60228aaff66889f00a69442f6d363f56455"
+  },
+  {
+    "path": "apps/shop/browser-business.js",
+    "bytes": 2446,
+    "sha256": "1fce58c5c18f1260d7a87da053c70b3c5a620bcfcefc633c9265029e10e19bf6"
+  },
+  {
+    "path": "apps/shop/checkout-recovery.js",
+    "bytes": 3114,
+    "sha256": "0af860d54f0492ffeae7c2f6b1a26a151817af3837e23cd3321ca1e39e4ba109"
+  },
+  {
+    "path": "apps/shop/display-settings.js",
+    "bytes": 2359,
+    "sha256": "c2894be391220ef70765a02a6f2b57131a6028baef146740ca3a916bd905a4ba"
+  },
+  {
+    "path": "apps/shop/i18n.js",
+    "bytes": 13330,
+    "sha256": "32861a12ce91dcf7b28137caf8f1844637513ef204fa1380f5baf225a314446a"
+  },
+  {
+    "path": "apps/shop/icon-1024.png",
+    "bytes": 865746,
+    "sha256": "2220432a345cab27964536016642f939ce8970685bcea8f168e6757b281c2bf0"
+  },
+  {
+    "path": "apps/shop/icon-192.png",
+    "bytes": 37156,
+    "sha256": "ac78e88c37d17b59d2a82abf134e31e3e92b91b6f817799db91d345fe8a2405b"
+  },
+  {
+    "path": "apps/shop/icon-512.png",
+    "bytes": 246022,
+    "sha256": "594dd35f0294412446515445556b33cc33b2e569d37147c4cd04daf1fe51ba5a"
+  },
+  {
+    "path": "apps/shop/index.html",
+    "bytes": 9056,
+    "sha256": "f8495c531e34d5cf1eb3b43c808c180fb88b243f3e0af996cd33a2c4bad40037"
+  },
+  {
+    "path": "apps/shop/invoice-recovery.js",
+    "bytes": 6013,
+    "sha256": "051f1576a958cb28fbafa9081eecd638bf5841eb7c3e854d291ca0dbb1ea7d40"
+  },
+  {
+    "path": "apps/shop/manifest.webmanifest",
+    "bytes": 451,
+    "sha256": "3d8160d07c5108d3f78d92683fa74408d85496121c447f620bacd8cca207e61e"
+  },
+  {
+    "path": "apps/shop/native/ANDROID_BUYER_JOURNEY.md",
+    "bytes": 2976,
+    "sha256": "46774f5392bf6f08470757f7c5db073744e7072303384057fff0b51d4bd770b5"
+  },
+  {
+    "path": "apps/shop/native/APPLE_WEB_BUYER_JOURNEY.md",
+    "bytes": 4655,
+    "sha256": "7ad133d4c89088fcd84582fb52e51f516373d75d55698f7cfc59dc2140457c71"
+  },
+  {
+    "path": "apps/shop/native/ORDER_ACTION_VALIDATION_20261003.md",
+    "bytes": 3434,
+    "sha256": "8d27349e1c28a69f863ed857385c2cea5d5acae6b46e6ea331b61d74896b6163"
+  },
+  {
+    "path": "apps/shop/native/android/.gitignore",
+    "bytes": 42,
+    "sha256": "08023602731a20dc674419ccc8646134209ef2bad304faeb371719a1cda573d3"
+  },
+  {
+    "path": "apps/shop/native/android/NATIVE_PRODUCT_SESSION_PORTS.md",
+    "bytes": 4966,
+    "sha256": "1cc742de37ef1e5b658119ff7fd55a0e5f70a57194f76b6e2a6aaeb88617b6ff"
+  },
+  {
+    "path": "apps/shop/native/android/app/build.gradle",
+    "bytes": 1259,
+    "sha256": "959fa108b630165d3dd20aafaea09da5136f10967af86da050dea935d904138e"
+  },
+  {
+    "path": "apps/shop/native/android/app/proguard-rules.pro",
+    "bytes": 26,
+    "sha256": "9638584e67daf8535087fe3b06486369af68d6fc175cd5bfc1a198245acff290"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/AndroidManifest.xml",
+    "bytes": 1685,
+    "sha256": "af9e53fc3902d757bc0a1caad6f2e53a0ba47937256dd438852e5a7e6a3a7556"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/assets/native-session/client.mjs",
+    "bytes": 3401,
+    "sha256": "f02ac36c98ddd721a691512dc63f30e3e3205cc35ab208381433032c3660f830"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/assets/native-session/index.html",
+    "bytes": 328,
+    "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/assets/native-session/registry.json",
+    "bytes": 10393,
+    "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/assets/native-session/wallet-auth-native-consumer.mjs",
+    "bytes": 225709,
+    "sha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/AIPresentation.java",
+    "bytes": 489,
+    "sha256": "a5a9bf16dd112c7a429f6c24f6be21a6f96ac71bd3f622333dd05d8ace5545ba"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/ApiClient.java",
+    "bytes": 17123,
+    "sha256": "5957c960e4a04efe0909c73fc514c75338280951f1833bf8c74cbd154eedc16a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/ApprovalFence.java",
+    "bytes": 878,
+    "sha256": "8211d8abd027305e1e658b52107d1c2ede74754f13887fea8008504a67c24d17"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerOrderActionInput.java",
+    "bytes": 1953,
+    "sha256": "331147eb1675c4980d7b9400f30f5a47922fd2378e8870f63a49dd9d1dcc0f60"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerOrderReadback.java",
+    "bytes": 1587,
+    "sha256": "9c17817f444ff4f46ed7ee8b0ea6692bc862eb58ca4c6221768b37a5b0eb4678"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerPaymentReview.java",
+    "bytes": 6868,
+    "sha256": "fe18ee184c7fd5290c0766682a0491b29877009097ff4de6a9398e5be9f62f92"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerReceipt.java",
+    "bytes": 454,
+    "sha256": "5be6b47b52d3f99a85e59548110c04c67103243ec687693175c8ecfb9d771fe1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/BuyerTransitionRecovery.java",
+    "bytes": 2365,
+    "sha256": "f95544401a35f1917501666bb8977c74974c14739481447a9a9472134fc9b95b"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/CheckoutIntent.java",
+    "bytes": 10276,
+    "sha256": "94d52f081149462b971e9297c1c359a16b6a1b0d22ebc28b97c89d6ba2395204"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/ImageLoader.java",
+    "bytes": 3228,
+    "sha256": "1c5c57531206cf46e4fd86fbe0ca5249d853109b40cfde4b24b1b07abd64cee1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/LocaleController.java",
+    "bytes": 1437,
+    "sha256": "1830c82b59c9a705a7a5060c1578fbbd6b5ef2bb9b95fdd936feec05781166e7"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/MainActivity.java",
+    "bytes": 55515,
+    "sha256": "f164342b111deae41782824514814ee015e66f513b31c693c2501db6d24379d6"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeBusinessPolicy.java",
+    "bytes": 1906,
+    "sha256": "ef874e97475e396f8ee4d22c4ab55f7551cfa3b74a87f6c8161b9b43f9a90e8a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeCart.java",
+    "bytes": 8425,
+    "sha256": "79c5b45264b8f7910589dde70fe464f2e5c7b4a5a1e6441ca81056dfee17cbf8"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeProductState.java",
+    "bytes": 19829,
+    "sha256": "db2d7a343004945e2136543d058420c64e869802b02ec05f89ec56bccd77886a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeProtectedRuntime.java",
+    "bytes": 8611,
+    "sha256": "1b03e35ce42a219db6a246260d434d37385cf00079bbb89eea5c4814b4745d14"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/NativeSessionBridge.java",
+    "bytes": 15247,
+    "sha256": "3e5e66ef049873c2be72389bfe716179e8966ee9620fc636e1058fcb1fb5eaff"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/OfflineMutationQueue.java",
+    "bytes": 7556,
+    "sha256": "3de2319972afd8a2508daeb9aa2e9a575c8cac42a9a613df2b9f8172cdabe695"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/PayHandoffRecovery.java",
+    "bytes": 4389,
+    "sha256": "569477013d72af258d2ae4689cfca81600ba350c564bb8f5f8cfaa9ee9b967f8"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/PrivacyExport.java",
+    "bytes": 1121,
+    "sha256": "a45d0998af044871930a328c8d47bc46bfa28d6786a0e0e6b2274f6aaebeead6"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/PrivacyLifecycle.java",
+    "bytes": 16602,
+    "sha256": "98d73b82afabc7593e6ad72f405772554abbca3fa055651c66b046a4a19a788f"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/ProductSession.java",
+    "bytes": 2347,
+    "sha256": "d2101002f2b9608d0a5650fd74331a455d2906cdd11890673af71e5627296168"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/SecureStore.java",
+    "bytes": 6158,
+    "sha256": "70eb8444ee5d808dd4f65c2284238c3950349c9106773c61af12557fb1224950"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/SessionRevocation.java",
+    "bytes": 1340,
+    "sha256": "df212d10e7cb90630c55abc0a075e3628c124f75fa6a64167a4fbfb10f8586e1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java",
+    "bytes": 1755,
+    "sha256": "b63e1e7ab972be3a00208b8a398cfe5df988bf672f5eda478d9284ffec0d2e7a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/drawable-nodpi/ynx_logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/drawable/ic_launcher_background.xml",
+    "bytes": 133,
+    "sha256": "28ecfa9d9a1beedcdeba5be50b417e318118e45f5153fdcab90fd7f454e0a81a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/drawable/ic_launcher_foreground.xml",
+    "bytes": 313,
+    "sha256": "6414f5b2725956983f1e8804a8eb101dd339c8283b579431d58f44a26535f9ec"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "bytes": 221,
+    "sha256": "0c07490614bf34b2713efa6ec5d9f0c2d7efc6e7ba166e5e983c3147f8810f94"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ar/cart_sync.xml",
+    "bytes": 1455,
+    "sha256": "d9751cbd7218941c31c1b3eef9e532e5f9180b1eeda290c4743195ff10216483"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ar/order-actions.xml",
+    "bytes": 834,
+    "sha256": "2419629d03ea354a2f7c8a89632933393c7fdb76d4b2bc60812565dd094d08b2"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ar/privacy.xml",
+    "bytes": 2125,
+    "sha256": "b1dff92ef85add271f1866e4e77fed9f24bc3bb36864cb17242051b6aec8d7b7"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ar/privacy_lifecycle.xml",
+    "bytes": 2365,
+    "sha256": "a27288436c45dbfa89c8edbc8d50e0bad21ee57b111078712527be52a09aac29"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ar/strings.xml",
+    "bytes": 6027,
+    "sha256": "849a6db4ba50bf7eed3e5637ad9b3fa53e0f7253d5181d5eb7472aeedb97fc1c"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-de/cart_sync.xml",
+    "bytes": 1333,
+    "sha256": "9a5a515486af24e562796743ecb6ef57e5193b728c9ae92f70eab34e210535a2"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-de/order-actions.xml",
+    "bytes": 787,
+    "sha256": "fdbc6962df9cb993a92526001a701079468024dd2a8cc3d54b1d16a9dafae326"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-de/privacy.xml",
+    "bytes": 1714,
+    "sha256": "2b56d36b3246b798e8dc716898ed7abe5a7f773b446683698b2cb24ab67c07b9"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-de/privacy_lifecycle.xml",
+    "bytes": 2091,
+    "sha256": "6105fbc9b31df7f7e7371ddcae582e5910dba84f6322dc1770bb862fac6c265c"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-de/strings.xml",
+    "bytes": 4862,
+    "sha256": "c1e38bb1640ea0990e7724f0da05e467663e2c7ecd5ec788853a124fd60716ca"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-es/cart_sync.xml",
+    "bytes": 1242,
+    "sha256": "a7f17ffd42e5810db747d540683e63c4eee94f37e30f846207828594e5b5ba81"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-es/order-actions.xml",
+    "bytes": 748,
+    "sha256": "e1fe476e87153fe1f0617d6382093f47eb528632f50a6be2fe3cab55aaac0696"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-es/privacy.xml",
+    "bytes": 1677,
+    "sha256": "fc5b3e8547c9422d375afb6e93798832b912ed337dda5d7eb24d18ac75029c19"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-es/privacy_lifecycle.xml",
+    "bytes": 2077,
+    "sha256": "9c7ae3b8e03c045f5a83b83d145112d9872172071ef198740dc3805a019d9050"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-es/strings.xml",
+    "bytes": 4774,
+    "sha256": "b4f3f81467f8b88d2c72abb62a0933e0ac8d55425efd3c3fd4ea5167c8403b41"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-fr/cart_sync.xml",
+    "bytes": 1275,
+    "sha256": "ec14d7b20d65e845aabe2db7972fc163b70fe2b08b65a7693cee9bd51e6e67b1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-fr/order-actions.xml",
+    "bytes": 741,
+    "sha256": "d8ff126b2927f4b160028178c3d61359aa75d6cc4cd49271c0c8b9bbf4ffcafb"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-fr/privacy.xml",
+    "bytes": 1711,
+    "sha256": "9ca411fb8585e66657c776b689434d90a2efdd49ee26a8114bcedcc80b7af1cf"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-fr/privacy_lifecycle.xml",
+    "bytes": 2175,
+    "sha256": "4ddfae344d8e12179137c219d63e544beb4f481906d1de50e0276bc5783af66d"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-fr/strings.xml",
+    "bytes": 4922,
+    "sha256": "139a58a1a174d228f20ebe1e35f7dfb7e77dd1a057a36bc217b53c919e983f0a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-in/cart_sync.xml",
+    "bytes": 1208,
+    "sha256": "d125466ff5b394a118b37e80664dea8a3d35d930e7d6e79aaaba0c34f64cdcb7"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-in/order-actions.xml",
+    "bytes": 719,
+    "sha256": "28ae19ff4dd8030d888a6bb1cb1feb78cd19a2803576526f29b9822a52edd8ab"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-in/privacy.xml",
+    "bytes": 1514,
+    "sha256": "e217cbd9bffcb9323c42368fbc69ad87bbeb4a5a8cdbafcc8c3e3055e0e8d869"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-in/privacy_lifecycle.xml",
+    "bytes": 1960,
+    "sha256": "f5d3f49c9c70b14e456d1375cb7a103b4cddb8007c391e6c08a2d2fceb23b1a3"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-in/strings.xml",
+    "bytes": 4622,
+    "sha256": "2e26116389a4809d406e4eb5da37832253f40b23fd3a3980d8b63edf13f4211c"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ja/cart_sync.xml",
+    "bytes": 1397,
+    "sha256": "2b261ec14b04d01357d96ae1a0f699005df9432daa2d0ca0d1a2ce006e186afa"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ja/order-actions.xml",
+    "bytes": 785,
+    "sha256": "8b7914806dc7fbe45a9470077e5a1613bf7cc028c08ef8c62ad6759730a03fb2"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ja/privacy.xml",
+    "bytes": 1700,
+    "sha256": "6bec576a9d783c833c84566f38b785d5b37909dea1c74767f6e1689d92187b93"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ja/privacy_lifecycle.xml",
+    "bytes": 2137,
+    "sha256": "832cb32808b17539cc2e48d1ddbe16bfb657b61ce94fd9c0e7c2b71c3b584d37"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ja/strings.xml",
+    "bytes": 5132,
+    "sha256": "4dd198caddb206e9353621ae12e41f0924a738123a179de8ef7f123569b478cc"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ko/cart_sync.xml",
+    "bytes": 1349,
+    "sha256": "e0a963f5a657c199e2e2650ae4ac06b27217a2d6c1d96e0a84a105a94b07cb85"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ko/order-actions.xml",
+    "bytes": 807,
+    "sha256": "4fcefce9a9050c2bac038d507d1a0fbe03df70166dcf612a8bf111bb301c3bb5"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ko/privacy.xml",
+    "bytes": 1630,
+    "sha256": "ced1836f5bc343b035d3d49bc45da310ff8cde3c658ab60682b9ec9623fe8399"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ko/privacy_lifecycle.xml",
+    "bytes": 2040,
+    "sha256": "f72b16a1c0f22be3a956f0c8ba2965653575cdfeeef9744e1da2e8e5976e7a6d"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ko/strings.xml",
+    "bytes": 4924,
+    "sha256": "5fae143cf6149bcb1255561eb0c8978ae88dddc365b05a042aedf553c920eb96"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-pt/cart_sync.xml",
+    "bytes": 1234,
+    "sha256": "720e123795cce8a077d02c9bfa649fb3d7e11787b39083b649090a1eb95c155e"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-pt/order-actions.xml",
+    "bytes": 762,
+    "sha256": "480b6daab9ae113e734ce466009c9872f3550d3a90bd27948a4c78be49737e26"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-pt/privacy.xml",
+    "bytes": 1674,
+    "sha256": "ba302291ebee03772791caceaa320a290440d463076cfd15f704809383c3218b"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-pt/privacy_lifecycle.xml",
+    "bytes": 2066,
+    "sha256": "89facc78e06e6117431d15799042ffed5385e7fee933f866a3f06e10129bfeb5"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-pt/strings.xml",
+    "bytes": 4738,
+    "sha256": "6cdac1f89bfdfbdbc57de5f1440fd53f457b2229ff641681dfaf02f4a9a24875"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ru/cart_sync.xml",
+    "bytes": 1760,
+    "sha256": "271fb18422eafc6ec502ce067558ef72c1f979b68f0e43223c67fbcea5166daa"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ru/order-actions.xml",
+    "bytes": 971,
+    "sha256": "541a37904400681f9f8cdb13ad388b68b581d9806217427f58e9dc418ca2ee5b"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ru/privacy.xml",
+    "bytes": 2254,
+    "sha256": "1a3d6a2aa698af4a13739dd937933fd7900db541c4232ebb76e3c35b6c0285fd"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ru/privacy_lifecycle.xml",
+    "bytes": 3016,
+    "sha256": "3421ec0cd3b7da34c03e6031760e07c3146204d1ffffab5738b79de0933f8adc"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-ru/strings.xml",
+    "bytes": 6145,
+    "sha256": "ef668e6cdcca7473189bfe9de7a4a8af9c82e4dc2485b037e2fb12852ac7ff38"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/cart_sync.xml",
+    "bytes": 1172,
+    "sha256": "38ebc4597d265698e4ea1cf2820f1272db1b4d3a01ef6ff3c3f221dbbaadf0d2"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/order-actions.xml",
+    "bytes": 696,
+    "sha256": "4f793682e2abd658f04efe8c2c3a6fd8b722d4d543425df484a8e6de54a9efcc"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/privacy.xml",
+    "bytes": 1373,
+    "sha256": "ee4590199bae5a57f1682fac4ee1b60d0486266042e5fccde4fd5645e70a90b6"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/privacy_lifecycle.xml",
+    "bytes": 1591,
+    "sha256": "cd5c14ab95a86fea381518b9081727f233bfb5edd8dcded87510ce8e21c2e3cc"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rCN/strings.xml",
+    "bytes": 4406,
+    "sha256": "5e5bcdf8ff76dee3e11bf8dca80daf17d6f99f629a817ff65daeefa298611de4"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/cart_sync.xml",
+    "bytes": 1175,
+    "sha256": "5582636141515d1096aa13f8a19b112b895f6970e3c2e1d71f71a4099596b5b7"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/order-actions.xml",
+    "bytes": 699,
+    "sha256": "6aa94d6524dde7b979ba9be0d3826dfac2bfadd9e5e3867289b0068c88ae2320"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/privacy.xml",
+    "bytes": 1376,
+    "sha256": "48fbd16759274de5a72ee843342f6fd29c1ee7785e3a0a385e5b76850fa47c37"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/privacy_lifecycle.xml",
+    "bytes": 1591,
+    "sha256": "5a42dda541f110764ebb169ebea92c111cadef4e621822fe357d0fcd843c94e1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values-zh-rTW/strings.xml",
+    "bytes": 4409,
+    "sha256": "22788b7b27f1388fcfcc12a5d1fc399b6354e90404aa1ec8706674f39f5d1e29"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/cart_sync.xml",
+    "bytes": 1172,
+    "sha256": "b9e3da4aab759329b7b7f562a8e60b1b7521e8d37f12b845ffa160e5eee0a064"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/colors.xml",
+    "bytes": 132,
+    "sha256": "227f63caf5beda639d56b32b5e2a43deb5e19c52e7d2a44309588cf7caad3488"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/order-actions.xml",
+    "bytes": 713,
+    "sha256": "e09bc5c58654db59bf99aa9cdacb957c44b58682ebbce258842af54b7bcf88b3"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/privacy.xml",
+    "bytes": 1450,
+    "sha256": "729bde19fd48e690beae3fc57c3b2a3d8261c2b022d4a95a348d2864a24da26d"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/privacy_lifecycle.xml",
+    "bytes": 1774,
+    "sha256": "c5eb9919e714140050a7b84ffc5ff35997f9619d704c53c7e8fd218c0386844b"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/strings.xml",
+    "bytes": 4718,
+    "sha256": "064ec3987f008d18b46a5585c51b56c5778c95ba58fba5e261d39572a19f4750"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/values/styles.xml",
+    "bytes": 358,
+    "sha256": "9541e353594a191d25b92800fae9358d0bec587b33833480a2098d808a86598c"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/main/res/xml/data_extraction_rules.xml",
+    "bytes": 249,
+    "sha256": "c9613146cea09b8824b3c34f2b6e59bc0252793f7ee9fb7517d3ae12f00137e1"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/AIPresentationTest.java",
+    "bytes": 1876,
+    "sha256": "7167bb401987d20dffc7fb532b0ac3c7f1f429aff5b12461c927a9495f820fd3"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/ApprovalFenceTest.java",
+    "bytes": 1794,
+    "sha256": "9653775ac1af335d06c7cb163133408f626570691e913185fd8db57cd12cc950"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/AuthorizationPreparationTest.java",
+    "bytes": 2811,
+    "sha256": "e079d91db819eb4e76239658427b44ffe663e30026078030615bdd3a47a46e91"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/BuyerJourneyTest.java",
+    "bytes": 10915,
+    "sha256": "1a084de08baffb37a41cbd836209d977a4f19f4bf45ac302608fbf3daa52e8a5"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/BuyerOrderActionInputTest.java",
+    "bytes": 2362,
+    "sha256": "8a0a5e7141fd7dc34cf3af61a660582810087db70615d67c52e5516938184655"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/BuyerTransitionRecoveryTest.java",
+    "bytes": 6794,
+    "sha256": "04640d6e6677971d574424a3c5a85dad4884e1ab44a0a10b443d5a69bb3af368"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/CheckoutIntentTest.java",
+    "bytes": 7386,
+    "sha256": "dbfda5ceeb313174c440973ce18531d9ee983ccf509c2bac186b0f9762aa7645"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/ImageLoaderPolicyTest.java",
+    "bytes": 1004,
+    "sha256": "8d8304f89c70e6d4e35e9cdf11efc45094042ab5aa97b2a5a3f796fa8a04c805"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeBusinessPolicyTest.java",
+    "bytes": 1257,
+    "sha256": "e7d312193407c284dad00612f7b73474cd920653233d7935940160f28a9ffada"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeCartTest.java",
+    "bytes": 11532,
+    "sha256": "cfb0a82a8141b83e9f3e8e73f8f4a9d6f5d7a89e721f1bbe095c95f7d9993e52"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeProductStateTest.java",
+    "bytes": 12139,
+    "sha256": "5748b64fb0dcbcc5a9bff9a0b26729f831725e606f905d3cb06ce0b208751791"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/OfflineMutationQueueTest.java",
+    "bytes": 9952,
+    "sha256": "9a8e3507feb7539a61ed40b41695915c68aa5f2afe40769fbe3b5025fc2eba1b"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/PayHandoffRecoveryTest.java",
+    "bytes": 4902,
+    "sha256": "aec839d8c73b0684dc1a77fa9ff87ce547d268d60976b6d023ecdaa1c78fdc79"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/PrivacyExportTest.java",
+    "bytes": 2330,
+    "sha256": "3e4a757c8ef4ce41ac31c957b1dc63932ba34c0cee502832b01ecb31d05b1003"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/PrivacyLifecycleTest.java",
+    "bytes": 16551,
+    "sha256": "53a15b51ebb4cf9184153bed4f870a497b4a2aff6dcc4bd6a3bfb9b80b2097f8"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/PrivacyLocaleCatalogTest.java",
+    "bytes": 2692,
+    "sha256": "aff3541a08be55462ad8015bdca7468cf2bc8f4ff4c8c99ab82d609c5ddfe44a"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/ProductSessionTest.java",
+    "bytes": 1532,
+    "sha256": "3263c4d153bf20b440f36ea3b92340a3fdbb92612bd82a2f7976028e3cfba6b5"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/SecureStoreCommitTest.java",
+    "bytes": 3122,
+    "sha256": "88631b315ab1fa219c5799efdb239b399b03d78885d4719fdb0fd0cbf466145e"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/SessionRevocationTest.java",
+    "bytes": 4739,
+    "sha256": "6c4324eaa6f4d1c7d5ddac07001819a4751cf1360954f8c9ad92e1c4bbabbc57"
+  },
+  {
+    "path": "apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/WalletAuthContractTest.java",
+    "bytes": 755,
+    "sha256": "2cf373e312ada06c4cf6e13504a40f0a8fbf4179474100d5bc372ddc7b2ec1e1"
+  },
+  {
+    "path": "apps/shop/native/android/build.gradle",
+    "bytes": 74,
+    "sha256": "fa84a477beb7d59f87aad08544e292437495c46d70ca78847b29247cf578a019"
+  },
+  {
+    "path": "apps/shop/native/android/gradle.properties",
+    "bytes": 109,
+    "sha256": "e6b436ff6a08da8b8c05e0e2fc1a7f40f41701bb506cd80fc2ddfd7b6e3b3b2b"
+  },
+  {
+    "path": "apps/shop/native/android/gradle/wrapper/gradle-wrapper.jar",
+    "bytes": 46175,
+    "sha256": "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13"
+  },
+  {
+    "path": "apps/shop/native/android/gradle/wrapper/gradle-wrapper.properties",
+    "bytes": 251,
+    "sha256": "cdab1ffb439219b1db125e3c99a86cf2424f8762b9b3faa404ed061e3635ecde"
+  },
+  {
+    "path": "apps/shop/native/android/gradlew",
+    "bytes": 173,
+    "sha256": "22e356cd28d4dbc2b2a0ac1596cdd975cc4520714037170b1c56ad48f0535651"
+  },
+  {
+    "path": "apps/shop/native/android/settings.gradle",
+    "bytes": 269,
+    "sha256": "07209eb1ff8af56797e24fa5df62dcba377b2300de422ffbbe0180c55dcc439d"
+  },
+  {
+    "path": "apps/shop/native/ios/NATIVE_PRODUCT_SESSION_PORTS.md",
+    "bytes": 4240,
+    "sha256": "37f91e270066360cf40e1bda2d8061a9d4f7520046ee64fcd9a8e3c91c883470"
+  },
+  {
+    "path": "apps/shop/native/ios/README.md",
+    "bytes": 2190,
+    "sha256": "0db57a37cd42d9bea1aba59d00b47df755944cc038b02f71aa523a872ef53510"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop.xcodeproj/project.pbxproj",
+    "bytes": 10550,
+    "sha256": "8d740da20548fedf638e0084c10c45cd149237170f76d591205888e916630178"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop.xcodeproj/xcshareddata/xcschemes/YNXShop.xcscheme",
+    "bytes": 1876,
+    "sha256": "d73441849528c4cdb7a59dc5c35cd7d3721556424d6d6d59f4ec5a7b9596e0f4"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop.xcodeproj/xcshareddata/xcschemes/YNXShopMac.xcscheme",
+    "bytes": 1448,
+    "sha256": "bd1fa9c3fca00f3146055a160a4851728c59c504b79e8744074fd90fd0a101d7"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/API.swift",
+    "bytes": 8857,
+    "sha256": "52cb5018ba2e2bbefbaeef40141d02ff3439287d687d9b0da399b72c234627aa"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/AccentColor.colorset/Contents.json",
+    "bytes": 180,
+    "sha256": "c35ed0b37edcc2c813f27e63aca3e9b4216a6e4490914018fad8e63337a04222"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+    "bytes": 865746,
+    "sha256": "2220432a345cab27964536016642f939ce8970685bcea8f168e6757b281c2bf0"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/AppIcon.appiconset/Contents.json",
+    "bytes": 203,
+    "sha256": "852920cb36e95beb53771138a4b8195a16fcce1cc31250632f246081cc638f9a"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/Contents.json",
+    "bytes": 40,
+    "sha256": "10e3b5dc202f1cd9fad1f688c8fc9fe9e9669bf3f8295e67d216b10fd99b6f49"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/LaunchBackground.colorset/Contents.json",
+    "bytes": 368,
+    "sha256": "a02d90bd658cacb7c74e68182c0bbb4ec5510932f40d710a2ce315195101a128"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/YNXLogo.imageset/Contents.json",
+    "bytes": 99,
+    "sha256": "35766d330b134c31a9d8c854cf0242c77ee6fc73877422ea2ba9ae4df4153ba1"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Assets.xcassets/YNXLogo.imageset/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/ContentView.swift",
+    "bytes": 10382,
+    "sha256": "da50d53aed1617af382043765e12cc1e99a5b7502a193778c4275be8fb2ceab0"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Info-macOS.plist",
+    "bytes": 1536,
+    "sha256": "bf102f25057d975b40e4d8a40c5a2fcfe121faa9005f337e55a770b96d372965"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Info.plist",
+    "bytes": 1557,
+    "sha256": "c38c311278926342bec98b8690fb8ae9690f0c79d9e31266c9baae0a9f68da02"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Localizable.xcstrings",
+    "bytes": 259173,
+    "sha256": "5bafc72115bc3104e4fc8421140ad73544b0df7ac5fece8818478140efd8fd58"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/NativeProductState.swift",
+    "bytes": 15522,
+    "sha256": "68b07c964fbc7b1bd26eab9fc4281431cd53892e88fded781a79b5d97460ad6e"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/NativeProtectedRuntime.swift",
+    "bytes": 5396,
+    "sha256": "0d4f84fa2f4b2cd9179f80ee3b1dddb1044528953687f18b55c77c7e7514ea9a"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/NativeSessionBridge.swift",
+    "bytes": 17587,
+    "sha256": "30bf3c6293131f03309ceeec5eae3ff4cac1d3975da82fe3ffdf3576f33460b8"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/PrivacyInfo.xcprivacy",
+    "bytes": 1216,
+    "sha256": "2b9226447283cefdc26d02aec7ed59a7bda1fa3bccb360db6e67a313448eecbe"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/Security.swift",
+    "bytes": 22385,
+    "sha256": "6f6eb0e3767f6dc5b9c0e9eb6488913498399f2b97dd7edcbba865fc4258d6d1"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/ShopModel.swift",
+    "bytes": 19489,
+    "sha256": "af958f8614ee7ee28ebfa4ddc235ea0bd8faeab7575c04e802a85851760933aa"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/WalletAuth.swift",
+    "bytes": 735,
+    "sha256": "69800c4bf25a5f64c31764d8c87d5e1fa165871e8170fc03ecf2cfd70571154e"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/YNXShopApp.swift",
+    "bytes": 479,
+    "sha256": "aef01c6948e335ab2a0352f2f030689c61a92d2df5eab48e6dcedefbf2dedde3"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/native-session/client.mjs",
+    "bytes": 3570,
+    "sha256": "29e3567b240be11de098a2d27c1320d6d229d230538da275d5265704ea149351"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/native-session/index.html",
+    "bytes": 328,
+    "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/native-session/registry.json",
+    "bytes": 10393,
+    "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+  },
+  {
+    "path": "apps/shop/native/ios/YNXShop/native-session/wallet-auth-native-consumer.mjs",
+    "bytes": 225709,
+    "sha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82"
+  },
+  {
+    "path": "apps/shop/native/ios/tests/BuyerJourneyChecks.swift",
+    "bytes": 18352,
+    "sha256": "38c85e886dac56b4654bccbb212f19239ae2516cb8085f3a9d2ca55bc23179cb"
+  },
+  {
+    "path": "apps/shop/native/ios/tests/NativeAPIChecks.swift",
+    "bytes": 9803,
+    "sha256": "c5f4277a25e301f4e9aac52106a34a68f510cfa4f5daa444235de5de0603aa5b"
+  },
+  {
+    "path": "apps/shop/native/ios/tests/NativeEngineChecks.swift",
+    "bytes": 5937,
+    "sha256": "9c810bb28933350b33ae97988f06c3262b07d693ae12952f39ed87cdc870ac3a"
+  },
+  {
+    "path": "apps/shop/native/ios/tests/NativeProductStateChecks.swift",
+    "bytes": 5991,
+    "sha256": "5d0b66c0ce1129ddee8e4c73639dd704da2768605c35d1dd6de9ebf6590aadb5"
+  },
+  {
+    "path": "apps/shop/native/ios/tests/native-sdk-scope-check.mjs",
+    "bytes": 2591,
+    "sha256": "5eba00aa247fff5d302c6119b7ee25533804421bee4f7ab5c30c14bed6c2fb0a"
+  },
+  {
+    "path": "apps/shop/native/scripts/sync-ios-locales.mjs",
+    "bytes": 5289,
+    "sha256": "3c6d8a6b1d20f45b74ff6fe4497d3184824720b0cecfa6944116f1872fc97116"
+  },
+  {
+    "path": "apps/shop/native/scripts/verify-order-actions.mjs",
+    "bytes": 3376,
+    "sha256": "f7ffe56caf10536a07967e5e2c5381d2073425ad834e2f90a6d76b6a2b395995"
+  },
+  {
+    "path": "apps/shop/native/scripts/verify.mjs",
+    "bytes": 7326,
+    "sha256": "83da681f0ba243d1e5a75805216461f89273c6df47a8f5d2ca295e3279137af2"
+  },
+  {
+    "path": "apps/shop/order-action-copy.js",
+    "bytes": 13084,
+    "sha256": "ad10dff265c8cd861071fb548e655cc7ca40da040336fa63a83d1c178614b342"
+  },
+  {
+    "path": "apps/shop/order-action.js",
+    "bytes": 3101,
+    "sha256": "280e559eb4865f603463814525eada10139060cf896e77dd5fde596c928c2558"
+  },
+  {
+    "path": "apps/shop/package-lock.json",
+    "bytes": 66886,
+    "sha256": "2bf91a1a93e51a3aab0ea8f96e9f1198487fc81643d20c08d08fbeae643d0dc8"
+  },
+  {
+    "path": "apps/shop/package.json",
+    "bytes": 585,
+    "sha256": "95106177de8e4762a58984f8959c5292823c2aab6424107a78df1b1ddcb7f1b7"
+  },
+  {
+    "path": "apps/shop/playwright.config.mjs",
+    "bytes": 404,
+    "sha256": "82dac214704f1bc8818e73179b066dbb3692f9621d4040d25fcb3afc4f725262"
+  },
+  {
+    "path": "apps/shop/privacy-i18n.js",
+    "bytes": 12669,
+    "sha256": "7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03"
+  },
+  {
+    "path": "apps/shop/product-release.json",
+    "bytes": 3969,
+    "sha256": "180b5dd9955c49d5f8fe97a27b5191d160511496a2c7c95cc3437af9eff29dbc"
+  },
+  {
+    "path": "apps/shop/release/SHA256SUMS",
+    "bytes": 101,
+    "sha256": "e24a3d717deeab6092e183ebb9e325294e86473d55104394a27d54c434f274e7"
+  },
+  {
+    "path": "apps/shop/release/ynx-shop-0.2.0-testnet-preview.apk",
+    "bytes": 78639,
+    "sha256": "0df56042b944f74540be437e314f6331afcb4f9674342d63b1922fbdab7c435f"
+  },
+  {
+    "path": "apps/shop/request-context.js",
+    "bytes": 1843,
+    "sha256": "e4c2df2da3ca984c52e69726640a7f4f09b2fb98aff6d8858b1882f5085e1b02"
+  },
+  {
+    "path": "apps/shop/scripts/build.mjs",
+    "bytes": 1063,
+    "sha256": "d621093fb292cda7887110cd4a28af0947a5688d1692b8560d488ac7b65c6393"
+  },
+  {
+    "path": "apps/shop/scripts/smoke.mjs",
+    "bytes": 374,
+    "sha256": "7c353da5d607d884ca9e93cf26e30e3b67bcb0acc00b1082942bcab8cb67e2c5"
+  },
+  {
+    "path": "apps/shop/styles.css",
+    "bytes": 12034,
+    "sha256": "4a3e0941ea50e5c1d00d0ad33f6c087862df47e3fe6e317535738af6dac1bdae"
+  },
+  {
+    "path": "apps/shop/sw.js",
+    "bytes": 1433,
+    "sha256": "8617302ba1ff722609f68a1086eccadef96a1e2cb3c7b302dd586e4cd980e941"
+  },
+  {
+    "path": "apps/shop/test/ai-stream.test.mjs",
+    "bytes": 2165,
+    "sha256": "15e12f547b331fd14dc536401075dfc506fd758a4efc18bf066b6814a15edac4"
+  },
+  {
+    "path": "apps/shop/test/browser-business.test.mjs",
+    "bytes": 3103,
+    "sha256": "a518805b54523bfb65ce123d380b4ba5a115e1ee3acaa30269310572283cb116"
+  },
+  {
+    "path": "apps/shop/test/browser/browser-identity-fixture.mjs",
+    "bytes": 2873,
+    "sha256": "098b80c7dd82f4a78ab871907e8755dd8c255e97c21965b62fe9395da147ae84"
+  },
+  {
+    "path": "apps/shop/test/browser/browser-identity-required.spec.mjs",
+    "bytes": 1061,
+    "sha256": "21c0e6675c82ec7a223098e8315d55d5fa4b6fc9fa5841a31ee013780c3e8e7b"
+  },
+  {
+    "path": "apps/shop/test/browser/canonical-layout.spec.mjs",
+    "bytes": 2921,
+    "sha256": "855a0a5c0e64a4d6d0449f8579978e527d95d2859c4976d43f858a03f729b966"
+  },
+  {
+    "path": "apps/shop/test/browser/checkout-recovery.spec.mjs",
+    "bytes": 6765,
+    "sha256": "0aaf0b721dfac4b27244e8c9cba486f47b19e5f6800fac28c4790ba8eb658d12"
+  },
+  {
+    "path": "apps/shop/test/browser/invoice-recovery.spec.mjs",
+    "bytes": 3029,
+    "sha256": "52402528807339b3f0c442cc554a0e661d30855e3aa535be64a181983096e6a4"
+  },
+  {
+    "path": "apps/shop/test/browser/order-action-recovery.spec.mjs",
+    "bytes": 5364,
+    "sha256": "64a55641e44a003f4579e3a64e4e84116fff039ed07abd6cd3c632319d8b56cc"
+  },
+  {
+    "path": "apps/shop/test/browser/role-callback.spec.mjs",
+    "bytes": 3228,
+    "sha256": "b22728b03e7df1ca48047a2a8fe260743bb17d06eb66e734369d3f0db1ff5558"
+  },
+  {
+    "path": "apps/shop/test/browser/session-ai.spec.mjs",
+    "bytes": 9512,
+    "sha256": "ace637a522d25943b6abee0bde164b8e520a580a7c95c35b07fa53f488f4dde0"
+  },
+  {
+    "path": "apps/shop/test/browser/shop-fixture.mjs",
+    "bytes": 12154,
+    "sha256": "6220f7532453246f504e8685bc0e0cbf53ec0b45fa74899060192aadee257f89"
+  },
+  {
+    "path": "apps/shop/test/checkout-recovery.test.mjs",
+    "bytes": 3292,
+    "sha256": "838d90a04effaafb05a5061df0fc921eb1226a3d3ce890f16c07c12a7bc3b049"
+  },
+  {
+    "path": "apps/shop/test/invoice-recovery.test.mjs",
+    "bytes": 3907,
+    "sha256": "6220cf7f34f272c170fbe1150ef91a3f3db7fdaa625e52fbbe120b19255da80c"
+  },
+  {
+    "path": "apps/shop/test/offline-boundary.test.mjs",
+    "bytes": 1901,
+    "sha256": "265d1f31ecc86763bf3646a63a19afc0cb0ffe9d5c81a11c33f50f9fbb8a77ff"
+  },
+  {
+    "path": "apps/shop/test/order-action.test.mjs",
+    "bytes": 4796,
+    "sha256": "d700e46af4a1b4ebfa82490ef0e0f8ba9ddf8f75b87d4a376d1b582ce40c639f"
+  },
+  {
+    "path": "apps/shop/test/privacy_i18n.test.mjs",
+    "bytes": 1221,
+    "sha256": "9bd55815c5c4d61f449bf219ca9f678f9b895f7407de29ea45aeea209ceb0c8d"
+  },
+  {
+    "path": "apps/shop/test/request-context.test.mjs",
+    "bytes": 2088,
+    "sha256": "094ff0c820bb3dd0d6a30775a6167a9938873d450da04d492335b74712d90ab3"
+  },
+  {
+    "path": "apps/shop/test/security_i18n.test.mjs",
+    "bytes": 1689,
+    "sha256": "33d4705e36ccecd7b90536e46f41a0b6c570b070912a5dba35b65933ffc04402"
+  },
+  {
+    "path": "apps/shop/test/ui.test.mjs",
+    "bytes": 2702,
+    "sha256": "d63310980557c84a4ac5bcb4ec8e722e2ee00ddc80dd5c1712800f2bbc5b5541"
+  },
+  {
+    "path": "apps/shop/test/wallet-connect.test.mjs",
+    "bytes": 10188,
+    "sha256": "222fc24a83035d87f6b273903a90736a0953a12dc892bd446d27df328390b172"
+  },
+  {
+    "path": "apps/shop/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+    "bytes": 553264,
+    "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+  },
+  {
+    "path": "apps/shop/wallet-auth.js",
+    "bytes": 11936,
+    "sha256": "f9932db61661d42cd1a58cb52db40c91736c656dd43bce43c6f61064bf539dc8"
+  },
+  {
+    "path": "apps/shop/wallet-provider-discovery.js",
+    "bytes": 293,
+    "sha256": "d8949474394b861233cedb0aba1cce609ef0537406b4860d4dbf4f468b6e1742"
+  },
+  {
+    "path": "apps/shop/workflow.css",
+    "bytes": 1484,
+    "sha256": "2b1c75ae4fc736115d674fc3f3a9f1412e5d2a9068061da27f1ee153f4f375e5"
+  },
+  {
+    "path": "internal/commerce/COMBINED_WEB_INTEGRATION.md",
+    "bytes": 4294,
+    "sha256": "ade6bc60394efdd5da3b01b6315b47d4fd2955545de360d67b93930c0a397103"
+  },
+  {
+    "path": "internal/commerce/accounts.go",
+    "bytes": 39465,
+    "sha256": "dde7d8ecca279b0471c2206b978aa246bbd7bf453694f9b50c6ebc3be7acab1b"
+  },
+  {
+    "path": "internal/commerce/ai_completion_boundary_test.go",
+    "bytes": 3832,
+    "sha256": "2ff48373a243ca2b9af5e16dd951c51e284f083d9a30735b5b815309b0eb3ff0"
+  },
+  {
+    "path": "internal/commerce/auth.go",
+    "bytes": 12820,
+    "sha256": "58fddd62d78a638c7bd6de66b6f129dbdeca5d20cb1fc47319df631774c3438e"
+  },
+  {
+    "path": "internal/commerce/auth_browser_v2.go",
+    "bytes": 3518,
+    "sha256": "0f180ae6a6eb1f421dd83a3ca8f0aab4cba764ed5ef5f0047a1ce5eb68342e0f"
+  },
+  {
+    "path": "internal/commerce/auth_browser_v2_test.go",
+    "bytes": 8702,
+    "sha256": "89b0c54864995b747a914e6880bd2583e568f85c5e4afa34f96e2470e644a449"
+  },
+  {
+    "path": "internal/commerce/auth_gateway_test.go",
+    "bytes": 8298,
+    "sha256": "b4c0f5e2c62e6d7d3e4d1652a7cdc09d82a3584690756268572e3326ea1a16b1"
+  },
+  {
+    "path": "internal/commerce/auth_native_buyer_v2_test.go",
+    "bytes": 6343,
+    "sha256": "0814a764a509a92d08c5a3d25c080893f7851a427fdcd89ffae81d8b7f767ec4"
+  },
+  {
+    "path": "internal/commerce/auth_v2.go",
+    "bytes": 8300,
+    "sha256": "62df802b2f0407244c5b4a10878b7ea784ea42af1b64e8f3f734f05dedc90849"
+  },
+  {
+    "path": "internal/commerce/auth_v2_test.go",
+    "bytes": 10754,
+    "sha256": "2d1e61d797a405c79eee1ae9c87e3ac57713b2cdff7f7c49c35791156ddec85e"
+  },
+  {
+    "path": "internal/commerce/browser_binding_test.go",
+    "bytes": 2861,
+    "sha256": "d04eab39ae55f1f2f773f4607cd542873e6bef7cccf64036260657d058bc6b6f"
+  },
+  {
+    "path": "internal/commerce/business_actor.go",
+    "bytes": 3574,
+    "sha256": "624be61e0108cb3887b3be2261fe6a5d8d72e927ecafae74de39aa4ca98590f3"
+  },
+  {
+    "path": "internal/commerce/business_actor_test.go",
+    "bytes": 3197,
+    "sha256": "584fafe182b8f220f8e3e86a2fb3dba5d3faa44260254a9ea56f35c9d450095f"
+  },
+  {
+    "path": "internal/commerce/business_buyer_wire.go",
+    "bytes": 1919,
+    "sha256": "6bf7d2ee39a20f3df69a46cd0d5560aa9fa0fba001ee807b1556bd3a72ae9705"
+  },
+  {
+    "path": "internal/commerce/business_buyer_wire_test.go",
+    "bytes": 1151,
+    "sha256": "5c0f3add84e55d7a09da39fb785fbfd60c352406695e7f8298e6fc3a8c2a4eea"
+  },
+  {
+    "path": "internal/commerce/business_effect.go",
+    "bytes": 10071,
+    "sha256": "2b957cbe397eb5f55ab1969186202c114f7b95e0bf50a841a8011d5071545ace"
+  },
+  {
+    "path": "internal/commerce/business_effect_http.go",
+    "bytes": 5122,
+    "sha256": "9f89e3f30d79eb34cf38050f7178e2177fb9ac47d77e2df41b3b1ec28facbc44"
+  },
+  {
+    "path": "internal/commerce/business_effect_plans.go",
+    "bytes": 9175,
+    "sha256": "ba3409c88cbe1be2eca55d50f8b97c4e757a9a4dfc838e1aaa0764023bf5e335"
+  },
+  {
+    "path": "internal/commerce/business_effect_test.go",
+    "bytes": 12238,
+    "sha256": "f8f29351757550a9354e5ee86b3dd5a6c7f6fa0dc6f9e105a70cb420b763c1f9"
+  },
+  {
+    "path": "internal/commerce/business_http.go",
+    "bytes": 6369,
+    "sha256": "2b4bd9509517c914de0a0e7c541378fae8b15d293b2bb98a3782e46a82266643"
+  },
+  {
+    "path": "internal/commerce/business_http_test.go",
+    "bytes": 6152,
+    "sha256": "543259f722771be2e54487edb8df8a5433f97bdb229b4b7125d4f1f9b416c0e9"
+  },
+  {
+    "path": "internal/commerce/business_invoice_recovery.go",
+    "bytes": 1893,
+    "sha256": "ba4a8ed370a67abbfcd70738e916dee0badf62c6cf5c64b4f4c9cbf6455ce948"
+  },
+  {
+    "path": "internal/commerce/business_invoice_recovery_test.go",
+    "bytes": 5328,
+    "sha256": "96efed9e21241233f79b9de5da1adb062e4519913fb2864a9b5d84853b74490e"
+  },
+  {
+    "path": "internal/commerce/business_order_transition.go",
+    "bytes": 2029,
+    "sha256": "6639e7e0ec241fd081a74914444345939596b1a21d99ed5bd192e57892ae164a"
+  },
+  {
+    "path": "internal/commerce/business_order_transition_test.go",
+    "bytes": 6214,
+    "sha256": "d9ab305ac12452a75af2c2d95909c9c2aadad0766211a6803308eacb3fc0e6a9"
+  },
+  {
+    "path": "internal/commerce/business_routes.go",
+    "bytes": 9631,
+    "sha256": "7edd0e0a9f2dfaa0b1720df9cb979749407605a3f8123de0bd1d714f7f99c22e"
+  },
+  {
+    "path": "internal/commerce/business_settlement.go",
+    "bytes": 2729,
+    "sha256": "d3dd582b248b8f8e0846cf6db25cf0c9657d3eff6f3d5b80bc03bb078c18202e"
+  },
+  {
+    "path": "internal/commerce/business_settlement_amount_test.go",
+    "bytes": 4146,
+    "sha256": "03b87bd4b457794fad6cb8ab9a7688eee0af5fae0429a56e216acb34778846cd"
+  },
+  {
+    "path": "internal/commerce/business_settlement_test.go",
+    "bytes": 9269,
+    "sha256": "e4b09ad9bdf213b26ef3c25ce0b036df9d3264c51274f5d4c599f4f452dfd828"
+  },
+  {
+    "path": "internal/commerce/business_transaction.go",
+    "bytes": 4421,
+    "sha256": "d7e2cce705ce974cf9922061dc689c41c15fc9618fcc3fc4b25bf575bdd7f334"
+  },
+  {
+    "path": "internal/commerce/business_transaction_test.go",
+    "bytes": 8071,
+    "sha256": "1bd23b77126852325675e63684ecfd9b07164da8c9bac6f7f92ca15dc665d8a7"
+  },
+  {
+    "path": "internal/commerce/business_trust.go",
+    "bytes": 3454,
+    "sha256": "011199f29225ac8ed9087fcf31276f44b7e76204c0201eba425b655d84927797"
+  },
+  {
+    "path": "internal/commerce/business_trust_test.go",
+    "bytes": 9158,
+    "sha256": "001952d472369dbbdd36e8e62000b934f3f6b438e58a775156a300c4626e84a5"
+  },
+  {
+    "path": "internal/commerce/buyer_boundary_test.go",
+    "bytes": 6949,
+    "sha256": "77478853c6e0a294acc15b5529c4ec96234d40c1af13ef2544861e186e408840"
+  },
+  {
+    "path": "internal/commerce/buyer_transition_lookup.go",
+    "bytes": 2406,
+    "sha256": "80c29a68b99d2580b37225ff68a5b747b226da35ef2de9f17b2f14ed8364e699"
+  },
+  {
+    "path": "internal/commerce/buyer_transition_lookup_test.go",
+    "bytes": 6199,
+    "sha256": "09468d2ea07184a25f61610094d38555a5247b9d6b1d0023256a8c728c1e2f4e"
+  },
+  {
+    "path": "internal/commerce/cart_intent_test.go",
+    "bytes": 3349,
+    "sha256": "08ba3bfeb0956b10c8f23f5744eeec6402c33d8a5846f205cdaa1883971479bb"
+  },
+  {
+    "path": "internal/commerce/checkout_cart.go",
+    "bytes": 1280,
+    "sha256": "a619df32067c277111483817c4a3946d341a705e52fbadbb1bcfb74a7cf5f3ec"
+  },
+  {
+    "path": "internal/commerce/checkout_cart_test.go",
+    "bytes": 6149,
+    "sha256": "ab224c5330ece75b256c6d1742d3a3c113fa213afbba4b099b31f0509fcdb6b3"
+  },
+  {
+    "path": "internal/commerce/client_subject_test.go",
+    "bytes": 972,
+    "sha256": "5ced3997f048ce805757633d16a31e4e3a960362485d1311962f1b738da03dfb"
+  },
+  {
+    "path": "internal/commerce/cmd/seed/main.go",
+    "bytes": 4754,
+    "sha256": "5df17430c199baf099116603ea8617cfc98017a25e1223972dd4ad0e3d412bd2"
+  },
+  {
+    "path": "internal/commerce/cmd/shopd/main.go",
+    "bytes": 4638,
+    "sha256": "ad3519b3ebdd4142932449b3c5cf1c58fab7825b27ec22d7110170182ee12d60"
+  },
+  {
+    "path": "internal/commerce/commerce_test.go",
+    "bytes": 17776,
+    "sha256": "45c9206b3e562fc3dcf57b31fbed7654ad195311c4d3ec3e694593e8b4d7317b"
+  },
+  {
+    "path": "internal/commerce/data_lifecycle.go",
+    "bytes": 9226,
+    "sha256": "1150d83209fbf2a9e1eb13187408ae480ee19348d68b0060da23de0863c05f83"
+  },
+  {
+    "path": "internal/commerce/data_lifecycle_test.go",
+    "bytes": 7339,
+    "sha256": "dbddad8e28227466dde0aec102e011c2c524267b309300fe96c70a57f67ae806"
+  },
+  {
+    "path": "internal/commerce/integration/seller-registry-v2.json",
+    "bytes": 315,
+    "sha256": "6aafe9efa86e6036932f397282ca297c1610d79288d8d616cdfa24abb216159b"
+  },
+  {
+    "path": "internal/commerce/integration/shop-registry-v2.json",
+    "bytes": 314,
+    "sha256": "7b9afbce2718dead73655faa0aec919aac23584cb5482e575f9fb22e27387ffe"
+  },
+  {
+    "path": "internal/commerce/integrations.go",
+    "bytes": 17263,
+    "sha256": "e622b0059a84bdb01f20dc6b96c40f26f1a9ca6bbfdcde605b0413b92bcf4f11"
+  },
+  {
+    "path": "internal/commerce/model.go",
+    "bytes": 12610,
+    "sha256": "ccd5f64656fa10a5dfb0a34608eb80d9019b1b7b858dd8cd3daa1e7a0a97e513"
+  },
+  {
+    "path": "internal/commerce/observability.go",
+    "bytes": 12602,
+    "sha256": "075e5b9c91329d8be691fe6e55f74d0b2f449a5fb1aa60eea765f9730e22dd53"
+  },
+  {
+    "path": "internal/commerce/observability_test.go",
+    "bytes": 8198,
+    "sha256": "a05645ab6c6501066c3947f3372ee69fb8795d7647ddba7f3842a8c3552bb2ba"
+  },
+  {
+    "path": "internal/commerce/order_boundary_test.go",
+    "bytes": 12891,
+    "sha256": "66b32b6e9e78bd7f8348bbeabb10c4de5ff9b1d85caac2057dc4acc500644b53"
+  },
+  {
+    "path": "internal/commerce/privacy_replay_test.go",
+    "bytes": 22291,
+    "sha256": "988aa10ac0c4ac826d772fcab5403df850dc8062b00d33107c921e0711a64e17"
+  },
+  {
+    "path": "internal/commerce/privacy_test.go",
+    "bytes": 4219,
+    "sha256": "e758130bb2a71e64f18122eaba4b1125313dad4dbd31bbe3c1b0d4121b342d3a"
+  },
+  {
+    "path": "internal/commerce/provider_registry.go",
+    "bytes": 17946,
+    "sha256": "ec74c6ce9a9e58529b9b450f85ae39172d3f1329fec3c46662a2db56b0a75d53"
+  },
+  {
+    "path": "internal/commerce/provider_registry_test.go",
+    "bytes": 4845,
+    "sha256": "9f59893303d8fb4544a39f5987d876b4e01622e9e59f979c6a0c9c8d67c3e6e0"
+  },
+  {
+    "path": "internal/commerce/role_revocation_server_test.go",
+    "bytes": 8044,
+    "sha256": "467c5d48cc77b4c340e666ce9843edceaa55426f0b1d16359acd4731066c73ac"
+  },
+  {
+    "path": "internal/commerce/roles.go",
+    "bytes": 3039,
+    "sha256": "18b57d799dd4f1387a3ed09da5e25352e25931de2adb1228486471d08f1bed2a"
+  },
+  {
+    "path": "internal/commerce/roles_test.go",
+    "bytes": 10249,
+    "sha256": "90f093e1b6e2ade108e29b34b6ca2827ea66eca550264f6fd6b73dc0e0991a49"
+  },
+  {
+    "path": "internal/commerce/seller_mutation_lookup.go",
+    "bytes": 7394,
+    "sha256": "4d8bd6853e6e118dfae62a8bd15f41ee74d6213c50c02b2e84a92510956eaeaa"
+  },
+  {
+    "path": "internal/commerce/seller_mutation_lookup_test.go",
+    "bytes": 8041,
+    "sha256": "85b4e44efd63ce93cee60ece14e1b3c2bbbbf05b05270593628d7fb2a1565efa"
+  },
+  {
+    "path": "internal/commerce/seller_test_helpers_test.go",
+    "bytes": 419,
+    "sha256": "e86bc134a1c2649a780fce1926e8ffab93bab9ba227edf127b50e261e1dbf24d"
+  },
+  {
+    "path": "internal/commerce/server.go",
+    "bytes": 37562,
+    "sha256": "5160672a2bed671c8f1226f4867209a81d5734a3dca01116d9a1cd908f188fb3"
+  },
+  {
+    "path": "internal/commerce/server_workflow_test.go",
+    "bytes": 10022,
+    "sha256": "67201d31e47130b1323fe712f1674e494125bafb5b125f16b2532bd17d7cb258"
+  },
+  {
+    "path": "internal/commerce/service.go",
+    "bytes": 28780,
+    "sha256": "4965d4af4500f285dbaf38c9b958af1f12ea164b2fd0bef296d2ab7ebaee04f2"
+  },
+  {
+    "path": "internal/commerce/snapshot_rollback_test.go",
+    "bytes": 14324,
+    "sha256": "149d7b3188727b7bcb4e689aaab3830b435b9c60db22c512ebc46c2ab014530a"
+  },
+  {
+    "path": "internal/commerce/store.go",
+    "bytes": 27869,
+    "sha256": "1c5a200a1c0d1c6b6bf6b6c9507552deb4d0339b871d1fb1d478f747112cacf0"
+  },
+  {
+    "path": "internal/commerce/team_invitation_server_test.go",
+    "bytes": 5740,
+    "sha256": "f254972a101360355a18f19abf37b7034c870b8f7535c98bd7684e26db7891a9"
+  },
+  {
+    "path": "internal/commerce/team_invitation_test.go",
+    "bytes": 11687,
+    "sha256": "223fea1ebd9fbbaab6278be9879c2b7384c0d8be1ca318f7b6b87e41ed86c739"
+  },
+  {
+    "path": "internal/commerce/testdata/browser-business-node.mjs",
+    "bytes": 11236,
+    "sha256": "53bb4872b5cd63c424120bcce9dcbe2ff6e336b22a1222e4ba9f1d0de7ea2df5"
+  },
+  {
+    "path": "internal/commerce/testdata/native-buyer-business-node.mjs",
+    "bytes": 11211,
+    "sha256": "ee16c108d867c67f47a28e496df2610a61134b29d67457d47ab6fc6396e190b1"
+  },
+  {
+    "path": "internal/commerce/testdata/v2-business-node.mjs",
+    "bytes": 4096,
+    "sha256": "8ebc3417bcd9e2801adad378a05c8390c31228c72bd73947fb2520299e8eaf8f"
+  },
+  {
+    "path": "internal/commerce/trust.go",
+    "bytes": 4510,
+    "sha256": "e287f2bb6d2cd7a891591e1706edd060b86c4671d62439981375213fc0f1637a"
+  },
+  {
+    "path": "internal/commerce/trust_test.go",
+    "bytes": 1976,
+    "sha256": "cf6e083d0c6c1861def8d2e92da5d071bbf423e6c915010c93ce895f26d71789"
+  },
+  {
+    "path": "internal/payproduct/.env.example",
+    "bytes": 1204,
+    "sha256": "3e3ddc8ab52e55c81fd15706ec4e60139004cd84f0f32fdc96fab5be08d6a446"
+  },
+  {
+    "path": "internal/payproduct/CANONICAL_SUCCESSOR.md",
+    "bytes": 10853,
+    "sha256": "7c5d44b9c8a739e7875630e0f2a5ce987b5c4f832f033e3b2a05e472f57b1093"
+  },
+  {
+    "path": "internal/payproduct/README.md",
+    "bytes": 4025,
+    "sha256": "841b2be965ff5f3f4e25bf549d3896e1b24693b49cf7fb903deee213f73260a2"
+  },
+  {
+    "path": "internal/payproduct/ai.go",
+    "bytes": 7564,
+    "sha256": "534e613ba26f22efb2ea1265c1a82f8df8e1a1cd44bbbfcef1ee70d60753b430"
+  },
+  {
+    "path": "internal/payproduct/capacity_test.go",
+    "bytes": 2282,
+    "sha256": "0b41531cb96a77ca7bbb92bd98c9f2a39d5a0a4bab72101aa3a2b9e38bfba00a"
+  },
+  {
+    "path": "internal/payproduct/client.go",
+    "bytes": 5187,
+    "sha256": "01c8f56bf7860357ed3f223fdf65bdcdb14d1943c23e5f09093f4dfb7e658ccf"
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-productd/main.go",
+    "bytes": 6425,
+    "sha256": "576ddbb78afcf42b3bbc5ef75b3b4cb72596548f5f7e666bf19a375d4aeaf706"
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-productd/main_test.go",
+    "bytes": 2783,
+    "sha256": "076d0c190b976f4fe4a1ee69d47909114ec21f83419eddb92737cd90d7cc51c1"
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-store/main.go",
+    "bytes": 3304,
+    "sha256": "8f3934f76b6ab709828622ab9fd52f40a7872b4ccc19d57fb2c739fdfe26477b"
+  },
+  {
+    "path": "internal/payproduct/cmd/ynx-pay-store/main_test.go",
+    "bytes": 2089,
+    "sha256": "c88d0744663e9169b0cb65cfcca8278180ca54d88c36ee35e470c50f7e64ebcc"
+  },
+  {
+    "path": "internal/payproduct/console_auth.go",
+    "bytes": 9354,
+    "sha256": "8cfb671f4218c8230575075b73cd3d9a1a29a22346e0e8c07d265c2151481fb5"
+  },
+  {
+    "path": "internal/payproduct/live-testnet-proof.mjs",
+    "bytes": 23199,
+    "sha256": "b8edc68595dc5a14360ed79c6adb8aa7194a8af3fa78b8c6e1d3e30254209ed5"
+  },
+  {
+    "path": "internal/payproduct/merchant_business.go",
+    "bytes": 16415,
+    "sha256": "57aa3b261a32f6d697d28b55699b2a87d84ecaa9a85d388f3d38e6c7c7a0911c"
+  },
+  {
+    "path": "internal/payproduct/merchant_business_test.go",
+    "bytes": 15986,
+    "sha256": "ad0224afa660e3d1e90db03d30a80fc8e420ca519a9e490db864a46a8e89cec6"
+  },
+  {
+    "path": "internal/payproduct/merchant_combined_v2.go",
+    "bytes": 6008,
+    "sha256": "471a1f405ee186d905c52c98335c693e61e9bdb610c6d7e6b1f73ae116cd897c"
+  },
+  {
+    "path": "internal/payproduct/merchant_combined_v2_test.go",
+    "bytes": 5701,
+    "sha256": "d3982398d7904d22ce9d27537858fae8bee2cb62e4551e62b483d59785358fb9"
+  },
+  {
+    "path": "internal/payproduct/merchant_mutation_lookup.go",
+    "bytes": 4367,
+    "sha256": "c2ce26cfa2557c164e52599db5f282701ff0dd211159ae46104e3e1b924f5c64"
+  },
+  {
+    "path": "internal/payproduct/merchant_mutation_lookup_test.go",
+    "bytes": 6342,
+    "sha256": "c70502d47ba4c05cfd1a7387a97cc1a1ba7bc7e6c8faea7f08276316bb7181cf"
+  },
+  {
+    "path": "internal/payproduct/merchant_provider.go",
+    "bytes": 5832,
+    "sha256": "54b89008fdbace1e9095bb25a638495915527263893fd1e23168dc5bd799e6bd"
+  },
+  {
+    "path": "internal/payproduct/merchant_v2.go",
+    "bytes": 6584,
+    "sha256": "cac02f944b8457c2c1f584754e73efc10f68c9458ba919f8c09a3782386a6b25"
+  },
+  {
+    "path": "internal/payproduct/merchant_v2_test.go",
+    "bytes": 6886,
+    "sha256": "24ac74a3a43b238b5e20b4da883a88e7e4c659a2260205f23f39e9437235fc07"
+  },
+  {
+    "path": "internal/payproduct/model.go",
+    "bytes": 17792,
+    "sha256": "54aa4f6ffe8f583cf96abb61dbe516dfd517030331a3553855c27af02080121a"
+  },
+  {
+    "path": "internal/payproduct/observability.go",
+    "bytes": 18306,
+    "sha256": "acde9cd38bc49241a6f6e4ff30f5cab15d5345de7deeb164d6ae694e3dc4c3ba"
+  },
+  {
+    "path": "internal/payproduct/observability_test.go",
+    "bytes": 8440,
+    "sha256": "08e0155d9fc1ddb3e5df1536190b45074407e623d8ab1f13f152e5c15a57fb79"
+  },
+  {
+    "path": "internal/payproduct/pay_gateway.go",
+    "bytes": 3344,
+    "sha256": "ca5e5f81074eaa4f20c12d19c689e8685a8580bc62665e1258bf013f4782c6f0"
+  },
+  {
+    "path": "internal/payproduct/proof/live-testnet-payment.json",
+    "bytes": 2506,
+    "sha256": "f1580dd561d535397890e501175edee8bdf206234fbb1f013a212ff2bcfdd559"
+  },
+  {
+    "path": "internal/payproduct/prove-testnet-commit.sh",
+    "bytes": 2502,
+    "sha256": "4f5301467148c8e0eb3a31e3b0c8f58be57b0298e990290cbb675ae6ffcb7ea7"
+  },
+  {
+    "path": "internal/payproduct/quant_billing.go",
+    "bytes": 17976,
+    "sha256": "29b6a477dda7e5e752ffa22c0c8a42940bd2177efc5a531911f430b28447c4a8"
+  },
+  {
+    "path": "internal/payproduct/quant_billing_test.go",
+    "bytes": 15626,
+    "sha256": "193a8a3b0c09c86918eedfb84422a70b7709f507010125dd4ae1b3f254a0f71c"
+  },
+  {
+    "path": "internal/payproduct/recurring.go",
+    "bytes": 5489,
+    "sha256": "bd6548186948655ff77b2479c288e93620657c3a9b91b7840c4c86e4d65b8bed"
+  },
+  {
+    "path": "internal/payproduct/recurring_test.go",
+    "bytes": 2665,
+    "sha256": "e6c2f350c3f2b1c2facc401f11cb506f239eac5b207ae4a74b37c0014e76bdc0"
+  },
+  {
+    "path": "internal/payproduct/refund.go",
+    "bytes": 10551,
+    "sha256": "917f177ff29f3f668935d67192c7080ad45369a269ff75bc4e506116775c8fee"
+  },
+  {
+    "path": "internal/payproduct/refund_test.go",
+    "bytes": 9174,
+    "sha256": "b722c90334a44da76f4ca434ed171901103afc30685484bb4af629dc67a8fed5"
+  },
+  {
+    "path": "internal/payproduct/route_bridge.go",
+    "bytes": 25582,
+    "sha256": "4db4a6f5a84312a47f215260a92532f620422e6763419f5b60a8a3e5c2354700"
+  },
+  {
+    "path": "internal/payproduct/route_bridge_test.go",
+    "bytes": 7376,
+    "sha256": "98f4f51951ead8a4baf5e9b5684fa047c96d9b3a2d06076b6a1bca12d926675f"
+  },
+  {
+    "path": "internal/payproduct/server.go",
+    "bytes": 19241,
+    "sha256": "b841dd93dd1c03d83517870b240dd30c793ce5b86b4074697a063517c175277f"
+  },
+  {
+    "path": "internal/payproduct/service.go",
+    "bytes": 36413,
+    "sha256": "862c8fd6e217cff30d8e354d5f06accf69cb7bce40a8b9347228309552345e00"
+  },
+  {
+    "path": "internal/payproduct/service_test.go",
+    "bytes": 35071,
+    "sha256": "ed1f257eb070cba0b0ac383b200197e5ce327cd002ef882da6d9978feb64d586"
+  },
+  {
+    "path": "internal/payproduct/smoke.sh",
+    "bytes": 366,
+    "sha256": "bd30745ca0e62645f8ad6ad6a80f7dc317d445c2e59a12444d839fc0a287f976"
+  },
+  {
+    "path": "internal/payproduct/split.go",
+    "bytes": 11790,
+    "sha256": "6807ae07c9d491bab50a419c6352a8e4a72cc6ee959db597e6c5ceaca2033b63"
+  },
+  {
+    "path": "internal/payproduct/split_test.go",
+    "bytes": 6254,
+    "sha256": "b6fc6b04524ab4a7b42e3fc1d6116251adfe5e5ec3814293c390e211796023ed"
+  },
+  {
+    "path": "internal/payproduct/sponsorship.go",
+    "bytes": 13270,
+    "sha256": "9eb26f38e4e07cd4cbf8adf1c994f97694e82361a36d04de4c2aa4d0a2d396e3"
+  },
+  {
+    "path": "internal/payproduct/sponsorship_test.go",
+    "bytes": 6315,
+    "sha256": "f72c59e512fc1b0f96d228d00733a01567cdccec97f86c4bb9068f09fc0f0d9b"
+  },
+  {
+    "path": "internal/payproduct/stable_settlement.go",
+    "bytes": 5284,
+    "sha256": "5d4231829c371882f880a7106cda5a3c253e85bf7a0cfa120db6cfadb07973f1"
+  },
+  {
+    "path": "internal/payproduct/stable_settlement_test.go",
+    "bytes": 2502,
+    "sha256": "92a178b84da9fd696e06d6048196185c9acafda245bb8134d902f0215fcc0602"
+  },
+  {
+    "path": "internal/payproduct/store.go",
+    "bytes": 7322,
+    "sha256": "3d36a2beea56e43da879bd7bdfb625390100315b9ae93e1bdd036d21dead635c"
+  },
+  {
+    "path": "internal/payproduct/store_recovery.go",
+    "bytes": 13860,
+    "sha256": "3f23ad9078f4897f3e4e0f0cf24a0c4937cc9e4d15b71ca577429c2f62c31da9"
+  },
+  {
+    "path": "internal/payproduct/store_recovery_test.go",
+    "bytes": 8222,
+    "sha256": "9c0e962a9ebaebc9f7d2d449635a16c3e52f8d229bb387af0cefcafed2df0af4"
+  },
+  {
+    "path": "internal/payproduct/testdata/merchant-v2-node.mjs",
+    "bytes": 4334,
+    "sha256": "7a33cd6c76ad998b1361936a0d2822fc316229003e0b1165f0766b57dfeab97e"
+  },
+  {
+    "path": "internal/payproduct/wallet.go",
+    "bytes": 15999,
+    "sha256": "5ab1260972a8139537bc31599b2e10613d416517e80ac4132f7caaf79b1f718d"
+  },
+  {
+    "path": "internal/payproduct/webhook_deadletter_test.go",
+    "bytes": 3612,
+    "sha256": "d8f941c13d5677526905282c0b9ae9ffbec1f3a71ffc26b5e0f4b0b16d23182f"
+  }
+]

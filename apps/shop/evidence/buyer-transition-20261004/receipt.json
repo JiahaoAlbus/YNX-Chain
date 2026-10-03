@@ -1,0 +1,172 @@
+{
+  "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+  "sourceTree": "7060e82b53390effb7924f26c10b89ea033eec39",
+  "archive": {
+    "path": "commerce-owned-source-cc3676508.tar",
+    "members": 427,
+    "bytes": 15055872,
+    "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+  },
+  "testedSourcePins": 280,
+  "validation": {
+    "shopNode": 46,
+    "sellerNode": 49,
+    "webBuilds": 2,
+    "buyerActionBrowser": 4,
+    "checkoutInvoiceBrowser": 9,
+    "androidJVM": 40,
+    "androidDebugBuild": "PASS",
+    "appleModel": 44,
+    "macOSDebugBuild": "PASS",
+    "iOSSimulatorDebugBuild": "PASS",
+    "buyerLookupGoRace": 3,
+    "earlierSelectedGoRace": 8
+  },
+  "rawRecords": [
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerJourneyTest.xml",
+      "bytes": 1912,
+      "sha256": "95a9365677bcd9e5197ce4bb7bf5d5d4443a294d9c94d9ba90d81a8a7e2772fa"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerOrderActionInputTest.xml",
+      "bytes": 890,
+      "sha256": "3d189bcec7b0df84f00783afc1d24ddc2c5318b11b4908d01a4542b24eb8c407"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.BuyerTransitionRecoveryTest.xml",
+      "bytes": 1231,
+      "sha256": "0b259a9dad3defe112c808248bc5750e7a1fe37b1526c295b2a46f634a272394"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.OfflineMutationQueueTest.xml",
+      "bytes": 1606,
+      "sha256": "11c01b9c4f1058defee4a0b31f6b082f9768a1648a41cbcb758d4ce1243f1adb"
+    },
+    {
+      "path": "raw/TEST-com.ynxweb4.shop.PrivacyLifecycleTest.xml",
+      "bytes": 1809,
+      "sha256": "2f26d5d904cb65af9742ee841e2893e8fbf20036488c67ebaf4db243707a8bc4"
+    },
+    {
+      "path": "raw/android-android-build-and-order-checks.log",
+      "bytes": 2855,
+      "sha256": "9520725678a0b8a573f00f0b2eaf49587a64fb520d21437a80f36ff7557dca55"
+    },
+    {
+      "path": "raw/android-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/android.log",
+      "bytes": 311,
+      "sha256": "747422c58b8b254a5b92f58044a1d21ebbf50ef694ffb5442f2daf4f9db581d6"
+    },
+    {
+      "path": "raw/apple-YNXShop-debug-build.log",
+      "bytes": 154807,
+      "sha256": "f7a500d37a84449ca3e824c8432a3f8794de9b490bab5f96f83e6beee6969d62"
+    },
+    {
+      "path": "raw/apple-YNXShopMac-debug-build.log",
+      "bytes": 153488,
+      "sha256": "932c881fcc3d164c1c38087f3229405979ec04f42c00c2b2a3e8f8616397eb51"
+    },
+    {
+      "path": "raw/apple-apple-model-checks-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-apple-model-checks.log",
+      "bytes": 2731,
+      "sha256": "8eeb6946cef8b44b1722bd03217ba7ec7790dd5ab4d7a80560fc48f2b54e5fa2"
+    },
+    {
+      "path": "raw/apple-apple-source-parse.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple-native-contract-locales.log",
+      "bytes": 57,
+      "sha256": "42a0894676be3409cdfeeeacc8cf8c0292efcd2282db605c49512d7fd26a46d6"
+    },
+    {
+      "path": "raw/apple-xcode-first-launch.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "raw/apple.log",
+      "bytes": 430,
+      "sha256": "a70047f158b068a57db2d3044b74b2398fbeba60738e591debe3b9be171a3af1"
+    },
+    {
+      "path": "raw/buyer-lookup-go-accepted.jsonl",
+      "bytes": 3481,
+      "sha256": "83b8e61c7e546211ddcd2b3413df61b521ed1b4d3c6aafa9eb597f21247d9db8"
+    },
+    {
+      "path": "raw/buyer-lookup-go-final.jsonl",
+      "bytes": 3972,
+      "sha256": "08576904636ebc18290393219068cc5ce6f325dc72950828d281ded588bfe0bd"
+    },
+    {
+      "path": "raw/go-selected-earlier.jsonl",
+      "bytes": 8434,
+      "sha256": "71b820f223703fb697848aa3f2defd1037835c2777c1019683a71d669152c5c5"
+    },
+    {
+      "path": "raw/seller-build.log",
+      "bytes": 71,
+      "sha256": "c16af5ec576ef699558d2fc85d85f8763c23bef1b763be5cf27a6f816ab3fb10"
+    },
+    {
+      "path": "raw/seller-node.log",
+      "bytes": 4474,
+      "sha256": "181046ab58756e5ed3362c082b8103fd7269f82fea3f4705a9fb4644af0a5dc8"
+    },
+    {
+      "path": "raw/shop-browser-final.log",
+      "bytes": 950,
+      "sha256": "572f3bc49ad6a954c6c0e7498ae53705f19b268a172d8ae2b2e505f5974b7d98"
+    },
+    {
+      "path": "raw/shop-browser-regression.log",
+      "bytes": 1685,
+      "sha256": "1d79c10267dd69a6c990af726322dbca01c3def816156907b51c2543760e1dec"
+    },
+    {
+      "path": "raw/shop-browser.log",
+      "bytes": 10387,
+      "sha256": "fe7043213c9b6af444c31750fd9c7cab29fe1256519d70987b90743a5b0e4ca5"
+    },
+    {
+      "path": "raw/shop-build-final.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "raw/shop-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "raw/shop-node.log",
+      "bytes": 4485,
+      "sha256": "e38c189ca7b2b248787dc4a7bca7a6aad0143b4f66203acd4b9b9dbb48da3eb3"
+    },
+    {
+      "path": "raw/shop-node-final.log",
+      "bytes": 4482,
+      "sha256": "61b552ec6c4032f959261e7a026e5b83b19590321d588afe84230acf9f5a601f"
+    }
+  ],
+  "publication": "NOT_VERIFIED",
+  "formalSigning": "NOT_VERIFIED",
+  "installedNativeJourney": "NOT_VERIFIED",
+  "realWalletApproval": "NOT_VERIFIED",
+  "remaining": "See BUYER_TRANSITION_RECOVERY_20261004.md; whole goal remains incomplete."
+}
