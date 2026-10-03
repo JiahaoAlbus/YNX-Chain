@@ -16,6 +16,7 @@ import Foundation
             let credentials=MusicCredentials(read:{name in name=="device-p256" ? (errSecSuccess,Data(original.rawRepresentation.base64EncodedString().utf8)) : (errSecItemNotFound,nil)},add:{_,_ in errSecAuthFailed},update:{_,_ in errSecAuthFailed},remove:{_ in errSecAuthFailed},create:{fatalError("generated original only")})
             let key=MusicDeviceSigner(credentials:credentials)
             let network=MusicNativeTransport()
+            var holdSnapshot=false,failSnapshot=false
             let sender: MusicNativeEngine.Sender = { request,limit in
                 let url=request.url!
                 if url.host=="web4.ynxweb4.com" && hold { hold=false;await withCheckedContinuation { held=$0 } }
@@ -26,6 +27,10 @@ import Foundation
                 else { throw MusicNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
                 let (bytes,response)=try await network.send(redirected,limit)
+                if url.path=="/music/api/me",holdSnapshot {
+                    holdSnapshot=false;await withCheckedContinuation {held=$0}
+                    if failSnapshot {failSnapshot=false;throw URLError(.networkConnectionLost)}
+                }
                 if url.path=="/music/api/creator/tracks",request.httpMethod=="POST",loseUploadReply,(200..<300).contains(response.statusCode) {loseUploadReply=false;throw URLError(.networkConnectionLost)}
                 var received=bytes
                 if url.path.hasSuffix("/media"),corruptMedia,!received.isEmpty {received[received.count-1] ^= 1}
@@ -60,6 +65,12 @@ import Foundation
                             let bytes=try await engine.request(path:command["path"] as! String,method:"GET",body:nil,contentType:"application/json",idempotency:nil)
                             value=["json":try JSONSerialization.jsonObject(with:bytes)]
                         case "uiSignIn":await model.beginSignIn();value=["busy":model.authBusy,"pending":model.revokePending]
+                        case "uiRefresh":await model.refresh();value=["status":model.status,"count":model.snapshot.playlists.count]
+                        case "uiRenamePlaylist":
+                            guard let operation=model.captureOperation(),var playlist=model.snapshot.playlists.first else {throw MusicNativeEngine.Failure.retired}
+                            playlist.name=command["title"] as! String
+                            guard await model.perform(operation,{try await $0.savePlaylist(playlist)}) != nil else {throw MusicNativeEngine.Failure.retired}
+                            await model.refresh(operation);value=["count":model.snapshot.playlists.count,"name":model.snapshot.playlists.first?.name ?? ""]
                         case "uiCallback":
                             model.acceptCallback(URL(string:command["url"] as! String)!)
                             let deadline=Date().addingTimeInterval(35)
@@ -101,8 +112,9 @@ import Foundation
                         case "cold":engine.close();engine=try create();model=createModel(engine);await model.restoreNative();value=["status":engine.lastStatus,"connected":model.signedIn,"count":model.snapshot.playlists.count,"uploadPending":model.state.uploadIntent != nil,"uploadKey":model.state.uploadIntent?.key ?? "","tracks":model.snapshot.creatorTracks.count]
                         case "mismatch":mismatch=command["enabled"] as! Bool;value=["enabled":mismatch]
                         case "holdNext":hold=true;value=["holding":true]
-                        case "release":held?.resume();held=nil;value=["released":true]
-                        case "inspect":value=["held":held != nil,"pending":model.revokePending,"connected":model.signedIn,"played":renderedTrack,"playCount":renderedCount]
+                        case "holdNextSnapshot":holdSnapshot=true;value=["holding":true]
+                        case "release":failSnapshot=command["failSnapshot"] as? Bool==true;held?.resume();held=nil;value=["released":true]
+                        case "inspect":value=["held":held != nil,"pending":model.revokePending,"connected":model.signedIn,"played":renderedTrack,"playCount":renderedCount,"status":model.status,"count":model.snapshot.playlists.count,"playlistName":model.snapshot.playlists.first?.name ?? ""]
                         case "suspend":model.suspendNative();value=["connected":model.signedIn]
                         case "close":engine.close();value=["closed":true]
                         default:throw MusicNativeEngine.Failure.invalidSource

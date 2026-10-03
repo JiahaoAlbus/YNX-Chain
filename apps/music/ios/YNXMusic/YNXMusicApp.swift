@@ -49,6 +49,7 @@ struct MusicOperation {
     private var native:MusicNativeEngine?
     private let makeNative: @MainActor () throws -> MusicNativeEngine
     private var authRevision:UInt64=0
+    private var snapshotReadGeneration:UInt64=0
     private let nativeNegativeRead: () -> Bool
     private let nativeNegativeWrite: (Bool) -> Void
     @Published var authBusy=false
@@ -120,10 +121,11 @@ struct MusicOperation {
     }
     private func refresh(api requestAPI:MusicAPI,context:MusicSessionContext)async {
         guard fence.isCurrent(context),context.binding != nil else { status="offline_mode"; return }
+        snapshotReadGeneration &+= 1;let readGeneration=snapshotReadGeneration
         status="loading"
         do {
             let received=try await requestAPI.snapshot()
-            guard fence.isCurrent(context) else { return }
+            guard fence.isCurrent(context),readGeneration==snapshotReadGeneration else { return }
             // A server identity change under the same binding is not a switch
             // instruction; it requires a fresh authorization.
             if let account,account.account != received.profile.account { throw URLError(.userAuthenticationRequired) }
@@ -139,7 +141,7 @@ struct MusicOperation {
             })
             saveLocal(); status="ready"
         } catch {
-            guard fence.isCurrent(context) else { return }
+            guard fence.isCurrent(context),readGeneration==snapshotReadGeneration else { return }
             if (error as? URLError)?.code == .userAuthenticationRequired { signOut(); status="auth_rejected" }
             else { status="offline_mode" }
         }
@@ -154,6 +156,7 @@ struct MusicOperation {
         return created
     }
     private func withdraw() {
+        snapshotReadGeneration &+= 1
         player.stop();let context=fence.replace(binding:nil)
         api=MusicAPI(context:context,fence:fence,deviceKey:"",native:native)
         store.detach();account=nil;state=LocalState();snapshot=Snapshot();query="";viewGeneration=UUID()
