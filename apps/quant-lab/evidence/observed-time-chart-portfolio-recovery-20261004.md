@@ -1,0 +1,17 @@
+# Quant observation time and measured curve recovery
+
+Inherited clean remote parent a4acf6316ed604295bac7c5bf5fc7c1fe23dafc2 / tree 17e227daf8321c25350ae6dd736815be73f3c0a3. Changes are confined to ordinary Quant UI and its direct business/browser tests. Shared Wallet runtime, authority, engine calculations, backend storage, release pins and deployment remain unchanged.
+
+Reproduced before fixing: measured equity chart accepted `2026-02-30T00:00:00Z` and plotted the normalized date; focused regression failed 27.284167 ms (figure visible instead of hidden). Provider portfolio observation accepted the same impossible date and displayed `1 YNXT`; focused regression failed 26.874167 ms. Reuse the existing strict auditTimeValid calendar/absolute-time contract at these two observation sites. No timestamp, equity, benchmark, return, cost, balance or record is rewritten. Malformed curves are omitted while otherwise valid result metrics remain available; malformed portfolio readback makes that observation unavailable, not the selected standard Wallet connection.
+
+The portfolio regression additionally checks timezone-free/locale-only dates, impossible leap day, preserved exact connected identity and explicit recovery to a valid nanosecond/timezone receipt with an amount beyond safe floating-point range. A fixture-only expectation initially guessed an incorrect identity separator; corrected to the actual existing `metamask:account:chain` contract, with no production identity change. No sign/proof requests.
+
+Actual installed headless Chrome local QA executes existing Go research server against the bounded controlled market tape, two independent browser tenants, lost-return same-intent retry, saved results across service restart, Paper fill and kill latch isolation. New assertions exercise local displayed copies of the actual engine curve in all 12 languages: three invalid time forms omit the chart; rendering the untouched saved engine receipt restores two measured lines; persisted curve unchanged, no additional research POST, one tab, zero page errors. This is not public/provider/installed-app business acceptance.
+
+Final ordinary grouped command:
+`node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/research-recovery-browser.test.mjs apps/quant-lab/tests/records-session.test.mjs apps/quant-lab/tests/ui.test.mjs`
+110/110 PASS, 7699.5155 ms. Browser case 7388.418791 ms; retained QA directory `/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-quant-research-recovery-H3anVb`; local QA binary 11467138 bytes SHA256 d342ef34c43da678ae5202dea0d5a2801448821b684e539cf27af0cded36f2e8; independent browser contexts=2, clean SIGTERM stops=3. Earlier curve-only grouped run 100/100 PASS, 9703.3055 ms. node syntax and git diff --check PASS.
+
+Preserved release gate failure: combined run including financial-ordinary-inputs-v2.test.mjs was 123/124; exact immutable source identity rejected `working bytes` because the ordinary UI delta differs from its historical pin. No pin/verifier/formal bundle was rewritten or greenwashed. A must freeze a compatible source graph and new exact asset bindings before formal build/publication. Gate mismatch and source delta routed only to 接续测试网生态审计工作.
+
+Public/native release, real Wallet approval, live strategy/Testnet orders, Product Session v2 and ComputerControl remain NOT_VERIFIED. Rollback is an ordinary revert of this UI/test commit, preserving all inherited server/user data and protected authority. Full financial ecosystem goal remains incomplete.

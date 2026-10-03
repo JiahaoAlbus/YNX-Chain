@@ -994,7 +994,7 @@ test('research chart preserves real elapsed-time gaps and rejects missing or non
     {time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}];
   let response=result;const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:response});await settle();await app.submit('backtest');
   assert.match(app.ids.get('equity-chart').innerHTML,/points="12\.00,[\d.]+ 23\.60,[\d.]+ 708\.00,[\d.]+"/);
-  for(const times of [[undefined,'2026-10-03T00:01:00Z'],['invalid','2026-10-03T00:01:00Z'],['2026-10-03T00:01:00Z','2026-10-03T00:01:00Z'],['2026-10-03T00:02:00Z','2026-10-03T00:01:00Z']]){
+  for(const times of [[undefined,'2026-10-03T00:01:00Z'],['invalid','2026-10-03T00:01:00Z'],['2026-10-03T00:01:00Z','2026-10-03T00:01:00Z'],['2026-10-03T00:02:00Z','2026-10-03T00:01:00Z'],['2026-02-30T00:00:00Z','2026-03-03T00:00:00Z'],['2026-10-03T00:00:00','2026-10-03T00:01:00'],['10/03/2026','10/04/2026']]){
     response={...result,equityCurve:times.map((time,index)=>({...result.equityCurve[index],time}))};await app.submit('backtest');
     assert.equal(app.ids.get('equity-figure').hidden,true);assert.equal(app.ids.get('equity-chart').innerHTML,'');assert.equal(app.ids.get('result-return').textContent,'120 bps');
   }
@@ -1408,6 +1408,16 @@ test('portfolio uses exact provider data without floating point loss and rejects
     assert.equal(app.ids.get('wallet-portfolio-balance').textContent, '—');
     assert.match(app.ids.get('wallet-portfolio-status').textContent, /unavailable/);
   }
+  for(const asOf of ['2026-02-30T00:00:00Z','2025-02-29T00:00:00Z','2026-10-04T00:00:00','10/04/2026']){
+    app.context.window.YNXQuantWallet.readPortfolio=async()=>({...receipt(accountA),asOf});
+    await app.ids.get('wallet-portfolio-refresh').onclick();
+    assert.equal(app.ids.get('wallet-portfolio-balance').textContent,'—');
+    assert.equal(vm.runInContext('walletIdentity',app.context),'metamask:'+accountA+':0x1917');
+  }
+  app.context.window.YNXQuantWallet.readPortfolio=async()=>({...receipt(accountA,large),asOf:'2026-10-04T08:00:00.123456789+08:00'});
+  await app.ids.get('wallet-portfolio-refresh').onclick();
+  assert.equal(app.ids.get('wallet-portfolio-balance').textContent,'9,007,199,254,740,993.000000000000000001 YNXT');
+  assert.equal(app.proofs(),0);
 });
 
 test('wallet events deduplicate reads, clear account-bound signatures/previews and ignore late portfolio results', async () => {

@@ -832,7 +832,7 @@ async function refreshPortfolio() {
   try {
     const result = await window.YNXQuantWallet.readPortfolio();
     if (revision !== portfolioRevision || identity !== walletIdentity) return;
-    if (currentWalletIdentity({ ...result, status: "connected" }) !== identity || result?.asset !== "YNXT" || result?.decimals !== 18 || result?.source !== "selected-wallet-provider" || typeof result?.balanceBaseUnits !== "string" || !/^(0|[1-9][0-9]{0,77})$/.test(result.balanceBaseUnits) || typeof result?.blockNumber !== "string" || !/^(0|[1-9][0-9]{0,77})$/.test(result.blockNumber) || typeof result?.asOf !== "string" || !Number.isFinite(Date.parse(result.asOf))) throw new Error("Invalid wallet balance receipt");
+    if (currentWalletIdentity({ ...result, status: "connected" }) !== identity || result?.asset !== "YNXT" || result?.decimals !== 18 || result?.source !== "selected-wallet-provider" || typeof result?.balanceBaseUnits !== "string" || !/^(0|[1-9][0-9]{0,77})$/.test(result.balanceBaseUnits) || typeof result?.blockNumber !== "string" || !/^(0|[1-9][0-9]{0,77})$/.test(result.blockNumber) || !auditTimeValid(result?.asOf)) throw new Error("Invalid wallet balance receipt");
     portfolio = result;
     portfolioStatus = "portfolioReady";
   } catch {
@@ -1077,7 +1077,7 @@ function renderResult(result, savedWorkspace) {
   for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
   $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
   const points = result.equityCurve || [];
-  const times = Array.isArray(points) ? points.map(point => typeof point?.time === "string" ? Date.parse(point.time) : NaN) : [];
+  const times = Array.isArray(points) ? points.map(point => auditTimeValid(point?.time) ? Date.parse(point.time) : NaN) : [];
   const valid = Array.isArray(points) && points.length > 1 && points.length <= 10000 && points.every((point,index) => point && Number.isSafeInteger(point.equity) && Number.isSafeInteger(point.benchmarkEquity) && point.equity >= 0 && point.benchmarkEquity >= 0 && Number.isFinite(times[index]) && (index === 0 || times[index] > times[index - 1]));
   $("#equity-figure").hidden = !valid;
   if (!valid) { $("#equity-chart").innerHTML = ""; return; }

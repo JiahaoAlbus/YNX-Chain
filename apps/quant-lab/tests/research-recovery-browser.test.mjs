@@ -94,6 +94,21 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     assert.doesNotMatch(await page.locator('#experiment-rows').textContent(),/Independent browser research/);
     assert.doesNotMatch(await otherPage.locator('#experiment-rows').textContent(),/Controlled lost-return research/);
     assert.deepEqual(otherErrors,[]);assert.equal(otherContext.pages().length,1);
+    // Validate only local displayed copies of the actual engine receipt. No
+    // persisted data, metrics, identity or extra research request is changed.
+    const engineCurve=await page.evaluate(()=>Object.values(snapshot.experiments)[0].equityCurve);
+    assert.ok(engineCurve.length>1);
+    const researchPostsBefore=posts;
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.selectOption('#locale',language);
+      for(const time of ['2026-02-30T00:00:00Z','2026-01-01T00:00:00','01/01/2026']){
+        await page.evaluate(time=>{const saved=Object.values(snapshot.experiments)[0];renderResult({...saved,equityCurve:saved.equityCurve.map((point,index)=>index===0?{...point,time}:point)},true)},time);
+        assert.equal(await page.locator('#equity-figure').isVisible(),false);assert.equal(await page.locator('#equity-chart').innerHTML(),'');
+      }
+      await page.evaluate(()=>renderResult(Object.values(snapshot.experiments)[0],true));
+      assert.equal(await page.locator('#equity-figure').isVisible(),true);assert.equal(await page.locator('#equity-chart polyline').count(),2);
+    }
+    assert.equal(posts,researchPostsBefore);assert.deepEqual(await page.evaluate(()=>Object.values(snapshot.experiments)[0].equityCurve),engineCurve);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
     // Exercise the actual simulation engine through its normal preview UI.
     // No wallet provider, account grant or Exchange/chain write is involved.
     await page.selectOption('#locale','en');await page.locator('nav button[data-view="paper"]').click();
