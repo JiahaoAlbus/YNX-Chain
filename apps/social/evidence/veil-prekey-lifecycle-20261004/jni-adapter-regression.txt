@@ -1,0 +1,11 @@
+PASS JNI adapter reads enrolled own pair and registration through live native lease
+PASS wrong own public admission rejects before private record read
+PASS missing peer approval rejects instead of TOFU
+PASS actual JNI builds and encrypts via serialized-record callback adapter
+PASS actual JNI recipient consumes one-time curve and KEM through same port
+PASS actual JNI reply survives native serialized session reconstruction
+PASS last-resort KEM remains stored but exact signed/base tuple reuse rejects
+PASS legacy sender-key writes cannot become new paired group encryption
+PASS retained callback store after scope exit rejects before private key access
+PASS revoked native lease rejects before future JNI callback private access
+PASS 10 actual JNI callback/lease checks; synthetic proof and memory port only

@@ -72,15 +72,17 @@ public final class VeilJniStoreCheck {
   private static byte[] body(String value) { return ("YNX JNI callback synthetic " + value).getBytes(StandardCharsets.UTF_8); }
   private static void equal(byte[] expected, byte[] actual) { if (!Arrays.equals(expected, actual)) throw new AssertionError("SyntheticBytesDiffer"); }
   private static PreKeyBundle bundle(Device device, int kemId, int mode) throws Exception {
+    int preId = kemId == 13 ? 11 : 21;
+    int signedId = kemId == 13 ? 12 : 22;
     ECKeyPair pre = ECKeyPair.generate(), signed = ECKeyPair.generate();
     KEMKeyPair kem = KEMKeyPair.generate(KEMKeyType.KYBER_1024);
     byte[] signedSig = device.identity.getPrivateKey().calculateSignature(signed.getPublicKey().serialize());
     byte[] kemSig = device.identity.getPrivateKey().calculateSignature(kem.getPublicKey().serialize());
-    device.store.storePreKey(11, new PreKeyRecord(11, pre));
-    device.store.storeSignedPreKey(12, new SignedPreKeyRecord(12, System.currentTimeMillis(), signed, signedSig));
+    device.store.storePreKey(preId, new PreKeyRecord(preId, pre));
+    device.store.storeSignedPreKey(signedId, new SignedPreKeyRecord(signedId, System.currentTimeMillis(), signed, signedSig));
     device.port.write(VeilRecordKind.KEM_PREKEY_MODE, Integer.toString(kemId), new byte[] {(byte) mode});
     device.store.storeKyberPreKey(kemId, new KyberPreKeyRecord(kemId, System.currentTimeMillis(), kem, kemSig));
-    return new PreKeyBundle(device.store.getLocalRegistrationId(), 1, 11, pre.getPublicKey(), 12,
+    return new PreKeyBundle(device.store.getLocalRegistrationId(), 1, preId, pre.getPublicKey(), signedId,
         signed.getPublicKey(), signedSig, device.identity.getPublicKey(), kemId, kem.getPublicKey(), kemSig);
   }
   public static void main(String[] args) {
@@ -122,9 +124,9 @@ public final class VeilJniStoreCheck {
       test("last-resort KEM remains stored but exact signed/base tuple reuse rejects", () -> within(bob, () -> {
         bundle(bob, 14, 1);
         ECPublicKeyHolder base = new ECPublicKeyHolder();
-        bob.store.markKyberPreKeyUsed(14, 12, base.key);
-        rejected(ReusedBaseKeyException.class, () -> bob.store.markKyberPreKeyUsed(14, 12, base.key));
-        bob.store.markKyberPreKeyUsed(14, 12, ECKeyPair.generate().getPublicKey());
+        bob.store.markKyberPreKeyUsed(14, 22, base.key);
+        rejected(ReusedBaseKeyException.class, () -> bob.store.markKyberPreKeyUsed(14, 22, base.key));
+        bob.store.markKyberPreKeyUsed(14, 22, ECKeyPair.generate().getPublicKey());
         if (!bob.store.containsKyberPreKey(14)) throw new AssertionError();
       }));
       test("legacy sender-key writes cannot become new paired group encryption", () -> within(alice, () -> {

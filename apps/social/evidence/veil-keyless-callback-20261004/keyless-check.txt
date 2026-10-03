@@ -1,0 +1,8 @@
+PASS actual SDK complete peer name isolates peer.2 from peer.branch.3
+PASS deleteAll removes only exact peer fields and preserves other dotted peers
+PASS noncanonical stored address holds before any partial deletion
+PASS expired retained session callback rejects before any serialize or I/O
+PASS expired key callbacks reject before touching even null native records
+PASS expired query and deletion callbacks reject before address work and I/O
+PASS live opposite boundary serializes exactly once and stores the expected peer
+PASS 7 keyless callback/address checks; controlled transaction only
