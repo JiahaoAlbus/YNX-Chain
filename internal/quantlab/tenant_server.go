@@ -3,6 +3,7 @@ package quantlab
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -126,11 +127,13 @@ func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // StartScheduler preserves the running public service's research-only schedule
 // behavior. It does not submit Paper or Testnet orders.
-func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duration) {
+func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duration) <-chan struct{} {
 	if interval <= 0 {
 		interval = 5 * time.Second
 	}
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
@@ -138,6 +141,10 @@ func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duratio
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				if err := s.refreshScheduledTenants(ctx); err != nil {
+					log.Print("Quant research schedule discovery unavailable; waiting for next tick")
+					continue
+				}
 				s.mu.Lock()
 				services := make([]*Service, 0, len(s.servers))
 				for _, server := range s.servers {
@@ -153,6 +160,7 @@ func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duratio
 			}
 		}
 	}()
+	return done
 }
 
 func (s *TenantServer) tenant(id string) (http.Handler, error) {
