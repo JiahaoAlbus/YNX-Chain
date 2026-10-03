@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "ynx.card.runtime-identity.v1",
+  "productId": "ynx-card",
+  "sourceCommit": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+  "sourceTree": "c3dde69331a8b0e87fd91ee80415ec4b83ecb3bb",
+  "environment": "testnet",
+  "evmChainId": 6423,
+  "evmChainHex": "0x1917",
+  "paymentNetwork": "simulation",
+  "productionRealPayments": false
+}

@@ -1,0 +1,20 @@
+HTTP/2 200 
+accept-ranges: bytes
+access-control-allow-origin: *
+age: 203044
+cache-control: public, max-age=0, must-revalidate
+content-disposition: inline; filename="index-ad5868816fd7a4dfcab6df15c5f9e90d.js"
+content-security-policy: default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com https://evm.ynxweb4.com https://gateway.ynxweb4.com; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests
+content-type: application/javascript; charset=utf-8
+date: Sat, 03 Oct 2026 09:08:47 GMT
+etag: "e139edc35bf45c1e59284d8374d98aaf"
+last-modified: Thu, 01 Oct 2026 00:44:42 GMT
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+referrer-policy: strict-origin-when-cross-origin
+server: Vercel
+strict-transport-security: max-age=63072000
+x-content-type-options: nosniff
+x-vercel-cache: HIT
+x-vercel-id: hnd1::ktjdz-1791018527093-c568295a2673
+content-length: 4267594
+
