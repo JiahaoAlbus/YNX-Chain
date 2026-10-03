@@ -113,6 +113,8 @@ import { bindScopedSocialSession } from "./src/scopedSessionBridge";
 import {ContactRequestFlow,socialProfileQR,requireSocialProfileQR,socialDiscoveryEntry,type SocialDiscoveryEntry,type ContactReview} from "./src/contactRequestFlow";
 import {runCurrentContactAction} from './src/contactActionGuard';
 import {NativeMomentIntents,publishOriginalNativeMoment} from './src/nativeMomentIntent';
+import {NativeMomentActions} from './src/nativeMomentActions';
+import {NativeDiscoveryIntents,isOriginalDiscoveryReview} from './src/nativeDiscoveryIntent';
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -191,14 +193,25 @@ export default function App() {
 function SocialApp() {
   const { t, isRTL } = useI18n();
   const [discovery,setDiscovery]=useState<SocialDiscoveryEntry|null>(null);
-  const consumeDiscovery=useCallback(()=>setDiscovery(null),[]);
+  const discoveryIntents=useMemo(()=>new NativeDiscoveryIntents({
+    read:()=>SecureStore.getItemAsync('ynx.social.discovery.intent.v1'),
+    write:value=>SecureStore.setItemAsync('ynx.social.discovery.intent.v1',value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
+  }),[]);
+  const consumeDiscovery=useCallback((value:string)=>{
+    setDiscovery(original=>original?.value===value?null:original);
+    void discoveryIntents.consume(value).catch(caught=>setError(message(caught)));
+  },[discoveryIntents]);
   useEffect(()=>{
-    let active=true,received=false;
-    const accept=(value:string)=>{const entry=socialDiscoveryEntry(value);if(active&&entry)setDiscovery(entry)};
+    let active=true,received=false,revision=0;
+    const accept=(value:string)=>{
+      const entry=socialDiscoveryEntry(value);if(!active||!entry)return;received=true;const own=++revision;
+      void discoveryIntents.save(entry).then(()=>{if(active&&own===revision)setDiscovery(entry)}).catch(caught=>{if(active&&own===revision)setError(message(caught))});
+    };
+    void discoveryIntents.load().then(entry=>{if(active&&!received&&entry)setDiscovery(entry)}).catch(caught=>{if(active&&!received)setError(message(caught))});
     const subscription=Linking.addEventListener('url',event=>{received=true;accept(event.url)});
     void Linking.getInitialURL().then(value=>{if(active&&!received&&value)accept(value)}).catch(()=>{});
     return()=>{active=false;subscription.remove()};
-  },[]);
+  },[discoveryIntents]);
   const [tab, setTab] = useState<Tab>("messages"),
     [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(true),
@@ -627,7 +640,7 @@ function LanguagePicker({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discovery?:SocialDiscoveryEntry|null;onDiscoveryConsumed?:()=>void }) {
+function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discovery?:SocialDiscoveryEntry|null;onDiscoveryConsumed?:(value:string)=>void }) {
   type Source = "handle" | "contacts" | "qr" | "invite" | "recommendation";
   const flow=useMemo(()=>new ContactRequestFlow(api,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,"0")).join("")),[api]);
   const requestGeneration=useRef(0);
@@ -648,7 +661,6 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
   useEffect(()=>{
     if(!discovery)return;
     requestGeneration.current++;flow.cancel();setRequesting(false);setReview(null);setRequestMessage('');setSource(discovery.source);setValue(discovery.value);setAdd(true);
-    onDiscoveryConsumed?.();
   },[discovery,flow,onDiscoveryConsumed]);
   const load = async () => {
     const current=api.authorizationGuard();
@@ -679,6 +691,7 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
       await flow.confirm(review,requestMessage);if(!mounted.current||!current())return;
       setReview(null);setRequestMessage("");
       setAdd(false);
+      if(discovery&&isOriginalDiscoveryReview(discovery,review))onDiscoveryConsumed?.(discovery.value);
       setValue("");
       await load();
     } catch (caught) {
@@ -845,11 +858,11 @@ function Contacts({ api,discovery,onDiscoveryConsumed }: { api: SocialAPI;discov
         visible={add}
         transparent
         animationType="slide"
-        onRequestClose={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false)}}
+        onRequestClose={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false);if(discovery)onDiscoveryConsumed?.(discovery.value)}}
       >
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <SheetTitle title={review?"Review this person":"Add someone"} close={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false)}} />
+            <SheetTitle title={review?"Review this person":"Add someone"} close={() => {cancelRequest();setReview(null);setRequestMessage("");setAdd(false);if(discovery)onDiscoveryConsumed?.(discovery.value)}} />
             {review?<View><Text style={styles.name}>{review.person.displayName}</Text><Text style={styles.handle}>@{review.person.handle}</Text><Text style={styles.securityNote}>They must accept before you become contacts. This profile does not verify encryption keys.</Text><TextInput accessibilityLabel="Optional request message" value={requestMessage} onChangeText={(next:string)=>setRequestMessage(Array.from(next).slice(0,200).join(""))} maxLength={400} multiline placeholder="Optional request message (200 characters)" style={styles.input} editable={!requesting}/></View>:null}
             <View style={styles.aiKinds}>
               {(
@@ -1746,6 +1759,7 @@ function MessageThread({
 }
 
 function Moments({ api, session }: { api: SocialAPI; session: Session }) {
+  const momentActions=useMemo(()=>new NativeMomentActions(async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[]);
   const momentIntents=useMemo(()=>new NativeMomentIntents({
     read:key=>SecureStore.getItemAsync(key),
     write:(key,value)=>SecureStore.setItemAsync(key,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),
@@ -1774,19 +1788,22 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     [explainReport, setExplainReport] = useState<SocialReport | null>(null),
     [appeal, setAppeal] = useState("");
   const load = async () => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
+    if(!current())return;
     setLoading(true);
     try {
-      setItems((await api.feed()).posts);
+      const result=await api.feed();if(!current())return;setItems(result.posts);
       setError(null);
     } catch (caught) {
-      setError(message(caught));
+      if(current())setError(message(caught));
     } finally {
-      setLoading(false);
+      if(current())setLoading(false);
     }
   };
   useEffect(() => {
+    setItems([]);setFollowing(new Set());setSelected(null);setReportRecord(null);setExplainReport(null);
     void load();
-  }, []);
+  }, [api.authorizationGeneration]);
   const pickMedia = async () => {
     try {
       if (media.length >= 4)
@@ -1862,18 +1879,24 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     );
   };
   const react = async (item: FeedPost) => {
-    await api.react(
-      item.id,
-      item.viewerReaction ?? "support",
-      !item.viewerReaction,
-      `reaction-${Date.now()}`,
-    );
-    await load();
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
+    try{
+      const confirmed=await momentActions.run(session.session.account,{kind:'reaction',subject:item.id,reaction:item.viewerReaction??'support',active:!item.viewerReaction},current,(action,key)=>{
+        if(action.kind!=='reaction')throw new Error('Review the original reaction again');
+        return api.react(action.subject,action.reaction,action.active,key);
+      });
+      if(confirmed)await load();
+    }catch(caught){if(current())setError(message(caught))}
   };
   const follow = async (item: FeedPost) => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
     const active = !following.has(item.author.handle);
     try {
-      await api.follow(item.author.handle, active, `follow-${Date.now()}`);
+      const confirmed=await momentActions.run(session.session.account,{kind:'follow',subject:item.author.handle,active},current,(action,key)=>{
+        if(action.kind!=='follow')throw new Error('Review the original follow again');
+        return api.follow(action.subject,action.active,key);
+      });
+      if(!confirmed)return;
       setFollowing((current) => {
         const next = new Set(current);
         if (active) next.add(item.author.handle);
@@ -1881,10 +1904,14 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
         return next;
       });
     } catch (caught) {
-      setError(message(caught));
+      if(current())setError(message(caught));
     }
   };
-  const remove = (item: FeedPost) =>
+  const remove = (item: FeedPost) => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority(),account=session.session.account,target=item.id;
+    const send=async()=>{
+      try{const confirmed=await momentActions.run(account,{kind:'delete',subject:target},current,action=>api.deleteMoment(action.subject));if(confirmed)await load()}catch(caught){if(current())setError(message(caught))}
+    };
     Alert.alert(
       "Delete this moment?",
       "This removes it from every audience. This cannot be undone.",
@@ -1893,14 +1920,11 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () =>
-            void api
-              .deleteMoment(item.id)
-              .then(load)
-              .catch((caught) => setError(message(caught))),
+          onPress: () => void send(),
         },
       ],
     );
+  };
   const submitReport = async (item: FeedPost) => {
     try {
       const evidence = await digestStringAsync(
