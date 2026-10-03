@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "3af9db6241547e7d001fa7efd814b5fb4586376f",
+  "catalogPath": "apps/creator-studio/ios/YNXCreator/catalog.json",
+  "catalogBytes": 129115,
+  "catalogSHA256": "9e123af9a333f2d277d0adb61e296f4a79ab0e0012bc9a3f072b83fccd50f7a0",
+  "locales": [
+    "en",
+    "zh-CN",
+    "zh-TW",
+    "ja",
+    "ko",
+    "es",
+    "fr",
+    "de",
+    "pt",
+    "ru",
+    "ar",
+    "id"
+  ],
+  "keysPerLocale": 192,
+  "addedTranslations": 880,
+  "everyLocaleKeyComplete": true,
+  "inheritedTranslationsPreserved": true,
+  "UTF8AndNonemptyValues": true,
+  "assetSizeAndShareLimitsPreserved": true,
+  "literalUIKeysCovered": 133,
+  "chosenLocaleAndArabicLayoutSource": true,
+  "installedLayoutAcceptance": false,
+  "independentNativeSpeakerReview": false
+}

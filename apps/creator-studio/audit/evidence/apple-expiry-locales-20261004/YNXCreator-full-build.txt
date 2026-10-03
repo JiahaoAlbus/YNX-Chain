@@ -1,0 +1,718 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/creator-studio/ios/YNXCreator.xcodeproj -scheme YNXCreator -configuration Debug -sdk iphonesimulator -derivedDataPath /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator CODE_SIGNING_ALLOWED=NO -destination "generic/platform=iOS Simulator" build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+    SDKROOT = iphonesimulator27.0
+
+2026-10-04 06:09:39.290 xcodebuild[7502:5988725] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXCreator' in project 'YNXCreator' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 21b762e66b49bb14d432347adb6486b4
+Build description path: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/XCBuildData/21b762e66b49bb14d432347adb6486b4.xcbuilddata
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/CompilationCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/CompilationCache.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/PrecompiledHeaders
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator-b97e20119a91ca9ab16a058510871daa-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator-b97e20119a91ca9ab16a058510871daa-VFS-iphonesimulator/all-product-headers.yaml
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyMetadataFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyStaticMetadataFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-non-framework-target-headers.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.hmap (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_const_extract_protocols.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftConstValuesFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.LinkFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-OutputFileMap.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-OutputFileMap.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_const_extract_protocols.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftConstValuesFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.LinkFileList (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-OutputFileMap.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-OutputFileMap.json
+
+MkDir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /bin/mkdir -p /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app
+
+ProcessInfoPlistFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Info.plist /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/Info.plist (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-infoPlistUtility /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/Info.plist -producttype com.apple.product-type.application -genpkginfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Info.plist
+
+CopyPNGFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/ynx-brand-original.png /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/ynx-brand-original.png (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng -compress -strip-PNG-text /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/ynx-brand-original.png /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/ynx-brand-original.png
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/native-session /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/native-session (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/native-session /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/catalog.json /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/catalog.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/catalog.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app
+
+SwiftDriver YNXCreator normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver YNXCreator normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdbool-F4XRS3MSHS0LXAV2YGTO1L3J3.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdarg-2XENHWPF0OFP4GLLX8G4X29QH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftShims-EV5O0SZHEK8ALXU0WMB0JDKHL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-32JCUPIZ313EQ2VRNEE6YB2FE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_float-16VB7HRGQJCMRIAEC08CQBRV1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stddef-1MWRPSC13PHW52FN3Y3AVQVI1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/DeveloperToolsSupport-6BFPWNQ9RE6KH2XYIJFRER6LX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ptrcheck-1IMVC9233UPSSCRI9W102PEWH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ptrauth-DNKTR9HXVZUOXHYW4WXT1B5RM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_AvailabilityInternal-CX7OY4GEPL75GVHC1OCDM2GNQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdbool-CXQQJKQ82F0LSC70DRUY5BACG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdarg-D4X64KMFNEXJHEMJDI50C9NNY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-AGYKBML097KAH9NCUEEPCUG15.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/DeveloperToolsSupport-B59WS599VYW495XWQ5O0FM9O5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftShims-3R4ON7Q2HTVP60X2JYF3Z7BAN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_float-38EYCVHSD4Z8RFYZ2S3MXUZ5S.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stddef-57ZB8OQ902MU8RRRXDKOLHJZP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ptrauth-7FULQHVLVC00WVOCZL4XOXGI9.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_AvailabilityInternal-B2Z0ZSY1OT6DBHEK92F29Y7DH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation1-63QQK5NIXNJ4PDZGPYWU5O2ML.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ptrcheck-7VU8KVICV3FVY08JA2JGL7QQD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation1-2NKIOYPTRJN4R0LCCP8XQ3B19.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_limits-DN60L2QFQHE0AUBT984YWZNR9.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation2-ENH8FYTM3DZH5YTA52YB2UZGD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation2-EAVDLKASNPBW191EIPLMR96CO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_limits-4Y76L3B7W1VDEL8AJ4BA5C65L.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdint-DIU849N6P97EWCLMUVRDU5R9V.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/sys_types-7Y802F0KPBYBLUBQIEAN1NOH7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/string_h-5U9AYEVPJE79RH42J1CHPQQVG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_tgmath-4FS1IICV6NNX42OXSH32EFYFA.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdatomic-5HY48PMWVC1WZHUAZXLVWM71M.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation3-6F6IIY1VLZCRSWCVO1YPWP3B8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/sys_types-CP1IKEIUR24WSDI35M2EQ3FTT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/string_h-1SCL396IE10CF7FVO0LKT0X99.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_tgmath-60R1GHZNRT1OVFE89GITH2AZB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdint-58HPKYYP72XYNGOYIPRCRWFT7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_intrinsics-974WDOJLL86SVHC77Y9Y0IJMI.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_inttypes-DPMCRKJ3NJLCR482EYOVV6KGA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_intrinsics-A8JGNCTBIU91IQ25H1IT4XRRT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_DarwinFoundation3-9LWZ2RXLC0AS03HQO0QAVGBYY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_stdatomic-6E38HM4RXRMHG5YT021IH3UPL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Darwin-9VO6RRH6GLK830DLIWQ5VDSV3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_Builtin_inttypes-AZSYAJE21ECBW13UBHBTTHJ35.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Darwin-YCVEWGABO2U5WPTJ65UXR21H.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/simd-EZYVJ3EPTOXLB39AFN08XPGE1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/MachO-BBADWJJS33D5Q9ZYDJPUBH7P1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ObjectiveC-566P6G7IH9SBYPAN6EJ690FP1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/simd-7KCPSV4FWC0TM4LM2V7JGEVSA.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os_object-7HYCYL4EWB02PJ8S646RU1JMD.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os_workgroup-9LH92Z8II1TAAE4GV4LM563UI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ObjectiveC-9XFDERN4VR7EE3WTCKOF0Z8OM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/MachO-7R8TDZAHO5EAU7858T9TD7VI0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Dispatch-2OEVKVCWMBU3LFQ8751QPDU73.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os_object-3K5RWSPE1LW7RDNT744PHU8XO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/dnssd-B616Q7PBD8V2D4CDFXQ0H9FQ0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreFoundation-87D751BBA8A1YOC1M7VJH1XDF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/XPC-6U2KJRG3T3A48BWXTO65JUWAI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os_workgroup-75MDVNDBXEA7QLIW676KGZW4L.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Spatial-4HPPE1HFX6F80FKJV5ZGLDLXL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os-5PZSGWPDY1LCSDIXTU3DOABEG.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Dispatch-62FSFIA0MNDWM4DSVLW61M36T.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreGraphics-UDVLEHGR9IY6BFZ80JPWDARZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CFNetwork-3INBPHV9AYVDP4KC5RDP5ZVEG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreAudioTypes-AFDDDYYK4L61IXP33E2SQ6X17.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Security-8SK5STIK7R9RYTJHR1867LW0H.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreAudio-4QA0LYW7K1VYM2RLAFD3WJBOR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreFoundation-BUKKMJU2KS6SVNSVFRWRM1C8H.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/XPC-9FUWEB9MJBVLZDGWL15JSWVJO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/dnssd-8N6IP0WSA36A3RJQA3TI5R0HM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Spatial-A9GVO1UPKEKZWSBIYQXKI0VNX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ImageIO-2MJIJB9Y3BEIP1JVA93W9BDT0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreText-AH0MKOWYZNEIMY07AMTPWVD9R.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Foundation-1FM0TPTLDXFVWMBCGKEI4ZFPY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/os-57SX2UH17MCLIAAJJUYWMDQKL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreAudioTypes-210JAML4E8SP2Y9L8YET28YWP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreGraphics-3PP8AVUGJ2U69TDSH2HPOZ1SJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CFNetwork-B6K4H4RRYZIM4P4Y15TCRGNML.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Security-B26MA6O77WUW43WOSQ16NOJNP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreAudio-5M77EJRH0ZHO39R5TZBPOUXBT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Foundation-1AQ57SJ2ASYRZSRGJYMNEMISX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreText-9HBHAD8UE3IQERS7Y4XFFKJRJ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/ImageIO-E30P40H2A72A4B77SQ6RTSTPR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Symbols-AWYY85I464WIZSZR1YW727JEH.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreData-DQ9RWKY43673V5KX75BN4VE4H.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreTransferable-9429WUN7I0382E1CUVGVBHEZE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UIUtilities-6LN7N04PM3B7P771OZTI25MQB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/OSLog-5OO1Y7FNRAAYS249RQ6BLYXQ3.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-KWQ69LL0LP9J482I1KPJEGES.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/OpenGLES-3BJ3YSB7WZMMKZLEDJZ9ERNCG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Network-89RKPSHEWJ81IQ2HIK5UDFED7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/FileProvider-8SA2TQC9UAGHBTJFQVAQFG9AG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UserNotifications-46W64VURDMU0UI4KPZT2H6QV5.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/DataDetection-92XATVGJIHH7ZSN9QXRMA02TW.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/LocalAuthentication-ABPBHNE3DOCXYP5S9OE0N0GB6.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_LocationEssentials-4YFZO1TGS9SRLB8DFCE7QFL5J.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Accessibility-2HADWDUSW9IU1RIA2YRGN20D1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/IOSurface-CNZ7TVXMJG8WYUSH7DJEE99FM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreLocation-FGHXR48NA42I77G5N3DP8TB0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Metal-3LH24Q3S6B6GJDFG7OGP6R7LT.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreMotion-DWY4W19CXFC9CUK4CLOM6417M.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UserNotifications-63H16F7CX8D2L9JIVAL65RQGI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/DataDetection-2MOVNX99VAD5ZPKBDEPSB2RU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Network-9156JZTA9D8YUTGKLBWULDGEI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UIUtilities-5BJSPT7YR4JKLZU4MOGH9MLNW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/OpenGLES-EED5WPBXQV029UNWP0S2X79P4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/OSLog-A70190683OMAOCIQDHBNDJNAH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-6W3DEZ1LP1HOY8IKEWJDIDTGU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Accessibility-16SLCP5L3G2021QIMBYICDI5M.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreTransferable-3Z7WVOMNQTGRWM2URHN14T0G6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/FileProvider-4L7NP3UIKT207QN9VA2MB6P6R.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreVideo-7URLHIK9YNHGA1WDOSAZWZE7B.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/LocalAuthentication-DHOW37EWPBXDSJUJELIEHPULP.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreData-3GD5SYAO6SB7XBNQ645SL4G65.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/IOSurface-ET0Y7DLG5B25RV32DDCQ4UQFX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/_LocationEssentials-AYYP03K3ZPZOKCGT6LQF1SH5E.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Symbols-6JQ9RTJH40DAGOD8C9U07ZMB6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/Metal-18VURHVNU284QBBROEQLK2XFA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreLocation-BJ437T9KYXNT3E11V9Q9J17FV.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreMedia-ATXGX9BZI6R9NM6U1ENZ49CBZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/QuartzCore-1SWKYGYGQFOVP5DD78VE4C0Y.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreImage-2AGIYB26S19Q3S7DX307A2348.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreMotion-8Z3G6M2HC6OJCRL843SDTR2P2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftUICore-2M3C2BZOVIDS1LF4LGYQ7KLUT.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UIKit-8HGPOJ3PTJF0RPFTEU2MMTD3G.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreVideo-AA3SIZPLF8EX61C1HI77QE07K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/QuartzCore-85GQIOI1FQX4J8ZIY1JPNH3JI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreImage-6SHDJZS7W3BI5MRUR4KLI7X4K.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/CoreMedia-7T9YEQFX31UW87L7828IVX7ZQ.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftUICore-APG4VRXS5GO6UDR1BNTZ0T57Y.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/UIKit-2PRB3O5JCL1THJGRZMMGXLCYB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/WebKit-C485SLH97UZ5EC8RUP0YEET4Z.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftUI-BIQIIP10JGWZNNBG0OIOQMF05.pcm
+
+SwiftCompile normal x86_64 Compiling\ CreatorNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeCustody.swift
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ YNXCreator (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    
+
+SwiftCompile normal x86_64 Compiling\ CreatorNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeEngine.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeState.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorDraftState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorDraftState.swift
+
+SwiftCompile normal x86_64 Compiling\ YNXCreatorApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile YNXCreatorApp.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorDeviceKey.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorDeviceKey.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorModel.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorModel.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeTransport.swift
+
+SwiftCompile normal x86_64 Compiling\ CreatorNativeCore.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeCore.swift
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/WebKit-CHGE481QQ94CQHBAPRNL3QB6Z.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules/SwiftUI-38WXRZ6PPWA07DK5BFQ0A1486.pcm
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ YNXCreator (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    
+
+SwiftCompile normal arm64 Compiling\ CreatorDeviceKey.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorDeviceKey.swift
+
+SwiftCompile normal arm64 Compiling\ CreatorModel.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorModel.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 Compiling\ CreatorDraftState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorDraftState.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorDeviceKey.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 Compiling\ CreatorNativeCore.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeCore.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 Compiling\ CreatorNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeEngine.swift
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for YNXCreator (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriver\ Compilation\ Requirements YNXCreator normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for YNXCreator (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriver\ Compilation\ Requirements YNXCreator normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ CreatorNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeTransport.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorNativeTransport.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftMergeGeneratedHeaders /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/YNXCreator-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-Swift.h (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-swiftHeaderTool -arch arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-Swift.h -arch x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-Swift.h -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/YNXCreator-Swift.h
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftdoc (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.abi.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftdoc (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.abi.json (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftsourceinfo (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftsourceinfo (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ CreatorNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeCustody.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 Compiling\ CreatorNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile CreatorNativeState.swift
+
+SwiftCompile normal arm64 Compiling\ YNXCreatorApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-SwiftPerFileCompile YNXCreatorApp.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorNativeCore.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorNativeCustody.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorDraftState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorNativeEngine.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorNativeState.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal arm64 Compiling CreatorModel.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriver\ Compilation YNXCreator normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/Binary/YNXCreator normal x86_64 (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/Binary/YNXCreator
+
+SwiftDriverJobDiscovery normal arm64 Compiling YNXCreatorApp.swift (in target 'YNXCreator' from project 'YNXCreator')
+
+SwiftDriver\ Compilation YNXCreator normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXCreator -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/Binary/YNXCreator normal arm64 (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/Binary/YNXCreator
+
+CreateUniversalBinary /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator normal arm64\ x86_64 (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/Binary/YNXCreator /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/Binary/YNXCreator -output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator
+
+CopySwiftLibs /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Frameworks --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/PlugIns --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/SystemExtensions --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name YNXCreator --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 17.0 --bundle-identifier com.ynxweb4.creator-studio --output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app --target-triple arm64-apple-ios17.0-simulator --target-triple x86_64-apple-ios17.0-simulator --binary-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator_dependency_info.dat --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator_dependency_info.dat --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftFileList --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftFileList --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyMetadataFileList --static-metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyStaticMetadataFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/arm64/YNXCreator.SwiftConstValuesFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/Objects-normal/x86_64/YNXCreator.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-04 06:09:52.274 appintentsmetadataprocessor[8241:5991048] Starting appintentsmetadataprocessor export
+2026-10-04 06:09:52.277 appintentsmetadataprocessor[8241:5991048] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+GenerateDSYMFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app.dSYM /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    export PATH\=/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Resources:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware\ Fusion.app/Contents/Public:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/huangjiahao/.codex/tmp/arg0/codex-arg0qOFuoN:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/huangjiahao/.local/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.Y0lvlfLNGh/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.3asHvwPZcx/bin:/tmp/ynx-cli-bin-27120:/tmp/ynx-cli-bin-7036:/Users/huangjiahao/google-cloud-sdk/bin:/opt/homebrew/opt/openjdk@17/bin:/opt/homebrew/opt/openjdk@21/bin:/Applications/Webots.app/Contents/MacOS:/Applications/Blender.app/Contents/MacOS:/opt/homebrew/anaconda3/condabin:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/YNXCreator -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app.dSYM
+
+AppIntentsSSUTraining (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Info.plist --temp-dir-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/ssu --bundle-id com.ynxweb4.creator-studio --product-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app --extracted-metadata-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Metadata.appintents --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/YNXCreator.build/Debug-iphonesimulator/YNXCreator.build/YNXCreator.DependencyMetadataFileList --source-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app/Info.plist --archive-ssu-assets
+2026-10-04 06:09:52.300 appintentsnltrainingprocessor[8283:5991094] Parsing options for appintentsnltrainingprocessor
+2026-10-04 06:09:52.301 appintentsnltrainingprocessor[8283:5991094] Starting AppIntents SSU YAML Generation
+2026-10-04 06:09:52.301 appintentsnltrainingprocessor[8283:5991094] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app
+
+Validate /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    builtin-validationUtility /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app (in target 'YNXCreator' from project 'YNXCreator')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/creator-studio/ios
+    /usr/bin/touch -c /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Products/Debug-iphonesimulator/YNXCreator.app
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-creator-apple-native-rKEPYo/YNXCreator/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

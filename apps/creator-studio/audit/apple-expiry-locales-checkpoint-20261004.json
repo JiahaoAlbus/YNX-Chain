@@ -1,0 +1,511 @@
+{
+  "schema": "ynx.creator.apple.expiry-locales.freeze.v1",
+  "createdAt": "2026-10-03T22:12:59.026624+00:00",
+  "sourceCommit": "3af9db6241547e7d001fa7efd814b5fb4586376f",
+  "sourceTree": "abaab7c188813c688743583cc788a08c185cb281",
+  "sourceArchive": {
+    "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/media-owned-source-3af9db62.tar.gz",
+    "bytes": 4272881,
+    "sha256": "8b3169ec31335af71e234b274e58d4b7c30f8e472cd0f79af767a792804d1943",
+    "fileCount": 625,
+    "everyMemberVerified": true,
+    "everyMemberGitByteExact": true
+  },
+  "candidates": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreator-3af9db62-unsigned.tar.gz",
+      "bytes": 1570306,
+      "sha256": "a0d959395d29cab907d25e3c92c232c94f8af2ef24eeab298a6adfb407f7eb99",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreator",
+      "sdk": "iphonesimulator",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreatorMac-3af9db62-unsigned.tar.gz",
+      "bytes": 920278,
+      "sha256": "a595de8fea910df2cf674155ba574440e9c64987be88d3eb3b5b90d67f873c49",
+      "fileCount": 11,
+      "everyMemberVerified": true,
+      "scheme": "YNXCreatorMac",
+      "sdk": "macosx",
+      "applicationId": "com.ynxweb4.creator-studio",
+      "callback": "ynxcreator://wallet-auth/callback",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "allOriginalNativeAssetsExact": true,
+      "originalBrandPixelsExact": true
+    }
+  ],
+  "buildSourcePinsGitExact": 21,
+  "compositionInputPins": 673,
+  "ownedCompositionPinsGitExact": 629,
+  "checks": {
+    "fullIOSSimulatorAndMacOSBuild": "PASS",
+    "originalCreatorIdentityAndCallback": "PASS",
+    "originalSDKAndRegistryPackagedGitExact": true,
+    "originalBrandPixels": true,
+    "actualOriginalCreatorSwiftWebKitSDKGo": "PASS all original upload/identity recovery and two distinct SDK/Swift device keys and actors; named invite/accept, owner self-review denied, independent original rights/publication review, schedule not-due veto, committed publish-due lost reply, cold legacy pending POST same-key replay with no new version, signed reviewer/public record readback, original team revoke 403, moderator sign-out preserves owner authority",
+    "actualOriginalOwnerAppealColdRecovery": "PASS original signed report/moderator takedown, stale-form veto, successful commit/lost response/cold same-key single appeal, duplicate-active veto, human accepted appeal remains private and requires fresh independent publication review; absent revenue cannot create a dispute",
+    "actualOriginalAssetColdRecovery": "PASS original PNG/VTT immutable multipart files with fresh original SDK proofs; lost successful reply/cold same-key no duplicate object or caption; original signed file byte hashes; stale/changed/invalid selection veto, damaged wire cannot send, original file retained, pending asset hidden on original account veto, moderator without editor role cannot upload, cancel preserves original wire and committed service asset",
+    "actualOriginalAIStreamAndRecovery": "PASS original private job prepare lost reply/cold same-key one task with no provider before explicit approval; actual NDJSON partial/typed terminal owner-id checks; lost result/cold exact original readback without rerunning isolated provider; running cancel lost reply durable separate cancel intent/cold source confirmed; accept/reject preserves original publication workflow; foreign owner/role and terminal job veto; explicit saved context/result deletion leaves video and rights; original Go final 3 provider starts and zero remaining jobs",
+    "actualNativeUploadExpiry": "PASS expired selection creates no saved draft or original business video; future expiry bound into immutable multipart, original signed service readback and lost response/cold original same-key retry preserve exact expiry and single video; no saved schema or wire migration",
+    "actualTwelveLocaleCatalogCoverage": "PASS 12 locales each 192 keys, 880 added translated workflow values, inherited values and technical limits preserved, 133 literal UI keys present; chosen locale passed to native date controls and Arabic layout direction set; independent native-speaker and installed layout review remain unverified",
+    "bothCandidateCatalogsGitByteExact": true,
+    "firstFullRestoreFailureRetained": true,
+    "firstRestoreFailureRootCauseConfirmed": false,
+    "actualCancelledStreamColdRecovery": "PASS original signed cancellation readback finishes only same-job POST{} saved stream with no active stream owner; intentionally injected legacy cancelled delta is rejected and retained until cold confirmation; original task deletion and distinct next-job identity unblocked; original provider starts remains 3; server emits deltas only while running",
+    "actualOriginalProtocolThreeRepetitions": "PASS go race count=3 exact original SDK/Swift/Go Creator journey, independent generated custody per run, unchanged production authorization and limits",
+    "actualCapturedButtonAuthority": "PASS actual synchronous submit captures original SDK identity/epoch and model revision plus input values; delayed original metadata updates once; suspend retires queued form with no request/intent or success callback; original cold restore preserves exact prior record/version",
+    "actualNativeReviewDisclosure": "PASS normal rights details view compiled into both complete candidates; independent original Swift reviewer reads original license/territories/dates/exclusivity/evidence/source and exact owner 7000/reviewer 3000 split before same captured-submit review; no installed UI claim",
+    "actualNativeVersionsAndInviteExpiry": "PASS original actor/hash/time/version records and scheduled_at decoded; original custom invitation expiry and auth_version read back; normal view displays version and schedule records, invitation expiry and bounded optional date picker",
+    "actualNativeRightsFullFields": "PASS original declared license/territories, start/end, exclusivity, two contributors 70/30 with exact integer basis points; invalid split does not dispatch",
+    "actualDelegatedFinanceRecovery": "PASS original signed usage and independently approved monetization, original isolated testPay receipt record, finance visibility bound to original video owner and active role; payout 403; lost dispute reply/cold same-key one original record; retired role hides revenue/disputes and vetoes stale mutation",
+    "actualRealPayReceiptAcceptance": false,
+    "actualRealAIGatewayAcceptance": false,
+    "actualRevenueBackedDisputeAcceptance": false,
+    "originalProtectedStateIOSAndMacOSTuples": "PASS injected storage and generated key",
+    "goRacePassEvents": 447,
+    "goRaceFailEvents": 0,
+    "goVet": "PASS",
+    "actualWalletConsent": false,
+    "actualOSKeychain": false,
+    "actualIOSRuntime": false,
+    "actualRenderedNativeUI": false,
+    "formalPublicPair": false
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified"
+  ],
+  "inheritedReviewParityCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-review-parity-checkpoint-20261004.json",
+    "bytes": 23234,
+    "sha256": "433b844d70c5b34604989bbd2094acdaf3da11931bf6117d1d3cf296a2c8aaa1"
+  },
+  "inheritedRightsFinanceCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-rights-finance-checkpoint-20261004.json",
+    "bytes": 20985,
+    "sha256": "410346ab336d8b13c85a2db1bf81bb53c33fe36140057aa9ec7ae3e0a1c7ce49"
+  },
+  "inheritedAIRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-ai-recovery-checkpoint-20261004.json",
+    "bytes": 18261,
+    "sha256": "c75630cc7c6363e222bb3e14a00c8c2b230b7a5b93a20ef7bada67f3fabd1f4c"
+  },
+  "inheritedAndroidMusicCheckpoint": {
+    "path": "apps/music/audit/android-upload-recovery-checkpoint-20261004.json",
+    "bytes": 11453,
+    "sha256": "ba3aafe89515b7082e2191daefac6721f0762429e9f6bcfedfc4a73edbf35620"
+  },
+  "inheritedAssetRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-asset-recovery-checkpoint-20261004.json",
+    "bytes": 16520,
+    "sha256": "c6a6fbe80ffb1f8deb8417a387755d4d353b759550c85d6e55d02ebff80abb95"
+  },
+  "inheritedAppealRecoveryCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-appeal-recovery-checkpoint-20261004.json",
+    "bytes": 14425,
+    "sha256": "d6d4f0c57a3c12f55aed036076232072c7453339a8958ff08b4ee8cd4d09b201"
+  },
+  "inheritedIndependentReviewCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-independent-review-checkpoint-20261004.json",
+    "bytes": 13139,
+    "sha256": "40632735474c3617a7a9897405e5dd271d398b44f1acd864bac96cb99d63f50e"
+  },
+  "inheritedCreatorUploadCheckpoint": {
+    "path": "apps/creator-studio/audit/apple-native-upload-checkpoint-20261004.json",
+    "bytes": 11376,
+    "sha256": "b717958db35e4f9f631964101d9b90012c66946adba3fcd8250f1d41be5c7792"
+  },
+  "QAAdmission": {
+    "ownerSample": "original SDK5c secp256k1 seed 1",
+    "independentModeratorSample": "original SDK5c secp256k1 seed 5",
+    "twoDistinctSwiftProcessesKeysAndCustody": true,
+    "originalServerModeratorPolicy": "explicit isolated sample roster, not deployed policy",
+    "realRolePolicyAccepted": false,
+    "aiProvider": "explicit isolated original-service QA streamer, not real AI Gateway",
+    "providerRunsGoReadback": 3,
+    "realAIProviderAccepted": false,
+    "payVerifier": "original service_test.go testPay receipt-1 amount 5; explicitly isolated QA, not a real Pay provider receipt",
+    "realPayProviderAccepted": false,
+    "assetJourneyQuotaBytes": 16777216,
+    "quotaPolicy": "explicit isolated service fixture replaces legacy 96-byte test quota only; production quota and original quota regressions unchanged"
+  },
+  "publicReadback": [
+    {
+      "url": "https://video.ynxweb4.com/video/runtime-manifest.json",
+      "checkedAt": "2026-10-03T22:12:57.738740+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/video-manifest-public.json",
+        "bytes": 4499,
+        "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+      }
+    },
+    {
+      "url": "https://creator.ynxweb4.com/creator-studio.manifest.json",
+      "checkedAt": "2026-10-03T22:12:58.742452+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+      "centralDeploymentVerified": null,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/creator-manifest-public.json",
+        "bytes": 3753,
+        "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+      }
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/health",
+      "checkedAt": "2026-10-03T22:12:59.025248+00:00",
+      "authenticated": false,
+      "status": 200,
+      "sourceCommit": null,
+      "centralDeploymentVerified": false,
+      "body": {
+        "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/video-health-public.json",
+        "bytes": 285,
+        "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreator-3af9db62-unsigned.tar.gz",
+      "bytes": 1570306,
+      "sha256": "a0d959395d29cab907d25e3c92c232c94f8af2ef24eeab298a6adfb407f7eb99"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreator-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreator-full-build.txt",
+      "bytes": 129980,
+      "sha256": "6ff880be5cad6ce55331fe1d27033d9c3fe26966f23cbce7e54555f1489cdbf2"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreatorMac-3af9db62-unsigned.tar.gz",
+      "bytes": 920278,
+      "sha256": "a595de8fea910df2cf674155ba574440e9c64987be88d3eb3b5b90d67f873c49"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreatorMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/YNXCreatorMac-full-build.txt",
+      "bytes": 74920,
+      "sha256": "90243aa791c98db875e4e00c68ac3b8e7f1be63d1600958d0f4bd0bd0aa703cc"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/actual-swift-compile.txt",
+      "bytes": 1746,
+      "sha256": "1df9df733f237decab8b6920f34506cae5bcc41724bd48a94855cbac9e7c14fe"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/actual-swift-compiled-source.json",
+      "bytes": 2088,
+      "sha256": "78c5ce9ef0ac37f3a519f2b0a78e7602f9fe69305517f0c11daddbc7a3a387fe"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/ai-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/asset-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/cancel-stream-recovery-complete-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/captured-button-review-complete-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/captured-button-review-original-history-focused-passed.jsonl",
+      "bytes": 3688,
+      "sha256": "08a8d4b2490d981c70d2bd1527c9a42fafd7978e08af24050316e4448900ad43"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/combined-go-race.jsonl",
+      "bytes": 430599,
+      "sha256": "685905c4af387995518237e36b662730af533dff17763fc9eeef790ee2725c5f"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/combined-source-receipt.json",
+      "bytes": 185960,
+      "sha256": "c7aa3f04af8c4f95a81d40e1081df1420b1aa0d50300523d5ec76cae9e4b7098"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/creator-manifest-public.json",
+      "bytes": 3753,
+      "sha256": "fdb7ce7e633311f60670567dbffc283dc7fc4bed12e742564863e525002497f2"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/current-native-locale-coverage.json",
+      "bytes": 753,
+      "sha256": "d3a2646a551e09babbe9aa0974aac49b8fad086e69afb7ae001f948dace83143"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/dispute-full-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/expiry-locales-complete-source-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/expiry-locales-current-followup.md",
+      "bytes": 2754,
+      "sha256": "216bea7527224de723b15f3732e90fb9f60103f72ca12205f8a2af95a7f6c021"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-address-only-alias-admission-failed.jsonl",
+      "bytes": 8139,
+      "sha256": "42ab57549b83ca84d1044202d044599eb50aecf4ccad89e46fc79fc1a0ad2bb7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-ai-model-actor-typecheck-failed.txt",
+      "bytes": 3681,
+      "sha256": "74d0368f7be4ef1f97ff8171ebf3cfb6b15c7120dea0abe0401062182f2ebae1"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-controller-typecheck-failed.txt",
+      "bytes": 10183,
+      "sha256": "8e2536f03b2b1d8807207bcebe91024c11e4798cbe11b65352caf0c0fa884d93"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-fixture-compile-failed.txt",
+      "bytes": 2809,
+      "sha256": "a8c3f664c7cdff2030213d4e9a418c38a8a9edc0c16b426bf5c8ac8ea30937a0"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-full-account-mismatch-restoration-failed.jsonl",
+      "bytes": 439547,
+      "sha256": "2f7c51a8dfea46eb13e3bba9619c4c44d733ec5b647f121f640dae543bcfc21c"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-full-native-late-rejection-observation-failed.jsonl",
+      "bytes": 434530,
+      "sha256": "dd11a782c009c0818b937f3674418e3c7db3eecd6e005deaa77675c3adc383a7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-legacy-quota-failed.jsonl",
+      "bytes": 8148,
+      "sha256": "54fa6ccbc712b153795a9a85e5ada9648e5766c4412147ff3ea32092842cce86"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-original-territory-normalization-check-failed.jsonl",
+      "bytes": 9137,
+      "sha256": "28eb64c48f451154c1c97fc67d4295fefd474cbb13aebcdd93c4091ba9c567bd"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-private-public-readback-status-failed.jsonl",
+      "bytes": 15435,
+      "sha256": "7ab17768322aac5a5c200d21ba99e139b8978e4caf35fdaac4bacab836f6f642"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-test-pay-receipt-mismatch-failed.jsonl",
+      "bytes": 8597,
+      "sha256": "b5d62369098979284a85a60bd72957c1605764ddbb1729b4bc6810aba75c9dd3"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-three-repetitions-cancelled-stream-recovery-failed.jsonl",
+      "bytes": 18270,
+      "sha256": "ac8477a78858999e89152819a1f11634adfa98dacf0f5249a24874b6c8baf6f4"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/first-view-typecheck-failed.txt",
+      "bytes": 8011,
+      "sha256": "712e2d3fb53392bcd30c2c5662e226cb6d73d6eb0ea46d992bd9702838bd0642"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/fixture-whitespace-compile-failed.txt",
+      "bytes": 2840,
+      "sha256": "22b059c6de4c80cbc72967e27188e25506ac9812cf0ce3cb43ed3ee7491ad2bb"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/focused-native-business-passed.jsonl",
+      "bytes": 9187,
+      "sha256": "355514812f6370862cccee5ffb810452fee6b01a1807e227703924d70cbf2cce"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/freeze-preparation.py",
+      "bytes": 21452,
+      "sha256": "72507d1da3d8f9ee3d420e9814b99b76aa58190350f9df0064e8e3614271499f"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/full-native-build-receipt.json",
+      "bytes": 9992,
+      "sha256": "edd54a3d8f7ea901af54eb63a01c609ccedcdc814518323e90071636e49bbc62"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/initial-full-swift-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/legacy-quota-diagnosis-failed.jsonl",
+      "bytes": 8182,
+      "sha256": "ad21dc47443f87f58ed91397d1fe5ed281f0cc33bd3d978903b4de6f102b1cb7"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/locale-coverage-check.py",
+      "bytes": 1992,
+      "sha256": "c60c5b2b8fa613effa460af0609e77ad3f4109594017235b7fd942d9c78bbf0b"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/media-owned-source-3af9db62.tar.gz",
+      "bytes": 4272881,
+      "sha256": "8b3169ec31335af71e234b274e58d4b7c30f8e472cd0f79af767a792804d1943"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/native-locale-coverage.json",
+      "bytes": 24010,
+      "sha256": "12db4e54228c518c9f00109dc8809c8c8e2eb32d7af922d2ff38c935e7430395"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/native-parity-current-followup.md",
+      "bytes": 2595,
+      "sha256": "b33d405d2fd488b7becea88d794f87ac32616ad99db542bd9b2b8fe175109ac5"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/native-parity-readonly-followup.md",
+      "bytes": 1874,
+      "sha256": "1e0f8c295d594b480cd24381fa66810646222da3d1770d99ade961aa3020f355"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-ai-stream-recovery-focused-passed.jsonl",
+      "bytes": 3674,
+      "sha256": "d7e3a21edc120839f99b8b62a27e84f8969f0567b1faadbc7544fc00c9306138"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-appeal-cold-recovery-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "ddcf64f8b2a4db4ba50dc36848a3603f147c018944767b00b41218500b9a0d22"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-asset-cold-recovery-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "9273afba44348019e7fe8287cd93485bb6096f568d13c304747ebb1ddca12b2a"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-asset-guard-cancel-focused-passed.jsonl",
+      "bytes": 3673,
+      "sha256": "4e973cc139b290583624dd399d89ff3c2cf36e71d32c38ccd4e1b89c55c9dcf6"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-protocol-three-repetitions-passed.jsonl",
+      "bytes": 8273,
+      "sha256": "fae3989fe860ada94588a3c385af87854254f0d94ec976d11be8ff10bfcf3823"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-protocol-three-repetitions-receipt.json",
+      "bytes": 174832,
+      "sha256": "d6f1bf0d92f653d0a73a81e979e85b57a1d5c5dd5ceb425f0e3a7637417918ef"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-rights-finance-cold-recovery-focused-passed.jsonl",
+      "bytes": 3687,
+      "sha256": "3aa001967f7a9641c603e5bc9a8ddc2c27d2a428086fb9fc3aec3786891ef962"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/original-upload-expiry-cold-recovery-focused-passed.jsonl",
+      "bytes": 3688,
+      "sha256": "0d6eaf4b4a5899f5e0b76e1998953bdf415d8a616a20a69b0feaf2d3a9a58183"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/protected-state-checks.txt",
+      "bytes": 282,
+      "sha256": "7f5232f6a765be73808a83136ccaec33ba6f566d78c2aeef9541cee83abd0045"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/public-projection-reviewer-check-failed.jsonl",
+      "bytes": 8741,
+      "sha256": "6806663bb39aa7509ea8f3ad6f9b05b8e56c81bde589cefc7a7eec60bb8f5c8c"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/rights-finance-full-view-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/rights-finance-model-typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/stale-draft-controller-diagnosis.jsonl",
+      "bytes": 8145,
+      "sha256": "3006d044fc4220a2f7b57222c210d2e9a656449909c7bbe93c9f62589029b51a"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/stale-draft-controller-failed.jsonl",
+      "bytes": 18103,
+      "sha256": "e3970f6f3528ef5de4eb93649cee45986d3f38c8f068c162b76397dabc9ab9be"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/three-repetitions-runner.py",
+      "bytes": 18485,
+      "sha256": "67f8cbc6b738d625e9c159ee6fcc3bbc0b01ac035511d5fd5d6fc4e46a084a1e"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/translation-preparation.py",
+      "bytes": 41312,
+      "sha256": "f62f88a41479ea0117cc6676bb96320cee78b6040a58daed29842252d955087d"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/two-actor-independent-review-focused-passed.jsonl",
+      "bytes": 3675,
+      "sha256": "d347b45514ad75564eba65a4b14baddc65830032856a0928f81d14ee9afccbd3"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/video-health-public.json",
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "path": "apps/creator-studio/audit/evidence/apple-expiry-locales-20261004/video-manifest-public.json",
+      "bytes": 4499,
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "ynx.creator.apple-engine.software-qa.v1",
+  "binary": "/tmp/ynx-creator-expiry-locales-engine-r4-20261004/apple-engine-check",
+  "bytes": 2074320,
+  "sha256": "9368cb01e8fd5fb13a65e4296f7a95503f5b42cd731fb20f7560f061d0d62b11",
+  "sourcePins": [
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift",
+      "bytes": 23218,
+      "sha256": "2e34227468d17a96790b55c0599c9775a827215f81985ea7b0868fc5b8556aaf"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift",
+      "bytes": 18455,
+      "sha256": "da351d88334e2014457f44004f3df0844e7546629c894c0e04123b228c3720bf"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift",
+      "bytes": 2891,
+      "sha256": "90d0eea42d872148284f11b570bc89705e7002c50a95aeb33be8a6f63bfa278a"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift",
+      "bytes": 4099,
+      "sha256": "ff6687e2d04e4f28054ef1c97e86bbae3da2f18cf6eaed7c8dbd2ff25b382f76"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift",
+      "bytes": 2510,
+      "sha256": "465d37755be4ec5bec0be7516934074baa5343e0f98406943f83d2ea84ed0867"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift",
+      "bytes": 7849,
+      "sha256": "4f480b30ddeaa912b3a1e291dd2c48ad72b79fc0773ddaed928d1a0ea518a3ec"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift",
+      "bytes": 17210,
+      "sha256": "2d0fa152034ab9794d31d9e4ef6809b8399f3fc2fe3d5c0d90b692f575ac315a"
+    },
+    {
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorModel.swift",
+      "bytes": 33812,
+      "sha256": "cc3581df9c2fbe2440e6616557a025159fa662bec9cc30cd1bfcf12001b69fa9"
+    },
+    {
+      "path": "apps/creator-studio/scripts/apple-engine-check.swift",
+      "bytes": 20086,
+      "sha256": "a78b888e44f503e30e3eec113a037231b69938f5572a5bd956261c76b4940597"
+    }
+  ],
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "installed": false
+}
