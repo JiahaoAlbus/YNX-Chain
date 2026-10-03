@@ -50,6 +50,7 @@ type Config struct {
 	Now                 func() time.Time
 }
 type Service struct {
+	merchantAction      *merchantAdmission
 	store               *Store
 	pay                 PayAPI
 	ai                  AIProvider
@@ -638,7 +639,12 @@ func (s *Service) ManualReplayWebhook(actor MerchantPrincipal, deliveryID, reaso
 	}
 	err = s.store.Update(func(data *Snapshot) error {
 		data.Deliveries[id] = replay
-		data.Idempotency["webhook-replay:"+actor.Merchant.ID+":"+key] = IdempotencyRecord{Scope: "webhook-replay", Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
+		record := IdempotencyRecord{Scope: "webhook-replay", Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
+		if s.merchantAction != nil {
+			record.OriginalAccount = s.merchantAction.account
+			record.OriginalBodyDigest = s.merchantAction.digest
+		}
+		data.Idempotency["webhook-replay:"+actor.Merchant.ID+":"+key] = record
 		appendAudit(data, actor.Merchant.ID, actor.Account, "webhook.manual-replay", id, "queued", "dead-letter "+original.ID+"; reason: "+reason, now)
 		return nil
 	})
@@ -837,7 +843,12 @@ func (s *Service) idempotentUpdate(scope, merchant, key, requestHash, objectID s
 		if err := fn(data); err != nil {
 			return err
 		}
-		data.Idempotency[id] = IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: objectID, CreatedAt: s.now()}
+		record := IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: objectID, CreatedAt: s.now()}
+		if s.merchantAction != nil {
+			record.OriginalAccount = s.merchantAction.account
+			record.OriginalBodyDigest = s.merchantAction.digest
+		}
+		data.Idempotency[id] = record
 		return nil
 	})
 }

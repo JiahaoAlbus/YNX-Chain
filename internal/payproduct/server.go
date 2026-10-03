@@ -47,6 +47,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/split-payments/{id}/shares/{shareId}/claim", s.claimSplitShare)
 	s.mux.HandleFunc("GET /v1/quant-bills/{id}", s.quantBill)
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
+	s.mux.HandleFunc("POST /v1/merchant/mutations/lookup", s.merchantMutationLookup)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
 	s.mux.HandleFunc("POST /v1/merchant/split-payments", s.createSplitPayment)

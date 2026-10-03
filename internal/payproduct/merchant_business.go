@@ -216,7 +216,8 @@ type canonicalMerchantKey struct{}
 func merchantBusinessRoute(method, path string) (permission string, creation, recovery bool) {
 	fixed := map[string]string{
 		"POST /v1/merchant/sessions": "read", "POST /v1/merchant/members": "members",
-		"GET /v1/merchant/state": "read", "GET /v1/merchant/analytics": "read", "GET /v1/merchant/reconciliation.csv": "reconcile",
+		"POST /v1/merchant/mutations/lookup": "read",
+		"GET /v1/merchant/state":             "read", "GET /v1/merchant/analytics": "read", "GET /v1/merchant/reconciliation.csv": "reconcile",
 		"POST /v1/merchant/catalog": "invoice", "POST /v1/merchant/invoices": "invoice", "POST /v1/merchant/split-payments": "invoice", "POST /v1/merchant/quant-bills": "invoice", "POST /v1/merchant/recurring-drafts": "invoice", "PUT /v1/merchant/webhook": "webhook", "POST /v1/merchant/webhook/rotate": "webhook",
 	}
 	if p := fixed[method+" "+path]; p != "" {
@@ -254,6 +255,7 @@ func merchantOriginalContext(ctx context.Context) error {
 
 func (s *Service) merchantScope(ctx context.Context, a *merchantAdmission, permission string) *Service {
 	child := *s // shared mutex pointers and original maps; NEVER copy mutex values.
+	child.merchantAction = a
 	child.store = &Store{parent: s.store, authorize: func() (func(*Snapshot) error, error) {
 		if err := merchantOriginalContext(ctx); err != nil {
 			return nil, err

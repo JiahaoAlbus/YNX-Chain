@@ -79,6 +79,7 @@ func (s *Server) routes() {
 	s.handleFunc("GET /api/orders/{id}/pay-handoff", s.invoiceReference)
 	s.handleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
 	s.handleFunc("POST /api/orders/{id}/transition", s.orderTransition)
+	s.handleFunc("POST /api/seller/mutations/lookup", s.sellerMutationLookup)
 	s.handleFunc("POST /api/seller/stores", s.createStore)
 	s.handleFunc("GET /api/seller/stores", s.sellerStores)
 	s.handleFunc("PUT /api/seller/stores/{id}", s.updateStore)

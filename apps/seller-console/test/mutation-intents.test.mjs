@@ -1,29 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMutationIntents} from '../mutation-intents.js';
-
-test('unconfirmed writes keep their key after account reauthentication but cannot cross accounts', async () => {
-  let account = 'account-a';
-  const intents = createMutationIntents(() => account);
-  const original = await intents.prepare('POST', '/seller/stores', {Name: 'Store', Policy: 'Returns accepted'});
-  account = '';
-  await assert.rejects(intents.prepare('POST', '/seller/stores', original.body));
-  account = 'account-b';
-  const other = await intents.prepare('POST', '/seller/stores', original.body);
-  assert.notEqual(original.key, other.key);
-  account = 'account-a';
-  const retried = await intents.prepare('POST', '/seller/stores', {Policy: 'Returns accepted', Name: 'Store'});
-  assert.equal(retried.key, original.key);
-  intents.confirm(retried);
-  assert.notEqual((await intents.prepare('POST', '/seller/stores', original.body)).key, original.key);
-});
-
-test('a changed decision or target gets a new key without mutating the pending request body', async () => {
-  const intents = createMutationIntents(() => 'account-a'), body = {Action: 'shipped', TrackingNumber: 'first'};
-  const original = await intents.prepare('POST', '/orders/one/transition', body);
-  body.TrackingNumber = 'second';
-  const changed = await intents.prepare('POST', '/orders/one/transition', body);
-  const otherOrder = await intents.prepare('POST', '/orders/two/transition', original.body);
-  assert.equal(original.body.TrackingNumber, 'first');
-  assert.notEqual(original.key, changed.key); assert.notEqual(original.key, otherOrder.key);
-});
+function fixture(){let actor='account-a';const values=new Map(),locks=new Map();const options={storage:{getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)},withLock:async(key,work)=>{const previous=locks.get(key)??Promise.resolve();let release;const now=new Promise(resolve=>release=resolve);locks.set(key,now);await previous;try{return await work()}finally{release();if(locks.get(key)===now)locks.delete(key)}}};return {values,options,setActor:value=>actor=value,create:()=>createMutationIntents(()=>actor,options)}}
+const body={Action:'shipped',TrackingNumber:'original-private-number'},path='/orders/one/transition';
+test('cold reopen preserves the original key and unknown outcome can only read back',async()=>{const f=fixture();let original,writes=0,reads=0;await assert.rejects(f.create().execute('POST',path,body,()=>{},async(value,mark)=>{mark();original=value;writes++;throw Error('lost')}));await f.create().execute('POST',path,{...body},()=>{},()=>assert.fail('resend'),async value=>{reads++;assert.deepEqual(value,original);return {ID:'one'}});assert.equal(writes,1);assert.equal(reads,1);assert.equal(f.values.size,0)});
+test('unknown changed input is blocked while another actor or target remains independent',async()=>{const f=fixture(),r=f.create();const original=await r.prepare('POST',path,body);await assert.rejects(r.prepare('POST',path,{...body,TrackingNumber:'edited'}),e=>e.code==='SELLER_MUTATION_UNRESOLVED');f.setActor('account-b');assert.notEqual((await r.prepare('POST',path,body)).key,original.key);f.setActor('account-a');assert.equal((await f.create().prepare('POST',path,body)).key,original.key);assert.notEqual((await r.prepare('POST','/orders/two/transition',body)).key,original.key)});
+test('durable record is opaque and malformed or unavailable storage prevents dispatch',async()=>{const f=fixture(),r=f.create();await r.prepare('POST',path,body);const raw=JSON.stringify([...f.values]);for(const value of ['account-a',path,body.TrackingNumber,'TrackingNumber'])assert.equal(raw.includes(value),false);f.values.set([...f.values.keys()][0],'{broken');let sends=0;await assert.rejects(r.execute('POST',path,body,()=>{},()=>sends++));assert.equal(sends,0);assert.equal([...f.values.values()][0],'{broken');const bad=fixture();bad.options.storage.setItem=()=>{throw Error('unavailable')};await assert.rejects(bad.create().execute('POST',path,body,()=>{},()=>sends++));assert.equal(sends,0)});
+test('proof rejection remains prepared and fresh authorization reuses the original body and key',async()=>{const f=fixture(),r=f.create();let original;await assert.rejects(r.execute('POST',path,body,()=>{},async value=>{original=value;throw Error('proof rejected')}));await r.execute('POST',path,body,()=>{},async(value,mark)=>{assert.deepEqual(value,original);mark();return {ID:'one'}});assert.equal(f.values.size,0)});
+test('late readback after account switch is rejected and the original row survives',async()=>{const f=fixture(),r=f.create();await assert.rejects(r.execute('POST',path,body,()=>{},async(_,mark)=>{mark();throw Error('lost')}));await assert.rejects(r.execute('POST',path,body,()=>{},()=>assert.fail('resend'),async()=>{f.setActor('account-b');return {ID:'foreign'}}),/account or workspace changed/);assert.equal(f.values.size,1)});
+test('concurrent pages serialize one dispatch and cannot replace a confirmed request',async()=>{const f=fixture();let release,ready;const started=new Promise(resolve=>ready=resolve);let sends=0;const first=f.create().execute('POST',path,body,()=>{},async(_,mark)=>{mark();sends++;ready();await new Promise(resolve=>release=resolve);return {ID:'one'}});await started;const second=f.create().execute('POST',path,body,()=>{},()=>sends++,()=>assert.fail('unexpected'));const rejection=assert.rejects(second,/already confirmed/);release();await first;await rejection;assert.equal(sends,1);assert.equal(f.values.size,0)});
+test('recovery control never creates an intent or sends a prepared request',async()=>{const f=fixture(),r=f.create();await assert.rejects(r.execute('POST',path,body,()=>{},()=>assert.fail('send'),()=>assert.fail('lookup'),true),/No original/);assert.equal(f.values.size,0);const original=await r.prepare('POST',path,body);await assert.rejects(r.execute('POST',path,body,()=>{},()=>assert.fail('send'),async value=>{assert.equal(value.IdempotencyKey,original.key);throw Error('not found')},true));assert.equal(f.values.size,1)});
+test('caller edits during asynchronous hashing cannot change the immutable wire body',async()=>{const f=fixture(),input={...body};const prepared=f.create().prepare('POST',path,input);input.TrackingNumber='changed';assert.equal((await prepared).body.TrackingNumber,body.TrackingNumber)});

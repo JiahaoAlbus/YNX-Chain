@@ -745,6 +745,16 @@
         }
       },
       "variantSelection": "Pin the original approved capability role in server session/revalidator context. Never infer owner/role from caller-provided header/body/scope text; ambiguous cross-role session requires explicit selected capability binding."
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/mutations/lookup",
+      "capabilityRole": "seller",
+      "requiredScopes": [
+        "account:read",
+        "shop:seller:operate"
+      ],
+      "businessAuthority": "Read original actor+route+key+typed-body request from the original Store; recheck current operation permission. Unknown/retired results stay unresolved. No mutation or provider retry."
     }
   ],
   "merchantRoutes": [
@@ -949,6 +959,12 @@
       ],
       "businessAuthority": "current active membership in original bound merchantId; server filters each returned collection and checks action role again immediately before mutation",
       "sourcePolicy": "owner integration decision derived from inherited client UI/API; A must consume in its authoritative Pay adapter; not proof that its current server implements these routes/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/merchant/mutations/lookup",
+      "businessAuthority": "Fresh canonical Merchant carrier and current membership; original operation permission and atomic original account/body binding; read existing committed result only. Legacy unbound records stay unresolved.",
+      "sourcePolicy": "Owned product-domain implementation; A must integrate the exact route with its protected mounted adapter. No shared registry or grant expansion; Browser HOLD remains."
     }
   ],
   "legacyCompatibility": [

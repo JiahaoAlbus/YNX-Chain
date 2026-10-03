@@ -216,11 +216,13 @@ type AIRun struct {
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
 type IdempotencyRecord struct {
-	Scope       string    `json:"scope"`
-	Key         string    `json:"key"`
-	RequestHash string    `json:"requestHash"`
-	ObjectID    string    `json:"objectId"`
-	CreatedAt   time.Time `json:"createdAt"`
+	OriginalAccount    string    `json:"originalAccount,omitempty"`
+	OriginalBodyDigest string    `json:"originalBodyDigest,omitempty"`
+	Scope              string    `json:"scope"`
+	Key                string    `json:"key"`
+	RequestHash        string    `json:"requestHash"`
+	ObjectID           string    `json:"objectId"`
+	CreatedAt          time.Time `json:"createdAt"`
 }
 type NonceRecord struct {
 	MerchantID string    `json:"merchantId"`

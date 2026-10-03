@@ -1,34 +1,18 @@
 import {ContextChangedError} from './request-context.js';
-
-function canonical(value) {
-  if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
-  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}';
-  return JSON.stringify(value);
-}
-
-// Keep only opaque digests and retry keys. A fresh session for the same account
-// can recover an unconfirmed write without retaining private form text.
-export function createMutationIntents(account) {
-  const pending = new Map();
-  return {
-    async prepare(method, path, input) {
-      const actor = account();
-      if (!actor) throw new Error('Connect Wallet before saving changes.');
-      const body = JSON.parse(JSON.stringify(input));
-      delete body.IdempotencyKey;
-      const bytes = new TextEncoder().encode(canonical({actor, method, path, body}));
-      const fingerprint = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), n => n.toString(16).padStart(2, '0')).join('');
-      if (actor !== account()) throw new ContextChangedError();
-      let key = pending.get(fingerprint);
-      if (!key) {
-        if (pending.size >= 256) throw new Error('Too many unconfirmed changes. Recover earlier requests before starting more.');
-        key = crypto.randomUUID();
-        pending.set(fingerprint, key);
-      }
-      return {fingerprint, key, body: {...body, IdempotencyKey: key}};
-    },
-    confirm(intent) {
-      if (pending.get(intent.fingerprint) === intent.key) pending.delete(intent.fingerprint);
-    },
-  };
+import {httpBodyDigest} from '@ynx-chain/wallet-auth';
+const canonical=value=>Array.isArray(value)?'['+value.map(canonical).join(',')+']':value&&typeof value==='object'?'{'+Object.keys(value).sort().map(key=>JSON.stringify(key)+':'+canonical(value[key])).join(',')+'}':JSON.stringify(value);
+const hash=httpBodyDigest;
+export class UnresolvedSellerMutationError extends Error {constructor(){super('An earlier change is unconfirmed. Restore its original inputs to check the original request.');this.code='SELLER_MUTATION_UNRESOLVED';}}
+// Only opaque identities survive a cold reopen. Never retain private form text
+// or credentials. An unknown result can only read back the original request.
+export function createMutationIntents(account,{storage,withLock=(key,work)=>{if(!globalThis.navigator?.locks)throw Error('Safe Seller recovery requires Web Locks support.');return navigator.locks.request(key,work)}}={}) {
+ const durable=()=>storage??globalThis.localStorage;
+ function read(namespace){const raw=durable().getItem(namespace);if(raw===null)return null;const value=JSON.parse(raw);if(!value||Object.keys(value).sort().join(',')!=='digest,key,phase'||!/^[a-f0-9]{64}$/.test(value.digest)||typeof value.key!=='string'||value.key.length<8||value.key.length>128||!['prepared','unknown'].includes(value.phase))throw Error('Original Seller recovery data is invalid. Preserve it before sending another request.');return value;}
+ function save(namespace,value){const raw=JSON.stringify(value);durable().setItem(namespace,raw);if(durable().getItem(namespace)!==raw)throw Error('Seller recovery identity could not be saved. No request was sent.');}
+ async function describe(method,path,input){const actor=account();if(!actor)throw Error('Connect Wallet before saving changes.');const body=JSON.parse(canonical(input));delete body.IdempotencyKey;const namespace='ynx-seller-mutation-v1:'+hash(canonical({actor,method,path})),digest=hash(canonical(body));if(actor!==account())throw new ContextChangedError();return {namespace,digest,body,actor,observed:read(namespace)};}
+ function current(intent){if(intent.actor!==account())throw new ContextChangedError();}
+ async function prepare(method,path,input,recoverOnly=false){const intent=await describe(method,path,input);return withLock(intent.namespace,()=>{current(intent);const previous=read(intent.namespace);if(intent.observed&&(!previous||previous.key!==intent.observed.key))throw Error('This change was already confirmed or replaced. Refresh its records.');if(previous&&previous.digest!==intent.digest)throw new UnresolvedSellerMutationError();if(recoverOnly&&!previous)throw Error('No original Seller request is pending.');const record=previous??{digest:intent.digest,key:crypto.randomUUID(),phase:'prepared'};if(!previous)save(intent.namespace,record);return {...intent,key:record.key,phase:record.phase,fingerprint:intent.digest,body:{...intent.body,IdempotencyKey:record.key}};});}
+ async function confirm(intent){return withLock(intent.namespace,()=>clear(intent));}
+ function clear(intent){current(intent);const record=read(intent.namespace);if(!record||record.key!==intent.key||record.digest!==intent.digest)throw Error('Original Seller recovery identity changed. Preserve the received result.');durable().removeItem(intent.namespace);if(durable().getItem(intent.namespace)!==null)throw Error('The change succeeded but its recovery identity could not be cleared. Check the original records.');}
+ return Object.freeze({prepare,confirm,async execute(method,path,input,assertCurrent,send,recover,recoverOnly=false){const intent=await prepare(method,path,input,recoverOnly);assertCurrent();return withLock(intent.namespace,async()=>{current(intent);assertCurrent();const record=read(intent.namespace);if(!record||record.key!==intent.key)throw Error('This change was already confirmed or replaced. Refresh its records.');const beforeDispatch=()=>{current(intent);assertCurrent();save(intent.namespace,{...record,phase:'unknown'});assertCurrent();};let result;if(recoverOnly||record.phase==='unknown'){if(typeof recover!=='function')throw new UnresolvedSellerMutationError();result=await recover(intent.body);}else result=await send(intent.body,beforeDispatch);current(intent);assertCurrent();clear(intent);return result;});}});
 }
