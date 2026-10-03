@@ -17,15 +17,23 @@ function activate(context) {
     const editor = vscode.window.activeTextEditor; if (!editor || editor.selection.isEmpty) throw Error('Select the text you want to review first.');
     const sessionId = process.env.YNX_CORE_SESSION_ID, workspace = process.env.YNX_CORE_WORKSPACE;
     if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace) throw Error('Open this selection from an active YNX project runtime.');
-    await assertWorkspacePath(editor.document.uri.fsPath, workspace);
+    const reviewedPath = await assertWorkspacePath(editor.document.uri.fsPath, workspace);
     const text = editor.document.getText(editor.selection); if (Buffer.byteLength(text) > 64 * 1024) throw Error('Select at most 64 KiB.');
     const selected = { ...capture(editor.document, text), sessionId };
     if (await vscode.window.showWarningMessage('Copy this selection to the clipboard? Paste and approve it on the YNX Tools page before sending it to AI.', { modal: true }, 'Copy selection') !== 'Copy selection') return;
-    if (editor.document.version !== selected.version) throw Error('The document changed while reviewing. Select and review it again.');
-    if (process.env.YNX_CORE_SESSION_ID !== sessionId || process.env.YNX_CORE_WORKSPACE !== workspace) throw Error('The active project runtime changed. Select and review again.');
-    await assertWorkspacePath(editor.document.uri.fsPath, workspace);
-    if (editor.document.version !== selected.version) throw Error('The document changed while reviewing. Select and review it again.');
-    if (process.env.YNX_CORE_SESSION_ID !== sessionId || process.env.YNX_CORE_WORKSPACE !== workspace) throw Error('The active project runtime changed. Select and review again.');
+    const assertSelection = () => {
+      const current = vscode.workspace.textDocuments.find(document => document.uri.toString() === selected.uri);
+      if (current !== editor.document || current.isClosed || current.version !== selected.version ||
+        capture(current, text).fullTextDigest !== selected.fullTextDigest)
+        throw Error('The document changed while reviewing. Select and review it again.');
+      if (process.env.YNX_CORE_SESSION_ID !== sessionId || process.env.YNX_CORE_WORKSPACE !== workspace)
+        throw Error('The active project runtime changed. Select and review again.');
+    };
+    assertSelection();
+    const currentPath = await assertWorkspacePath(editor.document.uri.fsPath, workspace);
+    if (currentPath?.realWorkspace !== reviewedPath?.realWorkspace || currentPath?.realFile !== reviewedPath?.realFile)
+      throw Error('The selected file or workspace path changed. Select and review again.');
+    assertSelection();
     await vscode.env.clipboard.writeText(JSON.stringify(selected, null, 2));
   });
   register('ynx.createTemplate', async () => {

@@ -103,3 +103,46 @@ test('reviewed diff compares real file identity and refuses a symlink moved to a
   assert.deepEqual(h.calls.map(call => call.type), ['preview']); assert.match(h.errors[0], /path changed/);
   assert.equal(await readFile(first, 'utf8'), 'saved draft'); assert.equal(await readFile(second, 'utf8'), 'saved draft');
 });
+
+test('copy approval cannot survive closing/reopening a document with a reused version', async () => {
+  for (const timing of ['modal', 'path']) {
+    let h, checks = 0;
+    const replace = () => {
+      const old = h.vscode.workspace.textDocuments[0]; old.isClosed = true;
+      h.vscode.workspace.textDocuments = [{ ...old, isClosed: false, version: 1 }];
+    };
+    h = harness({ answer: 'Copy selection', onModal: () => { if (timing === 'modal') replace(); },
+      pathGuard: async () => { if (++checks === 2 && timing === 'path') replace(); } });
+    await h.commands.get('ynx.copyContext')();
+    assert.equal(h.calls.length, 0); assert.match(h.errors[0], /document changed/);
+  }
+});
+
+test('copy approval binds the selected file and workspace real paths even when new targets remain contained', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'ynx-copy-path-binding-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const first = join(root, 'first.ts'), second = join(root, 'second.ts'), link = join(root, 'selected.ts');
+  await writeFile(first, 'saved draft'); await writeFile(second, 'saved draft'); await symlink(first, link);
+  const { assertWorkspacePath } = localRequire('../../../native/ynx-tools/src/guards.cjs');
+  const h = harness({ answer: 'Copy selection', workspace: root, filePath: link, pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(link); await symlink(second, link); } });
+  await h.commands.get('ynx.copyContext')();
+  assert.equal(h.calls.length, 0); assert.match(h.errors[0], /path changed/);
+  assert.equal(await readFile(first, 'utf8'), 'saved draft'); assert.equal(await readFile(second, 'utf8'), 'saved draft');
+  const original = join(root, 'original'), replacement = join(root, 'replacement'), workspaceLink = join(root, 'workspace');
+  await mkdir(original); await mkdir(replacement);
+  await writeFile(join(original, 'a.ts'), 'saved draft'); await writeFile(join(replacement, 'a.ts'), 'saved draft'); await symlink(original, workspaceLink);
+  const moved = harness({ answer: 'Copy selection', workspace: workspaceLink, filePath: join(workspaceLink, 'a.ts'), pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(workspaceLink); await symlink(replacement, workspaceLink); } });
+  await moved.commands.get('ynx.copyContext')();
+  assert.equal(moved.calls.length, 0); assert.match(moved.errors[0], /path changed/);
+});
+
+test('copy approval verifies full current bytes even when a document version is reused', async () => {
+  let h;
+  h = harness({ answer: 'Copy selection', onModal: () => {
+    h.vscode.workspace.textDocuments[0].getText = () => 'changed private context';
+  } });
+  await h.commands.get('ynx.copyContext')();
+  assert.equal(h.calls.length, 0); assert.match(h.errors[0], /document changed/);
+});

@@ -1,0 +1,29 @@
+{
+  "toolsVersion": "0.2.5",
+  "toolsTests": {
+    "pass": 40,
+    "fail": 0,
+    "skip": 0
+  },
+  "derivedTestsLog": "derived-tests.log",
+  "testScope": "actual extension command source in controlled VSCode API plus real filesystem; service HTTP and versioned artifact guards",
+  "originalPackageSource": "0a1e71ba9994a2b0b9709c6bfb85bba80248b0d0",
+  "oldInstalledPackageNotRelabeled": true,
+  "actualExtensionHost": false,
+  "actualModelProvider": false,
+  "actualCore": false,
+  "files": [
+    {
+      "path": "native/ynx-tools/package.json",
+      "sha256": "111d9c43b2406e78fc4e2ed35d6fe7820ef4e55652cff87c4305b7ecebdfdf8b"
+    },
+    {
+      "path": "native/ynx-tools/src/extension.cjs",
+      "sha256": "ed17e41ac7f3de75b19aafe002215b6a9e37078f0f18d6fb825f2e42d8036505"
+    },
+    {
+      "path": "native/ynx-tools/src/guards.cjs",
+      "sha256": "7d609fe9be4a66a68e268a221f750ee94f131e16bd2b599e9ad99c6a89251df1"
+    }
+  ]
+}
