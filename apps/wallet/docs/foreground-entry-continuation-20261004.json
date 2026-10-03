@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "ynx-wallet-owned-continuation/v1",
+  "parent": "0f277184ba3864a5e0c5e4ff218ce25ff1253c6d",
+  "status": "OWNED_SOURCE_FIX_PENDING_INDEPENDENT_ADMISSION",
+  "cause": "Background invalidates view generation. Idle busy=false/scanning=false/uri-empty setters can all bail out; active previously performed no state update, so the enabled Scan retained its retired render ticket.",
+  "changes": [
+    "Track actual background passage in the existing AppState listener and increment viewEpoch on return to active, even when all visible idle state values were equal. No global revalidation of an old ticket.",
+    "Refresh restore, original outbox/journal projection, session reconciliation, proposal and exact original-request review effects on the foreground epoch. Their old async closures remain fenced and cleaned up.",
+    "Gate all active operation entry callbacks by their render-owned account/generation and actual active AppState before taking a fresh begin() lease. Late old buttons cannot start Pair, disconnect, review decision, status/retry/ack or relay retry in the new foreground.",
+    "Gate explicit cancel/close by the same render ownership. Cancel advances the visible epoch even when its notice and other state values repeat, so it cannot leave Scan stale.",
+    "Scanner result handling remains render-owned and only fills the URI. No automatic Pair, approval, signature, replacement transaction or submission.",
+    "Temporary biometric inactivity does not trigger the foreground epoch and does not invalidate an active-operation generation. Existing active-only completion checks and 120-second active-operation TTL are unchanged."
+  ],
+  "tests": {
+    "method": "Extract actual component hooks, AppState listener, Scan/result handlers and action declarations, using a minimal hook scheduler that bails out on equal state and compares the actual effect dependency arrays. Real WalletConnectViewOperations and WalletOperationLifecycle are imported; protocol collaborators are isolated fixtures. No shared SDK source is imported or executed.",
+    "original0f277": {"tests": 11, "pass": 4, "fail": 7, "source": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/WalletConnectModal-original0f277.tsx", "log": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/foreground-original0f277-complete-counter.log", "sha256": "51c24286baa05afddb85ea8553ab39cb73f698662513acc90b743c719fe4a532"},
+    "fixedRelated": {"tests": 43, "pass": 43, "fail": 0, "log": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW/foreground-fixed-complete.log", "sha256": "1e20542370a83716a1ba9fd38cba5a15b42216ac5170cab43c5e453e992c6ed7"},
+    "command": "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/apps/wallet/node_modules/.bin/tsx --test --test-timeout=15000 apps/wallet/src/walletConnect/foregroundReentryUI.test.ts apps/wallet/src/walletConnect/viewOperations.test.ts apps/wallet/src/walletConnect/viewReentryUI.test.ts apps/wallet/src/security/operationLifecycle.test.ts",
+    "coverage": ["Idle background/foreground with no equal-state render", "Background mount and batched state events", "Same original restore/record/session/request projection refresh", "Old scanner results and account/close retirement", "Fresh scan fills URI without auto-pair", "Old action entry and cancellation callbacks inert", "Fresh explicit Pair and repeated cancel reentry", "Biometric inactive return preserves the existing active lease", "Old operation completion cannot clear a fresh same-account operation", "True operation expiry remains enforced", "Existing late completion and original-record transfer blocking regressions"],
+    "limitations": ["This is source-level controlled hook scheduling, not installed React Native, OS camera or biometric acceptance.", "No new whole-SDK, semantic whole-project typecheck, build/install, final issuer or public-business pass is claimed.", "Earlier counterproof and intermediate logs are retained; Root independent originals were not altered."]
+  },
+  "reviewedAdjacentSource": "Existing WalletScanner AppState/camera tickets retire frames synchronously and dismiss on actual background; left unchanged. WalletConnect active actions now pass the common render-entry gate, and passive effects carry the new foreground epoch.",
+  "dependencyBoundary": "Historical 274/274 and current dependency byte facts remain exactly bounded by passive-view-dependency-boundary-20261004.json; no new install, shim, alias, rewiring or denied successor SDK execution.",
+  "frozenAppSHA256": "c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+  "preserved": ["Original accounts/keys/vaults", "Original request identity, expiry and durable replay", "Original signed transaction bytes and journals", "Prior e5be and 0f277 candidates", "Shared source/policy/signing/version ownership"],
+  "remainingGates": ["Independent exact-successor source admission", "Authorized complete shared dependency/issuer graph", "Installed camera, biometric and account reentry", "Real business readback", "Release signing and user acceptance"]
+}
