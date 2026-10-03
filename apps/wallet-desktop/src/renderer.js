@@ -244,6 +244,7 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
+  clearAssetBalance();
   invoiceUI.clear();
   contractUI.clear();
   invalidatePaymentInput();
@@ -518,20 +519,27 @@ async function refreshTransactions() {
     }
   } catch { if (revision === transactionRevision) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }
 }
-async function refreshAssets() {
-  const revision = ++balanceRevision;
+function clearAssetBalance() {
+  ++balanceRevision;
   document.querySelector("#balance-value").textContent = "—";
   document.querySelector("#asset-balance").textContent = "—";
+  document.querySelector("#balance-status").textContent = "";
+}
+async function refreshAssets() {
+  clearAssetBalance();
+  const revision = balanceRevision, account = activeAccount;
+  if (!account) return;
+  const current = () => revision === balanceRevision && account === activeAccount;
   document.querySelector("#balance-status").textContent = "Checking YNX Testnet…";
   try {
     const result = await window.ynxWallet.balance();
-    if (revision !== balanceRevision) return;
+    if (!current()) return;
     if (!result.ok) { document.querySelector("#balance-status").textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) return;
     document.querySelector("#balance-value").textContent = result.value.formatted;
     document.querySelector("#asset-balance").textContent = `${result.value.formatted} YNXT`;
     document.querySelector("#balance-status").textContent = result.value.transferEnabled === false ? "Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network." : `YNX Testnet · Updated ${new Date(result.value.checkedAt).toLocaleTimeString()}`;
-  } catch { if (revision === balanceRevision) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
+  } catch { if (current()) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
