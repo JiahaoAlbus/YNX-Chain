@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "source": "b0892c94e6e3de38811c9e41288a3bdd2eca5e7d",
+  "tree": "451067916d50656673996560cf6749da620ff451",
+  "parent": "21487bf33cc1485cf8b5347c00dbde3f3ad14049",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sharedValidationSource": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "stage": "/tmp/social-backend-16195.enQ7Rc",
+  "sharedLiveChanged": false,
+  "moduleLiveChanged": false,
+  "coverage": {
+    "requestLocalActor": "Original HTTP context retained only in an unexported Session field; durable and wire JSON remain unchanged",
+    "authorityCancellation": "Original cancellation/deadline errors survive single Authorize and browser identity verification, without being mapped to revocation or grant renewal",
+    "commit": "Context/current actor/original device/scope/session expiry checked under original Social mutex before effects and again before persistence",
+    "rollback": "Prepared contact/settings/invitation/relationship transaction is restored on failed final guard, including original receipts, notifications and audit entries",
+    "mountedHTTPRecovery": "PUT settings cancelled during original body read after authorization returns 408 with unchanged state; a new request with the same effective session succeeds and original session is not revoked",
+    "deadlineAndSerialization": "Elapsed request deadline rejected, JSON bytes identical with request context attached, no request context persisted",
+    "preparedEffectCancellation": "Cancel during business effect preparation produces no request/notification/idempotency/audit state change"
+  },
+  "gates": {
+    "ownedSocialRegression": "PASS",
+    "isolatedSocialAndDaemonRace": "PASS",
+    "isolatedDaemonBuild": "PASS",
+    "sharedLiveAdoption": "PENDING_ROOT",
+    "publicSourceBoundBusiness": "NOT_VERIFIED",
+    "nativeCanonicalEnrollment": "NOT_VERIFIED",
+    "ABCThreeJourneys": "NOT_VERIFIED",
+    "MONSTER": "NOT_RUN",
+    "socialCompleted": false,
+    "deployed": false,
+    "sensitiveWalletRequests": false
+  },
+  "limitations": [
+    "Mounted HTTP authority decisions use explicit software QA fixtures; not installed/public Wallet approval.",
+    "No cancelled consumed authorization proof is replayed within one request; a real SDK must produce its own fresh proof for a new request.",
+    "These commit guards do not claim completed cross-store Chat/Square effects or generic action proof nonce/uncertain-intent integration.",
+    "No shared reader is invoked under the owned transaction lock, no shared/module files or deployed Host/key/state changed.",
+    "Actual public and installed business, Matrix identities/HS mapping and real MONSTER validation remain required."
+  ]
+}
