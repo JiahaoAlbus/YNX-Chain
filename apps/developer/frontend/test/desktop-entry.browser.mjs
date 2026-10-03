@@ -6,6 +6,16 @@ if (!buildURL) throw Error('YNX_QA_BUILD_URL must name the exact local productio
 const origin = 'https://developer.ynxweb4.com', browser = await chromium.launch({ headless: true });
 const checks = [], errors = [], calls = []; let passed = false, context, failure;
 const project = { id: 'legacy-desktop-project', name: 'Existing desktop project', revision: 4, remoteRevision: 1, files: { 'main.js': 'console.log("preserved")' }, folders: [], open: ['main.js'], active: 'main.js' };
+async function readyHost(page) {
+  const deadline = Date.now() + 30000;
+  let state;
+  do {
+    state = await page.evaluate(() => window.__ynxDesktopHost?.({ command: 'state' }));
+    if (state?.state?.workspaceReady && state.state.editorReady) return state;
+    await page.waitForTimeout(50);
+  } while (Date.now() < deadline);
+  throw Error(`Desktop host did not become ready: ${JSON.stringify(state)}`);
+}
 try {
   context = await browser.newContext();
   await context.routeWebSocket('**', ws => ws.close());
@@ -30,12 +40,14 @@ try {
     return route.fulfill({ response });
   });
   const page = await context.newPage(); page.on('pageerror', e => errors.push(e.message));
+  const assets = []; page.on('request', request => assets.push(request.url()));
   await page.addInitScript(value => { if (!localStorage.getItem('ynx-code-project-v1')) localStorage.setItem('ynx-code-project-v1', JSON.stringify(value)); }, project);
   await page.goto(origin);
   await page.getByRole('heading', { name: 'Your development workspace', exact: true }).waitFor();
   const rejected = await page.evaluate(async () => ({ save: await window.__ynxDesktopHost({ command: 'save' }), extra: await window.__ynxDesktopHost({ command: 'state', path: 'ignored.js' }) }));
   assert.equal(rejected.save.status, 'blocked'); assert.equal(rejected.extra.status, 'blocked'); assert.equal(writes, 0);
   assert.equal(await page.locator('.monaco-editor').count(), 0);
+  assert.equal(assets.some(url => /GuestWorkspace-[^/]+\.js(?:\?|$)/.test(url)), false);
   checks.push('before handshake: file commands and state with unknown fields reject without guest initialization/writes');
   await page.evaluate(() => { const frame = document.createElement('iframe'); frame.id = 'entry-boundary-frame'; frame.src = '/?entry-frame=1'; document.body.appendChild(frame); });
   await page.locator('#entry-boundary-frame').waitFor();
@@ -46,9 +58,9 @@ try {
   checks.push('even same-origin child-frame state queries cannot activate the desktop route');
   const first = await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }));
   assert.equal(first.schema, 'ynx-desktop-host/v1'); assert.equal(first.status, 'not-ready');
-  await page.waitForFunction(async () => { const reply = await window.__ynxDesktopHost?.({ command: 'state' }); return reply?.state?.workspaceReady && reply.state.editorReady; });
-  const state = await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }));
+  const state = await readyHost(page);
   assert.equal(state.status, 'handled'); assert.equal(state.state.projectId, project.id); assert.equal(state.state.revision, project.revision);
+  assert.equal(assets.some(url => /GuestWorkspace-[^/]+\.js(?:\?|$)/.test(url)), true);
   assert.equal(writes, 0); assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ynx-code-project-v1')).files['main.js']), project.files['main.js']);
   checks.push('old unmarked installed-client state poll selects retained Workbench, real Monaco ready and restored project identity; no automatic overwrite');
   const created = await page.evaluate(() => window.__ynxDesktopHost({ command: 'new-file', path: 'reviewed.js' }));
@@ -60,7 +72,7 @@ try {
   await page.goto(origin);
   await page.getByRole('heading', { name: 'Your development workspace', exact: true }).waitFor();
   await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }));
-  await page.waitForFunction(async () => (await window.__ynxDesktopHost?.({ command: 'state' }))?.state?.workspaceReady);
+  await readyHost(page);
   assert.ok(await page.evaluate(() => Object.hasOwn(JSON.parse(localStorage.getItem('ynx-code-project-v1')).files, 'reviewed.js')));
   checks.push('same-profile reload plus legacy state handshake preserves the explicitly saved new file');
   await page.goto(origin + '/projects');
@@ -71,7 +83,7 @@ try {
   assert.ok(await page.evaluate(() => Object.hasOwn(JSON.parse(localStorage.getItem('ynx-code-project-v1')).files, 'reviewed.js')));
   await page.getByRole('link', { name: 'Guest text workspace', exact: true }).click();
   await page.waitForURL(origin + '/guest-workspace');
-  await page.waitForFunction(async () => { const reply = await window.__ynxDesktopHost?.({ command: 'state' }); return Boolean(reply?.state?.workspaceReady && reply.state.editorReady); });
+  await readyHost(page);
   assert.equal((await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }))).state.projectId, project.id);
   checks.push('explicit /projects route stays on Wallet home despite desktop state polling; guest entry reopens the preserved project with its host contract');
   await page.close();

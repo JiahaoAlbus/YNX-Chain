@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { stripTypeScriptTypes } from "node:module";
+import { registerHooks } from "node:module";
 import test from "node:test";
 
-const source = stripTypeScriptTypes(await readFile(new URL("../frontend/src/state/workspace.ts", import.meta.url), "utf8"));
-const workspace = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
+registerHooks({ resolve(specifier, context, next) {
+  return next(specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier) ? `${specifier}.ts` : specifier, context);
+} });
+const workspace = await import("../frontend/src/state/workspace.ts");
 const KEY = "ynx-code-project-v1";
 const legacy = (count = 257) => ({ id: "legacy-local-project", name: "Saved before upgrade", revision: 300, remoteRevision: 0,
   files: Object.fromEntries(Array.from({ length: count }, (_, i) => [`src/f${i}.txt`, `unsynced edit ${i}\n`])), folders: ["src"], open: ["src/f0.txt"], active: "src/f0.txt" });
@@ -101,8 +103,9 @@ test("native fallback opens its existing app snapshot only after backing up reje
 });
 
 test("recovery gate wraps Workbench before mounting its persistence effects", async () => {
-  const [main, gate] = await Promise.all([readFile(new URL("../frontend/src/main.tsx", import.meta.url), "utf8"), readFile(new URL("../frontend/src/app/WorkspaceRecoveryGate.tsx", import.meta.url), "utf8")]);
-  assert.match(main, /<WorkspaceRecoveryGate><Workbench \/><\/WorkspaceRecoveryGate>/);
+  const [main, gate, guest] = await Promise.all([readFile(new URL("../frontend/src/main.tsx", import.meta.url), "utf8"), readFile(new URL("../frontend/src/app/WorkspaceRecoveryGate.tsx", import.meta.url), "utf8"), readFile(new URL("../frontend/src/app/GuestWorkspace.tsx", import.meta.url), "utf8")]);
+  assert.match(main, /lazy\(\(\) => import\('\.\/app\/GuestWorkspace'\)\)/);
+  assert.match(guest, /<WorkspaceRecoveryGate><Workbench \/><\/WorkspaceRecoveryGate>/);
   assert.match(gate, /if \(!problem\) return children/);
   assert.match(gate, /new Blob\(\[problem\.raw\]/);
   assert.match(gate, /backupRecoveryAndStartNew\(problem\.raw\)/);
