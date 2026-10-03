@@ -1,0 +1,71 @@
+{
+  "kind": "shipped Creator app in isolated Playwright; SDK and service fixtures only",
+  "realWalletApproval": false,
+  "publicAcceptance": false,
+  "cases": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "authoritativeSavedGETs": 3,
+      "automaticMutations": 0,
+      "explicitReviewMutations": 1,
+      "geometry": {
+        "width": 358,
+        "screen": 390,
+        "controls": [
+          {
+            "left": 49,
+            "right": 341,
+            "height": 59
+          },
+          {
+            "left": 49,
+            "right": 341,
+            "height": 65
+          },
+          {
+            "left": 49,
+            "right": 341,
+            "height": 65
+          }
+        ],
+        "overflow": false
+      },
+      "pageErrors": []
+    },
+    {
+      "viewport": {
+        "width": 320,
+        "height": 740
+      },
+      "authoritativeSavedGETs": 3,
+      "automaticMutations": 0,
+      "explicitReviewMutations": 1,
+      "geometry": {
+        "width": 288,
+        "screen": 320,
+        "controls": [
+          {
+            "left": 49,
+            "right": 271,
+            "height": 59
+          },
+          {
+            "left": 49,
+            "right": 271,
+            "height": 110
+          },
+          {
+            "left": 49,
+            "right": 271,
+            "height": 65
+          }
+        ],
+        "overflow": false
+      },
+      "pageErrors": []
+    }
+  ]
+}

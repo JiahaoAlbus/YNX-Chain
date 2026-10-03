@@ -1,0 +1,31 @@
+{
+  "recordedAt": "2026-10-03T06:48:46.365899+00:00",
+  "readOnly": true,
+  "actualWalletApproval": false,
+  "results": [
+    {
+      "url": "https://video.ynxweb4.com/app.js",
+      "status": 200,
+      "bytes": 51178,
+      "sha256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+      "cacheControl": "no-store",
+      "bodyArtifact": "apps/video/audit/evidence/creator-ai-recovery-20261003/public-video-app.txt"
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/version",
+      "status": 200,
+      "bytes": 159,
+      "sha256": "5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0",
+      "cacheControl": "no-store",
+      "bodyArtifact": "apps/video/audit/evidence/creator-ai-recovery-20261003/public-video-version.txt"
+    },
+    {
+      "url": "https://video.ynxweb4.com/product-session-sdk-source.json",
+      "status": 200,
+      "bytes": 997,
+      "sha256": "b2712d290bc57cd208cddd339d6e368c2f75077d2c715de95b945372f274d456",
+      "cacheControl": "no-store",
+      "bodyArtifact": "apps/video/audit/evidence/creator-ai-recovery-20261003/public-video-sdk-source.txt"
+    }
+  ]
+}

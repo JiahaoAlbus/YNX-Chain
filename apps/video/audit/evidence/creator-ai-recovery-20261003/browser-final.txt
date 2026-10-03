@@ -1,0 +1,1 @@
+{"passed":2,"automaticMutations":0,"explicitReviews":2,"realWalletApproval":false}

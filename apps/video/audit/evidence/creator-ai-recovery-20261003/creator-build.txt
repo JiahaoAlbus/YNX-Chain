@@ -1,0 +1,5 @@
+
+> build
+> node build.mjs
+
+Creator Studio release artifact written to dist/
