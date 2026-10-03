@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "status": "EXECUTABLE_MANUAL_ACCEPTANCE_CARDS; ALL_FINAL_PUBLIC_PRIVATE_JOURNEYS_NOT_VERIFIED",
+  "sourceBasis": "1647c58f0 plus current Seller input validation successor",
+  "owner": "Commerce product source; shared qualification/signing/publishing by unique A via Root",
+  "products": {
+    "buyer": {
+      "platform": "web",
+      "appId": "com.ynxweb4.shop.web",
+      "origin": "https://shop.ynxweb4.com",
+      "callback": "https://shop.ynxweb4.com/wallet-auth/callback",
+      "entry": "https://shop.ynxweb4.com/",
+      "sellerEntry": "https://shop.ynxweb4.com/seller/",
+      "role": "buyer",
+      "productClientId": "ynx-shop-v1",
+      "scopes": [
+        "account:read",
+        "shop:orders:write",
+        "shop:profile:write"
+      ]
+    },
+    "seller": {
+      "entry": "https://shop.ynxweb4.com/seller/",
+      "origin": "https://shop.ynxweb4.com",
+      "callback": "https://shop.ynxweb4.com/wallet-auth/callback",
+      "role": "seller",
+      "productClientId": "ynx-shop-v1",
+      "scopes": [
+        "account:read",
+        "shop:seller:operate"
+      ]
+    },
+    "merchant": {
+      "platform": "web",
+      "appId": "com.ynxweb4.merchant-console.web",
+      "origin": "https://pay.ynxweb4.com",
+      "callback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+      "entry": "https://pay.ynxweb4.com/merchant/",
+      "role": "merchant",
+      "productClientId": "ynx-merchant-console-v1",
+      "scopes": [
+        "account:read",
+        "merchant:session:create"
+      ],
+      "merchantId": "existing actually authorized merchant; never seeded or supplied by AI"
+    }
+  },
+  "waitingReceipt": [
+    "A exact product source commit/tree plus immutable base/delta composition",
+    "Complete SDK package digest, current version/profile and original independent Buyer/Seller/Merchant qualification",
+    "Protected Commerce/Pay-product mounts including original transition lookup with Buyer three scopes",
+    "Final exact entry URL, static bundle/source digest and deployed backend identity",
+    "Exact Native platform/app/callback authority and formally signed package/install digest",
+    "User-controlled real Wallet approval then owned server readback"
+  ],
+  "buildInputs": {
+    "preserveOriginalWorktree": true,
+    "web": "Existing source npm build with A matching complete accepted SDK/dependencies; do not substitute earlier partial package or change shared vendor casually",
+    "android": {
+      "JAVA_HOME": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+      "ANDROID_HOME": "/Users/huangjiahao/Library/Android/sdk",
+      "repro": "apps/shop/native/scripts/verify-order-actions.mjs --android",
+      "formalSigning": "A"
+    },
+    "apple": {
+      "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer",
+      "project": "apps/shop/native/ios/YNXShop.xcodeproj",
+      "schemes": [
+        "YNXShopMac",
+        "YNXShop"
+      ],
+      "repro": "apps/shop/native/scripts/verify-order-actions.mjs --apple",
+      "qaSigning": "disabled",
+      "formalSigning": "A"
+    },
+    "nativeSellerMerchant": "Existing original normal navigation opens independent Web entries. No new Native Seller/Merchant callback or grant is invented.",
+    "ios": "Source/simulator build verified; formal exact Native iOS authority remains unavailable until A receipt"
+  },
+  "capture": "Record source/build/deploy/package hashes and exact own object IDs/status/evidence. Redact private bodies/proofs/tokens/address details; no fixture seeded data or provider/signature action used as final proof.",
+  "cards": [
+    {
+      "id": "public-entry",
+      "role": "public",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "#query",
+        "#products",
+        ".commerceNav a"
+      ],
+      "services": [
+        "GET /api/capabilities",
+        "GET /api/products"
+      ],
+      "steps": [
+        "Open the exact final Buyer entry at desktop and phone width.",
+        "Browse retained real catalog; open the product and original seller policy.",
+        "Open Sell products and Merchant invoices using the existing navigation."
+      ],
+      "accept": [
+        "All three exact entries resolve to A current source identity, with no old /shop alias source or 404.",
+        "Guest view contains no private records or invented balances/orders."
+      ]
+    },
+    {
+      "id": "buyer-private",
+      "role": "buyer",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "#wallet",
+        "#privateSession",
+        "#browserSignIn",
+        "#disconnectWallet"
+      ],
+      "services": [
+        "A canonical current Browser identity + independent Buyer Product Session"
+      ],
+      "steps": [
+        "Connect the chosen standard Wallet.",
+        "Approve the original Buyer three-scope request in Wallet and complete the exact callback.",
+        "Sign out while an original private request is pending and reopen."
+      ],
+      "accept": [
+        "Standard connection alone reveals no private orders/profile/cart.",
+        "Current Browser/Buyer account and proof agree; sign-out cannot adopt an old response."
+      ]
+    },
+    {
+      "id": "buyer-cart-checkout",
+      "role": "buyer",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "#add",
+        "#cartButton",
+        "#checkout"
+      ],
+      "services": [
+        "GET/PUT /api/cart",
+        "POST /api/orders",
+        "POST /api/orders/intent-lookup"
+      ],
+      "steps": [
+        "Choose retained real product and variant, add actual quantity, and reopen cart.",
+        "Review actual shipping fields and explicitly submit the original checkout.",
+        "Cold reopen and explicitly recover the same unresolved key if the result was lost."
+      ],
+      "accept": [
+        "Own cart and exact revision persist.",
+        "Matching owned order and backend CartConsumption determine success; no cleanup PUT races the checkout.",
+        "Changed input/actor never creates a replacement unknown checkout."
+      ]
+    },
+    {
+      "id": "buyer-wallet-review",
+      "role": "buyer",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "[data-action=pay]",
+        "#invoiceDialog",
+        "#closeInvoice",
+        "#openInvoiceWallet",
+        "[data-action=confirm-payment]"
+      ],
+      "services": [
+        "GET/POST /api/orders/{id}/pay-handoff",
+        "POST /api/orders/{id}/confirm-payment"
+      ],
+      "steps": [
+        "Open the existing own order invoice review.",
+        "Cancel and reopen the same original invoice.",
+        "Only the human payer approves or rejects the original invoice in Wallet.",
+        "Return to the normal order screen and check settlement."
+      ],
+      "accept": [
+        "Cancel performs no Wallet payment.",
+        "Opening/return hint never means paid.",
+        "Only matching real committed backend settlement for original payer/invoice/intent/order marks paid."
+      ]
+    },
+    {
+      "id": "buyer-resolution",
+      "role": "buyer",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "[data-action=reviewed]",
+        "[data-action=return_requested]",
+        "[data-action=refund_requested]",
+        "[data-action=disputed]",
+        "#actionSubmit",
+        "#actionRecover",
+        "#closeAction"
+      ],
+      "services": [
+        "POST /api/orders/{id}/transition",
+        "POST /api/orders/{id}/transition-intent-lookup"
+      ],
+      "steps": [
+        "From an actually permitted current status, enter actual chosen rating/body or reason/explanation.",
+        "Cancel once, then explicitly submit.",
+        "Reopen an unresolved original action at its later status and use original readback."
+      ],
+      "accept": [
+        "No fixed rating, invented reason, implicit submit or automatic unknown resend.",
+        "Exact actor/target/action/body/key and current context are required before acknowledgement.",
+        "Refund/dispute labels do not assert payment reversal without original backend evidence."
+      ]
+    },
+    {
+      "id": "seller-catalog",
+      "role": "seller",
+      "entry": "https://shop.ynxweb4.com/seller/",
+      "controls": [
+        "#storeSelect",
+        "[data-view=catalog]",
+        "#productForm",
+        "#inventoryForm",
+        "[data-publish]"
+      ],
+      "services": [
+        "GET /api/seller/stores",
+        "POST/PUT /api/seller/products",
+        "POST /api/seller/inventory",
+        "POST /api/seller/products/{id}/publish"
+      ],
+      "steps": [
+        "Approve the independent original Seller two-scope request; choose an actually owned/joined store.",
+        "Create or edit a product using actual price/inventory and preserved secondary variants.",
+        "Cancel then explicitly save, publish and reopen actual product/inventory."
+      ],
+      "accept": [
+        "Buyer approval gives no Seller authority; current store role controls each operation.",
+        "Unsupported/unsafe whole-number inputs are rejected before recording or sending.",
+        "Closing during proof cannot dispatch; reopening cannot adopt the previous form result."
+      ]
+    },
+    {
+      "id": "seller-fulfillment",
+      "role": "seller",
+      "entry": "https://shop.ynxweb4.com/seller/",
+      "controls": [
+        "[data-view=orders]",
+        "[data-order-action=shipped]",
+        "#orderForm",
+        "[data-close=orderDialog]"
+      ],
+      "services": [
+        "GET /api/orders",
+        "POST /api/orders/{id}/transition",
+        "POST /api/seller/mutations/lookup"
+      ],
+      "steps": [
+        "Select the original actually paid order with matching settlement.",
+        "Enter actual carrier and tracking, review, cancel once, then explicitly submit.",
+        "Reopen after normal save, lost response and page/account/store exit."
+      ],
+      "accept": [
+        "Current fulfillment role only; shipment is seller-entered unverified evidence.",
+        "Original body/key persist; unknown only current exact readback.",
+        "No late private result after cancel, reopening or switching context."
+      ]
+    },
+    {
+      "id": "seller-resolution",
+      "role": "seller",
+      "entry": "https://shop.ynxweb4.com/seller/",
+      "controls": [
+        "[data-view=returns]",
+        "[data-order-action=return_approved]",
+        "[data-order-action=return_rejected]",
+        "[data-order-action=refund_approved]",
+        "#orderForm"
+      ],
+      "services": [
+        "POST /api/orders/{id}/transition",
+        "A existing shared Pay refund effect boundary"
+      ],
+      "steps": [
+        "Open existing own return/refund request under the current authorized store role.",
+        "Review and explicitly cancel or confirm the decision; enter actual rejection explanation.",
+        "Reopen the same case and inspect persisted current order and original refund evidence."
+      ],
+      "accept": [
+        "Return-support role cannot approve refund.",
+        "Sensitive refund approval is never borrowed from generic Seller lookup or auto replay.",
+        "Only exact committed shared Pay refund evidence marks refunded; user signing stays Wallet-owned."
+      ]
+    },
+    {
+      "id": "merchant-invoice",
+      "role": "merchant",
+      "entry": "https://pay.ynxweb4.com/merchant/",
+      "controls": [
+        "#signin",
+        "[data-view=invoices]",
+        "#invoice-form",
+        "#catalog-form",
+        "[data-invoice-review]",
+        "[data-invoice-close]"
+      ],
+      "services": [
+        "GET /v1/merchant/state",
+        "POST /v1/merchant/catalog",
+        "POST /v1/merchant/invoices",
+        "POST /v1/merchant/mutations/lookup"
+      ],
+      "steps": [
+        "Approve the original independent Merchant scope tuple and original merchantId/member binding.",
+        "Choose an existing own active catalog item or actual custom whole amount/tip; explicitly create.",
+        "Reopen View invoice, cancel and cold reopen original records; recover only the exact original mutation."
+      ],
+      "accept": [
+        "Current account/merchant/member/role and current state agree.",
+        "Signed invoice is not payment; no invented Wallet URL/QR or fabricated Pay state.",
+        "Exact original amounts/network/fee/signature metadata/expiry remain bound."
+      ]
+    },
+    {
+      "id": "merchant-cases",
+      "role": "merchant",
+      "entry": "https://pay.ynxweb4.com/merchant/",
+      "controls": [
+        "[data-view=cases]",
+        "[data-refund-refresh]"
+      ],
+      "services": [
+        "GET /v1/merchant/state",
+        "POST /v1/merchant/refunds/{id}/refresh"
+      ],
+      "steps": [
+        "Open existing own persisted refund/dispute cases.",
+        "Use the actual Check chain evidence control and reopen after navigation/signout."
+      ],
+      "accept": [
+        "No fake case, refund execution or evidence is created by refresh.",
+        "Only existing shared committed evidence changes status; late foreign/private rows are rejected."
+      ]
+    },
+    {
+      "id": "native-buyer",
+      "role": "buyer",
+      "platforms": [
+        "android",
+        "macos"
+      ],
+      "entry": "A formally released installed original YNX Shop package",
+      "controls": [
+        "Catalog",
+        "Cart",
+        "Orders",
+        "Account",
+        "order_review",
+        "order_submit",
+        "restore_pending"
+      ],
+      "services": [
+        "Existing same Buyer routes and Native proof adapter"
+      ],
+      "steps": [
+        "Install A exact signed package and use its normal launch/return handling.",
+        "Follow actual retained product → cart → explicit checkout → original Wallet review → current order.",
+        "Prepare an offline transition with actual input; cold reopen under same account, explicitly Retry.",
+        "Leave during proof, lose a response, switch accounts, and read back the original unknown request."
+      ],
+      "accept": [
+        "Current exact Native product/app/platform/account proof tuple; no fixture/guest authority.",
+        "Prepared permits only explicit same-body/key dispatch after current proof; dispatching/unknown/legacy only lookup.",
+        "No private callback adoption after leaving/cold reopening/switching accounts.",
+        "Source Debug success alone is not installed real Wallet/public acceptance."
+      ]
+    }
+  ]
+}
