@@ -48,6 +48,34 @@ test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; o
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
 const localeSetup=app.split('\n').find(line=>line.includes('window.YNXExchangeLocale=installExchangeLocale({document'));
+test('open-order renderer binds rows and action intent to current owner across account loss and switch',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];
+    page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    const renderer=app.slice(app.indexOf('function renderOrders('),app.indexOf('function renderBalances('));
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,snapshot:null};const display=${formatMicro.toString()};const intents=[];const cancelOrder=o=>intents.push({id:o.id,account:o.account});${renderer};window.orderOwnerQA={set(account,snapshot){state.account=account;state.snapshot=snapshot;renderOrders()},intents};`});
+    const row=(account,id,side,status='open')=>({account,id,side,status,market:'YNXT-YUSD_TEST',type:'limit',priceMicro:2000000,amountMicro:3000000,filledMicro:status==='partially_filled'?1000000:0,createdAt:'2026-10-04T00:00:00Z'});
+    const data={orders:[row('A','own-A','buy'),row('B','own-B','sell','partially_filled'),row('A','closed-A','buy','cancelled')]},original=JSON.stringify(data);
+    await page.evaluate(data=>window.orderOwnerQA.set('A',data),data);
+    assert.equal(await page.locator('#orders button').count(),1);
+    assert.match(await page.locator('#orders').innerText(),/buy/);assert.doesNotMatch(await page.locator('#orders').innerText(),/sell/);
+    await page.locator('#orders button').click();
+    await page.evaluate(()=>{window.oldOrderButton=document.querySelector('#orders button')});
+    await page.evaluate(data=>window.orderOwnerQA.set('B',data),data);
+    await page.evaluate(()=>window.oldOrderButton.click());
+    assert.equal(await page.evaluate(()=>window.orderOwnerQA.intents.length),1,'retired owner button must not forward an action');
+    assert.equal(await page.locator('#orders button').count(),1);assert.match(await page.locator('#orders').innerText(),/sell/);
+    await page.locator('#orders button').click();
+    assert.deepEqual(await page.evaluate(()=>window.orderOwnerQA.intents),[{id:'own-A',account:'A'},{id:'own-B',account:'B'}]);
+    await page.evaluate(()=>{window.oldOrderButton=document.querySelector('#orders button')});
+    await page.evaluate(data=>window.orderOwnerQA.set(null,data),data);assert.equal(await page.locator('#orders button').count(),0);
+    await page.evaluate(()=>window.oldOrderButton.click());assert.equal(await page.evaluate(()=>window.orderOwnerQA.intents.length),2);
+    await page.evaluate(()=>window.orderOwnerQA.set(null,null));assert.equal(await page.locator('#orders button').count(),0);
+    assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);assert.equal(JSON.stringify(data),original);
+  }finally{await browser.close()}
+});
 
 test('private account read timestamps follow the chosen language without requests or source mutation',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
