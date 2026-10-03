@@ -1,0 +1,13 @@
+{
+  "Replace": {
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/action_body.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/action_body.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/action_proof.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/action_proof.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/backend_key.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/backend_key.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/browser_sso.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/browser_sso.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/business_proof.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/business_proof.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/calendar_web_profile.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/calendar_web_profile.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/client.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/client.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/registered_clients.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/registered_clients.go",
+    "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/internal/productsessionv2/revalidation.go": "/tmp/social-shared-revalidator-20261004.80Jdi2/internal/productsessionv2/revalidation.go"
+  }
+}

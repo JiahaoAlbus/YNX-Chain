@@ -1,0 +1,5 @@
+shared_source_commit=c5e4178bb548baa05f552e8e1bc0f566ddc6f72d
+shared_overlay_stage=/tmp/social-shared-revalidator-20261004.80Jdi2
+shared_tree=01ec8a64f1472fefa99d9c20a733a23ac20d7b65
+shared_composition_test_exit=0
+shared_full_social_test_exit=0
