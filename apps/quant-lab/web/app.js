@@ -460,7 +460,7 @@ function verifiedPaperRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return false;
   if (typeof record.ID !== "string" || !/^paper-[0-9]+$/.test(record.ID) || typeof record.StrategyHash !== "string" || !/^[a-f0-9]{64}$/.test(record.StrategyHash)) return false;
   if (!["buy", "sell"].includes(record.Side) || !Number.isSafeInteger(record.Price) || record.Price <= 0 || !Number.isSafeInteger(record.Amount) || record.Amount <= 0 || !Number.isSafeInteger(record.Filled) || record.Filled < 0 || record.Filled > record.Amount) return false;
-  if (record.Source !== "authoritative_market_adapter" || typeof record.CreatedAt !== "string" || !Number.isFinite(Date.parse(record.CreatedAt))) return false;
+  if (record.Source !== "authoritative_market_adapter" || !auditTimeValid(record.CreatedAt)) return false;
   return record.Status === "open" && record.Filled === 0 || record.Status === "partially_filled" && record.Filled > 0 && record.Filled < record.Amount || record.Status === "filled" && record.Filled === record.Amount;
 }
 function renderPaperRecords(paper) {

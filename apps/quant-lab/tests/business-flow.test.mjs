@@ -203,6 +203,18 @@ test('Paper records preserve exact service quantities and do not depend on the s
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
 });
 
+test('Paper records reject normalized impossible dates and non-RFC timestamps',async()=>{
+  for(const CreatedAt of ['0','2026-02-30T00:00:00Z','2026-10-03','2026-10-03T00:00:00','0000-01-01T00:00:00Z']){
+    const app=harness({snapshot:{paper:{Orders:[paperRecord({CreatedAt})]}}});await settle();
+    assert.equal(app.ids.get('paper-record-status').textContent,vm.runInContext('businessCopy.en.paperRecordsUnknown',app.context));
+    assert.match(app.ids.get('paper-record-rows').innerHTML,/class="danger"/);
+  }
+  for(const CreatedAt of ['2024-02-29T23:59:59.123456789Z','2026-10-03T09:00:00+09:00']){
+    const app=harness({snapshot:{paper:{Orders:[paperRecord({CreatedAt})]}}});await settle();
+    assert.equal(app.ids.get('paper-record-status').textContent,'');
+    assert.ok(app.ids.get('paper-record-rows').innerHTML.includes(CreatedAt));
+  }
+});
 test('Paper record missing, empty, duplicate and malformed receipts cannot become confirmed fills',async()=>{
   for(const Orders of [undefined,[],[paperRecord({Filled:2000001})],[paperRecord({Status:'filled'})],[paperRecord({Source:'<script>fabricated</script>'})],[paperRecord(),paperRecord()],Array.from({length:101},(_,i)=>paperRecord({ID:`paper-${i}`})),[null], [paperRecord({Price:9007199254740992})]]){
     const app=harness({snapshot:{paper:{Orders}}});await settle();
