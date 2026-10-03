@@ -13,6 +13,7 @@ const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();
 const researchFixture = (id, name = id) => ({id, createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name, StrategyHash:'e'.repeat(64)}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
+const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
 test('Paper records preserve exact service quantities and do not depend on the selected wallet',async()=>{
   const records=[paperRecord()];const app=harness({snapshot:{paper:{Orders:records}}});await settle();
@@ -81,10 +82,47 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage, stora
   context.QuantI18n = window.QuantI18n;
   vm.runInContext(source, context);
   return {ids, calls, storage, context, reads: () => reads, proofs: () => proofs,
+    schedule: (strategy,enabled) => ids.get('strategy-rows').events.get('click')[0]({target:{closest:()=>({disabled:false,dataset:{strategyId:encodeURIComponent(strategy.ID),strategyHash:strategy.StrategyHash,enabled:String(enabled)}})}}),
     wallet: state => {current = state; events.get('ynx:quant-wallet-state')({detail: state});},
     submit: id => ids.get(id).onsubmit({preventDefault() {}}),
   };
 }
+
+test('saved research schedules render source failures and disable unknown or ineligible runtimes',async()=>{
+  for(const Runtime of [undefined,{enabled:false},{enabled:true,running:false,intervalSeconds:60,nextRunAt:'not-a-date',lastRunStatus:'scheduled'},{enabled:false,running:true,intervalSeconds:60}]){
+    const strategy=savedResearchStrategy({Runtime}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/>Stopped</);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+  }
+  const strategy=savedResearchStrategy({ID:'saved"><img src=x>',Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'failed_market_data_unavailable',lastExperiment:''}}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();const rows=app.ids.get('strategy-rows').innerHTML;assert.match(rows,/failed_market_data_unavailable/);assert.doesNotMatch(rows,/<img src=x>/);assert.match(rows,/Stop schedule/);
+});
+
+test('schedule configuration coalesces through rerender and binds the exact saved assumptions receipt',async()=>{
+  const strategy=savedResearchStrategy(),pending=deferred();let observed=strategy,confirmations=0;
+  const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:(url)=>url.endsWith('/snapshot')?{strategies:{saved:observed}}:pending.promise});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';
+  const first=app.schedule(strategy,true);await settle();vm.runInContext('render()',app.context);await app.schedule(strategy,true);assert.equal(confirmations,1);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);assert.match(app.ids.get('strategy-rows').innerHTML,/aria-busy="true" disabled/);
+  app.ids.get('fee').value='99';const body=JSON.parse(app.calls.find(call=>call.options.method==='PUT').options.body);assert.equal(body.assumptions.feeBPS,10);
+  observed={...strategy,Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled',assumptions:{FeeBPS:10,SlippageBPS:5,Seed:42,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3}}};pending.resolve(observed);await first;
+  assert.match(app.ids.get('toast').textContent,/execution is not yet proved/);assert.match(app.ids.get('strategy-rows').innerHTML,/Stop schedule/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/aria-busy="true"/);assert.equal(app.proofs(),0);
+});
+
+test('unbound schedule acknowledgements block another write until a fresh verified snapshot',async()=>{
+  const strategy=savedResearchStrategy();for(const mismatch of [{ID:'foreign'},{StrategyHash:'e'.repeat(64)},{Stage:'BoundedTestnet'},{Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'scheduled',assumptions:{FeeBPS:999}}}]){
+    const base={...strategy,Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'scheduled',assumptions:{FeeBPS:10,SlippageBPS:5,Seed:42,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3}}};
+    const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{strategies:{saved:strategy}}:{...base,...mismatch}});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';await app.schedule(strategy,true);assert.match(app.ids.get('toast').textContent,/Schedule unverified/);assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);await vm.runInContext('refresh()',app.context);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);
+  }
+});
+
+test('a snapshot started before an unconfirmed schedule write cannot erase its recovery boundary',async()=>{
+  const strategy=savedResearchStrategy(),old=deferred();let snapshots=0;
+  const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?(++snapshots===2?old.promise:{strategies:{saved:strategy}}):{ID:'foreign'}});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';
+  const stale=vm.runInContext('refresh()',app.context);await app.schedule(strategy,true);old.resolve({strategies:{saved:strategy},access:{statefulPreview:true}});await stale;assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);await vm.runInContext('refresh()',app.context);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);
+});
+
+test('schedule confirmations are localized and changed or unsafe assumptions make no write',async()=>{
+  const strategy=savedResearchStrategy();let preview='';const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:message=>{preview=message;return false}});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';
+  for(const language of vm.runInContext('supportedLocales',app.context)){app.ids.get('locale').onchange({target:{value:language}});await app.schedule(strategy,true);assert.ok(preview.startsWith(vm.runInContext(`businessCopy[${JSON.stringify(language)}].scheduleConfirmStart`,app.context)));assert.ok(preview.includes(strategy.StrategyHash));assert.ok(preview.includes('10'))}
+  app.context.confirm=()=>{app.ids.get('fee').value='99';return true};await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+  app.ids.get('fee').value='9007199254740992';app.context.confirm=()=>{throw Error('invalid values must not open confirmation')};await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+});
 
 test('blocked or silent storage cannot crash public research or grant Paper authority', async () => {
   for(const mode of ['get','set','remove','silent']){

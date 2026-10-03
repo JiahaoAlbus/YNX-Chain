@@ -10,6 +10,7 @@ let researchSubmitting = false;
 let lastToastKey = null;
 let lastToastSuffix = '';
 const riskWrites = new Set();
+const scheduleWrites = new Set(), scheduleUnconfirmed = new Set();
 let pendingMandate = null;
 let pendingOrder = null;
 let previewRevision = 0;
@@ -311,6 +312,30 @@ const paperConfirmCopy = {
   id: ["Konfirmasi sinyal Paper strategi tersimpan ini?", "Simulasi saja, tanpa order Exchange atau transaksi blockchain. Jumlah dalam mikrounit bilangan bulat. Tanpa kuotasi yang dapat dieksekusi: pasar dibaca saat pengiriman, pengisian dibatasi 10% volume sumber dan batas posisi/nosional. Tanpa komisi/gas atau model slippage; bukan prakiraan termasuk biaya.", "Pratinjau berubah. Tinjau kembali masukan saat ini.", "Order simulasi dicatat"],
 };
 for (const [language, [paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded]] of Object.entries(paperConfirmCopy)) Object.assign(businessCopy[language], {paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded});
+const scheduleCopy = {
+  en:["Schedules run saved Backtest research on the service, not Paper or Testnet orders. A saved schedule is not a completed run. Refresh to read the actual result and source failures.","Start 60s research","Stop schedule","Schedule request pending","Schedule unverified — refresh to read its actual state","Start persistent 60-second research with these assumptions? No Paper or Testnet order will be placed.","Stop this saved research schedule? This does not cancel Exchange orders or move funds.","Schedule inputs or strategy changed. Review again.","Research schedule saved; execution is not yet proved.","Research schedule stopped by the service.","Not scheduled"],
+  "zh-CN":["定时任务在服务端运行已保存的 Backtest 研究，不提交模拟盘或测试网订单。保存任务不等于运行完成；刷新读取实际结果和数据源错误。","启动 60 秒研究","停止定时任务","定时请求处理中","定时状态未验证，请刷新读取实际状态","按这些假设启动持续的 60 秒研究？不会提交模拟盘或测试网订单。","停止此研究定时任务？不会取消交易所订单或移动资金。","定时输入或策略已变化，请重新检查。","研究定时任务已保存，执行尚未证实。","服务已停止研究定时任务。","未设置定时任务"],
+  "zh-TW":["定時任務在服務端執行已儲存的 Backtest 研究，不提交模擬盤或測試網訂單。儲存任務不等於執行完成；重新整理讀取實際結果和資料來源錯誤。","啟動 60 秒研究","停止定時任務","定時請求處理中","定時狀態未驗證，請重新整理讀取實際狀態","按這些假設啟動持續的 60 秒研究？不會提交模擬盤或測試網訂單。","停止此研究定時任務？不會取消交易所訂單或移動資金。","定時輸入或策略已變更，請重新檢查。","研究定時任務已儲存，執行尚未證實。","服務已停止研究定時任務。","未設定定時任務"],
+  ja:["保存済み Backtest 研究をサービスで定期実行します。Paper・Testnet 注文は送信しません。保存は実行完了ではありません。更新して実結果とデータ障害を確認してください。","60秒研究を開始","スケジュール停止","要求を処理中","未検証です。更新して実状態を確認","この仮定で60秒間隔の研究を開始しますか？Paper・Testnet注文は送信しません。","研究スケジュールを停止しますか？取引所注文の取消や送金は行いません。","入力か戦略が変更されました。再確認してください。","研究スケジュール保存。実行は未確認です。","サービスが研究スケジュールを停止しました。","未設定"],
+  ko:["서비스에서 저장된 Backtest 연구를 예약 실행합니다. Paper·Testnet 주문을 보내지 않습니다. 저장은 실행 완료가 아닙니다. 새로고침하여 실제 결과와 데이터 오류를 확인하세요.","60초 연구 시작","예약 중지","예약 요청 처리 중","예약 미검증 — 새로고침하여 실제 상태 확인","이 가정으로 60초 연구를 시작할까요? Paper·Testnet 주문은 전송되지 않습니다.","연구 예약을 중지할까요? 거래소 주문 취소나 자금 이동은 하지 않습니다.","입력 또는 전략이 변경되었습니다. 다시 검토하세요.","연구 예약 저장됨. 실행은 아직 미확인입니다.","서비스가 연구 예약을 중지했습니다.","예약 없음"],
+  es:["El servicio programa investigación Backtest guardada, sin órdenes Paper/Testnet. Guardar no prueba ejecución. Actualiza para leer resultados y errores de fuente.","Iniciar estudio cada 60s","Detener programación","Solicitud pendiente","Programación sin verificar — actualiza su estado","¿Iniciar investigación cada 60 segundos con estos supuestos? No enviará órdenes Paper/Testnet.","¿Detener esta investigación? No cancela órdenes Exchange ni mueve fondos.","Cambió la estrategia o la entrada. Revisa de nuevo.","Programación guardada; ejecución no probada.","El servicio detuvo la programación.","Sin programación"],
+  fr:["Le service programme la recherche Backtest enregistrée, sans ordre Paper/Testnet. L’enregistrement ne prouve pas l’exécution. Actualisez pour lire les résultats et erreurs de source.","Recherche toutes les 60s","Arrêter la programmation","Demande en attente","Programmation non vérifiée — actualisez son état","Démarrer la recherche toutes les 60 secondes avec ces hypothèses ? Aucun ordre Paper/Testnet.","Arrêter cette recherche ? Aucun ordre Exchange annulé ni fonds déplacés.","Entrées ou stratégie modifiées. Vérifiez à nouveau.","Programmation enregistrée ; exécution non prouvée.","Programmation arrêtée par le service.","Non programmée"],
+  de:["Der Dienst plant gespeicherte Backtest-Forschung, keine Paper/Testnet-Orders. Speichern beweist keine Ausführung. Aktualisieren zeigt reale Ergebnisse und Quelldatenfehler.","60s-Forschung starten","Zeitplan stoppen","Zeitplananfrage läuft","Zeitplan ungeprüft — Zustand aktualisieren","Forschung alle 60 Sekunden mit diesen Annahmen starten? Keine Paper/Testnet-Orders.","Forschungszeitplan stoppen? Keine Exchange-Orders storniert oder Gelder bewegt.","Eingaben oder Strategie geändert. Erneut prüfen.","Zeitplan gespeichert; Ausführung noch unbelegt.","Dienst hat den Forschungszeitplan gestoppt.","Nicht geplant"],
+  pt:["O serviço agenda pesquisa Backtest guardada, sem ordens Paper/Testnet. Guardar não prova execução. Atualize para ler resultados e erros da fonte.","Iniciar pesquisa a cada 60s","Parar agenda","Solicitação pendente","Agenda não verificada — atualize o estado","Iniciar pesquisa a cada 60 segundos com estas hipóteses? Sem ordens Paper/Testnet.","Parar esta pesquisa? Não cancela ordens Exchange nem move fundos.","Entradas ou estratégia mudaram. Revise novamente.","Agenda guardada; execução não comprovada.","O serviço parou a agenda de pesquisa.","Sem agenda"],
+  ru:["Сервис планирует сохранённые Backtest-исследования, без Paper/Testnet-ордеров. Сохранение не доказывает запуск. Обновите реальные результаты и ошибки источника.","Исследование каждые 60с","Остановить расписание","Запрос в ожидании","Расписание не проверено — обновите состояние","Начать исследование каждые 60 секунд с этими допущениями? Без Paper/Testnet-ордеров.","Остановить исследование? Биржевые ордера не отменяются, средства не перемещаются.","Входные данные или стратегия изменились. Проверьте снова.","Расписание сохранено; исполнение не доказано.","Сервис остановил расписание исследования.","Не запланировано"],
+  ar:["يشغّل جدول الخدمة أبحاث Backtest المحفوظة وليس أوامر Paper أو Testnet. الحفظ لا يثبت اكتمال التشغيل. حدّث لقراءة النتائج الفعلية وأخطاء المصدر.","بدء البحث كل 60 ثانية","إيقاف الجدول","طلب الجدول قيد الانتظار","الجدول غير متحقق — حدّث لقراءة حالته","بدء بحث مستمر كل 60 ثانية بهذه الافتراضات؟ لن تُرسل أوامر Paper أو Testnet.","إيقاف جدول البحث؟ لن يلغي أوامر البورصة أو ينقل الأموال.","تغيرت المدخلات أو الاستراتيجية. راجع مجددًا.","حُفظ جدول البحث؛ التنفيذ غير مثبت بعد.","أوقفت الخدمة جدول البحث.","غير مجدول"],
+  id:["Layanan menjadwalkan riset Backtest tersimpan, bukan order Paper/Testnet. Tersimpan bukan bukti selesai. Muat ulang untuk hasil nyata dan kegagalan sumber.","Mulai riset setiap 60d","Hentikan jadwal","Permintaan jadwal tertunda","Jadwal belum terverifikasi — muat ulang status","Mulai riset setiap 60 detik dengan asumsi ini? Tidak mengirim order Paper/Testnet.","Hentikan jadwal riset? Tidak membatalkan order Exchange atau memindahkan dana.","Masukan atau strategi berubah. Tinjau lagi.","Jadwal tersimpan; eksekusi belum terbukti.","Layanan menghentikan jadwal riset.","Tidak dijadwalkan"],
+};
+for (const [language, values] of Object.entries(scheduleCopy)) Object.assign(businessCopy[language], Object.fromEntries(["scheduleLead","scheduleStart","scheduleStop","schedulePending","scheduleUnknown","scheduleConfirmStart","scheduleConfirmStop","scheduleInvalid","scheduleConfigured","scheduleStopped","scheduleInactive"].map((key,index)=>[key,values[index]])));
+for (const [language,scheduleObservation] of Object.entries({en:"Next / last run / experiment","zh-CN":"下次 / 上次运行 / 实验","zh-TW":"下次 / 上次執行 / 實驗",ja:"次回 / 最終実行 / 実験",ko:"다음 / 마지막 실행 / 실험",es:"Próxima / última ejecución / experimento",fr:"Prochaine / dernière exécution / expérience",de:"Nächster / letzter Lauf / Experiment",pt:"Próxima / última execução / experimento",ru:"Следующий / последний запуск / эксперимент",ar:"التالي / آخر تشغيل / التجربة",id:"Berikutnya / terakhir / eksperimen"})) Object.assign(businessCopy[language],{scheduleObservation});
+function observedSchedule(strategy) {
+  const runtime = strategy?.Runtime;
+  if (!runtime || typeof runtime.enabled !== "boolean" || typeof runtime.running !== "boolean" || !Number.isSafeInteger(runtime.intervalSeconds) || runtime.intervalSeconds < 0) return null;
+  if (runtime.enabled && (runtime.intervalSeconds < 60 || runtime.intervalSeconds > 86400 || typeof runtime.lastRunStatus !== "string" || !runtime.lastRunStatus || typeof runtime.nextRunAt !== "string" || !Number.isFinite(Date.parse(runtime.nextRunAt)) || runtime.nextRunAt.startsWith("0001-"))) return null;
+  if (!runtime.enabled && runtime.running) return null;
+  return runtime;
+}
+function scheduleTime(value) { return typeof value === "string" && !value.startsWith("0001-") && Number.isFinite(Date.parse(value)) ? localDate(value) : "—"; }
 
 function verifiedPaperRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return false;
@@ -387,6 +412,7 @@ async function refresh() {
   if (revision !== snapshotRevision) return;
   snapshot = next;
   statefulPreview = workspaceStorageAvailable && snapshot.access?.statefulPreview === true;
+  for (const id of scheduleUnconfirmed) if (Object.values(snapshot.strategies || {}).some(strategy => strategy.ID === id && observedSchedule(strategy))) scheduleUnconfirmed.delete(id);
   $("#workspace-boundary").hidden = statefulPreview;
   renderRiskControls();
   render();
@@ -494,8 +520,9 @@ function render() {
     ? strategies
         .map(
           (s) => {
-            const runtime = s.Runtime || {}, enabled = runtime.enabled === true;
-            return `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td><td><strong>${enabled ? safe(runtime.lastRunStatus || "Scheduled") : "Stopped"}</strong><small>${enabled && runtime.nextRunAt ? safe(localDate(runtime.nextRunAt)) : "No automatic execution"}</small><button type="button" class="schedule-toggle" data-strategy-id="${safe(s.ID)}" data-enabled="${!enabled}" ${statefulPreview ? "" : "disabled"}>${enabled ? "Stop schedule" : "Start 60s research"}</button></td></tr>`;
+            const runtime = observedSchedule(s), enabled = runtime?.enabled === true, pending = scheduleWrites.has(s.ID), unknown = !runtime || scheduleUnconfirmed.has(s.ID);
+            const usable = typeof s.ID === "string" && s.ID.length > 0 && typeof s.StrategyHash === "string" && /^[a-f0-9]{64}$/.test(s.StrategyHash) && (enabled || s.Stage === "Backtest");
+            return `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td><td><strong>${safe(pending ? t("schedulePending") : unknown ? t("scheduleUnknown") : runtime.lastRunStatus || t("scheduleInactive"))}</strong><small>${safe(t("scheduleObservation"))}</small><small>${runtime ? safe(scheduleTime(runtime.nextRunAt)) + " / " + safe(scheduleTime(runtime.lastRunAt)) : "— / —"}</small><small>${safe(runtime?.lastExperiment || "—")}</small><button type="button" class="schedule-toggle" data-strategy-id="${encodeURIComponent(typeof s.ID === "string" ? s.ID : "")}" data-strategy-hash="${/^[a-f0-9]{64}$/.test(s.StrategyHash || "") ? s.StrategyHash : ""}" data-enabled="${!enabled}" aria-busy="${pending}" ${statefulPreview && usable && !unknown && !pending ? "" : "disabled"}>${safe(enabled ? t("scheduleStop") : t("scheduleStart"))}</button></td></tr>`;
           },
         )
         .join("")
@@ -531,13 +558,30 @@ function render() {
 $("#strategy-rows").addEventListener("click", async event => {
   const button = event.target.closest(".schedule-toggle");
   if (!button || !statefulPreview || button.disabled) return;
+  const id = decodeURIComponent(button.dataset.strategyId);
+  if (scheduleWrites.has(id) || scheduleUnconfirmed.has(id)) return;
   const enabled = button.dataset.enabled === "true";
-  if (enabled && !confirm("Start persistent 60-second research? No Paper or Testnet orders will be placed.")) return;
-  button.disabled = true;
+  const strategy = Object.values(snapshot.strategies || {}).find(value => value.ID === id), runtime = observedSchedule(strategy);
+  if (!runtime || strategy.StrategyHash !== button.dataset.strategyHash || runtime.enabled === enabled || enabled && strategy.Stage !== "Backtest") return;
+  let sent = false;
   try {
-    await api(`/v1/strategies/${encodeURIComponent(button.dataset.strategyId)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions: enabled ? {feeBPS:+$("#fee").value, slippageBPS:+$("#slippage").value, latencyBars:1, participationBPS:1000, seed:+$("#seed").value, trainEnd:24, walkForwardWindows:3} : {}})});
+    const assumptions = enabled ? {feeBPS:+$("#fee").value, slippageBPS:+$("#slippage").value, latencyBars:1, participationBPS:1000, seed:+$("#seed").value, trainEnd:24, walkForwardWindows:3} : {};
+    if (enabled && (!Number.isSafeInteger(assumptions.feeBPS) || assumptions.feeBPS < 0 || !Number.isSafeInteger(assumptions.slippageBPS) || assumptions.slippageBPS < 0 || !Number.isSafeInteger(assumptions.seed))) throw Error(t("scheduleInvalid"));
+    if (!confirm(`${t(enabled ? "scheduleConfirmStart" : "scheduleConfirmStop")}\n${id}\n${strategy.StrategyHash}${enabled ? `\n${t("runFee")}: ${assumptions.feeBPS}\n${t("runSlippage")}: ${assumptions.slippageBPS}\n${t("runSeed")}: ${assumptions.seed}` : ""}`)) return;
+    const current = Object.values(snapshot.strategies || {}).find(value => value.ID === id);
+    if (!statefulPreview || current?.StrategyHash !== strategy.StrategyHash || observedSchedule(current)?.enabled !== runtime.enabled || enabled && (current.Stage !== "Backtest" || +$("#fee").value !== assumptions.feeBPS || +$("#slippage").value !== assumptions.slippageBPS || +$("#seed").value !== assumptions.seed)) throw Error(t("scheduleInvalid"));
+    scheduleWrites.add(id); snapshotRevision++; render(); sent = true;
+    const receipt = await api(`/v1/strategies/${encodeURIComponent(id)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions})});
+    const confirmed = observedSchedule(receipt);
+    if (receipt?.ID !== id || receipt.StrategyHash !== strategy.StrategyHash || receipt.Stage !== strategy.Stage || !confirmed || confirmed.enabled !== enabled || confirmed.running || confirmed.lastRunStatus !== (enabled ? "scheduled" : "stopped_by_user") || enabled && (confirmed.intervalSeconds !== 60 || Object.entries(assumptions).some(([key,value]) => confirmed.assumptions?.[key[0].toUpperCase()+key.slice(1)] !== value))) throw Error(t("scheduleUnknown"));
+    const savedKey = Object.keys(snapshot.strategies).find(key => snapshot.strategies[key].ID === id && snapshot.strategies[key].StrategyHash === strategy.StrategyHash);
+    if (!savedKey) throw Error(t("scheduleUnknown"));
+    snapshotRevision++;
+    snapshot.strategies = {...snapshot.strategies, [savedKey]:receipt};
+    render();toast(t(enabled ? "scheduleConfigured" : "scheduleStopped"), enabled ? "scheduleConfigured" : "scheduleStopped");
     await refresh();
-  } catch (error) { toast(error.message); button.disabled = false; }
+  } catch (error) { if (sent) { snapshotRevision++; scheduleUnconfirmed.add(id); } toast(error.message); }
+  finally { scheduleWrites.delete(id); render(); }
 });
 function renderRunDetails() {
   const result = latestResearchResult, strategy = result?.strategy;

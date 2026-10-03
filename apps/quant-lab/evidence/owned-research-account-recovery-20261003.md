@@ -10,6 +10,32 @@ No Wallet/SDK/authority/Host/DEX/Pay/Card source or production state was changed
 The existing bundled Wallet runtime was exercised, not rebuilt. A's coordinated
 compatible bundle/cache graph and release remain required.
 
+## Research schedule confirmation and observation recovery
+
+Inherited predecessor: `feddff486c1826bcc05dcaafee24bb3268c5adf3`.
+The existing Backtest-only scheduler is not a Paper/Testnet trading engine.
+Missing or inconsistent runtime is now unverified, never falsely “Stopped”.
+Rows show actual service status, next/last observations and experiment identity,
+including market-source failure. Start and stop require explicit localized
+confirmation in all 12 languages. Per-strategy pending guards survive rerenders;
+configuration acknowledgements bind ID, hash, stage, interval and submitted
+assumptions. Uncertain outcomes require a fresh verified snapshot before another
+write, and an older snapshot cannot erase this recovery boundary. Saved schedule
+configuration is explicitly not evidence that research executed.
+
+Final executed Node business/browser/tenant suite: **48/48 PASS**, no skips,
+46.932s. Actual local Chrome exercised confirmed/cancelled start/stop, Arabic
+pending rerender and reload. Controlled HTTP fixtures do not prove public runs.
+Focused existing Go scheduler race tests passed in 1.391s: persisted due-once
+execution across two service instances, restart, fail-closed source/stage and
+lifecycle cancellation. Synthetic local history is not live-market evidence.
+One earlier browser test checked enabled state before the awaited readback ended;
+it was corrected to wait for the real completion boundary, then the full suite
+passed twice. Final inventory is `owned-research-schedule-inventory-20261003.json`.
+Official current-source release, installed runtime, real Wallet approval,
+Product Session, capital execution and ComputerControl remain unverified.
+A must publish the coherent final asset/runtime graph before official retesting.
+
 ## Exact implementation checkpoints
 
 - Records read ordering: `75716278a740251dee8b5892afa9eb251f90be4b`, tree

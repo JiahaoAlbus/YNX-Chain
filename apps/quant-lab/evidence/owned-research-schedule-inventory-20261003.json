@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": "quant-lab",
+  "scope": "existing research schedule UI; no engine or authority rewrite",
+  "predecessor": "feddff486c1826bcc05dcaafee24bb3268c5adf3",
+  "sourceIdentity": "immutable commit containing this inventory; no self-referential commit hash",
+  "reportTo": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "files": [
+    {"path":"apps/quant-lab/web/app.js","blob":"89c97f8aac5ff971e57e5dd63f953269f5616451","bytes":104573,"sha256":"3c57a7dd2899668f4984e3a0a599be0b602897a53d5c4bf152f8ce5fbd891695"},
+    {"path":"apps/quant-lab/web/index.html","blob":"97f8fad98bdb01a967089ac8bd1be2c814e166b5","bytes":26920,"sha256":"bc8aba28fbeb0dba6ce99e21189d90471f5db54d91f942b4208811f33b708cd0"},
+    {"path":"apps/quant-lab/web/i18n.js","blob":"f494c458ee6249b778e688c60df1b440bd64f0b6","bytes":25372,"sha256":"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"6f1e0fcc1b157de3add3f66388dd9a073fae9ea6","bytes":10752,"sha256":"c8dbaa4004deda041e6be4fe4b92ca23e4f4a11e5d7c02ec2178c92d17007158"},
+    {"path":"apps/quant-lab/web/ynx-brand-logo.png","blob":"9857f146c2c53077e208dc063715b5d236e24346","bytes":104171,"sha256":"df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"c515369048e940b5b192ffb1c5e9ff7ee4e62ded","bytes":47527,"sha256":"c531e9fc91cf42a656a25f6b443c9de79dab81feb0fd723516f887e2afb6cf13"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"df7e56994de393943ea55a0816f255d3405cdd53","bytes":34814,"sha256":"80a5d66053b8cb34a39100793c6aad35945fbf4b195ea3453ade252806610c34"}
+  ],
+  "tests": {
+    "nodeCommand": "node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs",
+    "passed": 48, "failed": 0, "skipped": 0, "durationMs": 46931.537708,
+    "goCommand": "go test -race ./internal/quantlab -run 'TestScheduledResearchRun|TestScheduleFailsClosed|TestLifecycleAdvanceStopsResearchSchedule' -count=1",
+    "goResult": "PASS 1.391s",
+    "boundary": "Local actual Chrome/Go plus controlled synthetic fixtures only; browser tenant isolation is not Wallet-authenticated identity or PostgreSQL/multi-host proof."
+  },
+  "releaseDependency": "A-owned coherent final SDK/Auth/assets/cache/runtime/package graph and source-bound official release",
+  "truth": {"localSourceTests":true,"deployedCurrentSource":false,"installed":false,"realWalletApproval":false,"productSession":false,"liveResearchRun":false,"capitalExecution":false,"computerControl":false,"complete":false}
+}

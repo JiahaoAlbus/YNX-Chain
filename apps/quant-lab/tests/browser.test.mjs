@@ -58,6 +58,25 @@ test('actual Chrome keeps a malformed Paper receipt pending and retries only the
     assert.match(await page.locator('#paper-record-rows').textContent(),/1200000 \/ 100 \/ 100/);assert.equal(await page.locator('#paper-record-status').textContent(),'');
   }finally{await context.close()}
 });
+test('actual Chrome binds research schedule receipts, pending rerenders and confirmed stop without execution claims',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const strategy={ID:'controlled-saved-research',Name:'Controlled saved research',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
+    let puts=0,release;const gate=new Promise(resolve=>release=resolve);
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/strategies/controlled-saved-research/schedule',async route=>{
+      puts++;const body=route.request().postDataJSON();if(body.enabled)await gate;
+      strategy.Runtime=body.enabled?{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled',assumptions:Object.fromEntries(Object.entries(body.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]))}:{...strategy.Runtime,enabled:false,running:false,lastRunStatus:'stopped_by_user'};
+      await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategy)});
+    });
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();const start=page.waitForEvent('dialog'),startClick=page.locator('.schedule-toggle').click();const startDialog=await start;assert.ok(startDialog.message().includes(strategy.StrategyHash));assert.match(startDialog.message(),/No Paper or Testnet order/);await startDialog.accept();await startClick;
+    await page.getByText('Schedule request pending',{exact:true}).waitFor();await page.selectOption('#locale','ar');assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);assert.equal(await page.locator('.schedule-toggle').getAttribute('aria-busy'),'true');assert.equal(puts,1);
+    release();await page.locator('#toast').filter({hasText:'التنفيذ غير مثبت'}).waitFor();await page.waitForFunction(()=>document.querySelector('.schedule-toggle')?.disabled===false);assert.equal(await page.locator('.schedule-toggle').isDisabled(),false);assert.match(await page.locator('#strategy-rows').textContent(),/scheduled/);
+    const stop=page.waitForEvent('dialog'),stopClick=page.locator('.schedule-toggle').click();const stopDialog=await stop;assert.match(stopDialog.message(),/إيقاف/);await stopDialog.dismiss();await stopClick;assert.equal(puts,1);
+    const accepted=page.waitForEvent('dialog'),acceptedClick=page.locator('.schedule-toggle').click();await (await accepted).accept();await acceptedClick;await page.locator('#strategy-rows').filter({hasText:'stopped_by_user'}).waitFor();assert.equal(puts,2);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();assert.match(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
+  }finally{await context.close()}
+});
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
