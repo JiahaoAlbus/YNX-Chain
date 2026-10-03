@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-03",
+  "sourceCommit": "ad5653ad2c7f9e584d49eb858ad6a05f27db5884",
+  "sourceTree": "453fb230c23f4c61d50575b42bf69c272ba9e2b0",
+  "parentCheckpoint": "bb0bcd77106a17e2964aef06b3e374d47ce66cc3",
+  "changes": [
+    "Original POST api/playlists supports actor-scoped stable Idempotency-Key with immutable input commitment, creation and intent mapping in one original-store transaction; retry returns current visible owned record without overwriting subsequent edits",
+    "Web IndexedDB metadata and native original account files persist playlist intent before HTTP; lost reply and restart retain body/key until original GET readback and local acknowledgement",
+    "Explicit new-playlist confirmation clears only pending recovery metadata and keeps all previously created playlists, account content and keys",
+    "Twelve locale strings expanded to 69 keys; no shared Wallet/Auth/SDK source edited"
+  ],
+  "validation": {
+    "goMusicRace": "PASS full internal/music original HTTP/store suite; 24 concurrent retries, restart, later edits, changed-body conflict, actor isolation and audit integrity",
+    "goEmbedRace": "PASS apps/music",
+    "web": "PASS shipped UI lost-reply cold reload and A/B switch; actual IndexedDB two-tab atomic intent, mismatched acknowledgement, scoped clear and stale-generation rejection; full 13-group existing suite including real 30-second timeout",
+    "android": "PASS SDK35 resource/all shipped Java compile; host real MusicStore/MusicApi HTTP fixture stable headers/body retry, original GET and account restore; not installed device QA",
+    "apple": "PASS actual API/store executable host checks, pending cold/account restore, stable retry header and GET; actual model/player/session host typecheck; SwiftUI parse only, no iOS SDK build/install",
+    "i18n": "PASS 12 locales x 69 keys",
+    "diffCheck": "PASS"
+  },
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-recovery-old-fail-20261003.log",
+      "sha256": "ebda49854fdfd4f985ff8c8f5a8e057d4a754e32d7f484a39039673d284e30db",
+      "kind": "expected_pre_fix_failure"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-recovery-after-20261003.log",
+      "sha256": "ea181a28adcd9a3009ffe54dca6e151bf23a0efbe6bab7d538d552a1026df037",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-full-race-20261003.log",
+      "sha256": "35671ad381a82c25f6a2947050b1fe5c4741751f959aa24e38a2b45886448512",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-web-recovery-20261003.log",
+      "sha256": "fca21af55104ec767544b327112d980dcba5cf4dd6af1216dac2608a9ea5eb9d",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-web-regression-20261003.log",
+      "sha256": "af29961ebdc5f4a668f7f711f5bf9449a2f788d3bb15cfccb88ad8393cda891a",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-android-host-20261003.log",
+      "sha256": "147bda3a48b3a6447a48e1f45963428547fc7124ee3a0aea5984d50fdcc34735",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-android-compile-20261003.log",
+      "sha256": "7c7d2c63b1eb63d0f2b634fa2dcdea2fdd0c24aaf7b3f5aafb1726e97c508daf",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-apple-recovery-20261003.log",
+      "sha256": "505dc53a6f94b1178ac85d2925764af1f1b5ba9611952f77cba7ed2dd609fed3",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-i18n-20261003.log",
+      "sha256": "8cab0ce5ffee5dd8ab81b1d92226d1736a936fdcc1c74c0e4044ef42e6d89454",
+      "kind": "current_validation"
+    },
+    {
+      "path": "apps/video/audit/evidence/music-playlist-recovery-20261003/ynx-music-playlist-embed-race-20261003.log",
+      "sha256": "62cc1518df271323085467a1e424bff2dab38f969ac6b305755613a06edecca8",
+      "kind": "current_validation"
+    }
+  ],
+  "sharedDependency": {
+    "commit": "c09cb9b8ad13fe879363f7e6ad3d129912740c7e",
+    "tree": "a3405fa6aeb8d0743385430f4e09d66e13c12857",
+    "admission": "SOURCE_ADMISSION_PASS_PRIMITIVES_ONLY per Root authoritative delegation; source admission does not prove full SDK graph closure, consumer-route integration or deployed authority",
+    "remaining": "Music canonical V2 registry/signer and complete read-only SDK artifact still required; Web canonical request adapter not activated in production; Video original-store atomic nonce and post-I/O actor/object revalidation not integrated"
+  },
+  "formalEntryVerified": false,
+  "realWalletPrivateBusinessVerified": false,
+  "installedNativeVerified": false,
+  "macOSProductVerified": false,
+  "productionAIProviderVerified": false,
+  "overallStatus": "NOT_COMPLETED"
+}
