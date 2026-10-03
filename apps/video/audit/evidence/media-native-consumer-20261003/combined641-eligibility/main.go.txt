@@ -1,0 +1,3 @@
+package main
+import("encoding/json";"os"; ps "github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2")
+func main(){out:=map[string]bool{};for _,p:=range []string{"video","creator-studio","music","finance"}{s,e:=ps.NewBrowserSSO(p,"https://wallet-auth.ynxweb4.com",make([]byte,32),[]string{"home"},nil);out[p]=e==nil&&s!=nil};json.NewEncoder(os.Stdout).Encode(out)}

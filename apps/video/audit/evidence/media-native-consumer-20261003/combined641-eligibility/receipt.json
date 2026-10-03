@@ -1,0 +1,60 @@
+{
+  "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+  "sourceTree": "f70c782e828b81b5aea955c6481edd079176e88c",
+  "actualConstructorResult": {
+    "creator-studio": false,
+    "finance": true,
+    "music": false,
+    "video": false
+  },
+  "inputs": [
+    {
+      "path": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "path": "internal/productsessionv2/action_body.go",
+      "bytes": 2887,
+      "sha256": "21dcb8c2be36dc661a329e2cb1659bdb48bc0005bf744735d2f924e4f58c88e8"
+    },
+    {
+      "path": "internal/productsessionv2/action_proof.go",
+      "bytes": 4621,
+      "sha256": "3f293e7202f21360d2969291616359cc802c641fffe0a38e70c1ab9c89be759d"
+    },
+    {
+      "path": "internal/productsessionv2/backend_key.go",
+      "bytes": 3985,
+      "sha256": "09b1ff2b1c4c271669172dd256851c0e6d91c20eb31195eec6dbb3270f83f3ad"
+    },
+    {
+      "path": "internal/productsessionv2/browser_sso.go",
+      "bytes": 15653,
+      "sha256": "45bcacd920269ccac9b3da33eaf8e893e92cea27edc285e3318df2f5bd0a53b7"
+    },
+    {
+      "path": "internal/productsessionv2/business_proof.go",
+      "bytes": 7535,
+      "sha256": "3dc2f33081a599be43a2a0931c903aea2154df28eb1bc48c54bb17c583a5ccae"
+    },
+    {
+      "path": "internal/productsessionv2/client.go",
+      "bytes": 16133,
+      "sha256": "866203b52887098d3d559f6ff2e40c19c8952d1467f853c97f7dcdbd2e20fd07"
+    },
+    {
+      "path": "internal/productsessionv2/registered_clients.go",
+      "bytes": 5169,
+      "sha256": "2543cc4ef781868bf946602a1f6914c60e3104aba41018a1456fe831261ea63a"
+    },
+    {
+      "path": "internal/productsessionv2/revalidation.go",
+      "bytes": 16594,
+      "sha256": "885534b85303ff7f76581acc492b5b2f7b145bed3b2b04a2421b9ef90817e4c6"
+    }
+  ],
+  "actualProtectedRegistration": false,
+  "productionDeployment": false,
+  "note": "Actual matching Go NewBrowserSSO constructor, ephemeral local policy cipher only; no HTTP, user keys or enrollments. Media identity constructors remain unregistered."
+}
