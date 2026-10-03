@@ -1,0 +1,41 @@
+{
+  "kind": "CARD_OWNER_PUBLIC_IAB_NONSENSITIVE",
+  "observedAt": "2026-10-03T16:00:07.587Z",
+  "url": "https://card.ynxweb4.com/?verify=card-inventory-20260831",
+  "browser": "Codex In-app Browser",
+  "visible": {
+    "lang": "en",
+    "scripts": [
+      "https://card.ynxweb4.com/pwa-register.js",
+      "https://card.ynxweb4.com/_expo/static/js/web/index-729a151f7b138d2f9ae4e36ab3b49f4d.js"
+    ],
+    "title": "YNX Card | 1.0.0",
+    "visibleCJK": false
+  },
+  "beforeTabs": [
+    {
+      "id": "1",
+      "providerTabId": "browser-use:f121128f-9940-4b44-bc28-b37cfef8e8d8",
+      "title": "YNX Card | 1.0.0",
+      "url": "https://card.ynxweb4.com/?verify=card-inventory-20260831",
+      "browserId": "3"
+    }
+  ],
+  "afterChooserTabs": [
+    {
+      "id": "1",
+      "providerTabId": "browser-use:f121128f-9940-4b44-bc28-b37cfef8e8d8",
+      "title": "YNX Card | 1.0.0",
+      "url": "https://card.ynxweb4.com/?verify=card-inventory-20260831",
+      "browserId": "3"
+    }
+  ],
+  "chooserState": "Browser tab: 1, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-inventory-20260831\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\n+\t\t\t\t106 container Choose a wallet\n+\t\t\t\t\t107 container\n+\t\t\t\t\t\t108 container YNX Wallet logo\n+\t\t\t\t\t\t\t109 image YNX Wallet logo\n+\t\t\t\t\t\t110 text YNX Wallet\n+\t\t\t\t\t\t111 text Installed YNX Wallet extension or official Hosted Wallet popup. Approval is required.\n+\t\t\t\t\t\t112 button Connect YNX Wallet\n+\t\t\t\t\t\t\t113 text Connect YNX Wallet\n+\t\t\t\t\t114 container\n+\t\t\t\t\t\t115 container MetaMask fox logo\n+\t\t\t\t\t\t\t116 image MetaMask fox logo\n+\t\t\t\t\t\t117 text MetaMask\n+\t\t\t\t\t\t118 text MetaMask EIP-1193 provider · io.metamask · never uses the YNX Wallet route.\n+\t\t\t\t\t\t119 button Use MetaMask\n+\t\t\t\t\t\t\t120 text Use MetaMask\n+\t\t\t\t\t121 container\n+\t\t\t\t\t\t122 text No provider was announced? Card cannot tell whether a wallet is uninstalled, disabled, locked, or denied site access.\n+\t\t\t\t\t\t123 link Download YNX Wallet\n+\t\t\t\t\t\t\t124 image\n+\t\t\t\t\t\t\t125 text Download YNX Wallet\n+\t\t\t\t\t\t126 link Install MetaMask\n+\t\t\t\t\t\t\t127 image\n+\t\t\t\t\t\t\t128 text Install MetaMask\n+\t\t\t\t\t\t129 button Close\n+\t\t\t\t\t\t\t130 text Close\nThe focused UI element is 93 button Choose a wallet",
+  "applicationState": "Browser tab: 1, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-inventory-20260831\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\n+\t\t\t\t106 text Connect a Standard Wallet before starting a Testnet Card application on the web.\nThe focused UI element is 1 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-inventory-20260831",
+  "consoleWarningError": [],
+  "accountRequestTriggered": false,
+  "signatureTriggered": false,
+  "transactionTriggered": false,
+  "realApproval": false,
+  "fullJourneyComplete": false
+}

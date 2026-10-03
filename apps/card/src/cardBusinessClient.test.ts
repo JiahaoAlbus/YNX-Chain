@@ -124,3 +124,43 @@ test('read-only statement and reconciliation use existing routes and new read pr
   await assert.rejects(fixture(async()=>response({...reconciliation,chainReverified:true})).client.reconciliation(testCard.id),/INVALID_CARD_API_RESPONSE/);
   await assert.rejects(fixture(async()=>response({...statement,events:[{id:'event_fixture',cardId:'card_foreign'}]})).client.statement(testCard.id),/INVALID_CARD_API_RESPONSE/);
 });
+
+test('original operation result is fixed-origin read-only and binds exact original request identity',async()=>{
+  const digest='1'.repeat(64),data={operation:'freeze',resourceId:'card_fixture',idempotencyKey:'request-key',digest,status:'UNKNOWN'};
+  const f=fixture(async()=>response(data));
+  assert.deepEqual(await f.client.operationResult('freeze','card_fixture','request-key',digest),{status:'UNKNOWN'});
+  assert.deepEqual(f.scopes,[['account:read']]);assert.equal(f.requests.length,1);
+  const sent=f.requests[0]!;assert.equal(sent.url,CARD_BUSINESS_ORIGIN+'/api/card/v1/operations/freeze/card_fixture/request-key/'+digest);
+  assert.equal(sent.init.method,'GET');assert.equal(sent.init.body,undefined);
+  assert.equal(new Headers(sent.init.headers).has('Idempotency-Key'),false);
+  for(const change of [{operation:'refund'},{resourceId:'card_foreign'},{idempotencyKey:'other-key'},{digest:'2'.repeat(64)},{status:'SUCCESS'},{status:'UNKNOWN',result:{}}]){
+    await assert.rejects(fixture(async()=>response({...data,...change})).client.operationResult('freeze','card_fixture','request-key',digest),/INVALID_CARD_API_RESPONSE/);
+  }
+});
+
+test('confirmed original operation refreshes authority rather than exposing historical result as current card',async()=>{
+  const digest='1'.repeat(64),data={operation:'freeze',resourceId:'card_fixture',idempotencyKey:'request-key',digest,status:'CONFIRMED',result:{historical:'not-current-state'}};
+  const f=fixture(async()=>response(data));
+  assert.deepEqual(await f.client.operationResult('freeze','card_fixture','request-key',digest),{status:'CONFIRMED'});
+  await assert.rejects(fixture(async()=>response({...data,result:undefined})).client.operationResult('freeze','card_fixture','request-key',digest),/INVALID_CARD_API_RESPONSE/);
+  await assert.rejects(fixture(async()=>response(data,{sessionOwner:other})).client.operationResult('freeze','card_fixture','request-key',digest),/INVALID_CARD_API_RESPONSE/);
+});
+
+test('simulated authorization endpoint requires private simulation scope and rejects incomplete receipt without retries',async()=>{
+  const f=fixture(async()=>response({id:'authorization_fixture',cardId:'card_foreign'}));
+  await assert.rejects(f.client.authorize('card_fixture',{simulation:true,amountWei:'1',merchant:{id:'qa-merchant',name:'SIMULATED MERCHANT',mcc:'5812',country:'YN',channel:'online',recurring:false}},'authorization-key'),/INVALID_CARD_API_RESPONSE/);
+  assert.deepEqual(f.scopes,[['card:simulation:write']]);assert.equal(f.requests.length,1);
+  assert.equal(f.requests[0]!.url,CARD_BUSINESS_ORIGIN+'/api/card/v1/cards/card_fixture/authorizations');
+  assert.equal(new Headers(f.requests[0]!.init.headers).get('Idempotency-Key'),'authorization-key');
+  assert.equal(JSON.parse(String(f.requests[0]!.init.body)).simulation,true);
+});
+
+test('capture reversal and refund never accept malformed card receipts or silently replay settlement',async()=>{
+  for(const operation of ['capture','reverse','refund'] as const){
+    const f=fixture(async()=>response({card:{owner:other},capture:{id:'capture_fixture'},authorization:{id:'authorization_fixture'}}));
+    await assert.rejects(f.client.settle(operation==='refund'?'capture_fixture':'authorization_fixture',operation,'1','settlement-key'),/INVALID_CARD_API_RESPONSE/);
+    assert.deepEqual(f.scopes,[['card:simulation:write']]);assert.equal(f.requests.length,1);
+    assert.equal(new Headers(f.requests[0]!.init.headers).get('Idempotency-Key'),'settlement-key');
+    assert.equal(f.requests[0]!.init.method,'POST');
+  }
+});

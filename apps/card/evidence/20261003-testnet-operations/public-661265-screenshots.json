@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-03T16:02:40.441Z",
+  "publicSource": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "shots": [
+    {
+      "file": "public-661265-chooser.jpg",
+      "bytes": 82932,
+      "sha256": "4cb582c171ac8fe73b66ce19289004ab26c130fd6a3da920f36f983f0ad37c30"
+    },
+    {
+      "file": "public-661265-application-guard.jpg",
+      "bytes": 83099,
+      "sha256": "86552d13477677f0ca400ad1193b995152d968e4b632e39e518fecd2622bb174"
+    },
+    {
+      "file": "public-661265-desktop-1440.jpg",
+      "bytes": 97989,
+      "sha256": "1629afbdff745418d6fa154a1ed8b194faaf964e1bb6b1af7ff659e4fecd0562"
+    },
+    {
+      "file": "public-661265-mobile-390.jpg",
+      "bytes": 40516,
+      "sha256": "821c12c785e4bb834ba36735c9261c364ebed32fda47d4835cf02b09d8ce683d"
+    }
+  ],
+  "realWalletApproval": false,
+  "realFunding": false,
+  "fullJourneyComplete": false
+}

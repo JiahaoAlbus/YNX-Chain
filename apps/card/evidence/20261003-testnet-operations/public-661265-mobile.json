@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-03T16:01:42.036Z",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "state": "Browser tab: 1, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-inventory-20260831\".\n1 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-inventory-20260831\n\t2 container\n\t\t3 container\n\t\t\t4 container YNX\n\t\t\t5 text TESTNET / SANDBOX\n\t\t\t6 text YNX Card\n\t\t7 button Language\n\t\t\t8 image\n\t\t9 container\n\t\t\t10 container\n\t\t\t\t11 text YNX\n\t\t\t\t12 text CARD\n\t\t\t\t13 text TESTNET / SANDBOX\n\t\t\t14 container\n\t\t\t\t15 button Explore YNX Card as guest\n\t\t\t\t\t16 text Explore as guest\n\t\t\t\t17 button Connect a Standard EVM wallet\n\t\t\t\t\t18 image\n\t\t\t\t\t19 text Connect Wallet\n\t\t\t20 tab group\n\t\t\t\t21 container\n\t\t\t\t\t22 tab (selectable, settable, boolean) Overview, Value: 0\nOverview\n\t\t\t\t\t23 tab (selectable, settable, boolean) Virtual Card, Value: 0\nVirtual Card\n\t\t\t\t\t24 tab (selectable, settable, boolean) Top up with YNXT, Value: 0\nTop up with YNXT\n\t\t\t\t\t25 tab (selected, settable, boolean) Activity, Value: 1\nActivity\n\t\t\t\t\t26 tab (selectable, settable, boolean) Spending Controls, Value: 0\nSpending Controls\n\t\t\t\t\t27 tab (selectable, settable, boolean) Security & Help, Value: 0\nSecurity & Help\n\t\t\t\t28 container\n\t\t\t\t\t29 image\n\t\t\t\t\t30 text TESTNET SANDBOX No real funds, cards, merchants, settlement, PAN, CVV, or personal data.\n\t\t\t31 container\n\t\t\t\t32 heading Your Testnet records, Value: 1\n\t\t\t\t\t33 text Your Testnet records\n\t\t\t\t34 text Read-only sandbox records. Not a bank card or real payment service. A separate Card private authorization is required.\n\t\t\t35 text Activity\n\t\t\t36 text Local audit records are created only when you run a guest simulation. They are not chain transactions.\n\t\t\t37 container\n\t\t\t\t38 text Guest demo started Local sandbox workspace opened DEMO\n\t\t\t39 container\n\t\t\t\t40 image\n\t\t\t\t41 text Guest demo started recorded locally as a DEMO event. No transaction, balance, or merchant settlement was created.\n\t\t\t42 container\n\t\t\t\t43 text Connect a wallet when you need it Guest simulation works without an account. Choose YNX Wallet or MetaMask only when you intentionally need a Standard EVM Wallet action.\n\t\t\t\t44 button Choose a wallet\n\t\t\t\t\t45 image\n\t\t\t\t\t46 text Choose a wallet\n\t\t\t\t47 text Private services are optional\n\t\t\t\t48 text If Product Session is unavailable, Guest mode and your Standard Wallet connection remain usable.\n\t\t\t49 container\n\t\t\t\t50 text Provider TEST Card A separate Wallet Product Session is required. A Standard EVM connection does not grant Card access.\n\t\t\t\t51 button Authorize Card TEST session\n\t\t\t\t\t52 text Authorize Card TEST session\n\t\t\t53 container\n\t\t\t\t54 text Create a Testnet Card application A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.\n\t\t\t\t55 button Start application\n\t\t\t\t\t56 text Start application\n\t\t\t\t57 text Connect a Standard Wallet before starting a Testnet Card application on the web.\n\nThe focused UI element is 1 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-inventory-20260831",
+  "url": "https://card.ynxweb4.com/?verify=card-inventory-20260831",
+  "tabs": [
+    {
+      "id": "1",
+      "providerTabId": "browser-use:f121128f-9940-4b44-bc28-b37cfef8e8d8",
+      "title": "YNX Card | 1.0.0",
+      "url": "https://card.ynxweb4.com/?verify=card-inventory-20260831",
+      "browserId": "3"
+    }
+  ],
+  "consoleWarningError": [],
+  "approvedAccount": false,
+  "realTopup": false
+}

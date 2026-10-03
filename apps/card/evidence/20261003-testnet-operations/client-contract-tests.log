@@ -1,0 +1,26 @@
+✔ constructing a Card client does not contact a wallet or service (0.70875ms)
+✔ Card state uses fixed same-origin API, exact V2 proof and read scope (18.368041ms)
+✔ network retry creates a new proof but retains the explicit business idempotency key (10.21875ms)
+✔ missing identity, invalid resource and missing mutation key fail before proof minting (0.603416ms)
+✔ account change during proof creation cannot send an old-owner request (9.294ms)
+✔ session rotation during a response cannot publish old private account state (15.570625ms)
+✔ explicit invalidation aborts a pending API call without changing the Standard Wallet (3.355666ms)
+✔ stalled SDK proof creation has a bounded timeout and never contacts Card (10.11075ms)
+✔ unbound source, foreign session and non-Testnet envelopes are rejected (3.735667ms)
+✔ HTML fallback, sensitive fields and unvalidated ACTIVE state never become Card data (1.856042ms)
+✔ Card API error codes remain separate and remote human text is never surfaced (0.225334ms)
+✔ pending funding response cannot be presented as a credited balance (0.404417ms)
+✔ accepted Wallet expiry and rejection codes survive private proof failures (0.242833ms)
+✔ read-only statement and reconciliation use existing routes and new read proofs (0.6975ms)
+✔ original operation result is fixed-origin read-only and binds exact original request identity (1.877875ms)
+✔ confirmed original operation refreshes authority rather than exposing historical result as current card (0.342625ms)
+✔ simulated authorization endpoint requires private simulation scope and rejects incomplete receipt without retries (0.25275ms)
+✔ capture reversal and refund never accept malformed card receipts or silently replay settlement (4.72325ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 458.230041
