@@ -4,6 +4,8 @@ import Foundation
 struct CreatorVideo: Decodable, Identifiable {
     let id, owner, channel_id, title, description, status, visibility, workflow_state, sha256: String
     let bytes: Int
+    struct UploadRights:Decodable {let expires_at:String?}
+    let rights:UploadRights?
     let rights_declaration_id: String?
     let version: UInt64?
     let reviewed_by: String?
@@ -184,9 +186,9 @@ struct CreatorSnapshot: Decodable {
         defer {if captured==revision {busy=false}}
         do {try await refreshCaptured(active,captured);message=""}catch {if captured==revision {message=text("retryRequired")}}
     }
-    func stage(file: URL,title: String,description: String,basis: String,source: String,license: String,territories: String,evidence: String,owned: Bool,expectedRevision: UInt64?=nil) async {
+    func stage(file: URL,title: String,description: String,basis: String,source: String,license: String,territories: String,evidence: String,owned: Bool,expires:Date?=nil,expectedRevision: UInt64?=nil) async {
         guard !busy,expectedRevision==nil || expectedRevision==revision,let store=drafts else {return};let captured=revision
-        do {_ = try store.stage(file:file,channelID:channelID,title:title,description:description,basis:basis,source:source,license:license,territories:territories,evidence:evidence.lowercased(),owned:owned);pendingUploadTitle=title}
+        do {_ = try store.stage(file:file,channelID:channelID,title:title,description:description,basis:basis,source:source,license:license,territories:territories,evidence:evidence.lowercased(),owned:owned,expires:expires);pendingUploadTitle=title}
         catch {if captured==revision {message=text("uploadInvalid")};return}
         await retryUpload()
     }

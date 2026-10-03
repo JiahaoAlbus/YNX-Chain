@@ -21,6 +21,8 @@ struct CreatorView: View {
     @State private var territories="WORLDWIDE"
     @State private var evidence=""
     @State private var owned=false
+    @State private var hasUploadExpiry=false
+    @State private var uploadExpiry=Date().addingTimeInterval(365*86400)
     @State private var choosingFile=false
     @State private var cancelUpload=false
     @State private var cancelOperation=false
@@ -60,12 +62,12 @@ struct CreatorView: View {
             }.navigationTitle("YNX Creator Studio")
                 .task {await model.start()}
                 .onChange(of:scenePhase) {_,phase in if phase == .active {Task {await model.restore()}} else if phase == .background {model.suspend()}}
-                .onChange(of:model.connected) {_,connected in if !connected {handle="";name="";title="";description="";source="";license="";evidence="";owned=false;rightsLicense="";rightsEvidence="";payout="";selectedVideo=nil;choosingFile=false}}
+                .onChange(of:model.connected) {_,connected in if !connected {handle="";name="";title="";description="";source="";license="";evidence="";owned=false;hasUploadExpiry=false;uploadExpiry=Date().addingTimeInterval(365*86400);rightsLicense="";rightsEvidence="";payout="";selectedVideo=nil;choosingFile=false}}
                 .fileImporter(isPresented:$choosingFile,allowedContentTypes:[.mpeg4Movie,UTType(filenameExtension:"webm") ?? .movie]) {result in
                     guard case .success(let file)=result,model.currentRevision==pickerRevision else {return};let access=file.startAccessingSecurityScopedResource()
-                    let captured=(title,description,basis,source,license,territories,evidence,owned,pickerRevision)
+                    let captured=(title,description,basis,source,license,territories,evidence,owned,hasUploadExpiry ? uploadExpiry : nil,pickerRevision)
                     Task {@MainActor in defer {if access {file.stopAccessingSecurityScopedResource()}}
-                        await model.stage(file:file,title:captured.0,description:captured.1,basis:captured.2,source:captured.3,license:captured.4,territories:captured.5,evidence:captured.6,owned:captured.7,expectedRevision:captured.8)
+                        await model.stage(file:file,title:captured.0,description:captured.1,basis:captured.2,source:captured.3,license:captured.4,territories:captured.5,evidence:captured.6,owned:captured.7,expires:captured.8,expectedRevision:captured.9)
                     }
                 }
                 .confirmationDialog(model.text("cancelQuestion"),isPresented:$cancelUpload,titleVisibility:.visible) {Button(model.text("cancelDraft"),role:.destructive) {model.cancelUpload()}}
@@ -76,6 +78,8 @@ struct CreatorView: View {
         #if os(macOS)
         .frame(minWidth:740,minHeight:560)
         #endif
+        .environment(\.locale,Locale(identifier:model.locale))
+        .environment(\.layoutDirection,model.locale=="ar" ? .rightToLeft : .leftToRight)
     }
     private var header: some View {
         VStack(alignment:.leading,spacing:12) {
@@ -143,9 +147,11 @@ struct CreatorView: View {
             TextField(model.text("license"),text:$license).textFieldStyle(.roundedBorder)
             TextField(model.text("territories"),text:$territories).textFieldStyle(.roundedBorder)
             TextField(model.text("evidence"),text:$evidence).textFieldStyle(.roundedBorder)
+            Toggle(model.text("rightsHasEnd"),isOn:$hasUploadExpiry)
+            if hasUploadExpiry {DatePicker(model.text("rightsEnd"),selection:$uploadExpiry,in:Date()...)}
             Toggle(model.text("ownedConsent"),isOn:$owned)
             Text(model.text("uploadLimit")).font(.caption).foregroundStyle(.secondary)
-            Button(model.text("chooseUpload")) {pickerRevision=model.currentRevision;choosingFile=true}.buttonStyle(.borderedProminent).disabled(model.busy || !model.pendingUploadTitle.isEmpty || !owned || model.channelID.isEmpty || title.isEmpty || source.isEmpty || license.isEmpty)
+            Button(model.text("chooseUpload")) {pickerRevision=model.currentRevision;choosingFile=true}.buttonStyle(.borderedProminent).disabled(model.busy || !model.pendingUploadTitle.isEmpty || !owned || model.channelID.isEmpty || title.isEmpty || source.isEmpty || license.isEmpty || hasUploadExpiry && uploadExpiry<=Date())
         }
     }
     private var content: some View {
@@ -156,6 +162,7 @@ struct CreatorView: View {
                 VStack(alignment:.leading,spacing:10) {
                     Text(video.title).font(.headline);Text(video.status+" · "+video.workflow_state+" · "+video.visibility).font(.caption).foregroundStyle(.secondary)
                     Text(video.sha256).font(.caption2).textSelection(.enabled)
+                    if let expiry=video.rights?.expires_at {Text(model.text("rightsEnd")+": "+expiry).font(.caption).textSelection(.enabled)}
                     if let scheduled=video.scheduled_at {Text(model.text("publicationTime")+": "+scheduled).font(.caption).textSelection(.enabled)}
                     if let history=video.versions,!history.isEmpty {
                         DisclosureGroup(model.text("versionHistory")+" ("+model.number(history.count)+")") {

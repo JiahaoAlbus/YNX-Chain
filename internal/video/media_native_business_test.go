@@ -257,6 +257,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualAssetOriginalReadback   bool   `json:"actualAssetOriginalByteReadback"`
 				ActualAIStreamRecovery        bool   `json:"actualAIStreamAndColdRecovery"`
 				ActualAICancelBoundary        bool   `json:"actualAICancelAndHumanBoundary"`
+				ActualNativeUploadExpiry      bool   `json:"actualNativeUploadExpiry"`
 				ActualCapturedButtonAuthority bool   `json:"actualCapturedButtonAuthority"`
 				ActualNativeHistoryExpiry     bool   `json:"actualRetainedNativeHistoryAndExpiry"`
 				ActualRightsFullFields        bool   `json:"actualNativeRightsFullFields"`
@@ -267,7 +268,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry || !receipt.ActualNativeUploadExpiry) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()
@@ -331,6 +332,9 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 						if err != nil || len(bytes) == 0 {
 							t.Fatal("missing original asset bytes")
 						}
+					}
+					if original.Rights == nil || original.Rights.ExpiresAt == nil {
+						t.Fatal("missing original upload rights expiry")
 					}
 					if original.ReviewedBy != creatorModerator || original.SubmittedBy == original.ReviewedBy || len(actors) != 2 {
 						t.Fatal("missing two exact original SDK actors and independent publication reviewer")

@@ -79,9 +79,9 @@ import ImageIO
         let (sha,count)=try Self.digest(file,limit:512*1024*1024)
         guard sha==upload.wireSHA,count==upload.wireBytes else { throw Failure.damaged };try require();return file
     }
-    func stage(file: URL,channelID: String,title: String,description: String,basis: String,source: String,license: String,territories: String,evidence: String,owned: Bool) throws -> Upload {
+    func stage(file: URL,channelID: String,title: String,description: String,basis: String,source: String,license: String,territories: String,evidence: String,owned: Bool,expires:Date?=nil) throws -> Upload {
         try require();guard saved.upload==nil,saved.asset==nil else { throw Failure.pending }
-        guard file.isFileURL,owned,Self.validID(channelID),!title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,title.count<=140,description.utf8.count<=5000,
+        guard expires==nil || expires!>Date(),file.isFileURL,owned,Self.validID(channelID),!title.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,title.count<=140,description.utf8.count<=5000,
               ["owned","licensed","public-domain"].contains(basis),!source.isEmpty,source.count<=256,!license.isEmpty,license.count<=160,!territories.isEmpty,territories.count<=256,
               evidence.isEmpty || CreatorNativeState.matches(evidence,"^[a-f0-9]{64}$") else { throw Failure.invalid }
         let ext=file.pathExtension.lowercased();guard ["mp4","webm"].contains(ext) else { throw Failure.invalid }
@@ -102,7 +102,8 @@ import ImageIO
         }
         guard size>0 else { throw Failure.invalid }
         let contentSHA=mediaHash.finalize().map{String(format:"%02x",$0)}.joined()
-        let fields=[("channel_id",channelID),("size",String(size)),("title",title),("description",description),("sha256",contentSHA),("rights_basis",basis),("rights_source",source),("rights_license",license),("rights_territories",territories),("rights_evidence_sha256",evidence),("owned_content_declaration","true")]
+        var fields=[("channel_id",channelID),("size",String(size)),("title",title),("description",description),("sha256",contentSHA),("rights_basis",basis),("rights_source",source),("rights_license",license),("rights_territories",territories),("rights_evidence_sha256",evidence),("owned_content_declaration","true")]
+        if let expires {fields.append(("rights_expires_at",ISO8601DateFormatter().string(from:expires)))}
         for (name,value) in fields {
             guard !value.contains("\r\n--"+boundary) else { throw Failure.invalid }
             try output.write(contentsOf:Data("\r\n--\(boundary)\r\nContent-Disposition: form-data; name=\"\(name)\"\r\n\r\n\(value)".utf8))
