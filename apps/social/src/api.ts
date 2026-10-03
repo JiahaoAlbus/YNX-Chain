@@ -93,7 +93,13 @@ export class SocialAPI {
   alerts(){return this.request<{notifications:AlertItem[];unread:number}>("/social/v1/notifications")}
   markRead(id:string){return this.request(`/social/v1/notifications/${encodeURIComponent(id)}/read`,{method:"POST",body:{}})}
   exportData(){return this.request<Record<string,unknown>>("/social/v1/privacy/export")}
-  deleteAccount(){return this.request("/social/v1/privacy/delete",{method:"DELETE",headers:{"X-YNX-Confirm-Delete":"DELETE MY SOCIAL DATA"}})}
+  async deleteAccount(){
+    const current=this.authorizationGuard();
+    const result=await this.request("/social/v1/privacy/delete",{method:"DELETE",headers:{"X-YNX-Confirm-Delete":"DELETE MY SOCIAL DATA"}});
+    if(!current())throw new Error("Social authorization changed; deletion response discarded");
+    this.setToken(null);
+    return result;
+  }
   aiBegin(body:Record<string,unknown>){return this.request<{record:AIJob;replayed:boolean}>("/social/v1/ai/jobs",{method:"POST",body})}
   aiTransition(id:string,action:string,output=""){return this.request<AIJob>(`/social/v1/ai/jobs/${encodeURIComponent(id)}`,{method:"POST",body:{action,output}})}
   async streamAI(id:string,contextText:string,onToken:(value:string)=>void,signal?:AbortSignal):Promise<AIJob>{if(!this.token)throw new Error("Social session is locked");const response=await fetch(`${this.base}/social/v1/ai/jobs/${encodeURIComponent(id)}/stream`,{method:"POST",headers:{Accept:"text/event-stream","Content-Type":"application/json",Authorization:`Bearer ${this.token}`},body:JSON.stringify({contextText}),signal});if(!response.ok)throw new Error(`Social AI stream failed (${response.status})`);if(!response.body)throw new Error("Streaming is unavailable on this device");const reader=response.body.getReader(),decoder=new TextDecoder(),lines:{event:string;data:string}[]=[];let buffer="",event="",doneJob:AIJob|undefined;while(true){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});const parts=buffer.split("\n");buffer=parts.pop()??"";for(const raw of parts){const line=raw.trimEnd();if(line.startsWith("event:")){event=line.slice(6).trim()}else if(line.startsWith("data:")){const data=line.slice(5).trim();lines.push({event,data});if(event==="token"){const value=JSON.parse(data) as {text?:string};if(value.text)onToken(value.text)}else if(event==="error"){const value=JSON.parse(data) as {error?:string};throw new Error(value.error??"AI provider unavailable")}else if(event==="done"){const value=JSON.parse(data) as {record?:AIJob};doneJob=value.record}}}}if(!doneJob)throw new Error("AI stream ended before review state");return doneJob}

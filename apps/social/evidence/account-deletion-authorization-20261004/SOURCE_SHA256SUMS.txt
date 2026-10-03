@@ -1,0 +1,2 @@
+3d6281b4d87fc9325d7d9fb93494e0ea3c3845521fbfee3eb70d5fcb7936aee4  apps/social/src/api.ts
+53b6cf7199d9b296e704fb1771a281656cb6fc87da659f01ec5e8591633b7ed8  apps/social/src/accountDeletionAuthorization.test.ts

@@ -1,0 +1,16 @@
+Starting Metro Bundler
+
+| (node:50496) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 6441ms index.ts (2765 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-a13526f8536ced58531dc27cd0071f7b.hbc (5.9MB)
+
+› Files (1):
+metadata.json (212B)
+
+Exported: /tmp/social-account-deletion-authorization-20261004.XeAVlx/android
