@@ -16,7 +16,7 @@ import (
 	v2 "github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
-func TestMerchantCombined641QualificationStaysClosed(t *testing.T) {
+func TestMerchantCombinedQualificationStaysClosed(t *testing.T) {
 	service, m, _, _ := merchantBusinessQA(t)
 	var calls atomic.Int32
 	transport := merchantQATransport(func(*http.Request) (*http.Response, error) {
@@ -35,7 +35,7 @@ func TestMerchantCombined641QualificationStaysClosed(t *testing.T) {
 	if w.Code != 503 || calls.Load() != 0 {
 		t.Fatal("unregistered Merchant upgraded or sent authority", w.Code, calls.Load())
 	}
-	for _, product := range []string{"shop", MerchantProductID} {
+	for _, product := range []string{MerchantProductID,"seller","music","card"} {
 		browser, err := v2.NewBrowserSSO(product, "https://wallet-auth.ynxweb4.com", bytes32(9), []string{"commerce"}, transport)
 		if err == nil || browser != nil {
 			t.Fatal("641 unexpectedly qualified original unregistered Browser tuple", product)

@@ -42,13 +42,14 @@ export function createPrivateSessionController({productId,scopes,purpose,endpoin
  return Object.freeze({current,onChange(listener){listeners.add(listener);return()=>listeners.delete(listener)},clear,
   async begin(){const assert=capture();const target=await client();assert();if(signoutPending){const state=await clear();throw new Error(state?.message||'Retry the pending sign-out before a new approval.')}const state=await target.client.beginExplicit();assert();session=null;publish();return state},
   async recover(url,expectedAccount){const assert=capture();const target=await client();assert();if(signoutPending)throw new Error('Sign-out confirmation is pending.');const state=new URL(url).searchParams.has('result')?await target.client.handleReturn(url):await target.client.restore();assert();try{return adopt(state,expectedAccount)}catch(error){await clear();throw error}},
-  async authorize(url,options={}){
+  async authorize(url,options={},requiredScopes=scopes){
    const assert=capture(),subject=current();if(!subject)throw new Error('An approved private Product Session is required.');
    const target=await client();assert();const resolved=new URL(url,environment.location.href);
    if(resolved.origin!==environment.location.origin)throw new Error('Commerce business requests must stay on the registered product origin.');
    const method=(options.method||'GET').toUpperCase(),body=options.body??'';
    if(typeof body!=='string'&&!(body instanceof Uint8Array))throw new Error('Business proof requires final HTTP body bytes.');
-   const proof=await target.createBusinessProof({method,path:resolved.pathname,body,requiredScopes:[...scopes]});
+   if(!Array.isArray(requiredScopes)||!requiredScopes.length||new Set(requiredScopes).size!==requiredScopes.length||requiredScopes.some(scope=>!scopes.includes(scope)))throw new Error('The route requires an unapproved private capability.');
+   const proof=await target.createBusinessProof({method,path:resolved.pathname,body,requiredScopes:[...requiredScopes]});
    assert();if(current()!==subject)throw new ContextChangedError();
    const headers=new Headers(options.headers);headers.delete('Authorization');
    headers.set('X-YNX-Product-Session-Proof-V2',proof.introspection.proofHeader);

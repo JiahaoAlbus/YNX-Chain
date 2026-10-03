@@ -158,6 +158,7 @@ func (s *Server) runBusinessEffect(ctx context.Context, verified *verifiedBusine
 	if plan.prepare == nil || plan.check == nil || plan.send == nil || plan.finish == nil || plan.view == nil || plan.key == "" {
 		return nil, 0, ErrInvalidState
 	}
+	ctx = context.WithValue(ctx, businessRequestContextKey{}, verified)
 	var record BusinessEffect
 	actor := verified.principal.Account
 	admission := businessNonceDigest(verified.proof.SessionBinding, verified.proof.Nonce)

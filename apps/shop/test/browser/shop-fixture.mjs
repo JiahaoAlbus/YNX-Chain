@@ -1,3 +1,4 @@
+import {createBrowserIdentityFixture} from './browser-identity-fixture.mjs';
 import {test as base,expect} from '@playwright/test';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
@@ -25,6 +26,7 @@ export {expect};
 // approval/authority. Business replies remain fixtures, not live acceptance.
 export async function installPrivateShop(page,{cart=[],orders=[],profile={DisplayName:'Private buyer',Addresses:[{Recipient:'QA recipient',Line1:'Private QA address',City:'QA city',Country:'QA'}]},beforeNavigate,waitForSession=true,prepareApproval=true,gatewayAvailable=true}={}){
  const gatewayRequests=[];
+ const browserIdentity=await createBrowserIdentityFixture(registry);page.once('close',()=>browserIdentity.close());
  const account=fixtureAccount,origin='https://shop.ynxweb4.com';
  const handler=new ProductSessionGatewayHttpHandler(registry,()=>randomBytes(32).toString('base64url'));
  const gatewayFetch=async(url,init)=>{const h=new Headers(init.headers),result=handler.handle({requestId:h.get('x-request-id'),method:init.method,path:new URL(url).pathname,contentType:'application/json',body:init.body??'{}',proofHeader:h.get('x-ynx-product-session-proof-v2'),networkAvailable:true});return new Response(result.body,{status:result.status,headers:result.headers})};
@@ -42,7 +44,8 @@ export async function installPrivateShop(page,{cart=[],orders=[],profile={Displa
   const state={cart,cartRevision:'qa-cart-v1',orders,profile,product},requests=[];
   await page.route('**/api/**',async route=>{
     const request=route.request(),path=new URL(request.url()).pathname;requests.push({path,method:request.method(),body:request.postDataJSON(),headers:request.headers()});let body;
-    if(!['/api/capabilities','/api/products'].includes(path)){const headers=request.headers(),live=await server.authorize({proofHeader:headers['x-ynx-product-session-proof-v2'],origin,method:request.method(),path,requiredScopes:path.startsWith('/api/seller/')?['account:read','shop:seller:operate']:['account:read','shop:orders:write','shop:profile:write']});verifyProductSessionProofV2(decodeProductSessionGatewayProofHeaderV2(headers['x-ynx-product-session-action-proof-v2']),live,{method:request.method(),path,bodyDigest:httpBodyDigest(request.postData()??'')});}
+    if(path==='/api/sso/account'){await route.fulfill({contentType:'application/json',body:JSON.stringify(browserIdentity.read())});return}
+    if(!['/api/capabilities','/api/products'].includes(path)){const headers=request.headers(),live=await server.authorize({proofHeader:headers['x-ynx-product-session-proof-v2'],origin,method:request.method(),path,requiredScopes:path.startsWith('/api/seller/')?['account:read','shop:seller:operate']:['/api/profile','/api/privacy/export','/api/privacy/delete'].includes(path)?['account:read','shop:profile:write']:path==='/api/cart'||(path==='/api/orders'&&request.method()==='POST')||path==='/api/orders/intent-lookup'||/^\/api\/orders\/[^/]+\/(pay-handoff|confirm-payment)$/.test(path)?['account:read','shop:orders:write']:['account:read','shop:orders:write','shop:profile:write']});if(!path.startsWith('/api/seller/')){const identity=browserIdentity.read();if(live.account!==identity.account||(request.method()!=='GET'&&headers['x-ynx-sso-csrf']!==browserIdentity.csrf))throw Error('Controlled UI Browser/private mismatch');}verifyProductSessionProofV2(decodeProductSessionGatewayProofHeaderV2(headers['x-ynx-product-session-action-proof-v2']),live,{method:request.method(),path,bodyDigest:httpBodyDigest(request.postData()??'')});}
     if(path==='/api/capabilities')body={paySettlement:'unavailable',tax:'unavailable',logistics:'unavailable',aiProvider:'controlled-qa',privacyData:'available'};
     else if(path==='/api/products')body={products:[product]};
     else if(path==='/api/seller/stores')body={stores:[],access:{}};

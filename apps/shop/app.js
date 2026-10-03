@@ -11,9 +11,9 @@ const aiRequests=createRequestContext(()=>token());
 async function productRequest(context,path,options={}){
  const subject=token(),assertCurrent=context.capture();
  const publicRead=(options.method||'GET')==='GET'&&['/capabilities','/products'].includes(path.split('?')[0]);
- const wire=publicRead?{...options,headers:{'Content-Type':'application/json'}}:await authorizeBusinessRequest(apiRoot+path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
+ let wire;try{wire=publicRead?{...options,headers:{'Content-Type':'application/json'}}:await authorizeBusinessRequest(apiRoot+path,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}})}catch(error){assertCurrent();if(error.code==='ORIGINAL_BROWSER_REQUIRED')$('#browserSignIn').hidden=false;throw error}
  assertCurrent();try{return await context.fetchJSON(apiRoot+path,wire)}
- catch(error){if(error.status===401&&subject&&subject===token()){expirePrivateSession();$('#status').textContent='Your Shop session expired. Approve a new private session to continue.';throw new ContextChangedError()}throw error}
+ catch(error){if(error.code==='ORIGINAL_BROWSER_REQUIRED')$('#browserSignIn').hidden=false;if(error.status===401&&error.code!=='ORIGINAL_BROWSER_REQUIRED'&&subject&&subject===token()){expirePrivateSession();$('#status').textContent='Your Shop session expired. Approve a new private session to continue.';throw new ContextChangedError()}throw error}
 }
 const api=(path,options={})=>productRequest(requests,path,options);
 const aiAPI=(path,options={})=>productRequest(aiRequests,path,options);

@@ -52,6 +52,9 @@ func (s *Store) withBusinessCommit(ctx context.Context, proof businessActionAuth
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+			return context.DeadlineExceeded
+		}
 		if !proof.ExpiresAt.After(s.now()) {
 			return fmt.Errorf("%w: business proof expired before commit", ErrUnauthorized)
 		}
@@ -68,16 +71,33 @@ func (s *Store) withBusinessCommit(ctx context.Context, proof businessActionAuth
 	if !consume && !exists {
 		return fmt.Errorf("%w: missing original business admission", ErrUnauthorized)
 	}
+	browserKey, browserDigest := "", ""
+	if verified, ok := ctx.Value(businessRequestContextKey{}).(*verifiedBusinessRequest); ok && verified.browserBindingDigest != "" {
+		browserKey = effectDigest("original-browser-binding", verified.proof.SessionBinding)
+		browserDigest = verified.browserBindingDigest
+		if old, exists := s.s.BusinessBrowserBindings[browserKey]; exists && old != browserDigest {
+			return ErrUnauthorized
+		}
+	}
 	copy, err := cloneSnapshot(s.s)
 	if err != nil {
 		return err
 	}
 	staged := &Store{s: copy, now: s.now}
+	if browserKey != "" {
+		if staged.s.BusinessBrowserBindings == nil {
+			staged.s.BusinessBrowserBindings = map[string]string{}
+		}
+		staged.s.BusinessBrowserBindings[browserKey] = browserDigest
+	}
 	if err := work(staged); err != nil {
 		return err
 	}
 	if err := valid(); err != nil {
 		return err
+	}
+	if browserKey != "" && staged.s.BusinessBrowserBindings[browserKey] != browserDigest {
+		return ErrUnauthorized
 	}
 	// Detach even from a callback that retained its temporary Store/results.
 	next, err := cloneSnapshot(staged.s)

@@ -9,6 +9,7 @@ for (const file of [
   'display-settings.js',
   'workflow.css',
   'wallet-auth.js',
+  'browser-business.js',
   'wallet-provider-discovery.js',
   'i18n.js',
   'privacy-i18n.js',

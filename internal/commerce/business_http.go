@@ -21,17 +21,24 @@ type businessVerifier interface {
 	verify(*http.Request, []byte, businessRoutePolicy) (*verifiedBusinessRequest, error)
 }
 type verifiedBusinessRequest struct {
-	walletAccount string
-	principal     Principal
-	proof         businessActionAuthorization
-	revalidate    func(context.Context) error
-	fence         func() error
+	walletAccount        string
+	browserBindingDigest string
+	principal            Principal
+	proof                businessActionAuthorization
+	revalidate           func(context.Context) error
+	fence                func() error
 }
 type businessRequestContextKey struct{}
 
 func (v *verifiedBusinessRequest) current(ctx context.Context) error {
-	if v == nil || v.fence == nil || ctx == nil || ctx.Err() != nil || !v.principal.ExpiresAt.After(time.Now()) {
+	if v == nil || v.fence == nil || ctx == nil || !v.principal.ExpiresAt.After(time.Now()) {
 		return ErrUnauthorized
+	}
+	if ctx.Err() != nil {
+		return &businessHTTPError{"AUTHORITY_UNAVAILABLE", 503}
+	}
+	if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		return &businessHTTPError{"AUTHORITY_UNAVAILABLE", 503}
 	}
 	return v.fence()
 }
@@ -43,6 +50,10 @@ type businessHTTPError struct {
 
 func (e *businessHTTPError) Error() string { return e.code }
 func failBusiness(w http.ResponseWriter, err error) {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		write(w, 503, map[string]string{"error": "AUTHORITY_UNAVAILABLE", "code": "AUTHORITY_UNAVAILABLE"})
+		return
+	}
 	var e *businessHTTPError
 	if errors.As(err, &e) {
 		write(w, e.status, map[string]string{"error": e.code, "code": e.code})

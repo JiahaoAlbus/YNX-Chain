@@ -6,11 +6,13 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"reflect"
 	"slices"
 	"time"
 
@@ -29,8 +31,10 @@ type commerceV2Consumer struct {
 	live   *v2.Revalidator
 }
 type commerceV2Verifier struct {
-	consumers []commerceV2Consumer
-	bind      CommerceV2ActorBinder
+	consumers   []commerceV2Consumer
+	bind        CommerceV2ActorBinder
+	browser     *v2.BrowserSSO
+	bindBrowser CommerceBrowserActorBinder
 }
 
 // This source must compose with A's reviewed shared package using commerce_v2.
@@ -137,6 +141,21 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	if role == "" {
 		return nil, &businessHTTPError{"INTROSPECTION_BINDING_MISMATCH", 403}
 	}
+	var sealedBinding string
+	var browserGrant v2.BrowserGrant
+	if g.browser != nil {
+		var err error
+		sealedBinding, browserGrant, err = g.browser.Binding(r)
+		if err != nil {
+			return nil, &businessHTTPError{"ORIGINAL_BROWSER_REQUIRED", 401}
+		}
+		if r.Method != "GET" {
+			origins, csrf := r.Header.Values("Origin"), r.Header.Values("X-YNX-SSO-CSRF")
+			if len(origins) != 1 || origins[0] != "https://shop.ynxweb4.com" || len(csrf) != 1 || len(browserGrant.CSRF) < 32 || subtle.ConstantTimeCompare([]byte(csrf[0]), []byte(browserGrant.CSRF)) != 1 {
+				return nil, &businessHTTPError{"ORIGIN_CSRF_REQUIRED", 403}
+			}
+		}
+	}
 	original, err := consumer.client.Authorize(r.Context(), r, scopes)
 	if err != nil {
 		return nil, commerceV2Error(err)
@@ -161,14 +180,54 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	if err != nil {
 		return nil, ErrUnauthorized
 	}
-	fence, err := g.bind(r.Context(), original)
+	var fence func() error
+	if g.browser != nil {
+		if browserGrant.Identity.Account != original.Account || g.bindBrowser == nil {
+			return nil, ErrUnauthorized
+		}
+		fence, err = g.bindBrowser(r, original, browserGrant, sealedBinding)
+	} else {
+		fence, err = g.bind(r.Context(), original)
+	}
 	if err != nil {
 		return nil, err
 	}
 	if fence == nil {
 		return nil, ErrUnauthorized
 	}
-	return &verifiedBusinessRequest{walletAccount: original.Account, principal: Principal{Account: canonicalAccount, Role: role, ProductClientID: original.ClientID, BundleID: ShopBundleID, SessionBinding: original.SessionBinding, Scopes: slices.Clone(original.Scopes), ExpiresAt: expires}, proof: businessActionAuthorization{action.SessionBinding, action.Nonce, action.ExpiresAt}, fence: fence, revalidate: func(ctx context.Context) error {
+	browserDigest := ""
+	if g.browser != nil {
+		raw, _ := json.Marshal(browserGrant)
+		digest := sha256.Sum256(raw)
+		browserDigest = hex.EncodeToString(digest[:])
+	}
+	validUntil := expires
+	if g.browser != nil {
+		if browserGrant.ExpiresAt.Before(validUntil) {
+			validUntil = browserGrant.ExpiresAt
+		}
+		if browserGrant.Identity.ExpiresAt.Before(validUntil) {
+			validUntil = browserGrant.Identity.ExpiresAt
+		}
+	}
+	originalFence := fence
+	fence = func() error {
+		if !time.Now().Before(validUntil) {
+			return ErrUnauthorized
+		}
+		return originalFence()
+	}
+	return &verifiedBusinessRequest{browserBindingDigest: browserDigest, walletAccount: original.Account, principal: Principal{Account: canonicalAccount, Role: role, ProductClientID: original.ClientID, BundleID: ShopBundleID, SessionBinding: original.SessionBinding, Scopes: slices.Clone(original.Scopes), ExpiresAt: expires}, proof: businessActionAuthorization{action.SessionBinding, action.Nonce, action.ExpiresAt}, fence: fence, revalidate: func(ctx context.Context) error {
+		if g.browser != nil {
+			verified, grant, err := consumer.live.RevalidateBrowser(ctx, original, g.browser, sealedBinding, scopes)
+			if err != nil {
+				return commerceV2Error(err)
+			}
+			if !reflect.DeepEqual(verified, original) || !reflect.DeepEqual(grant, browserGrant) {
+				return ErrUnauthorized
+			}
+			return nil
+		}
 		_, err := consumer.live.Revalidate(ctx, original, scopes)
 		return commerceV2Error(err)
 	}}, nil

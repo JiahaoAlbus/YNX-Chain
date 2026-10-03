@@ -262,6 +262,7 @@ type Snapshot struct {
 	Idempotency             map[string]IdempotencyRecord
 	RetiredIdempotency      map[string]struct{}
 	BusinessNonces          map[string]struct{}
+	BusinessBrowserBindings map[string]string
 	BusinessActorNamespaces map[string]string
 	BusinessEffects         map[string]BusinessEffect
 	RetiredBusinessEffects  map[string]struct{}

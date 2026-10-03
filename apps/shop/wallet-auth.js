@@ -1,3 +1,4 @@
+import {createShopBusinessAuthorization} from './browser-business.js';
 import {decodeBase64url} from '@ynx-chain/wallet-auth';
 import {discoverWalletProviders,WALLET_PROVIDER_KIND} from './wallet-provider-discovery.js';
 import {StandardWalletConnection} from '@ynx-chain/wallet-auth/standard-wallet-connection';
@@ -9,7 +10,7 @@ export const onPrivateSessionChange=controller.onChange;
 export const privateSession=controller.current;
 // The session binding identifies UI context; it is never sent as a bearer.
 export const token=()=>controller.current()?.sessionBinding||'';
-export const authorizeBusinessRequest=controller.authorize;
+export const authorizeBusinessRequest=createShopBusinessAuthorization({current:controller.current,authorize:controller.authorize});
 export const privateSignoutPending=()=>controller.signoutPending||Boolean(callbackSeller?.signoutPending);
 function discardPrivateSession(){sessionRevision++;connectionRevision++;return clearPrivateSession()}
 export const expirePrivateSession=discardPrivateSession;

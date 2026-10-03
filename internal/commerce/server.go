@@ -17,7 +17,15 @@ const maxBody = 1 << 20
 var BuildVersion = "0.3.0-testnet-preview"
 var BuildCommit = "development"
 
+type browserIdentityRoutes interface {
+	Start(http.ResponseWriter, *http.Request)
+	Callback(http.ResponseWriter, *http.Request)
+	Account(http.ResponseWriter, *http.Request)
+	Logout(http.ResponseWriter, *http.Request)
+}
+
 type ServerConfig struct {
+	browserSSO                browserIdentityRoutes
 	businessV2                businessVerifier
 	Auth                      AuthGateway
 	Pay                       HTTPPayVerifier
@@ -40,6 +48,13 @@ func NewServer(store *Store, cfg ServerConfig) *Server {
 }
 func (s *Server) Handler() http.Handler { return s.observe(s.security(s.mux)) }
 func (s *Server) routes() {
+	if s.cfg.browserSSO != nil {
+		s.mux.HandleFunc("GET /sso/start", s.cfg.browserSSO.Start)
+		s.mux.HandleFunc("GET /sso/callback", s.cfg.browserSSO.Callback)
+		s.mux.HandleFunc("GET /api/sso/account", s.cfg.browserSSO.Account)
+		s.mux.HandleFunc("POST /api/sso/logout", s.cfg.browserSSO.Logout)
+	}
+
 	s.handleFunc("GET /health", s.health)
 	s.handleFunc("GET /version", s.version)
 	s.handleFunc("GET /metrics", s.prometheusMetrics)
