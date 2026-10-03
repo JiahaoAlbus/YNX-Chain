@@ -331,3 +331,38 @@ func TestVideoSchema5RejectsLegacyAndTamperedPairIndex(t *testing.T) {
 		})
 	}
 }
+
+func TestVideoSDKLocalCurrentGateRejectsCandidateWithRemoteOutsideLock(t *testing.T) {
+	s, _ := fixture(t, nil)
+	before, err := os.ReadFile(s.store.statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := false
+	g := videoTestGrant(s, testOwnerAccount, "local_candidate_nonce_0001", func(context.Context) error {
+		if !s.store.mu.TryLock() {
+			return errors.New("remote reader entered Store mutex")
+		}
+		s.store.mu.Unlock()
+		return nil
+	})
+	g.Current = func(context.Context) error {
+		if changed {
+			return ErrUnauthorized
+		}
+		return nil
+	}
+	scoped := videoLease(t, s, context.Background(), g, false)
+	err = scoped.store.update(func(st *State) error {
+		st.Playlists["rejected"] = &Playlist{ID: "rejected", Owner: g.Actor, Name: "must not persist"}
+		changed = true
+		return nil
+	})
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Fatal("current actor changed candidate accepted", err)
+	}
+	after, _ := os.ReadFile(s.store.statePath)
+	if !bytes.Equal(before, after) || len(s.store.state.BusinessNonces) != 0 {
+		t.Fatal("rejected candidate or nonce persisted")
+	}
+}

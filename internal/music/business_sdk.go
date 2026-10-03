@@ -1,6 +1,6 @@
 //go:build ynx_canonical_media
 
-package video
+package music
 
 import (
 	"context"
@@ -11,43 +11,42 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
-// BindVideoCurrentActor captures the current trusted actor/device/generation
+// BindMusicCurrentActor captures the current trusted actor/device/generation
 // after initial authorization. The returned guard must check that same binding
 // after every await. This guard must be local and must not call back into Store:
 // it runs under the original transaction mutex. Remote SDK reads run outside it.
 // HTTP fields alone cannot establish this guard.
-type BindVideoCurrentActor func(context.Context, *http.Request, productsessionv2.Session) (func(context.Context) error, error)
+type BindMusicCurrentActor func(context.Context, *http.Request, productsessionv2.Session) (func(context.Context) error, error)
 
-type videoSDKAuthority struct {
-	video, creator *productsessionv2.RegisteredClientSet
-	bind           BindVideoCurrentActor
+type musicSDKAuthority struct {
+	music *productsessionv2.RegisteredClientSet
+	bind  BindMusicCurrentActor
 }
 
-// NewVideoSDKAuthority composes A's frozen SDK without installing keys, clients,
-// Host configuration or a new identity authority. Both registered product sets
+// NewMusicSDKAuthority composes A's frozen SDK without installing keys, clients,
+// Host configuration or a new identity authority. The registered Music set
 // and the host's live actor binding are mandatory; absent configuration fails.
 // Build with ynx_canonical_media only in the frozen shared-source composition.
-func NewVideoSDKAuthority(video, creator *productsessionv2.RegisteredClientSet, bind BindVideoCurrentActor) (VideoBusinessAuthority, error) {
-	if video == nil || creator == nil || bind == nil {
+func NewMusicSDKAuthority(music *productsessionv2.RegisteredClientSet, bind BindMusicCurrentActor) (MusicBusinessAuthority, error) {
+	if music == nil || bind == nil {
 		return nil, ErrUnauthorized
 	}
-	return &videoSDKAuthority{video: video, creator: creator, bind: bind}, nil
+	return &musicSDKAuthority{music: music, bind: bind}, nil
 }
 
-func (a *videoSDKAuthority) VerifyVideoBusiness(ctx context.Context, r *http.Request, scope string, body io.Reader, size int64) (VideoBusinessGrant, error) {
-	var zero VideoBusinessGrant
+func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Request, scope string, body io.Reader, size int64) (MusicBusinessGrant, error) {
+	var zero MusicBusinessGrant
 	if ctx == nil || r == nil || body == nil || size < 0 || ctx.Err() != nil {
 		return zero, ErrUnauthorized
 	}
-	claimed, routeScope, err := videoBusinessRequestScope(r)
-	if err != nil || routeScope != scope {
+	if scope != "music.profile" && scope != "music.library" && scope != "music.playback" && scope != "music.creator" {
 		return zero, ErrUnauthorized
 	}
-	set := a.video
-	if claimed.ProductID == "creator-studio" {
-		set = a.creator
+	if r.URL.RawPath != "" || r.URL.Fragment != "" {
+		return zero, ErrUnauthorized
 	}
-	scopes := []string{routeScope}
+	set := a.music
+	scopes := []string{scope}
 	session, err := set.Authorize(ctx, r, scopes)
 	if err != nil {
 		return zero, err
@@ -77,7 +76,7 @@ func (a *videoSDKAuthority) VerifyVideoBusiness(ctx context.Context, r *http.Req
 	}
 	// SDK v2 signs URL.Path only. The router independently allows q only on
 	// catalogue search and rejects query strings on all private business routes.
-	action, err := set.VerifyHTTPActionStream(ctx, r.Header.Get(videoActionProofHeader), session, r.Method, r.URL.Path, body, size, scopes, time.Now())
+	action, err := set.VerifyHTTPActionStream(ctx, r.Header.Get("X-YNX-Music-Business-Proof-V2"), session, r.Method, r.URL.Path, body, size, scopes, time.Now())
 	if err != nil {
 		return zero, err
 	}
@@ -102,5 +101,5 @@ func (a *videoSDKAuthority) VerifyVideoBusiness(ctx context.Context, r *http.Req
 		}
 		return nil
 	}
-	return VideoBusinessGrant{Actor: session.Account, ProductID: session.ProductID, Scope: routeScope, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, SessionExpiresAt: expires, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
+	return MusicBusinessGrant{Actor: session.Account, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
 }

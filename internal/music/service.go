@@ -105,6 +105,11 @@ func hashJSON(v any) string {
 }
 
 func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*persistentState) error) error {
+	if s.business != nil && s.business.grant.Current != nil {
+		if err := s.business.check(s.cfg.Now); err != nil {
+			return err
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next, err := clonePersistentState(s.state)

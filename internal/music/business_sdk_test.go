@@ -1,6 +1,6 @@
 //go:build ynx_canonical_media
 
-package video
+package music
 
 import (
 	"bytes"
@@ -23,6 +23,9 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
+
+const musicSDKSessionHeader = "X-YNX-Product-Session-Proof-V2"
+const musicSDKActionHeader = "X-YNX-Music-Business-Proof-V2"
 
 type mediaSDKRoundTrip func(*http.Request) (*http.Response, error)
 
@@ -63,27 +66,20 @@ func mediaSDKProof(t *testing.T, s productsessionv2.Session, key *ecdsa.PrivateK
 	p["signature"] = base64.RawURLEncoding.EncodeToString(sig)
 	return base64.RawURLEncoding.EncodeToString(mediaSDKJSON(t, p))
 }
-func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
-	for _, product := range []string{"video", "creator-studio"} {
+func TestMusicFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
+	for _, product := range []string{"music"} {
 		for _, platform := range []string{"web", "android", "macos"} {
 			t.Run(product+"/"+platform, func(t *testing.T) {
 				key, e := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 				if e != nil {
 					t.Fatal(e)
 				}
-				application := "com.ynxweb4.video"
-				clientID := "ynx-video-mobile-v1"
-				origin := "https://video.ynxweb4.com"
-				scheme := "ynxvideo"
-				scope := "video:library"
-				if product == "creator-studio" {
-					application = "com.ynxweb4.creator-studio"
-					clientID = "ynx-creator-studio-web-v1"
-					origin = "https://creator.ynxweb4.com"
-					scheme = "ynxcreator"
-					scope = "creator:publish"
-				}
-				s := productsessionv2.Session{Version: "2", SessionBinding: strings.Repeat("a", 64), ChainID: "ynx_6423-1", ProductID: product, ClientID: clientID, Platform: platform, ApplicationID: application + ".web", Origin: origin, Callback: origin + "/wallet-auth/callback", Account: testOwnerAccount, DeviceID: strings.Repeat("d", 43), DeviceAlgorithm: "p256-sha256", DeviceKey: base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), key.X, key.Y)), DeviceBinding: strings.Repeat("b", 64), Nonce: strings.Repeat("n", 43), State: strings.Repeat("s", 43), Scopes: []string{scope}, RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), IssuedAt: time.Now().Add(-time.Minute).UTC().Format("2006-01-02T15:04:05.000Z"), ExpiresAt: time.Now().Add(time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")}
+				application := "com.ynxweb4.music"
+				clientID := "ynx-music-v1"
+				origin := "https://music.ynxweb4.com"
+				scheme := "ynxmusic"
+				scope := "music.library"
+				s := productsessionv2.Session{Version: "2", SessionBinding: strings.Repeat("a", 64), ChainID: "ynx_6423-1", ProductID: product, ClientID: clientID, Platform: platform, ApplicationID: application + ".web", Origin: origin, Callback: origin + "/wallet-auth/callback", Account: testAccount(t, 6), DeviceID: strings.Repeat("d", 43), DeviceAlgorithm: "p256-sha256", DeviceKey: base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), key.X, key.Y)), DeviceBinding: strings.Repeat("b", 64), Nonce: strings.Repeat("n", 43), State: strings.Repeat("s", 43), Scopes: []string{scope}, RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), IssuedAt: time.Now().Add(-time.Minute).UTC().Format("2006-01-02T15:04:05.000Z"), ExpiresAt: time.Now().Add(time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")}
 				if platform != "web" {
 					s.ApplicationID = application
 					s.Origin = "app://" + platform + "/" + application
@@ -95,7 +91,7 @@ func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 					}
 				}
 				authorizations, reads := 0, 0
-				var originalStore *Store
+				var originalStore *musicStateStore
 				revoked, changedActor, changedSession := false, false, false
 				transport := mediaSDKRoundTrip(func(r *http.Request) (*http.Response, error) {
 					var payload any
@@ -145,7 +141,7 @@ func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 				if e != nil {
 					t.Fatal(e)
 				}
-				authority, e := NewVideoSDKAuthority(set, set, func(_ context.Context, _ *http.Request, original productsessionv2.Session) (func(context.Context) error, error) {
+				authority, e := NewMusicSDKAuthority(set, func(_ context.Context, _ *http.Request, original productsessionv2.Session) (func(context.Context) error, error) {
 					if !reflect.DeepEqual(original, s) {
 						t.Fatal("actor hook lost original tuple")
 					}
@@ -160,23 +156,20 @@ func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 				if e != nil {
 					t.Fatal(e)
 				}
-				body := `{"Name":"SDK original library"}`
-				path := "/v1/playlists"
+				body := `{"name":"SDK original library","trackIds":[]}`
+				path := "/api/playlists"
 				nonce := strings.Repeat("x", 32)
 				initial := mediaSDKProof(t, s, key, "POST", "/v2/product-sessions/introspect", string(mediaSDKJSON(t, map[string]any{"requiredScopes": []string{scope}})), strings.Repeat("i", 32), 15*time.Second)
 				action := mediaSDKProof(t, s, key, "POST", path, body, nonce, 30*time.Second)
 				request := httptest.NewRequest("POST", path, strings.NewReader(body))
-				request.Header.Set(productSessionProofV2Header, initial)
-				request.Header.Set(videoActionProofHeader, action)
-				verify := func(wire string) (VideoBusinessGrant, error) {
-					return authority.VerifyVideoBusiness(context.Background(), request, scope, strings.NewReader(wire), int64(len(wire)))
+				request.Header.Set(musicSDKSessionHeader, initial)
+				request.Header.Set(musicSDKActionHeader, action)
+				verify := func(wire string) (MusicBusinessGrant, error) {
+					return authority.VerifyMusicBusiness(context.Background(), request, scope, strings.NewReader(wire), int64(len(wire)))
 				}
 				grant, e := verify(body)
 				if e != nil {
 					t.Fatal("actual signed action rejected", e)
-				}
-				if !grant.SessionExpiresAt.Equal(mustSDKTime(t, s.ExpiresAt)) || grant.ExpiresAt.After(grant.SessionExpiresAt) {
-					t.Fatal("proof expiry substituted for full session")
 				}
 				if e = grant.Revalidate(context.Background()); e != nil {
 					t.Fatal(e)
@@ -184,53 +177,45 @@ func TestMediaFrozenSDKActualCryptoOriginalStoreAndRevocation(t *testing.T) {
 				if authorizations != 1 || reads != 1 {
 					t.Fatal("after-await replayed Authorize instead of confidential original read")
 				}
-				store, _ := fixture(t, func(c *Config) { c.Now = time.Now })
-				originalStore = store.store
-				owned := videoLease(t, store, context.Background(), grant, false)
-				if _, e = owned.CreatePlaylist(grant.Actor, "SDK original library"); e != nil {
+				store := testService(t)
+				originalStore = store.musicStateStore
+				owned := store.requestService(&musicBusinessLease{ctx: context.Background(), grant: grant})
+				if _, e = owned.CreatePlaylist(s.Account, "SDK original library", "", nil); e != nil {
 					t.Fatal(e)
 				}
-				restart, e := NewService(store.cfg)
+				restart, e := New(store.cfg)
 				if e != nil {
 					t.Fatal(e)
 				}
-				if _, e = videoLease(t, restart, context.Background(), grant, false).CreatePlaylist(grant.Actor, "replay"); e == nil {
+				if _, e = restart.requestService(&musicBusinessLease{ctx: context.Background(), grant: grant}).CreatePlaylist(s.Account, "replay", "", nil); e == nil {
 					t.Fatal("actual SDK nonce replay accepted after restart")
 				}
-				// Exercise the shipped HTTP spool, SDK and original business route
-				// together, then retry the consumed action with a fresh introspection.
 				store.cfg.BusinessAuthority = authority
-				handler := NewServer(store, StaticTokenAuth{}).Handler()
+				handler := NewServer(store, "", nil).Handler()
 				httpAction := mediaSDKProof(t, s, key, "POST", path, body, strings.Repeat("h", 32), 30*time.Second)
-				// The original idempotent mutation wrapper reports replay rejection
-				// as 409; it must contain unauthorized and cannot return a receipt.
-				for i, expected := range []int{200, 409} {
+				for i, expected := range []int{201, 401} {
 					incoming := httptest.NewRequest("POST", path, strings.NewReader(body))
 					incoming.Header.Set("Content-Type", "application/json")
 					incoming.Header.Set("Idempotency-Key", "original-sdk-http-playlist")
-					incoming.Header.Set(productSessionProofV2Header, mediaSDKProof(t, s, key, "POST", "/v2/product-sessions/introspect", string(mediaSDKJSON(t, map[string]any{"requiredScopes": []string{scope}})), strings.Repeat("j", 31)+string(rune('0'+i)), 15*time.Second))
-					incoming.Header.Set(videoActionProofHeader, httpAction)
+					incoming.Header.Set(musicSDKSessionHeader, mediaSDKProof(t, s, key, "POST", "/v2/product-sessions/introspect", string(mediaSDKJSON(t, map[string]any{"requiredScopes": []string{scope}})), strings.Repeat("j", 31)+string(rune('0'+i)), 15*time.Second))
+					incoming.Header.Set(musicSDKActionHeader, httpAction)
 					out := httptest.NewRecorder()
 					handler.ServeHTTP(out, incoming)
 					if out.Code != expected {
 						t.Fatalf("original HTTP route: want %d got %d %s", expected, out.Code, out.Body.String())
 					}
-					if i == 1 && !strings.Contains(out.Body.String(), "unauthorized") {
-						t.Fatal("replay returned a success receipt")
-					}
 				}
-				lists, e := store.Playlists(s.Account)
-				if e != nil || len(lists) != 2 || len(store.store.state.BusinessNonces) != 2 {
-					t.Fatal("HTTP replay changed original library or nonce journal", e)
+				if len(store.state.Playlists) != 2 || len(store.state.BusinessNonces) != 2 {
+					t.Fatal("HTTP replay changed original library or nonce journal")
 				}
 				if _, e = verify(body + " "); e == nil {
 					t.Fatal("tampered exact wire accepted")
 				}
-				request.Header.Set(videoActionProofHeader, mediaSDKProof(t, s, key, "DELETE", path, body, strings.Repeat("y", 32), 30*time.Second))
+				request.Header.Set(musicSDKActionHeader, mediaSDKProof(t, s, key, "DELETE", path, body, strings.Repeat("y", 32), 30*time.Second))
 				if _, e = verify(body); e == nil {
 					t.Fatal("method escalation accepted")
 				}
-				request.Header.Set(videoActionProofHeader, action)
+				request.Header.Set(musicSDKActionHeader, action)
 				changedActor = true
 				before := reads
 				if e = grant.Revalidate(context.Background()); e == nil || reads != before {
@@ -258,8 +243,8 @@ func mustSDKTime(t *testing.T, s string) time.Time {
 	}
 	return v
 }
-func TestMediaSDKMissingTrustedConfiguration(t *testing.T) {
-	if _, e := NewVideoSDKAuthority(nil, nil, nil); e == nil {
+func TestMusicSDKMissingTrustedConfiguration(t *testing.T) {
+	if _, e := NewMusicSDKAuthority(nil, nil); e == nil {
 		t.Fatal("missing authority accepted")
 	}
 }

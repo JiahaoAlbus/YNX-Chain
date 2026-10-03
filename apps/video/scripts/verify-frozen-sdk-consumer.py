@@ -2,7 +2,7 @@
 """Compose owned Media source with exact Git-frozen SDK, in a temporary tree.
 Reads the shared repository through git show only. Does not install a runtime.
 """
-import argparse, hashlib, json, pathlib, shutil, subprocess, tempfile
+import argparse, hashlib, json, os, pathlib, shutil, subprocess, tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument('--shared-repository', required=True)
 parser.add_argument('--evidence', required=True)
@@ -39,16 +39,29 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(data)
         pins.append(dict(owner='A frozen Git', path=name, bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
+    # Adapt only temporary module metadata to A's required cached foundation;
+    # neither owned nor shared go.mod/go.sum is overwritten.
+    build_env = dict(os.environ, GOTOOLCHAIN='go1.25.13', GOPROXY='off', GOWORK='off', GOFLAGS='-mod=readonly')
+    subprocess.run(['go', 'mod', 'edit', '-go=1.25.13', '-require=golang.org/x/sys@v0.47.0'], cwd=target, env=build_env, check=True)
+    shared_sum = git('show', commit + ':go.sum')
+    foundation_sums = b'\n'.join(line for line in shared_sum.splitlines() if line.startswith(b'golang.org/x/sys v0.47.0')) + b'\n'
+    assert len(foundation_sums.splitlines()) == 2
+    with (target / 'go.sum').open('ab') as output:
+        output.write(foundation_sums)
+    staged_modules = [dict(path=name, sha256=hashlib.sha256((target / name).read_bytes()).hexdigest()) for name in ['go.mod', 'go.sum']]
+    toolchain = subprocess.check_output(['go', 'version'], cwd=target, env=build_env).decode().strip()
+    dependency = json.loads(subprocess.check_output(['go', 'list', '-m', '-json', 'golang.org/x/sys'], cwd=target, env=build_env))
     commands = [(['go', 'test', '-race', '-count=1', '-tags=ynx_canonical_media', '-json', './internal/video', './internal/music'], 'combined-go-race.jsonl'),
                 (['go', 'vet', '-tags=ynx_canonical_media', './internal/video', './internal/music'], 'combined-go-vet.txt')]
     results = []
     for command, name in commands:
         with (evidence / name).open('xb') as log:
-            result = subprocess.run(command, cwd=target, stdout=log, stderr=subprocess.STDOUT)
+            result = subprocess.run(command, cwd=target, env=build_env, stdout=log, stderr=subprocess.STDOUT)
         results.append(dict(command=command, exitCode=result.returncode, log=name))
         if result.returncode:
             break
     receipt = dict(sharedSourceCommit=commit, sharedSourceTree=tree, inputPins=pins, results=results,
+                   toolchain=toolchain, dependency=dependency, temporaryModulePins=staged_modules,
                    actualSDKActionCrypto=all(r['exitCode'] == 0 for r in results) and len(results) == 2, actualWalletConsent=False, productionInstalled=False,
                    note='Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation.')
     (evidence / 'combined-source-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

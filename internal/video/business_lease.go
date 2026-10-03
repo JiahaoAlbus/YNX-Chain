@@ -19,6 +19,9 @@ type VideoBusinessGrant struct {
 	SessionExpiresAt                         time.Time
 	ExpiresAt                                time.Time
 	Revalidate                               func(context.Context) error
+	// Current checks the captured live actor/device/generation locally, without
+	// network or Store recursion. Remote Revalidate runs before taking Store's lock.
+	Current func(context.Context) error
 }
 type VideoBusinessNonce struct {
 	Nonce          string    `json:"nonce,omitempty"`
@@ -50,6 +53,11 @@ func (s *Service) withBusinessGrant(ctx context.Context, grant VideoBusinessGran
 	return &Service{cfg: s.cfg, videoServiceControls: s.videoServiceControls, store: &Store{videoStateStore: s.store.videoStateStore, business: lease}}, nil
 }
 func (b *videoBusinessLease) check() error {
+	if b.grant.Current != nil {
+		if err := b.checkCurrent(); err != nil {
+			return err
+		}
+	}
 	if err := b.ctx.Err(); err != nil {
 		return err
 	}
@@ -74,6 +82,32 @@ func (b *videoBusinessLease) check() error {
 	if !b.grant.ExpiresAt.After(b.now().UTC()) {
 		return ErrUnauthorized
 	}
+	if b.grant.Current != nil {
+		return b.checkCurrent()
+	}
+	return nil
+}
+func (b *videoBusinessLease) checkCurrent() error {
+	if err := b.ctx.Err(); err != nil {
+		return err
+	}
+	if !b.grant.ExpiresAt.After(b.now().UTC()) {
+		return ErrUnauthorized
+	}
+	// Preserve existing trusted-verifier compatibility. The concrete SDK
+	// consumer always supplies Current and never performs remote reads here.
+	if b.grant.Current == nil {
+		return b.check()
+	}
+	if err := b.grant.Current(b.ctx); err != nil {
+		return err
+	}
+	if err := b.ctx.Err(); err != nil {
+		return err
+	}
+	if !b.grant.ExpiresAt.After(b.now().UTC()) {
+		return ErrUnauthorized
+	}
 	return nil
 }
 func (b *videoBusinessLease) checkState(st State) error {
@@ -90,7 +124,7 @@ func (b *videoBusinessLease) checkState(st State) error {
 	return nil
 }
 func (b *videoBusinessLease) admit(st *State) error {
-	if err := b.check(); err != nil {
+	if err := b.checkCurrent(); err != nil {
 		return err
 	}
 	if err := b.checkState(*st); err != nil {

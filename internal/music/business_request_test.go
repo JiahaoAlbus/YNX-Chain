@@ -385,3 +385,69 @@ func TestSchemaV2BackupRestoresWithoutRewritingOriginalBackup(t *testing.T) {
 		t.Fatal("original media lost")
 	}
 }
+
+type musicStalledBusinessBody struct{ release <-chan struct{} }
+
+func (b musicStalledBusinessBody) Read([]byte) (int, error) { <-b.release; return 0, io.EOF }
+func (musicStalledBusinessBody) Close() error               { return nil }
+func TestMusicCanceledBodyOrEarlyVerifierSettlesWithoutBusiness(t *testing.T) {
+	for _, early := range []bool{false, true} {
+		t.Run(fmt.Sprint(early), func(t *testing.T) {
+			s := testService(t)
+			actor := testAccount(t, 6)
+			s.cfg.BusinessAuthority = fixtureBusinessAuthority(func(ctx context.Context, r *http.Request, scope string, b io.Reader, limit int64) (MusicBusinessGrant, error) {
+				if !early {
+					if _, e := io.ReadAll(b); e != nil {
+						return MusicBusinessGrant{}, e
+					}
+				}
+				return testBusinessLease(actor, "canceled_stalled_body", s.cfg.Now).grant, nil
+			})
+			release := make(chan struct{})
+			defer close(release)
+			ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
+			defer cancel()
+			r := httptest.NewRequest("PUT", "/api/profile", nil).WithContext(ctx)
+			r.Body = musicStalledBusinessBody{release}
+			r.Header.Set("X-YNX-Product-Session-Proof-V2", "fixture")
+			r.Header.Set("X-YNX-Music-Business-Proof-V2", "fixture")
+			w := httptest.NewRecorder()
+			started := time.Now()
+			called := false
+			(&Server{service: s}).businessAPI(w, r, "music.profile", func(*Server, http.ResponseWriter, *http.Request, string) { called = true })
+			// Original Music writeErr maps ErrUnauthorized to 403 before a
+			// scoped response exists. Cancellation must settle without business.
+			if time.Since(started) > time.Second || w.Code != http.StatusForbidden || called || len(s.state.BusinessNonces) != 0 {
+				t.Fatal("stalled body admitted business or failed to settle", w.Code)
+			}
+		})
+	}
+}
+func TestMusicLocalCurrentGateAndRemoteReadOutsideOriginalMutex(t *testing.T) {
+	s := testService(t)
+	actor := testAccount(t, 6)
+	lease := testBusinessLease(actor, "local_current_candidate", s.cfg.Now)
+	changed := false
+	lease.grant.Revalidate = func(context.Context) error {
+		if !s.mu.TryLock() {
+			return errors.New("remote reader entered original mutex")
+		}
+		s.mu.Unlock()
+		return nil
+	}
+	lease.grant.Current = func(context.Context) error {
+		if changed {
+			return ErrUnauthorized
+		}
+		return nil
+	}
+	before, _ := os.ReadFile(s.cfg.StatePath)
+	e := s.requestService(lease).mutate(actor, "candidate_rejected", "original", nil, func(st *persistentState) error { changed = true; return nil })
+	if !errors.Is(e, ErrUnauthorized) {
+		t.Fatal("changed current actor admitted original candidate", e)
+	}
+	after, _ := os.ReadFile(s.cfg.StatePath)
+	if !bytes.Equal(before, after) || len(s.state.BusinessNonces) != 0 {
+		t.Fatal("rejected candidate changed original data or nonce")
+	}
+}

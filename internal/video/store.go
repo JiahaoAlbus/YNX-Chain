@@ -223,13 +223,19 @@ func (s *Store) read(fn func(State) error) error {
 		}
 	}
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if s.business != nil {
-		if err := s.business.checkState(s.state); err != nil {
-			return err
+	err := func() error {
+		if s.business != nil {
+			if err := s.business.checkCurrent(); err != nil {
+				return err
+			}
+			if err := s.business.checkState(s.state); err != nil {
+				return err
+			}
 		}
-	}
-	if err := fn(s.state); err != nil {
+		return fn(s.state)
+	}()
+	s.mu.RUnlock()
+	if err != nil {
 		return err
 	}
 	if s.business != nil {
@@ -274,7 +280,7 @@ func (s *Store) update(fn func(*State) error) error {
 				return ErrUnauthorized
 			}
 		}
-		if err = s.business.check(); err != nil {
+		if err = s.business.checkCurrent(); err != nil {
 			return err
 		}
 	}

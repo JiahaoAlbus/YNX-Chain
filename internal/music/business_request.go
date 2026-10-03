@@ -25,6 +25,9 @@ type MusicBusinessGrant struct {
 	Actor, SessionBinding, Nonce, BodyDigest string
 	ExpiresAt                                time.Time
 	Revalidate                               func(context.Context) error
+	// Current is a local original actor/device/generation guard, without remote
+	// calls or recursive store access. Concrete SDK consumers always supply it.
+	Current func(context.Context) error
 }
 type MusicBusinessNonce struct {
 	BodyDigest string    `json:"bodyDigest"`
@@ -45,10 +48,35 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
 	}
 	checkCtx, cancel := context.WithTimeout(l.ctx, 15*time.Second)
 	defer cancel()
-	if err := l.grant.Revalidate(checkCtx); err != nil {
-		return fmt.Errorf("%w: original Music authority changed", ErrUnauthorized)
+	ready := make(chan error, 1)
+	go func() { ready <- l.grant.Revalidate(checkCtx) }()
+	select {
+	case <-checkCtx.Done():
+		return ErrUnauthorized
+	case err := <-ready:
+		if err != nil {
+			return fmt.Errorf("%w: original Music authority changed", ErrUnauthorized)
+		}
 	}
 	if checkCtx.Err() != nil || l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+		return ErrUnauthorized
+	}
+	if l.grant.Current != nil {
+		return l.checkCurrent(clock)
+	}
+	return nil
+}
+func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
+	if l.ctx == nil || l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+		return ErrUnauthorized
+	}
+	if l.grant.Current == nil {
+		return l.check(clock)
+	}
+	if err := l.grant.Current(l.ctx); err != nil {
+		return err
+	}
+	if l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
 	}
 	return nil
@@ -61,7 +89,7 @@ func (l *musicBusinessLease) commit(actor string, st *persistentState, clock fun
 	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
 		return ErrUnauthorized
 	}
-	if err := l.check(clock); err != nil {
+	if err := l.checkCurrent(clock); err != nil {
 		return err
 	}
 	now = clock().UTC()
@@ -106,7 +134,7 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Music V2 business authority is not installed"})
 		return
 	}
-	if r.Header.Get("X-YNX-Product-Session-Proof-V2") == "" || r.Header.Get("X-YNX-Music-Business-Proof-V2") == "" || r.Header.Get("X-YNX-App-Session") != "" || r.Header.Get("X-YNX-Product-Device-Key") != "" {
+	if len(r.Header.Values("X-YNX-Product-Session-Proof-V2")) != 1 || len(r.Header.Values("X-YNX-Music-Business-Proof-V2")) != 1 || len(r.Header.Values("Origin")) > 1 || r.Header.Get("X-YNX-Product-Session-Proof-V2") == "" || r.Header.Get("X-YNX-Music-Business-Proof-V2") == "" || r.Header.Get("X-YNX-App-Session") != "" || r.Header.Get("X-YNX-Product-Device-Key") != "" || r.Header.Get("Authorization") != "" || r.Header.Get("X-YNX-Product-Session-Proof") != "" {
 		writeErr(w, ErrUnauthorized)
 		return
 	}
@@ -121,6 +149,16 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 	if r.URL.Path == "/api/creator/tracks" {
 		maximum = s.service.cfg.MaxUploadBytes + s.service.cfg.MaxUploadBytes/4 + 1<<20
 	}
+	if maximum > 512<<20 {
+		maximum = 512 << 20
+	}
+	if r.ContentLength > maximum {
+		writeErr(w, ErrInvalid)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	r = r.Clone(ctx)
 	file, err := os.CreateTemp(s.service.cfg.MediaDir, ".music-v2-wire-*")
 	if err != nil {
 		writeErr(w, err)
@@ -139,16 +177,47 @@ func (s *Server) businessAPI(w http.ResponseWriter, r *http.Request, scope strin
 	if body == nil {
 		body = http.NoBody
 	}
+	defer func() { go body.Close() }()
 	reader := &musicBoundedBody{ctx: r.Context(), body: body, remaining: maximum + 1}
 	digest := sha256.New()
-	grant, err := authority.VerifyMusicBusiness(r.Context(), r, scope, io.TeeReader(reader, io.MultiWriter(file, digest)), maximum)
+	type verification struct {
+		grant MusicBusinessGrant
+		err   error
+	}
+	ready := make(chan verification, 1)
+	go func() {
+		g, e := authority.VerifyMusicBusiness(ctx, r, scope, io.TeeReader(reader, io.MultiWriter(file, digest)), maximum)
+		ready <- verification{g, e}
+	}()
+	var grant MusicBusinessGrant
+	select {
+	case <-ctx.Done():
+		file.Close()
+		writeErr(w, ErrUnauthorized)
+		return
+	case done := <-ready:
+		grant, err = done.grant, done.err
+	}
 	if err != nil || reader.remaining <= 0 {
 		writeErr(w, ErrUnauthorized)
 		return
 	}
 	// Reject an adapter returning before EOF; incomplete signing is never usable.
-	var tail [1]byte
-	if n, e := reader.Read(tail[:]); n != 0 || e != io.EOF {
+	type endOfBody struct {
+		n   int
+		err error
+	}
+	ended := make(chan endOfBody, 1)
+	go func() { var tail [1]byte; n, e := reader.Read(tail[:]); ended <- endOfBody{n, e} }()
+	var end endOfBody
+	select {
+	case <-ctx.Done():
+		file.Close()
+		writeErr(w, ErrUnauthorized)
+		return
+	case end = <-ended:
+	}
+	if end.n != 0 || end.err != io.EOF {
 		writeErr(w, ErrUnauthorized)
 		return
 	}
