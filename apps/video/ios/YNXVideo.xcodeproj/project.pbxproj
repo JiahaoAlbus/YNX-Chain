@@ -4,10 +4,10 @@
  classes = {};
  objectVersion = 56;
  objects = {
-  A1 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600;}; buildConfigurationList = A2; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = A3; productRefGroup = A4; projectDirPath = ""; projectRoot = ""; targets = (A5,);};
+  A1 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600;}; buildConfigurationList = A2; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = A3; productRefGroup = A4; projectDirPath = ""; projectRoot = ""; targets = (A5,M5,);};
   A2 = {isa = XCConfigurationList; buildConfigurations = (B1,B2,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
-  A3 = {isa = PBXGroup; children = (C1,C2,C3,C4,C6,C7,C8,C9,); sourceTree = "<group>";};
-  A4 = {isa = PBXGroup; children = (C5,); name = Products; sourceTree = "<group>";};
+  A3 = {isa = PBXGroup; children = (C1,C2,C3,C4,C6,C7,C8,C9,C10,C11,M3,); sourceTree = "<group>";};
+  A4 = {isa = PBXGroup; children = (C5,M4,); name = Products; sourceTree = "<group>";};
   A5 = {isa = PBXNativeTarget; buildConfigurationList = A6; buildPhases = (D1,D2,D3,); buildRules = (); dependencies = (); name = YNXVideo; productName = YNXVideo; productReference = C5; productType = "com.apple.product-type.application";};
   A6 = {isa = XCConfigurationList; buildConfigurations = (B3,B4,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
   B1 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Debug;};
@@ -24,10 +24,20 @@
   C8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoModel.swift; sourceTree = "<group>";};
   C9 = {isa = PBXFileReference; lastKnownFileType = image.png; path = YNXVideo/ynx-brand-original.png; sourceTree = "<group>";};
   E7 = {isa = PBXBuildFile; fileRef = C9;};
-  D1 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E1,E2,E4,E5,E6,); runOnlyForDeploymentPostprocessing = 0;};
+  D1 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E1,E2,E4,E5,E6,E10,E11,); runOnlyForDeploymentPostprocessing = 0;};
   D2 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
   D3 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (E3,E7,); runOnlyForDeploymentPostprocessing = 0;};
   E1 = {isa = PBXBuildFile; fileRef = C1;}; E2 = {isa = PBXBuildFile; fileRef = C2;}; E3 = {isa = PBXBuildFile; fileRef = C4;}; E4 = {isa = PBXBuildFile; fileRef = C6;}; E5 = {isa = PBXBuildFile; fileRef = C7;}; E6 = {isa = PBXBuildFile; fileRef = C8;};
+
+  C10 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoNativeState.swift; sourceTree = "<group>";};
+  C11 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/VideoNativeCustody.swift; sourceTree = "<group>";};
+  E10 = {isa = PBXBuildFile; fileRef = C10;}; E11 = {isa = PBXBuildFile; fileRef = C11;};
+  M3 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = YNXVideo/MacInfo.plist; sourceTree = "<group>";};
+  M4 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXVideoMac.app; sourceTree = BUILT_PRODUCTS_DIR;};
+  M5 = {isa = PBXNativeTarget; buildConfigurationList = M6; buildPhases = (D1,D2,D3,); buildRules = (); dependencies = (); name = YNXVideoMac; productName = YNXVideoMac; productReference = M4; productType = "com.apple.product-type.application";};
+  M6 = {isa = XCConfigurationList; buildConfigurations = (M7,M8,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  M7 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXVideo/MacInfo.plist; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.video; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0;}; name = Debug;};
+  M8 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXVideo/MacInfo.plist; MACOSX_DEPLOYMENT_TARGET = 14.0; SDKROOT = macosx; SUPPORTED_PLATFORMS = macosx; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.video; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_VERSION = 5.0;}; name = Release;};
  };
  rootObject = A1;
 }

@@ -31,6 +31,13 @@ import Security
         let publicKey = try retained.compressedPublicKey()
         try require(publicKey == encoded(original) && creates == 0 && adds == 0,
                     "existing key was not preserved")
+        let protocolBytes=Data("YNX_PRODUCT_SESSION_HTTP_PROOF_V2\n{\"ownedFixture\":true}".utf8)
+        let signature=try retained.signProtocolBytes(protocolBytes)
+        let signatureData=Data(base64Encoded:signature.replacingOccurrences(of:"-",with:"+").replacingOccurrences(of:"_",with:"/")+String(repeating:"=",count:(4-signature.count%4)%4))!
+        try require(original.publicKey.isValidSignature(try P256.Signing.ECDSASignature(derRepresentation:signatureData),for:protocolBytes),"inherited key signature did not verify")
+        let missingForSigning=ProductDeviceKey(read:{(errSecItemNotFound,nil)},add:{_ in adds+=1;return errSecSuccess},create:{creates+=1;return original})
+        do { _ = try missingForSigning.signProtocolBytes(protocolBytes); throw Failure(message:"missing original key was replaced by signing") } catch is ProductDeviceKey.StorageError {}
+        try require(creates==0 && adds==0,"signing created replacement identity")
         let compressed = Data(base64Encoded: publicKey.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/"))!
         try require(compressed.count == 33 && [2, 3].contains(compressed[0]),
                     "device key must use canonical compressed P-256 encoding")

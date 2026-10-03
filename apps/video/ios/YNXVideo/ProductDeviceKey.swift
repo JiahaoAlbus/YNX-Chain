@@ -28,19 +28,29 @@ final class ProductDeviceKey {
         self.create = create
     }
 
-    func compressedPublicKey() throws -> String {
-        try loadKey().publicKey.compressedRepresentation.base64EncodedString()
+    func compressedPublicKey(allowCreation: Bool = true) throws -> String {
+        try loadKey(allowCreation: allowCreation).publicKey.compressedRepresentation.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
     }
 
-    private func loadKey() throws -> P256.Signing.PrivateKey {
+    // Only the protected SDK port supplies previously validated protocol bytes.
+    // Signing never creates a replacement for an absent inherited identity.
+    func signProtocolBytes(_ bytes: Data) throws -> String {
+        try loadKey(allowCreation: false).signature(for: bytes).derRepresentation.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private func loadKey(allowCreation: Bool) throws -> P256.Signing.PrivateKey {
         let existing = read()
         if existing.status == errSecSuccess { return try decode(existing.data) }
         guard existing.status == errSecItemNotFound else {
             throw StorageError.readFailed(existing.status)
         }
+        guard allowCreation else { throw StorageError.readFailed(errSecItemNotFound) }
 
         let created = create()
         let status = add(created.rawRepresentation)
