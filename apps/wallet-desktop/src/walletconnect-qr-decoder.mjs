@@ -22,10 +22,14 @@ export function decodeLocalQRText({ bytes, mimeType, createImage, decode = jsQR 
   if (!Buffer.isBuffer(bgra) || bgra.length !== width * height * 4) throw qrError("QR_DECODE_FAILED", "Decoded image pixels were invalid");
   const rgba = new Uint8ClampedArray(bgra.length);
   for (let index = 0; index < bgra.length; index += 4) {
-    rgba[index] = bgra[index + 2];
-    rgba[index + 1] = bgra[index + 1];
-    rgba[index + 2] = bgra[index];
-    rgba[index + 3] = bgra[index + 3];
+    // Electron 42 nativeImage.toBitmap returns N32 premultiplied pixels.
+    // Composite onto white before jsQR, which reads RGB but ignores alpha.
+    // Otherwise a black QR on transparent pixels becomes an all-black image.
+    const white = 255 - bgra[index + 3];
+    rgba[index] = bgra[index + 2] + white;
+    rgba[index + 1] = bgra[index + 1] + white;
+    rgba[index + 2] = bgra[index] + white;
+    rgba[index + 3] = 255;
   }
   const decoded = decode(rgba, width, height, { inversionAttempts: "attemptBoth" });
   const text = decoded?.data;

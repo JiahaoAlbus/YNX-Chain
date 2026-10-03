@@ -1,6 +1,14 @@
 # Full Wallet goal audit — incomplete, not a source-checkpoint definition of done
 
-## Latest owned follow-up after 15a1750d3
+## Current owned composition after 54253c64a
+
+A's frozen five Dashboard copy expressions and import are adopted at App SHA256 `c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f`. Complete reverse comparison restores the inherited 7d610 App05beb; all 124 flow, 205 detail and five Dashboard messages now have explicit twelve-locale source coverage. Native 935/935, typecheck and Android/iOS Hermes export passed. This is not whole rendered-UI language/RTL acceptance. See `dashboard-copy-composition-20261003.md`.
+
+The subsequent Desktop QR codec work reproduces and repairs an actual black-transparent PNG failure through Electron nativeImage and all three production QR consumers. Final encoded PNG/JPEG paths and protocol refusals pass 19/19; complete Desktop regression passes 674/674. No Wallet GUI or account was opened. See `../../wallet-desktop/test/qr-native-image-alpha-20261003.md` for original failures, pinned codec source, log hashes and exact limits. Native's previous 935 result is inherited, not rerun in that Desktop-only change.
+
+Web is separately owned `apps/wallet-web` PWA/extension, not an Expo Web conversion of the biometric Native vault. There was no Web write or Web parity acceptance. Exact protected Wallet business/OS ports and new session tuple, real device/installed UI, sole-A forward versions/signing/website download/install and business/user acceptance are still incomplete. External-input and MONSTER acceptance are not run. The following sections retain historical evidence only.
+
+## Historical owned follow-up after 15a1750d3
 
 Current inherited full-source composition adopts A's exact App one-import/six-wrapper handback, all 124 flow messages and all 205 detail messages in twelve languages. The App hash is 05beb31d869cff8955892bfd77095199e38b05dbdc64579e2580bb9dc88ceb73; only the earlier explicitly frozen guarded-reopen and locale deltas were applied. Five Dashboard entry/copy-error expressions remain bilingual and locked to A, so whole-App language completion is not claimed. New error-copy own-property boundaries preserve unknown diagnostics without catalog-prototype crashes; the original transaction/account/session tables are unchanged. Native 926/926, i18n 34/34, typecheck and Android/iOS Hermes exports pass; release-content check passes without deleting correct Spanish copy. See error-copy-release-boundary-20261003.md for exact logs and limits.
 
