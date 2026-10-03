@@ -8,7 +8,7 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 // Execute the actual ordinary display function; no fabricated authority grant.
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const source=app.slice(app.indexOf('let brokerSnapshotRevision='),app.indexOf('let brokerCallbackInFlight='));
-const reply=account=>({schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{currency:'USD',providerAccountId:account},positions:[],orders:[]}});
+const reply=account=>({schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{currency:'USD',providerAccountId:account,cash:'100.25',buyingPower:'200.50'},positions:[],orders:[]}});
 function fixture(){
   const requests=[],renders=[];
   const context=vm.createContext({state:{context:1,connected:true},brokerSnapshotState:{kind:'guest'},renderBrokerSnapshot(){renders.push(context.brokerSnapshotState)},api(){return new Promise((resolve,reject)=>requests.push({resolve,reject}))}});
@@ -40,6 +40,20 @@ test('signed-out view remains guest despite a pending read, with no new request'
 test('current malformed broker snapshot is unavailable, not a confirmed empty account',async()=>{
   const f=fixture(),pending=f.run();f.requests[0].resolve({schema:'unknown',snapshot:reply('unverified').snapshot});await pending;
   assert.equal(f.context.brokerSnapshotState.kind,'unavailable');assert.equal(f.renders.length,1);
+});
+
+test('malformed broker amounts and rows never become confirmed account data',async()=>{
+  for(const mutate of [s=>delete s.account.cash,s=>s.account.buyingPower=0,s=>s.account.cash='NaN',s=>s.account.cash='01',s=>s.positions=[null],s=>s.orders=[null],s=>s.positions=[{symbol:'TEST',qty:'1',availableQty:'1',marketValue:'2',averageEntryPrice:2}],s=>s.orders=[{providerOrderId:'order',symbol:'TEST',side:'buy',qty:'1',type:'limit',timeInForce:'day',providerStatus:'new',limitPrice:'Infinity'}]]){
+    const f=fixture(),value=reply('controlled');mutate(value.snapshot);const pending=f.run();f.requests[0].resolve(value);await pending;
+    assert.equal(f.context.brokerSnapshotState.kind,'unavailable');assert.equal(f.renders.length,1);
+  }
+});
+
+test('valid provider decimal strings remain byte-exact without rounding or zero substitution',async()=>{
+  const f=fixture(),value=reply('controlled');value.snapshot.account.cash='99999999999999999999999999999999.123456789012345678';value.snapshot.account.buyingPower='-0.000000000000000001';
+  value.snapshot.positions=[{symbol:'TEST',qty:'1',availableQty:'0',marketValue:'-2.25',averageEntryPrice:'2.25'}];
+  value.snapshot.orders=[{providerOrderId:'controlled-order',symbol:'TEST',side:'sell',qty:'1',type:'market',timeInForce:'day',providerStatus:'new',limitPrice:''}];
+  const pending=f.run();f.requests[0].resolve(value);await pending;assert.equal(f.context.brokerSnapshotState.kind,'data');assert.equal(f.context.brokerSnapshotState.snapshot,value.snapshot);
 });
 
 test('actual Chrome keeps new broker display when an older account read fails',{timeout:15000},async()=>{

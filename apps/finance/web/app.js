@@ -153,6 +153,15 @@ async function updateBrokerWatchlist(asset,selected){
   renderBrokerWatchlist(result.watchlist);await refreshBrokerWorkspace();notify(financeText(selected?'watchlistAdded':'watchlistRemoved'));
 }
 let brokerSnapshotRevision=0;
+// Read-only display boundary: preserve the provider's exact decimal strings.
+function readableBrokerSnapshot(snapshot){
+  const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+  const text=value=>typeof value==='string'&&value.length>0;
+  const decimal=value=>typeof value==='string'&&/^-?(?:0|[1-9][0-9]{0,31})(?:\.[0-9]{1,18})?$/.test(value);
+  return record(snapshot)&&snapshot.provider==='alpaca_broker'&&snapshot.environment==='sandbox'&&record(snapshot.account)&&snapshot.account.currency==='USD'&&text(snapshot.account.providerAccountId)&&decimal(snapshot.account.cash)&&decimal(snapshot.account.buyingPower)&&
+    Array.isArray(snapshot.positions)&&snapshot.positions.every(row=>record(row)&&text(row.symbol)&&['qty','availableQty','marketValue','averageEntryPrice'].every(key=>decimal(row[key])))&&
+    Array.isArray(snapshot.orders)&&snapshot.orders.every(row=>record(row)&&['providerOrderId','symbol','type','timeInForce','providerStatus'].every(key=>text(row[key]))&&(row.side==='buy'||row.side==='sell')&&decimal(row.qty)&&(row.limitPrice===''||decimal(row.limitPrice)));
+}
 async function refreshBrokerSnapshot(){
   const revision=++brokerSnapshotRevision,context=state.context;
   const current=()=>revision===brokerSnapshotRevision&&context===state.context&&state.connected;
@@ -161,7 +170,7 @@ async function refreshBrokerSnapshot(){
     const result=await api('/api/broker/snapshot');
     if(!current())return;
     const snapshot=result?.schema==='ynx-finance-broker-snapshot-v1'?result.snapshot:null;
-    if(!snapshot||snapshot.provider!=='alpaca_broker'||snapshot.environment!=='sandbox'||!Array.isArray(snapshot.orders)||!Array.isArray(snapshot.positions)||snapshot.account?.currency!=='USD')throw Object.assign(new Error('Broker Sandbox returned an invalid account snapshot.'),{nonRetryable:true});
+    if(!readableBrokerSnapshot(snapshot))throw Object.assign(new Error('Broker Sandbox returned an invalid account snapshot.'),{nonRetryable:true});
     brokerSnapshotState={kind:'data',snapshot};renderBrokerSnapshot();
   }catch(error){
     if(!current())return;

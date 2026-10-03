@@ -95,6 +95,30 @@ test('guest Finance workbench is English by default, switches Chinese and fits a
   }finally{await page.close()}
 });
 
+test('broker malformed read clears displayed amounts and rows, then recovers exact strings without writes',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[],writes=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  page.on('request',request=>{if(request.method()!=='GET')writes.push(request.url())});
+  let value={schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{providerAccountId:'controlled-account',currency:'USD',cash:'123.456789012345678',buyingPower:'200'},positions:[],orders:[]}};
+  await page.route('**/api/broker/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(value)}));
+  try{
+    await page.goto(base);await page.waitForFunction(()=>document.querySelector('#broker-cash').textContent.startsWith('123.456789012345678'));
+    value={...value,snapshot:{...value.snapshot,account:{...value.snapshot.account,cash:undefined},positions:[null],orders:[null]}};
+    await page.evaluate(()=>refreshBrokerSnapshot());
+    assert.equal(await page.locator('#broker-cash').textContent(),await page.evaluate(()=>financeText('brokerUnknownNotZero')));
+    assert.equal(await page.locator('#broker-buying-power').textContent(),await page.evaluate(()=>financeText('brokerUnknownNotZero')));
+    assert.equal(await page.locator('#broker-positions .row').count(),0);assert.equal(await page.locator('#broker-orders .row').count(),0);
+    const locales=await page.locator('#finance-language option').evaluateAll(options=>options.map(option=>option.value));assert.equal(locales.length,12);
+    for(const locale of locales){
+      await page.locator('#finance-language').selectOption(locale);
+      assert.equal(await page.locator('#broker-private-status').textContent(),await page.evaluate(()=>financeText('brokerSnapshotUnavailable')));
+    }
+    value.snapshot.account.cash='99999999999999999999999999999999.123456789012345678';value.snapshot.positions=[];value.snapshot.orders=[];
+    await page.evaluate(()=>refreshBrokerSnapshot());assert.ok((await page.locator('#broker-cash').textContent()).startsWith(value.snapshot.account.cash));
+    assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);assert.equal(page.context().pages().length,1);
+  }finally{await page.close()}
+});
+
 test('twelve guest locales render in a real narrow browser without page overflow or network translation',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   try{
