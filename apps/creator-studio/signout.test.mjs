@@ -611,3 +611,23 @@ test('completed AI stream requires fresh saved owner readback before review beco
  const reader={read:async()=>++reads===1?{done:false,value:new TextEncoder().encode(JSON.stringify({state:'review_required',job:saved})+'\n')}:{done:true},cancel:async()=>{},releaseLock(){}};
  const c=await app({fetch:async(url)=>{if(url.endsWith('/stream'))return {ok:true,body:{getReader:()=>reader}};gets++;return response(saved);}});c.renderProductState(connected('owner-a'));c.showAI({...saved,State:'awaiting_permission',Result:''});await c.run('ai-run');assert.equal(gets,1);assert.equal(c.element('#ai-result').textContent,saved.Result);assert.equal(c.element('#ai-accept').disabled,false);
 });
+
+test('production Creator API sends original site cookies only after SDK authorization',async()=>{
+ const calls=[];
+ const controller=await app({productAuthorization:async()=>({'X-YNX-Product-Session-Proof-V2':'original-identity','X-YNX-Product-Session-Action-Proof-V2':'original-action'}),fetch:async(url,options)=>{calls.push(options);return response({})}});
+ controller.renderProductState(connected('owner-a'));
+ await controller.api('/v1/studio',{credentials:'include'});
+ assert.equal(calls.length,1);assert.equal(calls[0].credentials,'same-origin');assert.equal(calls[0].redirect,'error');
+ assert.equal(calls[0].headers['X-YNX-Product-Session-Proof-V2'],'original-identity');assert.equal(calls[0].headers['X-YNX-Product-Session-Action-Proof-V2'],'original-action');
+ const denied=await app({productAuthorization:async()=>{throw Error('SDK authorization unavailable')},fetch:async()=>assert.fail('cookies cannot substitute private approval')});
+ denied.renderProductState(connected('owner-a'));await assert.rejects(denied.api('/v1/studio'),/SDK authorization unavailable/);
+});
+
+test('actual Creator AI stream carries original site cookies and its independently signed action',async()=>{
+ const calls=[];
+ const controller=await app({productAuthorization:async()=>({'X-YNX-Product-Session-Action-Proof-V2':'stream-original'}),fetch:async(url,options)=>{calls.push({url,options});return response({error:'Unavailable'},503)}});
+ controller.renderProductState(connected('owner-a'));controller.showAI({id:'job-own',state:'awaiting_permission'});
+ await controller.run('ai-run');
+ const stream=calls.find(c=>c.url.endsWith('/v1/ai/jobs/job-own/stream'));assert.ok(stream);
+ assert.equal(stream.options.credentials,'same-origin');assert.equal(stream.options.headers['X-YNX-Product-Session-Action-Proof-V2'],'stream-original');assert.equal(stream.options.redirect,'error');
+});

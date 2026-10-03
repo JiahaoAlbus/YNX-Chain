@@ -79,7 +79,7 @@ async function api(path,opt={}){
     for(let attempt=0;attempt<2;attempt++){
       const headers={...wire.headers,...await operation.wait(productAuthorization(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
-      try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'omit',redirect:'error',signal:operation.signal}));break}
+      try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
       catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
     }
     const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
@@ -709,7 +709,7 @@ $("#ai-run").onclick=async()=>{
  };
  try{
   const headers={...await operation.wait(productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST")),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};assertCreatorSession(revision);operation.signal.throwIfAborted();
-  const response=await operation.wait(fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers,credentials:"omit",redirect:"error",signal:operation.signal}));
+  const response=await operation.wait(fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers,credentials:"same-origin",redirect:"error",signal:operation.signal}));
   if(!currentAISelection(revision,id,selection)){await response.body?.cancel();return}if(!response.ok)throw new Error(`HTTP ${response.status}`);reader=response.body.getReader();
   await readCreatorAIWire(reader,operation,id,account,delta=>{if(!currentAISelection(revision,id,selection))throw new DOMException("Creator account changed","AbortError");streamed+=delta;$("#ai-result").textContent=streamed});
   if(currentAISelection(revision,id,selection))await confirmSaved();

@@ -68,3 +68,15 @@ test('unbounded responses and foreign response locations are rejected before use
  }
  for(const route of ['/v1/%2e%2e/history','/v1/history#other','/v1/history\\other','/v1//history']){let calls=0;const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',fetch:()=>{calls++}});await assert.rejects(api(route),/Invalid/);assert.equal(calls,0)}
 });
+
+test('only original private Video requests carry same-origin cookies alongside fresh SDK proof',async()=>{
+ const calls=[];let signed=0;
+ const api=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:async()=>({'X-YNX-Product-Session-Action-Proof-V2':'original-'+ ++signed}),fetch:async(url,options)=>{calls.push(options);return new Response('{}')}});
+ await api('/v1/videos',{credentials:'include'});
+ await api('/v1/history',{private:true,credentials:'omit'});
+ assert.equal(calls[0].credentials,'omit');assert.equal(calls[0].headers['X-YNX-Product-Session-Action-Proof-V2'],undefined);
+ assert.equal(calls[1].credentials,'same-origin');assert.equal(calls[1].headers['X-YNX-Product-Session-Action-Proof-V2'],'original-1');assert.equal(calls[1].redirect,'error');
+ let fetched=false;
+ const denied=createVideoAPI({baseURL:'https://video.ynxweb4.com/video/api',authorize:async()=>{throw Error('original SDK unavailable')},fetch:async()=>{fetched=true}});
+ await assert.rejects(denied('/v1/history',{private:true}),/SDK unavailable/);assert.equal(fetched,false);
+});

@@ -38,7 +38,7 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
         catch (error) {check(); onUnauthorized(error); throw error;}
         check();
         try {
-          response = await wait(request(base.href + path, {...init, method, body:wire.body, headers: {...wire.headers, ...proof}, credentials: 'omit', redirect: 'error', signal}));
+          response = await wait(request(base.href + path, {...init, method, body:wire.body, headers: {...wire.headers, ...proof}, credentials: needsAccount ? 'same-origin' : 'omit', redirect: 'error', signal}));
           break;
         } catch (error) {check(); if (attempt === 1) throw error;}
       }

@@ -118,7 +118,7 @@ test('network retry generates fresh device proof with stable idempotency key and
   assert.equal(requests[1].headers['X-YNX-Product-Session-Proof-V2'], 'proof-2');
   assert.equal(requests[0].headers['Idempotency-Key'], requests[1].headers['Idempotency-Key']);
   assert.equal(requests[0].body, requests[1].body);
-  assert.equal(requests[1].credentials, 'omit');
+  assert.equal(requests[1].credentials, 'same-origin');
 });
 
 test('private credentials never go to an overridden origin and rejected authority clears private UI', async () => {
