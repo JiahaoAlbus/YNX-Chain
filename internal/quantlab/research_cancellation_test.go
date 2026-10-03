@@ -3,6 +3,8 @@ package quantlab
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +14,54 @@ import (
 	"sync"
 	"testing"
 )
+
+// Cancel the real context at a deterministic calculation checkpoint rather
+// than relying on a machine-specific sleep or abandoning a worker goroutine.
+type calculationCancelContext struct {
+	context.Context
+	cancel context.CancelFunc
+	checks int
+	stopAt int
+}
+
+func (c *calculationCancelContext) Err() error {
+	c.checks++
+	if c.checks == c.stopAt {
+		c.cancel()
+	}
+	return c.Context.Err()
+}
+
+func TestResearchCancellationStopsInsideCalculationWithoutPersistence(t *testing.T) {
+	for _, stopAt := range []int{10, 60, 80, 400} {
+		t.Run(fmt.Sprint(stopAt), func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "state.json")
+			s, err := New(Config{StatePath: path})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Close()
+			if _, err := s.RunBacktest(request()); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			base, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			ctx := &calculationCancelContext{Context: base, cancel: cancel, stopAt: stopAt}
+			_, err = s.RunBacktestContext(ctx, request())
+			if !errors.Is(err, context.Canceled) || ctx.checks != stopAt {
+				t.Fatalf("calculation did not honor cancellation checkpoint: err=%v checks=%d", err, ctx.checks)
+			}
+			after, err := os.ReadFile(path)
+			if err != nil || !reflect.DeepEqual(before, after) {
+				t.Fatal("cancelled calculation changed durable state")
+			}
+		})
+	}
+}
 
 type cancelAfterHistoryMarket struct{ cancel context.CancelFunc }
 

@@ -780,7 +780,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics, attribution, equityCurve, err := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	metrics, attribution, equityCurve, err := simulateDetailed(ctx, req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
 	if err != nil {
 		return Experiment{}, err
 	}
@@ -790,7 +790,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		start := req.Assumptions.TrainEnd + i*oos/req.Assumptions.WalkForwardWindows
 		end := req.Assumptions.TrainEnd + (i+1)*oos/req.Assumptions.WalkForwardWindows
 		if end > start {
-			value, err := simulateRange(req.Bars, strategy, req.Assumptions, start, end)
+			value, err := simulateRange(ctx, req.Bars, strategy, req.Assumptions, start, end)
 			if err != nil {
 				return Experiment{}, err
 			}
@@ -803,7 +803,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		variant.Params = cloneParams(strategy.Params)
 		variant.Params["fast"] += delta
 		label := fmt.Sprintf("fast%+d", delta)
-		value, err := simulate(req.Bars, variant, req.Assumptions)
+		value, err := simulate(ctx, req.Bars, variant, req.Assumptions)
 		if err != nil {
 			return Experiment{}, err
 		}
@@ -814,7 +814,7 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		variant.Params = cloneParams(strategy.Params)
 		variant.Params["slow"] += delta
 		label := fmt.Sprintf("slow%+d", delta)
-		value, err := simulate(req.Bars, variant, req.Assumptions)
+		value, err := simulate(ctx, req.Bars, variant, req.Assumptions)
 		if err != nil {
 			return Experiment{}, err
 		}
@@ -830,11 +830,11 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		}
 	}
 	mid := req.Assumptions.TrainEnd + oos/2
-	firstHalf, err := simulateRange(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, mid)
+	firstHalf, err := simulateRange(ctx, req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, mid)
 	if err != nil {
 		return Experiment{}, err
 	}
-	secondHalf, err := simulateRange(req.Bars, strategy, req.Assumptions, mid, len(req.Bars))
+	secondHalf, err := simulateRange(ctx, req.Bars, strategy, req.Assumptions, mid, len(req.Bars))
 	if err != nil {
 		return Experiment{}, err
 	}
@@ -928,15 +928,19 @@ func validateBacktest(r BacktestRequest) error {
 	return nil
 }
 
-func simulate(b []Bar, st StrategySpec, a Assumptions) (Metrics, error) {
-	return simulateRange(b, st, a, a.TrainEnd, len(b))
+func simulate(ctx context.Context, b []Bar, st StrategySpec, a Assumptions) (Metrics, error) {
+	return simulateRange(ctx, b, st, a, a.TrainEnd, len(b))
 }
-func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, error) {
-	metrics, _, _, err := simulateDetailed(b, st, a, startIndex, endIndex)
+func simulateRange(ctx context.Context, b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, error) {
+	metrics, _, _, err := simulateDetailed(ctx, b, st, a, startIndex, endIndex)
 	return metrics, err
 }
-func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint, error) {
+func simulateDetailed(ctx context.Context, b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint, error) {
 	numbers := researchArithmetic{}
+	prices, err := buildResearchPricePrefix(ctx, b)
+	if err != nil {
+		return Metrics{}, PnLAttribution{}, nil, err
+	}
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -982,6 +986,9 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		previousEquity = equity
 	}
 	for i := startIndex; i < endIndex; i++ {
+		if err := ctx.Err(); err != nil {
+			return Metrics{}, PnLAttribution{}, nil, err
+		}
 		if b[i].Time.Sub(b[i-1].Time) > 2*time.Minute {
 			gaps++
 			recordEquity(i)
@@ -992,8 +999,8 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 			recordEquity(i)
 			continue
 		}
-		f := numbers.averagePrices(b[signalAt-fast+1 : signalAt+1])
-		sma := numbers.averagePrices(b[signalAt-slow+1 : signalAt+1])
+		f := prices.average(&numbers, signalAt-fast+1, signalAt+1)
+		sma := prices.average(&numbers, signalAt-slow+1, signalAt+1)
 		signal := int64(0)
 		if f > sma {
 			signal = 1

@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"math"
 	"math/big"
 )
@@ -50,17 +51,30 @@ func (a *researchArithmetic) productsDiv(divisor int64, products ...[2]int64) in
 	return a.narrow(&result)
 }
 
-func (a *researchArithmetic) averagePrices(bars []Bar) int64 {
-	if len(bars) == 0 {
+type researchPricePrefix []big.Int
+
+func buildResearchPricePrefix(ctx context.Context, bars []Bar) (researchPricePrefix, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	values := make(researchPricePrefix, len(bars)+1)
+	for i, bar := range bars {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		values[i+1].Add(&values[i], big.NewInt(bar.Close))
+	}
+	return values, nil
+}
+
+func (values researchPricePrefix) average(a *researchArithmetic, start, end int) int64 {
+	if start < 0 || end <= start || end >= len(values) {
 		a.invalid = true
 		return 0
 	}
-	var total big.Int
-	for _, bar := range bars {
-		total.Add(&total, big.NewInt(bar.Close))
-	}
-	total.Quo(&total, big.NewInt(int64(len(bars))))
-	return a.narrow(&total)
+	total := new(big.Int).Sub(&values[end], &values[start])
+	total.Quo(total, big.NewInt(int64(end-start)))
+	return a.narrow(total)
 }
 
 func checkedResearchFloat(value float64) (int64, error) {

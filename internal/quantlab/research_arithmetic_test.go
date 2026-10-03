@@ -2,12 +2,57 @@ package quantlab
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math"
+	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestResearchPricePrefixEqualsDirectWideWindowSum(t *testing.T) {
+	data := bars()
+	data[3].Close = math.MaxInt64
+	data[5].Close = math.MaxInt64
+	prefix, err := buildResearchPricePrefix(context.Background(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for start := range data {
+		for end := start + 1; end <= len(data); end++ {
+			var direct big.Int
+			for _, bar := range data[start:end] {
+				direct.Add(&direct, big.NewInt(bar.Close))
+			}
+			direct.Quo(&direct, big.NewInt(int64(end-start)))
+			numbers := researchArithmetic{}
+			got := prefix.average(&numbers, start, end)
+			if numbers.invalid || got != direct.Int64() {
+				t.Fatalf("window[%d:%d] differs: %d vs %s", start, end, got, direct.String())
+			}
+		}
+	}
+}
+
+func BenchmarkResearchPrefixWindowAverage(b *testing.B) {
+	data := make([]Bar, 10000)
+	for i := range data {
+		data[i].Close = int64(100_000_000 + i)
+	}
+	prefix, err := buildResearchPricePrefix(context.Background(), data)
+	if err != nil {
+		b.Fatal(err)
+	}
+	numbers := researchArithmetic{}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = prefix.average(&numbers, 0, len(data))
+	}
+	if numbers.invalid {
+		b.Fatal("unexpected numeric range error")
+	}
+}
 
 func TestResearchFlatPriceBenchmarkDoesNotOverflowIntermediateProduct(t *testing.T) {
 	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json")})
