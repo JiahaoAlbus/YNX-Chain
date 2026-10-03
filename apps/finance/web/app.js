@@ -206,16 +206,19 @@ function opaqueOrderPending(serverTime){
 let brokerWorkspaceDisplay=null;
 let brokerWorkspaceUnavailable=false;
 function brokerWorkflowLabel(value){const key={buy:'brokerBuy',sell:'brokerSell',consumed:'brokerApprovalRecorded',approved:'brokerApprovalRecorded',rejected:'brokerApprovalRejected',revoked:'brokerApprovalRevoked',submitted:'brokerStateSubmitted',submitting:'brokerStateSubmitting',partially_filled:'brokerStatePartial',filled:'brokerStateFilled',cancel_requested:'brokerStateCancelRequested',cancelled:'brokerStateCancelled',pending_unwired:'brokerStateAwaitingActivation',execution_requested:'brokerStateExecutionRequested'}[value];return financeText(key||'brokerStateUnknown')}
+// Go's zero time.Time is serialized despite omitempty. Only that exact server
+// sentinel (or legacy absence) means no record; unknown values remain fenced.
+function brokerCancellationRecorded(value){return value!==undefined&&value!==null&&value!==''&&value!=='0001-01-01T00:00:00Z'}
 function renderBrokerWorkspace(workspace){
   brokerWorkspaceDisplay=workspace;
   renderBrokerSnapshot();
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
   const outbox=new Map((Array.isArray(workspace?.outbox)?workspace.outbox:[]).map(item=>[item.orderId,item]));
   $('#broker-local-orders').innerHTML=brokerWorkspaceUnavailable?`<div class="empty compact">${esc(financeText('brokerLocalOrdersUnavailable'))}</div>`:orders.length?orders.map(record=>{
-    const queued=outbox.get(record.order.orderId),attempted=Boolean(record.cancelAttemptedAt);
+    const queued=outbox.get(record.order.orderId),attempted=brokerCancellationRecorded(record.cancelAttemptedAt);
     const cancelable=['submitted','partially_filled'].includes(record.state)&&!attempted;
     const executable=state.brokerSubmissionEnabled&&record.approvalState==='consumed'&&queued?.status==='pending_unwired';
-    const cancelState=attempted&&['cancel_requested','partially_filled'].includes(record.state)?'brokerCancelReconcile':record.state==='cancel_requested'?(record.cancelIntentAt?'brokerCancelQueued':'brokerCancelLegacy'):null;
+    const cancelState=attempted&&['cancel_requested','partially_filled'].includes(record.state)?'brokerCancelReconcile':record.state==='cancel_requested'?(brokerCancellationRecorded(record.cancelIntentAt)?'brokerCancelQueued':'brokerCancelLegacy'):null;
     const machine=[record.approvalState,record.state,queued?.status].filter(Boolean).join(' · ');
     return `<div class="row"><div class="row-main"><strong>${esc(brokerWorkflowLabel(record.order.side))} ${esc(record.order.qty)} ${esc(record.order.symbol)}</strong><small>${esc(brokerWorkflowLabel(record.approvalState))} · ${esc(brokerWorkflowLabel(record.state))} · ${esc(financeText('brokerRequest'))} ${esc(short(record.requestId))}</small><small>${queued?`${esc(brokerWorkflowLabel(queued.status))} · ${esc(financeText('brokerAttempts'))} ${esc(queued.attempts)}`:esc(financeText('brokerNoOutbox'))}</small>${cancelState?`<small>${esc(financeText(cancelState))}</small>`:''}<details class="order-machine-state"><summary>${esc(financeText('brokerTechnicalStatus'))}</summary><small>${esc(machine)}</small></details></div><div class="row-value">${esc(financeText('brokerMaximum'))} ${esc(record.order.maxCost)} ${esc(financeText('brokerSimulatedUSD'))}<div class="wallet-choice"><button type="button" data-broker-order-refresh="${esc(record.order.orderId)}">${esc(financeText('brokerRefresh'))}</button>${executable?`<button type="button" class="primary" data-broker-order-execute="${esc(record.order.orderId)}">${esc(financeText('brokerRequestExecution'))}</button>`:''}${cancelable?`<button type="button" class="danger" data-broker-order-cancel="${esc(record.order.orderId)}">${esc(financeText('brokerRequestCancel'))}</button>`:''}</div></div></div>`;
   }).join(''):`<div class="empty compact">${esc(financeText('brokerNoLocalOrders'))}</div>`;

@@ -15,6 +15,12 @@ function fixture(){
   vm.runInContext(source,context);
   return {context,requests,renders,run:()=>vm.runInContext('refreshBrokerSnapshot()',context)};
 }
+test('only exact Go zero timestamp or legacy absence means cancellation has no record',()=>{
+  const source=app.slice(app.indexOf('function brokerCancellationRecorded('),app.indexOf('function renderBrokerWorkspace('));
+  const context=vm.createContext({});vm.runInContext(source,context);
+  for(const value of [undefined,null,'','0001-01-01T00:00:00Z'])assert.equal(context.brokerCancellationRecorded(value),false);
+  for(const value of ['2026-10-03T01:00:00Z','invalid','0001-01-01T00:00:00.000Z','0',0,false,NaN,{},[]])assert.equal(context.brokerCancellationRecorded(value),true);
+});
 test('late old-account success and rejection cannot replace the new-account broker view',async()=>{
   for(const fail of [false,true]){
     const f=fixture(),old=f.run();f.context.state.context++;const next=f.run();

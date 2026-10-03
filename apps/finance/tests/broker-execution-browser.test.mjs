@@ -354,7 +354,8 @@ test('AI draft and manual Broker order share one asset-confirmed Wallet approval
 });
 
 test('partially filled Broker order shows one-shot cancellation recovery after browser restart',async()=>{
-  const page=await browser.newPage();let orderState='partially_filled',cancelRequests=0,cancelIntentAt=null,cancelAttemptedAt=null;
+  // Go time.Time with omitempty serializes its zero value, not null/absence.
+  const page=await browser.newPage();let orderState='partially_filled',cancelRequests=0,cancelIntentAt='0001-01-01T00:00:00Z',cancelAttemptedAt='0001-01-01T00:00:00Z';
   page.on('dialog',dialog=>dialog.accept());
   const workspaceResponse=()=>({schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[{requestId:'request-fixture',approvalState:'consumed',state:orderState,cancelIntentAt,cancelAttemptedAt,order:{orderId,symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[{orderId,status:'submitted',attempts:1}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'},providerWriteAttempted:false});
   await page.route('**/api/broker/orders',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(workspaceResponse())}));
@@ -382,7 +383,7 @@ test('partially filled Broker order shows one-shot cancellation recovery after b
     assert.match(await page.locator('#broker-local-orders').textContent(),/do not resend/);
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#broker-local-orders').textContent(),/不得再次发送/);
-    orderState='cancel_requested';cancelIntentAt=null;cancelAttemptedAt=null;
+    orderState='cancel_requested';cancelIntentAt='0001-01-01T00:00:00Z';cancelAttemptedAt='0001-01-01T00:00:00Z';
     await page.reload();
     await page.waitForFunction(()=>document.querySelector('#broker-local-orders')?.textContent.includes('cancel_requested'));
     assert.match(await page.locator('#broker-local-orders').textContent(),/旧版撤单状态无法判定/);
