@@ -9,6 +9,43 @@ import {privateSessionCopy,privateSessionLocales} from '../web/private-session-c
 // cookie/PKCE/native proof/durable ownership is independently tested in Go.
 const ORIGIN='https://quant.ynxweb4.com',ACCOUNT='ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80';
 const built=await build({stdin:{contents:"import * as identity from './browser-sso.js';window.identityQA=identity;identity.mountBrowserSSO();",resolveDir:fileURLToPath(new URL('../web/',import.meta.url))},bundle:true,write:false,format:'iife',platform:'browser'});
+test('real Chrome retires late identity reads at logout, coalesces exit and permits an unconfirmed retry',async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  try{for(const oldStatus of [200,401,503]){
+    const context=await browser.newContext(),page=await context.newPage(),reads=[],logouts=[];let hold=false,readCount=0;
+    const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.addInitScript(()=>{window.identityChanges=0;window.addEventListener('ynx:quant-wallet-context',event=>{if(event.detail?.identityChanged)window.identityChanges++})});
+    await context.route('**/*',async route=>{
+      const r=route.request(),url=new URL(r.url());assert.equal(url.origin,ORIGIN);
+      if(url.pathname==='/bundle.js')return route.fulfill({contentType:'text/javascript',body:Buffer.from(built.outputFiles[0].contents)});
+      if(url.pathname==='/api/v1/sso/config')return route.fulfill({json:{enabled:true}});
+      if(url.pathname==='/api/v1/sso/account'){
+        readCount++;const body={signedIn:true,account:ACCOUNT,csrfToken:'fixture-csrf',privateWorkspaceAuthorized:false};
+        if(hold){await new Promise(resolve=>reads.push(resolve));return route.fulfill({status:oldStatus,json:oldStatus===200?body:{code:'SSO_LOGIN_REQUIRED'}})}
+        return route.fulfill({json:body});
+      }
+      if(url.pathname==='/api/v1/sso/logout'){
+        assert.equal(r.method(),'POST');assert.equal(r.headers()['x-ynx-sso-csrf'],'fixture-csrf');assert.equal(r.postData(),'{}');
+        const response=await new Promise(resolve=>logouts.push(resolve));return route.fulfill(response);
+      }
+      return route.fulfill({contentType:'text/html',body:'<button id="browser-signin"></button><button id="browser-signout"></button><small id="browser-identity"></small><script src="/bundle.js"></script>'});
+    });
+    await page.goto(ORIGIN);await page.waitForFunction(()=>document.getElementById('browser-identity').textContent.includes('ynx1'));
+    hold=true;await page.evaluate(()=>{window.oldIdentityRead=identityQA.recheckBrowserIdentity()});
+    for(let i=0;!reads.length&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,10));assert.equal(reads.length,1);
+    const coalesced=await page.evaluate(()=>{window.logoutPending=identityQA.signOutBrowserIdentity();return logoutPending===identityQA.signOutBrowserIdentity()&&logoutPending===identityQA.recheckBrowserIdentity()});assert.equal(coalesced,true);
+    for(let i=0;!logouts.length&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,10));assert.equal(logouts.length,1);assert.equal(await page.locator('#browser-signout').isDisabled(),true);
+    const before=readCount;await page.evaluate(()=>window.dispatchEvent(new Event('focus')));assert.equal(readCount,before);
+    if(oldStatus===503){
+      logouts[0]({status:503,json:{revoked:false}});await page.evaluate(()=>logoutPending);assert.match(await page.locator('#browser-identity').textContent(),/ynx1/);assert.equal(await page.locator('#browser-signout').isEnabled(),true);assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.browser-identity.explicit-logout.v1')),null);
+      await page.evaluate(()=>{window.logoutPending=identityQA.signOutBrowserIdentity()});for(let i=0;logouts.length<2&&i<100;i++)await new Promise(resolve=>setTimeout(resolve,10));assert.equal(logouts.length,2);logouts[1]({json:{revoked:true}});
+    }else logouts[0]({json:{revoked:true}});
+    await page.evaluate(()=>logoutPending);reads[0]();await page.evaluate(()=>oldIdentityRead);
+    assert.equal(await page.locator('#browser-signout').isHidden(),true);assert.doesNotMatch(await page.locator('#browser-identity').textContent(),/ynx1/);assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.browser-identity.explicit-logout.v1')),'true');assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+    assert.equal(await page.evaluate(()=>window.identityChanges),1,'one confirmed logout event; no retired read can fire an old account event');
+    await context.close();
+  }}finally{await browser.close()}
+});
 test('guest identity rechecks preserve research drafts and target without automatic SSO or Wallet requests',async()=>{
   const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});try{
     const context=await browser.newContext(),page=await context.newPage();let accountStatus=401,configStatus=200,starts=0,writes=0;
