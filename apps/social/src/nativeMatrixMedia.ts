@@ -14,6 +14,7 @@ export type MatrixMediaPort = Readonly<{
 export class MatrixMediaPreview {
   private epoch = 0;
   private visible?: MatrixMediaLease;
+  private readonly pendingRelease = new Set<string>();
   constructor(private readonly port: MatrixMediaPort,
     private readonly currentAndAccepted: (roomId: string) => Promise<void>,
     private readonly maximumBytes = 32 * 1024 * 1024) {}
@@ -21,7 +22,8 @@ export class MatrixMediaPreview {
   async open(roomId: string, eventId: string): Promise<MatrixMediaLease> {
     const attempt = ++this.epoch;
     const previous = this.visible; this.visible = undefined;
-    if (previous) await this.port.release(previous.leaseId);
+    if (previous) this.pendingRelease.add(previous.leaseId);
+    await this.flushRelease();
     await this.currentAndAccepted(roomId);
     if (attempt !== this.epoch) throw new Error('MATRIX_MEDIA_RETIRED');
     const lease = await this.port.open(roomId, eventId);
@@ -40,7 +42,7 @@ export class MatrixMediaPreview {
       this.visible = Object.freeze({ ...lease }); retained = true;
       return this.visible;
     } finally {
-      if (!retained && lease?.leaseId) await this.port.release(lease.leaseId);
+      if (!retained && lease?.leaseId) await this.releaseLease(lease.leaseId);
     }
   }
 
@@ -49,6 +51,17 @@ export class MatrixMediaPreview {
   async close(): Promise<void> {
     ++this.epoch;
     const original = this.visible; this.visible = undefined;
-    if (original) await this.port.release(original.leaseId);
+    if (original) this.pendingRelease.add(original.leaseId);
+    await this.flushRelease();
+  }
+
+  private async releaseLease(leaseId: string): Promise<void> {
+    this.pendingRelease.add(leaseId);
+    await this.port.release(leaseId);
+    this.pendingRelease.delete(leaseId);
+  }
+
+  private async flushRelease(): Promise<void> {
+    for (const leaseId of [...this.pendingRelease]) await this.releaseLease(leaseId);
   }
 }
