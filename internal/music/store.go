@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const currentStateSchemaVersion = 2
+const currentStateSchemaVersion = 3
 
 type stateDocumentHeader struct {
 	SchemaVersion int `json:"schemaVersion"`
@@ -25,6 +25,7 @@ type stateMigration func(json.RawMessage) (json.RawMessage, error)
 // opportunistically.
 var stateMigrationRegistry = map[int]stateMigration{
 	1: migrateStateV1ToV2,
+	2: migrateStateV2ToV3,
 }
 
 func newState() persistentState {
@@ -32,6 +33,9 @@ func newState() persistentState {
 }
 
 func loadState(path, mediaDir string) (persistentState, bool, error) {
+	return loadStateMode(path, mediaDir, true)
+}
+func loadStateMode(path, mediaDir string, persistMigration bool) (persistentState, bool, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return newState(), false, nil
@@ -57,6 +61,16 @@ func loadState(path, mediaDir string) (persistentState, bool, error) {
 	if err := verifyAuditChain(state.Audit); err != nil {
 		return persistentState{}, false, err
 	}
+	if len(state.BusinessNonces) > 4096 || len(state.BusinessNonces) > 0 && (state.BusinessClock == nil || state.BusinessClock.IsZero()) {
+		return persistentState{}, false, errors.New("music business replay metadata is invalid")
+	}
+	for key, entry := range state.BusinessNonces {
+		parts := strings.Split(key, ":")
+		actor, actorErr := normalizeActor(entry.Actor)
+		if len(parts) != 2 || !digestPattern.MatchString(parts[0]) || !musicProofNonce.MatchString(parts[1]) || actorErr != nil || actor != entry.Actor || !validSHA256Hex(entry.BodyDigest) || entry.ExpiresAt.IsZero() {
+			return persistentState{}, false, errors.New("music business replay entry is invalid")
+		}
+	}
 	for id, track := range state.Tracks {
 		if track.ID != id || !validStoredTrackID(id) {
 			return persistentState{}, false, fmt.Errorf("music track identity is invalid: %q", id)
@@ -75,7 +89,7 @@ func loadState(path, mediaDir string) (persistentState, bool, error) {
 		}
 		state.Tracks[id] = track
 	}
-	if originalHeader.SchemaVersion != currentStateSchemaVersion {
+	if persistMigration && originalHeader.SchemaVersion != currentStateSchemaVersion {
 		if err := saveState(path, &state); err != nil {
 			return persistentState{}, false, fmt.Errorf("persist migrated music state: %w", err)
 		}
@@ -271,4 +285,26 @@ func stateIntegrity(state persistentState) (string, error) {
 	}
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:]), nil
+}
+
+// Verify the original document before adding the replay ledger; old content,
+// audit, idempotency and media metadata are preserved. Old binaries reject v3.
+func migrateStateV2ToV3(raw json.RawMessage) (json.RawMessage, error) {
+	var original persistentState
+	if err := json.Unmarshal(raw, &original); err != nil || original.SchemaVersion != 2 || original.IntegrityHash == "" {
+		return nil, errors.New("music state schema v2 document is invalid")
+	}
+	expected, err := stateIntegrity(original)
+	if err != nil || expected != original.IntegrityHash {
+		return nil, errors.New("music state schema v2 integrity verification failed")
+	}
+	if err = verifyAuditChain(original.Audit); err != nil {
+		return nil, err
+	}
+	original.SchemaVersion = 3
+	original.IntegrityHash, err = stateIntegrity(original)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(original)
 }

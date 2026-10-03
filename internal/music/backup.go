@@ -84,13 +84,14 @@ func RestoreBackup(backupDir, statePath, mediaDir string) error {
 			return fmt.Errorf("restore music media %s: %w", object.Name, err)
 		}
 	}
-	if _, exists, err := loadState(tmpState, tmpMedia); err != nil || !exists {
+	restored, exists, err := loadState(tmpState, tmpMedia)
+	if err != nil || !exists {
 		if err == nil {
 			err = errors.New("restored music state is missing")
 		}
 		return fmt.Errorf("verify restored music backup: %w", err)
 	}
-	if state.SchemaVersion != manifest.StateSchemaVersion || state.IntegrityHash != manifest.StateIntegrityHash {
+	if restored.SchemaVersion != state.SchemaVersion || restored.IntegrityHash != state.IntegrityHash {
 		return errors.New("restored music backup state metadata mismatch")
 	}
 	if err := os.Rename(tmpMedia, mediaDir); err != nil {
@@ -183,7 +184,7 @@ func verifyBackup(backupDir string) (BackupManifest, persistentState, error) {
 	if manifest.SchemaVersion != backupManifestSchemaVersion || manifest.CreatedAt.IsZero() || manifest.StateSchemaVersion <= 0 || !validSHA256Hex(manifest.StateIntegrityHash) || !validSHA256Hex(manifest.StateSHA256) || manifest.StateBytes <= 0 || manifest.Media == nil {
 		return BackupManifest{}, persistentState{}, errors.New("music backup manifest fields are invalid")
 	}
-	if manifest.StateCompatibility != nil && (!validStateCompatibility(*manifest.StateCompatibility) || manifest.StateCompatibility.CurrentSchemaVersion != manifest.StateSchemaVersion) {
+	if manifest.StateCompatibility != nil && (!validBackupStateCompatibility(*manifest.StateCompatibility) || manifest.StateCompatibility.CurrentSchemaVersion != manifest.StateSchemaVersion) {
 		return BackupManifest{}, persistentState{}, errors.New("music backup state compatibility policy is invalid")
 	}
 	statePath := filepath.Join(backupDir, "state.json")
@@ -194,15 +195,24 @@ func verifyBackup(backupDir string) (BackupManifest, persistentState, error) {
 	if stateHash != manifest.StateSHA256 || stateBytes != manifest.StateBytes {
 		return BackupManifest{}, persistentState{}, errors.New("music backup state digest mismatch")
 	}
-	state, exists, err := loadState(statePath, filepath.Join(backupDir, "media"))
+	raw, err := os.ReadFile(statePath)
+	if err != nil {
+		return BackupManifest{}, persistentState{}, err
+	}
+	var original persistentState
+	if err := json.Unmarshal(raw, &original); err != nil {
+		return BackupManifest{}, persistentState{}, err
+	}
+	expected, err := stateIntegrity(original)
+	if err != nil || expected != original.IntegrityHash || original.SchemaVersion != manifest.StateSchemaVersion || original.IntegrityHash != manifest.StateIntegrityHash {
+		return BackupManifest{}, persistentState{}, errors.New("music backup state metadata mismatch")
+	}
+	state, exists, err := loadStateMode(statePath, filepath.Join(backupDir, "media"), false)
 	if err != nil || !exists {
 		if err == nil {
 			err = errors.New("music backup state is missing")
 		}
 		return BackupManifest{}, persistentState{}, fmt.Errorf("verify music backup state: %w", err)
-	}
-	if state.SchemaVersion != manifest.StateSchemaVersion || state.IntegrityHash != manifest.StateIntegrityHash {
-		return BackupManifest{}, persistentState{}, errors.New("music backup state metadata mismatch")
 	}
 	expectedNames := referencedMediaNames(state)
 	if len(expectedNames) != len(manifest.Media) {

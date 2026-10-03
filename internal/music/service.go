@@ -27,10 +27,14 @@ var safeOutputLanguage = regexp.MustCompile(`^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8}){0
 
 var errIdempotentReplay = fmt.Errorf("music idempotent replay")
 
-type Service struct {
-	cfg   Config
+type musicStateStore struct {
 	mu    sync.RWMutex
 	state persistentState
+}
+type Service struct {
+	cfg Config
+	*musicStateStore
+	business *musicBusinessLease
 }
 
 type Upload struct {
@@ -69,7 +73,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Service{cfg: cfg, state: state}
+	s := &Service{cfg: cfg, musicStateStore: &musicStateStore{state: state}}
 	if !exists {
 		if err := saveState(cfg.StatePath, &s.state); err != nil {
 			return nil, err
@@ -110,6 +114,11 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 	if err := fn(&next); err != nil {
 		return err
 	}
+	if s.business != nil {
+		if err := s.business.commit(actor, &next, s.cfg.Now); err != nil {
+			return err
+		}
+	}
 	now := s.cfg.Now().UTC()
 	prev := ""
 	if n := len(next.Audit); n > 0 {
@@ -122,6 +131,9 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 		return err
 	}
 	s.state = next
+	if s.business != nil {
+		s.business.consumed = true
+	}
 	return nil
 }
 

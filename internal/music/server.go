@@ -49,29 +49,29 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("POST /api/auth/wallet-v1/challenge", s.walletChallenge)
 	s.mux.HandleFunc("POST /api/auth/wallet-v1/session", s.walletSession)
-	s.mux.HandleFunc("GET /api/me", s.api("music.profile", s.me))
-	s.mux.HandleFunc("PUT /api/profile", s.api("music.profile", s.profile))
-	s.mux.HandleFunc("POST /api/creator/onboarding", s.api("music.creator", s.creator))
-	s.mux.HandleFunc("POST /api/creator/tracks", s.api("music.creator", s.upload))
-	s.mux.HandleFunc("POST /api/creator/tracks/{id}/release", s.api("music.creator", s.release))
-	s.mux.HandleFunc("GET /api/catalog", s.api("music.library", s.catalog))
-	s.mux.HandleFunc("GET /api/tracks/{id}", s.api("music.library", s.track))
-	s.mux.HandleFunc("GET /api/tracks/{id}/media", s.api("music.playback", s.media))
-	s.mux.HandleFunc("GET /api/tracks/{id}/artwork", s.api("music.library", s.artwork))
-	s.mux.HandleFunc("PUT /api/library", s.api("music.library", s.library))
-	s.mux.HandleFunc("POST /api/playback/{id}/position", s.api("music.playback", s.position))
-	s.mux.HandleFunc("POST /api/playlists", s.api("music.library", s.playlist))
-	s.mux.HandleFunc("GET /api/playlists", s.api("music.library", s.playlists))
-	s.mux.HandleFunc("GET /api/playlists/{id}", s.api("music.library", s.readPlaylist))
-	s.mux.HandleFunc("PUT /api/playlists/{id}", s.api("music.library", s.updatePlaylist))
-	s.mux.HandleFunc("POST /api/cases", s.api("music.profile", s.openCase))
-	s.mux.HandleFunc("POST /api/creator/allocations", s.api("music.creator", s.allocate))
-	s.mux.HandleFunc("POST /api/creator/settlements", s.api("music.creator", s.settlement))
-	s.mux.HandleFunc("POST /api/ai/proposals", s.api("music.library", s.aiProposal))
-	s.mux.HandleFunc("GET /api/ai/proposals/{id}", s.api("music.library", s.readAIProposal))
-	s.mux.HandleFunc("GET /api/ai/status", s.api("music.library", s.aiStatus))
-	s.mux.HandleFunc("GET /api/ai/proposals/{id}/stream", s.api("music.library", s.aiStream))
-	s.mux.HandleFunc("POST /api/ai/proposals/{id}/review", s.api("music.library", s.aiReview))
+	s.mux.HandleFunc("GET /api/me", s.api("music.profile", (*Server).me))
+	s.mux.HandleFunc("PUT /api/profile", s.api("music.profile", (*Server).profile))
+	s.mux.HandleFunc("POST /api/creator/onboarding", s.api("music.creator", (*Server).creator))
+	s.mux.HandleFunc("POST /api/creator/tracks", s.api("music.creator", (*Server).upload))
+	s.mux.HandleFunc("POST /api/creator/tracks/{id}/release", s.api("music.creator", (*Server).release))
+	s.mux.HandleFunc("GET /api/catalog", s.api("music.library", (*Server).catalog))
+	s.mux.HandleFunc("GET /api/tracks/{id}", s.api("music.library", (*Server).track))
+	s.mux.HandleFunc("GET /api/tracks/{id}/media", s.api("music.playback", (*Server).media))
+	s.mux.HandleFunc("GET /api/tracks/{id}/artwork", s.api("music.library", (*Server).artwork))
+	s.mux.HandleFunc("PUT /api/library", s.api("music.library", (*Server).library))
+	s.mux.HandleFunc("POST /api/playback/{id}/position", s.api("music.playback", (*Server).position))
+	s.mux.HandleFunc("POST /api/playlists", s.api("music.library", (*Server).playlist))
+	s.mux.HandleFunc("GET /api/playlists", s.api("music.library", (*Server).playlists))
+	s.mux.HandleFunc("GET /api/playlists/{id}", s.api("music.library", (*Server).readPlaylist))
+	s.mux.HandleFunc("PUT /api/playlists/{id}", s.api("music.library", (*Server).updatePlaylist))
+	s.mux.HandleFunc("POST /api/cases", s.api("music.profile", (*Server).openCase))
+	s.mux.HandleFunc("POST /api/creator/allocations", s.api("music.creator", (*Server).allocate))
+	s.mux.HandleFunc("POST /api/creator/settlements", s.api("music.creator", (*Server).settlement))
+	s.mux.HandleFunc("POST /api/ai/proposals", s.api("music.library", (*Server).aiProposal))
+	s.mux.HandleFunc("GET /api/ai/proposals/{id}", s.api("music.library", (*Server).readAIProposal))
+	s.mux.HandleFunc("GET /api/ai/status", s.api("music.library", (*Server).aiStatus))
+	s.mux.HandleFunc("GET /api/ai/proposals/{id}/stream", s.api("music.library", (*Server).aiStream))
+	s.mux.HandleFunc("POST /api/ai/proposals/{id}/review", s.api("music.library", (*Server).aiReview))
 	s.mux.HandleFunc("GET /wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Referrer-Policy", "no-referrer")
@@ -176,12 +176,16 @@ func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, session)
 }
 
-type apiHandler func(http.ResponseWriter, *http.Request, string)
+type apiHandler func(*Server, http.ResponseWriter, *http.Request, string)
 
 func (s *Server) api(requiredScope string, next apiHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !s.allow(r.RemoteAddr) {
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "music API rate limit exceeded"})
+			return
+		}
+		if r.Header.Get("X-YNX-Product-Session-Proof-V2") != "" || r.Header.Get("X-YNX-Music-Business-Proof-V2") != "" {
+			s.businessAPI(w, r, requiredScope, next)
 			return
 		}
 		sessionBinding := strings.TrimSpace(r.Header.Get("X-YNX-App-Session"))
@@ -196,7 +200,7 @@ func (s *Server) api(requiredScope string, next apiHandler) http.HandlerFunc {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Wallet product session expired, revoked, tampered or lacks scope"})
 			return
 		}
-		next(w, r, output.Session.Account)
+		next(s, w, r, output.Session.Account)
 	}
 }
 func (s *Server) me(w http.ResponseWriter, r *http.Request, a string) {
