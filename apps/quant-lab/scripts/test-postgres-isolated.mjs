@@ -34,6 +34,13 @@ async function port() {
 }
 const receipt={classification:'ISOLATED_NATIVE_POSTGRES_QA_NOT_PUBLIC_ACCEPTANCE',root,testsPassed:false,serverStopped:false,productionDatabaseUsed:false};
 let started=false, dataIdentity=null, pidReceipt=null, failure=null;
+async function stopOwnedCluster(phase) {
+  const current=await lstat(data), pid=await readFile(path.join(data,'postmaster.pid'));
+  if(current.isSymbolicLink() || current.dev!==dataIdentity.dev || current.ino!==dataIdentity.ino || !pid.equals(pidReceipt)) throw Error('QA cluster identity changed; refuse unrelated process stop.');
+  requireSuccess(await run(phase,path.join(bin,'pg_ctl'),['-D',data,'-m','fast','-w','-t','20','stop']));
+  try {await lstat(path.join(data,'postmaster.pid'));throw Error('QA postmaster PID remains.');} catch(error) {if(error.code!=='ENOENT')throw error;}
+  started=false;
+}
 try {
   receipt.serverVersion=requireSuccess(await run('version',path.join(bin,'postgres'),['--version'])).stdout.trim();
   requireSuccess(await run('initdb',path.join(bin,'initdb'),['-D',data,'--no-locale','--encoding=UTF8','--username=ynx_quant_qa','--auth-local=trust','--auth-host=trust']));
@@ -53,6 +60,20 @@ try {
   const result=requireSuccess(await run('integration','go',['test','-race','./internal/quantlab','-run','^(TestPostgreSQL|TestFinanceReadPostgres)','-count=2','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/quant_isolated_qa?sslmode=disable`}));
   if(result.stdout.includes('--- SKIP:') || required.some(name=>(result.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==2)) throw Error('All four actual PostgreSQL gates must execute twice, not skip.');
   receipt.integrationPasses=8;
+  const sql=async (phase,query)=>requireSuccess(await run(phase,path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-v','ON_ERROR_STOP=1','-At','-c',query])).stdout.trim();
+  await sql('restart-probe-create',"CREATE TABLE qa_restart_probe (value TEXT NOT NULL); INSERT INTO qa_restart_probe VALUES ('isolated_restart_receipt')");
+  await stopOwnedCluster('restart-stop');
+  const restartResult=await run('restart-start',path.join(bin,'pg_ctl'),['-D',data,'-w','-t','20','-l',path.join(root,'postgres.log'),'-o',`-h 127.0.0.1 -p ${receipt.port} -k ${socket}`,'start']);
+  try {pidReceipt=await readFile(path.join(data,'postmaster.pid'));started=true;} catch(error) {if(error.code!=='ENOENT')throw error;}
+  requireSuccess(restartResult);
+  if(!started)throw Error('Restarted QA server has no identity receipt.');
+  if(await sql('restart-probe-read','SELECT value FROM qa_restart_probe')!=='isolated_restart_receipt')throw Error('Database restart lost durable fixture receipt.');
+  await sql('restart-probe-drop','DROP TABLE qa_restart_probe');
+  receipt.databaseRestartVerified=true;
+  const full=requireSuccess(await run('full-regression','go',['test','-race','./internal/quantlab','./internal/readintegration','-count=1','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/quant_isolated_qa?sslmode=disable`}));
+  if(required.some(name=>(full.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==1))throw Error('Full regression did not execute every actual database gate.');
+  receipt.fullRegressionPassed=true;
+  receipt.fullRegressionPasses=(full.stdout.match(/^--- PASS: /gm)||[]).length;
   receipt.remainingRows=requireSuccess(await run('row-receipt',path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-At','-c','SELECT (SELECT count(*) FROM ynx_quant_state),(SELECT count(*) FROM ynx_quant_finance_read_nonces)'])).stdout.trim();
   if(receipt.remainingRows!=='0|0') throw Error('Integration left fixture state/nonce rows behind.');
   receipt.testsPassed=true;
@@ -60,10 +81,7 @@ try {
 finally {
   if(started) {
     try {
-      const current=await lstat(data), pid=await readFile(path.join(data,'postmaster.pid'));
-      if(current.isSymbolicLink() || current.dev!==dataIdentity.dev || current.ino!==dataIdentity.ino || !pid.equals(pidReceipt)) throw Error('QA cluster identity changed; refuse unrelated process stop.');
-      requireSuccess(await run('stop',path.join(bin,'pg_ctl'),['-D',data,'-m','fast','-w','-t','20','stop']));
-      try {await lstat(path.join(data,'postmaster.pid'));throw Error('QA postmaster PID remains.');} catch(error) {if(error.code!=='ENOENT')throw error;}
+      await stopOwnedCluster('stop');
       receipt.serverStopped=true;
     } catch(error) {receipt.stopFailure=error.message;failure??=error.message;}
   }
