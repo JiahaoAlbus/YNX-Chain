@@ -1,0 +1,117 @@
+
+> check
+> node --check app.js && node --check wallet-auth.js && node --check standard-wallet-connect-state.js && node --check build.mjs && node --test *.test.mjs
+
+✔ studio exposes recovery, team, rights, revenue and bounded AI workflows (5.401666ms)
+✔ Creator serves its complete runtime but does not expose source receipts or build scripts (105.482666ms)
+
+Interrupted while running:
+
+⚠ signout.test.mjs (signout.test.mjs:1:1)
+⚠ wallet-connect.test.mjs (wallet-connect.test.mjs:1:1)
+✔ sign out releases a private request whose proof provider never settles (10.6625ms)
+✔ multipart upload is sent once when its network result is unknown (0.597958ms)
+✔ caller cancellation aborts the request and cannot trigger automatic retry (2.233917ms)
+✔ upload hashes a stable form snapshot and cancel while hashing sends no request (1.028584ms)
+✔ a saved failed upload recovers its original content record without resending the file (0.6025ms)
+✔ upload proof failure never claims a matching historical file is this saved upload (0.406292ms)
+▶ upload recovery requires the exact service ID, source hash and authorized channel
+  ✔ missing service ID (0.417417ms)
+  ✔ invalid service ID (0.242708ms)
+  ✔ different record ID (0.309959ms)
+  ✔ different source hash (0.251708ms)
+  ✔ different channel (0.822458ms)
+✔ upload recovery requires the exact service ID, source hash and authorized channel (2.460958ms)
+▶ an old AI stream fallback cannot replace a newly selected job
+  ✔ stream-error (1.232041ms)
+  ✔ stream-ended (0.44775ms)
+✔ an old AI stream fallback cannot replace a newly selected job (1.83ms)
+▶ late AI cancel, review and delete replies cannot alter a newer selection
+  ✔ ai-cancel after selecting another ID (0.46375ms)
+  ✔ ai-cancel after reselecting the old ID (0.399583ms)
+  ✔ ai-accept after selecting another ID (0.364ms)
+  ✔ ai-accept after reselecting the old ID (0.826167ms)
+  ✔ ai-reject after selecting another ID (0.275333ms)
+  ✔ ai-reject after reselecting the old ID (0.241792ms)
+  ✔ ai-delete after selecting another ID (0.280375ms)
+  ✔ ai-delete after reselecting the old ID (0.204834ms)
+✔ late AI cancel, review and delete replies cannot alter a newer selection (3.42275ms)
+✔ newer AI preparation wins when earlier creation completes late (0.442625ms)
+✔ sign out immediately clears every private view and form while revocation is pending (0.527625ms)
+✔ a 401 with no studio snapshot still permits complete sign out (0.189916ms)
+✔ a studio response arriving after sign out cannot restore account data or replace its status (0.559ms)
+✔ an old account response cannot overwrite a newly signed-in account (1.1755ms)
+✔ proof creation completing after sign out never sends an authenticated business request (0.196334ms)
+✔ a late channel mutation response cannot refill channel output and upload forms (0.59575ms)
+✔ AI stream chunks after sign out are discarded and their reader is cancelled (0.622083ms)
+✔ a restored session arriving after sign out cannot reconnect the page (0.639083ms)
+✔ missing analytics and nullable audit lists render empty values without throwing (0.492709ms)
+✔ failed revocation keeps private views empty and offers an explicit sign-out retry (0.230084ms)
+✔ prepared Wallet link becomes visible and focused after its exact URL is set (2.489416ms)
+✔ a stored pending logout stays explicit after page restore and blocks new Creator approval (0.537708ms)
+✔ a Creator sign-in racing initial restore retains explicit SDK pending logout controls (1.790208ms)
+✖ normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace (1.458875ms)
+✖ Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection (0.664208ms)
+✔ Switch Creator account finishes original revocation before offering a new approval (0.326417ms)
+✖ signout.test.mjs (187933.10625ms)
+✔ Creator consumes the exact shared Standard Wallet reducer boundary (1.15475ms)
+✔ late legacy injection is re-read after ethereum#initialized (251.229583ms)
+✔ empty accountsChanged disconnects instead of becoming an invalid-account error (0.226667ms)
+✔ wallet UI uses distinct image assets and same-tab provider flow (2.014833ms)
+ℹ tests 48
+ℹ suites 0
+ℹ pass 45
+ℹ fail 2
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 187938.982333
+
+✖ failing tests:
+
+test at signout.test.mjs:452:1
+✖ normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace (1.458875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   {
+  -     method: 'ynx_requestProductSessionV2',
+  -     params: [
+  -       'test:creator-signin'
+  -     ]
+  -   }
+  - ]
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:459:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ { method: 'ynx_requestProductSessionV2', params: [Array] } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at signout.test.mjs:461:1
+✖ Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection (0.664208ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /rejected/. Input:
+  
+  'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:468:74)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.',
+    expected: /rejected/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at signout.test.mjs:1:1
+✖ signout.test.mjs (187933.10625ms)
+  'Promise resolution is still pending but the event loop has already resolved'

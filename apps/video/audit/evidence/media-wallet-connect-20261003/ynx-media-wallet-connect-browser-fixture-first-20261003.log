@@ -1,0 +1,9 @@
+PASS video actual UI: cancel/late transport creates no approval, actual15s timeout, explicit alternative Wallet selectable; synthetic transport only
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#product-connect')[22m
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/wallet-connection-browser-check.cjs:10:85
+    at async /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/wallet-connection-browser-check.cjs:4:69 {
+  name: 'TimeoutError'
+}

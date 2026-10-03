@@ -1,0 +1,19 @@
+PASS video actual UI: cancel/late transport creates no approval, actual15s timeout, explicit alternative Wallet selectable; synthetic transport only
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ [
++   'i18n unavailable'
++ ]
+- []
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/wallet-connection-browser-check.cjs:11:480
+    at async Promise.all (index 1)
+    at async /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/wallet-connection-browser-check.cjs:4:69 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: [Array],
+  expected: [],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}

@@ -1,0 +1,12 @@
+✔ Video transport invokes synchronously, releases cancelled and late connections, and rejects late identity (1.814541ms)
+✔ Video real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15001.3435ms)
+✔ Creator Studio transport invokes synchronously, releases cancelled and late connections, and rejects late identity (1.578084ms)
+✔ Creator Studio real 15 second deadline settles an ignored transport, safe cleanup and new attempt succeed (15000.49625ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30052.861084

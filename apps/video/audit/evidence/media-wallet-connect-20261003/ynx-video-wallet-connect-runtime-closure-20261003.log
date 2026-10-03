@@ -1,0 +1,2 @@
+Manifest keys: ['dependencyModel', 'entrypoint', 'files', 'listen', 'schemaVersion', 'sourceCommit', 'topology']
+PASS immutable runtime bytes for app/session-events/API/product-session and 19 literal relative static import edges; no browser execution claimed

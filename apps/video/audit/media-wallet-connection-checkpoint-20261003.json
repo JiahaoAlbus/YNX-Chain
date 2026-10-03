@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-03",
+  "sourceCommit": "fa41ef0a380e61326f40c3049801e8f4b4a4be8f",
+  "sourceTree": "9e24903897e61da2731d4376e7a4a40d77ddecd7",
+  "parentCheckpoint": "4ffaadca8d035afe205fe702c58b9b3089acd2e5",
+  "formalObservation": {
+    "method": "Actual fresh in-app browser public Video normal selector, selected Web Wallet, observed browser inventory and later AX state, cancelled through normal visible control; no secrets, synthetic authority, overrides or grant injection",
+    "sourceCommitObserved": "d56a685a2ca4b29508c36e89e4f0fb266523aaa3",
+    "publicAppSHA256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+    "sdkSourceCommitObserved": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "result": "Web Wallet remained at connection stage; no separate Wallet tab opened in observed inventory; no private approval or business readback verified; Cancel returned to guest catalog",
+    "rootCause": "NOT_ESTABLISHED; no diagnosis of vault/keys/account corruption",
+    "currentOwnedSourceDeployed": false
+  },
+  "changes": [
+    "Video and Creator invoke original Wallet transport synchronously in user click but establish connection under actual15-second product deadline and cancellation/generation fence; failed/late transports request original suspend/cancel cleanup, never reach private approval after cancellation",
+    "Original Wallet approval/SDK/grant contract retained; timeout leaves explicit Choose another wallet available and no automatic retry",
+    "Video runtime builder now includes existing required session-events.js; Creator already included it; exact frozen Video runtime built with19 literal relative static-import edges closed"
+  ],
+  "validation": {
+    "video": "PASS116 checks0fail/skip plus12locale audit",
+    "creator": "PASS61 checks0fail/skip after adding actual new helper to original executable controller dependency fixture",
+    "browser": "PASS actual shipped Video and Creator UI in isolated Chromium with synthetic transport/authority: cancelled late connect never dispatches approval, actual15s deadline, alternative selector visible; not actual Wallet acceptance",
+    "runtime": "PASS exact fa41 frozen runtime build510470bytes SHAe55c00dc7dfe8eb394f58c02e4b5db89eb449f5fe8d80cbc4f24df90bd2f3a1f; app/session-events/API/product-session bytes match Git;19 literal static-relative import edges only, no executed packaged runtime claim"
+  },
+  "retainedDiagnostics": [
+    "Initial browser fixture used wrong Creator button ID and lacked original shared Video i18n catalog route; retained both failures then corrected fixture only",
+    "Initial full Creator controller fixture omitted new imported helper; original test child remained live without progress and was explicitly terminated143 after diagnosis; focused first-test probe passed and corrected full original61 tests passed. Not counted as a completed original run"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-media-connect-attempts-20261003.log",
+      "sha256": "15b7bc723defea2c65b009202873fa0338cbec6a43b1f69df39eb93b9650ba61",
+      "bytes": 614
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-connect-final-20261003.log",
+      "sha256": "3c7efbfd1c89d5833355c7ced087fc7739fbf7d1657b25bc0feec0606d2a0f20",
+      "bytes": 12684
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-creator-connect-final-20261003.log",
+      "sha256": "05d5af3c4212341a0c30de7c28f1658ccbea5e97a506b9a484613ab4a6437c3e",
+      "bytes": 6371
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-creator-connect-corrected-final-20261003.log",
+      "sha256": "931db0c6965a555de738389eb8a9ba9a6e0f280a5ac93019674cad5990786057",
+      "bytes": 5519
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-creator-connect-test-diagnostic-20261003.log",
+      "sha256": "d0af46363e927d7f5b9797d9113cd43c66287980c787cbbd3082a459309c0748",
+      "bytes": 202
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-media-wallet-connect-browser-fixture-first-20261003.log",
+      "sha256": "f93b44646ff2f5bb6e08884717bc88937aa69c348aabbe47fe74227ee82c962d",
+      "bytes": 546
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-media-wallet-connect-browser-i18n-fixture-first-20261003.log",
+      "sha256": "27ad4df5b85491c4332ed4e8eb0f80dd611055382738b79db838ccde58f3a797",
+      "bytes": 721
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-media-wallet-connect-browser-corrected-final-20261003.log",
+      "sha256": "86c7dcc9b399e208c08d27db22d3d2a534c1e607e449c7393a3c90dc27606368",
+      "bytes": 307
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-wallet-connect-runtime-build-20261003.log",
+      "sha256": "fb90623f50f4c7ebcd8eabf935dbc82809cae1e938402577e5b9d8d3d49870dd",
+      "bytes": 214
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-wallet-connect-runtime-closure-20261003.log",
+      "sha256": "310c979f066d2e476cf38b085922c9a82e81bbbd22c73989ead496ab0e586f1b",
+      "bytes": 259
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-formal-manifest-current-20261003.json",
+      "sha256": "64b37b3153da441c76ca8f14ce971e86e0b744d1249dcaa9dda75cd30d01be87",
+      "bytes": 4499
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-formal-sdk-current-20261003.json",
+      "sha256": "b2712d290bc57cd208cddd339d6e368c2f75077d2c715de95b945372f274d456",
+      "bytes": 997
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-formal-app-current-20261003.js",
+      "sha256": "f3b46eec5739d217dae53ea423b3a7d8c29b856545ac12cabbb19c2faa4e9fc3",
+      "bytes": 51178
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-formal-cancelled-20261003.jpg",
+      "sha256": "19683a105e8473857d1a7c0911b9a3e8a9118c32e3ad473132031d99f0689cf5",
+      "bytes": 46835
+    },
+    {
+      "path": "apps/video/audit/evidence/media-wallet-connect-20261003/ynx-video-wallet-connect-runtime-20261003.tar.gz",
+      "sha256": "e55c00dc7dfe8eb394f58c02e4b5db89eb449f5fe8d80cbc4f24df90bd2f3a1f",
+      "bytes": 510470
+    }
+  ],
+  "remaining": [
+    "A admitted immutable complete SDK/native signer/private backend registration and actor revalidation integration",
+    "Consumer wire business proof verification, atomic original business-store nonce and post-I/O actor/object revalidation",
+    "Actual new source public deployment by sole release owner, formal Wallet private approval, original本人 business readback",
+    "Android/macOS complete native product and final installed-device acceptance"
+  ],
+  "formalPrivateBusinessVerified": false,
+  "nativeInstalledVerified": false,
+  "macOSProductVerified": false,
+  "overallStatus": "NOT_COMPLETED"
+}

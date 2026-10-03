@@ -1,0 +1,2 @@
+PASS video actual UI: cancel/late transport creates no approval, actual15s timeout, explicit alternative Wallet selectable; synthetic transport only
+PASS creator-studio actual UI: cancel/late transport creates no approval, actual15s timeout, explicit alternative Wallet selectable; synthetic transport only
