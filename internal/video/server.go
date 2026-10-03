@@ -163,6 +163,8 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
+	case r.Method == http.MethodGet && path == "account":
+		write(w, http.StatusOK, map[string]any{"schemaVersion": 1, "account": actor})
 	case r.Method == "POST" && path == "channels":
 		var in struct{ Handle, Name string }
 		if decode(r, &in, w) {

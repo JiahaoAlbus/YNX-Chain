@@ -10,6 +10,7 @@ export function videoScope(path, method = 'GET') {
   if (path.includes('..') || path.includes('//')) throw new Error('Invalid Video API route.');
   const id = '[A-Za-z0-9_-]+';
   if (['GET', 'HEAD'].includes(method)) {
+    if (path === '/v1/account') return 'video:account';
     if (/^\/v1\/(history|playlists|subscriptions)$/.test(path)) return 'video:library';
     if (new RegExp(`^/v1/(videos|videos/${id}(/comments)?|channels/${id})$`).test(path) || /^\/media\/[A-Za-z0-9_./-]+$/.test(path) && !path.includes('..')) return 'video:playback';
   }

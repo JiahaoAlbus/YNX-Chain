@@ -6,6 +6,7 @@ import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 import {videoProductSession, dispatchPreparedProductRequest} from "./product-session.js";
 import {createVideoAPI} from "./video-api.js";
 import {createWatchProgress} from "./watch-progress.js";
+import {createVideoBusinessIdentity} from "./business-identity.js";
 
 const API = `${location.origin}/video/api`;
 const $ = selector => document.querySelector(selector);
@@ -146,6 +147,7 @@ export const api = createVideoAPI({baseURL: API,
   authorize: (path, method, body) => videoProductSession.authorization(path, method, body),
   onUnauthorized: () => renderProductState({status: "retry-required", message: "Your sign-in needs to be checked. Retry or sign in again."}),
 });
+const businessIdentity = createVideoBusinessIdentity({read: (path, options) => api(path, {...options, private: true})});
 const privateAPI = async (path, options = {}) => {
   const revision = productRevision;
   if (!productConnected() || productSignOutPending) throw new Error("Sign in to use your Video library.");
@@ -165,16 +167,19 @@ function notice(message, bad = false) {
 }
 
 function productConnected() {
-  return productState.status === "connected" && Date.parse(productState.session?.expiresAt || "") > Date.now();
+  return productState.status === "connected" && businessIdentity.matches(productState.session);
 }
 
-function renderProductState(state) {
+function renderProductState(state, {identityConfirmed = false} = {}) {
+  const wasConnected = productConnected();
   const previousAccount = productState.session?.account;
+  if (!identityConfirmed) businessIdentity.invalidate();
   if (state.revocationPending) productSignOutPending = true;
   if (["disconnected", "expired"].includes(state.status)) productSignOutPending = false;
   productState = state;
   clearTimeout(productExpiryTimer);
   const connected = productConnected();
+  const checking = state.status === "connected" && !connected && Date.parse(state.session?.expiresAt || "") > Date.now();
   // Browser capability callbacks intentionally return false: they cannot tell
   // whether the separate native Wallet is installed. This SDK launch route is
   // an unsigned request, not a failed sign-in or an account needing sign-out.
@@ -183,13 +188,14 @@ function renderProductState(state) {
   const retryRequired = !walletLaunchRequired && ["network-unavailable", "retry-required"].includes(state.status);
   $("#product-status").textContent = connected
     ? `Signed in as ${maskAccount(state.session.account)}. Your playlists, subscriptions and history are available.`
+    : checking ? "Checking your Video account and saved library…"
     : walletLaunchRequired ? "Watch as a guest, or select Sign in with YNX Wallet to open an approval request."
     : state.message || "Sign in with YNX Wallet to save playlists, subscriptions and watch history.";
   $("#product-signin").textContent = connected ? "Video account" : "Sign in";
   $("#product-connect").textContent = connected ? "Switch Video account" : "Sign in with YNX Wallet";
-  $("#product-connect").disabled = productSignOutPending;
+  $("#product-connect").disabled = productSignOutPending || checking;
   $("#product-disconnect").textContent = productSignOutPending ? "Retry sign out" : "Sign out";
-  $("#product-disconnect").hidden = !connected && !productSignOutPending && !retryRequired;
+  $("#product-disconnect").hidden = !connected && !checking && !productSignOutPending && !retryRequired;
   $("#product-retry").hidden = productSignOutPending || !retryRequired;
   $("#product-launch").hidden = true;
   $("#comment button").disabled = !connected;
@@ -197,7 +203,7 @@ function renderProductState(state) {
   $("#comment-account-hint").hidden = connected;
   if (!connected || previousAccount && previousAccount !== state.session?.account) {
     invalidateProductRequests();
-    currentPlaylist = null;
+    if (!checking || previousAccount && previousAccount !== state.session?.account) currentPlaylist = null;
     playlistTarget = null;
     $("#playlist-choice").replaceChildren();
     $("#playlist-name").value = "";
@@ -211,8 +217,17 @@ function renderProductState(state) {
     if ($("#playlist-picker").open) $("#playlist-picker").close();
   }
   if (connected) productExpiryTimer = setTimeout(() => renderProductState({status: "retry-required", message: "Your sign-in expired. Sign in again to use your library."}), Math.max(0, Date.parse(state.session.expiresAt) - Date.now()));
-  if (connected && currentVideo && previousAccount !== state.session.account) startWatchProgress(currentVideo);
+  if (connected && currentVideo && (!wasConnected || previousAccount !== state.session.account)) startWatchProgress(currentVideo);
   void refreshSubscriptionButton();
+  if (checking && !productSignOutPending) {
+    const revision = productRevision;
+    const assertCurrent = () => {if (revision !== productRevision || productState !== state || productSignOutPending) throw new DOMException("Video account changed.", "AbortError");};
+    void businessIdentity.verify(state.session, {signal: productRequestAbort.signal, assertCurrent}).then(() => {
+      assertCurrent();renderProductState(state, {identityConfirmed: true});void refreshLibraryView().catch(error => {if (revision === productRevision) notice(error.message, true);});
+    }).catch(error => {
+      if (revision === productRevision && productState === state && error.name !== "AbortError") renderProductState({status: "retry-required", message: error.message || "Video account could not be confirmed. Retry sign in."});
+    });
+  }
 }
 
 function focusSignIn() {
@@ -220,7 +235,7 @@ function focusSignIn() {
   if ($("#playlist-picker").open) $("#playlist-picker").close();
   $("#video-account").scrollIntoView({behavior: "smooth", block: "center"});
   $("#product-connect").focus();
-  if (!productConnected()) return prepareVideoSignIn();
+  if (!productConnected() && productState.status !== "connected") return prepareVideoSignIn();
 }
 
 function requireAccount() {

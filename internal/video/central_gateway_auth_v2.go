@@ -174,6 +174,9 @@ func videoProductScopeV2(product, method, path string) string {
 			return ""
 		}
 		if len(parts) == 2 {
+			if read && parts[1] == "account" {
+				return "video:account"
+			}
 			if read && (parts[1] == "history" || parts[1] == "playlists" || parts[1] == "subscriptions") || method == http.MethodPost && parts[1] == "playlists" {
 				return "video:library"
 			}

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {createVideoBusinessIdentity} from './business-identity.js';
 
 const code=(await readFile(new URL('./app.js',import.meta.url),'utf8')).replace(/^import[^\n]*\n/gm,'').replace(/^export /gm,'');
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
@@ -33,7 +34,8 @@ async function controller({search='',product={atRegisteredOrigin:()=>false},requ
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
   videoProductSession:product,restoreVideoWallet:async()=>null,
-  createVideoAPI:()=>async (path,options)=>{calls.push(path);return request(path,options);},
+  createVideoBusinessIdentity,
+  createVideoAPI:()=>async (path,options)=>{calls.push(path);return path==='/v1/account'?{schemaVersion:1,account:connected.session.account}:request(path,options);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
   discoverWalletCandidates:async()=>[],
  };
@@ -99,7 +101,7 @@ test('a failed channel request clears loading without letting a late error repla
  assert.equal(c.node('#notice').textContent,'');
 });
 
-const connected={status:'connected',session:{account:'0x1111111111111111111111111111111111111111',expiresAt:new Date(Date.now()+60000).toISOString()}};
+const connected={status:'connected',session:{account:'0x1111111111111111111111111111111111111111',sessionBinding:'original-test-binding',expiresAt:new Date(Date.now()+60000).toISOString()}};
 const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
 test('two tabs showing Subscribe both set the desired state instead of undoing each other',async()=>{
  let subscribed=false;const mutations=[];
