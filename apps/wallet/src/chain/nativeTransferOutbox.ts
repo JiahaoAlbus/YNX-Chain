@@ -5,6 +5,8 @@ import { verifyNativeDurability } from "./nativeDurability";
 
 export const NATIVE_OUTBOX_PREFIX="ynx.wallet.native-outbox.v1.";
 export const NATIVE_HISTORY_PREFIX="ynx.wallet.native-history.v1.";
+/** Published Android archives must remain readable without rewriting their bytes. */
+export const NATIVE_OUTBOX_HISTORY_PREFIX="ynx.wallet.native-outbox-history.v1.";
 const HISTORY_HEAD_PREFIX="ynx.wallet.native-history-head.v1.";
 const HISTORY_NODE_PREFIX="ynx.wallet.native-history-node.v1.";
 export type NativeTransferOutboxEntry=Readonly<{
@@ -14,6 +16,7 @@ export type NativeTransferOutboxEntry=Readonly<{
   durabilityEvidence:Readonly<Record<string,unknown>>|null;
 }>;
 export type NativeTransferPrepared=Readonly<{payload:string;hash:string;transaction:SignedNativeTransfer}>;
+export type NativeTransferResolution=Readonly<{version:1;account:string;origin:string;payload:string;hash:string;transaction:SignedNativeTransfer;resolvedAt:string;durabilityEvidence:Readonly<Record<string,unknown>>}>;
 export type NativeTransferHistoryRecord=Readonly<{account:string;origin:string;hash:string;to:string;amount:number;fee:number;nonce:number;createdAt:string;verifiedAt:string;blockNumber:string;scope:"local-snapshot";consensusFinality:false}>;
 export type NativeTransferHistory=Readonly<{records:readonly NativeTransferHistoryRecord[];nextCursor:string|null}>;
 type Guard=()=>void;
@@ -28,6 +31,26 @@ export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBO
 export class NativeTransferOutbox {
   constructor(private readonly storage:SecureStorageAdapter,private readonly now:()=>Date=()=>new Date()){}
   read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(()=>this.load(account))}
+  /** Known-hash lookup, not an enumeration claim: SecureStore has no key listing.
+   * Both archive generations are signature/checkpoint verified, read-only. */
+  resolution(account:string,hash:string):Promise<NativeTransferResolution|null>{return this.serial(async()=>{
+    try{
+      const currentKey=historyKey(account,hash);
+      const legacyRaw=await this.storage.getItem(NATIVE_OUTBOX_HISTORY_PREFIX+account+"."+hash);
+      const currentRaw=await this.storage.getItem(currentKey);
+      const legacy=legacyRaw===null?null:parseResolution(legacyRaw,account,hash);
+      const current=currentRaw===null?null:resolutionFromRecord(parseHistoryRecord(currentRaw,account,hash));
+      if(legacy&&current&&(legacy.origin!==current.origin||legacy.payload!==current.payload))throw new Error();
+      return legacy??current;
+    }catch{throw new NativeOutboxStorageError()}
+  })}
+  /** Published reopen API, public original-hash reads only. Unlike the old
+   * release, recovery NEVER auto-Dones an accepted Pay/transfer or frees it. */
+  recover(account:string,client:NativeChainClient,assertCurrent:Guard):Promise<NativeTransferOutboxEntry|null>{return this.serial(async()=>{
+    assertCurrent();const record=await this.load(account);assertCurrent();
+    if(!record||record.phase==="done")return record;
+    return this.checkLoadedStatus(record,client);
+  })}
   /** Explicit recovery of public ORIGINAL bytes retained by the Pay journal if
    * process death happened between the two storage writes. Missing outbox never
    * proves non-submission: restore uncertain, not new/unsent, and never POST. */
@@ -83,13 +106,18 @@ export class NativeTransferOutbox {
     return this.serial(async()=>{
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase==="done")throw new NativeOutboxBlocked();
-      if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before checking its status.");
-      const result=await client.checkTransferDurability(record.transaction,record.hash);
-      // This is a public hash query. Preserve its verified result even if the
-      // originating screen locks before it finishes; no key use or broadcast.
-      const checked=parse({...record,phase:result.status==="durable"?"accepted":result.status,durabilityEvidence:result.evidence,updatedAt:this.now().toISOString()},account);
-      await this.save(checked);return checked;
+      return this.checkLoadedStatus(record,client);
     });
+  }
+  private async checkLoadedStatus(record:NativeTransferOutboxEntry,client:NativeChainClient):Promise<NativeTransferOutboxEntry>{
+    if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before checking its status.");
+    // A revalidated retained checkpoint is monotonic evidence, not finality.
+    // A later missing/changed node must not demote it and enable a resend.
+    if(record.phase==="accepted")return record;
+    const result=await client.checkTransferDurability(record.transaction,record.hash);
+    // Preserve public network facts after cancellation; never use keys or POST.
+    const checked=parse({...record,phase:result.status==="durable"?"accepted":result.status,durabilityEvidence:result.evidence,updatedAt:this.now().toISOString()},record.account);
+    await this.save(checked);return checked;
   }
   async retry(account:string,reviewedHash:string,client:NativeChainClient,assertCurrent:Guard,authorize:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
@@ -179,6 +207,17 @@ function parseHistoryNode(raw:string,account:string,hash:string):string|null{
 function parseHistoryRecord(raw:string,account:string,hash:string):NativeTransferOutboxEntry{
   if(raw.length>8192)throw new Error();const record=parse(JSON.parse(raw),account);
   if(record.hash!==hash||record.phase!=="done")throw new Error();return record;
+}
+function resolutionFromRecord(record:NativeTransferOutboxEntry):NativeTransferResolution{
+  return Object.freeze({version:1,account:record.account,origin:record.origin,payload:record.payload,hash:record.hash,transaction:record.transaction,resolvedAt:record.updatedAt,durabilityEvidence:record.durabilityEvidence!});
+}
+function parseResolution(raw:string,account:string,hash:string):NativeTransferResolution{
+  if(raw.length>8192)throw new Error();const value=JSON.parse(raw);
+  const fields=["version","account","origin","payload","hash","transaction","resolvedAt","durabilityEvidence"];
+  if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).length!==fields.length||fields.some(field=>!Object.hasOwn(value,field))||value.version!==1||value.account!==account||value.hash!==hash||typeof value.payload!=="string"||value.payload.length>2048||typeof value.origin!=="string"||typeof value.resolvedAt!=="string"||value.resolvedAt.length!==24||!Number.isFinite(Date.parse(value.resolvedAt))||new Date(value.resolvedAt).toISOString()!==value.resolvedAt)throw new Error();
+  const origin=new NativeChainClient(value.origin).origin,transaction=parseSignedNativeTransfer(value.payload);
+  if(origin!==value.origin||nativeTransferHash(value.payload)!==hash||transaction.from!==evmAddressFromYNX(account)||JSON.stringify(transaction)!==JSON.stringify(value.transaction)||!Number.isSafeInteger(transaction.amount+transaction.fee)||!verifyNativeDurability(value.durabilityEvidence,transaction,hash,origin))throw new Error();
+  return Object.freeze({...value,transaction});
 }
 function parse(value:any,account:string):NativeTransferOutboxEntry{
   const fields=["version","account","origin","payload","hash","transaction","phase","attempts","createdAt","updatedAt","replayed","durabilityEvidence"];

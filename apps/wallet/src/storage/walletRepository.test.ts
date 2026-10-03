@@ -16,6 +16,7 @@ class MemorySecureStorage implements SecureStorageAdapter {
   beforeSet?: (key: string) => void;
   afterSet?: (key: string) => void;
   beforeDelete?: (key: string) => void;
+  assertSecretProtectionAvailable?: (assertCurrent?: () => void) => Promise<void>;
   readonly authenticatedSecrets = {getItem:(key:string)=>this.getItem(key),setItem:(key:string,value:string)=>this.setItem(key,value),deleteItem:(key:string)=>this.deleteItem(key)};
   async getItem(key:string){this.reads.push(key);await this.beforeGet?.(key);return this.values.get(key)??null;}
   async setItem(key:string,value:string){this.beforeSet?.(key);this.writes.push(key);this.values.set(key,value);this.afterSet?.(key);}
@@ -32,6 +33,43 @@ async function twoAccounts() {
   storage.reads.length=0;storage.writes.length=0;storage.deletions.length=0;
   return { storage, repository };
 }
+
+test("published strong-biometric preflight fails before creation writes any account or protection marker",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  storage.assertSecretProtectionAvailable=async()=>{throw new Error("Strong system biometrics are required")};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false}),/Strong/);
+  assert.equal(storage.writes.length,0);assert.equal(storage.deletions.length,0);assert.equal(storage.values.size,0);
+});
+
+for(const mode of ["unavailable","cancelled"] as const)test(`biometric preflight ${mode} preserves published legacy migration bytes without a pending marker`,async()=>{
+  const {storage,repository}=await legacyV2Account(),before=new Map(storage.values);let active=true;
+  storage.assertSecretProtectionAvailable=async guard=>{
+    assert.equal(storage.writes.length,0);
+    if(mode==="unavailable")throw new Error("Strong enrollment required");
+    active=false;guard?.();
+  };
+  await assert.rejects(repository.accountSecret(accountOne,()=>{if(!active)throw new Error("Operation cancelled")},migrationAuthorization),mode==="unavailable"?/enrollment/:/cancelled/);
+  assert.deepEqual(storage.values,before);assert.equal(storage.writes.length,0);assert.equal(storage.deletions.length,0);
+});
+
+test("offline recovery preflight failure preserves unavailable-key recovery state and never enables legacy fallback",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  storage.beforeDelete=key=>{if(key===legacySecretKey(accountOne))throw new Error("cleanup interrupted")};
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),/interrupted/);
+  storage.beforeDelete=undefined;storage.values.delete(secretKey(accountOne));const before=new Map(storage.values);
+  storage.assertSecretProtectionAvailable=async()=>{throw new Error("Enrollment required")};
+  await assert.rejects(repository.restoreAccountSecret(accountOne,SECRET_ONE),/Enrollment/);
+  assert.deepEqual(storage.values,before);storage.reads.length=0;
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),WalletSecretRecoveryRequired);
+  assert.equal(storage.reads.includes(legacySecretKey(accountOne)),false);
+});
+
+test("preflight awaits current authority before any key commit even when adapter ignores the guard",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);let active=true,checks=0;
+  storage.assertSecretProtectionAvailable=async()=>{checks++;active=false};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false},()=>{if(!active)throw new Error("locked")}),/locked/);
+  assert.equal(checks,1);assert.equal(storage.writes.length,0);assert.equal(storage.values.size,0);
+});
 
 test("creates, confirms backup, switches and deletes multiple secure accounts", async () => {
   const storage=new MemorySecureStorage(), repository=new WalletRepository(storage);

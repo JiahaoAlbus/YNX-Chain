@@ -3,7 +3,7 @@ import test from "node:test";
 import { createSignedNativeTransfer, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { NativeBroadcastUnknown, NativeChainClient } from "./nativeTransfer";
 import { NATIVE_DURABILITY_MODEL,createNativeDurabilityEvidence } from "./nativeDurability";
-import { NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
+import { NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX,NATIVE_OUTBOX_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
@@ -35,6 +35,70 @@ function retainedFixture(prepared=signed,phase="accepted"){
   return {version:1,account,origin:"https://rpc.ynxweb4.com",...prepared,phase,attempts:1,createdAt:"2026-10-03T01:00:00.000Z",updatedAt:"2026-10-03T01:01:00.000Z",replayed:false,
     durabilityEvidence:createNativeDurabilityEvidence("https://rpc.ynxweb4.com",NATIVE_DURABILITY_MODEL,r,prepared.transaction,prepared.hash)};
 }
+
+function publishedResolution(){
+  const record=retainedFixture();
+  return {version:1,account,origin:record.origin,payload:record.payload,hash:record.hash,transaction:record.transaction,resolvedAt:record.updatedAt,durabilityEvidence:record.durabilityEvidence};
+}
+
+test("published Android resolution remains exact-hash readable after active journal replacement without writes",async()=>{
+  const storage=new MemoryStorage(),legacyKey=NATIVE_OUTBOX_HISTORY_PREFIX+account+"."+signed.hash;
+  storage.values.set(legacyKey,JSON.stringify(publishedResolution()));
+  const next=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:28,nonce:8});
+  storage.values.set(storageKey,JSON.stringify({...retainedFixture(next,"unknown"),durabilityEvidence:null}));
+  const before=new Map(storage.values),outbox=fixtureOutbox(storage);
+  assert.deepEqual(await outbox.resolution(account,signed.hash),publishedResolution());
+  assert.equal(await outbox.resolution(to,signed.hash),null);
+  assert.deepEqual(storage.values,before);assert.equal(storage.writes,0);
+  assert.equal((await outbox.read(account))?.hash,next.hash);
+  assert.equal((await outbox.history(account,noGuard)).records.length,0,"known-hash access is not pretend archive enumeration");
+});
+
+for(const field of ["account","hash","transaction","durabilityEvidence","resolvedAt","origin","extra"] as const)test(`published resolution rejects corrupt ${field} without rewriting the archive`,async()=>{
+  const storage=new MemoryStorage(),value:any=publishedResolution();
+  if(field==="transaction")value.transaction={...value.transaction,amount:26};
+  else if(field==="durabilityEvidence")value.durabilityEvidence=null;
+  else value[field]=field==="account"?to:field==="hash"?"0x"+"0".repeat(64):field==="origin"?"https://rpc.ynxweb4.com/":"invalid";
+  storage.values.set(NATIVE_OUTBOX_HISTORY_PREFIX+account+"."+signed.hash,JSON.stringify(value));const before=new Map(storage.values);
+  await assert.rejects(fixtureOutbox(storage).resolution(account,signed.hash),NativeOutboxStorageError);
+  assert.deepEqual(storage.values,before);assert.equal(storage.writes,0);
+});
+
+test("known-hash resolution verifies current archives too and does not conceal a corrupt published copy",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  storage.values.set(storageKey,JSON.stringify(retainedFixture()));await outbox.acknowledge(account,signed.hash,noGuard);
+  const before=new Map(storage.values);assert.deepEqual(await outbox.resolution(account,signed.hash),publishedResolution());assert.deepEqual(storage.values,before);
+  storage.values.set(NATIVE_OUTBOX_HISTORY_PREFIX+account+"."+signed.hash,"{}");
+  await assert.rejects(outbox.resolution(account,signed.hash),NativeOutboxStorageError);
+});
+
+test("reopen recovers only the retained original by public reads, never signs, POSTs or auto-Dones",async()=>{
+  const storage=new MemoryStorage();storage.values.set(storageKey,JSON.stringify({...retainedFixture(signed,"unknown"),durabilityEvidence:null}));
+  let posts=0;const remote=client(async(_url,init)=>{if(init?.method==="POST")posts++;throw new Error("unexpected request")},true);
+  const recovered=await fixtureOutbox(storage).recover(account,remote,noGuard);
+  assert.equal(recovered?.hash,signed.hash);assert.equal(recovered?.payload,signed.payload);assert.equal(recovered?.phase,"accepted");assert.equal(posts,0);
+  await assert.rejects(fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{throw new Error("must not sign")}),NativeOutboxBlocked);
+  assert.equal(storage.values.has(NATIVE_HISTORY_PREFIX+account+"."+signed.hash),false);
+});
+
+test("accepted checkpoint survives reopen and repeated check without network downgrade or resend permission",async()=>{
+  const storage=new MemoryStorage();storage.values.set(storageKey,JSON.stringify(retainedFixture()));const before=new Map(storage.values);let reads=0;
+  const remote=client(async()=>{reads++;throw new Error("node no longer has the checkpoint")});
+  assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"accepted");
+  assert.equal((await fixtureOutbox(storage).checkStatus(account,signed.hash,remote,noGuard)).phase,"accepted");
+  assert.equal(reads,0);assert.deepEqual(storage.values,before);
+  await assert.rejects(fixtureOutbox(storage).retry(account,signed.hash,remote,noGuard,async()=>{}),NativeOutboxBlocked);
+  await assert.rejects(fixtureOutbox(storage).recover(account,new NativeChainClient("https://other.example"),noGuard),/different RPC origin/);
+});
+
+test("recovery returns missing/Done unchanged and stale account guard prevents any network query",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);let reads=0;const remote=client(async()=>{reads++;throw new Error()});
+  assert.equal(await outbox.recover(account,remote,noGuard),null);
+  storage.values.set(storageKey,JSON.stringify(retainedFixture(signed,"done")));const before=new Map(storage.values);
+  assert.equal((await outbox.recover(account,remote,noGuard))?.phase,"done");
+  await assert.rejects(outbox.recover(account,remote,()=>{throw new Error("account changed")}),/account changed/);
+  assert.equal(reads,0);assert.deepEqual(storage.values,before);
+});
 
 test("completed history retains independent originals across pages, restart and the next unknown transfer",async()=>{
   const storage=new MemoryStorage(),hashes:string[]=[];

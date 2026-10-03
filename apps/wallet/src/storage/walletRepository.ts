@@ -32,6 +32,8 @@ export type SecureStorageAdapter = {
   setItem(key: string, value: string): Promise<void>;
   deleteItem(key: string): Promise<void>;
   authenticatedSecrets?: AuthenticatedSecretStorageAdapter;
+  /** Capability preflight only; OS cipher-bound authentication remains mandatory. */
+  assertSecretProtectionAvailable?: (assertCurrent?: OperationGuard) => Promise<void>;
 };
 
 export type WalletAccount = Readonly<{
@@ -340,6 +342,8 @@ export class WalletRepository {
     this.secrets();
     assertCurrent?.();
     decodeSecret(encodeSecret(expected.account,secret,3),expected,3);
+    await this.storage.assertSecretProtectionAvailable?.(assertCurrent);
+    assertCurrent?.();
     await this.saveProtection(protection,assertCurrent);
     if (requireStored) await this.assertStoredAccount(expected,assertCurrent);
     await this.secrets().setItem(authenticatedSecretKey(expected.account),encodeSecret(expected.account,secret,3));
