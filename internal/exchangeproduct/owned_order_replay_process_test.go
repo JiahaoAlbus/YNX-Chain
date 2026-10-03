@@ -21,6 +21,7 @@ import (
 type orderReplayEndpoint struct {
 	URL   string
 	Close func()
+	Crash func()
 }
 
 type orderReplayProcessFixture struct {
@@ -103,12 +104,25 @@ func startOrderReplayProcess(t *testing.T, cfg Config) orderReplayEndpoint {
 	done := make(chan error, 1)
 	go func() { <-readDone; done <- cmd.Wait() }()
 	var once sync.Once
-	stop := func() {
+	terminate := func(crash bool) {
 		once.Do(func() {
-			_ = cmd.Process.Signal(syscall.SIGTERM)
+			if crash {
+				if err := cmd.Process.Kill(); err != nil {
+					t.Errorf("isolated Exchange child kill: %v", err)
+				}
+			} else {
+				_ = cmd.Process.Signal(syscall.SIGTERM)
+			}
 			select {
 			case err := <-done:
-				if err != nil {
+				if crash {
+					exit, ok := err.(*exec.ExitError)
+					if !ok {
+						t.Errorf("child did not exit via SIGKILL: %v", err)
+					} else if status, ok := exit.Sys().(syscall.WaitStatus); !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
+						t.Errorf("child exit did not prove SIGKILL: %v", err)
+					}
+				} else if err != nil {
 					t.Errorf("isolated Exchange child exit: %v", err)
 				}
 			case <-time.After(5 * time.Second):
@@ -118,6 +132,7 @@ func startOrderReplayProcess(t *testing.T, cfg Config) orderReplayEndpoint {
 			}
 		})
 	}
+	stop := func() { terminate(false) }
 	t.Cleanup(stop)
 	select {
 	case endpoint := <-ready:
@@ -126,7 +141,7 @@ func startOrderReplayProcess(t *testing.T, cfg Config) orderReplayEndpoint {
 			t.Fatal("invalid isolated child endpoint")
 		}
 		t.Logf("actual Exchange PostgreSQL child pid=%d", cmd.Process.Pid)
-		return orderReplayEndpoint{URL: endpoint, Close: stop}
+		return orderReplayEndpoint{URL: endpoint, Close: stop, Crash: func() { terminate(true) }}
 	case <-readDone:
 		t.Fatal("isolated Exchange child exited before readiness")
 	case <-time.After(10 * time.Second):

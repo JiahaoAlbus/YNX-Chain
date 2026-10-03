@@ -44,7 +44,11 @@ func TestPostgreSQLIndependentProcessesOrderReplayMatchAndRestartRemainOwnerBoun
 	testPostgresOrderReplayLayouts(t, true)
 }
 
-func testPostgresOrderReplayLayouts(t *testing.T, processes bool) {
+func TestPostgreSQLKilledProcessesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T) {
+	testPostgresOrderReplayLayouts(t, true, true)
+}
+
+func testPostgresOrderReplayLayouts(t *testing.T, processes bool, crash ...bool) {
 	t.Helper()
 	databaseURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_POSTGRES_TEST_URL"))
 	if databaseURL == "" {
@@ -64,7 +68,7 @@ func testPostgresOrderReplayLayouts(t *testing.T, processes bool) {
 					t.Fatal(err)
 				}
 			}
-			testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, isolatedURL, processes)
+			testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t, isolatedURL, processes, len(crash) == 1 && crash[0])
 		})
 	}
 }
@@ -83,7 +87,7 @@ func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 	cfg.Gateway = orderReplayHTTPGateway{seller.token: seller.session, buyer.token: buyer.session}
 	cfg.GatewayClientID, cfg.GatewayBundleID = "ynx-exchange-v1", "com.ynxweb4.exchange"
 	open := func() orderReplayEndpoint {
-		if len(processes) == 1 && processes[0] {
+		if len(processes) > 0 && processes[0] {
 			return startOrderReplayProcess(t, cfg)
 		}
 		s, err := New(cfg)
@@ -171,8 +175,13 @@ func testTwoHTTPInstancesOrderReplayMatchAndRestartRemainOwnerBound(t *testing.T
 	if matched.ID == "" {
 		t.Fatal("neither request committed")
 	}
-	one.Close()
-	two.Close()
+	if len(processes) == 2 && processes[1] {
+		one.Crash()
+		two.Crash()
+	} else {
+		one.Close()
+		two.Close()
+	}
 	restarted := open()
 	loaded, err := New(cfg)
 	if err != nil {
