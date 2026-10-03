@@ -1,0 +1,4227 @@
+{
+  "sharedSourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+  "sharedSourceTree": "f70c782e828b81b5aea955c6481edd079176e88c",
+  "inputPins": [
+    {
+      "owner": "Media module",
+      "path": "go.mod",
+      "bytes": 4437,
+      "sha256": "30a4cbe49a5c69d52a09c0f8790c730726fdce5d9d347cccb518b0686cc1dec1"
+    },
+    {
+      "owner": "Media module",
+      "path": "go.sum",
+      "bytes": 36934,
+      "sha256": "f7020adc8fa5e09de67a2ce8f3502889d1ccf652c248e28013514772bb6281fc"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/README.md",
+      "bytes": 4098,
+      "sha256": "cce07befe4aa61ec776fbf9d54c6cbc1ba410b32b1f55bb587a58b93d9b91925"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/account_readback_test.go",
+      "bytes": 1296,
+      "sha256": "32970998996565f002a965cb072bba15beffe40603e6a888875b849afd44e3fd"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/assets_rights_recovery_test.go",
+      "bytes": 9570,
+      "sha256": "a8613982f473ee89747e5f3d48eaf534861567379218e2982650d94fde50a844"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/backup.go",
+      "bytes": 6023,
+      "sha256": "5e8534b31b3ffc6ccf13ea8d3a3c144ad130152cfd62acf0f42fd1c1543112c1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/backup_test.go",
+      "bytes": 2805,
+      "sha256": "333fe59de94061b554c5658049598861a97b78650c9204ad8e8a11395c9974f0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_combined_sdk.go",
+      "bytes": 4261,
+      "sha256": "83c16209dbb173f1b9e75fe35ef28086e0008c818f04b39496dfe4adfe125e42"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_combined_sdk_test.go",
+      "bytes": 16588,
+      "sha256": "8cb87878c75eae2409db3a3bec9cec1ff35db113b09f1cd28e7201c5d5750250"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_lease.go",
+      "bytes": 6948,
+      "sha256": "cc61b2f5352d1b35e61a0bf95e426dbd2134f5f3be762557504055fded0af249"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_lease_test.go",
+      "bytes": 13365,
+      "sha256": "a780038c06b8dda0f3cd7f3d3dc475de15f946a6e4c2985ac5ab73edfb44be1a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_request.go",
+      "bytes": 9779,
+      "sha256": "ced98044a9deca0077b6b0eaaf300f0a947dd94bf86e1afaf55b11a9d100d53b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_request_test.go",
+      "bytes": 12354,
+      "sha256": "0de7c1368deaae49aa22dba37c051045fdd11c44f21fb85ff67863581c587090"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk.go",
+      "bytes": 5527,
+      "sha256": "9082a1c6d7cef8a4359158cc49a7e76d625c5838415c17935f7ed967773d0500"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk_node_test.go",
+      "bytes": 14303,
+      "sha256": "278dd9892f61827fe4f2839c16e0fde90a6c9557f81467df955aca7479e2c696"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/business_sdk_test.go",
+      "bytes": 11967,
+      "sha256": "f680a2c87de5c5e70feec70b16b3d8d2eb3ac4298a17c21ba7d4a9c3228f7861"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth.go",
+      "bytes": 4760,
+      "sha256": "151e152413686656213a722423e9e57456b51a73a3262963842c8c6a331dd4db"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_test.go",
+      "bytes": 4883,
+      "sha256": "9b6e83042e31154d755c39b2347802011c5ab34886d05c64b94d5fcd8101de80"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_v2.go",
+      "bytes": 9037,
+      "sha256": "05f1e4d7e129436af374be4063c66601d77fbecf2f74ed072a359b90b213343a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_auth_v2_test.go",
+      "bytes": 13585,
+      "sha256": "f79e720fad51470dd050a9907d56aa694abf9f8c9b9f70869184fac0cfc5640e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/central_gateway_transport.go",
+      "bytes": 728,
+      "sha256": "8bae81094a726740628f1d8431e1dc0616b9ea2fe32a7bf57420ff2897303f85"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/main.go",
+      "bytes": 3529,
+      "sha256": "bc20371f61a77b8da9086c46398984e133734c7879029681b6e990cccc55c843"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/video-recover/main.go",
+      "bytes": 1624,
+      "sha256": "a5f9c3c6a1c62552642761f4d507b99f136e755b74aab9d4d3a4e55192390e54"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/cmd/video-smoke/main.go",
+      "bytes": 11076,
+      "sha256": "8dc84180c21e6f5a815bba179e4ea6df4e63e27f53c99ed29cdd25bc7579c83c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_access.go",
+      "bytes": 16882,
+      "sha256": "f0d440e7187fdc2f205a39d9578e4ca0497c4b3376f03bb8a59b9d43f7efebd1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_access_test.go",
+      "bytes": 12646,
+      "sha256": "6dd5abb0bce2fc3e174d8e3d0ad0e30a27807c02137075f69f440752f23896bc"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/creator_ai_recovery_test.go",
+      "bytes": 1284,
+      "sha256": "2e82d3d6b1b145c63df7926ebf9f177590c7df5a7638f7f465c1442d6cf497b6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/effect_recovery.go",
+      "bytes": 1141,
+      "sha256": "3aad60ab0b32059f2c633e8da5787745cd0f88633e92a7f6fecd35a1c8986ad6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/effect_recovery_test.go",
+      "bytes": 11395,
+      "sha256": "bf5a2ed82e08d3c2a3dfcef15db0b80f29cdebaa6c097600d7ddff464f6d33fe"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/gateway_auth.go",
+      "bytes": 8688,
+      "sha256": "afc1867f847342cf2cac0d4c0ba2f69513e6e8861f7a5060e9788dde9714b703"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/gateway_auth_test.go",
+      "bytes": 4617,
+      "sha256": "7de764e58d7cc696be3e169cc9b637596cae766cf7fbc4641fdb33eab2873506"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration/appgateway-video-manifest.json",
+      "bytes": 1653,
+      "sha256": "7692ec7ebecdc50c6c1b3084c351098ee487135289943771ee8244ce37fb874f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration/registry-v2.json",
+      "bytes": 1621,
+      "sha256": "4e42a94cdf0ca59315e584e8ebc8aea7fc7affa1d8b99c14143cbc5154d1e310"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integration_boundary.go",
+      "bytes": 1076,
+      "sha256": "726985d4542e62f54bb8b842db64da1326a2e10ff12c7a6d3380915f448c1f3a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integrations.go",
+      "bytes": 7501,
+      "sha256": "03aab6e0b6a1440d0048e5560986e55453f6e8bd3cbdf54907de568e8eb6ff57"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/integrations_test.go",
+      "bytes": 5693,
+      "sha256": "9b2810c353cf26d3f5a347bdb59b8c699a1def63784adce3a7e6f7dd78d84d51"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/lifecycle.go",
+      "bytes": 9332,
+      "sha256": "689c46261e53a384883ef705b73e56e2bc4cc828e8a9fa8b6bbe30f398a57bc0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/lifecycle_test.go",
+      "bytes": 12218,
+      "sha256": "737d7b00b38dc128cac489ef16d9e65a8c6256e0ffbd07662c2bfe845b3fd1e7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/media_browser_business_test.go",
+      "bytes": 8209,
+      "sha256": "9dfff7644ab7a1b9f8ad87b54dbc82a6e909ebb9873b8686016dd94c688e331a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/media_browser_roster_test.go",
+      "bytes": 2159,
+      "sha256": "8e156570465cadc800cc538466afde5ee542a2109a6b05114890d875c5b2f22a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/media_http_test.go",
+      "bytes": 2069,
+      "sha256": "58f241fccdd18a723609349067bbcf6e63a3d414a9c66080277e02615e808013"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/media_native_business_test.go",
+      "bytes": 16508,
+      "sha256": "9ae4eac835f0365c06c3fa130fe7f9c9f47e1090954b9990f98cc21deb5ea2e7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/migration_test.go",
+      "bytes": 2546,
+      "sha256": "ea81062366f3d1fd37d1fcc6406f7091ef9b5dd6fe0186eaf3d6f9959dbb2504"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/music_browser_business_test.go",
+      "bytes": 5603,
+      "sha256": "afa66597a90ed4bf8870aa4460db0619373b3e8a38c69b7a5169e15ff44e8ce7"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/music_native_business_test.go",
+      "bytes": 7238,
+      "sha256": "2074cea05909753b3e4b2232bb36be7c7d472d80e826ba9e35ba51de6cb209a0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/object_storage.go",
+      "bytes": 2434,
+      "sha256": "574b790d0a6e521fee975d362c88887c7391bdd699c46796dbd36b6388bbe7ba"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/object_storage_test.go",
+      "bytes": 956,
+      "sha256": "9de33680df39e062b53b1d5443dc87a0084d9e9ad3666c0ef7eeb11e62ea3a93"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/processing.go",
+      "bytes": 6839,
+      "sha256": "f8f016345ddd51ad0f8363d00cbbeccda9e2bee4cdf0e538c7d33fdb6c2d223b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/server.go",
+      "bytes": 30816,
+      "sha256": "0c47edd57090edb32fdc942684a2d56e82cf3757da937c219eec257110284035"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/server_test.go",
+      "bytes": 19510,
+      "sha256": "57c89c379af24ce3de15ceb82625f8f6a53ccdb678cc74826bcdc276cc32e865"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/service.go",
+      "bytes": 66835,
+      "sha256": "5a0be7a791fa3cdbb80af0e85d8ec8ad0309f0612884c4188ec3e135b2f776df"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/service_test.go",
+      "bytes": 23794,
+      "sha256": "ee93c7446e50d1e496b303e4ba5aeb09f4601682d2e8b6dd38df0b8dc6b1872b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/store.go",
+      "bytes": 10487,
+      "sha256": "1a46b2f78cabe7b24998c024fa99abe54d8f98fc61617fdf1b40b43452b3eed2"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/store_migration_test.go",
+      "bytes": 2811,
+      "sha256": "bcbd68d92153f24d529a6a71c5202e8e2de525e61c0c52f9d66f9608a6b5915c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/README.md",
+      "bytes": 376,
+      "sha256": "a6cb264d33765ad4b8b0770d58801fac291b42102c50646bd5da823fa897fef2"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/media-browser-binding-consumer.mjs",
+      "bytes": 1465,
+      "sha256": "16b8ba069f1827c3b2dfbc6beda088395533578614da0a5275dff7a7e9705895"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/media-combined-authority-node.mjs",
+      "bytes": 10345,
+      "sha256": "f554d9e717902ae1983d6942f023415754fca238681989869505c8dff7237122"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/media-private-authority-node.mjs",
+      "bytes": 9042,
+      "sha256": "c97c796952cb35be3b48d3da8bf5bbf933f4d221b506b3e07f783ec31c47f411"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/testdata/ynx-owned-test.mp4",
+      "bytes": 12525,
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/types.go",
+      "bytes": 14452,
+      "sha256": "ae7dda77ab784c2dec149c06665392e8165ffc706fcc7ff341bec4fa3ed06540"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/upload_recovery_test.go",
+      "bytes": 11813,
+      "sha256": "ddf4faf88c077f09b57e4a542b1488e6ef5d3a281e25871c3be4ad93a9d2e1b1"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_library_test.go",
+      "bytes": 4555,
+      "sha256": "b85346ba76106ebb82c3cdd1ea8130ab3df46ce85c02d091bb77c6fe710c5fba"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_progress.go",
+      "bytes": 2740,
+      "sha256": "65a0827399624a7e77b9ae64be6c2fab87f12950a25a476baf08bd2fccce0f32"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/video/viewer_progress_test.go",
+      "bytes": 5194,
+      "sha256": "9dc0da0b6d91b6624fa320a51ca04d31ab6fc0473e868f95d4c5055af089f289"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/account.go",
+      "bytes": 1969,
+      "sha256": "fbccedab81f452420ee82e10ae351e0021f0efa77badb5c81dd738c902634715"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/ai_output_test.go",
+      "bytes": 2987,
+      "sha256": "af6715beb288796529b7ab702233230bcc189e9081a78b951243fec28f8d094e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/backup.go",
+      "bytes": 12665,
+      "sha256": "9d4417d134e075734e3cbba9b75d378a7eaa42d9a310934ab08252dce1a1ee72"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_ai_stream.go",
+      "bytes": 8827,
+      "sha256": "3ff2a195191b4294dca4e049545bacf2e156ccfc7c6cbf515f32df6d29a76baf"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_ai_stream_test.go",
+      "bytes": 5650,
+      "sha256": "d4de855b2f5d4cc98488b74ed9cb785cdc1077644a0ac037435a8d97aa76c32d"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_effect.go",
+      "bytes": 7875,
+      "sha256": "d5c2ef8b624fdc0f3e9a06bb21b382fa59a1ffd5acd0781394fbecce03c80b96"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_effect_test.go",
+      "bytes": 16631,
+      "sha256": "5ad98e8af6a4bb8fa383eed568101708d26716b9d14c27d443c4df67510dd7c9"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_request.go",
+      "bytes": 11236,
+      "sha256": "1ccf580142983cb6b778119ea3a46306d7330b1af32546e759c31e2cb607f709"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_request_test.go",
+      "bytes": 16751,
+      "sha256": "7f1bd3297e0d16cadd1d53dea4cf19870a249cff75aec52669762248a58cdd64"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_sdk.go",
+      "bytes": 4417,
+      "sha256": "d7d092aa9c19c37984449f7f2c2205a49f29ce57976aad453a77aa696d50798b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/business_sdk_test.go",
+      "bytes": 12877,
+      "sha256": "fe0afe1982695c94b9dbb51b002f9288ff25f50b16c82f32e6354fb1179e45cb"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/callback_test.go",
+      "bytes": 958,
+      "sha256": "404bdbe6cca6598bbd6c0d366f500595d927907ba6df8657a2cb91d4d26ca0ad"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/central.go",
+      "bytes": 4223,
+      "sha256": "2977f43939b3fd6b49ee99277e9eea5ac601b5b1182dcbb0fe1c08e87f9df9da"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/compatibility.go",
+      "bytes": 2752,
+      "sha256": "e67ec48b37d89c7b09eaf7a61a2721970a8d3eadb7e8e0b590736e20f7c8f0b6"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/compatibility_test.go",
+      "bytes": 1751,
+      "sha256": "f6fda0d3ad0d824d1a52b74b208af512a38b8823d73c4af2b962e40fd9e3f26c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/first_use_test.go",
+      "bytes": 5557,
+      "sha256": "2adafd5fcf301ffab4e35f86969d3860c6fa9a10bcd5a5193a9cdac339b6eb68"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/pay_review_test.go",
+      "bytes": 1958,
+      "sha256": "61032958caef2a68c3ec3859da8e0bcdef1df05ba3117c9001f88f6d94ea78b3"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/playback_binding_test.go",
+      "bytes": 3001,
+      "sha256": "3c0ab1c5a8120591320c825b8779d292b8ca5d8f6c9e81babf958c3c19ac72cb"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/playlist_recovery_test.go",
+      "bytes": 3420,
+      "sha256": "99a9060d79d1b96a00356ee3742f7eaae54abd04de6b9d7089f38ca6d845405c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/server.go",
+      "bytes": 25530,
+      "sha256": "00117926fb0e154fa33aa9f86293a28dec38de4af282c988488f1bd6498ff370"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/server_test.go",
+      "bytes": 12711,
+      "sha256": "9ca72a6a3b02660adb4efcdde93b2c1b86609157977e9133f56f518f3a992ec0"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/service.go",
+      "bytes": 39296,
+      "sha256": "2e91e5e6b0a0f06f36f3e0653ee72f11f365af2c70529700fc5750130ec60acc"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/service_test.go",
+      "bytes": 18380,
+      "sha256": "7aca664061bb939c261aac4e7944f90a071ee25cb6630a3e0f6e0a8d9b0d1a45"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/store.go",
+      "bytes": 13638,
+      "sha256": "51fc5ef67d16db31e02b908f4be21625d2abf3eda486eee8e7af46acdf06d3c5"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/store_backup_test.go",
+      "bytes": 13606,
+      "sha256": "43b33505a1927e7d75286f4d7665353c148da4da788334d39f8f307eb789a34f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-empty.json",
+      "bytes": 313,
+      "sha256": "c5a70af75a143c53d2a95362b23f98679b352eda97cb2ab40d0ebedd71e828df"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/README.md",
+      "bytes": 949,
+      "sha256": "47e76af8cfe9c2e48169a4a021310751b827526d58eeb4d5de3489f94c14f50c"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/expectations.json",
+      "bytes": 839,
+      "sha256": "26a8f18e7ff4324cd4386265a122265fecf071f418f390c206731d2f1fd9b69f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.art",
+      "bytes": 32,
+      "sha256": "7e5a1711b00d4f782a8a2ddd2a104884558c17c4c8462fafcfdf149ac2a751a5"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/media/trk_f4569b7cc0e40ee2c3ecf8c3.wav",
+      "bytes": 24044,
+      "sha256": "57d5f3bf36c4daf885fcbd6efd73fe435788c84f0d66efccef92d2f4f7cd1995"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/testdata/state-v1-rich/state.json",
+      "bytes": 10879,
+      "sha256": "6dce3b73f13e81d1c231374f5a58263a3c5632fb7a09b2a682319e5f1be06d20"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/types.go",
+      "bytes": 7773,
+      "sha256": "3506b2094759d1049304ca1aa134422deefff11eaa6f0be5e5ddf75cb8f6d22d"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/upload_recovery_test.go",
+      "bytes": 3038,
+      "sha256": "2022e9691c27e495afcc84119da7abba87d02e9e991c6c235280a579d1f6a718"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/visibility.go",
+      "bytes": 2855,
+      "sha256": "6556f8506e6d09788f6fa9527bb112b03ef0f6443d430c0518e5120278e4078a"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/visibility_test.go",
+      "bytes": 18267,
+      "sha256": "ca97afe1726590a38d71705bff802cac973ea55315d14f55d8b5dbc3443c9436"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/wav.go",
+      "bytes": 3343,
+      "sha256": "318eba8d1e35ed106ee64352a362c127aa59e41e064b90a3958b7b461277785e"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/music/wav_test.go",
+      "bytes": 5427,
+      "sha256": "f1d90aac8a8c5ed6e170a0398bc92c90a0ee0d9d28dc189f44af05d0103d3b1b"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/accountaddress/address_test.go",
+      "bytes": 1676,
+      "sha256": "b3b1b3c242e9f826c069c41175bdb06413bc2394d8c3506b96b1f7705ac3b948"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/buildinfo/buildinfo.go",
+      "bytes": 538,
+      "sha256": "68358db14c043fc2d6c90531c19f86a6b8b2a606ca24c997b5d591808aec961f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/nativewallet/crypto.go",
+      "bytes": 4873,
+      "sha256": "a1cb70f6b85a79e82a017647f725dadac3e816313a87285f3f39be01f5e25a8f"
+    },
+    {
+      "owner": "Media",
+      "path": "internal/nativewallet/crypto_test.go",
+      "bytes": 1829,
+      "sha256": "d7e570487299b05a72e402aa0cd4319a931bc594221f4b3f7ed7c6f695ce4408"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/app.js",
+      "bytes": 70206,
+      "sha256": "b235eddff32c00df5952cd35645faa1ed8d7f880b8aa703fe69706463378dc59"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/assets/metamask.svg",
+      "bytes": 455,
+      "sha256": "559c46c171bd6c7a3341c7d84a475173b4f23eb4dd71f875c4470d09468f00fe"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/assets/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/assets/ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/assets/ynx-wallet.svg",
+      "bytes": 320,
+      "sha256": "3c7018405558413ed354ebd8b680d0f7d0e89d7402b59847f7955b8ee6463098"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/browser-identity.js",
+      "bytes": 5903,
+      "sha256": "1b884553c92eb9c70d45509b9de6211299813d247e0409582e7d183ad9e65144"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/build.mjs",
+      "bytes": 3444,
+      "sha256": "081d800f0e097e544adca91b801d7628a5e1f9a44d79d55d91ebd8fc94298396"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/business-wire.js",
+      "bytes": 3938,
+      "sha256": "b78251453977e9c6c71b09f0532b35db061c5ae9f936bca435d49a25804e7389"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/callback.css",
+      "bytes": 912,
+      "sha256": "48c9dd8f860d7e3b3c53b4d00a294d917c6bf024e176f19b074f74fcf0364070"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/display-settings.css",
+      "bytes": 2779,
+      "sha256": "c01a8b262a6a1d9352c0d25b795ee98326d0cc450d920132a3668fbde15420ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/display-settings.js",
+      "bytes": 3296,
+      "sha256": "5acf6f44622122994f4b9aba5bca5f066cd26746b16b786881f2998b8bd73b99"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/enhancements.css",
+      "bytes": 2626,
+      "sha256": "9f337222efc80d877a57ad21fa2ccacb7b352b89048dee2486891c4fa3871039"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/i18n.js",
+      "bytes": 25047,
+      "sha256": "4dc6e56405d12a083843d49ac1ba1c49de295fd3a2757afa2f6804d5753ce331"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/index.html",
+      "bytes": 17069,
+      "sha256": "f0bc74ca6044621abc4f6bce4bda4e6c09ef37c0eb16255e0d481a2255747af8"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift",
+      "bytes": 4099,
+      "sha256": "ff6687e2d04e4f28054ef1c97e86bbae3da2f18cf6eaed7c8dbd2ff25b382f76"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift",
+      "bytes": 17210,
+      "sha256": "2d0fa152034ab9794d31d9e4ef6809b8399f3fc2fe3d5c0d90b692f575ac315a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorModel.swift",
+      "bytes": 33812,
+      "sha256": "cc3581df9c2fbe2440e6616557a025159fa662bec9cc30cd1bfcf12001b69fa9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift",
+      "bytes": 7849,
+      "sha256": "4f480b30ddeaa912b3a1e291dd2c48ad72b79fc0773ddaed928d1a0ea518a3ec"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift",
+      "bytes": 2891,
+      "sha256": "90d0eea42d872148284f11b570bc89705e7002c50a95aeb33be8a6f63bfa278a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift",
+      "bytes": 23218,
+      "sha256": "2e34227468d17a96790b55c0599c9775a827215f81985ea7b0868fc5b8556aaf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift",
+      "bytes": 18455,
+      "sha256": "da351d88334e2014457f44004f3df0844e7546629c894c0e04123b228c3720bf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift",
+      "bytes": 2510,
+      "sha256": "465d37755be4ec5bec0be7516934074baa5343e0f98406943f83d2ea84ed0867"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/Info.plist",
+      "bytes": 1396,
+      "sha256": "152d5122212b3dd6cec3ed6ca2c246f23c8e4adcbf7fa94968f1a59f520b36c2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/MacInfo.plist",
+      "bytes": 1185,
+      "sha256": "1b4c11a7e0a792c5b724ed1183abb846c6558e148df936eeb8603ac8d0ad2fe9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+      "bytes": 48549,
+      "sha256": "ba59a2ff6620c13b814147841632c56af993904866925a181865d2c0f32113ce"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/catalog.json",
+      "bytes": 129115,
+      "sha256": "9e123af9a333f2d277d0adb61e296f4a79ab0e0012bc9a3f072b83fccd50f7a0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/client.mjs",
+      "bytes": 3360,
+      "sha256": "8f50568d328a33d03bc9e4ce4d8022bee4295f10d73e6d5e9da124d27f1edac6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/media-native-consumer.mjs",
+      "bytes": 51725,
+      "sha256": "03d620b5a1dd3f89e9d0ba43f2e6886981e2de2dc82a401bfa57f6a0cbe99dc1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/source.json",
+      "bytes": 2139,
+      "sha256": "2d934be645b5fcca79b8f8253c120a14b34d9339ad5179dfc8cd917eb766dd35"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ios/YNXCreator.xcodeproj/project.pbxproj",
+      "bytes": 6935,
+      "sha256": "d04b4d54863600ff140687df32a8d4c2c5807c8cc89234450e086b1bc39b858c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/legacy-sdk529/product-session-registry.json",
+      "bytes": 838,
+      "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/legacy-sdk529/product-session-sdk-source.json",
+      "bytes": 1006,
+      "sha256": "0696f7013843875e229800bb40337c1d05a1bbc55c1699443fc2de6a75541950"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/legacy-sdk529/product-session-sdk.js",
+      "bytes": 119091,
+      "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/native/session.mjs",
+      "bytes": 7445,
+      "sha256": "a4d6643efc33acf0ac0c9def3690927735588129a34b75e9f19d11bf67439508"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/package.json",
+      "bytes": 346,
+      "sha256": "d4120e6111e4ab52748d423e7246e0842568d34171808d6b0b9d99df6d56ed67"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/product-release.json",
+      "bytes": 11870,
+      "sha256": "1d24af60185c36b8f596fc3126922fd3227a87b22c670038276f146026f6e075"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/product-session-registry.json",
+      "bytes": 838,
+      "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/product-session-sdk-source.json",
+      "bytes": 9580,
+      "sha256": "dfe4b4c2dd64a89322234aabd3a0b7d89875ebd0241612165e4dc1fbfe2f0ccb"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/product-session-sdk.js",
+      "bytes": 137281,
+      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/product-session.js",
+      "bytes": 6656,
+      "sha256": "f968c3e31b6af6dab573ab629c74241ea8255120d249df330b776149b721c523"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/scripts/apple-native-authority-check.mjs",
+      "bytes": 37350,
+      "sha256": "f5a1039785be5cab838ff723d5b743f8df49a092966091b481618159c98a6974"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/server.mjs",
+      "bytes": 5517,
+      "sha256": "c53b3c99a0c18fa124aae0a5b455608f51ffe730fd677a85c85ef5765b5169b7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/session-events.js",
+      "bytes": 4383,
+      "sha256": "3ef91d94f71fa0cba6190bac447bed5ae936c70dd1c43ce87053b6e944d35fe0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/smoke.mjs",
+      "bytes": 1026,
+      "sha256": "3ef0d03b7aa7ad94173a9362033ece32110ddabb57dacbe5dd6c592d13ae8124"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/standard-wallet-connect-state.js",
+      "bytes": 4800,
+      "sha256": "b15941911ebae07071a8ca5cc79b14616e24c43e8ba650389362ecf5333e397d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/styles.css",
+      "bytes": 15249,
+      "sha256": "7ddcdde02b69d7f75efb13f34e3969eb003165054c4c46feb3b06b7f00b970a2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/wallet-auth.js",
+      "bytes": 19641,
+      "sha256": "2b650cec0e6394f25543b9c434f8049b1617b466b6ce5a4e0fb8026f73f478fe"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/wallet-callback.html",
+      "bytes": 781,
+      "sha256": "22e5b9358ea17fcbd7b7a9d515db85fa59a3ef4c8b42c2c26d6ebaa7d3846729"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/wallet-callback.js",
+      "bytes": 1274,
+      "sha256": "d5c48fd9723110e205e8173877072e47ba5741cebef7a267b334762c9ae7f445"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ynx-wallet-transports-2ece0cb329.manifest.json",
+      "bytes": 257815,
+      "sha256": "497db68a53f153eacd3ca253adc65418bd79f15e2ca31dbd61981f0748b94120"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/creator-studio/ynx-wallet-transports-2ece0cb329.mjs",
+      "bytes": 1072970,
+      "sha256": "a385bbdf05b92b6eb442e495cead3f3305aaab7e42010079d96078f2fd2a2526"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ARTIFACT_MANIFEST.json",
+      "bytes": 4385,
+      "sha256": "b01e91436d1261b3ff219b53111c356a0375cbeb9d156628dc96691629ff76aa"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/EVIDENCE_INDEX.md",
+      "bytes": 7099,
+      "sha256": "0f55b146fafa77a86a799118f16770a1f4426caa0530a5dd4fbc68cb73890686"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/FEATURE_COMPLETION_EVIDENCE.md",
+      "bytes": 4423,
+      "sha256": "ba1a8370bf70cedabbe741d6dfa867b328f3ad27c886230e153f6582ee29334a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/MIGRATION_COMPATIBILITY.md",
+      "bytes": 3197,
+      "sha256": "79dabbf1e9420e74a793abd814c58ce922e2bc3bb1364d3f9e62e258d0c54874"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/OBSERVABILITY.md",
+      "bytes": 3511,
+      "sha256": "30cd3c058a730bc6692d4e5e5db37b8dd3591eeab8467925d87d41d7479f385b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/README.md",
+      "bytes": 2097,
+      "sha256": "463980a8d485bcbe6a3b8e6c3f98a1288b59d6e3cae5161a7e69896ffb2cbdb0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/RELEASE_NOTES.md",
+      "bytes": 3204,
+      "sha256": "650971d78a295c99f235be280338eeed448d0d14ad4cf1f0f9f694d935ae5062"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/SBOM.spdx.json",
+      "bytes": 1557,
+      "sha256": "d2f3923af2d5e68f304b393a27eca428be79ed41b78dce5e6ecca5c33aa3ca63"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/THIRD_PARTY_NOTICES.md",
+      "bytes": 885,
+      "sha256": "72862f77e22e4345f32f067c35d95f7f93eaa06071fa140b791cd1625fd5dbe3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/UI_DESIGN_AUDIT.md",
+      "bytes": 3680,
+      "sha256": "acfead0da4eff016183bb06017052412492030745d7e22b099777fadaec62245"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/WEB_CANONICAL_INTEGRATION.md",
+      "bytes": 4384,
+      "sha256": "9f85b8a7364390f1dd3deb5fe69042d015550a3235ee92ac744d5d8c9f277c59"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/.gitignore",
+      "bytes": 44,
+      "sha256": "f0d90fe6dd188cfa5cbac987949cfa3893a2c1ac3cf6dbfcb837e0e2abb698b1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/build.gradle",
+      "bytes": 943,
+      "sha256": "5e6215cf2a08f0670ad843ac4cad218edd36cfb7cd8397cffbd94ab4c94e2bba"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/proguard-rules.pro",
+      "bytes": 75,
+      "sha256": "e3b967b9c0e328f67f6d2a0692deab24d40f8718395812855fb3d505dc8aebbf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/androidTest/java/com/ynxweb4/music/ContractInstrumentedTest.java",
+      "bytes": 3240,
+      "sha256": "620ce148d688096bb60591051711457435d5101078e2531152a0fcdea0a285b8"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/AndroidManifest.xml",
+      "bytes": 1564,
+      "sha256": "1446940ae9cfa57c0a0b8704a5b1c723767bdd02492e59b0758d41561b21d510"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/client.mjs",
+      "bytes": 3235,
+      "sha256": "ef989ac5de75a55216706530d5ea3abdb376921863561e06b85a4d66bd04c407"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/source.json",
+      "bytes": 2966,
+      "sha256": "07d4cab47a6a3bd964d7ec59cb1d9bbf441fa34cf52cd8d6a129a1d005de0480"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/assets/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java",
+      "bytes": 9232,
+      "sha256": "350a031b0a642467e7d1edbc81d19c470b01ec3cc8ac8e1cfce772f0753909e4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "d17dc66c4c014f62f4bd10ff6738dc32b14da950ce9ede5cebc65b126cfea6b5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/LocaleSupport.java",
+      "bytes": 838,
+      "sha256": "4ca6fe8d5630f087e102a30d141fecfa6453e3663e01245b9e09543b2bc5276a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MainActivity.java",
+      "bytes": 42499,
+      "sha256": "986b102a8070b8daf7e497dc80ccac174e36c7500d18f0c033216fb7d6918ae4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "bytes": 15089,
+      "sha256": "eda1521dc3e30a2ffba742e985ddb956fca0504581e6d6005bf1579e793acc37"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicIO.java",
+      "bytes": 1529,
+      "sha256": "7eec2e2efde88be7f71c8ed1ce40b1fbe38830cd5491fb79ac2554830b83e6a8"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "bytes": 10528,
+      "sha256": "e97eeb65d9a9e9aba715e7a9a0732862a8a7371227f9893b6bc843938de02c16"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicUpload.java",
+      "bytes": 3957,
+      "sha256": "49024f0640475b04209529419d4c505672f2fdd7be40085295c25de8294261f7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java",
+      "bytes": 20097,
+      "sha256": "ba4341435a4b56bffd410827af1c29bcbfe85cc4e82d2767f5c618740c653025"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProtectedRuntime.java",
+      "bytes": 7869,
+      "sha256": "1f30c3efacd62041305b1a4ae5028f86f13d3e08f687de0609051b57d24c3251"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeSessionBridge.java",
+      "bytes": 18192,
+      "sha256": "bcf7b7f9f845d0e36cdf2cec0608a6e9c6d15506724387e7cf34a0959ba1f89c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "671e6a9034b21be014bbaa5470be3d721c96b53c808f323efefd5295f567edda"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeStateCustody.java",
+      "bytes": 4936,
+      "sha256": "1c6d88ce22d78f180959dc0f631c21fa7d953b76238e550521e4747690a5f2b0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/PlaybackService.java",
+      "bytes": 9079,
+      "sha256": "8c274b9bb2f41b5c1fbdfb71fe911c9237ccfd3afcf0a06a9942a694d7ff0d57"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SecureStore.java",
+      "bytes": 2473,
+      "sha256": "3c130bc5cd1fdfe4a997e7a28076fc65c64700a5c2b7f612b95fa2653a1dba72"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/SessionCustody.java",
+      "bytes": 3897,
+      "sha256": "7f23eac8f12de2e11141119ddebe8526ffa2054ebe23f6b2d16608caaf3a0cab"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/drawable/ic_music.xml",
+      "bytes": 359,
+      "sha256": "d768fb031f375fbedcd4c114c881d926e27c26ea84f530a550c474ccc5d7beb9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/drawable/ynx_logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values/strings.xml",
+      "bytes": 4502,
+      "sha256": "df8cb102ef04f6be8fc6bafca591d9a0ade72b3aa2af9efded9bb7d6dbd8edf6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values/styles.xml",
+      "bytes": 466,
+      "sha256": "17b63a333481c6d47113f9ed750970d25604cf55f8e3f45eda19ad1ae5413cee"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-ar/strings.xml",
+      "bytes": 5729,
+      "sha256": "fac7c81ef57c42c26fcce0a89028b9ef17b5d0036bcfc82a8a1ab8190251788d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-de/strings.xml",
+      "bytes": 4813,
+      "sha256": "12832155d405e1c6c251d74d1ce25a6b693d3655970c822b2fa3b8571f01a7c3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-es/strings.xml",
+      "bytes": 4793,
+      "sha256": "7f9b564580a7e545a6bc224158a75f7cf8bc5a25a4f5b7f0ac6daa1f1d7a2b62"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-fr/strings.xml",
+      "bytes": 4930,
+      "sha256": "0365be07c3acdacc0ba7cffd112d3c6702f17e099c06a47b6da0585a0c4e920b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-in/strings.xml",
+      "bytes": 4606,
+      "sha256": "880e77b44c3666a2ced8e7cf7a7179b73be602189d2a1cb70591baba0ebe3481"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-ja/strings.xml",
+      "bytes": 5379,
+      "sha256": "96c7b2cd34382dca4664443a010869fadbdf49ad8b72bd2938a44d640ba80caa"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-ko/strings.xml",
+      "bytes": 4961,
+      "sha256": "76938c9b709a7fd5aa0c818e7734bb4b38264bd27167a809fc83bd3538670602"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-night/styles.xml",
+      "bytes": 461,
+      "sha256": "c40484f7f0f194ab6eddc6a331e930a301cf03ea2f0f1710ac04a262186d0127"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-pt/strings.xml",
+      "bytes": 4805,
+      "sha256": "b7c8a3b5c8be345db2545d21027f5f9473f2f97ad83ea23b1627b4bca077748b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-ru/strings.xml",
+      "bytes": 6351,
+      "sha256": "c75042c5d9e70f3621ea7b51c447d7b222763d98a19267cb331c2542aefe0e49"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-zh-rCN/strings.xml",
+      "bytes": 4366,
+      "sha256": "0b8efb9752cfddff7b785098f953e9ec63d1311381d8fc3f00cc195d099fb1a7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/main/res/values-zh-rTW/strings.xml",
+      "bytes": 4360,
+      "sha256": "cc86f298ab1e0776b579a53032179fa5ded4dc9f5b7a5929eb6bfd24503b2d04"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/app/src/test/java/com/ynxweb4/music/NativeProductStateTest.java",
+      "bytes": 12153,
+      "sha256": "3af95264cb3f822fceab5d7a111b6152e92a4eacf8dc1d9ef128f8ab751598c4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/build.gradle",
+      "bytes": 133,
+      "sha256": "498f04b13506032fefc35d99ee2c006b3e322b5bbb202f1db06bc17141a37cb2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/gradle.properties",
+      "bytes": 135,
+      "sha256": "454d9ea3a6ed271db953f86cb4b02291135b6e543562418b1870a7f6c4856336"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/android/settings.gradle",
+      "bytes": 270,
+      "sha256": "5b51f39d1c58cdc551b0633cdd88aa1550a63c7d6dc1f6f75b1a8c68b6276021"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/CENTRAL_INTEGRATION.md",
+      "bytes": 2586,
+      "sha256": "4560d2ee70a365a65ec550ace09f9fa0871cd96c993bc9f60790b1e5920de129"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/ai-web-recovery-checkpoint-20261003.json",
+      "bytes": 8474,
+      "sha256": "66d0f1be9c95164df8075f6a554d27c808d17b978804a9b3de181b9d6ecd5f24"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/business-ai-stream-checkpoint-20261003.json",
+      "bytes": 6646,
+      "sha256": "55162e5a093c04e9885b7e84114b6cd532d52fa9afc84b72ede8399f514f8d6d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/business-effects-v2-checkpoint-20261003.json",
+      "bytes": 6922,
+      "sha256": "58cb7c4df84d23964bb5031effce9698102ec7cc25ba67944f1128d6e5f48ad9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/business-store-v2-checkpoint-20261003.json",
+      "bytes": 7631,
+      "sha256": "a226ea852a1b9e1d75cb2b94317307d14d2e1ffa4c5bed2f2bbeb4d7a4433128"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/wallet-registry-v2.json",
+      "bytes": 357,
+      "sha256": "62deb5e13c89ee58561882db426ed787022f15bc89e299480d57c6bca05b92e2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/web-private-registration-owner-contract-20261003.json",
+      "bytes": 2197,
+      "sha256": "73aae30acedc61d6b4530ffa8e7184662d77e4d10a289fc2860aa4dba925c395"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/central/web-private-source-checkpoint-20261003.json",
+      "bytes": 3910,
+      "sha256": "8b34e0ac36728b148269248165ce6b2c70f3077cf0f6065597c4db058cc7fb69"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3300,
+      "sha256": "87012d6d82d83c988e3c895279774bfa3d47716c6ff8571dfa92fc8838427035"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/deploy/music.env.example",
+      "bytes": 356,
+      "sha256": "b0c120b54553d7d46405261ff4a08ee7ff6dfee58de65c11b605e298b7d88114"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/deploy/web4-music.caddy",
+      "bytes": 162,
+      "sha256": "816f6d52c84641e68dc860cdf9a1b2b4193f59de24c26b6296d92fd0217ea65b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/deploy/ynx-musicd.service",
+      "bytes": 564,
+      "sha256": "74038cd3e9319b3646d0adc80ede1c2705d96d12d2c81b51a884bd898e83ea8c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/docs/DEVELOPMENT.md",
+      "bytes": 1848,
+      "sha256": "ce4c234bfa747cea0a97fc3944c15ab3409577670def28d3da2c5887a1b67c05"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/docs/OPERATIONS.md",
+      "bytes": 3144,
+      "sha256": "4685b834ed63f672023a932d61da9f0085b7d8831064c31446ef3265207e75b1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/docs/USER_GUIDE.md",
+      "bytes": 2472,
+      "sha256": "d3acf6a87c8109eec82fdc17dbc9dd2a3da40004e3b2a35f9ae6996ea0f72ca6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/Info.plist",
+      "bytes": 1129,
+      "sha256": "e14fa43d045107953dcc10d5038494827aab5e888887c9abf2aa7bea67eedabc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MacInfo.plist",
+      "bytes": 1102,
+      "sha256": "d3a8d75d1d3ad72d9bd1722082c0fb94b6997894a79adca5f5de69b6b6b4cd4a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicAPI.swift",
+      "bytes": 11106,
+      "sha256": "0a13acc8a2926f0552e08b78ad4d2f64c7547616dcfd0590f13455f35f312594"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicAccountState.swift",
+      "bytes": 9853,
+      "sha256": "c36c69fd1ceef856e91e41f42832aa6255182ff0a1d4bde29b2b88adc5d002ac"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicCredentials.swift",
+      "bytes": 5092,
+      "sha256": "635079cb4a0a5d26e58aa6ccf53fc8222f1316558e3bceec4b01833f87ea69ba"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicDeviceSigner.swift",
+      "bytes": 1119,
+      "sha256": "e02aaa346096478ecc47dd4a54d1b00e6c8c7c22f9070c7cc6c8ac3e4d17db8d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicNativeCustody.swift",
+      "bytes": 2949,
+      "sha256": "b4017900f2cba313c62fa4c66a51314d1fdde3db835a6923a79834d0658dbf86"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicNativeEngine.swift",
+      "bytes": 24025,
+      "sha256": "1a831011bce5b4943427bc2928424a23bca85533b31c5243f597907374294f7a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicNativeState.swift",
+      "bytes": 18494,
+      "sha256": "936f99217d546f58a6416d143140d1d82bf529af406400b0cc3129b5adcea8bf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/MusicNativeTransport.swift",
+      "bytes": 1557,
+      "sha256": "f0b01274437efc433a0241632fda3cdda66b0354d640cc3c5b2d4d501d571a6b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/YNXMusic.entitlements",
+      "bytes": 239,
+      "sha256": "f78d1674ddc52e751214988f87e419028528a6cf9c11a06f91cffe15317dd813"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+      "bytes": 45940,
+      "sha256": "40597be6f1e2204399fe74dbda6c5f839de1ead59db7a934b8244d58b24df6ed"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/client.mjs",
+      "bytes": 3341,
+      "sha256": "347f8f43ec1dcee92b802a60d070f80e85b8a66db73546d056797f5e406760d8"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/source.json",
+      "bytes": 2964,
+      "sha256": "57c9464b77146041613433c0dce1bd572ad041a44188fd9ca69e03665dcecacc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/ios/YNXMusic.xcodeproj/project.pbxproj",
+      "bytes": 9876,
+      "sha256": "365ddeeb6f8f2c2368709aab403d0543a1170e8b94d3bc0f28d3c04b90eff38b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/product-release.json",
+      "bytes": 7011,
+      "sha256": "859d8ddb254f96b093a3c6de3ce7a52b5d2b202f3df35e8d5a0445b0e186ec72"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/public-product-metadata.json",
+      "bytes": 5401,
+      "sha256": "fdde296a4e9d9e55a169e66966c0389452b08505b6376591867a02e8f62dcba7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/scripts/android-upload-original-business-check.mjs",
+      "bytes": 3349,
+      "sha256": "af5139ad77ba5a42c47025e8e91468156f2336858ba751bf95d2ee9b029271ba"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/scripts/apple-native-authority-check.mjs",
+      "bytes": 8796,
+      "sha256": "563c4daee0affb4998875e069c59b407e8842fa7fe1181da4e6d434af3ba0a4c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/scripts/canonical-browser-authority-check.cjs",
+      "bytes": 10947,
+      "sha256": "2540881564c57338a1cdff9b51dfb9d94622459630555589b31dcf388d0f6eca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/scripts/packaged-native-engine-fixture.mjs",
+      "bytes": 5586,
+      "sha256": "ee0c13055fbcf660f33bf17e431f7007be18c1a6206b0c922357a8e727305155"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/shared/i18n.json",
+      "bytes": 49412,
+      "sha256": "540571e25af743205060df580387b93027c9ecc2967eba5f6c410414a38eb15f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ai-stream.js",
+      "bytes": 1781,
+      "sha256": "63bd633f9f6b07c12b212cc14493e73ef309a7226fa82bd9a0a9e45c4cb4da07"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ai-stream.js",
+      "bytes": 1781,
+      "sha256": "63bd633f9f6b07c12b212cc14493e73ef309a7226fa82bd9a0a9e45c4cb4da07"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/app.js",
+      "bytes": 5779,
+      "sha256": "05f35c242889fc9712cfcff1c1bd39b85c3c62bbc124d639fc566072aba7d000"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/app.js",
+      "bytes": 5779,
+      "sha256": "05f35c242889fc9712cfcff1c1bd39b85c3c62bbc124d639fc566072aba7d000"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/assets/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/assets/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/assets/ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/assets/ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/business.js",
+      "bytes": 29566,
+      "sha256": "2cb2573470164eb608c2ae93938848b7d2d1d0b1ba37bb0ce200f0f941d783c5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/business.js",
+      "bytes": 29566,
+      "sha256": "2cb2573470164eb608c2ae93938848b7d2d1d0b1ba37bb0ce200f0f941d783c5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-release.js",
+      "bytes": 1461,
+      "sha256": "d770ac7b089c90245fc7260ffcadfe94cf371a3b2334f41e8087fe7ecd809234"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-release.js",
+      "bytes": 1461,
+      "sha256": "d770ac7b089c90245fc7260ffcadfe94cf371a3b2334f41e8087fe7ecd809234"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-request.js",
+      "bytes": 5716,
+      "sha256": "77008e99770eea46aec39cd753ef1134b483a3923514ef3e40fadf0e246f5653"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-request.js",
+      "bytes": 5716,
+      "sha256": "77008e99770eea46aec39cd753ef1134b483a3923514ef3e40fadf0e246f5653"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-session.js",
+      "bytes": 3482,
+      "sha256": "ae8d6a732b4aa35c6d7f84cc0ab86386c3c7f9270d70d370e3356d1bf7fa434c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/canonical-session.js",
+      "bytes": 3482,
+      "sha256": "ae8d6a732b4aa35c6d7f84cc0ab86386c3c7f9270d70d370e3356d1bf7fa434c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/display-settings.css",
+      "bytes": 2779,
+      "sha256": "c01a8b262a6a1d9352c0d25b795ee98326d0cc450d920132a3668fbde15420ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/display-settings.css",
+      "bytes": 2779,
+      "sha256": "c01a8b262a6a1d9352c0d25b795ee98326d0cc450d920132a3668fbde15420ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/display-settings.js",
+      "bytes": 3296,
+      "sha256": "5acf6f44622122994f4b9aba5bca5f066cd26746b16b786881f2998b8bd73b99"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/display-settings.js",
+      "bytes": 3296,
+      "sha256": "5acf6f44622122994f4b9aba5bca5f066cd26746b16b786881f2998b8bd73b99"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/index.html",
+      "bytes": 10180,
+      "sha256": "11c7e1c168426a8cb4b1595440ddcdb91a592ea10750b7b40aa548003a6ce6fe"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/index.html",
+      "bytes": 10180,
+      "sha256": "11c7e1c168426a8cb4b1595440ddcdb91a592ea10750b7b40aa548003a6ce6fe"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/playlist-journal.js",
+      "bytes": 3582,
+      "sha256": "3758446c65892ae81d658b2c860f15ccaab2fcc056fee5516ea0526d6bdee14c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/playlist-journal.js",
+      "bytes": 3582,
+      "sha256": "3758446c65892ae81d658b2c860f15ccaab2fcc056fee5516ea0526d6bdee14c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/styles.css",
+      "bytes": 14458,
+      "sha256": "2cc8b05d84496a53dccfb12e84533fd16a7e80e962b99a46667a93f75a3f86b2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/styles.css",
+      "bytes": 14458,
+      "sha256": "2cc8b05d84496a53dccfb12e84533fd16a7e80e962b99a46667a93f75a3f86b2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-browser.d.mts",
+      "bytes": 241,
+      "sha256": "02e2ab298b658713638133c0de9be12cd0735d720dd486e349da48f22fde004c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-browser.d.mts",
+      "bytes": 241,
+      "sha256": "02e2ab298b658713638133c0de9be12cd0735d720dd486e349da48f22fde004c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-browser.mjs",
+      "bytes": 238991,
+      "sha256": "7e7992edf64b5cd6b07de944a29295ff6803c163bcee4afb1f7437efdc96d313"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-browser.mjs",
+      "bytes": 238991,
+      "sha256": "7e7992edf64b5cd6b07de944a29295ff6803c163bcee4afb1f7437efdc96d313"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.d.mts",
+      "bytes": 257,
+      "sha256": "e06b8c3c78cac828fabb42c0156ec6caa4215aeecb0ca7edb7a70d3e0f296bf2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.d.mts",
+      "bytes": 257,
+      "sha256": "e06b8c3c78cac828fabb42c0156ec6caa4215aeecb0ca7edb7a70d3e0f296bf2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/consumer-artifact-manifest.json",
+      "bytes": 1197,
+      "sha256": "bd9497247cdcabe47c650066855cb21a4f191b9c7cc5df1634b70b13ebfec038"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/consumer-artifact-manifest.json",
+      "bytes": 1197,
+      "sha256": "bd9497247cdcabe47c650066855cb21a4f191b9c7cc5df1634b70b13ebfec038"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/dependency-provenance.json",
+      "bytes": 21059,
+      "sha256": "c7e5c52983aa83560ccc29881fb2555cf5908415dd09df7458fc5442ceecbf42"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/dependency-provenance.json",
+      "bytes": 21059,
+      "sha256": "c7e5c52983aa83560ccc29881fb2555cf5908415dd09df7458fc5442ceecbf42"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/owner-adoption.json",
+      "bytes": 21520,
+      "sha256": "b1e5ce47e754461bf57c55963a43b5d66faa03d4547a6f613353b5d4b7a0c7de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/owner-adoption.json",
+      "bytes": 21520,
+      "sha256": "b1e5ce47e754461bf57c55963a43b5d66faa03d4547a6f613353b5d4b7a0c7de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/central-registry.json",
+      "bytes": 13319,
+      "sha256": "294119abb2f3e31dd6e1834440e2d0c7cd20dd11a2ba2a3849cee4b30ca7301c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/central-registry.json",
+      "bytes": 13319,
+      "sha256": "294119abb2f3e31dd6e1834440e2d0c7cd20dd11a2ba2a3849cee4b30ca7301c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/package-lock.json",
+      "bytes": 64919,
+      "sha256": "2677b67db220fac235a0d62ddf6ef360f7e31ffa3ceccbe93a6b675498402308"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/package-lock.json",
+      "bytes": 64919,
+      "sha256": "2677b67db220fac235a0d62ddf6ef360f7e31ffa3ceccbe93a6b675498402308"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/package.json",
+      "bytes": 5597,
+      "sha256": "cae01082e60975b20250b466d3a459fb500a6504980309b6d50a0c895f190f75"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/package.json",
+      "bytes": 5597,
+      "sha256": "cae01082e60975b20250b466d3a459fb500a6504980309b6d50a0c895f190f75"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/product-session-registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/product-session-registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-launcher.d.ts",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-launcher.d.ts",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-launcher.js",
+      "bytes": 6750,
+      "sha256": "7ea57fbc1f325d85f05a09df8bade9ecd862b27d2f6c0592414c63f6b36dde9c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-launcher.js",
+      "bytes": 6750,
+      "sha256": "7ea57fbc1f325d85f05a09df8bade9ecd862b27d2f6c0592414c63f6b36dde9c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-request.js",
+      "bytes": 10141,
+      "sha256": "9eeb7164a6abef69c88aef542e68991df70f7519fbd6674df11141eab71758f4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action-request.js",
+      "bytes": 10141,
+      "sha256": "9eeb7164a6abef69c88aef542e68991df70f7519fbd6674df11141eab71758f4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action.js",
+      "bytes": 11150,
+      "sha256": "003ad229407316061594ae81ee236cc455b171fc1e71684469c6a25c35b25141"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/application-action.js",
+      "bytes": 11150,
+      "sha256": "003ad229407316061594ae81ee236cc455b171fc1e71684469c6a25c35b25141"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/base64url.js",
+      "bytes": 1674,
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/base64url.js",
+      "bytes": 1674,
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/bundler.js",
+      "bytes": 10674,
+      "sha256": "885eccffc1cf37cc0d45669fa3434155e44693bfe85114ff05ce1e2da61b57cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/bundler.js",
+      "bytes": 10674,
+      "sha256": "885eccffc1cf37cc0d45669fa3434155e44693bfe85114ff05ce1e2da61b57cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/card-application-approval-request.js",
+      "bytes": 13882,
+      "sha256": "7b2e52669baaa16d693873281ceec63a66c2245e537df604786800ab5e9446ed"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/card-application-approval-request.js",
+      "bytes": 13882,
+      "sha256": "7b2e52669baaa16d693873281ceec63a66c2245e537df604786800ab5e9446ed"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/card-application-approval.js",
+      "bytes": 15118,
+      "sha256": "cae568a89b20328a39b4d82f188952b4f95d4af0fe2c273c2ee611ec06e73938"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/card-application-approval.js",
+      "bytes": 15118,
+      "sha256": "cae568a89b20328a39b4d82f188952b4f95d4af0fe2c273c2ee611ec06e73938"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-backend-auth.js",
+      "bytes": 4651,
+      "sha256": "d280f07765586ea2ca5a4cfa2788fe5887c33831d429412f4d08d72df5a38461"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-backend-auth.js",
+      "bytes": 4651,
+      "sha256": "d280f07765586ea2ca5a4cfa2788fe5887c33831d429412f4d08d72df5a38461"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-browser.bundle.js",
+      "bytes": 1184526,
+      "sha256": "8aa3790fa98ae35429dc1b450b4e1ffdaaed714a9ad1688000d678a084f32c6f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-browser.bundle.js",
+      "bytes": 1184526,
+      "sha256": "8aa3790fa98ae35429dc1b450b4e1ffdaaed714a9ad1688000d678a084f32c6f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-browser.js",
+      "bytes": 28914,
+      "sha256": "85593a1206b6effa09539b8e553231bfaa6ecb00013dfe89f07116a72ccf6079"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-browser.js",
+      "bytes": 28914,
+      "sha256": "85593a1206b6effa09539b8e553231bfaa6ecb00013dfe89f07116a72ccf6079"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-contract.d.ts",
+      "bytes": 1687,
+      "sha256": "5d3628431bd594e6520c21b02e259af9a34cc6b556b1c8a1b46283398cb0fc32"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-contract.d.ts",
+      "bytes": 1687,
+      "sha256": "5d3628431bd594e6520c21b02e259af9a34cc6b556b1c8a1b46283398cb0fc32"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-contract.js",
+      "bytes": 4456,
+      "sha256": "e00372266fcf03a5e4700c33e5f5f06d3d6098ecb5434a0485b1a6c5c1a585e0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-contract.js",
+      "bytes": 4456,
+      "sha256": "e00372266fcf03a5e4700c33e5f5f06d3d6098ecb5434a0485b1a6c5c1a585e0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-locale.js",
+      "bytes": 10603,
+      "sha256": "8b740cd6a2a19f1f8deb3042560ff1ad19a9367e29a8cb99bb5d975613f0956a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-locale.js",
+      "bytes": 10603,
+      "sha256": "8b740cd6a2a19f1f8deb3042560ff1ad19a9367e29a8cb99bb5d975613f0956a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-registry.d.ts",
+      "bytes": 465,
+      "sha256": "87b39631380707a80b0c1dd6b712dd75d6d290530c540baae15d6cade12a14fa"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-registry.d.ts",
+      "bytes": 465,
+      "sha256": "87b39631380707a80b0c1dd6b712dd75d6d290530c540baae15d6cade12a14fa"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-registry.js",
+      "bytes": 2882,
+      "sha256": "6ec2ebf543bb4f12d26d7f219120eca9183750f2a3f243cdea5ba41681dcbd8d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-registry.js",
+      "bytes": 2882,
+      "sha256": "6ec2ebf543bb4f12d26d7f219120eca9183750f2a3f243cdea5ba41681dcbd8d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-store.js",
+      "bytes": 9506,
+      "sha256": "77fcf157a4df618fd80b10345ec9679e7be4e386fc040a7a62b05b8d1ef09e82"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session-store.js",
+      "bytes": 9506,
+      "sha256": "77fcf157a4df618fd80b10345ec9679e7be4e386fc040a7a62b05b8d1ef09e82"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session.js",
+      "bytes": 50085,
+      "sha256": "a41502a647a8bf384e9eaf1ab9fce22cf5263d7cc48762d8aa645650dc8fd0f6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-browser-session.js",
+      "bytes": 50085,
+      "sha256": "a41502a647a8bf384e9eaf1ab9fce22cf5263d7cc48762d8aa645650dc8fd0f6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-oidc-provider.js",
+      "bytes": 7299,
+      "sha256": "487618d43d4ef2834d17561ac0b03afb6a4b56a4265a30e04e2aef70131b9f41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/central-oidc-provider.js",
+      "bytes": 7299,
+      "sha256": "487618d43d4ef2834d17561ac0b03afb6a4b56a4265a30e04e2aef70131b9f41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/client-retirement.js",
+      "bytes": 9009,
+      "sha256": "2a741062ba291a8d338189bbd50274acbe7f57049b986efaa2b49f04432eeb22"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/client-retirement.js",
+      "bytes": 9009,
+      "sha256": "2a741062ba291a8d338189bbd50274acbe7f57049b986efaa2b49f04432eeb22"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/credential.js",
+      "bytes": 4521,
+      "sha256": "cf1e24eb44dda4aa705da47e25ed3c65e30e965690166bb9594969ba28862997"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/credential.js",
+      "bytes": 4521,
+      "sha256": "cf1e24eb44dda4aa705da47e25ed3c65e30e965690166bb9594969ba28862997"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/crypto.js",
+      "bytes": 6692,
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/crypto.js",
+      "bytes": 6692,
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/deep-link.js",
+      "bytes": 2712,
+      "sha256": "1cabb31d435300360602f632b1164f10348aa36aeb4fa9ee9d848c2493b9c348"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/deep-link.js",
+      "bytes": 2712,
+      "sha256": "1cabb31d435300360602f632b1164f10348aa36aeb4fa9ee9d848c2493b9c348"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/developer-deployment.js",
+      "bytes": 14745,
+      "sha256": "46656a4fd6c1fafb818e05193311767f4c00fb7c6011ef9dca734e86daffb361"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/developer-deployment.js",
+      "bytes": 14745,
+      "sha256": "46656a4fd6c1fafb818e05193311767f4c00fb7c6011ef9dca734e86daffb361"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/dex-action.js",
+      "bytes": 16795,
+      "sha256": "08405fbd2831e6d9eca5bff089a6faa1c80f6fde57802784a6ecf51626a6c83d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/dex-action.js",
+      "bytes": 16795,
+      "sha256": "08405fbd2831e6d9eca5bff089a6faa1c80f6fde57802784a6ecf51626a6c83d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/evm-product-login.js",
+      "bytes": 11073,
+      "sha256": "c55e2de22b6c49f9aec46b8f3a9689d5de116136f513fbdd18587f1f38522929"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/evm-product-login.js",
+      "bytes": 11073,
+      "sha256": "c55e2de22b6c49f9aec46b8f3a9689d5de116136f513fbdd18587f1f38522929"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/evm-product-session.js",
+      "bytes": 23584,
+      "sha256": "cc80f0f11d104967e30f5f8ad4da91be830b9af5c86c81c478edcfdc16dddb52"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/evm-product-session.js",
+      "bytes": 23584,
+      "sha256": "cc80f0f11d104967e30f5f8ad4da91be830b9af5c86c81c478edcfdc16dddb52"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/exchange-action.js",
+      "bytes": 10232,
+      "sha256": "7459998abac435dfbdf60c5a34d7dd721678054d834a190e7a67b714bca04946"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/exchange-action.js",
+      "bytes": 10232,
+      "sha256": "7459998abac435dfbdf60c5a34d7dd721678054d834a190e7a67b714bca04946"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-common.js",
+      "bytes": 5583,
+      "sha256": "3a93524943eb210c79ca35e1c109cb794d4846bc13329823490f80efce270574"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-common.js",
+      "bytes": 5583,
+      "sha256": "3a93524943eb210c79ca35e1c109cb794d4846bc13329823490f80efce270574"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-order-approval.js",
+      "bytes": 15412,
+      "sha256": "8018d571d26c4c5ed64d6deae3be8f1ea62deb3c4fb6659cf48e704919e97989"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-order-approval.js",
+      "bytes": 15412,
+      "sha256": "8018d571d26c4c5ed64d6deae3be8f1ea62deb3c4fb6659cf48e704919e97989"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-subject.js",
+      "bytes": 16121,
+      "sha256": "9c81ee879acb41c0a7a4ea1a78f28ffb1d9eab67ce950bfc4202d7ea3d66a51d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-evm-subject.js",
+      "bytes": 16121,
+      "sha256": "9c81ee879acb41c0a7a4ea1a78f28ffb1d9eab67ce950bfc4202d7ea3d66a51d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-approval-transport.js",
+      "bytes": 8559,
+      "sha256": "2bcdf7a018be2bb9561a7310bd3be7924c0d10838f1bc0de843b31ada3a5b7ef"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-approval-transport.js",
+      "bytes": 8559,
+      "sha256": "2bcdf7a018be2bb9561a7310bd3be7924c0d10838f1bc0de843b31ada3a5b7ef"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-approval.js",
+      "bytes": 20281,
+      "sha256": "14b7d2b39a391ddab8470df3c07eaad0bbd96bc0b602ea824cd6cbac8db8be9d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-approval.js",
+      "bytes": 20281,
+      "sha256": "14b7d2b39a391ddab8470df3c07eaad0bbd96bc0b602ea824cd6cbac8db8be9d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-opaque-transport.js",
+      "bytes": 19812,
+      "sha256": "fb421009411467992421542afcc408c59db3a92f2a918d1073c2363fe38b2314"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/finance-order-opaque-transport.js",
+      "bytes": 19812,
+      "sha256": "fb421009411467992421542afcc408c59db3a92f2a918d1073c2363fe38b2314"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-adapter.js",
+      "bytes": 15722,
+      "sha256": "e68c483c7523610dbd5ba04d54971c43175b7997bb3e3e996d2212d8411387e0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-adapter.js",
+      "bytes": 15722,
+      "sha256": "e68c483c7523610dbd5ba04d54971c43175b7997bb3e3e996d2212d8411387e0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-admission.js",
+      "bytes": 2253,
+      "sha256": "896fe1669ae23cfc8bd4747d3e157c65583aa8e484183cc28452b1fc3b5db549"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-admission.js",
+      "bytes": 2253,
+      "sha256": "896fe1669ae23cfc8bd4747d3e157c65583aa8e484183cc28452b1fc3b5db549"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-backup.d.ts",
+      "bytes": 1853,
+      "sha256": "3d39e5b9fc64e802688623b6c747a3145bdd18f3f722e34c5c47f8e03fda1f78"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-backup.d.ts",
+      "bytes": 1853,
+      "sha256": "3d39e5b9fc64e802688623b6c747a3145bdd18f3f722e34c5c47f8e03fda1f78"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-backup.js",
+      "bytes": 20654,
+      "sha256": "408259bbe7024a5b25289e262d1da17baa0de8baa3bdfd12a38abddb718679f6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-backup.js",
+      "bytes": 20654,
+      "sha256": "408259bbe7024a5b25289e262d1da17baa0de8baa3bdfd12a38abddb718679f6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-http.js",
+      "bytes": 9341,
+      "sha256": "726664f442ab225f2610b9c7a5f201faf8ab585c78c0bc36985e5663ac6f185f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-http.js",
+      "bytes": 9341,
+      "sha256": "726664f442ab225f2610b9c7a5f201faf8ab585c78c0bc36985e5663ac6f185f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-node-host.d.ts",
+      "bytes": 1490,
+      "sha256": "a1baae4bcb8a957a040dfcfffe6ec4d36f4e65465ac7695844a7ccb740e7e32e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-node-host.d.ts",
+      "bytes": 1490,
+      "sha256": "a1baae4bcb8a957a040dfcfffe6ec4d36f4e65465ac7695844a7ccb740e7e32e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-node-host.js",
+      "bytes": 22427,
+      "sha256": "c3f5dd1299694b0ed206368bc9b22af53ad763c5771719cbda76d26c3a1db042"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/gateway-node-host.js",
+      "bytes": 22427,
+      "sha256": "c3f5dd1299694b0ed206368bc9b22af53ad763c5771719cbda76d26c3a1db042"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/hosted-adapter.d.ts",
+      "bytes": 1064,
+      "sha256": "15659a198d471da577082d8e20c36df0afd106fe94d4137345d5c5d1756d6df3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/hosted-adapter.d.ts",
+      "bytes": 1064,
+      "sha256": "15659a198d471da577082d8e20c36df0afd106fe94d4137345d5c5d1756d6df3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/hosted-adapter.js",
+      "bytes": 24686,
+      "sha256": "5421a714ef370f91284f636512e98cbda05963ad798956f4b501f49c70ae62f1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/hosted-adapter.js",
+      "bytes": 24686,
+      "sha256": "5421a714ef370f91284f636512e98cbda05963ad798956f4b501f49c70ae62f1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/index.d.ts",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/index.d.ts",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/index.js",
+      "bytes": 3024,
+      "sha256": "d915d8056ce3bce46493a6d13c98e7195dd72534ea07c8bc570764f2d90619ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/index.js",
+      "bytes": 3024,
+      "sha256": "d915d8056ce3bce46493a6d13c98e7195dd72534ea07c8bc570764f2d90619ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/integration.js",
+      "bytes": 14695,
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/integration.js",
+      "bytes": 14695,
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/intent.js",
+      "bytes": 10519,
+      "sha256": "b957da00144d298ec2e2dbcfe391d55edd168ad495423305536d1d67a72ebcfc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/intent.js",
+      "bytes": 10519,
+      "sha256": "b957da00144d298ec2e2dbcfe391d55edd168ad495423305536d1d67a72ebcfc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/lifecycle.js",
+      "bytes": 20738,
+      "sha256": "70a402903bf42b642eeec265f32994ebcf629371fbfbdecfbd5d4927cfc025ae"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/lifecycle.js",
+      "bytes": 20738,
+      "sha256": "70a402903bf42b642eeec265f32994ebcf629371fbfbdecfbd5d4927cfc025ae"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/mandate-lifecycle.js",
+      "bytes": 14342,
+      "sha256": "105043dacf8a877559d9469ce54ca9cd30f019c7d70002ac6a50fd0abdb0b3b0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/mandate-lifecycle.js",
+      "bytes": 14342,
+      "sha256": "105043dacf8a877559d9469ce54ca9cd30f019c7d70002ac6a50fd0abdb0b3b0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/mandate.js",
+      "bytes": 19070,
+      "sha256": "e6e16b29f2602ae4b6f2632ad741cff092f4b5c9d95943f1188efad32e805abd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/mandate.js",
+      "bytes": 19070,
+      "sha256": "e6e16b29f2602ae4b6f2632ad741cff092f4b5c9d95943f1188efad32e805abd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/metamask-evm-adapter.js",
+      "bytes": 6530,
+      "sha256": "dd93f681ba7904a42ae5ec0069991a59b2319dddbb7d073503f5016beb59fdeb"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/metamask-evm-adapter.js",
+      "bytes": 6530,
+      "sha256": "dd93f681ba7904a42ae5ec0069991a59b2319dddbb7d073503f5016beb59fdeb"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/native-transfer.js",
+      "bytes": 4872,
+      "sha256": "10ca0f351fa2341a145fa6e23923fa59810202a5eafad9700116b2b9e93ab321"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/native-transfer.js",
+      "bytes": 4872,
+      "sha256": "10ca0f351fa2341a145fa6e23923fa59810202a5eafad9700116b2b9e93ab321"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/pay-invoice-trust.js",
+      "bytes": 1915,
+      "sha256": "815b76c6b906f4fc66c6b6772c7e0c3e350bde8e221d12bb290f922f8d417b2d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/pay-invoice-trust.js",
+      "bytes": 1915,
+      "sha256": "815b76c6b906f4fc66c6b6772c7e0c3e350bde8e221d12bb290f922f8d417b2d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/pay-payment.js",
+      "bytes": 6621,
+      "sha256": "6f4767511a7ea5eda443d8702665ed4c7de50518652a8ec3a77075ce89083d64"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/pay-payment.js",
+      "bytes": 6621,
+      "sha256": "6f4767511a7ea5eda443d8702665ed4c7de50518652a8ec3a77075ce89083d64"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-migration.js",
+      "bytes": 9307,
+      "sha256": "27054bf82f5aebd1d588b0d472b761d18c03dc157644321495abf37dde153bb5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-migration.js",
+      "bytes": 9307,
+      "sha256": "27054bf82f5aebd1d588b0d472b761d18c03dc157644321495abf37dde153bb5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-browser.js",
+      "bytes": 26121,
+      "sha256": "0e2e0356f739b9515ae4d0c257667aa241c98fc13b7bd8a19076db486ca96a66"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-browser.js",
+      "bytes": 26121,
+      "sha256": "0e2e0356f739b9515ae4d0c257667aa241c98fc13b7bd8a19076db486ca96a66"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-completion-record.js",
+      "bytes": 2837,
+      "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-completion-record.js",
+      "bytes": 2837,
+      "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-capacity.js",
+      "bytes": 4012,
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-capacity.js",
+      "bytes": 4012,
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-intent.js",
+      "bytes": 20511,
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-intent.js",
+      "bytes": 20511,
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-host.d.ts",
+      "bytes": 642,
+      "sha256": "179c07d6f046118b89cb4e48368c723dd6406e1170d90ae27a3ff1f1ee953682"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-host.d.ts",
+      "bytes": 642,
+      "sha256": "179c07d6f046118b89cb4e48368c723dd6406e1170d90ae27a3ff1f1ee953682"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-host.js",
+      "bytes": 11712,
+      "sha256": "804347bd92d1d17f1f8446e2816624d8b5b66d5ec53141d1cb44c6c4b1b90f2e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-host.js",
+      "bytes": 11712,
+      "sha256": "804347bd92d1d17f1f8446e2816624d8b5b66d5ec53141d1cb44c6c4b1b90f2e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-store.js",
+      "bytes": 14387,
+      "sha256": "49748115f18ea7ae8d962171d216d810c61795d93c6c8781f5a69b4ba19dcdab"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-control-node-store.js",
+      "bytes": 14387,
+      "sha256": "49748115f18ea7ae8d962171d216d810c61795d93c6c8781f5a69b4ba19dcdab"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-finite-consent.js",
+      "bytes": 2976,
+      "sha256": "bdefcaf2175406c8db83bfaafc7225cce72fb69da5f1c3a5e5a9f858b7e48ba2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-finite-consent.js",
+      "bytes": 2976,
+      "sha256": "bdefcaf2175406c8db83bfaafc7225cce72fb69da5f1c3a5e5a9f858b7e48ba2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-client.js",
+      "bytes": 10334,
+      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-client.js",
+      "bytes": 10334,
+      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-http.js",
+      "bytes": 4396,
+      "sha256": "b9d8921d53671032367d1f7c2a016e41c7724def9b0c4056c3a0f1e8bd6575a4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-http.js",
+      "bytes": 4396,
+      "sha256": "b9d8921d53671032367d1f7c2a016e41c7724def9b0c4056c3a0f1e8bd6575a4"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-node-host.d.ts",
+      "bytes": 1175,
+      "sha256": "205080b168913b30e91d92bf17c8280fe6344a46c55dbcfc431c197ec7656bee"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-node-host.d.ts",
+      "bytes": 1175,
+      "sha256": "205080b168913b30e91d92bf17c8280fe6344a46c55dbcfc431c197ec7656bee"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "bytes": 18848,
+      "sha256": "54294feeaaa2e06f4708175befe8640f91cc007b3d2f7403035cf54e2d06289c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "bytes": 18848,
+      "sha256": "54294feeaaa2e06f4708175befe8640f91cc007b3d2f7403035cf54e2d06289c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-snapshot-v2.js",
+      "bytes": 5490,
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway-snapshot-v2.js",
+      "bytes": 5490,
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway.js",
+      "bytes": 26088,
+      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-gateway.js",
+      "bytes": 26088,
+      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-native.d.ts",
+      "bytes": 3486,
+      "sha256": "ed02eab6a995132e5af06c3d2dc4f83e01fd6cac7316d5a7e6a6cf7e089db985"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-native.d.ts",
+      "bytes": 3486,
+      "sha256": "ed02eab6a995132e5af06c3d2dc4f83e01fd6cac7316d5a7e6a6cf7e089db985"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-native.js",
+      "bytes": 11112,
+      "sha256": "be9711cfa4c28891a86e8c2165ba55408a3794260dcbffea5620353a676088db"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-native.js",
+      "bytes": 11112,
+      "sha256": "be9711cfa4c28891a86e8c2165ba55408a3794260dcbffea5620353a676088db"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-proof-v2.js",
+      "bytes": 9275,
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-proof-v2.js",
+      "bytes": 9275,
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-recovery.js",
+      "bytes": 52372,
+      "sha256": "714f8d242308abb0e3bdb470bf76fbae573e8ece06c02a9afcc3fe38eb097f74"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-recovery.js",
+      "bytes": 52372,
+      "sha256": "714f8d242308abb0e3bdb470bf76fbae573e8ece06c02a9afcc3fe38eb097f74"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-registry.js",
+      "bytes": 14744,
+      "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-registry.js",
+      "bytes": 14744,
+      "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-revocation-intent.js",
+      "bytes": 2216,
+      "sha256": "20de43f7251a609c97d7295890928143a06517b75c8fee98bc731852b9871e34"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-revocation-intent.js",
+      "bytes": 2216,
+      "sha256": "20de43f7251a609c97d7295890928143a06517b75c8fee98bc731852b9871e34"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-router.js",
+      "bytes": 10041,
+      "sha256": "c3b12e89d1e63706116a4221ef3a13fbc27005ba187ee59dce764a3e0c9cfe41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-router.js",
+      "bytes": 10041,
+      "sha256": "c3b12e89d1e63706116a4221ef3a13fbc27005ba187ee59dce764a3e0c9cfe41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-server.js",
+      "bytes": 6433,
+      "sha256": "95f2997253fee5e6b6d8cf80aff47ff4ed14ac3fea33d20a4983fc542398d7c7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-server.js",
+      "bytes": 6433,
+      "sha256": "95f2997253fee5e6b6d8cf80aff47ff4ed14ac3fea33d20a4983fc542398d7c7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-v2.js",
+      "bytes": 40361,
+      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/product-session-v2.js",
+      "bytes": 40361,
+      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/protocol.js",
+      "bytes": 10495,
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/protocol.js",
+      "bytes": 10495,
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/quant-action.js",
+      "bytes": 9458,
+      "sha256": "84da9be42a5a268ccd91b405f45ef35ba4e1323207e3de4f538523c15b6bafff"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/quant-action.js",
+      "bytes": 9458,
+      "sha256": "84da9be42a5a268ccd91b405f45ef35ba4e1323207e3de4f538523c15b6bafff"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/registry.js",
+      "bytes": 13436,
+      "sha256": "e16e66efadcc8643c6894cf28ab858115f0761ce096a9d7133b5fb1a495b12cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/registry.js",
+      "bytes": 13436,
+      "sha256": "e16e66efadcc8643c6894cf28ab858115f0761ce096a9d7133b5fb1a495b12cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/replay.js",
+      "bytes": 646,
+      "sha256": "74014622be2e9c79e0abbbea643ae11b687ed97a6aa6805459db5eccf66f4f61"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/replay.js",
+      "bytes": 646,
+      "sha256": "74014622be2e9c79e0abbbea643ae11b687ed97a6aa6805459db5eccf66f4f61"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/session-proof.js",
+      "bytes": 8387,
+      "sha256": "8894457484157a9232eae5bc0c0713c1e740a7c5fc19d066292d6e3efc5c4c8f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/session-proof.js",
+      "bytes": 8387,
+      "sha256": "8894457484157a9232eae5bc0c0713c1e740a7c5fc19d066292d6e3efc5c4c8f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/session.js",
+      "bytes": 9374,
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/session.js",
+      "bytes": 9374,
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/smart-account.js",
+      "bytes": 12192,
+      "sha256": "ffa2374b2e4419cdba70798a5ef15a629d5d0a46910c515fa61d92d9dd9d4a19"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/smart-account.js",
+      "bytes": 12192,
+      "sha256": "ffa2374b2e4419cdba70798a5ef15a629d5d0a46910c515fa61d92d9dd9d4a19"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/standard-wallet-connection.js",
+      "bytes": 15602,
+      "sha256": "d8dae4cead4842cc5e65f3284471f346eacc6372571be3b95ac3a74f2c7f3535"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/standard-wallet-connection.js",
+      "bytes": 15602,
+      "sha256": "d8dae4cead4842cc5e65f3284471f346eacc6372571be3b95ac3a74f2c7f3535"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js",
+      "bytes": 12509,
+      "sha256": "fef4c040721b2759af7ca0928fe5363f3850bf59d66c425f724b3e79b00c11cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js",
+      "bytes": 12509,
+      "sha256": "fef4c040721b2759af7ca0928fe5363f3850bf59d66c425f724b3e79b00c11cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js",
+      "bytes": 12659,
+      "sha256": "2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js",
+      "bytes": 12659,
+      "sha256": "2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-connection-coordinator.js",
+      "bytes": 10016,
+      "sha256": "b5828a38e8f968a83709448980a0e762900d43b1c37244f02eb7c3abc99ceb56"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-connection-coordinator.js",
+      "bytes": 10016,
+      "sha256": "b5828a38e8f968a83709448980a0e762900d43b1c37244f02eb7c3abc99ceb56"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-downloads.js",
+      "bytes": 11930,
+      "sha256": "69eb2b88a1e1080698c83387483d4c61178b137b5de2c6697964ee72e52d25a9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-downloads.js",
+      "bytes": 11930,
+      "sha256": "69eb2b88a1e1080698c83387483d4c61178b137b5de2c6697964ee72e52d25a9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-provider-discovery.js",
+      "bytes": 11520,
+      "sha256": "39b093a903f918069af25130a51577383b71922d3f2e0c06e1a54262d2f071c2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-provider-discovery.js",
+      "bytes": 11520,
+      "sha256": "39b093a903f918069af25130a51577383b71922d3f2e0c06e1a54262d2f071c2"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control-client.js",
+      "bytes": 27078,
+      "sha256": "a169343927d7b97a03cf7244a5ec6f8636dc5e3c16ac34b0db5dda12f1f71824"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control-client.js",
+      "bytes": 27078,
+      "sha256": "a169343927d7b97a03cf7244a5ec6f8636dc5e3c16ac34b0db5dda12f1f71824"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control-outbox.js",
+      "bytes": 26475,
+      "sha256": "54e676408a1c7777e70da297eecaa1513482df5dbaf12fc2f71cab130ed92074"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control-outbox.js",
+      "bytes": 26475,
+      "sha256": "54e676408a1c7777e70da297eecaa1513482df5dbaf12fc2f71cab130ed92074"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control.js",
+      "bytes": 8185,
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/wallet-session-control.js",
+      "bytes": 8185,
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/walletconnect-dapp-connection.js",
+      "bytes": 17896,
+      "sha256": "03984541e4298d51cc862d9b9669595b6f0a6df4d862dc78729a9582a64c9465"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/walletconnect-dapp-connection.js",
+      "bytes": 17896,
+      "sha256": "03984541e4298d51cc862d9b9669595b6f0a6df4d862dc78729a9582a64c9465"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/walletconnect-protocol.js",
+      "bytes": 40863,
+      "sha256": "fc13e988f4f9891de791d2ca2c1c528c0ab37c22173612a6bcd6bfd146e84445"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/src/walletconnect-protocol.js",
+      "bytes": 40863,
+      "sha256": "fc13e988f4f9891de791d2ca2c1c528c0ab37c22173612a6bcd6bfd146e84445"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/test/music-platform-registration.test.mjs",
+      "bytes": 18602,
+      "sha256": "0b2a057e09054841d9e6ce59516fc002b3985d20ed759225d55098e922eb2734"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source/packages/wallet-auth/test/product-registration-candidates.test.mjs",
+      "bytes": 13429,
+      "sha256": "d49fe4636c96e73d6c68398f0d796b475c132a96162d35c0b2d1ab1910e49cf7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source-inputs.json",
+      "bytes": 25521,
+      "sha256": "7a8b6f099fb1d97a4e3d03520bc108fa569e89d90dcb0cd6a2e123debaec35af"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/vendor/wallet-auth-5c5e8a23/source-inputs.json",
+      "bytes": 25521,
+      "sha256": "7a8b6f099fb1d97a4e3d03520bc108fa569e89d90dcb0cd6a2e123debaec35af"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-callback.html",
+      "bytes": 789,
+      "sha256": "181b3c10e8ffc642757579ceb022e06e7ad45a3a4da164a62e2ce06cc0544c75"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-callback.html",
+      "bytes": 789,
+      "sha256": "181b3c10e8ffc642757579ceb022e06e7ad45a3a4da164a62e2ce06cc0544c75"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-callback.js",
+      "bytes": 945,
+      "sha256": "d7d24801854bdc3b9d9a24a833b1761d74efb9cb5a7f52c17e727e0d5c3c94e5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-callback.js",
+      "bytes": 945,
+      "sha256": "d7d24801854bdc3b9d9a24a833b1761d74efb9cb5a7f52c17e727e0d5c3c94e5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-connection.js",
+      "bytes": 2424,
+      "sha256": "523e17460198cbfebe678521538b054f919a235de551f34e339255d94188c315"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/wallet-connection.js",
+      "bytes": 2424,
+      "sha256": "523e17460198cbfebe678521538b054f919a235de551f34e339255d94188c315"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/constants.js",
+      "bytes": 755,
+      "sha256": "c07741eab50a665810dd000dd533f51dfd3078d2c829138cba2eb9d3bb91908c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/constants.js",
+      "bytes": 755,
+      "sha256": "c07741eab50a665810dd000dd533f51dfd3078d2c829138cba2eb9d3bb91908c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/discovery.js",
+      "bytes": 799,
+      "sha256": "7e8fed32b7ba6528054743c3cd8fafa95370d1ece0c8541d154ae37f05d75f13"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/discovery.js",
+      "bytes": 799,
+      "sha256": "7e8fed32b7ba6528054743c3cd8fafa95370d1ece0c8541d154ae37f05d75f13"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/errors.js",
+      "bytes": 2883,
+      "sha256": "e766988819ed54eb7eeb3bf79c7943de30daa7cbaf682d92ec74c68b63f1ed4c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/errors.js",
+      "bytes": 2883,
+      "sha256": "e766988819ed54eb7eeb3bf79c7943de30daa7cbaf682d92ec74c68b63f1ed4c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/manifest.json",
+      "bytes": 534,
+      "sha256": "6bccad7e2c11014347bbb5bce2014f029596a78940edeb4ecfee791538afe2c5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/manifest.json",
+      "bytes": 534,
+      "sha256": "6bccad7e2c11014347bbb5bce2014f029596a78940edeb4ecfee791538afe2c5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/provider.js",
+      "bytes": 4038,
+      "sha256": "67d48625c5c97df7e327f37ae96d4563dee9467078725d65100a2fe752912335"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/web/ynx-dapp-connect-sdk/provider.js",
+      "bytes": 4038,
+      "sha256": "67d48625c5c97df7e327f37ae96d4563dee9467078725d65100a2fe752912335"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/webfs.go",
+      "bytes": 153,
+      "sha256": "7d45913af5d691d02a160d1a9835cea28dae774f12f6853fe7c7a99704d74194"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/webfs.go",
+      "bytes": 153,
+      "sha256": "7d45913af5d691d02a160d1a9835cea28dae774f12f6853fe7c7a99704d74194"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/webfs_test.go",
+      "bytes": 1217,
+      "sha256": "6a81a219c29200229d85bcf644cef444c68b5fdb8cebbd51868b04a056aaa9f3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/music/webfs_test.go",
+      "bytes": 1217,
+      "sha256": "6a81a219c29200229d85bcf644cef444c68b5fdb8cebbd51868b04a056aaa9f3"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/.gitignore",
+      "bytes": 61,
+      "sha256": "8ff30cd2483d6785014430bf3547be9dca892f79e389215c20d35574f6d45cce"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/build.gradle",
+      "bytes": 493,
+      "sha256": "e413317ba984a16086b4ce50b3160490e46ae9b2686706ceb1357be1a8b1f804"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/AndroidManifest.xml",
+      "bytes": 1835,
+      "sha256": "2b297e811353891edab8ddc06e2747163e9f7c876b3d32aa739f50b6621e4373"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/client.mjs",
+      "bytes": 3235,
+      "sha256": "93a9f59de63e226482db3a926722318863897e1649c970752e93e8a627ce97db"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/source.json",
+      "bytes": 2966,
+      "sha256": "96b00819fcaa627d1d4c3962bf73cfcc55b368e51df4f3a7c56146f2143d5cf6"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/assets/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "305c1cff33cdaa758be51b98e007205e18a67ac6e53aeff40ec74d4ad2ddb231"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+      "bytes": 36823,
+      "sha256": "c4413c25ae81347152cd185949ac97f5764a3add40d9454a016474159e649520"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "bytes": 20104,
+      "sha256": "7dd84ffcb63996298f2d4b42158410af6c0117dc3ae436c4397c8ab8d14d04fd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProtectedRuntime.java",
+      "bytes": 7825,
+      "sha256": "1417b8a7d058ea5830c613b10fe9c75f80e57a9c37319e1d36e1947247cae676"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionBridge.java",
+      "bytes": 18590,
+      "sha256": "b222ba78a4271cb0830b1820d27df685fc111178c5db01f887f68ee703d0037d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "27fcff90bdff66bada14effeff69bb96517f9006b0ea650b0e144ac401147071"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeStateCustody.java",
+      "bytes": 4842,
+      "sha256": "57c22a4eb4d87bbce72a124adba00008ad438c54f3bf1e76fd4ac0dbf5de4bb5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "bytes": 6311,
+      "sha256": "1f9f593c9cfe82d760208c4dcb81a3aa1311d8556dfb384918689b6241760b1d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoMediaSource.java",
+      "bytes": 1754,
+      "sha256": "e4558f0afc97a869504688641b29ff637c549369567a01b534e36b7099a806cc"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoPlaybackView.java",
+      "bytes": 4965,
+      "sha256": "00d64ff50d7397c73edd9b4c9042e377bb0fd94f7ceadbba646f98c111b085fd"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "bytes": 1740,
+      "sha256": "0075b8105d7bada7361e6e37ffce43731e19fe5ea01d6ddf5fdac8458c265641"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "bytes": 6079,
+      "sha256": "9b8f908a3de1fa4ea1588fe5d34a43aaecd33a6e0ddbaf2af1b5c01d0093585c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/res/drawable/ic_launcher.xml",
+      "bytes": 342,
+      "sha256": "4f45d51aa361ef844eac5950218fff86b508e0988a8dda6202f9afb07409e18b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/res/values/strings.xml",
+      "bytes": 66,
+      "sha256": "b07246531020b337012168fe8f440e49c3c9437b6a31d2c69503ad305740ed0d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/res/values/styles.xml",
+      "bytes": 415,
+      "sha256": "25de8a45a340ac7d1281a05c2aa36080a5537a29ae1d2c26859576608f50c9b7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/main/res/xml/network_security_config.xml",
+      "bytes": 146,
+      "sha256": "dea35ebed76536c24c13f74036f02dc874f944147cb3a49c2ad0550f71e3e0c7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/app/src/test/java/com/ynxweb4/video/NativeProductStateTest.java",
+      "bytes": 12167,
+      "sha256": "a3cff3b63e813dec70424e13aa2d7d728ef0e2d4a7184d7bd640e4673f1fbc76"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/build.gradle",
+      "bytes": 133,
+      "sha256": "68fbfbe27ca7effd66c275628b2e48da6be0ef9ec458042d55f738d739f6773b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/gradle.properties",
+      "bytes": 160,
+      "sha256": "8eb351a7a6ee460f78771b01480a9896897db4ca8521d9fe81b8e3d9e058f698"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/android/settings.gradle",
+      "bytes": 269,
+      "sha256": "d2ce6854cf9c99e7cbc1c69fcf889bd6a31f0130acc69bb3f147ac47c0cf5db5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/app.js",
+      "bytes": 57587,
+      "sha256": "4174630aa16a2aed35b4d2a133e47e357e0a0c0ed342f4f2f2de506284f3e726"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/assets/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/assets/ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/assets/ynx-logo.svg",
+      "bytes": 235,
+      "sha256": "edf0827602e70b2e20e5db0a27e2b19a89b3d0901c0e15497ea876d0510bd223"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/browser-identity-contract.json",
+      "bytes": 2236,
+      "sha256": "8a3279b90834c1194973ebaff983f66ea4ad528c2615f7421803562b306af98b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/browser-identity.js",
+      "bytes": 5903,
+      "sha256": "1b884553c92eb9c70d45509b9de6211299813d247e0409582e7d183ad9e65144"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/business-identity.js",
+      "bytes": 1278,
+      "sha256": "abc50339849449abd18f3bfc6b05bd3b1234267d31d9f1af58c1cace627a4977"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/business-wire.js",
+      "bytes": 3938,
+      "sha256": "b78251453977e9c6c71b09f0532b35db061c5ae9f936bca435d49a25804e7389"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/callback.css",
+      "bytes": 975,
+      "sha256": "0c69b943a1a9ac775e383e07ad87c3cc0e1ab93207c8247491728dfe5fb01e92"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/display-settings.css",
+      "bytes": 2779,
+      "sha256": "c01a8b262a6a1d9352c0d25b795ee98326d0cc450d920132a3668fbde15420ca"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/display-settings.js",
+      "bytes": 3296,
+      "sha256": "5acf6f44622122994f4b9aba5bca5f066cd26746b16b786881f2998b8bd73b99"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/i18n/catalog.json",
+      "bytes": 19604,
+      "sha256": "c8e191037a33b4c69137fbbabc9d92e08351d01102f55808aae4306bd5cbd3cb"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/i18n-check.mjs",
+      "bytes": 3905,
+      "sha256": "58fee8edbd8c10aa0f8d08b41d22aae2962635b25abfbc468e8d34ef8f3afcf0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/i18n.js",
+      "bytes": 1505,
+      "sha256": "f51c5224b590efd9a15000592cdf7cb685ceb2ea8c9f89d05b36c6a2ae2e7a7f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/index.html",
+      "bytes": 6883,
+      "sha256": "74a1313075ba84d43307df1b5ab601dce40dc9e67540380e99f2420e476b0c7e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/ContentView.swift",
+      "bytes": 10466,
+      "sha256": "f13d95867c49d5920d544ccbb9067f2ecf18c8d4b72fb793a16691915f385046"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/Info.plist",
+      "bytes": 1376,
+      "sha256": "869185ba6bffff7e95b30775b9fda55b2f06f13da6628e1e56806d931480c72b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/MacInfo.plist",
+      "bytes": 1165,
+      "sha256": "c1893ff3a0eb0492e2e6ccd008a13e8b5ec4594b9d41fb3ed1ae8a8bebe502cf"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/ProductDeviceKey.swift",
+      "bytes": 4083,
+      "sha256": "c92aa14c65b119c8dd7f7701635ec2a9ac0029a8c9d25093671ecce51f9f1801"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoModel.swift",
+      "bytes": 25458,
+      "sha256": "afcf1b8a828e9cf28a0ed26acd9eaf6919c5a5937de71dcce5a828d94d95569d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoNativeCore.swift",
+      "bytes": 4841,
+      "sha256": "f30034b256f8350808c6b14fcc0235d4cc3f93be9fddc759bcc2f1a845ad28a7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoNativeCustody.swift",
+      "bytes": 2868,
+      "sha256": "6a594bfd8bcf39e4e2b7b46f1012e0ce6bb976cf8e31676562231c22099c2838"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoNativeEngine.swift",
+      "bytes": 21781,
+      "sha256": "8d2b660a70e59089a12636bfc9caa51676bb9f225d09ad60e1d62179ca87dec9"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoNativeState.swift",
+      "bytes": 18407,
+      "sha256": "dbfb585fb2b10f71655ea3e1c717c35309af7b8fb9cf555bc8e7dd338ff8bad1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoNativeTransport.swift",
+      "bytes": 1473,
+      "sha256": "49e6e8785ab7a2df2917f646fcaa3889e232a5b11c83e93b46d56eaf30b5719b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoPrivateMedia.swift",
+      "bytes": 7000,
+      "sha256": "e5d5ba71a420f919212acaf2b213f20696edbcc3c475d074575c21b9ab631fd7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/VideoViewerState.swift",
+      "bytes": 9327,
+      "sha256": "dd18331f2bec43e530f4ac2e99a27c6e7efb90e25ff76ae95d2a99e5a8b2c644"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/YNXVideoApp.swift",
+      "bytes": 252,
+      "sha256": "6329b46f32bdc4c33b568fc1be2b861a2516600bb1adc6b298d0d8fd03fd6682"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/client.mjs",
+      "bytes": 3341,
+      "sha256": "966fb8e17315b5ea1276b6c5cfd281e51b2df2ce72c2b69bd6c9d0ed4f03d86b"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/source.json",
+      "bytes": 2964,
+      "sha256": "4f320799ba13951fa4875810b1f070c7be495aeb37a12ff9ae87f93692bf10a7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ios/YNXVideo.xcodeproj/project.pbxproj",
+      "bytes": 7211,
+      "sha256": "e59ea64e073fb4361b5abba2d73a6c7ada158327714fb840f8f618d039a80310"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/legacy-sdk529/product-session-registry.json",
+      "bytes": 792,
+      "sha256": "702221e3f54320e0a51284a9bdeab03e5f12877cf1e67265d32df063895f3415"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/legacy-sdk529/product-session-sdk-source.json",
+      "bytes": 997,
+      "sha256": "b2712d290bc57cd208cddd339d6e368c2f75077d2c715de95b945372f274d456"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/legacy-sdk529/product-session-sdk.js",
+      "bytes": 119091,
+      "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/native/README.md",
+      "bytes": 3346,
+      "sha256": "ec6e34cb1bc04541a75416300bfaae3a87e85cf3e2b17228d51dfe8f28ef7eda"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/native/media-session.mjs",
+      "bytes": 9868,
+      "sha256": "b4b435325a424d6b5d4fbacb1599c09b1f4eb597106db05bfab3936218a61f38"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/p0-wallet-visible.cjs",
+      "bytes": 3549,
+      "sha256": "dc8c39abd3fa73a7bdefe96b139ed96f4f6013f03c6919476f9a9db327af246a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/package.json",
+      "bytes": 1680,
+      "sha256": "c8db73d28acaba8fd803fea18439a2e58ed2dbfe8a7c2d3cb33ef78021d37c68"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/product-release.json",
+      "bytes": 13937,
+      "sha256": "2ab0839b8cb3825b1e178f139e7527c4b1064897031fe00b6c8a0dfb7d14009e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/product-session-registry.json",
+      "bytes": 792,
+      "sha256": "702221e3f54320e0a51284a9bdeab03e5f12877cf1e67265d32df063895f3415"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/product-session-sdk-source.json",
+      "bytes": 9570,
+      "sha256": "02429f090ae1cc19938567c886c032d1c1f2e4b180243283f45a37e931208d4c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/product-session-sdk.js",
+      "bytes": 137281,
+      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/product-session.js",
+      "bytes": 8238,
+      "sha256": "89d5d1854814f47bc924066e0918fae83e1fd7f3cc057dc41448caa8b8334a84"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/responsive.css",
+      "bytes": 2021,
+      "sha256": "3e46af561eccfe4745eac6e89a694570e766e07d68abb1a7cd7911fa8054a812"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/runtime/post-p0239-recovery-baseline.json",
+      "bytes": 3049,
+      "sha256": "ad1a57218eebdf161f7d87001bcbee15cf4360d22c697ac9d9ddd4670352794a"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/runtime/topology.json",
+      "bytes": 682,
+      "sha256": "1a2fcc2e6967d0c6a3036c1fdc7ffc9b22eeed161c3cd7c8f7d3bc545636d0e7"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/runtime/ynx-video-viewer-wallet.service",
+      "bytes": 403,
+      "sha256": "bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/scripts/media-apple-authority-check.mjs",
+      "bytes": 8390,
+      "sha256": "5102d44e4e716070c3c84b0032cf95c1b24a33860b60ab46101a9fe304284325"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/scripts/media-browser-authority-check.cjs",
+      "bytes": 16264,
+      "sha256": "09427041a45d02aab1a1b5f6d0f03134999e5747b1c083401f95ef0557772541"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/scripts/media-native-authority-check.mjs",
+      "bytes": 10812,
+      "sha256": "5c6914c650fe1976ecbd6b6add2e1c7d61deb655765518222192023648ccfeee"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/server.mjs",
+      "bytes": 5103,
+      "sha256": "8e5d38b30eb48a1bc5ef4bfefaa4cbca66ed2f76d08926dd7342d479a021805e"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/session-events.js",
+      "bytes": 4383,
+      "sha256": "3ef91d94f71fa0cba6190bac447bed5ae936c70dd1c43ce87053b6e944d35fe0"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/smoke.mjs",
+      "bytes": 1073,
+      "sha256": "f999065e0b36dff0ab8b1086f5b53b7e9d0c322e80784dfaa71742261413f692"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/styles.css",
+      "bytes": 12544,
+      "sha256": "967ee2596e10b143f603f8318848a323097ef705af580601cdd9a9c71259bd49"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/video-api.js",
+      "bytes": 4999,
+      "sha256": "0be13806dcecd0e2b393361e0a0bf60a0c62554507bbe739d94fba798ba43268"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/wallet-callback.html",
+      "bytes": 759,
+      "sha256": "4f1e28f27214076f110a430cfd28614f797e2777a53d9e66aae077bc3972c798"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/wallet-callback.js",
+      "bytes": 1166,
+      "sha256": "e086a77fd1712ac654fd80c52f29ee147482dda254bf4403eb3d9ecb9180eb82"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/wallet-connection.js",
+      "bytes": 13648,
+      "sha256": "c6d9e8e813138ad069bb2597eb6c79a4a8f4e7310cf3926db43ad3a7d276f83c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/watch-progress.js",
+      "bytes": 3907,
+      "sha256": "15a37bbc99d9d721c3065d3c643976a7b1ae56154821ae04441e8b906b2c0fb1"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-dapp-connect-sdk/constants.js",
+      "bytes": 755,
+      "sha256": "c07741eab50a665810dd000dd533f51dfd3078d2c829138cba2eb9d3bb91908c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-dapp-connect-sdk/discovery.js",
+      "bytes": 799,
+      "sha256": "7e8fed32b7ba6528054743c3cd8fafa95370d1ece0c8541d154ae37f05d75f13"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-dapp-connect-sdk/errors.js",
+      "bytes": 2883,
+      "sha256": "e766988819ed54eb7eeb3bf79c7943de30daa7cbaf682d92ec74c68b63f1ed4c"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-dapp-connect-sdk/manifest.json",
+      "bytes": 829,
+      "sha256": "bea2c2facae245c6480f3d2f436fbd4157003cbeae73d968bb1808decc027407"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-dapp-connect-sdk/provider.js",
+      "bytes": 4038,
+      "sha256": "67d48625c5c97df7e327f37ae96d4563dee9467078725d65100a2fe752912335"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-wallet-transports-2ece0cb329.manifest.json",
+      "bytes": 257815,
+      "sha256": "497db68a53f153eacd3ca253adc65418bd79f15e2ca31dbd61981f0748b94120"
+    },
+    {
+      "owner": "Media protected browser QA composition",
+      "path": "apps/video/ynx-wallet-transports-2ece0cb329.mjs",
+      "bytes": 1072970,
+      "sha256": "a385bbdf05b92b6eb442e495cead3f3305aaab7e42010079d96078f2fd2a2526"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/BACKEND-KEY-CONFIGURATION.md",
+      "bytes": 2608,
+      "sha256": "d8ead5fffae8990acfbbb4172866aaae72e09c0bbc245fcfbe781c914ab7d2db"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/BROWSER_SSO_WORKSPACE_CONTRACT.md",
+      "bytes": 4578,
+      "sha256": "a73c88c1b8c829de6d52f0e339c542396a11830e78b12aa42242b215127e44fc"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/COMBINED_AUTHORITY_CONTRACT.md",
+      "bytes": 5544,
+      "sha256": "16c2fb8144e30d8e7897b3eb7de38dc197b1a5348b90ff0182c7dad9b6be82cf"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/README.md",
+      "bytes": 3526,
+      "sha256": "2f33f7ef3246392c5ed9ad8d33d1d6d9e7178d96c79d783237ce93f634fcdcfe"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/REGISTERED_CLIENT_CONSUMER_CONTRACT.md",
+      "bytes": 3755,
+      "sha256": "75b0d1ae88f9d89dde3716379f821baf845d3ec9cace38b77a66fece4dc1f3a7"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/action_body.go",
+      "bytes": 2887,
+      "sha256": "21dcb8c2be36dc661a329e2cb1659bdb48bc0005bf744735d2f924e4f58c88e8"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/action_proof.go",
+      "bytes": 4621,
+      "sha256": "3f293e7202f21360d2969291616359cc802c641fffe0a38e70c1ab9c89be759d"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/action_proof_test.go",
+      "bytes": 4593,
+      "sha256": "d493cd30796a6e61bba7ea1a430430000504367083ef9c1776e00ee12cc55854"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/backend_key.go",
+      "bytes": 3985,
+      "sha256": "09b1ff2b1c4c271669172dd256851c0e6d91c20eb31195eec6dbb3270f83f3ad"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/backend_key_pem_test.go",
+      "bytes": 2391,
+      "sha256": "466f33d1abf82f759f480c2c56397a8c1d66f0998c6cdcdbc112c1b84d06da1d"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/backend_key_test.go",
+      "bytes": 3966,
+      "sha256": "fa440a9f5acd56fe25be9799323b62eeb8fd0a7634df005471c1177347d24fe3"
+    },
+    {
+      "owner": "A approved BrowserSSO overlay",
+      "sourceCommit": "2587012a7eaf9c2b827596b7914d6304d91840ab",
+      "path": "internal/productsessionv2/browser_sso.go",
+      "bytes": 15969,
+      "sha256": "0209a870ba2bab6c04e78ed1ce7e1248e2461c489b6b1416eab946710ed06250"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/browser_sso_ecosystem_test.go",
+      "bytes": 11046,
+      "sha256": "3a158828d0acfb6f5b3b57e4336cc0a48edae82f357f3aa87b8710c618dc2a13"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/browser_sso_test.go",
+      "bytes": 13624,
+      "sha256": "b3eaae5a08e61ada78c4c12dddfdcdcc6a55ad14dc1e4118b1b6db73e6b009e7"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/business_proof.go",
+      "bytes": 7535,
+      "sha256": "3dc2f33081a599be43a2a0931c903aea2154df28eb1bc48c54bb17c583a5ccae"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/business_proof_test.go",
+      "bytes": 5807,
+      "sha256": "faf88e562843fcec7b8c43afe0745bd4d9a58e6b9f854b998ee677aac4b4494c"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/business_revalidation_test.go",
+      "bytes": 4606,
+      "sha256": "a68f0a24a0d1f3dd494455f1b9c4da9da53382ccd27075073792ef1ea3ebc614"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/client.go",
+      "bytes": 16133,
+      "sha256": "866203b52887098d3d559f6ff2e40c19c8952d1467f853c97f7dcdbd2e20fd07"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/client_test.go",
+      "bytes": 9843,
+      "sha256": "7a700c6eac58385cb050bcf38fe1b8c395d48b3e0335facc53312b5e0db5d7c9"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/combined_authority_test.go",
+      "bytes": 12010,
+      "sha256": "1b2c88f81b3fa7c02ed22f59ae19b828a3e0e2bac2050d06c38d88bc54251ed2"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/private_business_revalidation_test.go",
+      "bytes": 4783,
+      "sha256": "3841b999460f4a2e3152c01876a5e16ed2d91bbc5b80d8bbd7b159738098e197"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/private_business_v3_revalidation_test.go",
+      "bytes": 4792,
+      "sha256": "f3a587d8c0ec3f3aaf0682f10048ccfb34b667ca1f50609d5323eda173044a5c"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/registered_clients.go",
+      "bytes": 5169,
+      "sha256": "2543cc4ef781868bf946602a1f6914c60e3104aba41018a1456fe831261ea63a"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/registered_clients_test.go",
+      "bytes": 4534,
+      "sha256": "d97a210731f2a42396f403af3ddf6dc173d2255acc6bd6d9b7946474e0cf1282"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/revalidation.go",
+      "bytes": 16594,
+      "sha256": "885534b85303ff7f76581acc492b5b2f7b145bed3b2b04a2421b9ef90817e4c6"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/revalidation_test.go",
+      "bytes": 6865,
+      "sha256": "62917dc576c5e01909f23f4567b36f2fe1333b932f291f85b9a5b9e356428f30"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/browser-sso-ecosystem-node.mjs",
+      "bytes": 3473,
+      "sha256": "3c29edf5f559d4d131e9eb61f9ce204ef073e35498da2fa51c8213810ce9dc14"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/business-revalidation-node.mjs",
+      "bytes": 3116,
+      "sha256": "a163d5b94f66ac5ac98483e3656d5aeea6b732a26765924e0a9690ba63e938ee"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/combined-authority-node.mjs",
+      "bytes": 9712,
+      "sha256": "f8a897c559e9b8f87181245f7e96381e06edfeaffb9fdab76c99b88b797388bb"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/finance-finite-v2.json",
+      "bytes": 5709,
+      "sha256": "364681baa5088965deba2ca5feb17ef49d849be9324e6677329717d6e33b00de"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/finance-v2.json",
+      "bytes": 5338,
+      "sha256": "dc2f7305448dadabd50ae123b5cba92cceb846763be478eb9c36dc141dfe10c9"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/generate-finite.mjs",
+      "bytes": 3041,
+      "sha256": "4d0e76f7f4c4b89f678ff9c0294026c8a47419460e727a997c9c63cbb4f82109"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/generate.mjs",
+      "bytes": 2920,
+      "sha256": "8b7a73bf74e595624a27065dcd1676ab5400eb4cd31ba8a42ca47423f2a4aba1"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-binary-js-proof.json",
+      "bytes": 2261,
+      "sha256": "4aa82aa796ba395cab9acfad6b8408f440f5b1d8123ba7326a4c653bfe970029"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-get-js-proof.json",
+      "bytes": 2251,
+      "sha256": "3604f18e0d3acabc75c8c04fcc475357b9aa7c938935ed539ddf17a54cad8bea"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-js-proof.json",
+      "bytes": 2287,
+      "sha256": "6d227b20f1e4add8ee3981cc70b5e568003a1b4f72a00187aa79850759aa4aa0"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-large-js-proof.json",
+      "bytes": 2291,
+      "sha256": "4534d1820a3171d6c4fd911015933519528b7325cb051751bcad92dfe5dee360"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-multipart-js-proof.json",
+      "bytes": 2334,
+      "sha256": "cdfdbd1bc284880dae7201bd7185257d5475622c327cb3cc597ea7cbe77b99c0"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/mail-business-native-js-proof.json",
+      "bytes": 2269,
+      "sha256": "bd3ce4547660ec8d9e021f7e8b9a2ef91639a5770b9c9e5756bbdb4b2f174fe1"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/private-business-revalidation-node.mjs",
+      "bytes": 3499,
+      "sha256": "ae3ff247a662b842a682740b81f47c2e03ed51359a63707b82c23a6c37415bc8"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/private-business-v3-revalidation-node.mjs",
+      "bytes": 5049,
+      "sha256": "15a46ed768aae5db3e054cf2d994e2ed253ca51b4e2897f487bedcfe501af5ef"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/revalidation-node.mjs",
+      "bytes": 3047,
+      "sha256": "f8733618c7c5c296d60cb0888d2727707985b27f854d4f17a5192a1f2c288840"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/social-action-js-body-cases.json",
+      "bytes": 14856,
+      "sha256": "c05a2e1c62b2ba0b6cf1704b674cb2bc65ab2dc6630c9f0c74015120c843afb0"
+    },
+    {
+      "owner": "A frozen Git",
+      "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+      "path": "internal/productsessionv2/testdata/social-action-js-proof.json",
+      "bytes": 2391,
+      "sha256": "10921896e76cb0909a9731a681f222ed17bb28795f41ed3a4b87e8ef41c46061"
+    }
+  ],
+  "results": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "-count=1",
+        "-tags=ynx_canonical_media,ynx_media_combined_authority",
+        "-run=TestVideoCreatorNativeConsumerAndOriginalBusiness/creator-studio:macos$",
+        "-json",
+        "./internal/video",
+        "./internal/music"
+      ],
+      "exitCode": 0,
+      "log": "combined-go-race.jsonl"
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "-tags=ynx_canonical_media,ynx_media_combined_authority",
+        "./internal/video",
+        "./internal/music"
+      ],
+      "exitCode": 0,
+      "log": "combined-go-vet.txt"
+    }
+  ],
+  "toolchain": "go version go1.25.13 darwin/arm64",
+  "dependency": {
+    "Path": "golang.org/x/sys",
+    "Version": "v0.47.0",
+    "Time": "2026-06-30T17:07:31Z",
+    "Indirect": true,
+    "Dir": "/Users/huangjiahao/go/pkg/mod/golang.org/x/sys@v0.47.0",
+    "GoMod": "/Users/huangjiahao/go/pkg/mod/cache/download/golang.org/x/sys/@v/v0.47.0.mod",
+    "GoVersion": "1.25.0",
+    "Sum": "h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=",
+    "GoModSum": "h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw="
+  },
+  "temporaryModulePins": [
+    {
+      "path": "go.mod",
+      "sha256": "3ff7e0ac64fa5f6b8851eb8e6980a7bae94b286f684f8b888d56767658a4c095"
+    },
+    {
+      "path": "go.sum",
+      "sha256": "c8069c178d6a4eacd2d7b2376d73c1eadf51e6ed1e58f459a3d77349d559d036"
+    }
+  ],
+  "fixturePackage": {
+    "manifestSHA256": "7f978142e5f481936e513cf1ed2093fd2a312d888d9868f7ff471c50d19e0e3c",
+    "sourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+    "sourceTree": "f70c782e828b81b5aea955c6481edd079176e88c",
+    "verifiedFiles": 949,
+    "verifiedGitSourcePaths": 152,
+    "actualWalletConsent": false
+  },
+  "approvedBrowserRosterOverlay": {
+    "sourceCommit": "2587012a7eaf9c2b827596b7914d6304d91840ab",
+    "sourceTree": "e33264c7c12d8b3d6283bfcdfd915a20c25c0a6b",
+    "manifestSHA256": "91b155850c6a4365346e21928c72e10178849dbefea9e6a90be028bcbe3fdeb3",
+    "paths": [
+      "internal/productsessionv2/browser_sso.go"
+    ],
+    "installed": false
+  },
+  "actualNodeAuthorityProtocol": true,
+  "actualProtectedBrowserOriginalMusicBusiness": false,
+  "actualProtectedBrowserOriginalVideoCreatorBusiness": false,
+  "actualNativePortsOriginalVideoCreatorMusicBusiness": false,
+  "actualAppleSwiftWebKitEngine": false,
+  "appleCompiledSource": null,
+  "actualAppleCreatorSwiftWebKitEngine": false,
+  "appleCreatorCompiledSource": {
+    "schema": "ynx.creator.apple-engine.software-qa.v1",
+    "binary": "/tmp/ynx-creator-restore-trace-engine-20261004/apple-engine-check",
+    "bytes": 2108368,
+    "sha256": "7270878d7967df653dcf768da281ece6db5abf42fc3500cc887b29c6cf711e23",
+    "sourcePins": [
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeEngine.swift",
+        "bytes": 23218,
+        "sha256": "2e34227468d17a96790b55c0599c9775a827215f81985ea7b0868fc5b8556aaf"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeState.swift",
+        "bytes": 18455,
+        "sha256": "da351d88334e2014457f44004f3df0844e7546629c894c0e04123b228c3720bf"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCustody.swift",
+        "bytes": 2891,
+        "sha256": "90d0eea42d872148284f11b570bc89705e7002c50a95aeb33be8a6f63bfa278a"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorDeviceKey.swift",
+        "bytes": 4099,
+        "sha256": "ff6687e2d04e4f28054ef1c97e86bbae3da2f18cf6eaed7c8dbd2ff25b382f76"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeTransport.swift",
+        "bytes": 2510,
+        "sha256": "465d37755be4ec5bec0be7516934074baa5343e0f98406943f83d2ea84ed0867"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorNativeCore.swift",
+        "bytes": 7849,
+        "sha256": "4f480b30ddeaa912b3a1e291dd2c48ad72b79fc0773ddaed928d1a0ea518a3ec"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorDraftState.swift",
+        "bytes": 17210,
+        "sha256": "2d0fa152034ab9794d31d9e4ef6809b8399f3fc2fe3d5c0d90b692f575ac315a"
+      },
+      {
+        "path": "apps/creator-studio/ios/YNXCreator/CreatorModel.swift",
+        "bytes": 33812,
+        "sha256": "cc3581df9c2fbe2440e6616557a025159fa662bec9cc30cd1bfcf12001b69fa9"
+      },
+      {
+        "path": "apps/creator-studio/scripts/apple-engine-check.swift",
+        "bytes": 20543,
+        "sha256": "a0962007598316751ad079672a99a81466c281060cf73998cf1f5feafafac7c7"
+      }
+    ],
+    "actualOSStorage": false,
+    "actualWalletConsent": false,
+    "installed": false
+  },
+  "actualAppleMusicSwiftWebKitEngine": false,
+  "appleMusicCompiledSource": null,
+  "actualNativeOSStorage": false,
+  "actualOriginalJavaMusicUpload": false,
+  "javaMusicCompiledSource": null,
+  "actualSDKActionCrypto": true,
+  "actualWalletConsent": false,
+  "productionInstalled": false,
+  "note": "Temporary composition only. Trusted current-actor host binding and protected keys remain mandatory for installation."
+}

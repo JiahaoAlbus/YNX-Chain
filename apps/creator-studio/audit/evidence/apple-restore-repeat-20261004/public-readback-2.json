@@ -1,0 +1,19 @@
+{
+  "url": "https://video.ynxweb4.com/video/api/health",
+  "readAt": "2026-10-03T22:31:27.871534+00:00",
+  "actualWalletOrSignedBusiness": false,
+  "status": 200,
+  "response": {
+    "build": {
+      "commit": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+      "release": "audit-library-v2-20260906",
+      "buildTime": "2026-09-06T05:17:06Z"
+    },
+    "centralContractIntegrated": true,
+    "centralDeploymentVerified": false,
+    "dependencies": [],
+    "ok": true,
+    "service": "ynx-video",
+    "truth": "no synthetic metrics"
+  }
+}
