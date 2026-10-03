@@ -21,7 +21,21 @@ let walletIdentityState='identityUnverified',walletIdentityBusy=false;
 let browserIdentityLogoutPending=null,browserSSOFinite=false,browserSSOClockOffset=0,browserSSOIntentGeneration=0;
 let browserIdentity=null,browserSSOEnabled=false,browserSSORevision=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false;
 let browserSSOChannel;try{browserSSOChannel=new BroadcastChannel('ynx.finance.browser-session.recheck.v1');browserSSOChannel.onmessage=()=>void recheckBrowserIdentity();}catch{}
-async function browserSSOFetch(path,options={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);try{const response=await fetch(path,{...options,credentials:'same-origin',signal:controller.signal});const data=await response.json();return {response,data};}finally{clearTimeout(timer)}}
+async function browserSSOFetch(path,options={}){
+  const controller=new AbortController();let timer;
+  const invalid=()=>Object.assign(new Error('Browser identity response is invalid.'),{code:'BROWSER_SSO_RESPONSE_INVALID'});
+  const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{reject(Object.assign(new Error('Browser identity request timed out.'),{code:'BROWSER_SSO_REQUEST_TIMEOUT'}));controller.abort()},5000)});
+  try{return await Promise.race([deadline,(async()=>{
+    const response=await fetch(path,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});
+    const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+    const length=response.headers.get('content-length');
+    if(!/^application\/(?:json|[a-z0-9.+-]+\+json)$/.test(mime)||(length!==null&&(!/^\d+$/.test(length)||Number(length)>262144)))throw invalid();
+    const text=await response.text();if(new TextEncoder().encode(text).byteLength>262144)throw invalid();
+    let data;try{data=JSON.parse(text)}catch{throw invalid()}
+    if(!data||typeof data!=='object'||Array.isArray(data))throw invalid();
+    return {response,data};
+  })()])}finally{clearTimeout(timer)}
+}
 function browserWalletMismatch(){return !!browserIdentity&&!!window.YNXFinanceWallet?.getStandardWalletState?.()?.account&&!window.YNXFinanceWallet.browserIdentityMatchesSelected(browserIdentity.account);}
 function renderBrowserWalletIdentity(){
  const mismatch=browserWalletMismatch(),selected=window.YNXFinanceWallet?.getStandardWalletState?.();
