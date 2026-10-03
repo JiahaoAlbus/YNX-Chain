@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "status": "WIP_DUPLICATE_BRAND_HEADERS_NOT_FROZEN",
+  "baseCommit": "12b7bf9c3d4ae51512f6600afb30bb8a14fd1abf",
+  "originalAsset": {
+    "path": "apps/card/assets/ynx-logo.png",
+    "width": 798,
+    "height": 420,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  "sourceTests": {
+    "passed": 4,
+    "total": 4
+  },
+  "typecheck": "PASS",
+  "actualLocalPreview": {
+    "url": "http://localhost:19087/",
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "guest": true,
+    "languageSettings": true,
+    "englishDefaultObserved": true,
+    "duplicateAppAndGuestBrand": true
+  },
+  "pendingCorrection": "Keep outer App canonical logo; remove second Guest logo without changing wallet provider icons. Reported to Root before modifying newly found duplicate.",
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-original-brand/source-tests.log",
+      "bytes": 425,
+      "sha256": "907739e2d2ced5838e457e1b9345630de4afe7e3abc1427e5bf7df2dfe844e53"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand/desktop-guest.jpg",
+      "bytes": 101038,
+      "sha256": "f9336513fbcfac3dac8f0ef36e9bf830e6e2aedc82943fa7a673ff15047bae0b"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand/mobile-guest.jpg",
+      "bytes": 46378,
+      "sha256": "4959f360e5c3162ec97da965e5da74b9b8ed83272f980e3fb3f802faf1077a8c"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand/mobile-settings.jpg",
+      "bytes": 18266,
+      "sha256": "4f570131b366bddc8dea19882a765f80756fcb047b7c61b285fae573b2593503"
+    }
+  ],
+  "publicVerified": false,
+  "installedNativeVerified": false,
+  "authenticatedBrandVerified": false,
+  "formalBuild": false,
+  "deployed": false,
+  "accountRequested": false,
+  "signature": false,
+  "transaction": false,
+  "productionRealPayments": false
+}

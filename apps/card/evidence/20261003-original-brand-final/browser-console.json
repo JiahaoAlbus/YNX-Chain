@@ -1,0 +1,56 @@
+[
+  {
+    "level": "error",
+    "message": "Invalid style property of \"direction\". Did you mean \"writingDirection\"?",
+    "timestamp": "2026-10-03T03:42:00.091Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Invalid style property of \"direction\". Did you mean \"writingDirection\"?",
+    "timestamp": "2026-10-03T03:42:00.091Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Invalid style property of \"direction\". Did you mean \"writingDirection\"?",
+    "timestamp": "2026-10-03T03:42:00.093Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "warn",
+    "message": "\"shadow*\" style props are deprecated. Use \"boxShadow\".",
+    "timestamp": "2026-10-03T03:42:00.093Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Unexpected text node:  . A text node cannot be a child of a <View>.",
+    "timestamp": "2026-10-03T03:42:00.114Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Unexpected text node:  . A text node cannot be a child of a <View>.",
+    "timestamp": "2026-10-03T03:42:16.370Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Unexpected text node:  . A text node cannot be a child of a <View>.",
+    "timestamp": "2026-10-03T03:42:16.377Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Unexpected text node:  . A text node cannot be a child of a <View>.",
+    "timestamp": "2026-10-03T03:42:33.994Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  },
+  {
+    "level": "error",
+    "message": "Unexpected text node:  . A text node cannot be a child of a <View>.",
+    "timestamp": "2026-10-03T03:42:34.019Z",
+    "url": "http://localhost:19087/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable"
+  }
+]

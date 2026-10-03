@@ -1,0 +1,12 @@
+✔ original YNX artwork exact bytes and dimensions (0.920833ms)
+✔ product logo contains the whole original image without shrinking (0.246292ms)
+✔ main and settings own original brand; nested guest avoids duplicate artwork (0.776458ms)
+✔ wallet provider artwork remains separate from product branding (0.101959ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.333708

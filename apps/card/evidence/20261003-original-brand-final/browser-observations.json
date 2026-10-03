@@ -1,0 +1,14 @@
+{
+  "url": "http://localhost:19087/",
+  "brandCount": 1,
+  "mobileBrandGeometry": {
+    "flexShrink": "0",
+    "height": 40,
+    "width": 76,
+    "x": 20,
+    "y": 15.5
+  },
+  "accountRequested": false,
+  "sign": false,
+  "transaction": false
+}

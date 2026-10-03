@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "status": "BRAND_SOURCE_AND_LOCAL_GUEST_QA_COMPLETE_PUBLIC_UNVERIFIED",
+  "sourceCommit": "0ed742bb40d5c69f2a48c12c69f3fae3f79ecac2",
+  "sourceTree": "5135e866775d44c3d542a2798beca6340a09bcc4",
+  "parent": "12b7bf9c3d4ae51512f6600afb30bb8a14fd1abf",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "scope": "Original product logo only; App main/settings own brand; nested Guest retains text and actions without duplicate artwork",
+  "originalAsset": {
+    "width": 798,
+    "height": 420,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346",
+    "layout": {
+      "width": 76,
+      "height": 40,
+      "contain": true,
+      "flexShrink": 0
+    }
+  },
+  "sourceTests": {
+    "passed": 4,
+    "total": 4,
+    "type": "source assertions, not installed or approval E2E"
+  },
+  "typecheck": "PASS",
+  "localQA": {
+    "url": "http://localhost:19087/",
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "guest": true,
+    "settings": true,
+    "originalBrandCount": 1,
+    "englishDefaultObserved": true,
+    "authenticated": false,
+    "lockedNative": false,
+    "installedNative": false
+  },
+  "console": {
+    "zeroErrors": false,
+    "warningAndErrorCount": 9,
+    "knownError": "Invalid style property direction in ProviderExperience; observed dev diagnostics preserved, not changed in logo-only batch"
+  },
+  "priorIssueEvidenceDirectory": "apps/card/evidence/20261003-original-brand",
+  "originalDuplicateScreenshotsPreserved": true,
+  "sourceFiles": [
+    {
+      "path": "apps/card/App.tsx",
+      "bytes": 88946,
+      "sha256": "5d13f680679f46a64626b9eebe3ad02a96e1130c00c0f6965b1c82136f88b8b6"
+    },
+    {
+      "path": "apps/card/src/GuestExperience.tsx",
+      "bytes": 44238,
+      "sha256": "6c8168f68c3d7a48124192be4006ab0ab482bbc2acfd5840de39995793c83218"
+    },
+    {
+      "path": "apps/card/src/YNXBrandLogo.tsx",
+      "bytes": 541,
+      "sha256": "3be862ed49f641482e5a845ccb4325de8b88c7437072bdf576edc8bd2055f88d"
+    },
+    {
+      "path": "apps/card/assets/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "apps/card/test/card-brand-source.test.cjs",
+      "bytes": 1683,
+      "sha256": "7e4b84440b1428017564ab156d675dfd1277510e2e27e10f4c45bd88e5c82018"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/source-tests.log",
+      "bytes": 434,
+      "sha256": "21bb7f454bb070f43e2bd5d739f7d1a9229f2c5974f6c5c8c90ad37395c33b1d"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/desktop-guest.jpg",
+      "bytes": 129695,
+      "sha256": "a3914548ed8bae502d76044b4c70ec0ab7e66f4639854e4423e661cfcd17757e"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/desktop-settings.jpg",
+      "bytes": 36260,
+      "sha256": "7d63e1693cc8624fa7a4f56c4a194d70f69288b5bd9676496572dffd368d9d95"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/mobile-guest.jpg",
+      "bytes": 44645,
+      "sha256": "5133ba63ab56da35300ed6eaf5fe58fc68c32bc9a473e5c4eb51f863675c5a40"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/mobile-settings.jpg",
+      "bytes": 3918,
+      "sha256": "c936c1e786946690450abbb9894142b7cc4f6f0cdc8bbd9167fcb05f79a3b3c6"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/browser-observations.json",
+      "bytes": 244,
+      "sha256": "36486a8d940206cf05a179c0d46b4183798fcdd01b2d36c215bee0dd39e95ddf"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/browser-console.json",
+      "bytes": 3121,
+      "sha256": "6141eff622569c9304a5c1a00cbc538935d5da24a91ed8f34eee0bddb8446298"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/local-preview.log",
+      "bytes": 44588,
+      "sha256": "26af82bc336e9ea50fbc8f08fb2f8734204c2dcbcf0b8fabc1142708bfa2caa1"
+    }
+  ],
+  "release": {
+    "executor": "wallet_release_owner via Root only",
+    "required": "Build current JS with matched runtime identity and compatible Card backend; retain original Card approval/revoke integration input from 12b7; new source sourceCommit must replace prior UI candidate for final build",
+    "formalBuild": false,
+    "publicDeployment": false,
+    "publicReadback": false,
+    "installedPackage": false
+  },
+  "truth": {
+    "providerIdentityChanged": false,
+    "permissionsChanged": false,
+    "registrationChanged": false,
+    "accountRequested": false,
+    "signature": false,
+    "transaction": false,
+    "realCard": false,
+    "panCvv": false,
+    "fiat": false,
+    "productionRealPayments": false,
+    "fullProductComplete": false
+  }
+}
