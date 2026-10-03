@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -46,7 +48,7 @@ func videoHTTPFixture(t *testing.T) (*Service, http.Handler, videoSessionV2, *at
 			t.Error("incomplete verifier body")
 		}
 		sum := sha256.Sum256(raw)
-		return VideoBusinessGrant{Actor: claim.Account, ProductID: claim.ProductID, Scope: scope, Nonce: r.Header.Get(videoActionProofHeader), BodyDigest: hex.EncodeToString(sum[:]), SessionBinding: claim.SessionBinding, ExpiresAt: s.cfg.Now().Add(time.Minute), Revalidate: func(context.Context) error { return nil }}, nil
+		return VideoBusinessGrant{Actor: claim.Account, ProductID: claim.ProductID, Scope: scope, Nonce: r.Header.Get(videoActionProofHeader), BodyDigest: hex.EncodeToString(sum[:]), SessionBinding: claim.SessionBinding, ExpiresAt: s.cfg.Now().Add(time.Minute), SessionExpiresAt: s.cfg.Now().Add(time.Minute), Revalidate: func(context.Context) error { return nil }}, nil
 	})
 	return s, NewServer(s, StaticTokenAuth{Tokens: map[string]string{"legacy": "ynx1owner"}}).Handler(), claim, &count
 }
@@ -243,5 +245,61 @@ func TestVideoBusinessHTTPFreshProofKeepsOriginalIdempotency(t *testing.T) {
 	NewServer(restarted, StaticTokenAuth{}).Handler().ServeHTTP(w, r)
 	if w.Code < 400 {
 		t.Fatal("restart allowed proof replay")
+	}
+}
+
+func TestVideoMatureProofMetadataHasNoPlatformAndSeparateSessionExpiry(t *testing.T) {
+	for _, platform := range []string{"web", "android", "macos"} {
+		t.Run(platform, func(t *testing.T) {
+			s, h, claim, _ := videoHTTPFixture(t)
+			if platform == "android" {
+				claim.ApplicationID = "com.ynxweb4.video"
+				claim.Origin = "app://android/com.ynxweb4.video"
+				claim.Callback = "ynxvideo://wallet-auth/callback"
+				claim.PackageID = &claim.ApplicationID
+			}
+			if platform == "macos" {
+				claim.ApplicationID = "com.ynxweb4.video"
+				claim.Origin = "app://macos/com.ynxweb4.video"
+				claim.Callback = "ynxvideo://wallet-auth/callback"
+				claim.BundleID = &claim.ApplicationID
+			}
+			claim.Platform = ""
+			claim.ExpiresAt = s.cfg.Now().Add(15 * time.Second).Format(time.RFC3339Nano)
+			r := videoCanonicalRequest(claim, "GET", "/v1/account", "", "mature_metadata_nonce_001")
+			var original map[string]any
+			raw, _ := base64.RawURLEncoding.DecodeString(r.Header.Get(productSessionProofV2Header))
+			if e := json.Unmarshal(raw, &original); e != nil {
+				t.Fatal(e)
+			}
+			delete(original, "platform")
+			raw, _ = json.Marshal(original)
+			r.Header.Set(productSessionProofV2Header, base64.RawURLEncoding.EncodeToString(raw))
+			routed, scope, e := videoBusinessRequestScope(r)
+			if e != nil || routed.Platform != platform || scope != "video:account" {
+				t.Fatalf("original full tuple not inferred: %s %v", routed.Platform, e)
+			}
+			// The trusted fixture models separately verified action expiry and the full
+			// session expiry. This is metadata/consumer evidence, not cryptographic QA.
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, r)
+			if w.Code != 200 {
+				t.Fatalf("valid action later than introspection expiry rejected %d %s", w.Code, w.Body.String())
+			}
+		})
+	}
+}
+func TestVideoBusinessMissingOriginalSessionExpiryFailsClosed(t *testing.T) {
+	s, _, claim, _ := videoHTTPFixture(t)
+	base := s.cfg.BusinessAuthority
+	s.cfg.BusinessAuthority = videoAuthorityFunc(func(c context.Context, r *http.Request, scope string, b io.Reader, n int64) (VideoBusinessGrant, error) {
+		g, e := base.VerifyVideoBusiness(c, r, scope, b, n)
+		g.SessionExpiresAt = time.Time{}
+		return g, e
+	})
+	w := httptest.NewRecorder()
+	NewServer(s, StaticTokenAuth{}).Handler().ServeHTTP(w, videoCanonicalRequest(claim, "GET", "/v1/account", "", "missing_original_expiry_001"))
+	if w.Code != 401 || len(s.store.state.BusinessNonces) != 0 {
+		t.Fatal("reduced grant accepted without full original session expiry")
 	}
 }

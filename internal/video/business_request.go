@@ -121,8 +121,8 @@ func (s *Server) serveBusinessBoundary(w http.ResponseWriter, r *http.Request) {
 		grant, err = done.grant, done.err
 	}
 	expected := hex.EncodeToString(hash.Sum(nil))
-	sessionExpiry, parseErr := time.Parse(time.RFC3339Nano, claimed.ExpiresAt)
-	if err != nil || parseErr != nil || grant.Actor != claimed.Account || grant.ProductID != claimed.ProductID || grant.Scope != scope || grant.SessionBinding != claimed.SessionBinding || grant.BodyDigest != expected || grant.ExpiresAt.After(sessionExpiry) {
+	_, parseErr := time.Parse(time.RFC3339Nano, claimed.ExpiresAt)
+	if err != nil || parseErr != nil || grant.Actor != claimed.Account || grant.ProductID != claimed.ProductID || grant.Scope != scope || grant.SessionBinding != claimed.SessionBinding || grant.BodyDigest != expected || grant.SessionExpiresAt.IsZero() || grant.ExpiresAt.After(grant.SessionExpiresAt) {
 		problem(w, 401, ErrUnauthorized)
 		return
 	}
@@ -164,6 +164,31 @@ func copyVideoBusinessBody(ctx context.Context, file *os.File, digest hash.Hash,
 		return out.size, out.err
 	}
 }
+
+// The mature device proof has the original nineteen fields, without platform.
+// Infer only from the exact registered full application/origin/callback and
+// bundle/package tuple. The trusted SDK still verifies the original raw header;
+// this metadata routing never modifies signed bytes or creates a session.
+func videoClaimedProofBinding(claimed *videoSessionV2) bool {
+	if claimed.Platform != "" {
+		return validVideoV2Binding(*claimed)
+	}
+	matches := 0
+	var platform string
+	for _, candidate := range []string{"web", "android", "macos"} {
+		copy := *claimed
+		copy.Platform = candidate
+		if validVideoV2Binding(copy) {
+			matches++
+			platform = candidate
+		}
+	}
+	if matches != 1 {
+		return false
+	}
+	claimed.Platform = platform
+	return true
+}
 func videoBusinessRequestScope(r *http.Request) (videoSessionV2, string, error) {
 	var claimed videoSessionV2
 	proof := r.Header.Get(productSessionProofV2Header)
@@ -171,7 +196,7 @@ func videoBusinessRequestScope(r *http.Request) (videoSessionV2, string, error) 
 		return claimed, "", ErrUnauthorized
 	}
 	raw, err := base64.RawURLEncoding.DecodeString(proof)
-	if err != nil || json.Unmarshal(raw, &claimed) != nil || !validVideoV2Binding(claimed) || r.URL.RawPath != "" || r.URL.Fragment != "" {
+	if err != nil || json.Unmarshal(raw, &claimed) != nil || !videoClaimedProofBinding(&claimed) || r.URL.RawPath != "" || r.URL.Fragment != "" {
 		return claimed, "", ErrUnauthorized
 	}
 	if origin := r.Header.Get("Origin"); origin != "" && origin != claimed.Origin {

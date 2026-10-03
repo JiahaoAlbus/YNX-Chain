@@ -14,6 +14,7 @@ import (
 type VideoBusinessGrant struct {
 	Actor, Nonce, BodyDigest, SessionBinding string
 	ProductID, Scope                         string
+	SessionExpiresAt                         time.Time
 	ExpiresAt                                time.Time
 	Revalidate                               func(context.Context) error
 }
