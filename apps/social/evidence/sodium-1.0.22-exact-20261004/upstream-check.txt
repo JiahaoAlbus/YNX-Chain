@@ -1,0 +1,433 @@
+Making check in builds
+make[1]: Nothing to be done for `check'.
+Making check in contrib
+make[1]: Nothing to be done for `check'.
+Making check in dist-build
+make[1]: Nothing to be done for `check'.
+Making check in src
+Making check in libsodium
+Making check in include
+make[3]: Nothing to be done for `check'.
+make[3]: Nothing to be done for `check-am'.
+make[2]: Nothing to be done for `check-am'.
+Making check in test
+Making check in default
+/Applications/Xcode.app/Contents/Developer/usr/bin/make  aead_aegis128l aead_aegis256 aead_aes256gcm aead_aes256gcm2 aead_chacha20poly1305 aead_chacha20poly13052 aead_xchacha20poly1305 auth auth2 auth3 auth5 auth6 auth7 box box2 box7 box8 box_easy box_easy2 box_seal box_seed chacha20 codecs codecs2 codecs3 core_keccak1600 core1 core2 core3 core4 core5 core6 ed25519_convert generichash generichash2 generichash3 hash hash3 hash_sha3256 hash_sha3512 ipcrypt kdf kem kem_mlkem768 kem_xwing keygen kx metamorphic misuse onetimeauth onetimeauth2 onetimeauth7 pwhash_argon2i pwhash_argon2id pwhash_argon2id2 randombytes scalarmult scalarmult2 scalarmult5 scalarmult6 scalarmult7 scalarmult8 secretbox secretbox2 secretbox7 secretbox8 secretbox_easy secretbox_easy2 secretstream_xchacha20poly1305 shorthash sign sodium_core sodium_utils sodium_version stream stream2 stream3 stream4 verify1 xof_shake128 xof_shake256 xof_turboshake128 xof_turboshake256 xof2 sodium_utils2 sodium_utils3 sodium_utils4 core_ed25519 core_ristretto255 kdf_hkdf kdf_hkdf2 kdf_hkdf3 kdf_hkdf4 pwhash_scrypt stream5 stream6 pwhash_scrypt_ll scalarmult_ed25519 scalarmult_ristretto255 siphashx24 xchacha20
+  CC       aead_aegis128l.o
+  CC       aead_aegis256.o
+  CC       aead_aes256gcm.o
+  CC       aead_aes256gcm2.o
+  CC       aead_chacha20poly1305.o
+  CC       aead_chacha20poly13052.o
+  CC       aead_xchacha20poly1305.o
+  CC       auth.o
+  CC       auth2.o
+  CC       auth3.o
+  CC       auth5.o
+  CC       auth6.o
+  CC       auth7.o
+  CC       box.o
+  CC       box2.o
+  CC       box7.o
+  CC       box8.o
+  CC       box_easy.o
+  CC       box_easy2.o
+  CC       box_seal.o
+  CC       box_seed.o
+  CC       chacha20.o
+  CC       codecs.o
+  CC       codecs2.o
+  CC       codecs3.o
+  CC       core_keccak1600.o
+  CC       core1.o
+  CC       core2.o
+  CC       core3.o
+  CC       core4.o
+  CC       core5.o
+  CC       core6.o
+  CC       ed25519_convert.o
+  CC       generichash.o
+  CC       generichash2.o
+  CC       generichash3.o
+  CC       hash.o
+  CC       hash3.o
+  CC       hash_sha3256.o
+  CC       hash_sha3512.o
+  CC       ipcrypt.o
+  CC       kdf.o
+  CC       kem.o
+  CC       kem_mlkem768.o
+  CC       kem_xwing.o
+  CC       keygen.o
+  CC       kx.o
+  CC       metamorphic.o
+  CC       misuse.o
+  CC       onetimeauth.o
+  CC       onetimeauth2.o
+  CC       onetimeauth7.o
+  CC       pwhash_argon2i.o
+  CC       pwhash_argon2id.o
+  CC       pwhash_argon2id2.o
+  CC       randombytes.o
+  CC       scalarmult.o
+  CC       scalarmult2.o
+  CC       scalarmult5.o
+  CC       scalarmult6.o
+  CC       scalarmult7.o
+  CC       scalarmult8.o
+  CC       secretbox.o
+  CC       secretbox2.o
+  CC       secretbox7.o
+  CC       secretbox_easy.o
+  CC       secretbox8.o
+  CC       secretbox_easy2.o
+  CC       secretstream_xchacha20poly1305.o
+  CC       shorthash.o
+  CC       sign.o
+  CC       sodium_core.o
+  CC       sodium_utils.o
+  CC       sodium_version.o
+  CC       stream.o
+  CC       stream2.o
+  CC       stream3.o
+  CC       stream4.o
+  CC       verify1.o
+  CC       xof_shake128.o
+  CC       xof_shake256.o
+  CC       xof_turboshake128.o
+  CC       xof_turboshake256.o
+  CC       xof2.o
+  CC       sodium_utils2.o
+  CC       sodium_utils3.o
+  CC       sodium_utils4.o
+  CC       core_ed25519.o
+  CC       core_ristretto255.o
+  CC       kdf_hkdf.o
+  CC       kdf_hkdf2.o
+  CC       kdf_hkdf3.o
+  CC       kdf_hkdf4.o
+  CC       pwhash_scrypt.o
+  CC       stream5.o
+  CC       stream6.o
+  CC       pwhash_scrypt_ll.o
+  CC       scalarmult_ed25519.o
+  CC       scalarmult_ristretto255.o
+  CC       siphashx24.o
+  CC       xchacha20.o
+  CCLD     aead_aegis128l
+  CCLD     aead_aegis256
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     aead_aes256gcm
+  CCLD     aead_aes256gcm2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     aead_chacha20poly1305
+  CCLD     aead_chacha20poly13052
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     aead_xchacha20poly1305
+  CCLD     auth
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     auth2
+  CCLD     auth3
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     auth5
+  CCLD     auth6
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     auth7
+  CCLD     box
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     box2
+  CCLD     box7
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     box8
+  CCLD     box_easy
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     box_easy2
+  CCLD     box_seal
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     box_seed
+  CCLD     chacha20
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     codecs
+  CCLD     codecs2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     codecs3
+  CCLD     core_keccak1600
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     core1
+  CCLD     core2
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     core3
+  CCLD     core4
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     core5
+  CCLD     core6
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     generichash
+  CCLD     ed25519_convert
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     generichash2
+  CCLD     generichash3
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     hash
+  CCLD     hash3
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     hash_sha3256
+  CCLD     hash_sha3512
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     ipcrypt
+  CCLD     kdf
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     kem
+  CCLD     kem_mlkem768
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     keygen
+  CCLD     kem_xwing
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     kx
+  CCLD     metamorphic
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     misuse
+  CCLD     onetimeauth
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     onetimeauth2
+  CCLD     onetimeauth7
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     pwhash_argon2i
+  CCLD     pwhash_argon2id
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     pwhash_argon2id2
+  CCLD     randombytes
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     scalarmult
+  CCLD     scalarmult2
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     scalarmult5
+  CCLD     scalarmult6
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     scalarmult7
+  CCLD     scalarmult8
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     secretbox
+  CCLD     secretbox2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     secretbox8
+  CCLD     secretbox7
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     secretbox_easy
+  CCLD     secretbox_easy2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     secretstream_xchacha20poly1305
+  CCLD     shorthash
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     sodium_core
+  CCLD     sign
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     sodium_utils
+  CCLD     sodium_version
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     stream
+  CCLD     stream2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     stream3
+  CCLD     stream4
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     verify1
+  CCLD     xof_shake128
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     xof_shake256
+  CCLD     xof_turboshake128
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     xof2
+  CCLD     xof_turboshake256
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     sodium_utils2
+  CCLD     sodium_utils3
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]clang
+: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     sodium_utils4
+  CCLD     core_ed25519
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     kdf_hkdf
+  CCLD     core_ristretto255
+clangclang: : warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     kdf_hkdf3
+  CCLD     kdf_hkdf2
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     pwhash_scrypt
+  CCLD     kdf_hkdf4
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     stream5
+  CCLD     stream6
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     pwhash_scrypt_ll
+  CCLD     scalarmult_ed25519
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     scalarmult_ristretto255
+  CCLD     siphashx24
+clang: clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+  CCLD     xchacha20
+clang: warning: argument unused during compilation: '-pie' [-Wunused-command-line-argument]
+/Applications/Xcode.app/Contents/Developer/usr/bin/make  check-TESTS
+PASS: aead_aegis128l
+PASS: aead_aegis256
+PASS: aead_aes256gcm
+PASS: aead_aes256gcm2
+PASS: aead_chacha20poly1305
+PASS: aead_chacha20poly13052
+PASS: aead_xchacha20poly1305
+PASS: auth
+PASS: auth2
+PASS: auth3
+PASS: auth5
+PASS: auth6
+PASS: auth7
+PASS: box
+PASS: box2
+PASS: box7
+PASS: box_easy
+PASS: box8
+PASS: box_seal
+PASS: box_easy2
+PASS: box_seed
+PASS: chacha20
+PASS: codecs
+PASS: codecs2
+PASS: codecs3
+PASS: core_keccak1600
+PASS: core1
+PASS: core2
+PASS: core4
+PASS: core5
+PASS: core3
+PASS: core6
+PASS: ed25519_convert
+PASS: generichash
+PASS: generichash2
+PASS: generichash3
+PASS: hash
+PASS: hash3
+PASS: hash_sha3256
+PASS: hash_sha3512
+PASS: ipcrypt
+PASS: kdf
+PASS: kem
+PASS: kem_mlkem768
+PASS: kem_xwing
+PASS: keygen
+PASS: kx
+PASS: metamorphic
+PASS: misuse
+PASS: onetimeauth
+PASS: onetimeauth2
+PASS: onetimeauth7
+PASS: pwhash_argon2i
+PASS: pwhash_argon2id
+PASS: pwhash_argon2id2
+PASS: randombytes
+PASS: scalarmult
+PASS: scalarmult2
+PASS: scalarmult5
+PASS: scalarmult7
+PASS: scalarmult6
+PASS: secretbox
+PASS: scalarmult8
+PASS: secretbox2
+PASS: secretbox7
+PASS: secretbox8
+PASS: secretbox_easy
+PASS: secretstream_xchacha20poly1305
+PASS: secretbox_easy2
+PASS: shorthash
+PASS: sign
+PASS: sodium_core
+PASS: sodium_utils
+PASS: sodium_version
+PASS: stream
+PASS: stream2
+PASS: stream3
+PASS: stream4
+PASS: xof_shake128
+PASS: verify1
+PASS: xof_shake256
+PASS: xof_turboshake128
+PASS: xof_turboshake256
+PASS: xof2
+PASS: sodium_utils3
+PASS: sodium_utils2
+PASS: sodium_utils4
+PASS: core_ed25519
+PASS: core_ristretto255
+PASS: kdf_hkdf
+PASS: kdf_hkdf2
+PASS: kdf_hkdf3
+PASS: kdf_hkdf4
+PASS: stream5
+PASS: stream6
+PASS: pwhash_scrypt
+PASS: pwhash_scrypt_ll
+PASS: scalarmult_ed25519
+PASS: scalarmult_ristretto255
+PASS: siphashx24
+PASS: xchacha20
+============================================================================
+Testsuite summary for libsodium 1.0.22
+============================================================================
+# TOTAL: 101
+# PASS:  101
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[2]: Nothing to be done for `check-am'.
+make[1]: Nothing to be done for `check-am'.

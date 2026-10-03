@@ -1,0 +1,6 @@
+[ 40%] Building C object CMakeFiles/minisign.dir/src/base64.c.o
+[ 40%] Building C object CMakeFiles/minisign.dir/src/get_line.c.o
+[ 80%] Building C object CMakeFiles/minisign.dir/src/helpers.c.o
+[ 80%] Building C object CMakeFiles/minisign.dir/src/minisign.c.o
+[100%] Linking C executable minisign
+[100%] Built target minisign

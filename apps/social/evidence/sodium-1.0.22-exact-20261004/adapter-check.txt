@@ -1,0 +1,1 @@
+PASS native secretstream checks=20 libsodium=1.0.22; synthetic only; no platform/admission/wire proof

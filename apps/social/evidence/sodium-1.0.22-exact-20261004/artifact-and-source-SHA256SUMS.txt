@@ -1,0 +1,7 @@
+ec29931ed4a0227930f2564c2025b00cca8ccf3dac8d7b5106f43b38b0686873  apps/social/evidence/sodium-1.0.22-exact-20261004/local-libsodium-1.0.22.a
+1e8da0ee95097bff6ea73ab6f40daa54212be3e82704958af9bd8aff8c8ad18f  apps/social/evidence/sodium-1.0.22-exact-20261004/local-veil-attachment-check
+9cf11e602826cb78bcf48fb26c1b121f97dfc4a388211faa907459a2392cbc8d  apps/social/evidence/sodium-1.0.22-exact-20261004/local-minisign-0.12
+508a76d186356c0dd807a670ef510964f8724557024796a2c426c6c0e19ab683  apps/social/evidence/sodium-1.0.22-exact-20261004/libsodium-LICENSE
+6d2ec37277349e1fba8fd3f23e6f8c1bd98e38803be1a8e8beb5d246bc28ede6  apps/social/crypto-engine/sodium/veil_attachment.c
+f1c1d954637846e1c8d5edb1707e6eacb4fd52927e3fb9cf5bff57ba1f2079ea  apps/social/crypto-engine/sodium/veil_attachment.h
+6089f70515ba5c47b577688973ce1b7013facacd7ab9e6450dcf72eff0454b27  apps/social/crypto-engine/sodium/veil_attachment_check.c

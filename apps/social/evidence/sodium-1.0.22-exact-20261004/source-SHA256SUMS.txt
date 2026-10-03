@@ -1,0 +1,3 @@
+adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/evidence/sodium-1.0.22-exact-20261004/libsodium-1.0.22.tar.gz
+c0186d6cf8c9c2ec5c6dbb6d4ff4f701e5592376490e8ad97a4ceeecabbff0f3  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/evidence/sodium-1.0.22-exact-20261004/libsodium-1.0.22.tar.gz.minisig
+c0ed356116aa63d95abd37d1843fdae7373aeab8197fadd8625bc7f989ac15bd  /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/evidence/sodium-1.0.22-exact-20261004/minisign-official-source.tar.gz

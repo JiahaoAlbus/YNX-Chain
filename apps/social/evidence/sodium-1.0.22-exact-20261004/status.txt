@@ -1,0 +1,10 @@
+stage=/tmp/social-sodium-1.0.22-20261004.uObpkK
+minisign_source=b85e15d45ac9eab34e44596fd309f5b07db9545c
+verification_tool_link_library=1.0.20
+source_signature_exit=0
+sodium_build_exit=0
+version_probe_exit=0
+adapter_compile_exit=0
+adapter_check_exit=0
+upstream_check_exit=0
+local_arch=arm64
