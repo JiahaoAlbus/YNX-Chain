@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
-import {catalogs,locales,errorCodes,normalizeLocale,translate} from '../web/locale.js';
+import {catalogs,locales,errorCodes,activityKeys,normalizeLocale,translate} from '../web/locale.js';
 import {formatMicro} from '../web/market-data.js';
 
 const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
@@ -15,6 +15,36 @@ const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.ind
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
 const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showWalletFallback('));
 const previewSource=await readFile(new URL('../web/order-preview.js',import.meta.url),'utf8');
+const activityRender=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
+const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
+
+test('actual activity tabs and all headers use 12 locales without mutating owned records or making requests',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
+    await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const state={account:'A',snapshot:{orders:[]},activity:'orders'};const display=${formatMicro.toString()};${activityRender}\n${activityBinding}\nwindow.activityLocaleQA={state,renderActivity};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document,onChange:renderActivity});document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));$('#activity').classList.add('active');renderActivity();`});
+    const tabs={trades:'Trade history',orders:'Order history',ledger:'Asset ledger',deposits:'Deposits',withdrawals:'Withdrawals',fees:'Fee history',audit:'Audit'};
+    const headers={};
+    for(const tab of Object.keys(tabs)){await page.locator(`[data-activity="${tab}"]`).click();headers[tab]=await page.locator('#activity-head th').allTextContents();for(const key of headers[tab])assert.ok(activityKeys.includes(key),key)}
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      for(const [tab,label] of Object.entries(tabs)){
+        assert.equal(await page.locator(`[data-activity="${tab}"]`).innerText(),catalogs[locale][label]);
+        await page.locator(`[data-activity="${tab}"]`).click();
+        assert.deepEqual(await page.locator('#activity-head th').allTextContents(),headers[tab].map(key=>catalogs[locale][key]));
+        assert.equal(await page.locator('#activity-body').innerText(),catalogs[locale]['No owned records yet.']);
+      }
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,locale);
+    }
+    await page.evaluate(()=>{window.activityLocaleQA.state.activity='orders';window.activityLocaleQA.state.snapshot={orders:[{account:'A',id:'exact-A',market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:1234567,amountMicro:2000000,filledMicro:0,status:'rejected',rejectReason:'EXACT_ENGINE_CODE',createdAt:'2026-10-03T00:00:00Z'},{account:'B',id:'foreign-B',createdAt:'2026-10-03T00:00:00Z'}]};window.activityLocaleQA.renderActivity()});
+    const before=await page.locator('#activity-body').innerText();
+    for(const locale of locales){await page.locator('#exchange-language').selectOption(locale);assert.equal(await page.locator('#activity-body').innerText(),before)}
+    assert.match(before,/exact-A/u);assert.match(before,/EXACT_ENGINE_CODE/u);assert.doesNotMatch(before,/foreign-B/u);assert.equal(requests,0);
+  }finally{await browser.close()}
+});
 
 test('every supported locale has all connected/degraded/recovery messages without silent English fallback',()=>{
   assert.equal(locales.length,12);
