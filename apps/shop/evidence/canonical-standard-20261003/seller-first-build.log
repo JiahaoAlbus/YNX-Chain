@@ -1,0 +1,5 @@
+
+> build
+> node scripts/build.mjs
+
+YNX Seller Console web build: dist/

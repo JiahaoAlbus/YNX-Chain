@@ -1,0 +1,46 @@
+
+> test
+> node --test test/*.test.mjs
+
+✔ a late stream chunk cannot update a different account or selected store (34.032292ms)
+✔ split CRLF events render once and service failures remain visible (0.916167ms)
+✔ unconfirmed writes keep their key after account reauthentication but cannot cross accounts (6.492708ms)
+✔ a changed decision or target gets a new key without mutating the pending request body (0.708791ms)
+✔ release consumes the accepted endpoint manifest without claiming unavailable services (4.010334ms)
+✔ UI separates Standard Wallet, private degradation and honest guest preview (1.42275ms)
+✔ English is the first-run interface while the existing language chooser remains available (1.149875ms)
+✔ private authorization uses the approved recoverable SDK and explicit Wallet link (5.435417ms)
+✔ late success and failure cannot cross a buyer, store or view change (17.455583ms)
+✔ signout during response body decoding rejects before any private result is returned (0.111458ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (5.716792ms)
+✔ requests are bounded and cancellation does not publish private data (16.698459ms)
+✖ seller bearer is memory-only and central product-bound (4.587042ms)
+✔ seller console persists only locale preferences and supports RTL (1.441666ms)
+✔ prefers YNX EIP-6963 provider and switches to YNX Testnet (4.310916ms)
+✔ missing provider exposes official YNX Wallet and MetaMask choices (2.807917ms)
+✔ private service degradation preserves standard account and chain (0.306ms)
+✔ seller UI wires operations instead of navigation shells (2.456708ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 111.799208
+
+✖ failing tests:
+
+test at test/security_i18n.test.mjs:2:1
+✖ seller bearer is memory-only and central product-bound (4.587042ms)
+  AssertionError [ERR_ASSERTION]: ynx-seller-v1
+      at TestContext.<anonymous> (file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/seller-console/test/security_i18n.test.mjs:2:328)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

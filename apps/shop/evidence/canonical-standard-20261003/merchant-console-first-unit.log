@@ -1,0 +1,39 @@
+✔ dashboard derives only persisted records (0.782334ms)
+✔ invalid state is rejected (0.309167ms)
+file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/src/auth.js:8
+  launchWebAuthorization,
+  ^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: The requested module '@ynx-chain/wallet-auth' does not provide an export named 'launchWebAuthorization'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:463:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:561:5)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0
+✖ test/auth.test.js (152.699125ms)
+✔ lost-response retries keep the exact invoice intent; edits and account reset replace it (3.870416ms)
+✔ form drafts survive replacement while acknowledgement resets only its form (0.508542ms)
+✔ datetime-local displays the chosen local time without a UTC shift (1.993084ms)
+✔ all twelve locales have complete nonblank audited strings (1.782917ms)
+✔ payment, refund, dispute and AI strings preserve strict authority boundaries (0.997833ms)
+✔ locale detection, Arabic and plural formatting are deterministic (28.011167ms)
+✔ release config consumes the accepted bundled endpoint boundary and fails private services closed (10.768667ms)
+✔ browser source contains no loopback, emulator, HTTP production or Node-only runtime dependency (2.226708ms)
+✔ English is the first-run primary language while saved user choice remains supported (2.321959ms)
+✔ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (2.981666ms)
+✔ merchant JSON and reconciliation export reject late records after logout or merchant switch (31.129542ms)
+✔ merchant mutation forwards the original idempotency key and JSON through the bounded product request (1.005542ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 14
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.66275
+
+✖ failing tests:
+
+test at test/auth.test.js:1:1
+✖ test/auth.test.js (152.699125ms)
+  'test failed'

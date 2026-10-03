@@ -1,0 +1,39 @@
+
+> @ynx-chain/merchant-console@1.0.0 test
+> node --test test/*.test.js
+
+✔ dashboard derives only persisted records (0.937708ms)
+✔ invalid state is rejected (0.557875ms)
+✔ canonical Wallet approval and product-device proof create only a short merchant session (75.40525ms)
+✔ cross-product callback and scope escalation fail closed (1.39275ms)
+✔ canonical Merchant launch requires a configured authority and preserves legacy recovery (0.220875ms)
+✔ standard connection prefers announced YNX Wallet and switches to YNX Testnet (2.536333ms)
+✔ missing provider returns real install choices and no fabricated connection (1.320709ms)
+✔ private service degradation preserves an established standard connection (0.2755ms)
+▶ cancelled and replaced approvals cannot complete or consume the next recovery record
+  ✔ cancel (6.65475ms)
+  ✔ replacement (4.197292ms)
+✔ cancelled and replaced approvals cannot complete or consume the next recovery record (11.235708ms)
+✔ duplicate callback is rejected while first completion is pending (5.593458ms)
+✔ Gateway session must match the approved account and selected merchant (4.44975ms)
+✔ late completion preserves a replacement approval instead of consuming its secret (4.607375ms)
+✔ lost-response retries keep the exact invoice intent; edits and account reset replace it (14.081709ms)
+✔ form drafts survive replacement while acknowledgement resets only its form (0.4485ms)
+✔ datetime-local displays the chosen local time without a UTC shift (9.746459ms)
+✔ all twelve locales have complete nonblank audited strings (1.741791ms)
+✔ payment, refund, dispute and AI strings preserve strict authority boundaries (0.551542ms)
+✔ locale detection, Arabic and plural formatting are deterministic (19.6845ms)
+✔ release config consumes the accepted bundled endpoint boundary and fails private services closed (9.408667ms)
+✔ browser source contains no loopback, emulator, HTTP production or Node-only runtime dependency (2.209667ms)
+✔ English is the first-run primary language while saved user choice remains supported (1.360375ms)
+✔ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (1.021917ms)
+✔ merchant JSON and reconciliation export reject late records after logout or merchant switch (36.691ms)
+✔ merchant mutation forwards the original idempotency key and JSON through the bounded product request (0.517459ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 300.666833

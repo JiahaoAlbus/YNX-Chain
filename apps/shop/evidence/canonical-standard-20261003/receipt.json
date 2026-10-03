@@ -1,0 +1,321 @@
+{
+  "schemaVersion": "ynx-commerce-canonical-sdk-consumer-source/v1",
+  "classification": "LOCAL_SOURCE_AND_CONTROLLED_QA_ONLY",
+  "sourceBasis": "bf7e344f8057ca3a98d0af5570d1eb50a2b5cbbd",
+  "canonicalSDK": {
+    "source": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "version": "1.2.0",
+    "artifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+    "registrySHA256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2",
+    "actualArtifactConsumed": true,
+    "parallelSDKCreated": false
+  },
+  "standardTransport": {
+    "products": [
+      "Seller",
+      "Merchant"
+    ],
+    "actualDiscoveryAndConnectionAPI": true,
+    "conflictsExcluded": true,
+    "explicitNetworkSwitchAndIndependentReadback": true,
+    "accountFencedAfterEveryAwait": true,
+    "ownedListenerCleanup": true
+  },
+  "sellerPrivateConsumer": {
+    "productId": "shop",
+    "scopes": [
+      "account:read",
+      "shop:seller:operate"
+    ],
+    "canonicalBrowserFactory": true,
+    "explicitOpenOnly": true,
+    "dualProofWireSender": true,
+    "bearerRemovedFromBusinessAndAIStream": true,
+    "SDKDurableRevocationAndRetryRetained": true,
+    "legacyRecoveryUntouched": true
+  },
+  "merchantPrivateConsumer": {
+    "productId": "pay-merchant",
+    "scopes": [
+      "account:read",
+      "merchant:session:create"
+    ],
+    "webOnly": true,
+    "canonicalBrowserPreparation": true,
+    "canonicalCallbackChecked": true,
+    "membershipReadbackConfigured": false,
+    "noRoleCreatedFromPrivateGrant": true,
+    "legacyCompletionCompatibilityPreserved": true,
+    "fullCanonicalBusinessWireMigration": false
+  },
+  "verification": {
+    "sellerTests": 40,
+    "merchantTests": 26,
+    "fail": 0,
+    "skip": 0,
+    "builds": [
+      "Seller",
+      "Merchant"
+    ],
+    "browser": {
+      "classification": "CONTROLLED_REAL_SDK_BROWSER_PREPARATION_ONLY",
+      "sdkSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+      "bundleSHA256": "6a5d0254b1a3ae1c1d7986ec14a3036c41ae54b29d9cee46a2f87a694cf75d77",
+      "records": [
+        {
+          "productId": "shop",
+          "origin": "https://shop.ynxweb4.com",
+          "scopes": [
+            "account:read",
+            "shop:seller:operate"
+          ],
+          "preparedOnly": true,
+          "automatic": false,
+          "installation": "unverified",
+          "nonextractableKeyPersisted": true,
+          "pendingNonceSurvivedReload": true,
+          "legacyRecordUntouched": true,
+          "noPrivateSession": true,
+          "localPendingRequestCleared": true,
+          "timeCalls": 2,
+          "unapprovedNetworkRequests": 0
+        },
+        {
+          "productId": "pay-merchant",
+          "origin": "https://pay.ynxweb4.com",
+          "scopes": [
+            "account:read",
+            "merchant:session:create"
+          ],
+          "preparedOnly": true,
+          "automatic": false,
+          "installation": "unverified",
+          "nonextractableKeyPersisted": true,
+          "pendingNonceSurvivedReload": true,
+          "legacyRecordUntouched": true,
+          "noPrivateSession": true,
+          "localPendingRequestCleared": true,
+          "timeCalls": 2,
+          "unapprovedNetworkRequests": 0
+        }
+      ],
+      "wrongRegisteredOriginRejected": true,
+      "realWalletApproved": false,
+      "liveBusinessReadback": false
+    },
+    "dependencyMetadataOnly": true,
+    "dependenciesInstalled": false,
+    "existingSourceNodeModulesUntouched": true
+  },
+  "sourceFiles": [
+    {
+      "path": "apps/merchant-console/package-lock.json",
+      "bytes": 66872,
+      "sha256": "f21ba36b1a2b24fb5fe1b2409aed75b0d0b5b8865f61c2eca0182c0f04ddfe6b"
+    },
+    {
+      "path": "apps/merchant-console/package.json",
+      "bytes": 560,
+      "sha256": "c04db49e40e0a898d34ed75cf3197dea7f6d1b8b78a5fd1de4ae0e9cae73347c"
+    },
+    {
+      "path": "apps/merchant-console/src/app.js",
+      "bytes": 33715,
+      "sha256": "adf73cde65f8a5ac21d5be64c198c7dc2c518cfd290ac5bfe9e81b60f2bee0a6"
+    },
+    {
+      "path": "apps/merchant-console/src/auth.js",
+      "bytes": 8736,
+      "sha256": "166f57d0dfca1324683b519f3bb7618e781888fb167f3d7c2ca1c39d4b0192c9"
+    },
+    {
+      "path": "apps/merchant-console/test/auth.test.js",
+      "bytes": 10197,
+      "sha256": "1b3607effc6fbe03de1848417dc556b3fa865b8f5ccacf3d1f5e023ccea6a346"
+    },
+    {
+      "path": "apps/merchant-console/test/release.test.js",
+      "bytes": 1934,
+      "sha256": "91e524ff25a838027c38150f9c00380eeb3c916f979fbcb587314a11fb6149f3"
+    },
+    {
+      "path": "apps/merchant-console/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+      "bytes": 553264,
+      "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+    },
+    {
+      "path": "apps/seller-console/app.js",
+      "bytes": 42089,
+      "sha256": "04787fa3123d5da2f2d90fa0e007e28bac42a45d3670a7339a291a3054658c04"
+    },
+    {
+      "path": "apps/seller-console/package-lock.json",
+      "bytes": 66890,
+      "sha256": "5c3ba7aa45b7db6f7ab76cf079b8ab2e1792a93eb2eee50e258b8834e3ac32b7"
+    },
+    {
+      "path": "apps/seller-console/package.json",
+      "bytes": 540,
+      "sha256": "2b6d970bd8686c616b0e4cf0b431e09d697960c497487da6b9c611c8976668c5"
+    },
+    {
+      "path": "apps/seller-console/product-session-registry.json",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    },
+    {
+      "path": "apps/seller-console/product-session.js",
+      "bytes": 4458,
+      "sha256": "12e9c87c41a13b04292f5f439cdf7b72e022a407e82da75f1f216b11544ad8a7"
+    },
+    {
+      "path": "apps/seller-console/standard-wallet.js",
+      "bytes": 3530,
+      "sha256": "0d199e29e02afec8bcf3348b354a97bc14186211d61ec5d8849f33a90d95bf94"
+    },
+    {
+      "path": "apps/seller-console/test/canonical_transport.test.mjs",
+      "bytes": 4280,
+      "sha256": "5cbaa39bc941d6396fb993408f3b2053da250694ccb60009a126be81d27d1824"
+    },
+    {
+      "path": "apps/seller-console/test/private_controller.test.mjs",
+      "bytes": 4539,
+      "sha256": "4758baaccbbfd73dd454db7e173f1ed258fe8ccfe7449f18bae41b41db29b4c6"
+    },
+    {
+      "path": "apps/seller-console/test/release_wallet.test.mjs",
+      "bytes": 2407,
+      "sha256": "d35a6379f528bb4e8044b4882bf654e64e13534c975effaa5f3f0e6e4b93de1a"
+    },
+    {
+      "path": "apps/seller-console/test/security_i18n.test.mjs",
+      "bytes": 1160,
+      "sha256": "3eabd8dd950349bd706247662dce08a368370b5b7151cfdb040df286a59c973a"
+    },
+    {
+      "path": "apps/seller-console/test/standard_wallet.test.mjs",
+      "bytes": 2685,
+      "sha256": "595b54e5ca1e768fec80552262096e8b4d1efc63bc926edd5a8fb0ad649bd739"
+    },
+    {
+      "path": "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0.tgz",
+      "bytes": 553264,
+      "sha256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b"
+    },
+    {
+      "path": "apps/seller-console/wallet-auth.js",
+      "bytes": 1487,
+      "sha256": "75c6d40af08b416be1851b92a8ab3cb19e8d5443f74bcb3631bc07f7043b8d97"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "browser-final.json",
+      "bytes": 1369,
+      "sha256": "6e47de8ba8a7a62e3ec95bdd926ae504b77188d1c3ca177cee0388be7891c5bd"
+    },
+    {
+      "path": "browser-first.log",
+      "bytes": 1369,
+      "sha256": "6e47de8ba8a7a62e3ec95bdd926ae504b77188d1c3ca177cee0388be7891c5bd"
+    },
+    {
+      "path": "browser-preparation.mjs",
+      "bytes": 5629,
+      "sha256": "71a78b6a920e8f122adb46329c7874e37eaf4091779ff927941f17559f55ffc0"
+    },
+    {
+      "path": "composition.json",
+      "bytes": 361,
+      "sha256": "8e22af5fc0c991bc3b11f44204d1dc837052c2a4a646042f75756ae671843c20"
+    },
+    {
+      "path": "merchant-console-final-check.log",
+      "bytes": 2763,
+      "sha256": "a95825651883dfa2c339638093e9cc5fbd969993e5f4ae8666035ee684400c38"
+    },
+    {
+      "path": "merchant-console-final-lock.log",
+      "bytes": 134,
+      "sha256": "c695e2652b3aeea8305aa2724d603ee2e2b14ffde19f6c19a81b35f2d3de8577"
+    },
+    {
+      "path": "merchant-console-first-unit.log",
+      "bytes": 2158,
+      "sha256": "01a6f04e34099c612e1b832e1e362f4c236bdcdb1879e4c58707776c0ecb4f09"
+    },
+    {
+      "path": "merchant-console-lock-metadata.log",
+      "bytes": 131,
+      "sha256": "0e0ac6c39c84c58e4c5e140f36e74a5459f2dbfc87a5904b489e93873c34420b"
+    },
+    {
+      "path": "merchant-console-third-unit.log",
+      "bytes": 2554,
+      "sha256": "dfc394688cc33e5c84f2da9d68cc581b40594a10fa11cba78034a14ff107aa13"
+    },
+    {
+      "path": "merchant-first-build.log",
+      "bytes": 128,
+      "sha256": "84c81b6ffb523a6782f855570ef12857f105829107d77c2b5e844a58c2996ed4"
+    },
+    {
+      "path": "merchant-second-unit.log",
+      "bytes": 21922,
+      "sha256": "b5d8e96a39aadd2d698a5659c420afc8ed6b11fb10b9473999bfb0f585686570"
+    },
+    {
+      "path": "seller-console-final-check-v2.log",
+      "bytes": 3727,
+      "sha256": "cc20fd346eb3879f99243c34fc2cb8a5637caf1e0e0ec95b3fddd88b6dadfc04"
+    },
+    {
+      "path": "seller-console-final-check.log",
+      "bytes": 3732,
+      "sha256": "1cfe93f0bb012ce1383ba8d96809cdeb022d3143c47b08e00c51401a488f3dea"
+    },
+    {
+      "path": "seller-console-final-lock.log",
+      "bytes": 134,
+      "sha256": "64305c999d417c2620280e693924503e8d17668941934fbc68bf1e7c5e8f8516"
+    },
+    {
+      "path": "seller-console-first-unit.log",
+      "bytes": 2559,
+      "sha256": "d55d4b3762d175130d6960e19037ea8ce99cf36ae9f6b1fa9592acfaedee5e3e"
+    },
+    {
+      "path": "seller-console-lock-metadata.log",
+      "bytes": 131,
+      "sha256": "f9c9eda1d380a16740e56055967ade2371fd98092e7ff17e5babe7204433d8fc"
+    },
+    {
+      "path": "seller-console-third-unit.log",
+      "bytes": 3611,
+      "sha256": "ffd9be6a2900063e3d2f79fa4357a467e1c0099d7df51cdedb96861ed1d436ef"
+    },
+    {
+      "path": "seller-first-build.log",
+      "bytes": 71,
+      "sha256": "c16af5ec576ef699558d2fc85d85f8763c23bef1b763be5cf27a6f816ab3fb10"
+    },
+    {
+      "path": "seller-second-unit.log",
+      "bytes": 2427,
+      "sha256": "a9fa5a6f868552431d55a4ec2e789477aa7216bea5fb7222485de655fa4df394"
+    }
+  ],
+  "remaining": [
+    "A exact HTTPS Gateway endpoint wiring and accepted manifests",
+    "A exact Merchant canonical actor to selected-object membership and role readback",
+    "Merchant canonical business-proof sender after readback contract",
+    "Independent source admission",
+    "Final-entry real Wallet approval and live business readback",
+    "Final Android/macOS/Web release and installed flow"
+  ],
+  "realWalletApproved": false,
+  "publicRuntimeVerified": false,
+  "installedNativeVerified": false,
+  "fullGoalComplete": false
+}

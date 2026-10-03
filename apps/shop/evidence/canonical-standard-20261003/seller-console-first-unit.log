@@ -1,0 +1,45 @@
+✔ a late stream chunk cannot update a different account or selected store (30.083416ms)
+✔ split CRLF events render once and service failures remain visible (1.041875ms)
+✔ unconfirmed writes keep their key after account reauthentication but cannot cross accounts (13.019166ms)
+✔ a changed decision or target gets a new key without mutating the pending request body (3.468916ms)
+✔ release consumes the accepted endpoint manifest without claiming unavailable services (3.024542ms)
+✔ UI separates Standard Wallet, private degradation and honest guest preview (3.122416ms)
+✔ English is the first-run interface while the existing language chooser remains available (1.165959ms)
+✖ private authorization uses the canonical controlled launcher and never replaces the Seller page (4.579667ms)
+✔ late success and failure cannot cross a buyer, store or view change (36.578209ms)
+✔ signout during response body decoding rejects before any private result is returned (0.377125ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (1.335792ms)
+✔ requests are bounded and cancellation does not publish private data (16.903ms)
+✔ seller bearer is memory-only and central product-bound (4.5415ms)
+✔ seller console persists only locale preferences and supports RTL (1.80375ms)
+✔ prefers YNX EIP-6963 provider and switches to YNX Testnet (5.553834ms)
+✔ missing provider exposes official YNX Wallet and MetaMask choices (2.390541ms)
+✔ private service degradation preserves standard account and chain (0.156166ms)
+✔ seller UI wires operations instead of navigation shells (3.958416ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 145.69425
+
+✖ failing tests:
+
+test at test/release_wallet.test.mjs:9:1
+✖ private authorization uses the canonical controlled launcher and never replaces the Seller page (4.579667ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(pkg.includes('ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz'))
+  
+      at TestContext.<anonymous> (file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/seller-console/test/release_wallet.test.mjs:9:583)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

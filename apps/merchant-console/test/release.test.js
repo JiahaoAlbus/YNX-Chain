@@ -32,6 +32,6 @@ test("Merchant Console uses the shared controlled Wallet launcher without top-le
   const [appSource,authSource]=await Promise.all([readFile(app,"utf8"),readFile(new URL("../src/auth.js",import.meta.url),"utf8")]);
   assert.match(appSource,/launchMerchantWalletSignIn/);
   assert.doesNotMatch(appSource,/location\.(?:href|assign)\s*=/);
-  assert.match(authSource,/launchWebAuthorization/);
+  assert.match(authSource,/canonicalMerchant.begin\(\)/);
   assert.doesNotMatch(authSource,/`ynxwallet:\/\/authorize/);
 });

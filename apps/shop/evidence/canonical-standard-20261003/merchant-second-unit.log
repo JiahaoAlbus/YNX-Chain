@@ -1,0 +1,159 @@
+
+> @ynx-chain/merchant-console@1.0.0 test
+> node --test test/*.test.js
+
+✔ dashboard derives only persisted records (1.262208ms)
+✔ invalid state is rejected (0.174042ms)
+✔ canonical Wallet approval and product-device proof create only a short merchant session (85.324417ms)
+✔ cross-product callback and scope escalation fail closed (2.34325ms)
+✔ canonical Merchant launch requires a configured authority and preserves legacy recovery (0.448292ms)
+✔ standard connection prefers announced YNX Wallet and switches to YNX Testnet (2.725875ms)
+✔ missing provider returns real install choices and no fabricated connection (1.153833ms)
+✔ private service degradation preserves an established standard connection (0.362959ms)
+▶ cancelled and replaced approvals cannot complete or consume the next recovery record
+  ✔ cancel (8.386208ms)
+  ✔ replacement (4.03075ms)
+✔ cancelled and replaced approvals cannot complete or consume the next recovery record (12.861875ms)
+✔ duplicate callback is rejected while first completion is pending (3.490959ms)
+✔ Gateway session must match the approved account and selected merchant (5.166541ms)
+✔ late completion preserves a replacement approval instead of consuming its secret (5.492333ms)
+✔ lost-response retries keep the exact invoice intent; edits and account reset replace it (2.71775ms)
+✔ form drafts survive replacement while acknowledgement resets only its form (0.184792ms)
+✔ datetime-local displays the chosen local time without a UTC shift (14.588792ms)
+✔ all twelve locales have complete nonblank audited strings (1.100583ms)
+✔ payment, refund, dispute and AI strings preserve strict authority boundaries (0.9275ms)
+✔ locale detection, Arabic and plural formatting are deterministic (9.5675ms)
+✔ release config consumes the accepted bundled endpoint boundary and fails private services closed (4.215ms)
+✔ browser source contains no loopback, emulator, HTTP production or Node-only runtime dependency (1.526834ms)
+✔ English is the first-run primary language while saved user choice remains supported (1.519708ms)
+✖ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (1.201208ms)
+✔ merchant JSON and reconciliation export reject late records after logout or merchant switch (14.569542ms)
+✔ merchant mutation forwards the original idempotency key and JSON through the bounded product request (0.500708ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 25
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 257.34725
+
+✖ failing tests:
+
+test at test/release.test.js:31:1
+✖ Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation (1.201208ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /launchWebAuthorization/. Input:
+  
+  "import {createPrivateSessionController} from '../../seller-console/product-session.js';\n" +
+    'import { p256 } from "@noble/curves/nist.js";\n' +
+    'import { createRequestContext } from "./request-context.js";\n' +
+    "import {discoverEip6963WalletProviders} from '@ynx-chain/wallet-auth/wallet-provider-discovery';\n" +
+    "import {StandardWalletConnection,Eip1193ProviderError} from '@ynx-chain/wallet-auth/standard-wallet-connection';\n" +
+    'import {\n' +
+    '  encodeBase64url,\n' +
+    '  encodeRequestDeepLink,\n' +
+    '  parseAuthorizationRequest,\n' +
+    '  parseCallbackURL,\n' +
+    '  registryParserBinding,\n' +
+    '  requestDigest,\n' +
+    '  signGatewayChallenge,\n' +
+    '  verifyAuthorization,\n' +
+    '} from "@ynx-chain/wallet-auth";\n' +
+    '\n' +
+    'export const MERCHANT_REGISTRY=Object.freeze({schemaVersion:3,productClientId:"ynx-merchant-console-v1",requestingProduct:"pay-merchant",bundleId:"com.ynxweb4.merchant-console",callbacks:Object.freeze(["https://pay.ynxweb4.com/merchant/wallet-auth/callback"]),origins:Object.freeze(["https://pay.ynxweb4.com"]),scopes:Object.freeze(["account:read","merchant:session:create"]),maxScopes:2,productDeviceAlgorithms:Object.freeze(["p256-sha256"])});\n' +
+    'export const WALLET_INSTALL_OPTIONS=Object.freeze({ynx:"https://ynxweb4.com/dapp/download",metamask:"https://metamask.io/download/"});\n' +
+    'const STORAGE="ynx-merchant-wallet-auth-v1";\n' +
+    'const pendingRequests=createRequestContext(()=>sessionStorage.getItem(STORAGE));\n' +
+    'const completing=new Set();\n' +
+    '\n' +
+    'export function cancelWalletSignIn(){pendingRequests.invalidate();sessionStorage.removeItem(STORAGE);void canonicalMerchant.clear().catch(()=>{});sessionStorage.removeItem("ynx-merchant-canonical-selection-v2")}\n' +
+    '\n' +
+    "export async function connectStandardWallet({windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK,origin=windowLike.location?.origin??globalThis.location?.origin??'https://pay.ynxweb4.com'}={}){\n" +
+    ' const discovery=await discoverEip6963WalletProviders(windowLike,timeoutMs);\n' +
+    " const preferred=[...discovery.candidates].filter(candidate=>!discovery.ambiguities.includes(candidate.kind)).sort((left,right)=>(left.kind==='ynx-wallet'?0:1)-(right.kind==='ynx-wallet'?0:1))[0];\n" +
+    " if(!preferred)throw Object.assign(new Error('No compatible standard EVM wallet was found.'),{code:'WALLET_NOT_FOUND',details:{installOptions:WALLET_INSTALL_OPTIONS}});\n" +
+    " const connection=new StandardWalletConnection({provider:preferred.provider,origin,metadata:{name:'YNX Merchant Console',url:origin}});\n" +
+    ' try{\n' +
+    '  const connected=await connection.connect();\n' +
+    '  const expectedAccount=connected.selectedAccount;\n' +
+    "  const assertCurrent=()=>{if(connection.current?.selectedAccount!==expectedAccount)throw new Eip1193ProviderError(4100,'Wallet account changed during network confirmation.');};\n" +
+    "  const target='0x1917';let chain=await connection.request({method:'eth_chainId'});assertCurrent();\n" +
+    "  if(typeof chain!=='string'||chain.toLowerCase()!==target){\n" +
+    "   try{await connection.request({method:'wallet_switchEthereumChain',params:[{chainId:target}]});assertCurrent();}\n" +
+    '   catch(error){assertCurrent();if(error.code!==4902||!network?.rpcUrl)throw error;\n' +
+    "    await connection.request({method:'wallet_addEthereumChain',params:[{chainId:target,chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[network.rpcUrl],blockExplorerUrls:network.explorerUrl?[network.explorerUrl]:[]}]});assertCurrent();\n" +
+    "    await connection.request({method:'wallet_switchEthereumChain',params:[{chainId:target}]});assertCurrent();\n" +
+    '   }\n' +
+    '  }\n' +
+    "  chain=await connection.request({method:'eth_chainId'});assertCurrent();\n" +
+    "  if(typeof chain!=='string'||chain.toLowerCase()!==target)throw new Eip1193ProviderError(4901,'Wallet did not confirm YNX Testnet.');\n" +
+    "  // Refresh the SDK's selected account/chain using a silent permission read,\n" +
+    '  // never a second grant; reject any changed account across every await.\n' +
+    '  const confirmed=await connection.restore();assertCurrent();\n' +
+    "  if(confirmed?.selectedAccount!==expectedAccount||confirmed.selectedChain!==target)throw new Eip1193ProviderError(4901,'Wallet network or account changed during readback.');\n" +
+    "  return Object.freeze({connection,providerInfo:Object.freeze({name:preferred.name??'EVM Wallet',rdns:preferred.rdns}),providerName:preferred.name??'EVM Wallet',account:confirmed.selectedAccount,chainId:confirmed.selectedChain,state:'STANDARD_CONNECTED'});\n" +
+    ' }catch(error){connection.disconnect();throw error;}\n' +
+    '}\n' +
+    '\n' +
+    "export function privateServiceDegraded(error,standardConnection){return Object.freeze({standardConnection:standardConnection?.account?'STANDARD_CONNECTED':'NOT_CONNECTED',account:standardConnection?.account??null,privateService:Object.freeze({state:'PRIVATE_SERVICE_DEGRADED',code:'PRODUCT_SESSION_GATEWAY_UNREACHABLE'})});}\n" +
+    '\n' +
+    'export function beginWalletSignIn(merchantId,now=new Date()){\n' +
+    '  return encodeRequestDeepLink(prepareWalletSignIn(merchantId,now));\n' +
+    '}\n' +
+    '\n' +
+    "const canonicalMerchant=createPrivateSessionController({productId:'pay-merchant',scopes:['account:read','merchant:session:create'],purpose:'Sign in to my authorized YNX Merchant Console records on ynx_6423-1.',endpoint:()=>globalThis.YNX_APP_GATEWAY_URL||null});\n" +
+    'export async function launchMerchantWalletSignIn(merchantId){\n' +
+    " if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error('A valid merchant ID is required');\n" +
+    ' // The selected object is a navigation hint, never membership or a role grant.\n' +
+    ' const state=await canonicalMerchant.begin();\n' +
+    " sessionStorage.setItem('ynx-merchant-canonical-selection-v2',merchantId);\n" +
+    ' return state;\n' +
+    '}\n' +
+    '\n' +
+    'function prepareWalletSignIn(merchantId,now){\n' +
+    '  if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error("A valid merchant ID is required");\n' +
+    '  cancelWalletSignIn();\n' +
+    '  const secret=p256.utils.randomSecretKey();\n' +
+    '  const request=parseAuthorizationRequest({version:"2",nonce:randomNonce(),chainId:"ynx_6423-1",requestingProduct:MERCHANT_REGISTRY.requestingProduct,productClientId:MERCHANT_REGISTRY.productClientId,bundleId:MERCHANT_REGISTRY.bundleId,productDeviceAlgorithm:"p256-sha256",productDeviceKey:encodeBase64url(p256.getPublicKey(secret,true)),origin:MERCHANT_REGISTRY.origins[0],callback:MERCHANT_REGISTRY.callbacks[0],scopes:[...MERCHANT_REGISTRY.scopes],purpose:"Sign in to the YNX Merchant Console for this merchant",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+5*60_000).toISOString()},{now,registry:registryParserBinding(MERCHANT_REGISTRY)});\n' +
+    '  sessionStorage.setItem(STORAGE,JSON.stringify({merchantId,request,deviceSecret:encodeBase64url(secret)}));\n' +
+    '  return request;\n' +
+    '}\n' +
+    '\n' +
+    'export async function finishWalletSignIn(callbackURL,gatewayBase,now=new Date()){\n' +
+    '  if(new URL(callbackURL).searchParams.has("result")){\n' +
+    '    await canonicalMerchant.recover(callbackURL);\n' +
+    '    throw new Error("Canonical private approval was checked. Merchant membership readback is not yet configured; no role or merchant session was created.");\n' +
+    '  }\n' +
+    '  const pending=sessionStorage.getItem(STORAGE);\n' +
+    '  const stored=JSON.parse(pending||"null");\n' +
+    '  if(!stored?.merchantId||!stored?.request||!stored?.deviceSecret)throw new Error("Wallet sign-in recovery state is missing or expired");\n' +
+    '  if(completing.has(pending))throw new Error("This Wallet approval is already being completed");\n' +
+    '  const assertCurrent=pendingRequests.capture();\n' +
+    '  const approval=verifyAuthorization(parseCallbackURL(callbackURL,MERCHANT_REGISTRY.callbacks[0]),{...stored.request,requestDigest:requestDigest(stored.request),now});\n' +
+    '  completing.add(pending);\n' +
+    '  try{\n' +
+    '    const challenge=await gatewayRequest(gatewayBase,"/app/pay-merchant/session/challenges",{request:stored.request,approval});\n' +
+    '    assertCurrent();\n' +
+    '    const completion=signGatewayChallenge(challenge,stored.deviceSecret);\n' +
+    '    const session=await gatewayRequest(gatewayBase,"/app/pay-merchant/session/complete",{request:stored.request,approval,completion,merchantId:stored.merchantId});\n' +
+    '    assertCurrent();\n' +
+    `    if(session.account!==approval.account||session.merchant?.id!==stored.merchantId||!['owner','finance','developer','support','viewer'].includes(session.role)||typeof session.token!=="string"||!session.token.trim())throw new Error("Gateway returned a mismatched merchant session");\n` +
+    '    sessionStorage.removeItem(STORAGE);\n' +
+    '    return session;\n' +
+    '  }catch(error){assertCurrent();throw error}finally{completing.delete(pending)}\n' +
+    '}\n' +
+    '\n' +
+    'export function hasWalletCallback(url=location.href){try{return new URL(url).searchParams.has("response")||new URL(url).searchParams.has("result")}catch{return false}}\n' +
+    'async function gatewayRequest(base,path,body){if(!base)throw new Error("YNX App Gateway URL is not configured");return pendingRequests.fetchJSON(base.replace(/\\/$/,"")+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}\n' +
+    'function randomNonce(){return encodeBase64url(crypto.getRandomValues(new Uint8Array(24)))}\n'
+  
+      at TestContext.<anonymous> (file:///private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV/apps/merchant-console/test/release.test.js:35:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `import {createPrivateSessionController} from '../../seller-console/product-session.js';\nimport { p256 } from "@noble/curves/nist.js";\nimport { createRequestContext } from "./request-context.js";\nimport {discoverEip6963WalletProviders} from '@ynx-chain/wallet-auth/wallet-provider-discovery';\nimport {StandardWalletConnection,Eip1193ProviderError} from '@ynx-chain/wallet-auth/standard-wallet-connection';\nimport {\n  encodeBase64url,\n  encodeRequestDeepLink,\n  parseAuthorizationRequest,\n  parseCallbackURL,\n  registryParserBinding,\n  requestDigest,\n  signGatewayChallenge,\n  verifyAuthorization,\n} from "@ynx-chain/wallet-auth";\n\nexport const MERCHANT_REGISTRY=Object.freeze({schemaVersion:3,productClientId:"ynx-merchant-console-v1",requestingProduct:"pay-merchant",bundleId:"com.ynxweb4.merchant-console",callbacks:Object.freeze(["https://pay.ynxweb4.com/merchant/wallet-auth/callback"]),origins:Object.freeze(["https://pay.ynxweb4.com"]),scopes:Object.freeze(["account:read","merchant:session:create"]),maxScopes:2,productDeviceAlgorithms:Object.freeze(["p256-sha256"])});\nexport const WALLET_INSTALL_OPTIONS=Object.freeze({ynx:"https://ynxweb4.com/dapp/download",metamask:"https://metamask.io/download/"});\nconst STORAGE="ynx-merchant-wallet-auth-v1";\nconst pendingRequests=createRequestContext(()=>sessionStorage.getItem(STORAGE));\nconst completing=new Set();\n\nexport function cancelWalletSignIn(){pendingRequests.invalidate();sessionStorage.removeItem(STORAGE);void canonicalMerchant.clear().catch(()=>{});sessionStorage.removeItem("ynx-merchant-canonical-selection-v2")}\n\nexport async function connectStandardWallet({windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK,origin=windowLike.location?.origin??globalThis.location?.origin??'https://pay.ynxweb4.com'}={}){\n const discovery=await discoverEip6963WalletProviders(windowLike,timeoutMs);\n const preferred=[...discovery.candidates].filter(candidate=>!discovery.ambiguities.includes(candidate.kind)).sort((left,right)=>(left.kind==='ynx-wallet'?0:1)-(right.kind==='ynx-wallet'?0:1))[0];\n if(!preferred)throw Object.assign(new Error('No compatible standard EVM wallet was found.'),{code:'WALLET_NOT_FOUND',details:{installOptions:WALLET_INSTALL_OPTIONS}});\n const connection=new StandardWalletConnection({provider:preferred.provider,origin,metadata:{name:'YNX Merchant Console',url:origin}});\n try{\n  const connected=await connection.connect();\n  const expectedAccount=connected.selectedAccount;\n  const assertCurrent=()=>{if(connection.current?.selectedAccount!==expectedAccount)throw new Eip1193ProviderError(4100,'Wallet account changed during network confirmation.');};\n  const target='0x1917';let chain=await connection.request({method:'eth_chainId'});assertCurrent();\n  if(typeof chain!=='string'||chain.toLowerCase()!==target){\n   try{await connection.request({method:'wallet_switchEthereumChain',params:[{chainId:target}]});assertCurrent();}\n   catch(error){assertCurrent();if(error.code!==4902||!network?.rpcUrl)throw error;\n    await connection.request({method:'wallet_addEthereumChain',params:[{chainId:target,chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[network.rpcUrl],blockExplorerUrls:network.explorerUrl?[network.explorerUrl]:[]}]});assertCurrent();\n    await connection.request({method:'wallet_switchEthereumChain',params:[{chainId:target}]});assertCurrent();\n   }\n  }\n  chain=await connection.request({method:'eth_chainId'});assertCurrent();\n  if(typeof chain!=='string'||chain.toLowerCase()!==target)throw new Eip1193ProviderError(4901,'Wallet did not confirm YNX Testnet.');\n  // Refresh the SDK's selected account/chain using a silent permission read,\n  // never a second grant; reject any changed account across every await.\n  const confirmed=await connection.restore();assertCurrent();\n  if(confirmed?.selectedAccount!==expectedAccount||confirmed.selectedChain!==target)throw new Eip1193ProviderError(4901,'Wallet network or account changed during readback.');\n  return Object.freeze({connection,providerInfo:Object.freeze({name:preferred.name??'EVM Wallet',rdns:preferred.rdns}),providerName:preferred.name??'EVM Wallet',account:confirmed.selectedAccount,chainId:confirmed.selectedChain,state:'STANDARD_CONNECTED'});\n }catch(error){connection.disconnect();throw error;}\n}\n\nexport function privateServiceDegraded(error,standardConnection){return Object.freeze({standardConnection:standardConnection?.account?'STANDARD_CONNECTED':'NOT_CONNECTED',account:standardConnection?.account??null,privateService:Object.freeze({state:'PRIVATE_SERVICE_DEGRADED',code:'PRODUCT_SESSION_GATEWAY_UNREACHABLE'})});}\n\nexport function beginWalletSignIn(merchantId,now=new Date()){\n  return encodeRequestDeepLink(prepareWalletSignIn(merchantId,now));\n}\n\nconst canonicalMerchant=createPrivateSessionController({productId:'pay-merchant',scopes:['account:read','merchant:session:create'],purpose:'Sign in to my authorized YNX Merchant Console records on ynx_6423-1.',endpoint:()=>globalThis.YNX_APP_GATEWAY_URL||null});\nexport async function launchMerchantWalletSignIn(merchantId){\n if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error('A valid merchant ID is required');\n // The selected object is a navigation hint, never membership or a role grant.\n const state=await canonicalMerchant.begin();\n sessionStorage.setItem('ynx-merchant-canonical-selection-v2',merchantId);\n return state;\n}\n\nfunction prepareWalletSignIn(merchantId,now){\n  if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error("A valid merchant ID is required");\n  cancelWalletSignIn();\n  const secret=p256.utils.randomSecretKey();\n  const request=parseAuthorizationRequest({version:"2",nonce:randomNonce(),chainId:"ynx_6423-1",requestingProduct:MERCHANT_REGISTRY.requestingProduct,productClientId:MERCHANT_REGISTRY.productClientId,bundleId:MERCHANT_REGISTRY.bundleId,productDeviceAlgorithm:"p256-sha256",productDeviceKey:encodeBase64url(p256.getPublicKey(secret,true)),origin:MERCHANT_REGISTRY.origins[0],callback:MERCHANT_REGISTRY.callbacks[0],scopes:[...MERCHANT_REGISTRY.scopes],purpose:"Sign in to the YNX Merchant Console for this merchant",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+5*60_000).toISOString()},{now,registry:registryParserBinding(MERCHANT_REGISTRY)});\n  sessionStorage.setItem(STORAGE,JSON.stringify({merchantId,request,deviceSecret:encodeBase64url(secret)}));\n  return request;\n}\n\nexport async function finishWalletSignIn(callbackURL,gatewayBase,now=new Date()){\n  if(new URL(callbackURL).searchParams.has("result")){\n    await canonicalMerchant.recover(callbackURL);\n    throw new Error("Canonical private approval was checked. Merchant membership readback is not yet configured; no role or merchant session was created.");\n  }\n  const pending=sessionStorage.getItem(STORAGE);\n  const stored=JSON.parse(pending||"null");\n  if(!stored?.merchantId||!stored?.request||!stored?.deviceSecret)throw new Error("Wallet sign-in recovery state is missing or expired");\n  if(completing.has(pending))throw new Error("This Wallet approval is already being completed");\n  const assertCurrent=pendingRequests.capture();\n  const approval=verifyAuthorization(parseCallbackURL(callbackURL,MERCHANT_REGISTRY.callbacks[0]),{...stored.request,requestDigest:requestDigest(stored.request),now});\n  completing.add(pending);\n  try{\n    const challenge=await gatewayRequest(gatewayBase,"/app/pay-merchant/session/challenges",{request:stored.request,approval});\n    assertCurrent();\n    const completion=signGatewayChallenge(challenge,stored.deviceSecret);\n    const session=await gatewayRequest(gatewayBase,"/app/pay-merchant/session/complete",{request:stored.request,approval,completion,merchantId:stored.merchantId});\n    assertCurrent();\n    if(session.account!==approval.account||session.merchant?.id!==stored.merchantId||!['owner','finance','developer','support','viewer'].includes(session.role)||typeof session.token!=="string"||!session.token.trim())throw new Error("Gateway returned a mismatched merchant session");\n    sessionStorage.removeItem(STORAGE);\n    return session;\n  }catch(error){assertCurrent();throw error}finally{completing.delete(pending)}\n}\n\nexport function hasWalletCallback(url=location.href){try{return new URL(url).searchParams.has("response")||new URL(url).searchParams.has("result")}catch{return false}}\nasync function gatewayRequest(base,path,body){if(!base)throw new Error("YNX App Gateway URL is not configured");return pendingRequests.fetchJSON(base.replace(/\\/$/,"")+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})}\nfunction randomNonce(){return encodeBase64url(crypto.getRandomValues(new Uint8Array(24)))}\n`,
+    expected: /launchWebAuthorization/,
+    operator: 'match',
+    diff: 'simple'
+  }

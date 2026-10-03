@@ -1,0 +1,5 @@
+
+> @ynx-chain/merchant-console@1.0.0 build
+> node scripts/build.mjs
+
+merchant console built: dist/ with canonical Wallet client

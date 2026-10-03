@@ -1,0 +1,8 @@
+{
+  "qa": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-commerce-canonical9555-7vhCsV",
+  "canonicalSource": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "artifactSHA256": "b3c36ac7a80045e7141c08e76ec9a4648d92c1e146e3e7de928bf00572a4572b",
+  "actualArtifactExtracted": true,
+  "existingDependenciesReadOnly": true,
+  "missingLegacySDKExcluded": true
+}

@@ -34,29 +34,21 @@ test("cross-product callback and scope escalation fail closed",()=>{
   assert.throws(()=>parseWalletDeepLink(encodeRequestDeepLink({...request,callback:"ynxcard://wallet-auth/callback"}),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}),/callback/i);
 });
 
-test("controlled Merchant launcher keeps the top-level page in place",async()=>{
-  records.clear();
-  const frame={style:{},setAttribute(){},remove(){this.removed=true}};
-  const document={visibilityState:"visible",body:{appendChild(value){assert.equal(value,frame)}},createElement(){return frame},addEventListener(){},removeEventListener(){}};
-  const window={addEventListener(){},removeEventListener(){}};
-  const topLevel={href:"https://pay.ynxweb4.com/merchant/"};
-  const result=await launchMerchantWalletSignIn("mrc_truth123",{now:new Date("2026-07-18T12:00:00.000Z"),document,window,timeoutMs:1,location:topLevel});
-  assert.equal(result.status,"timeout");
-  assert.equal(topLevel.href,"https://pay.ynxweb4.com/merchant/");
-  assert.equal(frame.removed,true);
-  assert.ok(result.fallbackActions.some(action=>action.id==="official-ynx-wallet-download"));
-  assert.ok(result.fallbackActions.some(action=>action.id==="standard-metamask"));
+test("canonical Merchant launch requires a configured authority and preserves legacy recovery",async()=>{
+ records.clear();records.set('ynx-merchant-wallet-auth-v1','original-recovery');
+ await assert.rejects(()=>launchMerchantWalletSignIn('mrc_truth123'),/Gateway is unavailable/);
+ assert.equal(records.get('ynx-merchant-wallet-auth-v1'),'original-recovery');
 });
 
 test("standard connection prefers announced YNX Wallet and switches to YNX Testnet",async()=>{
   const calls=[];
-  const ynxProvider={request:async request=>{calls.push(request);if(request.method==="eth_requestAccounts")return ["0x1111111111111111111111111111111111111111"];if(request.method==="eth_chainId")return calls.filter(value=>value.method==="eth_chainId").length<=2?"0x1":"0x1917";if(request.method==="wallet_switchEthereumChain")return null;throw new Error(`unexpected ${request.method}`)}};
-  const metaMaskProvider={request:async()=>{throw new Error("MetaMask must not be selected while YNX Wallet is announced")}};
+  const ynxProvider={isYNXWallet:true,request:async request=>{calls.push(request);if((request.method==="eth_requestAccounts"||request.method==="eth_accounts"))return ["0x1111111111111111111111111111111111111111"];if(request.method==="eth_chainId")return calls.filter(value=>value.method==="eth_chainId").length<=2?"0x1":"0x1917";if(request.method==="wallet_switchEthereumChain")return null;throw new Error(`unexpected ${request.method}`)}};
+  const metaMaskProvider={isMetaMask:true,request:async()=>{throw new Error("MetaMask must not be selected while YNX Wallet is announced")}};
   const listeners=new Map();
   const windowLike={
     addEventListener:(name,listener)=>listeners.set(name,listener),
     removeEventListener:name=>listeners.delete(name),
-    dispatchEvent:event=>{if(event.type==="eip6963:requestProvider"){listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"metamask",name:"MetaMask",rdns:"io.metamask"},provider:metaMaskProvider}});listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"ynx",name:"YNX Wallet",rdns:"com.ynx.wallet"},provider:ynxProvider}})}},
+    dispatchEvent:event=>{if(event.type==="eip6963:requestProvider"){listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"11111111-1111-4111-8111-111111111111",name:"MetaMask",rdns:"io.metamask"},provider:metaMaskProvider}});listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"22222222-2222-4222-8222-222222222222",name:"YNX Wallet",rdns:"com.ynx.wallet"},provider:ynxProvider}})}},
   };
   const result=await connectStandardWallet({windowLike,timeoutMs:0,network:{rpcUrl:"https://evm.ynxweb4.com",explorerUrl:"https://explorer.ynxweb4.com"}});
   assert.equal(result.state,"STANDARD_CONNECTED");
