@@ -371,6 +371,8 @@ type idempotencyRecord struct {
 	Action   string `json:"action"`
 	Digest   string `json:"digest"`
 	ObjectID string `json:"objectId"`
+	// Immutable original reaction result, not the later mutable display row.
+	ReactionResult *MomentReaction `json:"reactionResult,omitempty"`
 }
 
 type persistentState struct {

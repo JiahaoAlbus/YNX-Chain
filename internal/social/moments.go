@@ -329,14 +329,20 @@ func (s *Service) SetMomentReaction(actor Session, momentID, idempotencyKey, kin
 		if previous.Action != "moment_reaction" || previous.Digest != digest {
 			return MomentReaction{}, false, ErrConflict
 		}
-		return s.state.MomentReactions[previous.ObjectID], true, nil
+		original := previous.ReactionResult
+		if original == nil || original.MomentID != momentID || original.Account != actor.Account || original.Kind != kind || original.Active != active || previous.ObjectID != momentID+"|"+actor.Account {
+			// Retain legacy/invalid receipts. The latest display state cannot
+			// establish the original result of an earlier operation.
+			return MomentReaction{}, false, ErrConflict
+		}
+		return *original, true, nil
 	}
 	key := momentID + "|" + actor.Account
 	now := s.cfg.Now().UTC()
 	record := MomentReaction{MomentID: momentID, Account: actor.Account, Kind: kind, Active: active, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.MomentReactions[key] = record
-	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "moment_reaction", Digest: digest, ObjectID: key}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "moment_reaction", Digest: digest, ObjectID: key, ReactionResult: &record}
 	if active && moment.Author != actor.Account {
 		s.notifyLocked(moment.Author, actor.Account, "reaction_"+kind, momentID, now)
 	}

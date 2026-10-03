@@ -352,7 +352,7 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 	}
 	record := ProfileSettings{Account: actor.Account, DiscoverableByHandle: in.DiscoverableByHandle, ContactsMatching: in.ContactsMatching, AllowRecommendations: in.AllowRecommendations, AllowRequestsFrom: in.AllowRequestsFrom, AvatarURL: in.AvatarURL, ProfileQRPayload: qrPayload, UpdatedAt: now}
 	s.state.Settings[actor.Account] = record
-	s.state.Idempotency[stateKey] = idempotencyRecord{"settings", digest, actor.Account}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "settings", Digest: digest, ObjectID: actor.Account}
 	s.appendAuditLocked("profile_privacy_updated", "settings", actor.Account, actor.Account, digest, now)
 	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.profile")
 }
@@ -480,7 +480,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 		// Opposite requests and new-key retries refer to the same request. The
 		// original recipient must still explicitly accept; never auto-consent.
 		before := cloneState(s.state)
-		s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, existing.ID}
+		s.state.Idempotency[stateKey] = idempotencyRecord{Action: "contact_request", Digest: digest, ObjectID: existing.ID}
 		return existing, true, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 	}
 	id := "request_" + objectDigest(struct{ A, B, K string }{actor.Account, target, in.IdempotencyKey})[:24]
@@ -488,7 +488,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	record := ContactRequest{ID: id, From: actor.Account, To: target, Source: in.Source, Message: in.Message, Status: "pending", CreatedAt: now, UpdatedAt: now, ExpiresAt: &expires}
 	before := cloneState(s.state)
 	s.state.Requests[id] = record
-	s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, id}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "contact_request", Digest: digest, ObjectID: id}
 	s.notifyLocked(target, actor.Account, "contact_request", id, now)
 	s.appendAuditLocked("contact_request_created", "contact_request", id, actor.Account, digest, now)
 	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
@@ -710,7 +710,7 @@ func (s *Service) BeginAI(actor Session, in AIRequest) (AIJob, bool, error) {
 	job := AIJob{ID: id, Account: actor.Account, Kind: in.Kind, SelectionIDs: append([]string(nil), in.SelectionIDs...), ContextClasses: append([]string(nil), in.ContextClasses...), PrivacyPreview: in.PrivacyPreview, Provider: in.Provider, Model: in.Model, EstimatedTokens: in.EstimatedTokens, OutputLanguage: in.OutputLanguage, EstimatedCostUSD: float64(in.EstimatedTokens) / 1000 * provider.CostPer1KUSD, Status: "awaiting_permission", CreatedAt: now, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.AIJobs[id] = job
-	s.state.Idempotency[stateKey] = idempotencyRecord{"ai_begin", digest, id}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "ai_begin", Digest: digest, ObjectID: id}
 	s.appendAuditLocked("ai_context_previewed", "ai_job", id, actor.Account, digest, now)
 	return job, false, s.saveOrRollbackLocked(before)
 }

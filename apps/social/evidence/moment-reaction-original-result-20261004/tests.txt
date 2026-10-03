@@ -1,0 +1,8 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/social [github.com/JiahaoAlbus/YNX-Chain/internal/social.test]
+internal/social/invite_intent.go:85:80: too few values in struct literal of type idempotencyRecord
+internal/social/service.go:355:85: too few values in struct literal of type idempotencyRecord
+internal/social/service.go:483:91: too few values in struct literal of type idempotencyRecord
+internal/social/service.go:491:81: too few values in struct literal of type idempotencyRecord
+internal/social/service.go:713:74: too few values in struct literal of type idempotencyRecord
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social [build failed]
+FAIL

@@ -82,7 +82,7 @@ func (s *Service) createInvite(actor Session, ttl time.Duration, key string) (In
 	before := cloneState(s.state)
 	s.state.Invites[id] = record
 	if key != "" {
-		s.state.Idempotency[stateKey] = idempotencyRecord{"invite_create", digest, id}
+		s.state.Idempotency[stateKey] = idempotencyRecord{Action: "invite_create", Digest: digest, ObjectID: id}
 	}
 	s.appendAuditLocked("invite_created", "invite", id, actor.Account, objectDigest(record), now)
 	if err := s.saveOrRollbackProductActorLocked(before, actor, "social.contacts"); err != nil {
