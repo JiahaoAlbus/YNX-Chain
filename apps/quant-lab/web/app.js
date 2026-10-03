@@ -481,6 +481,36 @@ function renderPaperRecords(paper) {
   }).join("") : "";
 }
 const localDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value)) : "—";
+const auditReadCopy = {
+  en:['No audited actions yet.','Audit record unavailable. Refresh to read again; no action was inferred.'],
+  'zh-CN':['尚无审计操作。','审计记录不可用。请刷新重读；未推断操作成功。'],
+  'zh-TW':['尚無審計操作。','審計記錄無法讀取。請重新整理；未推斷操作成功。'],
+  ja:['監査された操作はありません。','監査記録を確認できません。更新してください。操作の成功は推定しません。'],
+  ko:['아직 감사 기록이 없습니다.','감사 기록을 확인할 수 없습니다. 새로 고침하세요. 작업 성공을 추정하지 않습니다.'],
+  es:['Aún no hay acciones auditadas.','Registro de auditoría no disponible. Actualice; no se ha supuesto ninguna acción.'],
+  fr:['Aucune action auditée pour le moment.','Journal indisponible. Actualisez ; aucune action n’est déduite.'],
+  de:['Noch keine protokollierten Aktionen.','Prüfprotokoll nicht verfügbar. Aktualisieren; es wird keine Aktion angenommen.'],
+  pt:['Ainda não há ações auditadas.','Registro indisponível. Atualize; nenhuma ação foi presumida.'],
+  ru:['Пока нет записей аудита.','Запись аудита недоступна. Обновите; выполнение действия не предполагается.'],
+  ar:['لا توجد إجراءات مدققة بعد.','سجل التدقيق غير متاح. حدّث للقراءة مجددًا؛ لا نفترض نجاح أي إجراء.'],
+  id:['Belum ada tindakan yang diaudit.','Catatan audit tidak tersedia. Muat ulang; tidak ada tindakan yang diasumsikan.'],
+};
+for (const [language,[auditEmpty,auditUnavailable]] of Object.entries(auditReadCopy)) Object.assign(businessCopy[language],{auditEmpty,auditUnavailable});
+function auditTimeValid(value) {
+  if(typeof value!=='string')return false;
+  const parts=/^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
+  if(!parts||!Number.isFinite(Date.parse(value)))return false;
+  const year=Number(parts[1]),month=Number(parts[2]),day=Number(parts[3]);
+  return year>0&&month>=1&&month<=12&&day>=1&&day<=new Date(Date.UTC(year,month,0)).getUTCDate();
+}
+function renderAuditRecords(records) {
+  const unavailable=`<li class="danger">${safe(t('auditUnavailable'))}</li>`;
+  $('#audit-rows').innerHTML = !Array.isArray(records) ? unavailable : records.length===0 ? `<li>${safe(t('auditEmpty'))}</li>` : records.slice().reverse().map(a=>{
+    if(!a||typeof a.Action!=='string'||!a.Action||typeof a.ObjectID!=='string'||!a.ObjectID||typeof a.Hash!=='string'||!/^[a-f0-9]{64}$/.test(a.Hash)||!auditTimeValid(a.CreatedAt))return unavailable;
+    // This is source readback, not a claim of independently verifying the chain.
+    return `<li><time>${localDate(a.CreatedAt)}</time><strong>${safe(a.Action)} · ${safe(a.ObjectID)}</strong><code title="${a.Hash}">${a.Hash.slice(0,16)}…</code></li>`;
+  }).join('');
+}
 const researchResultStatus = document.createElement("p");
 const researchForgetButton = document.createElement('button');
 researchForgetButton.type='button';researchForgetButton.id='research-forget-pending';
@@ -727,15 +757,7 @@ function render() {
   const daily = p.DailyRisk;
   const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean';
   $('#paper-state').innerHTML += `<p>${safe(t('paperDailyLossLead'))}</p><dl><dt>${safe(t('paperDailyLoss'))}</dt><dd>${validDaily ? safe(`${daily.Day} UTC · ${daily.Loss} / ${daily.Limit} YUSD_TEST_MICRO · ${daily.Breached ? t('riskActive') : t('riskArmed')}`) : '—'}</dd></dl>`;
-  $("#audit-rows").innerHTML =
-    (snapshot.audit || [])
-      .slice()
-      .reverse()
-      .map(
-        (a) =>
-          `<li><time>${localDate(a.CreatedAt)}</time><strong>${safe(a.Action)} · ${safe(a.ObjectID)}</strong><code>${safe(a.Hash.slice(0, 16))}…</code></li>`,
-      )
-      .join("") || "<li>No audited actions yet.</li>";
+  renderAuditRecords(snapshot.audit);
   if (!$("#mandate-strategy").value && strategies.length) {
     $("#mandate-strategy").value = strategies[0].StrategyHash || "";
   }

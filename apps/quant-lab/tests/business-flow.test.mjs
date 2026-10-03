@@ -75,6 +75,26 @@ test('reconciliation cannot substitute missing or malformed observed amounts wit
   }
 });
 
+test('malformed audit rows cannot crash the workspace, forge empty history or erase valid rows',async()=>{
+  const app=harness();await settle();
+  const valid={Action:'controlled_audit',ObjectID:'fixture-object',CreatedAt:'2026-10-03T00:00:00Z',Hash:'a'.repeat(64)};
+  for(const audit of [null,{},'bad',[null,{},valid],[{...valid,Hash:7},valid],[{...valid,CreatedAt:'2026-02-30T00:00:00Z'},valid]]){
+    app.context.auditFixture=audit;
+    assert.doesNotThrow(()=>vm.runInContext('snapshot.audit=auditFixture;render()',app.context));
+    const html=app.ids.get('audit-rows').innerHTML;
+    assert.doesNotMatch(html,/No audited actions yet/);
+    if(Array.isArray(audit))assert.match(html,/controlled_audit/);
+    assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);
+  }
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.ok(app.ids.get('audit-rows').innerHTML.includes(vm.runInContext('safe(t("auditUnavailable"))',app.context)));
+    assert.match(app.ids.get('audit-rows').innerHTML,/controlled_audit/);
+  }
+  vm.runInContext('snapshot.audit=[];render()',app.context);
+  assert.equal(app.ids.get('audit-rows').innerHTML,vm.runInContext('`<li>${safe(t("auditEmpty"))}</li>`',app.context));
+});
+
 test('completed research must bind the exact submitted strategy ID, not another run with identical parameters',async()=>{
   const app=harness();await settle();
   const submitted={strategy:{id:'ma-current-request',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};

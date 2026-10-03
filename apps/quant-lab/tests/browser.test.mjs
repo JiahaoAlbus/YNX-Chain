@@ -253,6 +253,28 @@ test('real research form coalesces a delayed request without displaying unconfir
     complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),true);assert.equal(posts,1);
   }finally{await context.close()}
 });
+test('actual Chrome recovers unavailable audit containers and preserves valid readback beside bad rows',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let auditFixture={};const writes=[];
+    await context.route('**/api/**',route=>{const method=route.request().method();if(method!=='GET'){writes.push({method,path:new URL(route.request().url()).pathname});return route.abort('failed');}return route.continue();});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.audit=auditFixture;await route.fulfill({response,json:body});});
+    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="audit"]').click();
+    assert.match(await page.locator('#audit-rows').textContent(),/Audit record unavailable/);
+    auditFixture=[null,{Hash:7},{Action:'Controlled readback fixture',ObjectID:'<img src=x>',Hash:'a'.repeat(64),CreatedAt:'2026-10-03T00:00:00Z'}];
+    await page.evaluate(()=>refresh());assert.match(await page.locator('#audit-rows').textContent(),/Controlled readback fixture/);
+    assert.equal(await page.locator('#audit-rows img').count(),0);assert.equal(await page.locator('#audit-rows code').getAttribute('title'),'a'.repeat(64));
+    for(const language of await page.evaluate(()=>supportedLocales)){
+      await page.selectOption('#locale',language);
+      assert.ok((await page.locator('#audit-rows').textContent()).includes(await page.evaluate(()=>t('auditUnavailable'))));
+      assert.match(await page.locator('#audit-rows').textContent(),/Controlled readback fixture/);
+    }
+    auditFixture=[];await page.evaluate(()=>refresh());assert.equal(await page.locator('#audit-rows').textContent(),await page.evaluate(()=>t('auditEmpty')));
+    await page.selectOption('#locale','en');await page.locator('nav button[data-view="research"]').click();await page.locator('#fee').fill('17');assert.equal(await page.locator('#fee').inputValue(),'17');
+    assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
 test('actual Chrome renders malformed Paper amount fixtures unavailable without HTML or reconciliation write',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
