@@ -191,7 +191,16 @@ func (s *Service) DeleteMoment(actor Session, id string) error {
 		return err
 	}
 	moment, ok := s.state.Moments[id]
-	if !ok || moment.Status == "deleted" {
+	if !ok {
+		return ErrNotFound
+	}
+	if moment.Status == "deleted" {
+		// A lost response must not strand the original author's exact delete
+		// after restart. Authority was revalidated above; do not mutate the
+		// tombstone, duplicate its audit, or disclose it to another account.
+		if moment.Author == actor.Account {
+			return nil
+		}
 		return ErrNotFound
 	}
 	if moment.Author != actor.Account {

@@ -1,0 +1,8 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/social [github.com/JiahaoAlbus/YNX-Chain/internal/social.test]
+internal/social/social_combined_http_test.go:37:29: undefined: productsessionv2.RegisteredClientSet
+internal/social/social_combined_http_test.go:155:36: undefined: productsessionv2.NewPrivateBusinessRevalidator
+internal/social/social_combined_http_test.go:159:37: undefined: productsessionv2.NewRegisteredClientSet
+internal/social/social_combined_http_test.go:159:126: undefined: productsessionv2.Revalidator
+internal/social/moments_current_test.go:18:61: undefined: productsessionv2.RegisteredClientSet
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social [build failed]
+FAIL
