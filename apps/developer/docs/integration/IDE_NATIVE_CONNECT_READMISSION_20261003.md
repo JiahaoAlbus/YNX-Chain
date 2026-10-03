@@ -1,0 +1,9 @@
+# Native OpenVSCode connection admission continuity
+
+The isolated full-workbench HTTP/WebSocket proxy admitted identity before awaiting `driver.connect`. A cold/private runtime connection can await asynchronous work. Revoking the identity or replacing its project/runtime during that wait previously allowed the outgoing HTTP request or WebSocket handshake to be constructed from the earlier admission before the periodic five-second recheck.
+
+The proxy now checks the original identity's current guard after connection, performs a fresh broker authorization, checks both identity guards again, and compares the exact owner/project/session/runtime/digest/directories and identity reference/account/generation. It rejects expired admission. Any failure destroys the private socket before creating or piping an outgoing request. This is consumer proxy code; no executor, network, package-egress, LXD, shared identity contract or Host configuration changes are introduced.
+
+Validation uses the actual proxy handler and real loopback HTTP/TCP connections with controlled admission/driver boundaries. HTTP and WebSocket cases hold the private connection, revoke authorization, then release it: both return 403, forward zero requests/handshakes, and destroy the socket. Independent runtime, project, identity-reference, generation and expiry transitions also reject before forwarding. Existing credential stripping and workbench activity tests pass. Proxy/activity/admission/identity/broker regression group: 36/36 pass.
+
+The controlled private server is a test peer, not an admitted OpenVSCode executor or real Wallet. Production core, canonical sign-in/account switching, native PTY, concurrency/capacity, formally published version and normal user acceptance remain unverified pending A's approved exact runtime inputs and publication. The macOS 7f22 package is a preceding candidate and must not be relabeled as containing this subsequent proxy repair.

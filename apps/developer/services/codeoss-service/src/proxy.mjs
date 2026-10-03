@@ -64,6 +64,19 @@ export function createCodeOSSProxy({ service, driver, sessionForHost, originForS
     const target = new URL(request.url, admitted.origin);
     const { socket, tokenMode } = await driver.connect(admitted.context);
     if (tokenMode !== "private-loopback-without-connection-token") { socket.destroy(); throw fault("Native IDE private listener mode is invalid.", "core_isolation_invalid", 503); }
+    try {
+      // Connecting may await a cold runtime or private listener. The original
+      // grant must still own this exact runtime before any request bytes leave.
+      admitted.identity?.isCurrent?.();
+      const current = await service.authorizeConnection(request, admitted.sessionId);
+      admitted.identity?.isCurrent?.(); current.identity?.isCurrent?.();
+      if (["owner", "projectId", "sessionId", "runtimeId", "identityDigest", "directory", "projectDirectory"]
+          .some(key => current.context?.[key] !== admitted.context?.[key]) ||
+          ["identityReference", "owner", "workspaceOwner", "account", "generation"]
+          .some(key => current.identity?.[key] !== admitted.identity?.[key]) ||
+          admitted.expiresAt <= Date.now() || current.expiresAt <= Date.now())
+        throw fault("Native IDE admission changed while connecting.", "core_identity_changed", 403);
+    } catch (error) { socket.destroy(); throw error; }
     // The official remote-agent protocol returns its kernel token to clients.
     // This isolated loopback listener has no kernel token; the outer verified
     // owner/project/session admission is the sole external authority.
