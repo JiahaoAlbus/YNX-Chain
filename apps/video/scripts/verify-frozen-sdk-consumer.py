@@ -21,6 +21,8 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
     target = pathlib.Path(directory)
     for name in ['go.mod', 'go.sum']:
         shutil.copyfile(owned / name, target / name)
+        data = (owned / name).read_bytes()
+        pins.append(dict(owner='Media module', path=name, bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     for package in ['video', 'music', 'accountaddress', 'buildinfo', 'nativewallet']:
         source = owned / 'internal' / package
         for path in sorted(source.rglob('*')):
