@@ -1,0 +1,32 @@
+PASS original actual SDK cross-room attack rejects with zero message/receipt/ratchet/prekey commits
+PASS actual SDK receive permits independent recipient local operation
+PASS same sender operation retains immutable message ID/ciphertext without ratchet advancement
+PASS same authenticated sender message under new local operation returns original record, not a new message
+PASS changed sender content under original operation cannot silently resend
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS actual SDK rejects changed authenticated route/device/identity/generation/epoch without commit
+PASS same authenticated message ID with changed cipher/body cannot create a second message
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK malformed/version/suite/group/truncated/trailing payload refuses without fallback
+PASS actual SDK supports full64KiB content inside bounded68KiB application envelope
+PASS oversized content and malformed UTF16 refuse before provider/crypto work
+PASS mutable caller content is snapshotted before independent provider entry
+PASS canonical Unicode/device127/full unsigned64 bits roundtrip without normalization or numeric truncation
+PASS unknown committed sender operation reads original durable-model outbox without reencrypt
+PASS unknown committed receive recovers original durable-model replay mapping without redecrypt
+PASS late independent admission revoke at final commit guard rolls back candidate SDK state
+PASS missing production independent context does not borrow request metadata or private store values
+PASS orphan durable-model replay mapping requires recovery, no reset or reenrollment
+PASS full direct V2 actual-SDK batch; synthetic directory/provenance and atomic-memory only; no real provider/OS/activation proof

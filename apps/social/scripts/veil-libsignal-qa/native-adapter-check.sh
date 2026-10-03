@@ -4,8 +4,8 @@ set -eu
 
 mode=${1:-}
 case "$mode" in
-  compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room) ;;
-  *) printf '%s\n' 'Usage: sh native-adapter-check.sh compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room' >&2; exit 2 ;;
+  compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room|envelope) ;;
+  *) printf '%s\n' 'Usage: sh native-adapter-check.sh compile|keyless|lifecycle|independent|outbox|inbox|encoding|cross-room|envelope' >&2; exit 2 ;;
 esac
 
 : "${VEIL_LIBSIGNAL_JAR:?Supply the official pinned libsignal 0.104.0 JAR}"
@@ -29,15 +29,18 @@ outbox="$social/crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java"
 inbox="$social/crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java"
 encoding="$social/crypto-engine/java/com/ynx/social/matrix/VeilContextEncoding.java"
 address="$social/crypto-engine/java/com/ynx/social/matrix/VeilSignalAddress.java"
+context="$social/crypto-engine/java/com/ynx/social/matrix/VeilApplicationContext.java"
+envelope="$social/crypto-engine/java/com/ynx/social/matrix/VeilAuthenticatedEnvelope.java"
+authority="$social/crypto-engine/java/com/ynx/social/matrix/VeilContextAuthority.java"
 stage=$(mktemp -d "${TMPDIR:-/tmp}/social-veil-native-adapter.XXXXXX")
 mkdir -p "$stage/classes" "$stage/jni-temp"
 printf 'stage=%s\nmode=%s\n' "$stage" "$mode"
 shasum -a 256 "$VEIL_LIBSIGNAL_JAR" "$VEIL_ANDROID_JAR" "$VEIL_KOTLIN_STDLIB" \
   "$native/VeilNativeAuthority.kt" "$native/VeilNativeStore.kt" \
-  "$native/VeilRecordTransaction.kt" "$adapter" "$outbox" "$inbox" "$encoding" "$address" \
+  "$native/VeilRecordTransaction.kt" "$adapter" "$outbox" "$inbox" "$encoding" "$address" "$context" "$envelope" "$authority" \
   "$script_dir/VeilKeylessAdapterCheck.java" "$script_dir/VeilPrekeyLifecycleCheck.java" \
   "$script_dir/VeilOutboxCheck.java" "$script_dir/VeilInboxCheck.java" \
-  "$script_dir/VeilContextEncodingCheck.java" > "$stage/inputs.sha256"
+  "$script_dir/VeilContextEncodingCheck.java" "$script_dir/VeilEnvelopeCheck.java" > "$stage/inputs.sha256"
 "$VEIL_JAVA" -version > "$stage/java-version.txt" 2>&1
 "$VEIL_KOTLIN_JAVA" -version > "$stage/kotlin-java-version.txt" 2>&1
 
@@ -50,9 +53,9 @@ shasum -a 256 "$VEIL_LIBSIGNAL_JAR" "$VEIL_ANDROID_JAR" "$VEIL_KOTLIN_STDLIB" \
 
 runtime="$stage/classes:$stage/native-port.jar:$VEIL_LIBSIGNAL_JAR:$VEIL_SDK_CLASSPATH:$VEIL_KOTLIN_STDLIB"
 "$VEIL_JAVAC" --release 21 -cp "$runtime" -d "$stage/classes" \
-  "$adapter" "$outbox" "$inbox" "$encoding" "$address" "$script_dir/VeilKeylessAdapterCheck.java" \
+  "$adapter" "$outbox" "$inbox" "$encoding" "$address" "$context" "$envelope" "$authority" "$script_dir/VeilKeylessAdapterCheck.java" \
   "$script_dir/VeilPrekeyLifecycleCheck.java" "$script_dir/VeilOutboxCheck.java" "$script_dir/VeilInboxCheck.java" \
-  "$script_dir/VeilContextEncodingCheck.java" \
+  "$script_dir/VeilContextEncodingCheck.java" "$script_dir/VeilEnvelopeCheck.java" \
   > "$stage/java-compile.txt" 2>&1
 printf '%s\n' 'PASS fresh dormant native port and adapter compilation'
 
@@ -65,6 +68,7 @@ case "$mode" in
   inbox) main=com.ynx.social.matrix.VeilInboxCheck ;;
   encoding) main=com.ynx.social.matrix.VeilContextEncodingCheck ;;
   cross-room) main=com.ynx.social.matrix.VeilOutboxCheck; set -- cross-room ;;
+  envelope) main=com.ynx.social.matrix.VeilEnvelopeCheck ;;
   independent)
     : "${VEIL_INDEPENDENT_CLASSES:?Supply the unchanged controller probe classes directory}"
     probe="$VEIL_INDEPENDENT_CLASSES/com/ynx/social/matrix/KeylessAdapterProbe.class"

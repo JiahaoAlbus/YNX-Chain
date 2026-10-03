@@ -65,6 +65,7 @@ internal class VeilNativeStore(
     scope.checkLive()
     db.beginTransaction()
     var ended = false
+    var anchorAttempted = false
     val tx = VeilNativeTransaction(db, binding, recordSealer) { scope.checkLive() }
     try {
       val before = storageCheckpoint(db, binding)
@@ -82,13 +83,21 @@ internal class VeilNativeStore(
       scope.commit {
         // Advancing the external anchor first deliberately fails closed on a
         // subsequent crash/commit failure. Never silently accept an older DB.
-        if (mutated) checkpoints.advance(binding, before, next)
+        tx.checkCommitGuards()
+        if (mutated) {
+          anchorAttempted = true
+          checkpoints.advance(binding, before, next)
+        }
         scope.checkLive()
+        tx.checkCommitGuards()
         db.setTransactionSuccessful()
         db.endTransaction()
         ended = true
       }
       result
+    } catch (error: Throwable) {
+      if (anchorAttempted) throw IllegalStateException("VEIL_NATIVE_RECOVERY_REQUIRED", error)
+      throw error
     } finally {
       tx.finish()
       if (!ended) db.endTransaction()
@@ -107,7 +116,7 @@ internal class VeilNativeStore(
 
 internal enum class VeilRecordKind {
   SOCIAL_IDENTITY, KEM_PREKEY_MODE, PREKEY_LIFECYCLE,
-  SESSION, IDENTITY_PIN, PREKEY, SIGNED_PREKEY, KEM_PREKEY, USED_KEM, OUTBOX, INBOX_RECEIPT, INBOX_MESSAGE,
+  SESSION, IDENTITY_PIN, PREKEY, SIGNED_PREKEY, KEM_PREKEY, USED_KEM, OUTBOX, INBOX_RECEIPT, INBOX_MESSAGE, AUTHENTICATED_REPLAY,
 }
 
 internal class VeilNativeTransaction(
@@ -118,6 +127,14 @@ internal class VeilNativeTransaction(
 ) : VeilRecordTransaction {
   private val thread = Thread.currentThread()
   private var live = true
+  private val commitChecks = mutableListOf<() -> Unit>()
+  fun guardCommit(check: () -> Unit) { checkLive(); commitChecks.add(check) }
+  internal fun checkCommitGuards() {
+    check(Thread.currentThread() === thread && db.inTransaction()) { "VEIL_TRANSACTION_INACTIVE" }
+    authorize()
+    commitChecks.forEach { it() }
+    authorize()
+  }
   internal var mutated = false
     private set
 
