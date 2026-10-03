@@ -23,6 +23,18 @@ try {
  await page.getByRole('heading',{name:'Call result',exact:true}).waitFor();
  assert.ok(await page.getByText('Execution: source_analyzer_literal_return',{exact:false}).count());
  assert.deepEqual(calls.find(row=>row.path.endsWith('/contracts/call')).body,{csrf:'review',address,function:'count'});
+ await page.getByLabel('ABI calldata (optional)',{exact:true}).fill('0x12345678');
+ await page.getByRole('combobox',{name:/Pure\/view function/}).selectOption('');
+ assert.equal(await page.getByLabel('ABI calldata (optional)',{exact:true}).inputValue(),'');
+ assert.equal(await page.getByRole('button',{name:'Call read-only function',exact:true}).isDisabled(),true);
+ await page.getByRole('combobox',{name:/Pure\/view function/}).selectOption('count');
+ await page.getByRole('button',{name:'Call read-only function',exact:true}).click();
+ await page.getByRole('heading',{name:'Call result',exact:true}).waitFor();
+ assert.deepEqual(calls.filter(row=>row.path.endsWith('/contracts/call')).at(-1).body,{csrf:'review',address,function:'count'});
+ await page.getByLabel('ABI calldata (optional)',{exact:true}).fill('0x87654321');
+ await page.getByRole('button',{name:'Inspect contract',exact:true}).click();
+ await page.getByRole('combobox',{name:/Pure\/view function/}).waitFor();
+ assert.equal(await page.getByLabel('ABI calldata (optional)',{exact:true}).inputValue(),'');
  await page.getByLabel('Contract address',{exact:true}).fill('0x'+'b'.repeat(40));
  assert.equal(await page.getByRole('heading',{name:'Call result',exact:true}).count(),0);
  await page.getByRole('button',{name:'Inspect contract',exact:true}).click();

@@ -13,7 +13,7 @@ export function NativeContractTools({ request, run, busy }: {
   const target = calldata || functionName;
   const validCall = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(target) || /^0x(?:[0-9a-f]{2}){4,4096}$/.test(target);
   const inspect = async () => {
-    setContract(undefined); setResult(undefined); setFunction('');
+    setContract(undefined); setResult(undefined); setFunction(''); setCalldata('');
     const value = await request(`chain/contracts/${address}`); setContract(value.artifact);
   };
   const call = async () => {
@@ -25,7 +25,7 @@ export function NativeContractTools({ request, run, busy }: {
     <button disabled={busy || !validAddress} onClick={() => void run(inspect)}>Inspect contract</button>
     {contract && <><p>Artifact: {contract.artifactKind || 'not reported'} · Runtime: {contract.runtimeMode || 'not reported'}</p>
       {contract.limitations?.length ? <details open><summary>Reported contract limits</summary><ul>{contract.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul></details> : null}
-      <label>Pure/view function<select value={functionName} disabled={busy} onChange={event => { setFunction(event.target.value); setResult(undefined); }}><option value="">Choose a function</option>{functions.map(row => <option key={row.signature} value={row.name}>{row.signature}</option>)}</select></label>
+      <label>Pure/view function<select value={functionName} disabled={busy} onChange={event => { setFunction(event.target.value); setCalldata(''); setResult(undefined); }}><option value="">Choose a function</option>{functions.map(row => <option key={row.signature} value={row.name}>{row.signature}</option>)}</select></label>
       <label>ABI calldata (optional)<input value={calldata} disabled={busy} maxLength={8194} spellCheck={false} placeholder="Selector and encoded arguments, 0x…" onChange={event => { setCalldata(event.target.value.trim().toLowerCase()); setResult(undefined); }} /></label>
       <p>Functions with arguments require ABI calldata. Unsupported calls are rejected; no transaction or signature is requested.</p>
       <button disabled={busy || !validCall} onClick={() => void run(call)}>Call read-only function</button>

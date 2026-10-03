@@ -1,0 +1,21 @@
+{
+  "protocol": "ynx-native-host-doctor/v1",
+  "readOnly": true,
+  "platform": "darwin",
+  "architecture": "arm64",
+  "cpuCount": 10,
+  "memoryBytes": 25769803776,
+  "binaries": {},
+  "filesystems": [],
+  "lxd": null,
+  "storagePools": [],
+  "zfsPools": [],
+  "projectStorageAdmission": "NOT_VERIFIED",
+  "shiftedUidCheckpoint": "NOT_VERIFIED",
+  "egressAdmission": "NOT_VERIFIED",
+  "capacityVerified": false,
+  "ready": false,
+  "reasons": [
+    "Native production requires Linux x64; no host commands executed."
+  ]
+}
