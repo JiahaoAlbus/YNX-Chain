@@ -791,37 +791,15 @@ func (s *Service) FollowTarget(actor Session, target, idempotencyKey string, act
 	if s.cfg.Square == nil {
 		return square.Result[square.Follow]{}, fmt.Errorf("%w: Square contract unavailable", ErrConflict)
 	}
-	s.mu.Lock()
-	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
-		s.mu.Unlock()
-		var unavailableResult0 square.Result[square.Follow]
-		return unavailableResult0, writeUnavailable
+	request := square.SetFollowRequest{IdempotencyKey: idempotencyKey, Account: target, Active: active}
+	if err := s.prepareFollowContract(actor, request); err != nil {
+		return square.Result[square.Follow]{}, err
 	}
-
-	blocked := s.blockedLocked(actor.Account, target)
-	s.mu.Unlock()
-	if blocked || target == actor.Account {
-		return square.Result[square.Follow]{}, ErrUnauthorized
-	}
-	result, err := s.cfg.Square.SetFollow(square.Device{ID: actor.DeviceID, Account: actor.Account}, square.SetFollowRequest{IdempotencyKey: idempotencyKey, Account: target, Active: active})
+	result, err := s.dispatchFollowContract(actor, request)
 	if err != nil {
 		return square.Result[square.Follow]{}, socialSquareError(err)
 	}
-	if active && !result.Replayed {
-		s.mu.Lock()
-		if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
-			s.mu.Unlock()
-			var unavailableResult0 square.Result[square.Follow]
-			return unavailableResult0, writeUnavailable
-		}
-
-		before := cloneState(s.state)
-		now := s.cfg.Now().UTC()
-		s.notifyLocked(target, actor.Account, "follow", target, now)
-		s.appendAuditLocked("profile_followed", "profile", target, actor.Account, objectDigest(result.Record), now)
-		err = s.saveOrRollbackLocked(before)
-		s.mu.Unlock()
-	}
+	err = s.completeFollowContract(actor, request)
 	return result, err
 }
 
