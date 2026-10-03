@@ -72,6 +72,8 @@ for (const path of Object.keys(lock.packages).filter(path => path.startsWith('no
   }
   notices.push(entry);
 }
+await cp(join(developer, 'runtime/ynx-workbench/NOTICE'), join(destination, 'component-notices/YNX-VIEW-CONTAINER-NOTICE.txt'), { errorOnExist: true, force: false });
+notices.push({ name: '@ynx/developer-workbench/view-container', license: 'EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0', files: ['YNX-VIEW-CONTAINER-NOTICE.txt'] });
 await writeFile(join(destination, 'component-notices/index.json'), JSON.stringify(notices, null, 2));
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
   nodeVersion: process.version, nodeOptions: ['--no-experimental-global-navigator', '--max-old-space-size=1024'],

@@ -6,9 +6,9 @@ The new runtime uses this same path. A installs its execution driver and protect
 operator adapter; the IDE owner does not create another Host, account system,
 authentication shortcut or raw loopback launch link.
 
-The source checkpoint preceding integration is
-`98a1253e5e34a0cf88337b73d8fd67755f693d6e`, tree
-`6bf2cb73ae307d9a690348e6c8e7a86decb5fc7e`, branch
+The semantic source checkpoint preceding this continuation is
+`c5aaae9499b1770d4f4c41a0ce05b30a0eda8d0f`, tree
+`f6f81f7a928f1dc00cd1256a83ccecc1014d0bbf`, branch
 `codex/ide-quota-command-diagnostics-20261002`, worktree
 `/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain`.
 All implementation and candidate paths belong to `apps/developer`.
@@ -57,6 +57,27 @@ before checkpoint/writer release, including lost-start/transport recovery.
 Connect returns only a private OS-contained listener socket with existing
 `private-loopback-without-connection-token` mode, never a published user port.
 
+For new composed sessions, the registered driver can consume the owned helper:
+
+```js
+const bindings = composedWorkbenchBindings(context, {
+  artifactRoot: protectedArtifactRoot,
+  runtimeArtifact: reviewedPin
+});
+// A verifies/creates these protected, per-project directories under its quota
+// and launches only its registered executable with explicit development env.
+// The helper returns locators; it performs no authentication or execution.
+```
+
+`services/codeoss-service/src/workbench-bindings.mjs` verifies the same context
+and durable artifact, derives `workspace` and sibling `profile` from the
+already admitted persistent `projectDirectory`, and produces five explicit
+non-secret environment values. Reopening preserves the profile directory while
+changing the Tools session locator. Other projects get different profiles.
+Its three tests and the five admission tests pass; these are controlled binding
+tests, not real canonical admission. Legacy recovery retains its old driver and
+profile mapping. An established legacy profile is not silently moved or reset.
+
 ## Execution inputs and browser integration
 
 Execute the admitted platform's Node with the reviewed
@@ -65,8 +86,11 @@ private loopback listener and the admitted plugin root. Provide only explicit
 development environment values:
 
 - `THEIA_APP_PROJECT_PATH`: protected composed artifact root.
+- Use the manifest's reviewed Node version/options, including disabling its
+  browser navigator global for the real Node language extension host.
 - `THEIA_CONFIG_DIR`: persistent project/owner-specific profile, never another
-  user's profile or a shared writable executable/configuration root.
+  user's profile or a shared writable executable/configuration root. New
+  composed profiles use `context.projectDirectory/profile`.
 - `THEIA_DEFAULT_PLUGINS` / `--plugins local-dir:...`: reviewed built-ins plus
   that owner's installed extension storage under admitted isolation.
 - `YNX_CORE_SESSION_ID`: exact opaque durable broker session UUID.
@@ -79,6 +103,23 @@ parent-product review page; canonical session, Wallet review, AI proposal and
 revoke/cancel checks remain there. Private keys, proofs, refresh handles and
 provider keys never enter the workbench, extension, terminal or debugger.
 
+This consumer is already composed in the normal Gateway: `server.mjs` loads
+the protected admission adapter, supplies its driver to the durable broker,
+and passes that broker to `createNativeToolsService`. The extension's
+`ynx.openTools` opens `/native-tools?sessionId=...`; its requests go to
+`/runtime/native-tools/*`. Every request calls `coreService.authorizeConnection`
+and delegates to existing Chain, Wallet readiness or the model router, with
+one-use review and identity rechecks. Do not substitute a fixture identity,
+new model provider, direct RPC credential or extension-authorized request.
+
+The single remaining A integration input is an **actual registered composed
+driver session** reachable through `/projects` and `/sso/core-open`, with the
+two exact `YNX_CORE_*` values propagated to the Node plugin host and its
+canonical parent-product admission available at `/native-tools`. The IDE owner
+can then exercise the real Chain readback, Wallet review and AI review/apply
+consumer. A supplies no keys through the runtime. Merely supplying a locator
+or opening the page is not authentication or completed consumer acceptance.
+
 The candidate builder installs the exact reviewed composed activity helper
 before workbench scripts. The existing proxy supplies a per-document nonce and
 private activity capability. It accepts both the retained legacy helper and
@@ -89,16 +130,33 @@ verification. The initial workbench CSP keeps executable resources on its own
 origin; do not add wildcard framing/connect exceptions to make an extension
 appear to work.
 
+The profile must persist `settings.json`, `backend-settings.json` (including
+`installedPlugins.disabledPlugins`), installed/deployed extension directories,
+workspace storage and extension global storage under the same admitted project
+quota. Keep temporary caches/log retention bounded through the registered
+driver; neither a browser reload nor a two-runtime check proves hard capacity.
+
 ## Verified scope and remaining integration
 
 The current standalone macOS arm64 candidate runs independently of the source
-checkout and passes 12 actual journeys: the nine real editor/language/PTY/debug
-journeys, official Git/Git-base staging through the command palette followed by
+checkout and passes 16 actual journeys, including unopened-import semantic
+completion, definition/rename/format/diagnostic, dirty-close preservation and
+Unicode arbitrary-suffix files, official Git/Git-base staging followed by
 actual PTY Git commit/readback, inherited YNX Klein Light theme colors, and
 inherited YNX Tools activation with unbound-project refusal and preserved files.
+Workbench 0.2.9 repeats all 16 without page errors and adds three complete
+settings/reload, Explorer/search and extension disable/reload/enable journeys.
+The normal-entry frontend has also been built with its server-reported
+kernel/license display; this build alone does not prove public admission.
 This establishes real extension integration, not a Wallet login or
 successful Chain deployment. The relevant normal-entry/artifact/recovery/proxy
 contract suite passes 36 tests. These tests are controlled source tests.
+The new binding helper plus admission suite passes eight tests. A separate
+earlier-candidate check ran two real contained backends with distinct rendered
+preferences and actual PTY refusal of the other running profile/project. This
+is two synthetic sessions; hard quota, exhaustion and canonical multi-user
+authorization remain unverified. See `COMPOSED_WORKBENCH_PRODUCT_PATHS_20261004.json`
+for separate current/prior artifact and runner identities.
 
 The broad broker suite retains one missing-input failure:
 `central-family.test.mjs` requires `YNX_QA_CENTRAL_SOURCE`; no Central checkout
@@ -110,18 +168,22 @@ canonical parent session integration, profile/extension persistence, installed
 platform tests and formal release. Preserve specifically rejected LXD/egress
 operations, prior artifacts, profiles and recovery data.
 
-The tested candidate is
-`apps/developer/.ynx-developer-candidates/ynx-composed-workbench-git-brand-20261004-mac-arm64`:
+The tested current candidate is
+`apps/developer/.ynx-developer-candidates/ynx-composed-profile-lifecycle-20261004-mac-arm64`:
 
 | Pin | Exact value |
 | --- | --- |
 | architecture | `darwin-arm64` |
-| manifest SHA256 | `db911f9674d8f816ad425b91c3aad026fc523c13b595771832df1821c2ea0c54` |
-| tree SHA256 | `7f3855b71ec4173f952a5141e078a12440986f80c700c65d31aa618d1ce85f73` |
-| lock SHA256 | `58cc71339e2083b56ffef3b367528b6bb5717fba551571bc86d94234acd991e7` |
+| manifest SHA256 | `69c3c54b5846056bfb54045f4911e06519391a5e7c4ec03f25b474d52ce617e6` |
+| tree SHA256 | `d5578c166418e7ff698c71a5957356fee3b77875ddf103e48ba0e84fb84df06c` |
+| lock SHA256 | `995b12f2eb03e341e72e3603ef9774553fd2406f188d66d7b9c160c9e7a806ff` |
 
 Actual runtime receipt is
-`/private/tmp/ynx-theia-extension-qa-tb4QfO/actual-host-browser.json` and log
-`/private/tmp/ynx-ide-composed-git-ready-browser.log`. The screenshot and receipt
+`/private/tmp/ynx-theia-extension-qa-nxS7rZ/actual-host-browser.json` and log
+`/private/tmp/ynx-ide-profile-lifecycle-semantic-regression.log`. The same QA has
+the separate `product-lifecycle-browser.json`. The screenshot and receipt
 are frozen separately in the owned candidate evidence directory. The old
 missing-Git-base, UI readiness and notification-selector failures are preserved.
+The earlier 12-path candidate remains intact; its word-only completion assertion
+was not conclusive semantic evidence. Cold first-file language activation is
+asynchronous; the stronger test re-requests real completion within 30 seconds.

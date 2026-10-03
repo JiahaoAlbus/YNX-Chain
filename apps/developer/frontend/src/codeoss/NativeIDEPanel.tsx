@@ -3,7 +3,7 @@ import { Button } from "../components/ui/button";
 import { identityActivity } from './identityActivity';
 import { createRequestEpoch } from './requestEpoch';
 import { editorEntry, workspaceStatus, type NativeSession as Session } from './sessionNavigation';
-type Catalog = { account: string; generation: number; identityKey: string; configured: boolean; kernel: string; nativeProjects: string[]; sessions: Session[]; walletProjectExists: boolean; projectRevision: number; walletProjects: { projectId: string; name: string; revision: number }[] };
+type Catalog = { account: string; generation: number; identityKey: string; configured: boolean; kernel: string; license?: string; nativeProjects: string[]; sessions: Session[]; walletProjectExists: boolean; projectRevision: number; walletProjects: { projectId: string; name: string; revision: number }[] };
 const unauthorized = (error: unknown) => typeof error === "object" && error !== null && "status" in error && error.status === 401;
 async function privateRequest(path: string, options?: RequestInit, identityKey?: string) {
   const headers = new Headers(options?.headers); headers.set("content-type", "application/json");
@@ -177,6 +177,6 @@ function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admi
       return <div className="native-session" key={session.sessionId}><p role="status">{workspaceStatus(session)}</p>{entry && <a className="native-launch-link" href={entry} target="_blank" rel="noopener noreferrer">Return to editor ↗</a>}{entry && <a className="native-launch-link" href={`/native-tools?sessionId=${encodeURIComponent(session.sessionId)}`} target="_blank" rel="noopener noreferrer">YNX Tools ↗</a>}{verified.current && session.status === "running" && !entry && !session.failure && <p role="alert">The editor connection could not be verified. Refresh your Wallet projects.</p>}<Button disabled={disabled} onClick={() => void stop(session)}>{busy ? "Stopping…" : "Stop workspace"}</Button>{session.failure && <p role="alert">Your files are preserved. Retry stopping the workspace to finish recovery.</p>}</div>;
     })}
     {error && <p role="alert">{error}</p>}
-    <details><summary>About and connection details</summary><p>OpenVSCode Server {catalog?.kernel || "1.109.5"}, MIT. OpenVSX compatibility depends on its license, platform and runtime.</p><p>Wallet signing uses a separate review. AI receives the context you approve.</p>{!catalog?.configured && <p>The project runtime has not been configured for this deployment.</p>}{sessions.map(row => <p key={row.sessionId}>{row.status}{row.failure ? ` · ${row.failure}` : ""}</p>)}</details>
+    <details><summary>About and connection details</summary><p>{catalog ? (/^\d+\.\d+\.\d+$/.test(catalog.kernel) ? `OpenVSCode Server ${catalog.kernel}` : catalog.kernel) : "YNX Developer"}{catalog?.license ? ` · ${catalog.license}` : ""}. Extension compatibility depends on its license, platform and runtime.</p><p>Wallet signing uses a separate review. AI receives the context you approve.</p>{!catalog?.configured && <p>The project runtime has not been configured for this deployment.</p>}{sessions.map(row => <p key={row.sessionId}>{row.status}{row.failure ? ` · ${row.failure}` : ""}</p>)}</details>
   </section>;
 }

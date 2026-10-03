@@ -16,6 +16,11 @@ Official framework documentation:
 [VS Code extensions](https://theia-ide.org/docs/authoring_vscode_extensions/).
 Extension API coverage and platform binaries must be checked per extension.
 
+Workbench 0.2.9 preserves the framework's view restoration while cancelling
+deferred part sizing after a hidden container is disposed. This fixes the
+actual extension-disable/reload error. Its adapted Theia code retains the
+upstream notice in `ynx-workbench/NOTICE`, copied into packaged component notices.
+
 The Node plugin host disables Node's browser `navigator` global and skips the
 framework's compatibility getter through `PluginHostEnvironmentVariable`.
 The getter returned `undefined` while still satisfying `'navigator' in globalThis`,
@@ -104,6 +109,25 @@ activation with unbound-session refusal. See
 artifact pins and evidence. The earlier 12-path receipt is retained; its first
 completion assertion alone did not exclude word fallback. The unchanged
 normal-entry source contract has the earlier 36 passing cases.
+
+The newer `ynx-composed-profile-lifecycle-20261004-mac-arm64` candidate passes
+those 16 journeys again and three complete lifecycle journeys:
+
+```sh
+YNX_QA_PLAYWRIGHT_MODULE=/absolute/playwright/index.mjs node scripts/product-lifecycle.browser.mjs /absolute/qa/runtime.json
+```
+
+This exercises actual profile JSON editing, language-specific settings and
+reload; Explorer folder/file creation and multi-file search; and YNX Tools
+disable/reload/command removal followed by enable/reload/reactivation. It does
+not contact a mocked registry or fabricate a Wallet session. A separate
+`parallel-profile.browser.mjs <alpha/runtime.json> <beta/runtime.json>` check
+keeps two real contained runtimes active, verifies different rendered profile
+preferences and denies cross-profile reads/cross-project writes from the PTY.
+Its retained receipt belongs to the preceding candidate and proves two synthetic
+sessions, not canonical user authorization or production capacity.
+`docs/integration/COMPOSED_WORKBENCH_PRODUCT_PATHS_20261004.json` records exact
+current and prior evidence, including the normal-entry frontend build identity.
 See `docs/integration/COMPOSED_WORKBENCH_ADMISSION_20261004.md` for the exact
 normal-entry consumer contract and remaining A-owned integration.
 
@@ -116,6 +140,14 @@ canonical owner/project/session checks. The new runtime needs its own immutable
 artifact/tree identity and an admitted execution origin behind that contract.
 Keep existing projects, recovery journals, settings and packaged candidates.
 This macOS QA sandbox is not the public multi-owner admission provider.
+
+`composedWorkbenchBindings` in `services/codeoss-service/src/workbench-bindings.mjs`
+gives the registered driver exact non-secret project/workspace/profile and Tools
+session bindings. The persistent profile stays beside the workspace on reopen;
+the opaque session locator changes. The helper checks context/artifact identity
+but neither authorizes a request nor creates a Host. Binding/admission tests
+pass eight cases. Normal `/projects` About text now consumes actual catalog
+kernel/license rather than hardcoding the legacy runtime.
 
 Next integration work uses the existing `native/ynx-tools` extension and
 canonical product service consumer for Chain, Wallet and reviewed AI changes.

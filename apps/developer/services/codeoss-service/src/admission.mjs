@@ -67,7 +67,7 @@ export function createDeveloperCoreAdmission({ driver, executionDomain, architec
     },
   };
   function checkContext(context) {
-    validateContext(context);
+    validateRuntimeContext(context);
     if ((artifact && !sameRuntimeArtifact(context.image, artifact)) || (!artifact && context.image?.kind === 'ynx-theia'))
       throw fault('This session belongs to another runtime artifact. Preserve its recovery driver.', 'core_artifact_mismatch', 503);
   }
@@ -78,7 +78,7 @@ export function createDeveloperCoreAdmission({ driver, executionDomain, architec
 }
 
 function canonicalPath(path) { return typeof path === "string" && isAbsolute(path) && resolve(path) === path && !path.includes("\0"); }
-function validateContext(context) {
+export function validateRuntimeContext(context) {
   if (!context || !UUID.test(context.sessionId || "") || !UUID.test(context.runtimeId || "") ||
       !/^[a-f0-9]{64}$/.test(context.owner || "") || !PROJECT.test(context.projectId || "") ||
       !canonicalPath(context.directory) || !canonicalPath(context.projectDirectory) ||

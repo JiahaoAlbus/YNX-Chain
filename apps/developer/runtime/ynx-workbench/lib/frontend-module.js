@@ -2,9 +2,17 @@ const { ContainerModule } = require('@theia/core/shared/inversify');
 const { FrontendApplicationContribution, KeybindingContribution } = require('@theia/core/lib/browser');
 const { CommonCommands } = require('@theia/core/lib/browser/common-commands');
 const { Widget } = require('@theia/core/lib/browser/widgets');
+const { ViewContainer, ViewContainerIdentifier } = require('@theia/core/lib/browser/view-container');
+const { YnxViewContainer } = require('./view-container');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
-module.exports.default = new ContainerModule(bind => {
+module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  rebind(ViewContainer.Factory).toFactory(context => options => {
+    const child = context.container.createChild();
+    child.bind(ViewContainerIdentifier).toConstantValue(options);
+    child.bind(YnxViewContainer).toSelf().inSingletonScope();
+    return child.get(YnxViewContainer);
+  });
   bind(KeybindingContribution).toConstantValue({
     registerKeybindings(registry) {
       // Close the active main tab after a modal cancellation as well. Requiring
