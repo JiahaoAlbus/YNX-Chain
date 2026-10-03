@@ -8,6 +8,26 @@ const start=app.indexOf('function validateFinanceOverview(')>=0?app.indexOf('fun
 const views=app.slice(start,app.indexOf('const formSaves='));
 const formatters=app.slice(app.indexOf('const fmt='),app.indexOf('\n\nconst wait='));
 const overview=()=>({portfolio:{account:'owned-render-fixture',balanceYnxt:0,stakedYnxt:0,asOf:'2026-10-04T00:00:00Z',activity:[],payReceipts:[],explorerStatus:{available:true},payStatus:{available:true}},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true}},alerts:[],budgetProgress:[],support:{}});
+test('real locale event retains source-bound Explorer links and full references in both activity views',async()=>{
+  const f=await fixture();try{
+    const value=overview(),hash='0x'+'b'.repeat(64);
+    value.portfolio.activity=[{id:hash,type:'transfer',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:value.portfolio.asOf,source:'ynx-explorerd:indexed-transaction'}];
+    value.portfolio.explorerStatus={available:true,source:'https://explorer.example.invalid'};
+    await f.page.evaluate(value=>{state.connected=true;state.overview=value;overviewQA.render(value)},value);
+    const listener=app.split('\n').find(line=>line.startsWith("document.addEventListener('finance:localechange'"));
+    await f.page.addScriptTag({content:`function renderBrokerConfigurationStatus(){}function renderBrokerDiagnostics(){}function renderWalletIdentity(){}function renderBrokerSnapshot(){}function renderSourceStatus(){}function renderBrokerQuote(){}function renderBrokerWorkspace(){}const brokerWorkspaceDisplay=null,brokerApprovalDisplay=null,brokerApprovalMessageKey=null,brokerAssetResults=null;${listener}`});
+    await f.page.addScriptTag({content:await readFile(new URL('../web/finance-locale.js',import.meta.url),'utf8')});
+    for(const locale of await f.page.evaluate(()=>YNXFinanceLocale.supported)){
+      await f.page.locator('#finance-language').selectOption(locale);
+      for(const view of ['#activity-body','#recent-activity']){
+        assert.equal(await f.page.locator(view+' a').getAttribute('href'),'https://explorer.example.invalid/tx/'+hash);
+        assert.equal(await f.page.locator(view+' code').textContent(),hash);
+      }
+      assert.deepEqual(await f.page.evaluate(()=>state.overview),value);
+    }
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('indexed Finance activity exposes exact escaped reference and only contract-bound Explorer links',async()=>{
   const f=await fixture();try{
     const value=overview(),hash='0x'+'a'.repeat(64);
