@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "ynx.card.owned-regression-evidence.v1",
+  "date": "2026-10-03",
+  "owner": "card",
+  "sourceCommit": "c2bb9a9a437481a58573efd840f3081da4d4a11a",
+  "sourceTree": "578264870ed699a1122e3b03a88f1ac0e949a82c",
+  "sourceBranch": "codex/card-test-service-recovery-20261002",
+  "copiedFrom": "/private/tmp/ynx-card-records-20261003",
+  "testRerun": false,
+  "files": [
+    {
+      "path": "typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "copy-tests.log",
+      "bytes": 516,
+      "sha256": "03a7fa1fba909aeb86279baf56538d93724761989ce59e01a5957ec3d47b777a"
+    },
+    {
+      "path": "ui-tests.log",
+      "bytes": 3495,
+      "sha256": "2c1ff536be1247a97bafd244568533349a376c173c20b6940599ac73f527276b"
+    }
+  ],
+  "gates": {
+    "typecheck": "PASS",
+    "localeStatus": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "providerUI": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "historicalTemporaryFailLogs": {
+    "available": false,
+    "reconstructed": false,
+    "diagnosticsOnly": "Prior chat history; no replacement raw files"
+  },
+  "boundaries": {
+    "sourceCandidateReadyForIntegration": true,
+    "formalBuild": false,
+    "newPublicRuntimeVerified": false,
+    "installedAccessibilityVerified": false,
+    "realApprovalVerified": false,
+    "backendApplicationAcceptanceVerified": false,
+    "activeCardVerified": false,
+    "topupVerified": false,
+    "fullProductComplete": false
+  },
+  "nextAuthority": "A-compatible final runtime and release receipt; then normal-entry owner verification"
+}

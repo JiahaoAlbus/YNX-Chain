@@ -1,0 +1,12 @@
+✔ TEST actions and cancellation review have distinct complete strings in all twelve locales (0.686917ms)
+✔ every static application label and recovery explanation is covered in twelve locales (0.980292ms)
+✔ known transaction labels localize without promoting unknown transactions (0.138792ms)
+✔ provider states are TEST-labelled and unknown states never become verified or active (0.077875ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 129.157541
