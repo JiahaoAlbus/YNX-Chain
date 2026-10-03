@@ -9,6 +9,7 @@ import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durabi
 import { CANONICAL_RPC_URL, LEGACY_RPC_URL } from "./rpc.mjs";
 import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
+import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -38,14 +39,23 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
-  const signed = data.schemaVersion === 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  const signed = data.schemaVersion >= 3;
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(signed){
     if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
     try{data.signedPayments.forEach(assertDesktopSignedPayStorage)}catch{throw invalid()}
     if(new Set(data.signedPayments.map(record=>record.account)).size!==data.signedPayments.length||new Set(data.signedPayments.map(record=>record.transfer.hash)).size!==data.signedPayments.length||data.signedPayments.some(record=>data.records.some(entry=>entry.account===evmAddressFromYNX(record.account))))throw invalid();
+  }
+  if(data.schemaVersion===4){
+    if(!Array.isArray(data.payProgress)||!Array.isArray(data.payHistory)||data.payProgress.length!==data.signedPayments.length||data.payHistory.length>1024)throw invalid();
+    try{[...data.payProgress,...data.payHistory].forEach(assertDesktopPayProgress)}catch{throw invalid()}
+    if(new Set(data.payProgress.map(entry=>entry.record.transfer.hash)).size!==data.payProgress.length||
+      data.payProgress.some(entry=>!data.signedPayments.some(record=>canonicalJSON(record)===canonicalJSON(entry.record)))||
+      data.payHistory.some(entry=>!entry.evidence||!entry.settlement)||
+      new Set([...data.payProgress,...data.payHistory].map(entry=>entry.record.transfer.hash)).size!==data.payProgress.length+data.payHistory.length||
+      new Set([...data.payProgress,...data.payHistory].map(entry=>canonicalJSON([entry.record.account,entry.record.invoice.id]))).size!==data.payProgress.length+data.payHistory.length)throw invalid();
   }
   data.records.forEach(record => validateIntent(record, legacy));
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
@@ -66,6 +76,10 @@ function parseState(data) {
   return data;
 }
 const empty = () => ({ schemaVersion: 2, records: [], rejections: [], resolutions: [] });
+const payEntry=(record,broadcastAttempted=true)=>({version:1,record,broadcastAttempted,evidence:null,settlementAttempted:false,settlement:null,consensusFinality:false});
+// Earlier schemas cannot prove that an outward effect did NOT start. Migration
+// conservatively fences a second POST, and never happens on a read alone.
+const paySuccessor=state=>state.schemaVersion===4?state:{...state,schemaVersion:4,signedPayments:state.signedPayments??[],payProgress:(state.signedPayments??[]).map(record=>payEntry(record)),payHistory:[]};
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
@@ -80,17 +94,80 @@ export class FileTransactionIntentStore {
     guard();const record=((await this.#read()).signedPayments??[]).find(value=>value.account===account);guard();
     return record?parseDesktopSignedPayRecord(canonicalJSON(record),account,policy,guard):null;
   }
-  async retainSignedPayment(record,policy,guard){
+  async retainSignedPayment(record,policy,guard,{forBroadcast=false}={}){
     const saved=parseDesktopSignedPayRecord(canonicalJSON(record),record.account,policy,guard);
     return this.#mutate(async()=>{
       guard();const state=await this.#read();guard();
       const prior=(state.signedPayments??[]).find(value=>value.account===saved.account);
       if(prior){if(canonicalJSON(prior)!==canonicalJSON(saved))throw invalid();return parseDesktopSignedPayRecord(canonicalJSON(prior),saved.account,policy,guard)}
       if(state.records.some(value=>value.account===evmAddressFromYNX(saved.account)))throw capabilityError("TRANSACTION_RESOLUTION_REQUIRED","The existing transaction must be resolved before signed Pay.");
-      const next={...state,schemaVersion:3,signedPayments:[...(state.signedPayments??[]),saved]};
+      if((state.payHistory??[]).some(entry=>entry.record.account===saved.account&&entry.record.invoice.id===saved.invoice.id))throw capabilityError("PAY_INVOICE_ALREADY_PAID","This invoice already has a retained paid receipt.");
+      const next=forBroadcast||state.schemaVersion===4?paySuccessor(state):{...state,schemaVersion:3,signedPayments:state.signedPayments??[]};
+      next.signedPayments=[...next.signedPayments,saved];
+      if(next.schemaVersion===4)next.payProgress=[...next.payProgress,payEntry(saved,!forBroadcast)];
       await this.#write(next);guard();
       const readback=await this.signedPayment(saved.account,policy,guard);guard();
       if(!readback||canonicalJSON(readback)!==canonicalJSON(saved))throw invalid();return readback;
+    });
+  }
+  async payHistory(account,policy,guard){
+    guard();const state=await this.#read();guard();
+    return (state.payHistory??[]).filter(entry=>entry.record.account===account).map(entry=>this.#verifiedPayEntry(entry,account,policy,guard));
+  }
+  async signedPayProgress(account,policy,guard){
+    guard();const state=await this.#read();guard();const record=(state.signedPayments??[]).find(value=>value.account===account);
+    if(!record)return null;
+    return this.#verifiedPayEntry((state.payProgress??[]).find(entry=>entry.record.account===account)??payEntry(record),account,policy,guard);
+  }
+  #verifiedPayEntry(entry,account,policy,guard){
+    const record=parseDesktopSignedPayRecord(canonicalJSON(entry.record),account,policy,guard);assertDesktopPayProgress(entry);guard();return structuredClone({...entry,record});
+  }
+  async #changePay(account,hash,policy,guard,change){
+    return this.#mutate(async()=>{
+      guard();const state=paySuccessor(await this.#read());guard();const entry=state.payProgress.find(value=>value.record.account===account&&value.record.transfer.hash===hash);
+      if(!entry)throw invalid();this.#verifiedPayEntry(entry,account,policy,guard);change(entry,state);guard();
+      await this.#write(state);guard();return structuredClone(entry);
+    });
+  }
+  async claimSignedPayBroadcast(account,hash,policy,guard){
+    return this.#changePay(account,hash,policy,guard,entry=>{
+      if(entry.broadcastAttempted)throw capabilityError("PAY_ORIGINAL_CHECK_ONLY","Check the original transaction; no repeated payment broadcast is allowed.");
+      entry.broadcastAttempted=true;
+    });
+  }
+  async saveSignedPayEvidence(account,hash,evidence,policy,guard){
+    return this.#changePay(account,hash,policy,guard,entry=>{
+      assertDesktopPayEvidence(entry.record,evidence);
+      if(entry.evidence&&canonicalJSON(entry.evidence)!==canonicalJSON(evidence))throw invalid();
+      entry.evidence=structuredClone(evidence);
+    });
+  }
+  async claimSignedPaySettlement(account,hash,policy,guard){
+    return this.#changePay(account,hash,policy,guard,entry=>{
+      if(!entry.evidence||entry.settlementAttempted||entry.settlement)throw capabilityError("PAY_ORIGINAL_RECEIPT_CHECK_ONLY","Read the original settlement receipt; do not submit another result.");
+      entry.settlementAttempted=true;
+    });
+  }
+  async saveSignedPaySettlement(account,hash,settlement,policy,guard){
+    return this.#changePay(account,hash,policy,guard,entry=>{
+      const verified=parseDesktopPaySettlement(settlement,entry.record,entry.evidence);
+      if(entry.settlement&&canonicalJSON(entry.settlement)!==canonicalJSON(verified))throw invalid();
+      entry.settlement=verified;
+    });
+  }
+  async archiveSignedPay(account,hash,policy,guard){
+    return this.#mutate(async()=>{
+      guard();const state=paySuccessor(await this.#read());guard();const prior=state.payHistory.find(entry=>entry.record.account===account&&entry.record.transfer.hash===hash);
+      if(prior)return this.#verifiedPayEntry(prior,account,policy,guard);
+      const entry=state.payProgress.find(entry=>entry.record.account===account&&entry.record.transfer.hash===hash);
+      if(!entry||!entry.settlement||!entry.evidence)throw invalid();this.#verifiedPayEntry(entry,account,policy,guard);
+      // One existing private-file replacement atomically links history, the paid
+      // invoice marker, and release of the active original. No second vault or
+      // transient deletion window can lose a verified receipt.
+      state.payHistory.push(entry);state.payProgress=state.payProgress.filter(value=>value!==entry);
+      state.signedPayments=state.signedPayments.filter(record=>record.transfer.hash!==hash);guard();await this.#write(state);guard();
+      const readback=(await this.payHistory(account,policy,guard)).find(value=>value.record.transfer.hash===hash);
+      if(!readback||canonicalJSON(readback)!==canonicalJSON(entry))throw invalid();return readback;
     });
   }
   async #read(filePath = this.filePath) {
