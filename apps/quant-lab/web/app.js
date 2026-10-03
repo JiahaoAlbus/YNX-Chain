@@ -530,8 +530,13 @@ function render() {
   $("#experiment-rows").innerHTML = experiments.length
     ? experiments
         .map(
-          ({experiment: e, temporary}) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td>${["userNetPnl", "userRealizedPnl", "userUnrealizedPnl", "tradingFee", "slippage"].map(key => `<td>${researchAmount(e.attribution, key)}</td>`).join("")}</tr>`,
+          ({experiment: e, temporary}) => {
+            // Saved readback must meet the same metric boundary as a new run.
+            // Keep the bad row visible, but never display invented completion
+            // or interpolate untrusted metric strings as HTML.
+            if (!verifiedResearchResult(e)) return `<tr><td colspan="16">${safe(t("researchInvalid"))}</td></tr>`;
+            return `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${(e.metrics.SharpeMilli / 1000).toFixed(3)}</td><td>${e.metrics.VolatilityBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${Number.isSafeInteger(e.sensitivitySpreadBPS) && e.sensitivitySpreadBPS >= 0 ? e.sensitivitySpreadBPS + " bps" : "—"}</td><td>${e.metrics.DataGaps}</td>${["userNetPnl", "userRealizedPnl", "userUnrealizedPnl", "tradingFee", "slippage"].map(key => `<td>${researchAmount(e.attribution, key)}</td>`).join("")}</tr>`;
+          },
         )
         .join("")
     : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
@@ -612,8 +617,11 @@ const researchInvalidCopy = {
   id:"Hasil riset belum terkonfirmasi. Tidak ada hasil selesai baru yang dicatat dalam tampilan ini."
 };
 for (const [language, researchInvalid] of Object.entries(researchInvalidCopy)) Object.assign(businessCopy[language], {researchInvalid});
+function verifiedResearchResult(result) {
+  return typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
+}
 function renderResult(result, savedWorkspace) {
-  if (typeof result?.id !== "string" || !result.id.trim() || typeof result?.strategy?.Name !== "string" || !result.strategy.Name.trim() || !["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) || ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].some(key => result.metrics[key] < 0)) throw Error(t("researchInvalid"));
+  if (!verifiedResearchResult(result)) throw Error(t("researchInvalid"));
   const metrics = result.metrics;
   latestResearchMode = savedWorkspace;
   latestResearchResult = result;

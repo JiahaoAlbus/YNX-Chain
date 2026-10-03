@@ -242,6 +242,25 @@ test('research amounts preserve measured zero, currency and unavailable attribut
   }
 });
 
+test('saved research history rejects malformed metrics without dropping valid rows or injecting HTML',async()=>{
+  for(const invalid of [null,{}, {...researchFixture('missing'),metrics:{}},{...researchFixture('html'),metrics:{...researchFixture('base').metrics,ReturnBPS:'<img src=x onerror=alert(1)>'}},{...researchFixture('unsafe'),metrics:{...researchFixture('base').metrics,Trades:Number.MAX_SAFE_INTEGER+1}}]){
+    const app=harness({snapshot:{experiments:{invalid,valid:researchFixture('verified','Verified history')}}});await settle();
+    let rows=app.ids.get('experiment-rows').innerHTML;
+    assert.match(rows,/Research result is unconfirmed/);assert.match(rows,/Verified history/);assert.match(rows,/120 bps/);assert.doesNotMatch(rows,/<img/);
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});rows=app.ids.get('experiment-rows').innerHTML;
+      assert.ok(rows.includes(vm.runInContext(`businessCopy[${JSON.stringify(language)}].researchInvalid`,app.context)));assert.match(rows,/Verified history/);
+    }
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  }
+});
+test('unverified sensitivity values cannot become HTML or a fabricated numeric spread in saved history',async()=>{
+  for(const sensitivitySpreadBPS of [undefined,-1,'<img src=x>',Number.MAX_SAFE_INTEGER+1]){
+    const app=harness({snapshot:{experiments:{one:{...researchFixture('safe-history'),sensitivitySpreadBPS}}}});await settle();
+    const cells=[...app.ids.get('experiment-rows').innerHTML.matchAll(/<td>([\s\S]*?)<\/td>/g)].map(match=>match[1]);
+    assert.equal(cells[9],'—');assert.doesNotMatch(app.ids.get('experiment-rows').innerHTML,/<img/);assert.match(app.ids.get('experiment-rows').innerHTML,/safe-history/);
+  }
+});
 test('run details stay bound to the returned experiment through input edits and locale changes', async () => {
   const result={...researchFixture('reported-run'),strategy:{Name:'Reported run',Source:'verified-index/<img src=x>',DataHash:'a'.repeat(64),StrategyHash:'b'.repeat(64)},assumptions:{FeeBPS:34,SlippageBPS:17,LatencyBars:2,ParticipationBPS:2500,TrainEnd:30,WalkForwardWindows:4,Seed:0},metricDefinitions:{sharpeMilli:'returned Sharpe definition <script>alert(1)</script>',volatilityBPS:'sample deviation; not annualized'}};
   const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:result});await settle();

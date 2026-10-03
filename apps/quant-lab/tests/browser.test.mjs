@@ -2,6 +2,26 @@ import test from 'node:test';import assert from'node:assert/strict';import{spawn
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
+test('actual Chrome recovers saved research history after malformed readback without script injection or new requests',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let malformed=true,posts=0;
+    const good={id:'verified-history',createdAt:'2026-10-03T00:00:00Z',strategy:{Name:'Verified history'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},sensitivitySpreadBPS:2};
+    await context.route('**/api/v1/snapshot',async route=>{
+      const response=await route.fetch(),body=await response.json();
+      body.experiments=malformed?{good,bad:{...good,id:'bad-history',metrics:{...good.metrics,ReturnBPS:'<img src=x onerror="window.injected=true">'}},missing:null}:{good};
+      await route.fulfill({response,json:body});
+    });
+    const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts++});
+    await page.goto(base,{waitUntil:'networkidle'});
+    assert.match(await page.locator('#experiment-rows').textContent(),/Verified history/);
+    assert.equal(await page.locator('#experiment-rows td[colspan="16"]').count(),2);assert.equal(await page.locator('#experiment-rows img').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);
+    await page.selectOption('#locale','ar');assert.doesNotMatch(await page.locator('#experiment-rows').textContent(),/Research result is unconfirmed/);
+    malformed=false;await page.locator('#refresh').click();await page.waitForFunction(()=>document.querySelector('#experiment-rows').querySelectorAll('tr').length===1);
+    await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('#experiment-rows').textContent(),/Verified history/);
+    assert.equal(await context.pages().length,1);assert.equal(posts,0);assert.deepEqual(errors,[]);
+  }finally{await context.close()}
+});
 test('actual Chrome reads controlled persisted Paper records without creating orders or horizontal page overflow',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

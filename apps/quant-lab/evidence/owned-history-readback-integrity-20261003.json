@@ -1,0 +1,39 @@
+{
+  "classification": "OWNER_SOURCE_AND_LOCAL_QA_NOT_OFFICIAL_RELEASE",
+  "predecessor": "d12837907e2f79a2b5e0ee5261ddf58a7d5a39dc",
+  "scope": "Existing Quant research history rendering; no engine, execution, Wallet SDK, Auth or release graph change",
+  "defect": "Saved snapshot history bypassed the complete metric checks applied to new research results, could crash on a missing strategy/metrics and interpolated unverified metric strings into HTML",
+  "behavior": [
+    "Use one identical complete-result metric validator for new results and saved history",
+    "Retain a visible localized unconfirmed row for malformed saved readback",
+    "Keep other valid history visible; allow explicit refresh and second launch to recover",
+    "Do not render sensitivity as a numeric spread unless it is a nonnegative safe integer",
+    "Do not fabricate a run, metric, trade, account, signature or public acceptance"
+  ],
+  "objects": [
+    {"path":"apps/quant-lab/web/app.js","blob":"333a4ac4a0905b2cfa5c3a63bc83d3cb21376812","bytes":107068,"sha256":"3ef7f88e5035cfa400777cb8d3ca0226b4a09f8f14ea0fc488c122d7c995f57e"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"913bef6bac76446dc3bca755f91966550d33e83e","bytes":51230,"sha256":"688fa031bf85cf114d12871eae54f6343dd051bc0284090c931385942b5dd59d"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","blob":"af26c6f9409b678c1b077ba890c2eb9abf0ef28e","bytes":36782,"sha256":"63e7adf0cabd5ce4b4bd87858d2a53e9e33ce7c2bad521b7d214e04dc80fed47"}
+  ],
+  "tests": [
+    {"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs apps/quant-lab/tests/tenant-persistence.test.mjs","pass":53,"fail":0,"skip":0,"durationMs":46193.025667},
+    {"command":"go test -race ./internal/quantlab -count=1","result":"PASS","seconds":2.710},
+    {"command":"git diff --check; node --check apps/quant-lab/web/app.js; node --check apps/quant-lab/tests/business-flow.test.mjs; node --check apps/quant-lab/tests/browser.test.mjs","result":"PASS"}
+  ],
+  "directLocalEvidence": "Actual Chrome plus local Go server and controlled malformed snapshot fixtures: valid row survives, invalid rows localized, injected img absent, no pageerror, explicit refresh and reload recover, tab count=1 and POST count=0. Controlled Paper persistence fixtures separately exercise 2 tenants/2 processes/concurrent replay/restart. None is real Wallet authorization or official domain proof.",
+  "releaseDependency": "A must integrate the owner source into the final compatible shared runtime and versioned asset graph and return source-bound official URL/version for owner verification",
+  "rollback": "No production mutation occurred; A may omit this owner delta before release or use its signed previous immutable release after publication. Never reset user work.",
+  "truth": {
+    "sourcePassed": true,
+    "localChromePassed": true,
+    "localConcurrentPersistencePassed": true,
+    "publicCurrentSourceVerified": false,
+    "installedVerified": false,
+    "realWalletApproval": false,
+    "productSessionLifecycle": false,
+    "signatures": false,
+    "realTransactions": false,
+    "computerControl": false,
+    "productComplete": false
+  }
+}
