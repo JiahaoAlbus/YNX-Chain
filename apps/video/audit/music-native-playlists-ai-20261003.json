@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-03",
+  "sourceCommit": "53b1373aa9238b1691dede4b8ab00ef5b43119fa",
+  "sourceTree": "60c9d9c65199e1d219ae479fd6dde80c75be66c8",
+  "previousCheckpoint": "ba16e4c3ef86506c7fcd4cf9efca05a76871d17e",
+  "changes": [
+    "Android and Apple original Library now list persisted playlists, fetch original playlist records, edit name/description/ordered visible tracks, PUT to the original store and GET readback before closing",
+    "Failed playlist edits retain drafts; account replacement invalidates operations and dismisses editor; Android create no longer writes into a missing local playlists array",
+    "Native AI request outputLanguage/explanationRequired accepted and audited in original Music store, propagated to existing AI Gateway prompt; GET proposal readback returns final actual output before review",
+    "Apple AI reviews validate ai_ IDs rather than track IDs; profile privacy updates retain original biography",
+    "12 locales include all 67 strings, system AI language resolved on client"
+  ],
+  "validation": {
+    "goRace": "PASS original Music full suite before final equivalent compiled-regex cleanup",
+    "targetedRace": "PASS AI output/create/stream/readback/review and playlist routes after final Go change",
+    "android": "PASS SDK35 resource compile/link and all shipped Java source compile with JDK17; isolated generated manifest includes Gradle namespace; no APK/install claim",
+    "apple": "PASS shipped API/model/store host compile and execution, captured authority fences, bio/AI ID/playlist transport assertions; shipped SwiftUI views parse only; project syntax PASS",
+    "i18n": "PASS 12 locales x 67 keys",
+    "diffCheck": "PASS"
+  },
+  "evidence": [
+    {
+      "path": "/tmp/ynx-music-native-business-race-20261003.log",
+      "sha256": "d8d26f718f415e6d41dfebc72770fb534e91f2389db3f9cdf091910c599b2d31"
+    },
+    {
+      "path": "/tmp/ynx-music-native-business-targeted-20261003.log",
+      "sha256": "1818fc9aa5d4edd853813a0cf1ac5f2893dfa509fb9c9015ca076c6b610f949b"
+    },
+    {
+      "path": "/tmp/ynx-music-apple-playlists-20261003.log",
+      "sha256": "bc6f49f5d84b8edb162bd02bef9b3963f2a40e5bc0c423a70e77ef0782fdef75"
+    },
+    {
+      "path": "/tmp/ynx-music-android-playlists-20261003.log",
+      "sha256": "a21aa0261071491ee70871582d545e3e82c66656d758813c44a0393ae6896dcd"
+    }
+  ],
+  "sources": [
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java",
+      "sha256": "2dd48b492c7197beecb0539c1ef91937b662a774592c2a426692cc01bfca8fb2"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MainActivity.java",
+      "sha256": "a6b2fa648d45face76dc483de0d4f4d9746986dbc004029a29dc4a986d7f5efe"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "sha256": "28691d5ba147ede07708bebdfb86564064c087149df6f919425e18eb48bd8270"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ar/strings.xml",
+      "sha256": "abc1c69ee0e5827401f592fa77a87e3403f23bf03ddb5220fc4fb6788c9ea060"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-de/strings.xml",
+      "sha256": "86e4da6de8706af915f3b3854b62689f443db89f06321f320428fd4c5d6c3a30"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-es/strings.xml",
+      "sha256": "4a63fd81e347840edacf55555c5882a9e54ea11878dd099202282d9f5a81ca06"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-fr/strings.xml",
+      "sha256": "56ded84bd43b1a4bef686151108239db68002127c841d590adecc6f5dfc3a6a2"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-in/strings.xml",
+      "sha256": "98120fdd44080781b7248e860b65847c3152b73c03586e85b27722a09679a79e"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ja/strings.xml",
+      "sha256": "c66e866e828457592317712aa558df9f5f97e744499b81ebfc21ef8dbe0fdd0c"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ko/strings.xml",
+      "sha256": "45d5734e19009d5da6b8685c1f17f6450f23df38139d9498a653c6dbb679a7d3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-pt/strings.xml",
+      "sha256": "bb4e2d2073646ad01411572045e95ca5742b3a2ed0a8ad1105fee77f069c3b33"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-ru/strings.xml",
+      "sha256": "2dad7fe3735510d43bb3d851b4d8e77e775fd66f310881dd4ee36f9636a22b31"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rCN/strings.xml",
+      "sha256": "e58e208afc92f7ba592b154db40a8a53c9a49d24fda9143e883885e3049dcbe6"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values-zh-rTW/strings.xml",
+      "sha256": "edf4e25d73cf5ac3beced5945714a35550a40cbde2761855aec394de1327c5f3"
+    },
+    {
+      "path": "apps/music/android/app/src/main/res/values/strings.xml",
+      "sha256": "f52509881a9b6dae6ed4e043ff7cd939b55811319bc4f92696f9bb952a83b3cd"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAPI.swift",
+      "sha256": "544fa68399976950c572c5ca3b36dbdba6fdc1dc2922e22b15ca94008d81ae63"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAccountState.swift",
+      "sha256": "f8ea9b33fb342532040dface3abf43ab26b4eba05a480e12fab4e7ab3f80f6e9"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+      "sha256": "2de3c341e694caa66851e29231c3343ca0fa5c160dd16eee590449e314c636a1"
+    },
+    {
+      "path": "apps/music/scripts/apple-account-check.swift",
+      "sha256": "785f0febe5eb781285c5d69b43ec8b688051695aad7834108e7f9491907d7a89"
+    },
+    {
+      "path": "apps/music/shared/i18n.json",
+      "sha256": "919101c503099ce2af90c823d30147eab5dcdff8b905e97523f3d3ad3bf82f0d"
+    },
+    {
+      "path": "internal/music/ai_output_test.go",
+      "sha256": "af6715beb288796529b7ab702233230bcc189e9081a78b951243fec28f8d094e"
+    },
+    {
+      "path": "internal/music/server.go",
+      "sha256": "9456e86980ae35d927106e6c4433347b421b142100940217053aee9ffaf6bcd6"
+    },
+    {
+      "path": "internal/music/service.go",
+      "sha256": "3429f2dc3d68241fe3508272eb2e36e4b21987172cbd4389c91b5df251f9b047"
+    },
+    {
+      "path": "internal/music/types.go",
+      "sha256": "b5bdbde7acff10c0eb4d884aa0069af961435d9ca0e8de5a52fccc993dc8c59e"
+    }
+  ],
+  "gates": {
+    "sourceVerified": true,
+    "formalDeployed": false,
+    "realWalletApproval": false,
+    "browserPrivateBusiness": false,
+    "androidInstalledBusiness": false,
+    "appleInstalledBusiness": false,
+    "macOSStandaloneTarget": false,
+    "publicCommercialCatalog": false,
+    "productionAIProviderAcceptance": false,
+    "productComplete": false
+  },
+  "remaining": [
+    "Music browser business controller inheritance and production authentication integration",
+    "A canonical Music V2 registration and frozen browser/native signer",
+    "A canonical action proof for original multipart/binary upload; existing JSON proof does not cover upload",
+    "Unique release-owner integration/deployment and real same-account full flow on formal Web/Android/Apple entries",
+    "Apple SwiftUI SDK build/install and actual macOS packaging; existing project has iOS target only"
+  ],
+  "limitations": [
+    "Fixtures validate owned source behavior and isolation, not real Wallet or production AI services",
+    "No original user data, credentials, device keys, shared ProductSession/Auth source or original Music worktrees modified",
+    "Playlist update retries send explicit desired contents; playlist creation still lacks idempotent lost-response recovery and may duplicate on user retry"
+  ]
+}
