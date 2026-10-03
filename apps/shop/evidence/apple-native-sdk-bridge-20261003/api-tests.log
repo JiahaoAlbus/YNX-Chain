@@ -1,0 +1,30 @@
+PASS bare token cannot create active session
+PASS actual typed account and expiry context
+PASS expired context rejected
+PASS restart retains exact original wire request and key
+PASS changed request cannot replace unresolved original
+PASS new account cannot replay original account request
+PASS confirmation removes only exact original target
+PASS storage failure preserves original evidence
+PASS malformed records are retained and never silently emptied
+PASS public catalog sends no bearer
+PASS private request uses exact two proof headers and no legacy bearer
+PASS late response after account change rejected
+PASS late response after logout rejected
+PASS authoritative private 401 synchronously clears Native authority
+PASS missing account context prevents private dispatch
+PASS route boundary ../orders
+PASS route boundary https://foreign.invalid/api/orders
+PASS route boundary /orders
+PASS proof commits actual original wire body and path
+PASS changed SDK wire body cannot dispatch
+PASS failed authority proof never starts business HTTP
+PASS context change during awaited proof prevents HTTP
+PASS exact private route rejects orders?alias=1
+PASS exact private route rejects orders/../profile
+PASS fixed Buyer scope route refuses /api/orders
+PASS fixed Buyer scope route refuses /api/seller/products
+PASS fixed Buyer scope route refuses /api/profile
+PASS fixed Buyer scope route refuses /api/orders/../profile
+PASS payment preparation uses original Buyer scopes
+Controlled actual API source checks PASS; no real Native approval/device/public business

@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "baseCommit": "a2b453f8d8a7cf46124d130901a6e6b1f9b72dc8",
+  "scope": "Owned macOS canonical SDK bridge, Wallet callback/private API wiring and macOS source target",
+  "sdk": {
+    "sha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82",
+    "bytes": 225709,
+    "registrySha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2",
+    "clientSha256": "29e3567b240be11de098a2d27c1320d6d229d230538da275d5265704ea149351",
+    "gateway": "https://wallet-auth.ynxweb4.com"
+  },
+  "verification": {
+    "modelAndCoreIncludingBridgeSourceCompile": "PASS",
+    "actualWebKitSdkEngineChecks": 6,
+    "controlledActualApiSourceChecks": 29,
+    "inheritedInvoiceChecksRerun": 36,
+    "fullSourceSyntaxParse": "PASS",
+    "localeContractAndArtifactPins": "PASS",
+    "projectAndPlists": "PASS",
+    "sharedMacSchemeXml": "PASS",
+    "sourceDiffCheck": "PASS",
+    "fullSwiftUITypecheck": "FAIL missing SwiftUIMacros.StateMacro plus inherited binding diagnostics; not app build",
+    "xcodebuild": "UNAVAILABLE active developer selection CommandLineTools requires full Xcode"
+  },
+  "fixes": [
+    "Evaluate SDK dispatch with void result so WebKit Promise serialization cannot create duplicate error",
+    "Original authority response time codec and headers preserved; controlled fixture corrected to fractional-second canonical format",
+    "Legacy handwritten Native exchange and Bearer private transport replaced with same adopted SDK",
+    "Exact bounded API wire body and fixed Buyer proof policy, checked again after awaits",
+    "Verified metadata generation/full expiry; original null-account namespace remains unchanged",
+    "macOS target and shared scheme source config added without signing/install/deploy"
+  ],
+  "testLimits": [
+    "WebKit really runs pinned module, but protected storage and Gateway are controlled fixtures; no real HTTP/operator state, device signature or Wallet launch",
+    "API tests explicitly inject a controlled authority and URLProtocol to verify production wire/context code; no fixture used as real approval",
+    "No hardware protection, public service recovery or user flow completion inferred"
+  ],
+  "preservedFailures": [
+    "Original Promise result engine failure",
+    "Controlled original time response without fractional seconds caused SDK authority-time failure; oracle strengthened",
+    "Original stale test variable failed compilation",
+    "Inherited static checker asserted obsolete V1 signer and was updated for exact adopted artifact pins"
+  ],
+  "notVerified": [
+    "Full Xcode macOS target and final app build/resource packaging",
+    "Registered installed bundle, Secure Enclave/Keychain protection",
+    "Actual Wallet approval/return/private API readback",
+    "Cold protected-store recovery and exact server revocation ACK",
+    "Public production Gateway/backend actor/registered key recovery",
+    "Final A signed/deployed Android/macOS/Web full user flow"
+  ]
+}

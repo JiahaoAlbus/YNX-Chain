@@ -1,0 +1,7 @@
+/tmp/ynx-commerce-apple-native-20261003/APIChecks.swift:51:9: error: cannot find 'current' in scope
+49 |         do{_ = try await logout.value;throw NSError(domain:"late logout adopted",code:1)}catch ShopError.contextChanged{print("PASS late response after logout rejected")}
+50 |         StubProtocol.handler={request in request.respond(401,"{\"error\":\"expired\"}")};do{_ = try await api.data("orders");throw NSError(domain:"401 adopted",code:1)}catch{try check(authority.current==nil && authority.disconnects==1,"authoritative private 401 synchronously clears Native authority")}
+51 |         current=nil;do{_ = try await api.data("orders");throw NSError(domain:"unauthorized dispatch",code:1)}catch ShopError.signedOut{print("PASS missing account context prevents private dispatch")}
+   |         `- error: cannot find 'current' in scope
+52 |         for path in ["../orders","https://foreign.invalid/api/orders","/orders"]{do{_ = try await api.data(path);throw NSError(domain:"foreign route",code:1)}catch ShopError.unavailable{print("PASS route boundary "+path)}}
+53 |         authority.current=ShopSession.parse(try metadata(account));var dispatched=0

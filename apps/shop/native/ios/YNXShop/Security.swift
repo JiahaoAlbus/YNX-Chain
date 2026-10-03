@@ -41,6 +41,8 @@ struct ShopSession: Codable, Equatable {
     let account:String
     let token:String
     let expiresAt:String
+    let nativeGeneration:Int?
+    init(account:String,token:String,expiresAt:String,nativeGeneration:Int?=nil){self.account=account;self.token=token;self.expiresAt=expiresAt;self.nativeGeneration=nativeGeneration}
     static func parse(_ data:Data?,now:Date=Date())->ShopSession? {
         guard let data,let value=try? JSONDecoder().decode(Self.self,from:data),
               value.account.range(of:"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$",options:.regularExpression) != nil,

@@ -1,0 +1,7 @@
+ENGINE ready {"ok":true}
+ENGINE disconnect-check {"ok":true,"state":{"message":"No authoritative Product Session was present; local connection request was removed","revocationConfirmed":false,"status":"disconnected"},"value":{"message":"No authoritative Product Session was present; local connection request was removed","revocationConfirmed":false,"status":"disconnected"}}
+PASS actual WebKit custom-scheme ES module and synchronous protected storage ports; no network/signature/Wallet
+ENGINE restore-check {"ok":true,"state":{"actions":["retry","guest"],"message":"Authority time is unavailable; Retry before opening Wallet","status":"network-unavailable"},"value":{"actions":["retry","guest"],"message":"Authority time is unavailable; Retry before opening Wallet","status":"network-unavailable"}}
+PASS actual SDK cold restore through asynchronous reply Gateway with exact time codec/headers
+ENGINE connect-check {"code":"NATIVE_ATTEMPT_CHANGED","message":"Native private session could not be verified","ok":false}
+FAIL launch boundary

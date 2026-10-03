@@ -1,0 +1,5 @@
+ENGINE ready {"ok":true}
+ENGINE disconnect-check {"ok":true,"state":{"message":"No authoritative Product Session was present; local connection request was removed","revocationConfirmed":false,"status":"disconnected"},"value":{"message":"No authoritative Product Session was present; local connection request was removed","revocationConfirmed":false,"status":"disconnected"}}
+PASS actual WebKit custom-scheme ES module and synchronous protected storage ports; no network/signature/Wallet
+ENGINE disconnect-check {"code":"NATIVE_ENGINE_DISPATCH_FAILED","ok":false}
+FAIL local SDK disconnect boundary

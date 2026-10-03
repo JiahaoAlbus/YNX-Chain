@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
@@ -81,7 +82,12 @@ for (const [key, entry] of Object.entries(catalog.strings)) {
 }
 
 const auth = await readFile(new URL('ios/YNXShop/WalletAuth.swift', root), 'utf8');
-for (const term of ['P256.Signing.PrivateKey', 'YNX_PRODUCT_SESSION_CHALLENGE_V1', 'replay-', 'product-session', 'ynx-shop-v1', 'com.ynxweb4.shop']) assert.ok(auth.includes(term), term);
+assert.ok(auth.includes('api.connectNative()') && auth.includes('api.returnNative(url)'), 'Apple Wallet entry and callback must use canonical Native authority');
+assert.ok(!auth.includes('CHALLENGE_V1') && !auth.includes('rawRepresentation'), 'Retired handwritten signing must not establish active Apple authority');
+for (const surface of ['android/app/src/main/assets/native-session/', 'ios/YNXShop/native-session/']) {
+  const nativeSDK = await readFile(new URL(surface + 'wallet-auth-native-consumer.mjs', root));
+  assert.equal(createHash('sha256').update(nativeSDK).digest('hex'), 'a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82', 'Adopted Native SDK bytes remain exact');
+}
 const androidActivity = await readFile(new URL('android/app/src/main/java/com/ynxweb4/shop/MainActivity.java', root), 'utf8');
 for (const term of ['/privacy/export', '/privacy/delete', 'ACTION_CREATE_DOCUMENT', 'DELETE_MY_SHOP_DATA', 'R.string.privacy_data_title', 'R.string.privacy_delete_warning', 'R.string.privacy_delete_failed']) assert.ok(androidActivity.includes(term), `android privacy: ${term}`);
 for (const term of ['R.drawable.ynx_logo', 'ImageView.ScaleType.CENTER_INSIDE', 'setAdjustViewBounds(true)', 'setOnApplyWindowInsetsListener']) assert.ok(androidActivity.includes(term), `android branding: ${term}`);
