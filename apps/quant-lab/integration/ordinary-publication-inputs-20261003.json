@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "ynx-quant-ordinary-publication-inputs-v1",
+  "classification": "OWNER_BUSINESS_INPUTS_NOT_RELEASE_AUTHORITY",
+  "sourceCheckpoint": {
+    "commit": "62fc657d023cfd56f505a81d6dcfe18396bf621b",
+    "tree": "d940d2247f462a00b05be811a0f703d9bdf534f7",
+    "branch": "codex/exchange-sso-cookie-binding-20261002"
+  },
+  "requestedIntegrator": "wallet_release_owner via 接续测试网生态审计工作",
+  "ordinaryInputs": [
+    {"path":"apps/quant-lab/web/app.js","blob":"568070975f0a1715aecd776dce5c6014c13df814","bytes":150203,"sha256":"6eae4b6a3ba86de41c35b305b36827336ac28876b1e9fbb8766dfa8f18a207e8"},
+    {"path":"apps/quant-lab/web/i18n.js","blob":"6c14c29cb1a79d3790af25f0bcd521142f2fd882","bytes":32924,"sha256":"acbe5b571eceaf7d96cd2b07b2b4fe8673ccde6dc51d841deef0940e5bd95ff0"},
+    {"path":"apps/quant-lab/web/index.html","blob":"5f0693f36e9b4d00f92e2a4bfb501b106343bff4","bytes":28680,"sha256":"abedc195f7a619b877a595a3679dcedc02877e4f311f3858b842c7d426712d4a"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"09f75f1fa1f632f26e006a04b1e52f4967864352","bytes":12284,"sha256":"994b8aaa5a21213b1e4b12e11b75a7b1a6c98cf52794b00e583d6e56b38b6263"},
+    {"path":"internal/quantlab/service.go","blob":"d20edada178af1588b9c4b565e477f8b02fc05a0","bytes":73662,"sha256":"819ba78b683221d151068ee05eb06a2ec6b5fdb718a62a5859b0f6d317a581f1"},
+    {"path":"internal/quantlab/server.go","blob":"f418853d277afe6185c5a760259810419c57023b","bytes":19227,"sha256":"497252968db02fc42d5deca4cfe312f260ced7e01d0ea53c77bdd0c528e222cc"},
+    {"path":"internal/quantlab/marketdata.go","blob":"8dc801b75140d5eb8544e363c81c4f3bd94445b3","bytes":7435,"sha256":"0036f1bca5830d5d32170955f3b8c2f06cac0bd187b2479a85a42f4933d3893a"},
+    {"path":"internal/quantlab/research_arithmetic.go","blob":"9fb1adc2863e5355651f6c17d01706d300c7dc51","bytes":2355,"sha256":"83414f479ddede38be252a93daf3fe81f87308cf85a850470b8d839c1f4371bd"},
+    {"path":"internal/quantlab/research_submission.go","blob":"5b4bc1c5228b6f9a0edc8fcab42405d3c3a55a98","bytes":2981,"sha256":"786599abb4792a66c18e4214d72a47131f608e8d9c71524e0fe5d866c5367daa"},
+    {"path":"internal/quantlab/research_validation.go","blob":"77f8ff6a7fe461edaa477cd7de089beda37b9795","bytes":3321,"sha256":"5dfa3a24e5c2f82c9fc8a8dc44f0b871dece2bd8663a09ba2345b5cb46b8e557"},
+    {"path":"apps/quant-lab/scripts/verify-public-storage-runtime.mjs","blob":"6c8fc0574d0044d638cd5db097d1f80803555a27","bytes":4074,"sha256":"92d6cd846ff61ead079d60a837920c18fce150e69c044db3f0146970e71a102c"}
+  ],
+  "handling": {
+    "wholeCheckoutReplacementAllowed": false,
+    "sharedAuthorityOverwriteAllowed": false,
+    "inputListIsWholeRuntimeInventory": false,
+    "mergePolicy": "Admit ordinary business hunks from these exact source objects into the coherent formal release graph. Mixed app/server/service files must preserve the integrator's current authority, SDK, grants, SSO and transport bindings.",
+    "htmlPolicy": "Merge ordinary research/Paper content, not stale asset query pins. Rebuild and bind all final HTML/module/style/SDK bytes together.",
+    "excludedAuthorityInputs": ["apps/quant-lab/vendor", "apps/quant-lab/web/wallet-auth.js", "apps/quant-lab/web/wallet-auth-entry.js", "packages/wallet-auth", "internal/productsessionv2", "Host configuration", "shared product registry", "formal product-release pins"],
+    "testReferences": ["internal/quantlab/research_cost_reconciliation_test.go", "internal/quantlab/research_drawdown_test.go", "internal/quantlab/research_idle_capital_test.go", "internal/quantlab/paper_daily_loss_test.go", "internal/quantlab/scheduler_postgres_test.go", "internal/quantlab/readiness_postgres_test.go", "apps/quant-lab/tests/business-flow.test.mjs", "apps/quant-lab/tests/browser.test.mjs", "apps/quant-lab/tests/public-storage-runtime.test.mjs"]
+  },
+  "storageCompatibility": {
+    "configurationKeyNamesOnly": ["YNX_QUANT_DATABASE_URL", "YNX_QUANT_STATE_NAMESPACE"],
+    "configurationValuesIncluded": false,
+    "newNamespaceIsNotExistingDataMigration": true,
+    "tenantNamespaceDerivation": "existing StateNamespace + :tenant: + bound tenant ID; do not invent a second authority or accept guest as tenant",
+    "ddlRequiredForOrdinaryPolicyFields": false,
+    "optionalPersistedFields": ["Paper.DailyRisk", "Experiment.attribution.idleCapitalSamplingPolicy"],
+    "legacyRecords": "Existing omitted optional fields retain integrity compatibility and are not silently relabeled or backfilled.",
+    "writerFence": "All writers sharing a namespace must preserve admitted optional fields before any new policy record is written. Old serializers may drop fields; mixed incompatible writers are not accepted.",
+    "rollbackBoundary": "Rollback requires compatible state readers/writers or a separately fenced namespace. Do not roll an old writer onto newer persisted policy state, fabricate a completed migration, or delete historical state. Release Owner freezes actual source, backup and runtime rollback receipts."
+  },
+  "executedDatabaseEvidence": {
+    "path": "apps/quant-lab/evidence/durable-readiness-readback-20261003.md",
+    "actualPostgreSQL": true,
+    "integrationPasses": 16,
+    "postRestartRegressionPasses": 110,
+    "productionDatabaseUsed": false,
+    "serverStopped": true,
+    "remainingQARows": "0|0"
+  },
+  "publicEvidence": {
+    "path": "apps/quant-lab/evidence/public-storage-verifier-20261003.md",
+    "observedSource": "664b80b00ac576317524f25b49fc01d1c0db7196",
+    "readinessHttp": 503,
+    "sourceStorageGatePassed": false,
+    "observedRuntimeIsCurrentInputs": false
+  },
+  "executedLocalIntegrationGates": {
+    "exactSourceObjectsVerified": 11,
+    "sourceBytesAndSha256AndWorkingCopiesMatch": true,
+    "businessAndReadbackCommand": "node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/public-storage-runtime.test.mjs",
+    "businessAndReadbackPasses": 68,
+    "browserCommand": "node --test apps/quant-lab/tests/browser.test.mjs",
+    "browserPasses": 22,
+    "browserDurationMs": 51561.659209,
+    "skips": 0,
+    "browserScope": "Actual local Chrome and controlled/local Go fixtures; not a current-source public or real Wallet approval flow",
+    "formalAssetGraphVerified": false,
+    "formalAssetGraphBoundary": "Prior graph/pin mismatch remains an integrator gate; these ordinary tests do not waive it"
+  },
+  "requiredReleaseGates": [
+    "Coherent formal asset graph with no hash mismatch waiver",
+    "Actual tenant storage configured, namespace/data migration and compatible-writer fence explicitly verified",
+    "All ordinary source and actual database/browser regressions",
+    "Public storage verifier bound to final immutable formal source commit",
+    "Public independent-user isolation, concurrent strategy/Paper risk and restart/reconnect readback",
+    "Real Wallet/Auth return-to-owned-business lifecycle distinct from standard account connection",
+    "Signed/authorized product actions only with explicit accepted permission contract and immediate confirmation",
+    "Exact runtime/assets/source/rollback receipts and real device evidence per supported installer"
+  ],
+  "truth": {
+    "publicSourceBound": false,
+    "publicMultiUserVerified": false,
+    "walletApprovalVerified": false,
+    "privateSessionVerified": false,
+    "realOrdersVerified": false,
+    "realTestnetTransactionsVerified": false,
+    "installedVerified": false,
+    "productComplete": false
+  },
+  "forbidden": ["No Host/deploy/service/config/state mutation authorized by this handoff", "No credentials, account request, signature or transaction implied", "No copying old authority or changing shared pins from this owner", "No source/controlled/local test promoted to public completion"]
+}
