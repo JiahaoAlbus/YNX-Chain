@@ -18,6 +18,16 @@ const other: WalletAccount = { ...walletIdentity("0".repeat(63) + "2"), label: "
 const unsigned = vector.unsigned as FinanceOrderApprovalUnsigned;
 
 function deferred() { let resolve!: () => void; const promise = new Promise<void>(done => { resolve = done; }); return { promise, resolve }; }
+test("expiry presentation uses authority time without signing or journal writes",async()=>{
+  const f=fixture(),c=f.controller(),review=await c.receive(f.url());
+  const writes=f.state.writes.length;
+  assert.equal(await c.isExpired(review.id),false);
+  f.state.now=Date.parse(review.request.unsigned.expiresAt);
+  assert.equal(await c.isExpired(review.id),true);
+  assert.equal(f.state.keys,0);assert.equal(f.state.opens.length,0);assert.equal(f.state.writes.length,writes);
+  f.state.failTime=true;await assert.rejects(c.isExpired(review.id),/Auth time unavailable/);
+  c.cancel();await assert.rejects(c.isExpired(review.id));
+});
 function fixture(values = new Map<string, string>()) {
   const state = { now: NOW, selected: account as WalletAccount | null, secret: SECRET, keys: 0, times: 0, failTime: false, opens: [] as string[], writes: [] as string[], failOpen: false, dropWrite: false, afterGet: null as null | (() => Promise<void>), afterSet: null as null | ((raw: string) => Promise<void>), keyGate: null as ReturnType<typeof deferred> | null, keyStarted: deferred() };
   const storage: SecureStorageAdapter = {

@@ -3,6 +3,12 @@ import { createNativeDurabilityEvidence, NativeDurabilityInvalid, parseNativeDur
 
 export const DEFAULT_CHAIN_API="https://rpc-testnet.ynxweb4.com";
 export const LEGACY_CHAIN_API="https://rpc.ynxweb4.com";
+/** Recovery stays bound to the reviewed origin; never retries a write on another node. */
+export function nativeChainClientForStoredOrigin(storedOrigin:string,currentBaseURL?:string,fetcher:FetchLike=fetch):NativeChainClient{
+  const current=new NativeChainClient(currentBaseURL,fetcher);
+  if(!new Set([current.origin,DEFAULT_CHAIN_API,LEGACY_CHAIN_API]).has(storedOrigin))throw new Error("The stored transfer RPC origin is not an approved YNX Testnet recovery profile.");
+  return storedOrigin===current.origin?current:new NativeChainClient(storedOrigin,fetcher);
+}
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;

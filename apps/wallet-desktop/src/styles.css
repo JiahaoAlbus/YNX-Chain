@@ -17,4 +17,31 @@
 .key-security{margin:0 0 24px;padding:18px 22px;border:1px solid #dfe5f5;border-radius:16px;background:#f5f7ff}.key-security h2{font-size:18px;margin:0 0 8px}.key-security p{margin:8px 0;line-height:1.5}.key-security button{margin-top:8px}
 
 .receive-qr{display:block;width:min(100%,252px);height:auto;margin:20px auto 12px;image-rendering:pixelated;background:#FFFFFF}.receive-qr[hidden]{display:none}
+/* UI size is relative to the user's base font, never a fixed replacement for OS text scale. */
+:root{--wallet-ui-scale:.9375;font-size:calc(100% * var(--wallet-ui-scale))}
+:root[data-wallet-ui-size="compact"]{--wallet-ui-scale:.875}
+:root[data-wallet-ui-size="larger"]{--wallet-ui-scale:1.0625}
+body{font-size:1rem}
+button,input,select{font-size:.933333rem;min-height:44px}
+.toolbar{height:auto;min-height:72px;flex-wrap:wrap;padding:18px 28px;gap:12px;font-size:.933333rem}
+.toolbar button{min-height:44px;font-size:.933333rem;padding:8px 12px}
+.brand{font-size:1.066667rem;padding-bottom:28px;gap:9px;letter-spacing:normal}
+.brand img,.dialog-brand img{width:41.8px;height:auto;aspect-ratio:798/420;object-fit:contain;flex-shrink:0}
+.brand>span,.dialog-brand span{min-width:0;overflow-wrap:anywhere}
+.dialog-brand{font-size:1.066667rem;gap:10px;margin-bottom:16px}
+.nav-item{font-size:.933333rem;min-height:44px;white-space:normal;overflow-wrap:anywhere}
+h1{font-size:1.466667rem;letter-spacing:-.4px}
+h2{font-size:1.333333rem}
+h3,.key-security h2{font-size:1.066667rem}
+.page-heading>p:last-child,dialog p,.wallet-details p,#account-authority>p,#walletconnect>p,.network-status,.network-status p,label,.wallet-details summary{font-size:.933333rem}
+.muted,.balance-heading,.asset-heading>span,.asset-row span,.overview-note p,.overview-note .text-button,.sidebar-footer p,.network-facts,.request-account,.queue-count,#auth-expiry,.transaction-history-row dl,#transfer-summary,#transfer-result,#backup-result,#import-result{font-size:.866667rem}
+.asset-row strong,.overview-note h3,.dialog-heading button,dialog .actions button,#account-list button,input[type=file],#receive-address{font-size:.933333rem}
+.dialog-heading{flex-wrap:wrap;gap:12px}.dialog-heading h2{min-width:0;overflow-wrap:anywhere}.dialog-heading button{min-height:44px}
+.balance{font-size:2.666667rem;letter-spacing:-1px;flex-wrap:wrap}.balance small{font-size:1.066667rem}
+.text-button{min-height:44px}
+.appearance-options{border:0;padding:0;margin:0}.appearance-options legend{font-size:.933333rem;font-weight:600;margin-bottom:8px}
+.appearance-options label{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 12px;margin:6px 0;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.appearance-options input{width:18px;height:18px;min-height:0;margin:0;flex-shrink:0;accent-color:var(--blue)}
+@media(max-width:620px){.sidebar{padding-top:20px}.brand{padding-bottom:14px}.sidebar nav{flex-wrap:wrap}.nav-item{font-size:.933333rem;min-width:80px}.toolbar{padding:12px 16px}.toolbar button{min-height:44px}.balance{font-size:2.266667rem}.dialog-heading{align-items:flex-start}dialog{padding:18px}}
 .transaction-history{margin-top:36px;padding-top:24px;border-top:1px solid var(--line)}.transaction-history h2{font-size:20px;margin:0}.transaction-history-row{padding:20px 0;border-bottom:1px solid var(--line)}.transaction-history-row dl{display:grid;grid-template-columns:95px minmax(0,1fr);gap:9px;font-size:12px}.transaction-history-row dt{color:var(--muted)}.transaction-history-row dd{margin:0;overflow-wrap:anywhere}.transaction-history .balance-heading{gap:12px;flex-wrap:wrap}@media(max-width:620px){.transaction-history-row dl{grid-template-columns:1fr;gap:4px}.transaction-history-row dd{margin-bottom:9px}}
+.transaction-history h2{font-size:1.333333rem}.transaction-history-row dl{font-size:.866667rem}

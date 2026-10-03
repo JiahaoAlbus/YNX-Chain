@@ -1,7 +1,7 @@
 import type { WalletLocale } from "./i18n";
 
 const keys = ["title", "boundary", "environment", "provider", "source", "broker", "subject", "order", "asset", "side", "quantity", "price", "limits", "session", "approve", "revoke", "revokeBoundary"] as const;
-type Key = typeof keys[number];
+type Key = typeof keys[number] | "bindings" | "expired";
 type Copy = readonly [string,string,string,string,string,string,string,string,string,string,string,string,string,string,string,string,string];
 const messages: Readonly<Record<WalletLocale, Copy>> = {
   en: ["Approve Sandbox broker order", "Wallet signs only this exact Testnet Sandbox order. It does not submit an order, promise a fill, connect to Alpaca, or confirm Finance consumed the proof.", "Environment", "Broker provider", "Request source", "Sandbox broker account", "Finance subject", "Order", "Asset", "Side", "Whole-share quantity", "Limit price", "Maximum cost / fee", "Market session", "Sign exact order", "Revoke unused approval", "Revocation signs a separate request. Finance decides whether the approval was still unused; Wallet does not claim the revocation won a consume race."],
@@ -18,4 +18,19 @@ const messages: Readonly<Record<WalletLocale, Copy>> = {
   id: ["Setujui order broker Sandbox", "Wallet hanya menandatangani order Testnet Sandbox yang persis ini. Wallet tidak mengirim order, menjanjikan eksekusi, terhubung ke Alpaca, atau memastikan Finance memakai bukti.", "Lingkungan", "Penyedia broker", "Sumber permintaan", "Akun broker Sandbox", "Subjek Finance", "Order", "Aset", "Sisi", "Jumlah saham bulat", "Harga limit", "Biaya / ongkos maksimum", "Sesi pasar", "Tandatangani order persis", "Cabut persetujuan yang belum dipakai", "Pencabutan menandatangani permintaan terpisah. Finance menentukan apakah persetujuan belum dipakai; Wallet tidak mengklaim menang dalam perlombaan pemakaian."],
 };
 
-export function financeOrderApprovalCopy(locale: WalletLocale, key: Key): string { return messages[locale][keys.indexOf(key)]!; }
+const supplemental: Readonly<Record<WalletLocale, Readonly<{bindings:string;expired:string}>>> = {
+  en:{bindings:"Exact signed bindings",expired:"This approval request has expired. Signing, returning, and revoking are disabled."},
+  "zh-Hans":{bindings:"精确签名绑定",expired:"此批准请求已过期。签名、返回结果和撤销均已禁用。"},
+  "zh-Hant":{bindings:"精確簽名綁定",expired:"此核准請求已過期。簽署、回傳結果與撤銷均已停用。"},
+  ja:{bindings:"正確な署名バインディング",expired:"この承認要求は期限切れです。署名、返却、取消は無効です。"},
+  ko:{bindings:"정확한 서명 바인딩",expired:"이 승인 요청은 만료되었습니다. 서명, 반환 및 철회가 비활성화되었습니다."},
+  es:{bindings:"Vínculos firmados exactos",expired:"Esta solicitud de aprobación ha caducado. Firmar, devolver y revocar están desactivados."},
+  fr:{bindings:"Liaisons signées exactes",expired:"Cette demande d’approbation a expiré. La signature, le retour et la révocation sont désactivés."},
+  de:{bindings:"Exakte signierte Bindungen",expired:"Diese Genehmigungsanfrage ist abgelaufen. Signieren, Zurücksenden und Widerrufen sind deaktiviert."},
+  pt:{bindings:"Vínculos assinados exatos",expired:"Esta solicitação de aprovação expirou. Assinar, retornar e revogar estão desativados."},
+  ru:{bindings:"Точные подписанные привязки",expired:"Срок запроса на одобрение истёк. Подписание, возврат и отзыв отключены."},
+  ar:{bindings:"ارتباطات التوقيع الدقيقة",expired:"انتهت صلاحية طلب الموافقة. تم تعطيل التوقيع والإرجاع والإلغاء."},
+  id:{bindings:"Ikatan tanda tangan persis",expired:"Permintaan persetujuan ini kedaluwarsa. Penandatanganan, pengembalian, dan pencabutan dinonaktifkan."},
+};
+
+export function financeOrderApprovalCopy(locale: WalletLocale, key: Key): string { return key==="bindings"||key==="expired"?supplemental[locale][key]:messages[locale][keys.indexOf(key)]!; }
