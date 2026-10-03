@@ -1,0 +1,20 @@
+Starting Metro Bundler
+
+| (node:62524) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+iOS Bundled 1509ms index.ts (595 modules)
+Android Bundled 2698ms index.ts (195 modules)
+
+› Assets (1):
+../../../Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/assets/ynx-original-logo.png (104KB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-2f8aa0c0d7bf40e0838a8af5b59d65e9.hbc (1.5MB)
+
+› android bundles (1):
+_expo/static/js/android/index-7a13c5ccb72c76a9ff6f9366c6591c73.hbc (1.5MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: brand-qa-ui-bundles

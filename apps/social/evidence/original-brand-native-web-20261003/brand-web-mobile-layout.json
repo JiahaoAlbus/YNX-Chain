@@ -1,0 +1,26 @@
+[
+  {
+    "bottom": 56,
+    "left": 18,
+    "position": "static",
+    "right": 202.46875,
+    "tag": "A",
+    "top": 16
+  },
+  {
+    "bottom": 115,
+    "left": 18,
+    "position": "static",
+    "right": 357,
+    "tag": "NAV",
+    "top": 66
+  },
+  {
+    "bottom": 58,
+    "left": 239.2578125,
+    "position": "static",
+    "right": 357,
+    "tag": "BUTTON",
+    "top": 14
+  }
+]

@@ -13,7 +13,7 @@
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="YNX Social home"><img class="brand-logo" src="./assets/ynx-logo.png" alt="YNX" /><span>YNX Social</span></a>
+      <a class="brand" href="/" aria-label="YNX Social home"><img class="brand-logo" src="./assets/ynx-logo.png" alt="YNX" width="76" height="40" /><span>YNX Social</span></a>
       <nav aria-label="Primary"><a href="#matrix-social-workspace">Messages</a><a href="#social-moments">Moments</a><a href="#people-panel">Contacts</a><a href="#profile-form">Me</a></nav>
       <button id="connect-wallet" class="button button-primary" type="button">Connect wallet</button>
     </header>
@@ -80,7 +80,7 @@
     <script type="module" src="./app.js"></script>
     <script type="module" src="./private-session-ui.js"></script>
 <section id="matrix-social-workspace" class="section" aria-label="Private chat">
-  <header class="chat-heading"><div><span class="chat-wordmark"><img src="./assets/ynx-logo.png" alt="YNX" width="42" height="42">YNX Social</span><h2 data-chat-copy="title">Your private conversations</h2><p data-chat-copy="intro">Choose a conversation, compare devices, then share messages and files.</p></div><span class="chat-connection-label" data-connection-label>Locked</span></header>
+  <header class="chat-heading"><div><span class="chat-wordmark"><img src="./assets/ynx-logo.png" alt="YNX" width="76" height="40">YNX Social</span><h2 data-chat-copy="title">Your private conversations</h2><p data-chat-copy="intro">Choose a conversation, compare devices, then share messages and files.</p></div><span class="chat-connection-label" data-connection-label>Locked</span></header>
   <p data-status role="status" aria-live="polite">Private chat is locked. Your messages and devices are retained.</p>
   <div class="chat-actions"><button type="button" data-connect data-chat-copy="open">Open private chat</button><button type="button" data-stop data-chat-copy="lock">Lock chat</button><a href="#social-workspace" data-chat-copy="permissions">Review sign-in and chat permissions</a></div>
   <div class="chat-workspace-grid"><aside class="chat-sidebar"><h3 data-chat-copy="rooms">Conversations and invitations</h3><button type="button" data-rooms data-chat-copy="rooms">Conversations and invitations</button><div data-verification class="chat-verification" aria-live="polite"></div><h3 data-chat-copy="people">Start a conversation</h3><p data-chat-copy="contactHelp">Choose a person whose contact request has been accepted. No wallet address is needed.</p><button type="button" data-refresh-contacts data-chat-copy="refreshContacts">Refresh accepted contacts</button><form data-peer-form><label><span data-chat-copy="peer">Accepted contact</span><select name="matrixPeer" required><option value="">Choose a contact</option></select></label><button type="submit" data-chat-copy="create">Start encrypted conversation</button></form></aside>

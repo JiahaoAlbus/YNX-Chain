@@ -490,8 +490,8 @@ function SocialApp() {
       <SafeAreaView style={[styles.auth, { direction: isRTL ? "rtl" : "ltr" }]}>
         <StatusBar style="dark" />
         <LanguagePicker />
-        <View style={styles.mark}>
-          <UsersRound color="#FFFFFF" size={34} />
+        <View style={[styles.mark, { backgroundColor: "transparent", width: 84, height: 84 }]}>
+          <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 84, height: 84 * 420 / 798, flexShrink: 0 }} />
         </View>
         <Text style={styles.authTitle}>YNX Social</Text>
         <Text style={styles.authBody}>
@@ -518,8 +518,8 @@ function SocialApp() {
     >
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <View style={styles.brandMark}>
-          <UsersRound color="#FFFFFF" size={19} />
+        <View style={[styles.brandMark, { backgroundColor: "transparent", width: 46, height: 46 * 420 / 798 }]}>
+          <Image source={require("./assets/ynx-original-logo.png")} accessibilityLabel="Original YNX logo" resizeMode="contain" style={{ width: 46, height: 46 * 420 / 798, flexShrink: 0 }} />
         </View>
         <Text style={styles.brand}>Social</Text>
         <View style={styles.privateBadge}>

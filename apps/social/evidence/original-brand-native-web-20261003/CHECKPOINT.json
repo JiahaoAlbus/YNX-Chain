@@ -1,0 +1,260 @@
+{
+  "schemaVersion": "ynx-social-original-brand-ui/v1",
+  "status": "SOURCE_AND_ISOLATED_UI_CHECKPOINT_NOT_FORMAL_RELEASE",
+  "parent": "bf69dd401d15950e0d52486b95a8eeb4a6203826",
+  "sourcePins": [
+    {
+      "path": "apps/social/App.tsx",
+      "bytes": 147255,
+      "sha256": "8494e1ab3e92a7d5e43418215c28d6919e36796800dc46e1d28bf31455df7f7f",
+      "gitBlob": "c14d4993b80060d497cb7ec861658fedf816f3cf"
+    },
+    {
+      "path": "apps/social/index.ts",
+      "bytes": 167,
+      "sha256": "24eedcad5ddb428bea3189c0376694d740120f9807254e5b595efbf74bf06200",
+      "gitBlob": "f2a759be599faf3fcd338378887fdf4871037f92"
+    },
+    {
+      "path": "apps/social/src/BrandRoot.tsx",
+      "bytes": 1374,
+      "sha256": "cc1b8ee392e5541ada43310527f8d82777ea0f20d596a5c22128f80358929a70",
+      "gitBlob": "f526aa29e3c88d86ea2ab864ab6ee7fd5bc0ea20"
+    },
+    {
+      "path": "apps/social/src/branding.test.ts",
+      "bytes": 2072,
+      "sha256": "b8caae9a4b1720d4f09207e8fe58a346d9b7b764f987597f306d69cd2a74df06",
+      "gitBlob": "98f264e12ebafd2398219ff9ee8c5163cef765dd"
+    },
+    {
+      "path": "apps/social/assets/ynx-original-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/social/web/assets/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitBlob": "9857f146c2c53077e208dc063715b5d236e24346"
+    },
+    {
+      "path": "apps/social/web/index.html",
+      "bytes": 16552,
+      "sha256": "e3908434b01ac8c2c436a21185dad4ada6ee567bc32e7b8a1d69d47474bf7737",
+      "gitBlob": "787fc4c1d296a042cfe40bde3fe042f22eede526"
+    },
+    {
+      "path": "apps/social/web/styles.css",
+      "bytes": 7157,
+      "sha256": "aa83dc6d6c97acedcae0f85fcc180ea44ba0c4652d7bb2e1dabb9a7ca00c82e0",
+      "gitBlob": "241780a61db708814fd47a0c70c0845aa91fafed"
+    }
+  ],
+  "evidencePins": [
+    {
+      "path": "brand-native-apk-build.log",
+      "bytes": 21852,
+      "sha256": "43b8468e16a03dd1003ed158e80863ef8bd6a9aa483bb1f786ec2aba1c30fd58"
+    },
+    {
+      "path": "brand-native-apk-final.log",
+      "bytes": 21754,
+      "sha256": "2303b17246a2314ba16cb7784359aa33f77fa58c4df421466a56bf0af263cdfe"
+    },
+    {
+      "path": "brand-native-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "brand-native-embed-assets.log",
+      "bytes": 1370,
+      "sha256": "aee71640d7aec40d26281a7c6ae80f8b60b37748f9ae2b3f8217e4bc4e1e90e8"
+    },
+    {
+      "path": "brand-native-final.png",
+      "bytes": 25765,
+      "sha256": "f5d0371bcb7e4bfc4688b9befe1077e7ff42fb3ab8628482286e30059b5e0c3c"
+    },
+    {
+      "path": "brand-native-final.xml",
+      "bytes": 7700,
+      "sha256": "322424f70dbfcbf794398ea8285fc72d76f36d92639caf3f5c49505cfa68fc0f"
+    },
+    {
+      "path": "brand-native-first.png",
+      "bytes": 22358,
+      "sha256": "4c2d63c9564e3714dfcab5810f7ccf40d693922befdfacc0c9a7abe0c7235d1f"
+    },
+    {
+      "path": "brand-native-first.xml",
+      "bytes": 7700,
+      "sha256": "322424f70dbfcbf794398ea8285fc72d76f36d92639caf3f5c49505cfa68fc0f"
+    },
+    {
+      "path": "brand-product-bundle-final.log",
+      "bytes": 647,
+      "sha256": "0b4e025c4ac0ea08b934975ddcfc2d94d80c653a50f22276ca0983cfd4b04d92"
+    },
+    {
+      "path": "brand-product-bundle.log",
+      "bytes": 809,
+      "sha256": "4a330500cae6d9850499d64857db7c04af55db417279025e33f07483f7f209bb"
+    },
+    {
+      "path": "brand-product-native-apk-final.log",
+      "bytes": 21852,
+      "sha256": "33c7b9cde85cb7f85eb829d3b951c3151302efb82c17fc8386609be6b51da2b0"
+    },
+    {
+      "path": "brand-product-native-apk.log",
+      "bytes": 21852,
+      "sha256": "baacb8563c259f865f5b8740ef07d70a47b67c3d30ae860d70da43b6b6454c25"
+    },
+    {
+      "path": "brand-product-native-crash-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "brand-product-native-crash.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "brand-product-native-embed-final.log",
+      "bytes": 363,
+      "sha256": "f629de765f595e017f02491d1f6254360b9fbfa2c2d849625e5660015b49c9db"
+    },
+    {
+      "path": "brand-product-native-embed.log",
+      "bytes": 1371,
+      "sha256": "3d1fd8276808582b18fb9615e940d58f3a75d5406c966737e810ca8aaea2f558"
+    },
+    {
+      "path": "brand-product-native-entry-final.png",
+      "bytes": 43279,
+      "sha256": "465e17b393f3979142486133030d04d7fe0df6204cb9646fe8b6fc746058b363"
+    },
+    {
+      "path": "brand-product-native-entry-final.xml",
+      "bytes": 9253,
+      "sha256": "c7926a1a954038debeb11708ae3baa9d95f19b26e4c263c65d39bb016108ee69"
+    },
+    {
+      "path": "brand-product-native-entry.png",
+      "bytes": 41890,
+      "sha256": "01a16519cbfd32db15b232e62ba989db3501b8902d8af7735dc84f71d43481a5"
+    },
+    {
+      "path": "brand-product-native-entry.xml",
+      "bytes": 10977,
+      "sha256": "1a697288a0a00dd76db996dd8a4318042287ff08030e990fc1e08b2ba11476ed"
+    },
+    {
+      "path": "brand-qa-ui-bundle.log",
+      "bytes": 683,
+      "sha256": "a87a033245b64cd32b4fcf638aaa6152f69355921812a25bc91454b7351490fe"
+    },
+    {
+      "path": "brand-tests-final.log",
+      "bytes": 19301,
+      "sha256": "9691272b424e9956476e871b1fbc82469d9145f7960ea9f0c45382c08a1fcc75"
+    },
+    {
+      "path": "brand-tests.log",
+      "bytes": 19005,
+      "sha256": "83cfd2cac85f31edd8a116bf7f52c595115660b99ec5e2544f261a4ae563c9ee"
+    },
+    {
+      "path": "brand-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "brand-typecheck.log",
+      "bytes": 53,
+      "sha256": "790c4de925c47feff10c859bcee34c5b61f108c4f4f890dbd960e3a44a9784c5"
+    },
+    {
+      "path": "brand-web-desktop-final.png",
+      "bytes": 75763,
+      "sha256": "b75c6978efb3cb6d7976e389d3efef08fe32a461e2c913052d3fa8eb7c477644"
+    },
+    {
+      "path": "brand-web-desktop.png",
+      "bytes": 75737,
+      "sha256": "3655a4cd23695fe2f46d890c9bff8fee7903d4bd087fb18d249b1b8905ad42d8"
+    },
+    {
+      "path": "brand-web-locked-desktop.png",
+      "bytes": 52636,
+      "sha256": "ba794a17dc97b96afb768a3c4747ffc6b7c33e6dae69ad859994492bdd1ce053"
+    },
+    {
+      "path": "brand-web-mobile-final.png",
+      "bytes": 39303,
+      "sha256": "3fa91afdf344322f52367893618705b9f2c142c42939bb62dbf9eb43836e3073"
+    },
+    {
+      "path": "brand-web-mobile-fixed.png",
+      "bytes": 38337,
+      "sha256": "36182c2fa7e740dadfc9c30f7c225c3758f3b728c515a35815b7bfb88c509a11"
+    },
+    {
+      "path": "brand-web-mobile-layout.json",
+      "bytes": 376,
+      "sha256": "9ac55bda68a0fecaaa0b875851f8c65819181f695d425727a915810ea3e9a4c1"
+    },
+    {
+      "path": "brand-web-mobile.png",
+      "bytes": 36160,
+      "sha256": "d820b0d59d1d785e51596ac44d166a2598d3b3cbd94cb4cbddf9248427c79ff1"
+    }
+  ],
+  "originalLogo": {
+    "width": 798,
+    "height": 420,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "fit": "contain",
+    "providerAndAccountAvatarsUnchanged": true
+  },
+  "checks": {
+    "typecheck": "PASS",
+    "sourceTests": {
+      "pass": 196,
+      "fail": 0
+    },
+    "androidModuleAndSdkSha": "PASS",
+    "androidIosJsExport": "PASS",
+    "androidProductEntryDebugBuildInstall": "PASS",
+    "android320WidthUnauthenticatedWelcome": "PASS_ACTUAL_LOGO_VISIBLE",
+    "android320WidthIsolatedNativeWorkspace": "PASS_ACTUAL_LOGO_VISIBLE",
+    "web390WidthGuest": "PASS_LOCAL_ACTUAL_LOGO_VISIBLE_NAV_NO_OVERLAP",
+    "webDesktopGuestAndLockedChat": "PASS_LOCAL_ACTUAL_LOGO_VISIBLE",
+    "localBrowserConsoleErrors": 0,
+    "androidCrashBufferEntries": 0
+  },
+  "artifact": {
+    "path": "/Users/huangjiahao/.codex/visualizations/2026/08/22/01a02881-2bcb-74f3-be69-bd0eb3750d41/native-matrix-20261003/brand-product-entry-debug.apk",
+    "bytes": 134002330,
+    "sha256": "5a767b3a5b89f7a7c6a452e263ca7108996148285825d3e1428ab9a04cc4cde6",
+    "productAppCopiedFromOwner": true,
+    "temporaryAndroidProject": true,
+    "debugSigned": true,
+    "isFormalRelease": false
+  },
+  "remaining": [
+    "Web build exact approved registry carrier missing/mismatch; do not relax scope guard",
+    "Native canonical enrollment and authenticated Matrix lifecycle unfinished",
+    "Native original journal readback/recovery/index settlement unfinished",
+    "Authenticated business screen branding not actually observed",
+    "Apple native compiler and formal other-platform builds not verified",
+    "Public deployment/source identity/real installed acceptance pending final integration review",
+    "dot MONSTER not invoked/accepted"
+  ],
+  "deployed": false,
+  "sensitiveWalletRequests": false
+}

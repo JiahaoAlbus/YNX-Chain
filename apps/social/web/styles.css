@@ -78,3 +78,17 @@ a{color:inherit;text-decoration:none}
 .hero-actions{flex-direction:column;align-items:stretch}
 .wallet-option b{display:none}
 }
+
+/* Exact first-party YNX geometry; third-party provider/account images are untouched. */
+body > .topbar > a.brand > img.brand-logo,
+.chat-heading .chat-wordmark > img {
+  width:76px; height:40px; object-fit:contain; flex-shrink:0; border-radius:0;
+}
+@media (max-width: 700px) {
+  body > .topbar { height:auto; min-height:76px; flex-wrap:wrap; gap:8px; padding:14px 18px; }
+  body > .topbar > nav { position:static; inset:auto; transform:none; order:3; width:100%; height:auto;
+    margin:0; padding:8px 0 0; display:flex; justify-content:space-between; z-index:auto; }
+  body > .topbar > nav a { min-height:40px; display:flex; align-items:center; justify-content:center; }
+  body > .topbar > .brand { flex-shrink:0; }
+  body > .topbar > #connect-wallet { margin-left:auto; font-size:13px; padding:10px 12px; min-height:44px; }
+}

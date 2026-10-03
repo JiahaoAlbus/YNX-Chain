@@ -1,0 +1,278 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:shared:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:compileJava NO-SOURCE
+> Task :gradle-plugin:shared:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:processResources NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:classes UP-TO-DATE
+> Task :gradle-plugin:shared:processResources NO-SOURCE
+> Task :gradle-plugin:shared:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin-shared:jar UP-TO-DATE
+> Task :gradle-plugin:shared:jar UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:settings-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-settings-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle-plugin:react-native-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-module-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-module-gradle-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileKotlin UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:compileJava NO-SOURCE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:pluginDescriptors UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:processResources UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:classes UP-TO-DATE
+> Task :expo-gradle-plugin:expo-autolinking-plugin:jar UP-TO-DATE
+> Task :expo-gradle-plugin:expo-max-sdk-override-plugin:jar UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:compileJava NO-SOURCE
+> Task :gradle-plugin:react-native-gradle-plugin:pluginDescriptors UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:processResources UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:classes UP-TO-DATE
+> Task :gradle-plugin:react-native-gradle-plugin:jar UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileKotlin UP-TO-DATE
+> Task :expo-module-gradle-plugin:compileJava NO-SOURCE
+> Task :expo-module-gradle-plugin:classes UP-TO-DATE
+> Task :expo-module-gradle-plugin:jar UP-TO-DATE
+
+> Configure project :
+[32m[ExpoRootProject][0m Using the following versions:
+  - buildTools:  [32m36.0.0[0m
+  - minSdk:      [32m24[0m
+  - compileSdk:  [32m36[0m
+  - targetSdk:   [32m36[0m
+  - ndk:         [32m27.1.12297006[0m
+  - kotlin:      [32m2.1.20[0m
+  - ksp:         [32m2.1.20-2.0.1[0m
+
+> Configure project :app
+ ℹ️  [33mApplying gradle plugin[0m '[32mexpo-max-sdk-override-plugin[0m'
+  [expo-max-sdk-override-plugin] This plugin will find all permissions declared with `android:maxSdkVersion`. If there exists a declaration with the `android:maxSdkVersion` annotation and another one without, the plugin will remove the annotation from the final merged manifest. In order to see a log with the changes run a clean build of the app.
+
+> Configure project :expo
+
+Using expo modules
+  - [32mexpo-log-box[0m (57.0.1)
+  - [32mexpo-constants[0m (57.0.7)
+  - [32mexpo-modules-core[0m (57.0.7)
+  - [32mynx-social-native-matrix[0m (0.1.0)
+  - [33m[📦][0m [32mexpo-dom-webview[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-asset[0m (57.0.7)
+  - [33m[📦][0m [32mexpo-camera[0m (57.0.2)
+  - [33m[📦][0m [32mexpo-contacts[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-crypto[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-file-system[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-font[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-image-loader[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-image-picker[0m (57.0.4)
+  - [33m[📦][0m [32mexpo-keep-awake[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-localization[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-secure-store[0m (57.0.1)
+  - [33m[📦][0m [32mexpo-status-bar[0m (57.0.1)
+
+
+> Task :expo-modules-core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :ynx-social-native-matrix:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :expo-modules-core:preBuild UP-TO-DATE
+> Task :expo-modules-core:preDebugBuild UP-TO-DATE
+> Task :expo-modules-core:generateDebugBuildConfig
+> Task :expo-modules-core:generateDebugResValues
+> Task :expo-modules-core:generateDebugResources
+> Task :expo-modules-core:packageDebugResources
+> Task :expo-modules-core:javaPreCompileDebug
+> Task :expo-modules-core:parseDebugLocalResources
+> Task :expo-modules-core:generateDebugRFile
+> Task :ynx-social-native-matrix:verifyMatrixReleaseBytes
+> Task :ynx-social-native-matrix:preBuild
+> Task :ynx-social-native-matrix:preDebugBuild
+> Task :ynx-social-native-matrix:generateDebugBuildConfig
+> Task :ynx-social-native-matrix:generateDebugResValues
+> Task :ynx-social-native-matrix:generateDebugResources
+> Task :ynx-social-native-matrix:packageDebugResources
+> Task :ynx-social-native-matrix:parseDebugLocalResources
+> Task :ynx-social-native-matrix:generateDebugRFile
+
+> Task :expo-modules-core:compileDebugKotlin
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/apploader/AppLoaderProvider.kt:34:52 Unchecked cast of 'Class<*>!' to 'Class<out HeadlessAppLoader>'.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:14:8 'class UIManagerModule : ReactContextBaseJavaModule, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:22:8 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:61:13 'val hostingRuntimeContext: MainRuntime' is deprecated. Use AppContext.runtimeContext instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:271:21 'typealias ErrorManagerModule = JSLoggerModule' is deprecated. Use JSLoggerModule instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:380:21 'val DEFAULT: Int' is deprecated. UIManagerType.DEFAULT will be deleted in the next release of React Native. Use [LEGACY] instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/AppContext.kt:381:10 'class UIManagerModule : ReactContextBaseJavaModule, LifecycleEventListener, UIManager' is deprecated. Deprecated in Java.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/defaultmodules/NativeModulesProxyModule.kt:16:5 'fun Constants(legacyConstantsProvider: () -> Map<String, Any?>): Unit' is deprecated. Use `Constant` or `Property` instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/events/KModuleEventEmitterWrapper.kt:99:21 'fun getEventDispatcherForReactTag(context: ReactContext, reactTag: Int): EventDispatcher?' is deprecated. reactTag is no longer needed.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/events/KModuleEventEmitterWrapper.kt:108:21 'fun getEventDispatcherForReactTag(context: ReactContext, reactTag: Int): EventDispatcher?' is deprecated. reactTag is no longer needed.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:470:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewDefinitionBuilder.kt:470:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:16 'val errorManager: JSLoggerModule?' is deprecated. Use AppContext.jsLogger instead.
+w: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/expo-modules-core/android/src/main/java/expo/modules/kotlin/views/ViewManagerDefinition.kt:41:30 'fun reportExceptionToLogBox(codedException: CodedException): Unit' is deprecated. Use appContext.jsLogger.error(...) instead.
+
+> Task :expo-modules-core:compileDebugJavaWithJavac
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+
+> Task :expo-modules-core:bundleLibCompileToJarDebug
+
+> Task :ynx-social-native-matrix:compileDebugKotlin FAILED
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:115:30 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:118:18 Suspend function 'suspend fun enableAllSendQueues(enable: Boolean): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:119:9 Suspend function 'suspend fun closeRoom(h: YNXSocialMatrixModule.Handle): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:119:53 Suspend function 'suspend fun stop(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:120:18 Suspend function 'suspend fun pause(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:124:30 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:124:80 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:125:7 Suspend function 'suspend fun <T> withTimeout(timeMillis: Long, block: suspend CoroutineScope.() -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(block, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:158:28 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:158:65 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:160:30 Suspend function 'suspend fun roomDto(h: YNXSocialMatrixModule.Handle, room: Room): Map<String, Any?>' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:163:33 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:163:84 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:168:27 Suspend function 'suspend fun createRoom(request: CreateRoomParameters): String' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:169:56 Unresolved reference 'PRIVATE'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:173:18 Suspend function 'suspend fun awaitRoomRemoteEcho(roomId: String): Room' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:175:7 Suspend function 'suspend fun roomDto(h: YNXSocialMatrixModule.Handle, room: Room): Map<String, Any?>' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:178:34 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:178:83 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:180:7 Suspend function 'suspend fun closeRoom(h: YNXSocialMatrixModule.Handle): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:181:20 Suspend function 'suspend fun room(h: YNXSocialMatrixModule.Handle, id: String): Room' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:183:28 Suspend function 'suspend fun subscribeToSendQueueUpdates(listener: SendQueueListener): TaskHandle' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:200:29 Suspend function 'suspend fun timeline(): Timeline' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:202:33 Suspend function 'suspend fun addListener(listener: TimelineListener): TaskHandle' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:222:16 Suspend function 'suspend fun paginateBackwards(numEvents: UShort): Boolean' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:226:32 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:226:69 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:226:80 Suspend function 'suspend fun closeRoom(h: YNXSocialMatrixModule.Handle): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:228:31 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:228:110 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:231:20 Suspend function 'suspend fun room(h: YNXSocialMatrixModule.Handle, id: String): Room' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:237:22 Suspend function 'suspend fun send(msg: RoomMessageEventContentWithoutRelation): SendHandle' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:243:32 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:243:85 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:249:7 Suspend function 'suspend fun <T> withContext(context: CoroutineContext, block: suspend CoroutineScope.() -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(block, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:260:31 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:260:140 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:262:20 Suspend function 'suspend fun room(h: YNXSocialMatrixModule.Handle, id: String): Room' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:273:16 Suspend function 'suspend fun join(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:280:32 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:280:98 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:282:7 Suspend function 'suspend fun room(h: YNXSocialMatrixModule.Handle, id: String): Room' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:284:20 Suspend function 'suspend fun fetchDetailsForEvent(eventId: String): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:285:32 Suspend function 'suspend fun getEventTimelineItemByEventId(eventId: String): EventTimelineItem' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:290:42 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:290:93 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:292:33 Suspend function 'suspend fun getSessionVerificationController(): SessionVerificationController' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:307:18 Suspend function 'suspend fun requestUserVerification(userId: String): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:311:41 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:311:109 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:315:32 Suspend function 'suspend fun acceptVerificationRequest(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:316:31 Suspend function 'suspend fun startSasVerification(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:317:111 Suspend function 'suspend fun approveVerification(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:318:58 Suspend function 'suspend fun declineVerification(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:319:58 Suspend function 'suspend fun cancelVerification(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:325:29 Unresolved reference 'Coroutine'.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:325:66 Suspend function 'suspend fun <T> Mutex.withLock(owner: Any? = ..., action: () -> T): T
+    [R|Contract description]
+     <
+        CallsInPlace(action, EXACTLY_ONCE)
+    >' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:327:16 Suspend function 'suspend fun enableAllSendQueues(enable: Boolean): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:328:7 Suspend function 'suspend fun closeRoom(h: YNXSocialMatrixModule.Handle): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:328:51 Suspend function 'suspend fun stop(): Unit' can only be called from a coroutine or another suspend function.
+e: file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/YNXSocialMatrixModule.kt:329:16 Suspend function 'suspend fun logout(): Unit' can only be called from a coroutine or another suspend function.
+
+[Incubating] Problems report is available at: file:///private/tmp/ynx-social-native-matrix-qa.aZcKcz/android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':ynx-social-native-matrix:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.3.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 29s
+46 actionable tasks: 18 executed, 28 up-to-date

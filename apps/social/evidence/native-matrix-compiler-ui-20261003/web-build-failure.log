@@ -1,0 +1,12 @@
+
+> @ynx-chain/social@1.0.0 web:build
+> node web/build.mjs
+
+file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/build.mjs:16
+if(social?.clientId!=='ynx-social-v1'||social.applicationId!=='com.ynx.social'||social.webOrigin!=='https://social.ynxweb4.com'||JSON.stringify(social.scopes)!==JSON.stringify(scopes))throw new Error('SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH: integration owner must supply exact approved Social registry');
+                                                                                                                                                                                              ^
+
+Error: SOCIAL_REGISTERED_SCOPE_CARRIER_MISMATCH: integration owner must supply exact approved Social registry
+    at file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/build.mjs:16:191
+
+Node.js v26.7.0
