@@ -1,0 +1,7 @@
+BASELINE_FAIL legacy schema accepts REAL 1.5 and getLong-like conversion aliases integer 1
+PASS existing fractional snapshot rejects before numeric conversion and stays preserved
+PASS new schema rejects fractional, NULL, nonnumeric TEXT and overflowing REAL revisions
+PASS existing legitimate INTEGER snapshot retains exactly the same canonical header
+PASS full signed INTEGER range reads without floating point precision loss
+PASS negative revision and noncanonical row shape cannot be silently normalized
+PASS 5 actual SQLite canonical checkpoint regressions

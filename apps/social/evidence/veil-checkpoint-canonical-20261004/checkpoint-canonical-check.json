@@ -1,0 +1,45 @@
+{
+  "schema": "ynx-social-canonical-checkpoint-qa-v1",
+  "original_source": "be99a1ad56a559925152dcdbbef8800080c56e19",
+  "original_schema": "CREATE TABLE checkpoint (slot INTEGER PRIMARY KEY CHECK(slot=1),revision INTEGER NOT NULL CHECK(revision>=0))",
+  "updated_schema": "CREATE TABLE checkpoint (slot INTEGER PRIMARY KEY CHECK(typeof(slot)='integer' AND slot=1),revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=0))",
+  "read_sql": "SELECT slot,revision,typeof(slot) AS slot_type,typeof(revision) AS revision_type FROM checkpoint",
+  "preserved_baseline_fail": {
+    "revision_storage_type": "real",
+    "stored_revision": 1.5,
+    "truncated_revision": 1,
+    "alias_reproduced": true
+  },
+  "checks": [
+    {
+      "name": "existing fractional snapshot rejects before numeric conversion and stays preserved",
+      "result": "PASS"
+    },
+    {
+      "name": "new schema rejects fractional, NULL, nonnumeric TEXT and overflowing REAL revisions",
+      "result": "PASS"
+    },
+    {
+      "name": "existing legitimate INTEGER snapshot retains exactly the same canonical header",
+      "result": "PASS"
+    },
+    {
+      "name": "full signed INTEGER range reads without floating point precision loss",
+      "result": "PASS"
+    },
+    {
+      "name": "negative revision and noncanonical row shape cannot be silently normalized",
+      "result": "PASS"
+    }
+  ],
+  "sqlite_version": "3.53.4",
+  "actual_sqlite": true,
+  "integer_read_mode": "BigInt, never float conversion",
+  "canonical_header": "8-byte big-endian signed nonnegative Long, same as native ByteBuffer.putLong",
+  "not_proven": [
+    "Android Cursor runtime",
+    "authenticated checkpoint anchor or approved device provider",
+    "actual device exploit or secret exposure",
+    "activation or complete Social acceptance"
+  ]
+}

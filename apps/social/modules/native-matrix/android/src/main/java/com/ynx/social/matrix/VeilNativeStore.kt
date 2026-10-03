@@ -2,6 +2,7 @@ package com.ynx.social.matrix
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.security.keystore.KeyInfo
@@ -44,7 +45,7 @@ internal class VeilNativeStore(
       }
       override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE records (kind TEXT NOT NULL, id TEXT NOT NULL, sealed BLOB NOT NULL, PRIMARY KEY(kind,id))")
-        db.execSQL("CREATE TABLE checkpoint (slot INTEGER PRIMARY KEY CHECK(slot=1), revision INTEGER NOT NULL CHECK(revision>=0))")
+        db.execSQL("CREATE TABLE checkpoint (slot INTEGER PRIMARY KEY CHECK(typeof(slot)='integer' AND slot=1), revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision>=0))")
         db.execSQL("INSERT INTO checkpoint VALUES (1,0)")
       }
       override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -105,6 +106,7 @@ internal class VeilNativeStore(
 }
 
 internal enum class VeilRecordKind {
+  SOCIAL_IDENTITY, KEM_PREKEY_MODE,
   SESSION, IDENTITY_PIN, PREKEY, SIGNED_PREKEY, KEM_PREKEY, USED_KEM, OUTBOX, INBOX_RECEIPT,
 }
 
@@ -113,19 +115,19 @@ internal class VeilNativeTransaction(
   private val binding: VeilDeviceBinding,
   private val sealer: VeilRecordSealer,
   private val authorize: () -> Unit,
-) {
+) : VeilRecordTransaction {
   private val thread = Thread.currentThread()
   private var live = true
   internal var mutated = false
     private set
 
-  internal fun checkLive() {
+  override fun checkLive() {
     check(live && Thread.currentThread() === thread && db.inTransaction()) { "VEIL_TRANSACTION_INACTIVE" }
     authorize()
   }
   internal fun finish() { live = false }
 
-  fun read(kind: VeilRecordKind, id: String): ByteArray? {
+  override fun read(kind: VeilRecordKind, id: String): ByteArray? {
     checkLive()
     requireIdentifier(id, 1024)
     val present = db.query("records", arrayOf("length(sealed)", "typeof(sealed)"), "kind=? AND id=?", arrayOf(kind.name, id), null, null, null).use {
@@ -150,7 +152,7 @@ internal class VeilNativeTransaction(
   }
 
   /** Serialized native SDK records only. Never pass keys or plaintext across JS. */
-  fun write(kind: VeilRecordKind, id: String, bytes: ByteArray) {
+  override fun write(kind: VeilRecordKind, id: String, bytes: ByteArray) {
     checkLive()
     requireIdentifier(id, 1024)
     require(bytes.size in 1..MAX_RECORD_BYTES)
@@ -174,11 +176,28 @@ internal class VeilNativeTransaction(
     write(VeilRecordKind.OUTBOX, intentId, nativeWireEnvelope)
   }
 
-  fun remove(kind: VeilRecordKind, id: String) {
+  override fun remove(kind: VeilRecordKind, id: String) {
     checkLive()
     requireIdentifier(id, 1024)
     db.delete("records", "kind=? AND id=?", arrayOf(kind.name, id))
     mutated = true
+  }
+
+  override fun ids(kind: VeilRecordKind): List<String> {
+    checkLive()
+    db.rawQuery("SELECT COUNT(*),COALESCE(MAX(length(id)),0) FROM records WHERE kind=?", arrayOf(kind.name)).use {
+      check(it.moveToFirst())
+      require(it.getLong(0) in 0..4096 && it.getLong(1) in 0..1024)
+    }
+    return db.query("records", arrayOf("id"), "kind=?", arrayOf(kind.name), null, null, "id").use {
+      buildList {
+        while (it.moveToNext()) {
+          val id = it.getString(0)
+          requireIdentifier(id, 1024)
+          add(id)
+        }
+      }
+    }.also { checkLive() }
   }
 }
 
@@ -247,9 +266,13 @@ private fun storageCheckpoint(db: SQLiteDatabase, binding: VeilDeviceBinding): V
     check(it.moveToFirst())
     VeilRecordBudget.validate(it.getLong(0), it.getLong(1), it.getLong(2), it.getLong(3), it.getLong(4), it.getLong(5))
   }
-  val revision = db.rawQuery("SELECT slot,revision FROM checkpoint", null).use {
-    check(it.count == 1 && it.moveToFirst() && it.getLong(0) == 1L)
-    it.getLong(1).also { value -> require(value >= 0) }
+  val revision = db.rawQuery("SELECT slot,revision,typeof(slot),typeof(revision) FROM checkpoint", null).use {
+    check(it.count == 1 && it.moveToFirst()) { "VEIL_TRUSTED_CHECKPOINT_RECOVERY_REQUIRED" }
+    // Validate storage types BEFORE getLong; getLong can truncate REAL values.
+    check(it.getType(0) == Cursor.FIELD_TYPE_INTEGER && it.getType(1) == Cursor.FIELD_TYPE_INTEGER &&
+      it.getString(2) == "integer" && it.getString(3) == "integer") { "VEIL_TRUSTED_CHECKPOINT_RECOVERY_REQUIRED" }
+    check(it.getLong(0) == 1L) { "VEIL_TRUSTED_CHECKPOINT_RECOVERY_REQUIRED" }
+    it.getLong(1).also { value -> check(value >= 0) { "VEIL_TRUSTED_CHECKPOINT_RECOVERY_REQUIRED" } }
   }
   val digest = MessageDigest.getInstance("SHA-256")
   digest.update(bindingAAD(binding))

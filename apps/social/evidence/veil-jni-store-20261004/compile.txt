@@ -1,0 +1,1 @@
+native_port_jni_compile_and_check_exit=0
