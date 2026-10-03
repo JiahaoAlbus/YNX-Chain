@@ -25,16 +25,34 @@ func (s *Service) publicIdentity(account string) (string, error) {
 	if id := s.state.PublicIdentities[account]; id != "" {
 		return id, nil
 	}
-	id := "sp_" + base64.RawURLEncoding.EncodeToString(randomBytes(24))
-	for _, existing := range s.state.PublicIdentities {
-		if existing == id {
-			return "", ErrConflict
-		}
+	id, err := s.publicIdentityCandidateLocked(account)
+	if err != nil {
+		return "", err
 	}
 	before := cloneState(s.state)
 	s.state.PublicIdentities[account] = id
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return "", err
+	}
+	return id, nil
+}
+
+// Return a locator candidate without writing or persisting it. Business
+// mutations can include it in the original actor-bound rollback transaction.
+// Caller owns the original Social mutex.
+func (s *Service) publicIdentityCandidateLocked(account string) (string, error) {
+	normalized, err := nativewallet.NormalizeNativeAddress(account)
+	if err != nil || normalized != account {
+		return "", ErrInvalid
+	}
+	if id := s.state.PublicIdentities[account]; id != "" {
+		return id, nil
+	}
+	id := "sp_" + base64.RawURLEncoding.EncodeToString(randomBytes(24))
+	for _, existing := range s.state.PublicIdentities {
+		if existing == id {
+			return "", ErrConflict
+		}
 	}
 	return id, nil
 }

@@ -127,10 +127,6 @@ func (s *Service) setProfileContractAvatar(actor Session, originalKey, avatar st
 	if err := s.requireCurrentProductActor(actor, "social.profile"); err != nil {
 		return err
 	}
-	id, err := s.publicIdentity(actor.Account)
-	if err != nil {
-		return err
-	}
 	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
 		return err
 	}
@@ -152,6 +148,10 @@ func (s *Service) setProfileContractAvatar(actor Session, originalKey, avatar st
 		}
 		return nil
 	}
+	id, err := s.publicIdentityCandidateLocked(actor.Account)
+	if err != nil {
+		return err
+	}
 	current, exists := s.state.Settings[actor.Account]
 	if !exists {
 		current = ProfileSettings{Account: actor.Account, DiscoverableByHandle: true, AllowRecommendations: true, AllowRequestsFrom: "everyone"}
@@ -160,6 +160,7 @@ func (s *Service) setProfileContractAvatar(actor Session, originalKey, avatar st
 	current.ProfileQRPayload = socialLocatorPrefix + id
 	current.UpdatedAt = s.cfg.Now().UTC()
 	before := cloneState(s.state)
+	s.state.PublicIdentities[actor.Account] = id
 	s.state.Settings[actor.Account] = current
 	s.state.Idempotency[key] = idempotencyRecord{Action: "profile_avatar", Digest: digest, ObjectID: actor.Account}
 	s.appendAuditLocked("profile_avatar_updated", "settings", actor.Account, actor.Account, digest, current.UpdatedAt)

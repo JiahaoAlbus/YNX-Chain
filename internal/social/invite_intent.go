@@ -44,7 +44,9 @@ func (s *Service) createInvite(actor Session, ttl time.Duration, key string) (In
 		return Invite{}, "", ErrInvalid
 	}
 	digest := objectDigest(struct{ TTL int64 }{int64(ttl)})
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return Invite{}, "", err
+	}
 	defer s.mu.Unlock()
 	if s.stateWriteError != nil {
 		return Invite{}, "", s.stateWriteError
@@ -110,7 +112,9 @@ func (s *Service) ReadInvitations(actor Session, key string) (InvitationSnapshot
 	if key != "" && !identifierPattern.MatchString(key) {
 		return InvitationSnapshot{}, ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return InvitationSnapshot{}, err
+	}
 	defer s.mu.Unlock()
 	if err := s.requireCurrentProductActorLocked(actor, "social.contacts"); err != nil {
 		return InvitationSnapshot{}, err

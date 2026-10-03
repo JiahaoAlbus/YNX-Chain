@@ -317,16 +317,10 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 			profileHandle = profile.Handle
 		}
 	}
-	qrPayload := ""
-	if profileHandle != "" {
-		id, err := s.publicIdentity(actor.Account)
-		if err != nil {
-			return ProfileSettings{}, false, err
-		}
-		qrPayload = socialLocatorPrefix + id
-	}
 	digest := objectDigest(in)
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.profile"); err != nil {
+		return ProfileSettings{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 ProfileSettings
@@ -346,8 +340,17 @@ func (s *Service) SetSettings(actor Session, in ProfileSettingsInput) (ProfileSe
 		return s.state.Settings[actor.Account], true, nil
 	}
 	now := s.cfg.Now().UTC()
-	record := ProfileSettings{Account: actor.Account, DiscoverableByHandle: in.DiscoverableByHandle, ContactsMatching: in.ContactsMatching, AllowRecommendations: in.AllowRecommendations, AllowRequestsFrom: in.AllowRequestsFrom, AvatarURL: in.AvatarURL, ProfileQRPayload: qrPayload, UpdatedAt: now}
 	before := cloneState(s.state)
+	qrPayload := ""
+	if profileHandle != "" {
+		id, err := s.publicIdentityCandidateLocked(actor.Account)
+		if err != nil {
+			return ProfileSettings{}, false, err
+		}
+		s.state.PublicIdentities[actor.Account] = id
+		qrPayload = socialLocatorPrefix + id
+	}
+	record := ProfileSettings{Account: actor.Account, DiscoverableByHandle: in.DiscoverableByHandle, ContactsMatching: in.ContactsMatching, AllowRecommendations: in.AllowRecommendations, AllowRequestsFrom: in.AllowRequestsFrom, AvatarURL: in.AvatarURL, ProfileQRPayload: qrPayload, UpdatedAt: now}
 	s.state.Settings[actor.Account] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{"settings", digest, actor.Account}
 	s.appendAuditLocked("profile_privacy_updated", "settings", actor.Account, actor.Account, digest, now)
@@ -430,7 +433,9 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 		Input  ContactRequestInput
 		Target string
 	}{in, target})
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return ContactRequest{}, false, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 ContactRequest
@@ -498,7 +503,9 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 	if !contains([]string{"accept", "reject", "withdraw"}, action) {
 		return ContactRequest{}, ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return ContactRequest{}, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 ContactRequest
@@ -593,7 +600,9 @@ func (s *Service) relationshipAction(actor Session, target, action string) error
 	if err != nil || target == actor.Account {
 		return ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		return writeUnavailable

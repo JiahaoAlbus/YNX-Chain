@@ -11,7 +11,9 @@ func (s *Service) RevokeInvite(actor Session, id string) (Invite, error) {
 	if !identifierPattern.MatchString(id) {
 		return Invite{}, ErrInvalid
 	}
-	s.mu.Lock()
+	if err := s.lockAfterProductRevalidation(actor, "social.contacts"); err != nil {
+		return Invite{}, err
+	}
 	if writeUnavailable := s.stateWriteError; writeUnavailable != nil {
 		s.mu.Unlock()
 		var unavailableResult0 Invite
