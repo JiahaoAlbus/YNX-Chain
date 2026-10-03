@@ -241,6 +241,30 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
     assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
   }finally{await context.close()}
 });
+test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenced until readback',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const strategy={ID:'controlled-schedule-outage',Name:'Controlled schedule outage',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
+    let puts=0;const errors=[];
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/strategies/controlled-schedule-outage/schedule',route=>{puts++;return route.abort('failed')});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    const confirmation=page.waitForEvent('dialog'),click=page.locator('.schedule-toggle').click();await (await confirmation).accept();await click;
+    await page.waitForFunction(()=>document.querySelector('#toast').textContent===t('scheduleUnknown'));
+    await page.screenshot({path:path.join(evidence,'schedule-unconfirmed-en.png'),fullPage:true});
+    const locales=await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value));assert.equal(locales.length,12);
+    for(const language of locales){
+      await page.selectOption('#locale',language);
+      assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('scheduleUnknown')));
+      assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);
+      if(language==='ar')await page.screenshot({path:path.join(evidence,'schedule-unconfirmed-ar.png'),fullPage:true});
+    }
+    assert.equal(puts,1);await page.evaluate(()=>refresh());assert.equal(await page.locator('.schedule-toggle').isEnabled(),true);
+    assert.equal(puts,1);assert.deepEqual(errors,[]);assert.equal(context.pages().length,1);
+  }finally{await context.close()}
+});
+
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

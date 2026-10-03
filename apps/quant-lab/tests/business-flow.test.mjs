@@ -375,6 +375,32 @@ test('schedule confirmations are localized and changed or unsafe assumptions mak
   app.ids.get('fee').value='9007199254740992';app.context.confirm=()=>{throw Error('invalid values must not open confirmation')};await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
 });
 
+test('unconfirmed schedule failure keeps its recovery warning localized after language changes',async()=>{
+  const strategy=savedResearchStrategy();
+  const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:()=>true,apiResponse:url=>{if(url.endsWith('/snapshot'))return {strategies:{saved:strategy}};throw Error('internal transport detail');}});await settle();
+  app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';await app.schedule(strategy,true);
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("scheduleUnknown")',app.context));
+    assert.ok(app.ids.get('strategy-rows').innerHTML.includes(vm.runInContext('safe(t("scheduleUnknown"))',app.context)));
+  }
+  await app.schedule(strategy,true);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);assert.equal(app.proofs(),0);
+});
+
+test('schedule input and typed service rejection stay distinct and localize without another write',async()=>{
+  const strategy=savedResearchStrategy();
+  for(const rejected of [false,true]){
+    const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:()=>true,apiStatus:url=>rejected&&!url.endsWith('/snapshot')?400:200,apiResponse:url=>url.endsWith('/snapshot')?{strategies:{saved:strategy}}:{error:'invalid_research_parameters'}});await settle();
+    app.ids.get('fee').value=rejected?'10':'';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';await app.schedule(strategy,true);
+    const key=rejected?'researchInputInvalid':'scheduleInvalid';
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});
+      assert.equal(app.ids.get('toast').textContent,vm.runInContext(`t(${JSON.stringify(key)})`,app.context));
+    }
+    assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,rejected?1:0);assert.equal(app.proofs(),0);
+  }
+});
+
 test('blocked or silent storage cannot crash public research or grant Paper authority', async () => {
   for(const mode of ['get','set','remove','silent']){
     const app=harness({storageBoundary(operation){if(operation===mode)throw Error('Storage unavailable');if(mode==='silent'&&operation==='set')return false},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true},strategies:{},experiments:{},paper:{},audit:[]}:researchFixture('storage-public')});await settle();

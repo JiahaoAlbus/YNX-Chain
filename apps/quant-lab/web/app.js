@@ -825,7 +825,11 @@ $("#strategy-rows").addEventListener("click", async event => {
     snapshot.strategies = {...snapshot.strategies, [savedKey]:receipt};
     render();toast(t(enabled ? "scheduleConfigured" : "scheduleStopped"), enabled ? "scheduleConfigured" : "scheduleStopped");
     await refresh();
-  } catch (error) { if (sent) { snapshotRevision++; scheduleUnconfirmed.add(id); } toast(error.message); }
+  } catch (error) {
+    if (sent) { snapshotRevision++; scheduleUnconfirmed.add(id); }
+    const key=error.localeKey==='researchInputInvalid'?'researchInputInvalid':sent?'scheduleUnknown':'scheduleInvalid';
+    toast(t(key),key);
+  }
   finally { scheduleWrites.delete(id); render(); }
 });
 function renderRunDetails() {
