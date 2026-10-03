@@ -217,6 +217,42 @@ func TestMediaCombinedOriginalBrowserPrivateDecision(t *testing.T) {
 			x, y := elliptic.P256().ScalarBaseMult(device)
 			deviceKey := &ecdsa.PrivateKey{PublicKey: ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, D: d}
 			request.Header.Set(videoActionProofHeader, mediaSDKProof(t, session, deviceKey, request.Method, path, body, "combined_original_action_00000001", 25*time.Second, time.Now()))
+			// Exercise the shipped JS browser consumer with the actual Go identity
+			// response, then use its original CSRF/private headers in this real handler.
+			accountRequest := httptest.NewRequest("GET", session.Origin+"/api/sso/account", nil)
+			for _, cookie := range request.Cookies() {
+				accountRequest.AddCookie(cookie)
+			}
+			accountResult := httptest.NewRecorder()
+			browser.Account(accountResult, accountRequest)
+			if accountResult.Code != 200 {
+				t.Fatal("actual browser account read")
+			}
+			frontendIdentityReads := separate.Load()
+			if frontendIdentityReads != 1 {
+				t.Fatal("one original UI identity/CSRF read required")
+			}
+			consumerInput, err := json.Marshal(map[string]any{
+				"productId": product, "session": session, "accountBody": accountResult.Body.String(),
+				"accountHeaders": map[string]string{"content-type": accountResult.Header().Get("Content-Type"), "cache-control": accountResult.Header().Get("Cache-Control")},
+				"headers":        map[string]string{productSessionProofV2Header: request.Header.Get(productSessionProofV2Header), videoActionProofHeader: request.Header.Get(videoActionProofHeader)}, "expectedCSRF": original.CSRF,
+			})
+			if err != nil {
+				t.Fatal("bounded original consumer input")
+			}
+			consumer := exec.CommandContext(ctx, "node", "testdata/media-browser-binding-consumer.mjs")
+			consumer.Stdin = bytes.NewReader(consumerInput)
+			consumerOutput, err := consumer.Output()
+			if err != nil {
+				t.Fatal("actual shipped browser consumer rejected Go identity contract", err)
+			}
+			var consumerHeaders map[string]string
+			if json.Unmarshal(consumerOutput, &consumerHeaders) != nil || len(consumerHeaders) != 3 || consumerHeaders["X-YNX-SSO-CSRF"] != original.CSRF || consumerHeaders[productSessionProofV2Header] != request.Header.Get(productSessionProofV2Header) || consumerHeaders[videoActionProofHeader] != request.Header.Get(videoActionProofHeader) {
+				t.Fatal("original consumer proof or CSRF changed")
+			}
+			for name, value := range consumerHeaders {
+				request.Header.Set(name, value)
+			}
 			bind := func(_ context.Context, _ *http.Request, s productsessionv2.Session, b productsessionv2.BrowserGrant) (func(context.Context) error, error) {
 				if !reflect.DeepEqual(s, session) || !reflect.DeepEqual(b, original) {
 					return nil, ErrUnauthorized
@@ -252,7 +288,7 @@ func TestMediaCombinedOriginalBrowserPrivateDecision(t *testing.T) {
 					t.Fatal("accepted", failure)
 				}
 			}
-			if authorizations.Load() != 0 || combined.Load() != 0 || separate.Load() != 0 {
+			if authorizations.Load() != 0 || combined.Load() != 0 || separate.Load() != frontendIdentityReads {
 				t.Fatal("HTTP binding failures reached authority")
 			}
 			grant, err := authority.VerifyVideoBusiness(requestCtx, request, scope, strings.NewReader(body), int64(len(body)))
@@ -376,7 +412,7 @@ func TestMediaCombinedOriginalBrowserPrivateDecision(t *testing.T) {
 				t.Fatal("revocation changed original Store")
 			}
 
-			if separate.Load() != 0 || combined.Load() < 3 {
+			if separate.Load() != frontendIdentityReads || combined.Load() < 3 {
 				t.Fatal("combined read split into independent awaits")
 			}
 			t.Log("actual sealed PKCE callback; full original same-decision Session+BrowserGrant; original private Store; cancellation and outage hold; local generation veto; no separate identity/private read")
