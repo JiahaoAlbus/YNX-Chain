@@ -228,10 +228,17 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();const start=page.waitForEvent('dialog'),startClick=page.locator('.schedule-toggle').click();const startDialog=await start;assert.ok(startDialog.message().includes(strategy.StrategyHash));assert.match(startDialog.message(),/No Paper or Testnet order/);await startDialog.accept();await startClick;
     await page.getByText('Schedule request pending',{exact:true}).waitFor();await page.selectOption('#locale','ar');assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);assert.equal(await page.locator('.schedule-toggle').getAttribute('aria-busy'),'true');assert.equal(puts,1);
-    release();await page.locator('#toast').filter({hasText:'التنفيذ غير مثبت'}).waitFor();await page.waitForFunction(()=>document.querySelector('.schedule-toggle')?.disabled===false);assert.equal(await page.locator('.schedule-toggle').isDisabled(),false);assert.match(await page.locator('#strategy-rows').textContent(),/scheduled/);
+    release();await page.locator('#toast').filter({hasText:'التنفيذ غير مثبت'}).waitFor();await page.waitForFunction(()=>document.querySelector('.schedule-toggle')?.disabled===false);assert.equal(await page.locator('.schedule-toggle').isDisabled(),false);
+    assert.equal(await page.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime.lastRunStatus),'scheduled');
+    assert.ok((await page.locator('#strategy-rows').textContent()).includes(await page.evaluate(()=>t('scheduleQueued'))));
+    assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/scheduled/);
     const stop=page.waitForEvent('dialog'),stopClick=page.locator('.schedule-toggle').click();const stopDialog=await stop;assert.match(stopDialog.message(),/إيقاف/);await stopDialog.dismiss();await stopClick;assert.equal(puts,1);
-    const accepted=page.waitForEvent('dialog'),acceptedClick=page.locator('.schedule-toggle').click();await (await accepted).accept();await acceptedClick;await page.locator('#strategy-rows').filter({hasText:'stopped_by_user'}).waitFor();assert.equal(puts,2);
-    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();assert.match(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
+    const accepted=page.waitForEvent('dialog'),acceptedClick=page.locator('.schedule-toggle').click();await (await accepted).accept();await acceptedClick;
+    await page.waitForFunction(()=>Object.values(snapshot.strategies)[0]?.Runtime.lastRunStatus==='stopped_by_user'&&document.querySelector('#strategy-rows').textContent.includes(t('scheduleStopped')));assert.equal(puts,2);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    assert.equal(await page.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime.lastRunStatus),'stopped_by_user');
+    assert.ok((await page.locator('#strategy-rows').textContent()).includes(await page.evaluate(()=>t('scheduleStopped'))));
+    assert.doesNotMatch(await page.locator('#strategy-rows').textContent(),/stopped_by_user/);assert.equal(puts,2);
   }finally{await context.close()}
 });
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
@@ -298,16 +305,16 @@ test('mobile Arabic risk confirmation is localized and cancellation leaves persi
   await page.screenshot({path:path.join(evidence,'risk-arabic-confirmation-cancelled.png'),fullPage:true});
 });
 test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();await page.getByRole('button',{name:'Risk'}).click();await page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await page.getByText('Reconciliation completed: zero difference').waitFor();page.on('dialog',d=>d.accept());await page.getByRole('button',{name:'Activate kill switch'}).click();await page.getByText('Kill switch active').waitFor();await page.getByRole('button',{name:'Paper',exact:true}).click();await page.getByText('ACTIVE',{exact:true}).waitFor();await page.screenshot({path:path.join(evidence,'paper-kill-switch.png'),fullPage:true})});
-test('a delayed actual-service snapshot cannot hide a newer confirmed Paper kill switch',{timeout:15000},async()=>{
+test('confirmed actual-service kill survives follow-up network loss and delayed pre-write snapshot',{timeout:15000},async()=>{
   // Delay a real isolated Go response, not a fabricated risk-state result.
   const context=await browser.newContext();let release;
   const held=new Promise(resolve=>{release=resolve;});let captured;
   const capture=new Promise(resolve=>{captured=resolve;});
   try{
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
-    let holdNext=true;
+    let holdNext=true,failFollowup=true;
     await context.route('**/api/v1/snapshot',async route=>{
-      if(!holdNext)return route.continue();holdNext=false;
+      if(!holdNext){if(failFollowup){failFollowup=false;return route.abort('failed');}return route.continue();}holdNext=false;
       const response=await route.fetch();captured(await response.json());
       await held;await route.fulfill({response});
     });
@@ -316,7 +323,8 @@ test('a delayed actual-service snapshot cannot hide a newer confirmed Paper kill
     await page.getByRole('button',{name:'Risk',exact:true}).click();
     page.on('dialog',dialog=>dialog.accept());
     await page.getByRole('button',{name:'Activate kill switch',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('#paper-state').textContent.includes('ACTIVE'));
+    await page.waitForFunction(()=>document.querySelector('#paper-state').textContent.includes('ACTIVE')&&riskWrites.size===0);
+    assert.equal(failFollowup,false,'follow-up read really failed rather than refreshing away the display bug');
     release();await page.evaluate(()=>window.quantSnapshotTest);
     assert.match(await page.locator('#paper-state').textContent(),/ACTIVE/);
     await page.reload({waitUntil:'networkidle'});

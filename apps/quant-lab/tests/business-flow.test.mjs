@@ -408,6 +408,44 @@ test('risk receipt mismatch is unconfirmed and pending operations coalesce witho
   }
 });
 
+test('confirmed risk receipt survives failed follow-up read and late pre-write snapshot',async()=>{
+  for(const id of ['kill','reconcile']){
+    const old=deferred();let reads=0;
+    const before={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:false};
+    const confirmed={Cash:950,Position:2,ReconciliationDelta:id==='kill'?0:50,KillSwitch:true};
+    const app=harness({confirmAction:()=>true,apiResponse:url=>{
+      if(!url.endsWith('/snapshot'))return confirmed;
+      if(++reads===1)return {access:{statefulPreview:true},paper:before};
+      if(reads===2)return old.promise;
+      throw Error('Controlled follow-up network loss');
+    }});await settle();
+    const stale=vm.runInContext('refresh()',app.context);
+    await app.ids.get(id).onclick();
+    assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),true,'confirmed receipt is retained even when follow-up snapshot fails');
+    assert.equal(vm.runInContext('snapshot.paper.Cash',app.context),950);
+    old.resolve({access:{statefulPreview:true},paper:before});await stale;
+    assert.equal(vm.runInContext('snapshot.paper.KillSwitch',app.context),true,'old pre-write read cannot re-arm displayed risk');
+    assert.equal(vm.runInContext('snapshot.paper.ReconciliationDelta',app.context),confirmed.ReconciliationDelta);
+    assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1);
+    assert.equal(app.proofs(),0);
+  }
+});
+
+test('reconcile and kill share one pending risk lane so late receipts cannot cross another write',async()=>{
+  for(const firstId of ['kill','reconcile']){
+    const pending=deferred();let confirmations=0;
+    const receipt={Cash:1000,Position:0,ReconciliationDelta:0,KillSwitch:true};
+    const app=harness({confirmAction:()=>{confirmations++;return true},apiResponse:url=>url.endsWith('/snapshot')?{paper:receipt}:pending.promise});await settle();
+    const first=app.ids.get(firstId).onclick();
+    assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('reconcile').disabled,true);
+    await app.ids.get(firstId==='kill'?'reconcile':'kill').onclick();
+    assert.equal(app.calls.filter(c=>c.options.method==='POST').length,1);
+    assert.equal(confirmations,firstId==='kill'?1:0);
+    pending.resolve(receipt);await first;
+    assert.equal(app.ids.get('kill').disabled,false);assert.equal(app.ids.get('reconcile').disabled,false);
+  }
+});
+
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
   const experiment = researchFixture('public-test-result','Explicit synthetic UI fixture');
   const app = harness({apiResponse: async url => {

@@ -1200,15 +1200,22 @@ $("#testnet-order-form").onsubmit = async (e) => {
   }
 };
 function renderRiskControls() {
-  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.has(id); button.ariaBusy=String(riskWrites.has(id)); }
+  for(const id of ['reconcile','kill']) { const button=$('#'+id); button.disabled=!statefulPreview||riskWrites.size>0; button.ariaBusy=String(riskWrites.has(id)); }
 }
 function confirmedRiskReceipt(value) {
   if(!value||!Number.isSafeInteger(value.Cash)||!Number.isSafeInteger(value.Position)||!Number.isSafeInteger(value.ReconciliationDelta)||value.ReconciliationDelta<0||typeof value.KillSwitch!=='boolean'||value.ReconciliationDelta>0&&!value.KillSwitch) throw Object.assign(new Error(t('riskReceiptUnconfirmed')), {localeKey:'riskReceiptUnconfirmed'});
   return value;
 }
+function applyConfirmedRiskReceipt(receipt) {
+  // A confirmed write is newer than reads admitted before its completion.
+  // Keep that source receipt even if the subsequent snapshot transport fails.
+  snapshotRevision++;
+  snapshot.paper = receipt;
+  render();
+}
 $("#reconcile").onclick = async () => {
-  if (!statefulPreview || riskWrites.has('reconcile')) return;
-  riskWrites.add('reconcile');renderRiskControls();
+  if (!statefulPreview || riskWrites.size>0) return;
+  riskWrites.add('reconcile');snapshotRevision++;renderRiskControls();
   try {
     const receipt=confirmedRiskReceipt(await api("/v1/paper/reconcile", {
       method: "POST",
@@ -1217,6 +1224,7 @@ $("#reconcile").onclick = async () => {
         Position: snapshot.paper.Position,
       }),
     }));
+    applyConfirmedRiskReceipt(receipt);
     if(receipt.ReconciliationDelta===0) toast(t('reconciled'),'reconciled');
     else {const suffix=': '+String(receipt.ReconciliationDelta);toast(t('reconcileDifference')+suffix,'reconcileDifference',suffix)}
     await refresh();
@@ -1227,15 +1235,16 @@ $("#reconcile").onclick = async () => {
   }
 };
 $("#kill").onclick = async () => {
-  if (!statefulPreview || riskWrites.has('kill')) return;
+  if (!statefulPreview || riskWrites.size>0) return;
   if (!confirm(t("confirmKill"))) return;
-  riskWrites.add('kill');renderRiskControls();
+  riskWrites.add('kill');snapshotRevision++;renderRiskControls();
   try {
     const receipt=confirmedRiskReceipt(await api("/v1/risk/kill", {
       method: "POST",
       body: JSON.stringify({ reason: "operator user confirmation" }),
     }));
     if(!receipt.KillSwitch)throw Object.assign(new Error(t('riskReceiptUnconfirmed')),{localeKey:'riskReceiptUnconfirmed'});
+    applyConfirmedRiskReceipt(receipt);
     toast(t("killActive"), "killActive");
     await refresh();
   } catch (e) {
