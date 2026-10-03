@@ -85,8 +85,30 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     assert.doesNotMatch(await page.locator('#experiment-rows').textContent(),/Independent browser research/);
     assert.doesNotMatch(await otherPage.locator('#experiment-rows').textContent(),/Controlled lost-return research/);
     assert.deepEqual(otherErrors,[]);assert.equal(otherContext.pages().length,1);
+    // Exercise the actual simulation engine through its normal preview UI.
+    // No wallet provider, account grant or Exchange/chain write is involved.
+    await page.selectOption('#locale','en');await page.locator('nav button[data-view="paper"]').click();
+    await page.locator('#paper-strategy').selectOption(firstReceipt.strategy.StrategyHash);await page.locator('#paper-amount').fill('1000000');
+    const paperDialog=page.waitForEvent('dialog'),paperClick=page.locator('#paper-submit').click();
+    const paperConfirmation=await paperDialog;assert.match(paperConfirmation.message(),/Simulation only/);await paperConfirmation.accept();await paperClick;
+    await page.waitForFunction(()=>snapshot.paper?.Orders?.length===1);
+    const paperBefore=await page.evaluate(()=>snapshot.paper);
+    assert.equal(paperBefore.Orders[0].Amount,1000000);assert.equal(paperBefore.Orders[0].Source,'authoritative_market_adapter');
+    assert.equal(paperBefore.Orders[0].StrategyHash,firstReceipt.strategy.StrategyHash);
+    await otherPage.evaluate(()=>refresh());
+    const otherPaperBefore=await otherPage.evaluate(()=>snapshot.paper);
+    assert.equal(otherPaperBefore.Orders?.length??0,0);assert.equal(otherPaperBefore.KillSwitch,false);
+    await page.locator('nav button[data-view="risk"]').click();
+    const killDialog=page.waitForEvent('dialog'),killClick=page.locator('#kill').click();await (await killDialog).accept();await killClick;
+    await page.waitForFunction(()=>snapshot.paper?.KillSwitch===true);
+    const killedBefore=await page.evaluate(()=>snapshot.paper);
+    await stop();await start();await page.reload({waitUntil:'networkidle'});await otherPage.reload({waitUntil:'networkidle'});
+    assert.deepEqual(await page.evaluate(()=>snapshot.paper),killedBefore,'Paper fill and kill latch survive another complete service stop/start');
+    assert.deepEqual(await otherPage.evaluate(()=>snapshot.paper),otherPaperBefore,'one tenant Paper risk/fill cannot leak into the second browser');
+    await page.locator('nav button[data-view="paper"]').click();await page.locator('#paper-strategy').selectOption(firstReceipt.strategy.StrategyHash);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
+    assert.deepEqual(errors,[]);assert.deepEqual(otherErrors,[]);assert.equal(posts,2);
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
-  assert.equal(cleanStops,2,'both first and second service launches drain successfully');
+  assert.equal(cleanStops,3,'all three service launches drain successfully');
   const binaryBytes=await readFile(binary);
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
 });
