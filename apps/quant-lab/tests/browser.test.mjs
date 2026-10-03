@@ -69,7 +69,7 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
       posts++;const submitted=route.request().postDataJSON();
       const assumptions=Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]));
       if(posts===2)assumptions.FeeBPS++;
-      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
+      await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:posts===4?'Different response name':submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
     const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
@@ -82,6 +82,10 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
     const thirdResponse=page.waitForResponse(response=>response.url().endsWith('/backtests/from-market')&&response.request().method()==='POST');
     await page.locator('#research-submit').click();await thirdResponse;await page.waitForFunction(()=>document.querySelector('#backtest').getAttribute('aria-busy')==='false');
     assert.equal(posts,3);assert.match(await page.locator('#toast').textContent(),/Research result is unconfirmed/);assert.equal(await page.locator('#result-return').textContent(),'120 bps');assert.equal(await page.locator('#research-submit').isEnabled(),true);assert.equal(context.pages().length,1);
+    const fourth=page.waitForResponse(response=>response.url().endsWith('/backtests/from-market')&&response.request().method()==='POST');
+    await page.locator('#research-submit').click();await fourth;await page.waitForFunction(()=>document.querySelector('#backtest').getAttribute('aria-busy')==='false');
+    assert.equal(posts,4);assert.match(await page.locator('#toast').textContent(),/Research result is unconfirmed/);assert.equal(await page.locator('#result-return').textContent(),'120 bps');
+    assert.equal(await page.evaluate(()=>pendingResearchIntent!==null),true);
     await page.screenshot({path:path.join(evidence,'research-declared-receipt-mismatch.png'),fullPage:true});
   }finally{await context.close()}
 });
@@ -585,6 +589,7 @@ test('early public research retains temporary provenance in the real page throug
     });
     const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
+    await page.locator('#strategy').fill('Isolated UI research fixture');
     await page.locator('#fee').fill('34');await page.locator('#slippage').fill('17');await page.locator('#seed').fill('0');
     await page.getByRole('button',{name:'Run out-of-sample backtest',exact:true}).click();await startedResearch;
     releaseSnapshot();await page.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);

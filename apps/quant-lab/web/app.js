@@ -917,6 +917,7 @@ function researchRequestMatches(result, submitted) {
   return verifiedResearchResult(result) && result.status === "completed_oos" &&
     (submitted.idempotencyKey === undefined || result.researchRequestKey === submitted.idempotencyKey) &&
     result.strategy.ID === submitted.strategy.id &&
+    result.strategy.Name === submitted.strategy.name &&
     result.strategy.Family === submitted.strategy.family && result.strategy.Seed === submitted.strategy.seed &&
     result.strategy.Params && Object.keys(result.strategy.Params).sort().join(",") === "fast,slow" &&
     ["fast","slow"].every(key => result.strategy.Params[key] === submitted.strategy.params[key]) &&

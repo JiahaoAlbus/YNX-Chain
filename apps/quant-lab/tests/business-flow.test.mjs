@@ -140,7 +140,7 @@ test('malformed audit rows cannot crash the workspace, forge empty history or er
 
 test('completed research must bind the exact submitted strategy ID, not another run with identical parameters',async()=>{
   const app=harness();await settle();
-  const submitted={strategy:{id:'ma-current-request',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};
+  const submitted={strategy:{id:'ma-current-request',name:'run-receipt',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};
   const result=researchFixture('run-receipt');result.strategy.ID=submitted.strategy.id;
   app.context.matchResult=result;app.context.matchSubmitted=submitted;
   assert.equal(vm.runInContext('researchRequestMatches(matchResult,matchSubmitted)',app.context),true);
@@ -312,7 +312,15 @@ function harness({snapshot = {}, portfolioRead, apiResponse, rawSnapshot = false
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, AbortController, TextEncoder, setTimeout: () => 1, clearTimeout: () => {}, confirm: confirmAction,
     localStorage: {getItem: key => {storageBoundary?.('get',key);return storage.get(key) ?? null}, setItem: (key, value) => {if(storageBoundary?.('set',key)!==false)storage.set(key,value)}, removeItem: key => {storageBoundary?.('remove',key);storage.delete(key)}},
-fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; if (url.endsWith('/backtests/from-market') && body?.strategy) {const research=JSON.parse(options.body);body={...body,strategy:{...body.strategy,ID:body.strategy.ID??research.strategy.id},researchRequestKey:body.researchRequestKey??research.idempotencyKey};} const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, headers:new Headers({'content-type':'application/json'}), text:async()=>JSON.stringify(url.endsWith('/snapshot')&&!rawSnapshot ? {access: {statefulPreview: true}, ...body} : body)};},
+fetch: async (url, options) => {calls.push({url, options}); const submitted=url.endsWith('/paper/orders')?JSON.parse(options.body):null; let body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : submitted ? {...paperRecord({ID:'paper-000001',Price:1200000,Status:'filled',Filled:submitted.Amount}),...submitted} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)};
+    if (url.endsWith('/backtests/from-market') && body?.strategy) {
+      const research=JSON.parse(options.body);
+      // ID-less fixtures are response templates; bind their display name to the
+      // submitted request too. Explicit IDs/names and malformed names stay raw.
+      const Name=body.strategy.ID===undefined&&typeof body.strategy.Name==='string'&&body.strategy.Name.trim()?research.strategy.name:body.strategy.Name;
+      body={...body,strategy:{...body.strategy,Name,ID:body.strategy.ID??research.strategy.id},researchRequestKey:body.researchRequestKey??research.idempotencyKey};
+    }
+    const status = apiStatus(url); return {ok: status >= 200 && status < 300, status, headers:new Headers({'content-type':'application/json'}), text:async()=>JSON.stringify(url.endsWith('/snapshot')&&!rawSnapshot ? {access: {statefulPreview: true}, ...body} : body)};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -481,6 +489,19 @@ test('Paper intent persistence failure sends no order and disables durable works
   await app.submit('backtest');assert.equal(app.calls.at(-1).url,'/api/v1/public/research/backtests/from-market');
 });
 
+test('research rejects a different returned name without clearing pending saved intent or replacing verified output',async()=>{
+  let mismatch=false;
+  const app=harness({apiResponse:(url,options)=>{
+    if(url.endsWith('/snapshot'))return {access:{statefulPreview:true}};
+    const body=JSON.parse(options.body),result=researchFixture('name-bound-result',mismatch?'Different returned name':body.strategy.name);
+    if(mismatch)result.metrics.ReturnBPS=999;
+    result.strategy.ID=body.strategy.id;return result;
+  }});await settle();await app.submit('backtest');assert.equal(app.ids.get('result-return').textContent,'120 bps');
+  mismatch=true;app.ids.get('strategy').value='  Exact submitted name  ';await app.submit('backtest');
+  assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-request-status').hidden,false);assert.match(app.ids.get('toast').textContent,/unconfirmed/);
+  const prior=app.calls.filter(call=>call.options.method==='POST').at(-1).options.body;
+  mismatch=false;await app.submit('backtest');assert.equal(app.calls.filter(call=>call.options.method==='POST').at(-1).options.body,prior);assert.equal(app.ids.get('research-request-status').hidden,true);
+});
 test('one in-flight research request preserves its submitted inputs and mode across double clicks and language changes',async()=>{
   for(const saved of [false,true]){
     const pending=deferred();const app=harness({snapshot:{access:{statefulPreview:saved}},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:saved},strategies:{},experiments:{},paper:{},audit:[]}:pending.promise});await settle();
@@ -791,6 +812,7 @@ test('early public research stays temporary beside saved history after the initi
     assert.equal(url, '/api/v1/public/research/backtests/from-market');
     return research.promise;
   }});
+  app.ids.get('strategy').value=publicResult.strategy.Name;
   const submitted = app.submit('backtest');
   initialSnapshot.resolve(workspace); await settle();
   research.resolve(publicResult); await submitted;
