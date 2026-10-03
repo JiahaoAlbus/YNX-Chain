@@ -17,6 +17,7 @@ test('production factory has no Fetch fallback when the native module is absent'
 test('native routes are fixed enums and never caller-controlled URLs', async () => {
   const calls = [];
   globalThis.expo = { modules: { YnxFaucetTransport: {
+    productionEnabled: true, routeContractVersion: 2,
     reserveTask(route, purpose) { calls.push(['reserve', route, purpose]); return `${route}_task`; },
     request(input) { calls.push(['request', input.route, input.taskId]); return Promise.resolve({ url: input.route === 'primary' ? 'https://faucet-testnet.ynxweb4.com/request' : 'https://faucet.ynxweb4.com/request', redirected: false, status: 503, contentType: 'application/json', cacheControl: 'no-store', body: '{}' }); },
     cancel(route, taskId) { calls.push(['cancel', route, taskId]); },
@@ -39,4 +40,15 @@ test('readiness cannot be mutated into broader platform acceptance claims', () =
     productionEnabled: true, iosNativeAcceptanceVerified: false, publicRuntimeVerified: false,
   });
   assert.throws(() => { faucetTransportReadiness.publicRuntimeVerified = true; }, TypeError);
+});
+
+test('old single-route native binaries and disabled platforms are not called with the new recovery signature', () => {
+  let dispatches=0;
+  for(const metadata of [{},{productionEnabled:false,routeContractVersion:2},{productionEnabled:true,routeContractVersion:1}]){
+    globalThis.expo={modules:{YnxFaucetTransport:{...metadata,reserveTask(){dispatches++},request(){dispatches++},cancel(){dispatches++}}}};
+    assert.equal(createProductionFaucetTransport('primary'),null);
+    assert.equal(createProductionFaucetTransport('legacy'),null);
+  }
+  delete globalThis.expo;assert.equal(createProductionFaucetTransport(),null);
+  assert.equal(dispatches,0);
 });

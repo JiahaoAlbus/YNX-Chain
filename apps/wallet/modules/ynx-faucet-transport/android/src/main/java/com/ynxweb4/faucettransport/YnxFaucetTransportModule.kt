@@ -29,6 +29,7 @@ class YnxFaucetTransportModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("YnxFaucetTransport")
+    Constants("productionEnabled" to PRODUCTION_ENABLED, "routeContractVersion" to 2)
     Function("reserveTask") { route: String, purpose: String ->
       try {
         val taskId = enabledEngine(route).reserve(purpose)
@@ -70,7 +71,7 @@ class YnxFaucetTransportModule : Module() {
     private const val ADMIT_URL = "https://faucet-testnet.ynxweb4.com/request"
     private const val RPC_URL = "https://rpc-testnet.ynxweb4.com"
     // Compatibility identities remain frozen for an explicit same-request
-    // recovery release. This disabled bridge never auto-replays a POST.
+    // recovery release. This compiled bridge never auto-replays a POST.
     private const val LEGACY_ADMIT_URL = "https://faucet.ynxweb4.com/request"
     private const val LEGACY_RPC_URL = "https://rpc.ynxweb4.com/evm"
   }

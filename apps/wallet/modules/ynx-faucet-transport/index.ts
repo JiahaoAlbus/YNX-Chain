@@ -1,3 +1,4 @@
+import { resolveNativeModule } from "./nativeModuleResolver.js";
 export type FaucetHttpPurpose = "admit" | "rpc";
 export type FaucetEndpointRoute = "primary" | "legacy";
 export type FaucetReadMethod = "eth_chainId" | "ynx_getFaucetModel" | "ynx_getDurabilityModel" |
@@ -17,20 +18,20 @@ export interface NativeFaucetTransport {
 }
 
 type NativeFaucetModule = Readonly<{
+  productionEnabled: true;
+  routeContractVersion: 2;
   reserveTask(route: FaucetEndpointRoute, purpose: FaucetHttpPurpose): string;
   request(options: FaucetHttpRequest & Readonly<{ route: FaucetEndpointRoute }>): Promise<FaucetHttpResponse>;
   cancel(route: FaucetEndpointRoute, taskId: string): void;
 }>;
 
-let resolvedModule: NativeFaucetModule | undefined;
 function productionModule(): NativeFaucetModule | null {
-  if (resolvedModule) return resolvedModule;
-  const candidate = (globalThis as typeof globalThis & { expo?: { modules?: Record<string, unknown> } }).expo?.modules?.YnxFaucetTransport;
+  let candidate: unknown;
+  try { candidate = resolveNativeModule("YnxFaucetTransport"); } catch { return null; }
   if (!candidate || typeof candidate !== "object") return null;
   const value = candidate as Partial<NativeFaucetModule>;
-  if (typeof value.reserveTask !== "function" || typeof value.request !== "function" || typeof value.cancel !== "function") return null;
-  resolvedModule = value as NativeFaucetModule;
-  return resolvedModule;
+  if (value.productionEnabled !== true || value.routeContractVersion !== 2 || typeof value.reserveTask !== "function" || typeof value.request !== "function" || typeof value.cancel !== "function") return null;
+  return value as NativeFaucetModule;
 }
 
 /** The endpoint route is a fixed native enum, never a caller-provided URL.

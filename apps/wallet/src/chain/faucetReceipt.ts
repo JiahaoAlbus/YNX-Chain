@@ -33,24 +33,32 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
     const binding = data(expected, ["to", "amount"]);
     const tx = bindFaucetTransaction(binding, binding.to, binding.amount);
     const receipt = data(value, ["ynxDurability", "status", "transactionHash", "from", "to", "contractAddress", "blockNumber", "blockHash", "transactionIndex", "ynxNativeTransaction"]);
+    const native = data(receipt.ynxNativeTransaction);
+    const nativeFields = Reflect.ownKeys(native).sort().join();
+    const embedded = nativeFields === "amountYNXT,feeYNXT,from,identityProjection,nonce,to,type";
+    if(!embedded && nativeFields !== "amountYNXT,feeYNXT,nonce,type")invalid();
+    // Published nodes moved identity into the native receipt. Never accept
+    // conflicting duplicate locations or infer identity from its display address.
+    if(embedded && Object.hasOwn(receipt,"ynxNativeIdentity"))invalid();
     const proof = parseNativeDurabilityState(receipt.ynxDurability, tx.hash);
     if (proof.status !== "durable" || receipt.status !== "0x1" || receipt.transactionHash !== tx.hash ||
-      !matchesFaucetIdentity(receipt, tx) || receipt.to !== tx.to || receipt.contractAddress !== null ||
+      !matchesFaucetIdentity(receipt, tx, embedded ? native : undefined) || receipt.to !== tx.to || receipt.contractAddress !== null ||
       receipt.blockNumber !== proof.blockNumber || receipt.blockHash !== proof.blockHash) invalid();
     nativeQuantity(receipt.transactionIndex);
-    const native = data(receipt.ynxNativeTransaction);
-    if (Object.keys(native).sort().join() !== "amountYNXT,feeYNXT,nonce,type" || native.type !== "faucet" ||
+    if (native.type !== "faucet" ||
       native.amountYNXT !== String(tx.amount) || native.feeYNXT !== "0" || nativeQuantity(native.nonce) !== BigInt(tx.nonce)) invalid();
     return Object.freeze({ transactionHash: tx.hash, from: tx.from, to: tx.to, status: "0x1", contractAddress: null,
       transactionIndex: receipt.transactionIndex, blockNumber: proof.blockNumber, blockHash: proof.blockHash,
-      ynxDurability: proof, ynxNativeTransaction: Object.freeze({ ...native }) });
+      // Keep the established retained-proof representation and original journal
+      // schema. All wire identity variants are verified before normalization.
+      ynxDurability: proof, ynxNativeTransaction: Object.freeze({amountYNXT:native.amountYNXT,feeYNXT:native.feeYNXT,nonce:native.nonce,type:native.type}) });
   } catch { return invalid(); }
 }
 
-function matchesFaucetIdentity(receipt: Record<string, any>, tx: FaucetTransactionBinding): boolean {
-  if (receipt.from === tx.from) return !Object.hasOwn(receipt, "ynxNativeIdentity");
-  const identity = data(receipt.ynxNativeIdentity);
-  if (Object.keys(identity).sort().join() !== "from,identityProjection,to" || identity.from !== tx.from || identity.to !== tx.to) return false;
+function matchesFaucetIdentity(receipt: Record<string, any>, tx: FaucetTransactionBinding, embedded?:Record<string,any>): boolean {
+  if (!embedded && receipt.from === tx.from) return !Object.hasOwn(receipt, "ynxNativeIdentity");
+  const identity = embedded ?? data(receipt.ynxNativeIdentity);
+  if (!embedded && Reflect.ownKeys(identity).sort().join() !== "from,identityProjection,to" || identity.from !== tx.from || identity.to !== tx.to) return false;
   const expected = {
     version: "ynx-native-identity-projection-v1", fromSystemIdentity: true, toSystemIdentity: false,
     systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",

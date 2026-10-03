@@ -16,6 +16,7 @@ final class BoundedFaucetHttpBridge: @unchecked Sendable {
   }
 
   private static let PRODUCTION_ENABLED = true
+  static var productionEnabled: Bool { PRODUCTION_ENABLED }
   private let enabled: Bool
   private let makeEngine: () throws -> BoundedFaucetHttpEngine
   private let gate = DispatchQueue(label: "com.ynx.wallet.faucet.bridge")
@@ -189,6 +190,7 @@ public class YnxFaucetTransportModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("YnxFaucetTransport")
+    Constants(["productionEnabled": BoundedFaucetHttpBridge.productionEnabled, "routeContractVersion": 2])
     OnCreate {
       for bridge in [self.primary, self.legacy] {
         bridge.observeLifecycle(center: .default, names: .init(

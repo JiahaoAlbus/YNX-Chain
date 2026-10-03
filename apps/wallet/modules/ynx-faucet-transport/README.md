@@ -13,6 +13,17 @@ The local module is named `YnxFaucetTransport`. Expo's existing `./modules`
 discovery and `useExpoModules`/`use_expo_modules!` hooks discover it without
 editing app.json, package-lock, Android settings, or the Podfile.
 
+Metro now uses the platform resolver backed by Expo's
+`requireOptionalNativeModule`, inherited from the published Android source.
+The compiled bridge exports `productionEnabled` and `routeContractVersion: 2`.
+The JavaScript factory requires both along with the three native functions;
+an old single-route native binary is unavailable rather than being called with
+the new two-route signature. This requires a fresh native package, not an
+OTA-only JavaScript update. Missing/disabled modules have no Fetch fallback.
+These constants describe the compiled interface, not installed or public
+acceptance. Existing foreground, reservation, cancellation and endpoint checks
+still execute in native code for every operation.
+
 1. Synchronous `reserveTask("primary" | "legacy", "admit" | "rpc")` registers an opaque process-unique
    task ID before returning it. There are at most eight active reservations.
 2. Async `request(options)` consumes that reservation once. `options` is exactly

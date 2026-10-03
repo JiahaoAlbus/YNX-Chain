@@ -63,6 +63,23 @@ test("an explicitly unavailable configuration remains read-only even though the 
   assert.deepEqual({ ...f.counts, get: 0 }, { get: 0, set: 0, delete: 0, entropy: 0, session: 0, rpc: 0 });
   assert.equal(f.posts.length, 0); assert.equal(f.rows.size, 0);
 });
+
+test("normal Faucet journey accepts the published embedded-identity receipt and preserves its original across restart",async t=>{
+  const f=fixture(t);f.hooks.rpc=async(method,params)=>{
+    if(method==="eth_chainId")return"0x1917";
+    if(method==="ynx_getFaucetModel")return{...FAUCET_REQUEST_MODEL,authority:{configured:true,header:"X-YNX-Faucet-Auth",required:true,version:"ynx-faucet-core-token-v1"},batching:{acceptance:"after-durable-shared-checkpoint",collectionWindowMs:25,maxBatchSize:64,maxQueuedRequests:128,statusPath:"/v1/native-transactions/{hash}"}};
+    if(method==="ynx_getDurabilityModel")return NATIVE_DURABILITY_MODEL;
+    if(method==="ynx_getTransactionDurability")return durable(params[0]!);
+    return{transactionHash:params[0],from:"0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",to:address,status:"0x1",contractAddress:null,transactionIndex:"0x0",blockNumber:"0x1",blockHash:"0x"+"ab".repeat(32),ynxDurability:durable(params[0]!),ynxNativeTransaction:{type:"faucet",amountYNXT:"100",feeYNXT:"0",nonce:"0x0",from:"ynx_faucet",to:address,identityProjection:{version:"ynx-native-identity-projection-v1",fromSystemIdentity:true,toSystemIdentity:false,systemAddressDomain:"YNX_NATIVE_IDENTITY_PROJECTION_V1",systemAddressScheme:"last-20-bytes-sha256-nul-domain-exact-native-identity",systemAddressesAreDisplayOnly:true}}};
+  };
+  await f.flow.load();await f.flow.act("review");const original=f.flow.snapshot().view!.entry!;
+  await f.flow.act("submit");await f.flow.act("check");assert.equal(f.flow.allowed("complete"),true);
+  f.flow.cancel();const cold=f.make();await cold.load();assert.equal(cold.snapshot().view!.entry!.requestId,original.requestId);
+  assert.equal(cold.snapshot().view!.entry!.body,original.body);assert.equal(cold.allowed("complete"),false);
+  await cold.act("check");await cold.act("complete");assert.equal(cold.snapshot().view!.entry,null);
+  assert.deepEqual(cold.snapshot().view!.completedRequestIds,[original.requestId]);assert.equal(f.posts.length,1);
+  assert.equal(f.counts.entropy,1);assert.equal(f.counts.delete,0);assert.equal(cold.snapshot().view!.balanceVerified,false);
+});
 test("an explicitly unavailable configuration reads an original request without changing any bytes", async t => {
   const f = fixture(t, false), original = (await f.local.prepare(100, () => {})).entry!;
   const before = [...f.rows]; f.counts.set = 0; await f.flow.load();

@@ -100,6 +100,25 @@ test("capability or evidence origin mismatch cannot silently inherit a Faucet pr
   assert.throws(() => createFaucetDurabilityEvidence("https://rpc.ynxweb4.com", { ...NATIVE_DURABILITY_MODEL, consensusFinality: true }, item.minedReceipt, tx), FaucetReceiptInvalid);
 });
 
+test("published embedded native identity is verified without changing retained legacy receipt bytes",()=>{
+  const item=fixture.cases[0],tx=bindFaucetTransaction(item.admittedTransaction,item.admittedTransaction.to,100);
+  const embedded={...copy(item.minedReceipt),from:"0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",ynxNativeTransaction:{
+    ...item.minedReceipt.ynxNativeTransaction,from:tx.from,to:tx.to,identityProjection:{
+      version:"ynx-native-identity-projection-v1",fromSystemIdentity:true,toSystemIdentity:false,
+      systemAddressDomain:"YNX_NATIVE_IDENTITY_PROJECTION_V1",systemAddressScheme:"last-20-bytes-sha256-nul-domain-exact-native-identity",systemAddressesAreDisplayOnly:true,
+    },
+  }};
+  assert.deepEqual(parseFaucetDurableReceipt(embedded,tx),parseFaucetDurableReceipt(item.minedReceipt,tx));
+  const normalized=parseFaucetDurableReceipt(embedded,tx);assert.deepEqual(parseFaucetDurableReceipt(normalized,tx),normalized);
+  for(const change of [
+    (r:any)=>{r.ynxNativeIdentity={from:tx.from,to:tx.to,identityProjection:r.ynxNativeTransaction.identityProjection}},
+    (r:any)=>{r.from=tx.from},(r:any)=>{r.ynxNativeTransaction.from="ynx_other"},
+    (r:any)=>{r.ynxNativeTransaction.to="0x"+"22".repeat(20)},(r:any)=>{r.ynxNativeTransaction.nonce="0x1"},
+    (r:any)=>{r.ynxNativeTransaction.identityProjection.systemAddressesAreDisplayOnly=false},
+    (r:any)=>{r.ynxNativeTransaction.identityProjection.extra=true},(r:any)=>{r.ynxNativeTransaction.extra=true},
+  ]){const bad=copy(embedded);change(bad);assert.throws(()=>parseFaucetDurableReceipt(bad,tx),FaucetReceiptInvalid)}
+});
+
 test("inherited or accessor metadata cannot impersonate an acknowledged Faucet transaction", () => {
   const item = fixture.cases[0], original = item.admittedTransaction;
   assert.throws(() => bindFaucetTransaction(Object.create(original), original.to, 100), FaucetReceiptInvalid);
