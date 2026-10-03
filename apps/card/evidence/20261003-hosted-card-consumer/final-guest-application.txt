@@ -1,0 +1,86 @@
+- img "YNX":
+  - img "YNX"
+- generic: TESTNET / SANDBOX
+- generic: YNX Card
+- button "Language":
+- generic: YNX
+- generic: CARD
+- generic: TESTNET / SANDBOX
+- button "Explore YNX Card as guest":
+  - generic: Explore as guest
+- button "Connect a Standard EVM wallet":
+  - generic: Connect Wallet
+- tablist:
+  - tab "Overview" [selected]:
+    - generic: Overview
+  - tab "Virtual Card":
+    - generic: Virtual Card
+  - tab "Top up with YNXT":
+    - generic: Top up with YNXT
+  - tab "Activity":
+    - generic: Activity
+  - tab "Spending Controls":
+    - generic: Spending Controls
+  - tab "Security & Help":
+    - generic: Security & Help
+  - generic: TESTNET SANDBOX
+  - generic: No real funds, cards, merchants, settlement, PAN, CVV, or personal data.
+- heading "Your Testnet records" [level=1]
+- generic: Read-only sandbox records. Not a bank card or real payment service.
+- generic: A separate Card private authorization is required.
+- generic: YNX CARD / TESTNET SIMULATION
+- generic: Understand card flows before they touch the real world.
+- generic: Explore a safe virtual-card workspace for YNXT Testnet funding, controls, merchant simulations, and recovery. Guest mode is useful immediately; a wallet only enhances private services.
+- button "Try demo":
+  - generic: Try demo
+- button "Connect Wallet":
+  - generic: Connect Wallet
+- generic: Wallet optional for guest simulation
+- generic: VIRTUAL CARD / SIMULATION
+- generic: YNX
+- generic: •••• •••• •••• ••••
+- generic: ACCOUNT
+- generic: NOT CONNECTED
+- generic: STATUS
+- generic: DEMO ONLY
+- generic: No PAN, CVV, identity, balance, or real card data is shown.
+- generic: No spendable balance is available
+- generic: A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.
+- generic: What you can explore now
+- button "Top up with YNXT Preview the exact Testnet-only funding requirements. Explore":
+  - generic: Top up with YNXT
+  - generic: Preview the exact Testnet-only funding requirements.
+  - text: Explore
+- button "Merchant simulation Run local authorization, capture, reversal, and refund flows. Explore":
+  - generic: Merchant simulation
+  - generic: Run local authorization, capture, reversal, and refund flows.
+  - text: Explore
+- button "Spending controls Try simulated limits, online settings, freeze, and recovery. Explore":
+  - generic: Spending controls
+  - generic: Try simulated limits, online settings, freeze, and recovery.
+  - text: Explore
+- button "Activity & audit Review local demo events without a real transaction. Explore":
+  - generic: Activity & audit
+  - generic: Review local demo events without a real transaction.
+  - text: Explore
+- generic: How the sandbox works
+- generic: Try local simulation → review the local audit → connect a wallet only when you want an exact Testnet funding request or private Card service.
+- generic: Everything in guest mode is DEMO / SIMULATED. No real funds or merchant settlement.
+- alert:
+  - generic: Private Service Degraded
+  - generic: "Wallet: Card private services are unavailable. Standard Wallet and guest exploration remain independent. Your guest workspace remains available."
+- generic: Connect a wallet when you need it
+- generic: Guest simulation works without an account. Choose YNX Wallet or MetaMask only when you intentionally need a Standard EVM Wallet action.
+- button "Choose a wallet":
+  - generic: Choose a wallet
+- generic: Private services are optional
+- generic: If Product Session is unavailable, Guest mode and your Standard Wallet connection remain usable.
+- generic: Provider TEST Card
+- generic: A separate Wallet Product Session is required. A Standard EVM connection does not grant Card access.
+- button "Authorize Card TEST session":
+  - generic: Authorize Card TEST session
+- generic: Create a Testnet Card application
+- generic: A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.
+- button "Start application":
+  - generic: Start application
+- alert: Connect a Standard Wallet before starting a Testnet Card application on the web.

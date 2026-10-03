@@ -1,0 +1,28 @@
+{
+  "before": {
+    "hint": "_r_0_-hint",
+    "label": "_r_0_-title",
+    "radios": [
+      {
+        "checked": "false",
+        "tabIndex": "-1",
+        "text": "Compact"
+      },
+      {
+        "checked": "true",
+        "tabIndex": "0",
+        "text": "Standard"
+      },
+      {
+        "checked": "false",
+        "tabIndex": "-1",
+        "text": "Larger"
+      }
+    ],
+    "url": "http://localhost:19096/"
+  },
+  "after": {
+    "checked": "Larger",
+    "focused": "Larger"
+  }
+}

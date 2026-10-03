@@ -1,0 +1,27 @@
+✔ exact SDK mirror pin, no Card signing implementation (0.513125ms)
+✔ missing negotiated transport fails before challenge (0.61825ms)
+✔ reserve precedes backend/persistence and canonical public QA proof verifies (4.185166ms)
+✔ unsigned exact USER_REJECTED cannot authorize submit (1.188417ms)
+✔ wrong carrier version fails closed (0.437791ms)
+✔ reload recovery has no Wallet call or automatic submit (8.446291ms)
+✔ changed backend details fence explicit submit (4.456ms)
+✔ private session/device and per-user isolation (2.235375ms)
+✔ expired saved proof is not replayed (2.388542ms)
+✔ storage failure sends no approval RPC (0.322041ms)
+✔ late changed-context result leaves old pending fenced (0.313208ms)
+✔ callback is bound to exact original pending application (4.020584ms)
+✔ V1 YNXT application consumes an exact approval separately from Provider V2 (6.790292ms)
+✔ new private session requires explicit fresh review and retains the old context without reusing approval (2.920458ms)
+✔ wrong selected Hosted account cannot prepare a challenge or dispatch approval (0.092416ms)
+✔ connected/hinted adapter without negotiated capability cannot request Card review (1.135417ms)
+✔ review reservation is synchronous and uses exact SDK RPC, never browser navigation (0.244792ms)
+✔ old lease cannot dispatch after disconnect or account mutation (0.198541ms)
+✔ private Card RPC failure does not revoke Standard Connection (0.128625ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 300.063125

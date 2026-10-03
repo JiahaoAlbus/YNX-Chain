@@ -1,0 +1,26 @@
+[
+  {
+    "module": "card-application-approval-request.js",
+    "candidateSHA256": "7b2e52669baaa16d693873281ceec63a66c2245e537df604786800ab5e9446ed",
+    "consumerSHA256": "7b2e52669baaa16d693873281ceec63a66c2245e537df604786800ab5e9446ed",
+    "byteIdentical": true
+  },
+  {
+    "module": "card-application-approval.js",
+    "candidateSHA256": "cae568a89b20328a39b4d82f188952b4f95d4af0fe2c273c2ee611ec06e73938",
+    "consumerSHA256": "cae568a89b20328a39b4d82f188952b4f95d4af0fe2c273c2ee611ec06e73938",
+    "byteIdentical": true
+  },
+  {
+    "module": "canonical.js",
+    "candidateSHA256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+    "consumerSHA256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+    "byteIdentical": true
+  },
+  {
+    "module": "crypto.js",
+    "candidateSHA256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560",
+    "consumerSHA256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560",
+    "byteIdentical": true
+  }
+]

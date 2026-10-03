@@ -1,0 +1,39 @@
+{
+  "source": "589a368c24f61431b4e8b2b2d9580f8a0dbf4a59",
+  "guest": {
+    "hasCJK": false,
+    "privatePanelVisible": false,
+    "url": "http://localhost:19097/"
+  },
+  "typography": {
+    "checked": [
+      {
+        "checked": "false",
+        "label": "Compact",
+        "tabIndex": "-1"
+      },
+      {
+        "checked": "false",
+        "label": "Standard",
+        "tabIndex": "-1"
+      },
+      {
+        "checked": "true",
+        "label": "Larger",
+        "tabIndex": "0"
+      }
+    ],
+    "describedBy": "_r_0_-hint",
+    "focus": "Larger",
+    "labelledBy": "_r_0_-title"
+  },
+  "chooser": {
+    "createdCount": 0,
+    "url": "http://localhost:19097/",
+    "ynxVisible": true,
+    "metamaskVisible": true
+  },
+  "consoleErrors": [],
+  "privateApprovalAttempted": false,
+  "publicRuntime": false
+}

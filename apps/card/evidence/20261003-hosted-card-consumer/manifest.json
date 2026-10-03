@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-03T08:33:47.269Z",
+  "qualification": "OWNED_SOURCE_AND_LOCAL_QA_ONLY_NOT_PRODUCT_COMPLETION",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "sourceCommit": "a392d7cc8ccea0f678fb77c5b3c181c2340c807c",
+  "sourceTree": "7af9cdb03b9c6eb5edaf1e27ab2b4b3f0dca4ce5",
+  "startingCommit": "83a9e8b62514be80fbcc2328bd35dae3983a61b3",
+  "remoteSourceReadback": "a392d7cc8ccea0f678fb77c5b3c181c2340c807c",
+  "sdk": {
+    "upstream": "@ynx-chain/wallet-auth",
+    "baseCommit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+    "sourceRootSHA256": "d7073a63dd30094584b1ccada77f7746cc36bc3e747a44a485d1c1bd3d705bfe",
+    "reviewSHA256": "16a488fb5432370e680ae99849d347ed0e90a46bdcb1df3bc94ceba790677267",
+    "reviewVerdict": "SOURCE_ADMISSION_PASS_COMPLETE_HOSTED_CARD_CANDIDATE_ONLY",
+    "mirrorPath": "apps/card/vendor/hosted-wallet-adapter-card-9555.js",
+    "mirrorBytes": 26269,
+    "mirrorSHA256": "d42e9cea979cd370efb55a6a628f838c8fd0f4b4d6d466f93f3d17a357b2f26a",
+    "typesBytes": 1276,
+    "typesSHA256": "1caf6e97fc15a2f3b8433af8f87b1d769332934fadea9ffb777394517f10f18b",
+    "canonicalModulesByteIdenticalToCandidate": true,
+    "packageRegistryPublished": false
+  },
+  "sourceBehaviors": [
+    "Real negotiated capability, not stored hint",
+    "User gesture reserve before async journal/challenge I/O",
+    "Exact selected EVM account matches authenticated native owner",
+    "Current private/device-session context and selection epoch fenced around awaits",
+    "Complete canonical V1/V2 request and immutable server-record binding saved before SDK RPC",
+    "Original providerCallback invokes accepted strict verifier for approve/reject",
+    "Terminal return saved before backend result acceptance",
+    "Cold recovery has no Wallet launch or automatic Card submit",
+    "Separate explicit submit rereads record/status and retains original idempotency key",
+    "Creation unknown/retry/new intent separated; original body/key retained; no cold automatic POST",
+    "Fresh private context needs new review; old journal archived and never used as current authority",
+    "Failure journal contains bounded safe code, never arbitrary developer message",
+    "Standard connection remains intact on Card/private method failure"
+  ],
+  "tests": {
+    "frontend": {
+      "command": "npm test",
+      "suites": [
+        273,
+        39,
+        12,
+        11
+      ],
+      "passed": 335,
+      "failed": 0,
+      "skipped": 0
+    },
+    "backend": {
+      "command": "npm run test:backend",
+      "passed": 107,
+      "failed": 0,
+      "skipped": 0,
+      "qualification": "Unchanged backend source/contract regression, no public backend receipt"
+    },
+    "finalConsumerTargets": {
+      "passed": 19,
+      "failed": 0
+    },
+    "typecheck": {
+      "client": true,
+      "server": true
+    },
+    "softwareQA": {
+      "deterministicPublicScalarOnly": true,
+      "fixtureTime": "2026-09-25T12:00:02.000Z",
+      "realWalletSignature": false
+    },
+    "vmFixtureQualification": "Existing Guest read-only suite isolates the new Core component; separate actual Core renderer tests exercise it. Core VM fixture normalizes cross-realm plain inputs only; canonical authority/outputs remain real."
+  },
+  "localBrowser": {
+    "witnessSourceCommit": "589a368c24f61431b4e8b2b2d9580f8a0dbf4a59",
+    "finalSourceUIBlobParity": [
+      {
+        "path": "apps/card/App.tsx",
+        "blob": "b7482869973627e34356b79e2722412bb8c18a06",
+        "byteUnchangedFromBrowserWitness": true
+      },
+      {
+        "path": "apps/card/src/cardTypography.tsx",
+        "blob": "ed76aad190c83eed9b47bca3a55ab938cc196a43",
+        "byteUnchangedFromBrowserWitness": true
+      },
+      {
+        "path": "apps/card/src/GuestExperience.tsx",
+        "blob": "506b301c7b7d49a700ed9698a640d508dbd8dc48",
+        "byteUnchangedFromBrowserWitness": true
+      },
+      {
+        "path": "apps/card/src/CoreCardApplicationExperience.tsx",
+        "blob": "7a1532d871a733ccc75f4a2aafe1456da6116c82",
+        "byteUnchangedFromBrowserWitness": true
+      },
+      {
+        "path": "apps/card/src/CardBusinessExperience.tsx",
+        "blob": "1d34d22aee15fdba8faaebc303a89f2db9765d7b",
+        "byteUnchangedFromBrowserWitness": true
+      },
+      {
+        "path": "apps/card/src/ProviderExperience.tsx",
+        "blob": "51433f272b3668f2294079e4a74e753c0ec99909",
+        "byteUnchangedFromBrowserWitness": true
+      }
+    ],
+    "desktopWidth": 1440,
+    "mobileWidth": 390,
+    "englishDefaultNoVisibleCJK": true,
+    "radioGroupNamedAndDescribed": true,
+    "explicitCheckedAndRovingTabIndex": true,
+    "arrowAndHomeEndFocus": true,
+    "guestAndNoAccountBoundary": true,
+    "chooserDistinctBranding": true,
+    "chooserCreatedTabs": 0,
+    "consoleErrors": 0,
+    "privatePanelVisible": false,
+    "qualification": "Real IAB local preview only. UI blobs unchanged from589 to final; callback/owner changes validated by source tests, not real Wallet/private UI proof.",
+    "temporaryTabsClosed": true,
+    "ownPreviewProcessesStopped": true
+  },
+  "formalAuthority": {
+    "buildOwner": "A",
+    "deploymentOwner": "A",
+    "noFormalBuildRun": true,
+    "noPublicDeploymentAttempt": true,
+    "canonicalTarget": "https://card.ynxweb4.com/"
+  },
+  "falseGates": {
+    "realAccountApproval": false,
+    "realWalletSign": false,
+    "realPrivateGrant": false,
+    "realBackendApplicationReceipt": false,
+    "realCardActive": false,
+    "realYNXTTopUp": false,
+    "realYNXTTx": false,
+    "realProviderFunding": false,
+    "realPAN": false,
+    "realCVV": false,
+    "fiat": false,
+    "realMerchantPayment": false,
+    "realCardNetwork": false,
+    "publicRuntime": false,
+    "installedRuntime": false,
+    "migratedV2": false,
+    "productComplete": false,
+    "computerControl": false
+  },
+  "remaining": [
+    "A must bind formal Wallet source9555 and matching TEST backend to this exact Card source and publish under current authority",
+    "Direct user-confirmed Wallet/private approval and backend receipt/public cold recovery still unverified",
+    "Native/Pair compatibility and installed lifecycle not promoted by Hosted Web source",
+    "Core creation read-only state cannot prove an unknown operation by similar details; only exact idempotent response confirms it",
+    "Historical revocation is not inferred; current backend private/device proof remains mandatory",
+    "GitHub remote reports285 default-branch advisories (1critical/212high/66moderate/6low); not a Card-scoped dependency audit"
+  ],
+  "files": [
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/backend-contract.log",
+      "bytes": 10245,
+      "SHA256": "ccef78c478c794052ea8c75ee0cfd69661525e098f8feafdf87a75e58b2f3c05"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/canonical-source-closure.json",
+      "bytes": 1023,
+      "SHA256": "c25df98037db2d721f2b18274917df066f5fec37fd090f806edbd2466e8748f4"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-consumer-targets.log",
+      "bytes": 1582,
+      "SHA256": "411bfd11579d517ec4c4fe0870fc0c6c457679e92991aaadb3295e721a208cad"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-guest-application-mobile.jpg",
+      "bytes": 54561,
+      "SHA256": "662b4562634f45000d217ba83e372f649f35b3a6514c811fc6adfe9641583190"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-guest-application.txt",
+      "bytes": 4223,
+      "SHA256": "bc55d00d11cdcb83e6e2a580cb4036bcdf2baaca088f07deef7e171de203d56d"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-guest-desktop.jpg",
+      "bytes": 91033,
+      "SHA256": "a5dd989a592124f0cb4a20b46bdfe1f93f7cf0ac777a90d4d095e4dbc24ef5ac"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-local-browser.json",
+      "bytes": 813,
+      "SHA256": "336d1964328ad518ac27e8867c520c55701d49187141d9aebd2516db3c542bba"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-local-preview.log",
+      "bytes": 1174,
+      "SHA256": "b950025d8b7eb77a055aa9842b86008c9f54e3ef1d0693f95c427d62dc459640"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-typography-desktop.jpg",
+      "bytes": 36152,
+      "SHA256": "460b0b89e3de7d3c95da22245cc5ec71389400a567f1cbdd33db33e0d6283c70"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-typography-mobile.jpg",
+      "bytes": 26938,
+      "SHA256": "24e22c5de584ecc1a0157be8c487cfd024c91e8414c3c85a29e18391c6e46aa9"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/final-wallet-chooser-mobile.jpg",
+      "bytes": 51528,
+      "SHA256": "a98b8c297c7c5d0dcc4d102390f1e24ac1b5475f4866dabefbbe8fd96ca1cea5"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/guest-chooser-mobile.jpg",
+      "bytes": 51509,
+      "SHA256": "3af879afba1b5a94030f54b495fec3f0e8290a7ff515cf4a22f808086489d251"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/local-nonsensitive-browser.json",
+      "bytes": 171,
+      "SHA256": "9045f4f83819edf70146511b9add71fb5530f35f28e08ce7e66d4d65ac807d0f"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/local-preview.log",
+      "bytes": 1008,
+      "SHA256": "51fb85e3ebbc26794276769cc439d00628c4e315fdfbb9f318c920f43cc7071a"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/typecheck.log",
+      "bytes": 177,
+      "SHA256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/typography-browser.json",
+      "bytes": 490,
+      "SHA256": "baeac4434724821a63f8d63a76f332f0c0829a6168d9c7b8daf80153b4095eec"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/typography-desktop.jpg",
+      "bytes": 36152,
+      "SHA256": "460b0b89e3de7d3c95da22245cc5ec71389400a567f1cbdd33db33e0d6283c70"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/typography-mobile.jpg",
+      "bytes": 26938,
+      "SHA256": "2570ee3f9af8e700f660a7040abdeba5dbae7bd20accd2f7c352eb4b940c6709"
+    },
+    {
+      "path": "apps/card/evidence/20261003-hosted-card-consumer/unit-regression.log",
+      "bytes": 45101,
+      "SHA256": "38e2bbe2fcf87c667232426d1dd04ad5c06e2a929395b1f4ddede431f8b7d46f"
+    }
+  ]
+}
