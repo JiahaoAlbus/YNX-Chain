@@ -1,0 +1,36 @@
+{
+  "status": "PUBLIC_RESOURCE_BYTES_MATCH_HISTORICAL_SOURCE_ONLY",
+  "target": "https://social.ynxweb4.com/",
+  "observationDate": "2026-10-03",
+  "uiEvidenceCommit": "10bc5278f82eecb44c19340f10f4c3d7b5201187",
+  "matchingKnownSourceCommits": ["e7756cb387233376c03043c54fb8b051c241e94e", "75bd5e7dac24fd5cc29aaf403234d8778b0bfdce"],
+  "uniqueDeployedCommit": null,
+  "deployedTree": null,
+  "deploymentId": null,
+  "currentArtifactAndRollbackIdentity": null,
+  "resources": [
+    {"path":"index.html","bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b","gitBlob":"3c05492a95c89afddf0e55cac33726d8fa6811cc"},
+    {"path":"app.js","bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d","gitBlob":"c7189079842026cc2edf1ed0ecad52ab0e8d9b03","retainedAt":"apps/social/evidence/public-entry-readonly-20261003/public-app.js"},
+    {"path":"wallet-provider.js","bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75","gitBlob":"9ec356e2d1975b7a7c1c2cfcbc9fe2e96c1659bf"},
+    {"path":"styles.css","bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42","gitBlob":"e37325a640bad3ff2a8707ef3d862dc132c8a9ff"},
+    {"path":"assets/ynx-wallet.svg","bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb","gitBlob":"31244000a7f815f45fddbfe1d7639fc7468ee06e"},
+    {"path":"assets/metamask.svg","bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21","gitBlob":"265242b4b17ad3cc6ebc73d51fdcc94f87c8b6f1"}
+  ],
+  "historicalCarrier": {
+    "commit":"cf27c8ca54e36d8f659b86b36ce1b6bc777a8974",
+    "tree":"14f476d96b957e23e7640a2dc5c1cd317d39d82e",
+    "parent":"ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+    "artifactPath":"apps/social/evidence/release-candidates/ynx-social-ecffe336.tar.gz",
+    "artifactBlob":"c79546f4f7762fb64e105b1868ded3760ef0689a",
+    "requestBlob":"bcbbf5206bc1097d84cce0ebd9d237e06caa0fba",
+    "artifactBytes":921443,
+    "artifactSHA256":"ff94c7ab3b93b6f953b2ec25af896a6408219809f9df9ea59933f53eebb1235e",
+    "localGitBytesVerified":true,
+    "deploymentAuthorized":false,
+    "stalePublicIdentityDate":"2026-08-22"
+  },
+  "sensitiveWalletActionsPerformed": false,
+  "deploymentPerformed": false,
+  "sourceBoundFullE2E": false,
+  "MONSTER":"NOT_RUN"
+}
