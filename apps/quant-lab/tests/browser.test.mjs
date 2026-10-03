@@ -22,6 +22,22 @@ test('actual Chrome reads controlled persisted Paper records without creating or
     assert.equal(posts,0);await page.screenshot({path:path.join(evidence,'paper-records-controlled-local.png'),fullPage:true});
   }finally{await context.close()}
 });
+test('actual Chrome requires explicit Paper preview confirmation and preserves an uncertain confirmed intent',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    const hash='d'.repeat(64);let posts=0;
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/paper/orders',async route=>{posts++;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled uncertain service outcome"}'})});
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','sell');await page.locator('#paper-amount').fill('1234567');
+    const dialogPromise=page.waitForEvent('dialog'),cancelClick=page.locator('#paper-submit').click();const dialog=await dialogPromise;
+    assert.equal(dialog.type(),'confirm');assert.ok(dialog.message().includes(hash));assert.match(dialog.message(),/1234567/);assert.match(dialog.message(),/10%/);assert.match(dialog.message(),/does not deduct commission\/gas or model slippage/);
+    await dialog.dismiss();await cancelClick;assert.equal(posts,0);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),0);
+    const confirmed=page.waitForEvent('dialog'),confirmClick=page.locator('#paper-submit').click();await (await confirmed).accept();await confirmClick;
+    await page.getByText('Controlled uncertain service outcome',{exact:true}).waitFor();assert.equal(posts,1);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
+    await page.selectOption('#locale','ar');const retry=page.waitForEvent('dialog'),retryClick=page.locator('#paper-submit').click();const retryDialog=await retry;assert.match(retryDialog.message(),/تأكيد/);await retryDialog.dismiss();await retryClick;assert.equal(posts,1);
+    assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);
+  }finally{await context.close()}
+});
 test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{

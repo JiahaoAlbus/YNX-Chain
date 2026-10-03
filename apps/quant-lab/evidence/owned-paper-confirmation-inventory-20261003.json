@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-quant-lab",
+  "kind": "OWNED_EXPLICIT_PAPER_CONFIRMATION",
+  "predecessor": "e7a3b08c7770c985b394b31edd371fce27848db0",
+  "sourceIdentity": "Immutable commit containing this inventory",
+  "inventory": [
+    {"path":"apps/quant-lab/web/app.js","bytes":90327,"sha256":"6b6ded9a90a78c3805e1a590849524830f854457ec016384d2a60ba13bb2b5a3","blob":"1165bb13829aa1a9c5f21997ccbad8187e7c7dad"},
+    {"path":"apps/quant-lab/web/index.html","bytes":26488,"sha256":"5fdd74f700c92fe53b59f2fc220900f40de01e6629a25bf4f770b54986c82243","blob":"13c2e14251a31839da99cb3e919dd6b11375dfbf"},
+    {"path":"apps/quant-lab/web/i18n.js","bytes":25372,"sha256":"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca","blob":"f494c458ee6249b778e688c60df1b440bd64f0b6"},
+    {"path":"apps/quant-lab/web/styles.css","bytes":10510,"sha256":"add12048478bc591393cc9f95c13ed54abbc3c76962e1fb93ea8b1657fb071fd","blob":"ae46e896bcbd6e76dc767c1447cab739f599ea2f"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","bytes":39268,"sha256":"1d3da124e26edc25d59f6121fce5f0f91eee32f4f0623a0d254215edf729f9b3","blob":"c6b77d9e8d5c78ec48b691615b1d676317a094a7"},
+    {"path":"apps/quant-lab/tests/browser.test.mjs","bytes":29219,"sha256":"e54567119319d9a4e321b8f1f57322b198e68876c7bae6ed1e296e6f91fcb258","blob":"56e6576cd16452817ed65d04a53422d58dcfd8f5"}
+  ],
+  "tests":{"command":"node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs","pass":39,"fail":0,"skip":0,"durationMs":45972.590667},
+  "boundaries":{"explicitConfirmBeforeIntentAndPost":true,"cancelRetainsUncertainIntent":true,"changedInputsOrAccessFailClosed":true,"noExecutableQuoteInvented":true,"missingCommissionGasSlippageModelDisclosed":true,"twelveLocaleCopy":true,"noNewEngineAuthorityAPI":true,"controlledBrowserBoundaryNotOrderExecution":true},
+  "releaseOwner":"wallet_release_owner A",
+  "truth":{"sourceLocalQA":true,"currentSourcePublic":false,"installed":false,"realProviderApproval":false,"realProductSession":false,"realCapitalOrOrders":false,"computerControl":false,"userAcceptance":false},
+  "rollback":"Normal reviewed revert plus coherent A rebuild; no production mutation."
+}

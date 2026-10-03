@@ -249,6 +249,7 @@
                 assumptions. No order reaches the Exchange API.
               </p>
               <p class="lead" data-business-i18n="paperWorkspaceLead">This browser's Paper workspace is stored by the Quant service. It is independent of the connected wallet; changing wallets does not change or transfer its simulated funds.</p>
+              <p class="notice" data-business-i18n="paperExecutionBoundary">Simulation only; no Exchange or chain transaction. Amount is in integer micro-units. There is no executable price quote: the service reads the market at submission, limits fills to 10% of source volume and applies position/notional limits. The Paper engine does not deduct commission/gas or model slippage; this is not a cost-inclusive execution forecast.</p>
               <form id="paper-order">
                 <div class="fields">
                   <label><span data-business-i18n="strategy">Saved strategy</span><select id="paper-strategy" required></select></label>

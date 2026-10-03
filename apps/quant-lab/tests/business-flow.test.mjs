@@ -99,7 +99,7 @@ test('blocked or silent storage cannot crash public research or grant Paper auth
 });
 
 test('Paper intent persistence failure sends no order and disables durable workspace actions', async()=>{
-  let denied=false;const hash='d'.repeat(64),app=harness({snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},storageBoundary(operation,key){if(denied&&operation==='set'&&key.startsWith('ynx.quant.paper.pending'))throw Error('Quota exceeded')}});await settle();
+  let denied=false;const hash='d'.repeat(64),app=harness({confirmAction:()=>true,snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},storageBoundary(operation,key){if(denied&&operation==='set'&&key.startsWith('ynx.quant.paper.pending'))throw Error('Quota exceeded')}});await settle();
   app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='10';denied=true;
   await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.url.endsWith('/paper/orders')).length,0);
   assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(app.ids.get('kill').disabled,true);assert.equal(app.ids.get('workspace-storage-boundary').hidden,false);
@@ -327,8 +327,25 @@ test('guest Paper has a separate persisted browser tenant and cannot submit an i
   assert.equal(app.proofs(), 0);
 });
 
+test('Paper confirmation binds exact inputs, discloses missing execution-cost model and cancellation writes nothing',async()=>{
+  const hash='d'.repeat(64);let preview='',accept=false;
+  const app=harness({snapshot:{strategies:{saved:{Name:'Saved',StrategyHash:hash}}},confirmAction:message=>{preview=message;return accept}});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='sell';app.ids.get('paper-amount').value='9007199254740991';
+  await app.submit('paper-order');assert.match(preview,/Confirm.*Paper/);assert.match(preview,/YNXT-YUSD_TEST/);assert.ok(preview.includes(hash));assert.match(preview,/sell/);assert.match(preview,/9007199254740991/);assert.match(preview,/does not deduct commission\/gas or model slippage/);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal([...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending')),false);assert.equal(app.ids.get('paper-submit').disabled,false);
+  for(const language of vm.runInContext('supportedLocales',app.context)){app.ids.get('locale').onchange({target:{value:language}});await app.submit('paper-order');assert.ok(preview.startsWith(vm.runInContext(`businessCopy[${JSON.stringify(language)}].paperConfirm`,app.context)))}
+  accept=true;app.context.confirm=()=>{app.ids.get('paper-amount').value='100';return true};await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal([...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending')),false);
+});
+
+test('cancelled retry preserves the original durable uncertain intent without a new request',async()=>{
+  const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+  const original=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();original.ids.get('paper-strategy').value=hash;original.ids.get('side').value='buy';original.ids.get('paper-amount').value='100';await original.submit('paper-order');
+  const key=[...original.storage.keys()].find(key=>key.startsWith('ynx.quant.paper.pending')),pending=original.storage.get(key);assert.ok(pending);
+  const restored=harness({snapshot,savedStorage:original.storage,confirmAction:()=>false});await settle();await restored.submit('paper-order');assert.equal(restored.storage.get(key),pending);assert.equal(restored.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(restored.proofs(),0);
+});
+
 test('Paper submits the selected saved strategy, preserves selection on refresh and rejects a stale/foreign hash', async () => {
-  const hash = 'd'.repeat(64), app = harness({snapshot: {strategies: {one: {Name: 'Saved strategy', StrategyHash: hash}}}}); await settle();
+  const hash = 'd'.repeat(64), app = harness({confirmAction:()=>true,snapshot: {strategies: {one: {Name: 'Saved strategy', StrategyHash: hash}}}}); await settle();
   app.ids.get('paper-strategy').value = hash; app.ids.get('paper-strategy').onchange();
   app.ids.get('side').value = 'buy'; app.ids.get('paper-amount').value = '100';
   await app.submit('paper-order');
@@ -342,7 +359,7 @@ test('Paper submits the selected saved strategy, preserves selection on refresh 
 
 test('Paper preserves one intent across double clicks, unknown network outcome and reload retry', async () => {
   const strategyHash = 'd'.repeat(64), snapshot = {strategies: {one: {Name: 'Saved strategy', StrategyHash: strategyHash}}};
-  const late = deferred(), app = harness({snapshot, apiResponse: url => url.endsWith('/snapshot') ? snapshot : late.promise});
+  const late = deferred(), app = harness({confirmAction:()=>true,snapshot, apiResponse: url => url.endsWith('/snapshot') ? snapshot : late.promise});
   await settle();
   app.ids.get('paper-strategy').value = strategyHash;
   app.ids.get('paper-strategy').onchange();
@@ -363,7 +380,7 @@ test('Paper preserves one intent across double clicks, unknown network outcome a
   await app.submit('paper-order');
   assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 1);
   assert.match(app.ids.get('toast').textContent, /unknown outcome/);
-  const restored = harness({snapshot, savedStorage: app.storage}); await settle();
+  const restored = harness({confirmAction:()=>true,snapshot, savedStorage: app.storage}); await settle();
   assert.equal(restored.ids.get('paper-strategy').value, strategyHash);
   assert.equal(restored.ids.get('paper-amount').value, '100');
   await restored.submit('paper-order');
@@ -387,7 +404,7 @@ test('Paper refuses unsafe numeric amounts before creating an intent or making a
 test('Paper does not acknowledge or forget an intent when the service returns an unbound result', async () => {
   const hash = 'd'.repeat(64), snapshot = {strategies: {one: {Name: 'Saved', StrategyHash: hash}}};
   for (const mismatch of [{}, {IdempotencyKey: 'wrong-key'}, {StrategyHash: 'e'.repeat(64)}, {Amount: 101}]) {
-    const app = harness({snapshot, apiResponse: (url, options) => url.endsWith('/snapshot') ? snapshot : Object.keys(mismatch).length ? {ID: 'paper-000001', ...JSON.parse(options.body), ...mismatch} : {}});
+    const app = harness({confirmAction:()=>true,snapshot, apiResponse: (url, options) => url.endsWith('/snapshot') ? snapshot : Object.keys(mismatch).length ? {ID: 'paper-000001', ...JSON.parse(options.body), ...mismatch} : {}});
     await settle();
     app.ids.get('paper-strategy').value = hash; app.ids.get('side').value = 'buy'; app.ids.get('paper-amount').value = '100';
     await app.submit('paper-order');

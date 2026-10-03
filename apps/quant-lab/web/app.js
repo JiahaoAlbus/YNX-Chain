@@ -296,6 +296,21 @@ const paperRecordCopy = {
 };
 for (const [language, values] of Object.entries(paperRecordCopy)) Object.assign(businessCopy[language], Object.fromEntries(["paperRecords", "paperRecordsLead", "paperRecordsEmpty", "paperRecordsUnknown", "paperRecordIdentity", "paperRecordStatus", "paperRecordAmounts", "paperRecordSource"].map((key, index) => [key, values[index]])));
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
+const paperConfirmCopy = {
+  en: ["Confirm this saved-strategy Paper signal?", "Simulation only; no Exchange or chain transaction. Amount is in integer micro-units. There is no executable price quote: the service reads the market at submission, limits fills to 10% of source volume and applies position/notional limits. The Paper engine does not deduct commission/gas or model slippage; this is not a cost-inclusive execution forecast.", "The preview changed. Review the current inputs again.", "Simulated order recorded"],
+  "zh-CN": ["确认此已保存策略的模拟信号？", "仅模拟，不产生交易所或链上交易。数量为整数微单位。无可执行报价：服务在提交时读取行情，成交量受来源成交量的 10% 和持仓/名义金额限制。模拟引擎不扣佣金或 Gas，也不模拟滑点；不是包含成本的执行预测。", "预览已变化，请重新检查当前输入。", "模拟订单已记录"],
+  "zh-TW": ["確認此已儲存策略的模擬訊號？", "僅模擬，不產生交易所或鏈上交易。數量為整數微單位。無可執行報價：服務於提交時讀取行情，成交量受來源成交量的 10% 和持倉/名義金額限制。模擬引擎不扣佣金或 Gas，也不模擬滑點；不是包含成本的執行預測。", "預覽已變更，請重新檢查目前輸入。", "模擬訂單已記錄"],
+  ja: ["保存済み戦略のペーパーシグナルを確認しますか？", "シミュレーションのみ。取引所・チェーン注文は送信しません。量は整数マイクロ単位です。執行価格の見積りはなく、送信時の市場データ、出来高の10%、ポジション・想定元本上限を使います。手数料・ガス・スリッページはモデル化せず、費用込みの執行予測ではありません。", "プレビューが変更されました。入力を再確認してください。", "模擬注文を記録しました"],
+  ko: ["저장된 전략의 모의 신호를 확인할까요?", "시뮬레이션 전용이며 거래소나 체인 주문을 보내지 않습니다. 수량은 정수 마이크로 단위입니다. 실행 가격 견적 없이 제출 시 시장 데이터, 원천 거래량의 10%, 포지션·명목 한도를 적용합니다. 수수료·가스·슬리피지를 모델링하지 않아 비용 포함 실행 예측이 아닙니다.", "미리보기가 변경되었습니다. 입력을 다시 검토하세요.", "모의 주문이 기록되었습니다"],
+  es: ["¿Confirmar la señal simulada de esta estrategia guardada?", "Solo simulación, sin órdenes Exchange ni transacciones. Cantidad en microunidades enteras. Sin cotización ejecutable: el servicio lee el mercado al enviar, limita la ejecución al 10% del volumen fuente y aplica límites de posición y nominal. No descuenta comisión/gas ni modela deslizamiento; no es una previsión con costes.", "La vista previa cambió. Revisa las entradas actuales.", "Orden simulada registrada"],
+  fr: ["Confirmer le signal simulé de cette stratégie enregistrée ?", "Simulation uniquement, sans ordre Exchange ni transaction. Quantité en micro-unités entières. Pas de cotation exécutable : marché lu à l’envoi, exécution limitée à 10 % du volume source et aux limites de position et de notionnel. Sans commission/gaz ni modèle de glissement ; ce n’est pas une prévision frais inclus.", "L’aperçu a changé. Vérifiez les entrées actuelles.", "Ordre simulé enregistré"],
+  de: ["Paper-Signal dieser gespeicherten Strategie bestätigen?", "Nur Simulation, keine Exchange- oder Blockchain-Transaktion. Menge in ganzzahligen Mikroeinheiten. Kein ausführbarer Kurs: Marktdaten beim Absenden, Füllung auf 10% des Quellvolumens sowie Positions-/Nominalgrenzen beschränkt. Keine Provision/Gas oder Slippage-Modellierung; keine kosteninklusive Ausführungsprognose.", "Vorschau geändert. Aktuelle Eingaben erneut prüfen.", "Simulierte Order gespeichert"],
+  pt: ["Confirmar o sinal simulado desta estratégia guardada?", "Apenas simulação, sem ordem Exchange ou transação. Quantidade em microunidades inteiras. Sem cotação executável: mercado lido ao enviar, execução limitada a 10% do volume fonte e aos limites de posição/nominal. Sem comissão/gás nem modelo de slippage; não é previsão com custos.", "A prévia mudou. Revise as entradas atuais.", "Ordem simulada registrada"],
+  ru: ["Подтвердить Paper-сигнал сохранённой стратегии?", "Только симуляция, без биржевой или сетевой транзакции. Объём в целых микроединицах. Исполняемой котировки нет: рынок читается при отправке, исполнение ограничено 10% исходного объёма и лимитами позиции/номинала. Комиссия, газ и проскальзывание не моделируются; это не прогноз с учётом затрат.", "Предпросмотр изменился. Проверьте текущие данные.", "Симулированный ордер записан"],
+  ar: ["تأكيد إشارة المحاكاة لهذه الاستراتيجية المحفوظة؟", "محاكاة فقط بلا أمر بورصة أو معاملة سلسلة. الكمية بوحدات ميكرو صحيحة. لا عرض سعر قابل للتنفيذ: تُقرأ السوق عند الإرسال وتُحد الكمية المنفذة إلى 10% من حجم المصدر وحدود المركز والقيمة الاسمية. لا تُخصم عمولة أو غاز ولا تُنمذج الانزلاقات؛ ليس توقع تنفيذ شامل التكاليف.", "تغيرت المعاينة. راجع المدخلات الحالية مجددًا.", "تم تسجيل أمر المحاكاة"],
+  id: ["Konfirmasi sinyal Paper strategi tersimpan ini?", "Simulasi saja, tanpa order Exchange atau transaksi blockchain. Jumlah dalam mikrounit bilangan bulat. Tanpa kuotasi yang dapat dieksekusi: pasar dibaca saat pengiriman, pengisian dibatasi 10% volume sumber dan batas posisi/nosional. Tanpa komisi/gas atau model slippage; bukan prakiraan termasuk biaya.", "Pratinjau berubah. Tinjau kembali masukan saat ini.", "Order simulasi dicatat"],
+};
+for (const [language, [paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded]] of Object.entries(paperConfirmCopy)) Object.assign(businessCopy[language], {paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded});
 
 function renderPaperRecords(paper) {
   const records = paper.Orders;
@@ -631,6 +646,10 @@ $("#paper-order").onsubmit = async (e) => {
     if (!["buy", "sell"].includes(Side) || !Number.isSafeInteger(Amount) || Amount <= 0) throw new Error(t("paperInvalidAmount"));
     const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount;
     if (pendingPaperIntent && !sameIntent) throw new Error(t("paperPendingMismatch"));
+    paperSubmitting = true;
+    $("#paper-submit").disabled = true;
+    if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${t("paperExecutionBoundary")}`)) return;
+    if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
     }
@@ -645,7 +664,7 @@ $("#paper-order").onsubmit = async (e) => {
     if (!/^paper-[0-9]+$/.test(order?.ID) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
     pendingPaperIntent = null;
     try { localStorage.removeItem(paperPendingKey); } catch { workspaceStorageAvailable = false; statefulPreview = false; }
-    toast("Simulated order recorded");
+    toast(t("paperRecorded"), "paperRecorded");
     await refresh();
   } catch (e) {
     if (e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
