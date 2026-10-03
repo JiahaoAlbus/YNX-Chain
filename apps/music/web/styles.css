@@ -31,3 +31,8 @@ h2,.section-head h2{font-size:1.25rem;line-height:1.35}
 button,input,select,textarea{font:inherit}
 button,.button-link,.wallet-link{min-height:44px;white-space:normal}
 @media(max-width:420px){.header-actions{flex-wrap:wrap;justify-content:flex-end}.brand{max-width:100%;white-space:normal}.brand b,.brand strong{overflow-wrap:anywhere}.hero h1{font-size:1.5rem}}
+
+#aiOutput{font-size:1rem;line-height:1.6;max-height:24rem;overflow-wrap:anywhere;white-space:pre-wrap}#aiRecords .record{flex-wrap:wrap;align-items:center}#aiRecords .record>span,#aiRecords .record>small{flex-basis:100%;min-width:0}#aiStreamStatus{overflow-wrap:anywhere;color:var(--muted)}
+/* Reserve the actual navigation and player rows, including enlarged text. */
+@media(max-width:800px){.shell{display:grid;height:100dvh;min-height:0;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;padding-bottom:0}header{grid-column:1;grid-row:1;position:static}main{grid-column:1;grid-row:2;min-height:0;overflow-y:auto;overflow-x:hidden;scroll-behavior:auto}aside{grid-column:1;grid-row:3;position:static}footer.player{grid-column:1;grid-row:4;position:static;height:auto;min-height:112px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}}
+@media(max-width:800px){header .wallet::after{content:none}}

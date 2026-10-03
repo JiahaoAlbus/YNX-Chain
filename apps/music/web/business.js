@@ -1,10 +1,11 @@
 import {createPlaylistJournal} from './playlist-journal.js';
+import {createMusicAIStream} from './ai-stream.js';
 // The release owner's canonical request adapter supplies authentication and
 // exact action proofs. This controller never obtains authority from EVM connect,
 // browser storage, a caller-supplied account, or an old Music bearer token.
 export function createMusicBusiness({document:doc, audio, tell}) {
   const $=s=>doc.querySelector(s), $$=s=>[...doc.querySelectorAll(s)];
-  let view='home', aiCancel=null;
+  let view='home', aiCancel=null, aiRevision=0;
   const playlistJournal=createPlaylistJournal();
   let epoch=0, transport=null, snapshot=null, current=null, detail=null, mediaURL='', playback='', lastSave=0, playRevision=0, searchRevision=0, libraryTail=Promise.resolve();
   const pending=new Set(), urls=new Set(), dialogs=new Set();
@@ -19,21 +20,23 @@ export function createMusicBusiness({document:doc, audio, tell}) {
   const trackName=id=>allTracks().find(t=>t.id===id)?.title||id;
   function node(tag,text,className){const n=doc.createElement(tag);if(text!=null)n.textContent=text;if(className)n.className=className;return n}
   function button(label,action){const owner={epoch,transport};const b=node('button',label,'secondary');b.type='button';b.onclick=()=>run(t=>{check(owner);return action(t)});return b}
-  async function response(t,url,options={}) {
+  async function response(t,url,options={},onStart) {
     check(t);if(!/^api\//.test(url)||url.split(/[?#]/,1)[0].includes('..'))throw new Error('Invalid Music route');
     const controller=new AbortController();pending.add(controller);
     const timer=setTimeout(()=>controller.abort(new DOMException('Music request timed out','TimeoutError')),30000);
     const finish=()=>{clearTimeout(timer);pending.delete(controller)};
+    const cancel=()=>controller.abort(new DOMException('AI request cancelled','AbortError'));
     const read=async promise=>{
       if(controller.signal.aborted){Promise.resolve(promise).catch(()=>{});throw controller.signal.reason;}
       let abort;const cancelled=new Promise((_,reject)=>{abort=()=>reject(controller.signal.reason||stale());controller.signal.addEventListener('abort',abort,{once:true})});
       try{const value=await Promise.race([promise,cancelled]);check(t);return value}finally{controller.signal.removeEventListener('abort',abort)}
     };
     try {
+      onStart?.(cancel);
       const result=await read(Promise.resolve().then(()=>t.transport(url,{...options,signal:controller.signal})));check(t);
       if(!(result instanceof Response)||result.redirected||(result.url&&new URL(result.url).origin!==new URL(doc.baseURI).origin))throw new Error('Invalid Music response');
       if(!result.ok){let message=`Music request failed (${result.status})`;try{message=(await read(result.json())).error||message}catch{}check(t);throw new Error(message)}
-      return {result,finish,read,cancel:()=>controller.abort(new DOMException('AI request cancelled','AbortError')),signal:controller.signal};
+      return {result,finish,read,cancel,signal:controller.signal};
     }catch(error){finish();throw error}
   }
   async function json(t,url,method='GET',body,idempotency) {
@@ -48,7 +51,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
   }
   function releaseURL(url){if(url){URL.revokeObjectURL(url);urls.delete(url)}}
   function reset(){
-    epoch++;$('#musicIdentity').hidden=true;$('#musicIdentity').textContent='';$('#musicDisconnect').hidden=true;aiCancel?.();aiCancel=null;$('#aiCancel').disabled=true;transport=null;snapshot=null;current=null;detail=null;playback='';playRevision++;searchRevision++;
+    epoch++;aiRevision++;$('#musicIdentity').hidden=true;$('#musicIdentity').textContent='';$('#musicDisconnect').hidden=true;aiCancel?.();aiCancel=null;$('#aiCancel').disabled=true;$('#aiStreamStatus').textContent='';transport=null;snapshot=null;current=null;detail=null;playback='';playRevision++;searchRevision++;
     for(const p of pending)p.abort();pending.clear();for(const d of dialogs){d.close();d.remove()}dialogs.clear();
     audio.pause();audio.removeAttribute('src');audio.load();for(const u of urls)URL.revokeObjectURL(u);urls.clear();mediaURL='';libraryTail=Promise.resolve();
     for(const id of ['trackGrid','favorites','queue','history','playlists','creatorRecords','settlementRecords','aiRecords','aiOutput'])$('#'+id)?.replaceChildren();
@@ -89,7 +92,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
     $$('.usage-choice').forEach(n=>n.remove());for(const u of snapshot.usage||[]){const label=node('label',null,'usage-choice'),input=node('input');input.type='checkbox';input.name='usage';input.value=u.id;label.append(input,doc.createTextNode(` ${trackName(u.trackId)} · ${fmt(u.listenedMillis)}`));$('#allocationForm').insertBefore(label,$('#allocationForm button'))}
     $('#allocationSelect').replaceChildren(...(snapshot.allocations||[]).map(a=>{const option=node('option',`${a.id} · ${a.amountMicros} micros`);option.value=a.id;return option}));
     $('#settlementRecords').replaceChildren(...(snapshot.settlements||[]).map(s=>{const row=node('div',null,'record');row.append(node('span',`${s.amountMicros} YNXT micros · ${s.status}`));try{const uri=new URL(s.reviewUri);if(s.centralIntentId&&uri.protocol==='ynxpay:'&&uri.hostname==='settlement'&&uri.pathname==='/review'&&!uri.username&&!uri.password&&!uri.hash){const link=node('a','Review in YNX Pay');link.href=s.reviewUri;row.append(link)}}catch{}return row}));
-    $('#aiRecords').replaceChildren(...(snapshot.aiProposals||[]).map(p=>{const row=node('div',null,'record');row.append(node('span',`${p.kind} · ${p.provider}/${p.model} · ${p.estimatedUnits} estimated units · ${p.status}`),node('small',`Intent: ${p.intent||''} · Context: ${(p.contextTrackIds||[]).map(trackName).join(', ')}`));if(['awaiting_gateway','provider_failed'].includes(p.status))row.append(button('Stream',t=>streamAI(t,p.id)));if(p.status==='completed'){row.append(button('Apply',t=>reviewAI(t,p.id,'apply')),button('Reject',t=>reviewAI(t,p.id,'reject')))}return row}));
+    $('#aiRecords').replaceChildren(...(snapshot.aiProposals||[]).map(p=>{const row=node('div',null,'record');row.append(node('span',`${p.kind} · ${p.provider}/${p.model} · ${p.estimatedUnits} estimated units · ${p.status}`),node('small',`Intent: ${p.intent||''} · Context: ${(p.contextTrackIds||[]).map(trackName).join(', ')}`));if(['awaiting_gateway','provider_failed'].includes(p.status)){const start=button('Stream',t=>streamAI(t,p.id));start.classList.add('ai-stream-start');start.disabled=!!aiCancel;row.append(start)}if(p.status==='streaming'){row.append(node('small','Waiting for a saved result. Checking status preserves this proposal.'),button('Check saved result',t=>checkAI(t,p.id)))}if(p.status==='completed'){row.append(button('View saved result',t=>checkAI(t,p.id)),button('Apply',t=>reviewAI(t,p.id,'apply')),button('Reject',t=>reviewAI(t,p.id,'reject')))}return row}));
     showView(view);
   }
   function dialog(t,title,build){
@@ -131,11 +134,46 @@ export function createMusicBusiness({document:doc, audio, tell}) {
   }
   async function adjacent(t,direction){const ids=snapshot.listener.queue?.length?snapshot.listener.queue:tracks().map(t=>t.id);if(!ids.length)return;const at=ids.indexOf(current?.id),index=at<0?(direction>0?0:ids.length-1):(at+direction+ids.length)%ids.length;await play(t,allTracks().find(t=>t.id===ids[index]))}
   async function openCase(t,id,kind='report'){const reason=await ask(t,'Reason and evidence context');check(t);if(!reason)return;const c=await json(t,'api/cases','POST',{kind,trackID:id,reason,evidenceRef:''},`music-trust-${crypto.randomUUID()}`);await load(t);tell(`Trust case ${c.id} opened`)}
+  async function readAI(t,id,guard){
+    guard();const final=await json(t,`api/ai/proposals/${path(id,'ai')}`);guard();
+    await load(t);guard();
+    if(final.status==='completed'){
+      $('#aiOutput').textContent=final.result||'';
+      $('#aiStreamStatus').textContent='Saved result ready. Review it before applying.';
+      tell('Review the provider result before applying.');
+    }else $('#aiStreamStatus').textContent=final.status==='streaming'?'Completion is not confirmed. Your proposal is saved; check its status again later.':'Generation is not complete. Your proposal is preserved.';
+    return final;
+  }
+  async function checkAI(t,id){
+    aiCancel?.();const revision=++aiRevision;aiCancel=null;$('#aiCancel').disabled=true;
+    const guard=()=>{check(t);if(revision!==aiRevision)throw stale()};
+    await readAI(t,id,guard);
+  }
   async function streamAI(t,id){
-    aiCancel?.();$('#aiOutput').textContent='Connecting to YNX AI Gateway…';const r=await response(t,`api/ai/proposals/${path(id,'ai')}/stream`);
-    aiCancel=r.cancel;$('#aiCancel').disabled=false;
-    const reader=r.result.body.getReader();
-    try{const decoder=new TextDecoder();let text='';for(;;){const {done,value}=await r.read(reader.read());check(t);if(done)break;text+=decoder.decode(value,{stream:true});if(text.length>1024*1024){await reader.cancel();throw new Error('AI result exceeds the supported limit')}$('#aiOutput').textContent=text}await load(t);const final=await json(t,`api/ai/proposals/${path(id,'ai')}`);if(final.status!=='completed')throw new Error('AI result is not complete');$('#aiOutput').textContent=final.result||'';tell('Review the provider result before applying.')}finally{reader.cancel().catch(()=>{});reader.releaseLock();r.cancel();r.finish();if(aiCancel===r.cancel){aiCancel=null;$('#aiCancel').disabled=true}}
+    aiCancel?.();const revision=++aiRevision;
+    const guard=()=>{check(t);if(revision!==aiRevision)throw stale()};
+    let r,reader,streamError;
+    $('#aiOutput').textContent='';$('#aiStreamStatus').textContent='Connecting to YNX AI Gateway…';
+    try{
+      try{
+        r=await response(t,`api/ai/proposals/${path(id,'ai')}/stream`,{},cancel=>{
+          guard();aiCancel=cancel;$('#aiCancel').disabled=false;$$('.ai-stream-start').forEach(b=>b.disabled=true);
+        });guard();
+        if(!r.result.body)throw new Error('AI result body is unavailable');
+        reader=r.result.body.getReader();
+        const stream=createMusicAIStream(text=>{guard();$('#aiOutput').textContent=text;$('#aiStreamStatus').textContent='Generating… Result has not been saved yet.'});
+        for(;;){const {done,value}=await r.read(reader.read());guard();if(done)break;stream.push(value)}
+        stream.finish();
+      }catch(error){streamError=error;}
+      finally{reader?.cancel().catch(()=>{});reader?.releaseLock();r?.cancel();r?.finish();}
+      guard();
+      try{
+        const final=await readAI(t,id,guard);
+        if(final.status!=='completed'&&streamError&&streamError.name!=='AbortError')tell('AI generation was not completed. Your proposal is saved; check its status before retrying.',true);
+      }catch(error){guard();$('#aiStreamStatus').textContent='Saved status is unavailable. Your proposal is preserved; check it again when connected.';throw error;}
+    }finally{
+      if(revision===aiRevision&&t.epoch===epoch){aiCancel=null;$('#aiCancel').disabled=true;$$('.ai-stream-start').forEach(b=>b.disabled=false);}
+    }
   }
   async function reviewAI(t,id,action){const name=action==='apply'?await ask(t,'Playlist name','AI library proposal'):'';check(t);if(action==='apply'&&!name)return;await json(t,`api/ai/proposals/${path(id,'ai')}/review`,'POST',{action,name});await load(t)}
   $('#musicDisconnect').onclick=()=>{reset();tell('Music disconnected on this page. Private account data is preserved on the service.')};
