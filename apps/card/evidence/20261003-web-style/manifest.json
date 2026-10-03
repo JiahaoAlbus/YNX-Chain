@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "status": "SOURCE_AND_LOCAL_WEB_RTL_FIX_PUBLIC_UNVERIFIED",
+  "sourceCommit": "da0ac0efb33423dec6bad108446c83268e009bc9",
+  "sourceTree": "9a6b97207203829a40adb08daf6e2a66508ad26f",
+  "parent": "0a3590714ca72beaa8a18884f4e49b9706dd9626",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "changes": [
+    "Use Web writingDirection and preserve Android/iOS direction in App/Guest/Provider RTL root styles",
+    "Remove diagnosed bare JSX whitespace text under App View/Pressable",
+    "Update existing Arabic fixture to exact Web contract, including absence of direction"
+  ],
+  "tests": {
+    "style": {
+      "passed": 10,
+      "total": 10
+    },
+    "providerInitial": {
+      "passed": 18,
+      "total": 19,
+      "failed": 1,
+      "reason": "Old Web fixture expected the invalid direction property"
+    },
+    "providerSuccessor": {
+      "passed": 19,
+      "total": 19
+    },
+    "typecheck": "PASS",
+    "syntheticNotInstalled": true
+  },
+  "localWeb": {
+    "url": "http://localhost:19088/",
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "englishDefault": true,
+    "explicitArabic": true,
+    "englishReturn": true,
+    "computedDirection": "rtl",
+    "errors": 0,
+    "warnings": 1,
+    "warning": "Existing shadow style deprecation",
+    "privateSession": false,
+    "accountRequested": false
+  },
+  "openIssues": [
+    "Unauthenticated Provider TEST section still has English title/body/authorization action after explicit Arabic selection; whole locale gate not complete",
+    "No authenticated or installed native RTL proof",
+    "Shared final Card compiledJS/runtime-identity/backend and Hosted application approval/revoke await A"
+  ],
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-web-style/style-tests.log",
+      "bytes": 761,
+      "sha256": "110e688cb355398d00731f6977eb95339d5336b3bf048bcbdbd40168e8004c1b"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/provider-ui-tests.log",
+      "bytes": 4220,
+      "sha256": "5c5f056e15ad1819cd246212bee9e1400534034b19adf51c88f127e69ece2462"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/provider-ui-tests-successor.log",
+      "bytes": 3493,
+      "sha256": "a119ae773b3ffc0e42544600bfc4a052303ff4b2f5c32f38cab1b9bf47653837"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/typecheck.log",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/local-preview.log",
+      "bytes": 815,
+      "sha256": "e6681b7e8cff4ae460247bbc667ccdb4cbf4afbd0cc7599f8230cf68b0be45bf"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/mobile-english.jpg",
+      "bytes": 44432,
+      "sha256": "c5aa638ec7424b4d311035e23b98f6c6ca999748e4d1b6a611eec735b0246a17"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/mobile-arabic.jpg",
+      "bytes": 40517,
+      "sha256": "83d3607a352f451d4b5769eacf6b2a300cef362dc5a7e8d9bffd5e1f76a82e5e"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/desktop-english.jpg",
+      "bytes": 129653,
+      "sha256": "b39b35ab20db687e3ad1025a2d2da874cbee9e105e44d4c7941ca282e110593a"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/browser-console.json",
+      "bytes": 337,
+      "sha256": "338df5676c0f4ae847a53e6e056950891b62c091038744177c21b299b9f9befb"
+    },
+    {
+      "path": "apps/card/evidence/20261003-web-style/browser-observations.json",
+      "bytes": 703,
+      "sha256": "0b96b69077ca38b089f1c6b8d41e8a2ecf7ab373a186bfb1e9a2eccc6aef433a"
+    }
+  ],
+  "truth": {
+    "formalBuild": false,
+    "deployed": false,
+    "publicVerified": false,
+    "installedVerified": false,
+    "realApproval": false,
+    "activeAccount": false,
+    "realYNXTTopup": false,
+    "signature": false,
+    "transaction": false,
+    "realCard": false,
+    "panCvv": false,
+    "fiat": false,
+    "productionRealPayments": false,
+    "fullProductComplete": false
+  }
+}

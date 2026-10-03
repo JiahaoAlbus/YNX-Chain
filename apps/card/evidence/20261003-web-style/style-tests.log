@@ -1,0 +1,18 @@
+✔ App.tsx: web direction contract (17.475542ms)
+✔ App.tsx: android direction contract (2.464834ms)
+✔ App.tsx: ios direction contract (1.194125ms)
+✔ src/GuestExperience.tsx: web direction contract (1.11225ms)
+✔ src/GuestExperience.tsx: android direction contract (1.1825ms)
+✔ src/GuestExperience.tsx: ios direction contract (0.986041ms)
+✔ src/ProviderExperience.tsx: web direction contract (0.970542ms)
+✔ src/ProviderExperience.tsx: android direction contract (0.866167ms)
+✔ src/ProviderExperience.tsx: ios direction contract (2.411916ms)
+✔ App View and Pressable have no bare single-line whitespace text nodes (22.929875ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 281.014542

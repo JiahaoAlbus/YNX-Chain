@@ -1,0 +1,46 @@
+{
+  "url": "http://localhost:19088/",
+  "viewport": [
+    390,
+    844
+  ],
+  "englishDefaultObserved": true,
+  "arabicExplicitlySelected": true,
+  "rtlAncestors": [
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    },
+    {
+      "direction": "rtl",
+      "tag": "DIV"
+    }
+  ],
+  "errorCount": 0,
+  "warningCount": 1,
+  "accountRequested": false
+}
