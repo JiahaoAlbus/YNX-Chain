@@ -1,0 +1,14 @@
+{
+  "observedAt": "2026-10-03T09:16:41.328Z",
+  "registryAuditedAt": "2026-07-28",
+  "social": {
+    "key": "social",
+    "name": "YNX Social",
+    "route": "/social",
+    "state": "candidate",
+    "commit": "8c08bc3fff53",
+    "centralAccepted": false,
+    "publicWeb": null,
+    "downloadHosted": false
+  }
+}

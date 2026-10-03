@@ -1,0 +1,82 @@
+- link "跳到正文":
+  - /url: "#main-content"
+- banner:
+  - link "YNX Chain 首页":
+    - /url: /
+    - generic: CHAIN
+  - navigation "主导航":
+    - link "YNX 生态":
+      - /url: /ecosystem
+    - link "生态下载":
+      - /url: /downloads
+    - link "文档":
+      - /url: /docs
+    - link "开始手册":
+      - /url: /manual
+    - link "API 手册":
+      - /url: /api
+  - button "搜索并打开命令面板":
+  - button "连接 YNX Wallet":
+    - generic: 连接 YNX Wallet
+  - status: 连接 YNX Wallet
+  - generic "语言":
+    - generic: 语言
+    - combobox "语言":
+      - option "EN"
+      - option "简体" [selected]
+      - option "繁體"
+      - option "日本語"
+      - option "한국어"
+      - option "Español"
+      - option "Français"
+      - option "Deutsch"
+      - option "Português"
+      - option "Русский"
+      - option "العربية"
+      - option "Bahasa Indonesia"
+  - button "打开导航":
+- main:
+  - paragraph: 正在加载请求的 YNX 界面…
+- contentinfo:
+  - strong: YNX Chain
+  - paragraph: 围绕 YNXT 构建的 Web4 L1 生态系统。
+  - link "开始手册":
+    - /url: /manual
+  - link "API 手册":
+    - /url: /api
+  - link "联系我们":
+    - /url: /contact
+  - link "Founder@ynxweb4.com":
+    - /url: mailto:Founder@ynxweb4.com
+    - generic: Founder@ynxweb4.com
+  - link "YNX 生态":
+    - /url: /ecosystem
+  - link "生态下载":
+    - /url: /downloads
+  - link "开发者文档":
+    - /url: /docs
+  - link "开发者":
+    - /url: /developers
+  - link "状态":
+    - /url: /status
+  - link "浏览器":
+    - /url: https://explorer.ynxweb4.com
+  - link "水龙头":
+    - /url: https://faucet-testnet.ynxweb4.com
+  - link "安全":
+    - /url: /security
+  - link "GitHub":
+    - /url: https://github.com/JiahaoAlbus/YNX-Chain
+  - link "Website GitHub":
+    - /url: https://github.com/JiahaoAlbus/YNX-Chain-website
+  - link "X":
+    - /url: https://x.com/YNXChain
+  - link "Discord":
+    - /url: https://discord.gg/t8KpAF2KE
+  - link "YouTube":
+    - /url: https://www.youtube.com/@YNX-Chain
+  - link "隐私":
+    - /url: /privacy
+  - link "条款":
+    - /url: /terms
+  - paragraph: 公开测试网项目。未宣称主网上线、交易所上币、稳定币发行方支持、钱包默认支持或第三方合作关系。

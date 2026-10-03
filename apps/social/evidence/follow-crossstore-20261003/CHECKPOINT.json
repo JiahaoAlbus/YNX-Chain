@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "source": "ca5b7ad3e9e259443a4f4552c73c7dcf2a007302",
+  "tree": "45d08cd10f5c54e10ad3552f61351ec5f78012e3",
+  "parent": "66ace8a7c81b79e963f1164dd761f802e187667f",
+  "branch": "codex/social-wallet-chooser-20261001",
+  "sharedValidationSource": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "stage": "/tmp/social-backend-16195.enQ7Rc",
+  "coverage": {
+    "authority": "Current bound actor/device/key, original social.feed scope, expiry/context and current block state checked before prepare/dispatch/completion",
+    "originalStore": "Original Social account/idempotency map owns prepared/rejected/completed follow intent; no new nonce ledger",
+    "recovery": "Square follow and original notification commit once; cancelled Social completion retains prepared intent; cold reopen same body/key retry does not change Square bytes",
+    "independentFollowing": "Follow/unfollow never creates contact/request; historical follow receipt cannot restore an explicitly unfollowed relationship",
+    "notifications": "Square remains the sole new follow notification producer; no duplicate Social notification on normal or cold retry",
+    "negativeCases": ["revoked", "expired", "key-replaced", "missing-feed-scope", "blocked", "cancelled"]
+  },
+  "publicBaseline": {
+    "homepage": "https://social.ynxweb4.com/",
+    "observedHomepage": "Y-letter marketing/guest surface; Private Social service degraded; not the owner-built private client",
+    "downloadDetail": "https://www.ynxweb4.com/dapp/social/open-download",
+    "observedDownload": "No Web offering; macOS/Windows/Linux/Android/iOS all unavailable",
+    "registry": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+    "registryAuditedAt": "2026-07-28",
+    "registryObservedAt": "2026-10-03T09:16:41.328Z",
+    "registryState": "candidate",
+    "registryCentralAccepted": false,
+    "registryPublicWeb": null,
+    "registryDownloadHosted": false,
+    "registryCandidateCommit": "8c08bc3fff53",
+    "locallyResolvedCandidateCommit": "8c08bc3fff539d1b09e78f4dff1e797dd0c3952c",
+    "locallyResolvedCandidateTree": "683ee34d219b3d975d2e9cf8370984379a55c513",
+    "locallyResolvedCandidateParent": "c404405243ab9518a40b36fecc013f96b2554b79",
+    "candidateIsAncestor": true,
+    "formalDeployedSourceTree": "NOT_VERIFIED",
+    "formalInstallerVersionBytesSignature": "NOT_VERIFIED",
+    "installedAboutUI": "NOT_VERIFIED: native app inventory failed because Mac is locked; no bypass/restart attempted",
+    "boundedDefaultApplicationsSearch": "No matching YNX Social .app in /Applications or ~/Applications at depth <=2; not proof of absence elsewhere"
+  },
+  "gates": {
+    "ownedSocialRegression": "PASS",
+    "isolatedSocialAndDaemonRace": "PASS",
+    "isolatedDaemonBuild": "PASS",
+    "noRegressionFormalReleaseBaseline": "NOT_VERIFIED",
+    "sharedLiveAdoption": "PENDING_ROOT",
+    "realMatrixProducerMount": "NOT_CONFIGURED",
+    "publicSourceBoundBusiness": "NOT_VERIFIED",
+    "nativeCanonicalEnrollment": "NOT_VERIFIED",
+    "ABCThreeJourneys": "NOT_VERIFIED",
+    "MONSTER": "NOT_RUN",
+    "completed": false,
+    "deployed": false,
+    "sensitiveWalletRequests": false
+  },
+  "limitations": [
+    "Software authority fixtures and local store tests are not public/installed Wallet or real business acceptance.",
+    "Ancestor relation proves lineage only, not feature parity, absence of regression or exact deployed version.",
+    "No release baseline was replaced by a QA build; no version number or package identity changed.",
+    "Old historical notifications are preserved; only future follow duplication is prevented.",
+    "Full raw ActionProof/revalidation and nonce-plus-effect integration, other cross-store paths and cross-device unknown settlement remain required."
+  ]
+}

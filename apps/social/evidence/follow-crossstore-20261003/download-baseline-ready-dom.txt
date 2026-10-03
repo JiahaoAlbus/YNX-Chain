@@ -1,0 +1,242 @@
+- link "跳到正文":
+  - /url: "#main-content"
+- banner:
+  - link "YNX Chain 首页":
+    - /url: /
+    - generic: CHAIN
+  - navigation "主导航":
+    - link "YNX 生态":
+      - /url: /ecosystem
+    - link "生态下载":
+      - /url: /downloads
+    - link "文档":
+      - /url: /docs
+    - link "开始手册":
+      - /url: /manual
+    - link "API 手册":
+      - /url: /api
+  - button "搜索并打开命令面板":
+  - button "连接 YNX Wallet":
+    - generic: 连接 YNX Wallet
+  - status: 连接 YNX Wallet
+  - generic "语言":
+    - generic: 语言
+    - combobox "语言":
+      - option "EN"
+      - option "简体" [selected]
+      - option "繁體"
+      - option "日本語"
+      - option "한국어"
+      - option "Español"
+      - option "Français"
+      - option "Deutsch"
+      - option "Português"
+      - option "Русский"
+      - option "العربية"
+      - option "Bahasa Indonesia"
+  - button "打开导航":
+- main:
+  - paragraph:
+    - link "YNX":
+      - /url: /
+    - generic: /
+    - text: 生态与下载
+  - heading "生态与下载" [level=1]
+  - paragraph: 探索 YNX 生态的 26 个产品。查找已核验的网页入口或测试网安装包。
+  - region "搜索产品（例如 Wallet、DEX、AI…）":
+    - generic: 搜索产品（例如 Wallet、DEX、AI…）
+    - searchbox "搜索产品（例如 Wallet、DEX、AI…）"
+    - group "全部分类":
+      - button "全部 (26)" [pressed]:
+        - text: 全部
+        - generic: (26)
+      - button "身份与社区 (4)":
+        - text: 身份与社区
+        - generic: (4)
+      - button "货币与商业 (9)":
+        - text: 货币与商业
+        - generic: (9)
+      - button "构建与运维 (6)":
+        - text: 构建与运维
+        - generic: (6)
+      - button "AI、媒体与数据 (5)":
+        - text: AI、媒体与数据
+        - generic: (5)
+      - button "信任与基础设施 (2)":
+        - text: 信任与基础设施
+        - generic: (2)
+    - generic: 全部方式
+    - combobox "全部方式":
+      - option "全部方式" [selected]
+      - option "网页"
+      - option "安装包"
+      - option "暂不可用"
+    - generic: 全部平台
+    - combobox "全部平台":
+      - option "全部平台" [selected]
+      - option "桌面"
+      - option "移动"
+      - option "浏览器"
+    - status:
+      - strong: "26"
+      - text: / 26 个产品
+  - region "YNX Wallet 选择平台下载或打开":
+    - generic: 公开网页
+    - heading "YNX Wallet" [level=2]
+    - paragraph: 管理资产，连接应用
+    - strong: 选择平台下载或打开
+    - link "YNX Wallet Windows x64 从官网下载":
+      - /url: https://downloads.ynxweb4.com/wallet/sha256-c4c3882d3693854def331a136200a5ed76be091591ba3c4e180b4e2cf89ad60f/ynx-wallet-desktop-0.6.18-x64.exe
+      - text: Windows (x64)
+    - link "YNX Wallet macOS 从官网下载":
+      - /url: https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg
+      - text: macOS
+    - link "YNX Wallet linuxX64Deb 从官网下载":
+      - /url: https://downloads.ynxweb4.com/wallet/sha256-0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce/ynx-wallet-desktop-0.6.8-amd64.deb
+      - text: Linux x64 · DEB
+    - link "YNX Wallet Android 从官网下载":
+      - /url: https://downloads.ynxweb4.com/wallet/sha256-78c7221821add4cba78ece2069fea05a98b7c15cc3ba3e93a25fc0b0214f8509/ynx-wallet-1.0.28-a9fff0d84-local-test-signed.apk
+      - text: Android
+    - link "YNX Wallet Chrome / Edge extension 从官网下载":
+      - /url: https://www.ynxweb4.com/downloads/wallet-web/sha256-04dfa88533a4d746563bd7f931debe08f077ba15e2374f0e2d129a86954d82d2/ynx-wallet-chrome-edge-0.1.19.zip
+      - text: Chrome / Edge
+    - link "YNX Wallet PWA package 从官网下载":
+      - /url: https://www.ynxweb4.com/downloads/wallet-web/sha256-aa25d535817c3a954a550615ad250836431ecf2211c1607ce9949546337c4f6d/ynx-wallet-web-pwa-0.1.19.zip
+      - text: PWA
+    - link "YNX Wallet 打开网页版":
+      - /url: https://wallet.ynxweb4.com/
+      - text: 打开网页版
+    - link "查看版本与下载":
+      - /url: /dapp/wallet/open-download
+      - text: 查看版本与下载
+  - region "生态与下载":
+    - button "YNX Wallet 管理资产，连接应用" [pressed]:
+      - strong: YNX Wallet
+      - generic: 管理资产，连接应用
+    - button "YNX Social 连接社区与世界":
+      - strong: YNX Social
+      - generic: 连接社区与世界
+    - button "YNX Mail 去中心化安全通信":
+      - strong: YNX Mail
+      - generic: 去中心化安全通信
+    - button "YNX Calendar 高效管理日程与活动":
+      - strong: YNX Calendar
+      - generic: 高效管理日程与活动
+    - button "YNX Pay 便捷的链上支付体验":
+      - strong: YNX Pay
+      - generic: 便捷的链上支付体验
+    - button "Merchant Console 面向商家的支付管理":
+      - strong: Merchant Console
+      - generic: 面向商家的支付管理
+    - button "YNX Card 测试网卡片模拟":
+      - strong: YNX Card
+      - generic: 测试网卡片模拟
+    - button "YNX Exchange 数字资产交易研究":
+      - strong: YNX Exchange
+      - generic: 数字资产交易研究
+    - button "YNX Quant 量化工具与策略研究":
+      - strong: YNX Quant
+      - generic: 量化工具与策略研究
+    - button "YNX Shop 发现和购买演示商品":
+      - strong: YNX Shop
+      - generic: 发现和购买演示商品
+    - button "Seller Console 商家店铺与订单管理":
+      - strong: Seller Console
+      - generic: 商家店铺与订单管理
+    - button "YNX Finance 多元化的个人金融服务":
+      - strong: YNX Finance
+      - generic: 多元化的个人金融服务
+    - button "YNX DEX 只读市场预览":
+      - strong: YNX DEX
+      - generic: 只读市场预览
+    - button "YNX Developer 构建应用，连接 YNX":
+      - strong: YNX Developer
+      - generic: 构建应用，连接 YNX
+    - button "YNX Explorer 浏览链上数据与交易":
+      - strong: YNX Explorer
+      - generic: 浏览链上数据与交易
+    - button "YNX Monitor 网络与节点监控":
+      - strong: YNX Monitor
+      - generic: 网络与节点监控
+    - button "YNX Docs 文档协作工作区":
+      - strong: YNX Docs
+      - generic: 文档协作工作区
+    - button "YNX Browser Web3 浏览器项目":
+      - strong: YNX Browser
+      - generic: Web3 浏览器项目
+    - button "YNX Search 搜索生态公开内容":
+      - strong: YNX Search
+      - generic: 搜索生态公开内容
+    - button "YNX AI AI 辅助工作区":
+      - strong: YNX AI
+      - generic: AI 辅助工作区
+    - button "YNX Music 音乐发现与创作":
+      - strong: YNX Music
+      - generic: 音乐发现与创作
+    - button "YNX Video 发现与分享测试视频":
+      - strong: YNX Video
+      - generic: 发现与分享测试视频
+    - button "Creator Studio 一站式创作工作区":
+      - strong: Creator Studio
+      - generic: 一站式创作工作区
+    - button "YNX Cloud 去中心化文件工作区":
+      - strong: YNX Cloud
+      - generic: 去中心化文件工作区
+    - button "YNX Trust Center 安全、证据与申诉":
+      - strong: YNX Trust Center
+      - generic: 安全、证据与申诉
+    - button "YNX Resource Market 资源报价与市场预览":
+      - strong: YNX Resource Market
+      - generic: 资源报价与市场预览
+  - article:
+    - generic "发布详情与安全提示":
+      - text: 发布详情与安全提示
+  - complementary:
+    - strong: 不伪造发布状态。
+    - paragraph: 测试签名和本地构建不是生产发布。下载必须具备 URL、哈希、大小、签名类别与安装证据。Testnet Preview 可能重置；绝不导入真实资产或生产私钥。
+    - link "机器可读发布登记表":
+      - /url: /releases/ecosystem-release-registry.json
+      - text: 机器可读发布登记表
+- contentinfo:
+  - strong: YNX Chain
+  - paragraph: 围绕 YNXT 构建的 Web4 L1 生态系统。
+  - link "开始手册":
+    - /url: /manual
+  - link "API 手册":
+    - /url: /api
+  - link "联系我们":
+    - /url: /contact
+  - link "Founder@ynxweb4.com":
+    - /url: mailto:Founder@ynxweb4.com
+    - generic: Founder@ynxweb4.com
+  - link "YNX 生态":
+    - /url: /ecosystem
+  - link "生态下载":
+    - /url: /downloads
+  - link "开发者文档":
+    - /url: /docs
+  - link "开发者":
+    - /url: /developers
+  - link "状态":
+    - /url: /status
+  - link "浏览器":
+    - /url: https://explorer.ynxweb4.com
+  - link "水龙头":
+    - /url: https://faucet-testnet.ynxweb4.com
+  - link "安全":
+    - /url: /security
+  - link "GitHub":
+    - /url: https://github.com/JiahaoAlbus/YNX-Chain
+  - link "Website GitHub":
+    - /url: https://github.com/JiahaoAlbus/YNX-Chain-website
+  - link "X":
+    - /url: https://x.com/YNXChain
+  - link "Discord":
+    - /url: https://discord.gg/t8KpAF2KE
+  - link "YouTube":
+    - /url: https://www.youtube.com/@YNX-Chain
+  - link "隐私":
+    - /url: /privacy
+  - link "条款":
+    - /url: /terms
+  - paragraph: 公开测试网项目。未宣称主网上线、交易所上币、稳定币发行方支持、钱包默认支持或第三方合作关系。

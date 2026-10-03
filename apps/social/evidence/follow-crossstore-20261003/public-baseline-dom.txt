@@ -1,0 +1,58 @@
+- banner:
+  - link "YNX Social home":
+    - /url: /
+    - generic: "Y"
+    - generic: YNX Social
+  - navigation "Primary":
+    - link "Experience":
+      - /url: "#experience"
+    - link "Privacy":
+      - /url: "#privacy"
+    - link "Apps":
+      - /url: "#downloads"
+  - button "Connect wallet"
+- main:
+  - generic: Private Social service degraded — guest preview is still available
+  - heading "Close conversations. Clear control." [level=1]:
+    - text: Close conversations.
+    - text: Clear control.
+  - paragraph: Explore YNX Social without an account. Connect a standard EVM wallet only when you are ready to link a profile or approve a private session.
+  - button "Connect wallet"
+  - link "Explore as guest":
+    - /url: "#experience"
+  - paragraph: Guest access never creates a profile, wallet approval, Product Session, signature, or transaction.
+  - generic "Product preview":
+    - generic: Social
+    - generic: Private
+    - article:
+      - strong: Design Circle
+      - generic: Community preview
+      - paragraph: A calm place for people, projects and conversations you choose.
+  - text: Guest preview
+  - heading "See the product before you connect." [level=2]
+  - paragraph: Public information remains readable while identity, contacts, messages and private actions stay locked.
+  - article:
+    - text: "01"
+    - heading "Moments" [level=3]
+    - paragraph: Share thoughtful updates with public, contacts-only or private visibility controls.
+  - article:
+    - text: "02"
+    - heading "Encrypted chat" [level=3]
+    - paragraph: Device-bound conversation keys, verified recovery states and explicit device rotation.
+  - article:
+    - text: "03"
+    - heading "People you choose" [level=3]
+    - paragraph: Discover by handle, invite or QR without exposing a wallet address as a public identity.
+  - text: Privacy boundary
+  - heading "Your wallet is a key, not your public profile." [level=2]
+  - list:
+    - listitem: Standard wallet connection stays available if private YNX services are degraded.
+    - listitem: No recovery phrase or private key is requested or received.
+    - listitem: Private Social access requires a separate, explicit Product Session approval.
+    - listitem: Rejected or failed approval creates no local or canned session.
+  - text: Get the app
+  - heading "Continue on mobile." [level=2]
+  - paragraph: The public Web surface is for discovery and standard wallet connection. Private conversations remain in the installed Social client.
+  - link "Download YNX apps":
+    - /url: https://www.ynxweb4.com/dapp/download
+  - generic: Android Testnet preview · other platforms require verified releases
