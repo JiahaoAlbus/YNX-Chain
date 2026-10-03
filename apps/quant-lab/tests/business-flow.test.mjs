@@ -1203,6 +1203,19 @@ test('Paper does not acknowledge or forget an intent when the service returns an
   }
 });
 
+test('disconnected portfolio states independent public research and workspace-gated Paper in every language without requests',async()=>{
+  assert.doesNotMatch(html,/Research and Paper are still available/);
+  assert.match(html,/Public research is independent; Paper requires an authorized workspace/);
+  const app=harness();await settle();const calls=app.calls.length,values=new Set();
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const copy=vm.runInContext('t("connectForPortfolio")',app.context);values.add(copy);
+    assert.equal(app.ids.get('wallet-portfolio-status').textContent,copy);assert.ok(copy.includes('YNX Wallet')&&copy.includes('MetaMask'));
+    assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(app.calls.length,calls);assert.equal(app.proofs(),0);
+  }
+  assert.equal(values.size,12);assert.match([...values][0],/Paper requires an authorized workspace/);
+});
+
 test('portfolio uses exact provider data without floating point loss and rejects malformed account/source receipts', async () => {
   const large = '9007199254740993000000000000000001';
   const app = harness({portfolioRead: state => Promise.resolve(receipt(state.account, large))}); await settle();

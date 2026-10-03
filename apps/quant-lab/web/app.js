@@ -172,6 +172,21 @@ const paperSafetyCopy = {
   id: ["Masukkan jumlah simulasi berupa bilangan bulat positif.", "Hasil sinyal sebelumnya belum diketahui. Muat ulang untuk memulihkan input tersimpan dan coba lagi sebelum memulai sinyal baru."],
 };
 for (const [language, [paperInvalidAmount, paperPendingMismatch]] of Object.entries(paperSafetyCopy)) Object.assign(businessCopy[language], {paperInvalidAmount, paperPendingMismatch});
+const portfolioAccessCopy={
+  en:'Connect YNX Wallet or MetaMask to read its Testnet balance. Public research is independent; Paper requires an authorized workspace.',
+  'zh-CN':'连接 YNX Wallet 或 MetaMask 以读取测试网余额。公开研究独立可用；模拟盘需要已授权的工作区。',
+  'zh-TW':'連線 YNX Wallet 或 MetaMask 以讀取測試網餘額。公開研究獨立可用；模擬交易需要已授權的工作區。',
+  ja:'YNX Wallet または MetaMask を接続してテストネット残高を読み取ってください。公開研究は独立して利用できます。ペーパー取引には許可されたワークスペースが必要です。',
+  ko:'테스트넷 잔액을 읽으려면 YNX Wallet 또는 MetaMask를 연결하세요. 공개 연구는 별도로 이용할 수 있으며, 모의 거래에는 승인된 작업 공간이 필요합니다.',
+  es:'Conecta YNX Wallet o MetaMask para consultar su saldo Testnet. La investigación pública es independiente; Paper requiere un espacio autorizado.',
+  fr:'Connectez YNX Wallet ou MetaMask pour lire son solde Testnet. La recherche publique est indépendante ; Paper nécessite un espace autorisé.',
+  de:'Verbinde YNX Wallet oder MetaMask, um den Testnet-Saldo zu lesen. Öffentliche Forschung ist unabhängig; Paper erfordert einen autorisierten Arbeitsbereich.',
+  pt:'Conecte YNX Wallet ou MetaMask para ler o saldo Testnet. A pesquisa pública é independente; Paper requer um espaço autorizado.',
+  ru:'Подключите YNX Wallet или MetaMask для чтения баланса Testnet. Публичные исследования независимы; Paper требует авторизованного рабочего пространства.',
+  ar:'اتصل بـ YNX Wallet أو MetaMask لقراءة رصيد Testnet. البحث العام مستقل؛ تتطلب المحاكاة مساحة عمل مصرحًا بها.',
+  id:'Hubungkan YNX Wallet atau MetaMask untuk membaca saldo Testnet. Riset publik bersifat independen; Paper memerlukan ruang kerja yang diotorisasi.'
+};
+for(const [language,connectForPortfolio] of Object.entries(portfolioAccessCopy))Object.assign(businessCopy[language],{connectForPortfolio});
 const storageCopy = {
   en:'Browser storage is unavailable. Public research remains usable; saved workspace and Paper writes require durable local recovery records.',
   'zh-CN':'浏览器存储不可用。公开研究仍可使用；保存工作区和模拟盘写入需要持久的本地恢复记录。',

@@ -1,0 +1,21 @@
+{
+  "kind": "DIRECT_PUBLIC_BROWSER_CPU_RESEARCH_NOT_CAPITAL_EXECUTION",
+  "observedAt": "2026-10-03T16:49:06.130Z",
+  "url": "https://quant.ynxweb4.com/#research",
+  "sourceCommit": "664b80b00ac576317524f25b49fc01d1c0db7196",
+  "publicAppReadback": {"observedAt": "2026-10-03T16:54:25.460Z", "path": "/app.js?v=21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc", "http": 200, "mime": "text/javascript; charset=utf-8", "bytes": 46133, "sha256": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc", "queryMatchesBytes": true},
+  "version": {"http": 200, "bytes": 274, "sha256": "f82629a1bd63e50f6721611cbf7866f86d7bffd51820b05a417590541c4653df"},
+  "publicStatus": {"http": 200, "bytes": 475, "sha256": "0efcbf79681e6c8d7ee5086d1cefd69928b9a84eb28d712553bac60ca60ea518", "mode": "public_stateless_research", "synthetic": false, "paper": false, "testnetExecution": false, "liveFunds": false},
+  "request": {"path": "/api/v1/public/research/backtests/from-market", "method": "POST", "count": 1, "action": "clicked actual #backtest button.primary"},
+  "response": {"http": 201, "bytes": 4620, "sha256": "c48fa623c1e6de06cb5b980b9c0a6265cc64398c941b185c8001af9c5671070e", "id": "experiment-000001", "status": "completed_oos"},
+  "source": "http://127.0.0.1:18446/api/v1/market-data/trades",
+  "sourceBoundary": "server-side historical market adapter, not browser direct loopback/RPC",
+  "split": "train[0:24), out-of-sample[24:30), walk-forward=3",
+  "metrics": {"ReturnBPS": 0, "BuyHoldBPS": -50, "MaxDrawdownBPS": 0, "SharpeMilli": 440, "VolatilityBPS": 0, "Trades": 6, "PartialFills": 6, "DataGaps": 0, "NoTrade": false},
+  "metricBoundary": "six modeled OOS fills, not Exchange orders or investment performance assurance",
+  "equityPoints": 6,
+  "browser": {"installedChrome": true, "headless": true, "viewport": "390x844", "language": "en", "latestResultHidden": false, "returnText": "0 bps", "sharpeText": "0.440", "chartPolylines": 2, "tabCount": 1, "urlStableDuringSubmission": true, "pageErrors": 0, "blockedWrites": 0},
+  "identityOnlyAutomaticNavigationBeforeSubmission": ["/api/v1/sso/account", "/sso/start", "/v2/browser-sessions/authorize", "/sso/callback", "/"],
+  "publicDefectsRemaining": ["leakage guide still says First 50% despite actual train 24 of 30", "Wallet summary still says Research and Paper are available despite public capabilities.paper=false"],
+  "claims": {"publicCPUAPIConfirmed": true, "visibleStatelessResultConfirmed": true, "currentOwnerSourcePublished": false, "privateWorkspaceVerified": false, "multiInstanceReady": false, "walletApprovalVerified": false, "signaturesVerified": false, "paperOrdersSubmitted": false, "testnetOrdersSubmitted": false, "nativeInstallVerified": false, "macComputerControlVerified": false}
+}
