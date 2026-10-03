@@ -531,6 +531,8 @@ function SocialApp() {
           <Text style={styles.privateText}>{t("Private")}</Text>
         </View>
         <LanguagePicker compact />
+        {(session.authMode !== 'product-session-v2' || session.session.scopes.includes('social.contacts')) &&
+          <Pressable accessibilityLabel="Notifications" onPress={() => setTab('alerts')} style={styles.iconButton}><Bell size={20} color={BLUE} /></Pressable>}
       </View>}
       <View style={[styles.appWorkspace, desktop && styles.desktopWorkspace]}>
       <View style={styles.body}>
@@ -571,13 +573,6 @@ function SocialApp() {
           active={tab === "moments"}
           label={t("Moments")}
           icon={Sparkles}
-          onPress={setTab}
-        />:null}
-        {(session.authMode!=="product-session-v2"||session.session.scopes.includes("social.contacts"))?<TabButton
-          tab="alerts"
-          active={tab === "alerts"}
-          label={t("Alerts")}
-          icon={Bell}
           onPress={setTab}
         />:null}
         <TabButton
@@ -3877,7 +3872,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   tab: { flex: 1, minHeight: 58, alignItems: "center", justifyContent: "center", gap: 4, paddingVertical: 7 },
-  tabText: { fontSize: 10.5, color: "#7C8491" },
+  tabText: { fontSize: 12, color: "#7C8491" },
   tabTextActive: { color: BLUE, fontWeight: "700" },
   flex: { flex: 1 },
   muted: { color: MUTED, fontSize: 13 },
@@ -3928,10 +3923,10 @@ const styles = StyleSheet.create({
   preview: { fontSize: 13, color: MUTED, marginTop: 4 },
   time: { fontSize: 11, color: "#98A2B3" },
   e2ee: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5 },
-  e2eeText: { fontSize: 10.5, color: MUTED },
+  e2eeText: { fontSize: 12, color: MUTED },
   aiButton: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     backgroundColor: "#F0F4FF",
     alignItems: "center",
@@ -3940,7 +3935,7 @@ const styles = StyleSheet.create({
   search: {
     marginHorizontal: 20,
     marginBottom: 8,
-    height: 42,
+    minHeight: 44,
     borderRadius: 13,
     backgroundColor: SURFACE,
     flexDirection: "row",
@@ -4189,7 +4184,7 @@ const styles = StyleSheet.create({
     gap: 3,
     marginTop: 5,
   },
-  messageStateText: { fontSize: 9.5, color: MUTED },
+  messageStateText: { fontSize: 12, color: MUTED },
   composerRow: {
     minHeight: 66,
     backgroundColor: "#FFFFFF",
@@ -4221,7 +4216,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   retryBar: {
-    minHeight: 38,
+    minHeight: 48,
     backgroundColor: "#F0F4FF",
     flexDirection: "row",
     alignItems: "center",
@@ -4243,8 +4238,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   postAction: {
-    minWidth: 38,
-    minHeight: 34,
+    minWidth: 48,
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -4265,7 +4260,7 @@ const styles = StyleSheet.create({
   },
   languageCompact: {
     marginLeft: "auto",
-    minHeight: 36,
+    minHeight: 48,
     paddingHorizontal: 10,
     borderRadius: 11,
     borderWidth: 1,
