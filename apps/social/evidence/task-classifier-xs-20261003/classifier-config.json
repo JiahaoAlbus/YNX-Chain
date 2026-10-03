@@ -1,0 +1,45 @@
+{
+  "architecture": "swiftformer_xs",
+  "num_classes": 3,
+  "num_features": 220,
+  "global_pool": "avg",
+  "pretrained_cfg": {
+    "tag": "dist_in1k",
+    "custom_load": false,
+    "input_size": [
+      3,
+      224,
+      224
+    ],
+    "fixed_input_size": true,
+    "interpolation": "bicubic",
+    "crop_pct": 0.95,
+    "crop_mode": "center",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "num_classes": 1000,
+    "label_names": [
+      "NSFL",
+      "NSFW",
+      "SFW"
+    ],
+    "pool_size": null,
+    "first_conv": "stem.0",
+    "classifier": [
+      "head",
+      "head_dist"
+    ],
+    "license": "apache-2.0",
+    "origin_url": "https://github.com/Amshaker/SwiftFormer",
+    "paper_name": "SwiftFormer: Efficient Additive Attention for Transformer-based Real-time Mobile Vision Applications",
+    "paper_ids": "arXiv:2303.15446"
+  }
+}

@@ -1,0 +1,6 @@
+8144bbe6e91d27f3d423487b57eefc446f5ff0a522f22d57a25bc72e7ef97112  apps/social/scripts/task-classifier-xs-qa.mjs
+6e5a4fd53621256542b2095a2f03207a63aa855c1ac126718f78b62fe4304295  apps/social/evidence/task-classifier-xs-20261003/classifier-engine.json
+f7ae68fffd4bf5ea7b947665132a1e46063b937c79a58abcc87d6bbadacc7d15  apps/social/evidence/task-classifier-xs-20261003/incomplete-artifact-rejected.log
+8c04885be244bda81ca6527ab784fae644632284e00febf6f988f4758397dcd9  apps/social/evidence/task-classifier-xs-20261003/classifier-config.json
+43a39b5fdfb787c7a83c50f443bfd860fc6f71b259fb0773dfc5d002b43b8e34  apps/social/evidence/task-classifier-xs-20261003/model-tree.json
+03652439b83bb9626e74675127b66e0278da16d74660e581a3be48663f75c626  apps/social/evidence/task-classifier-xs-20261003/violence-upstream-config.json

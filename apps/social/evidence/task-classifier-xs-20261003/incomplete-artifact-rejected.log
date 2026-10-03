@@ -1,0 +1,20 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
++ actual - expected
+
++ 647227
+- 13137569
+
+    at file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/scripts/task-classifier-xs-qa.mjs:30:8 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 647227,
+  expected: 13137569,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v26.7.0

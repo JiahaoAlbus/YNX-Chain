@@ -1,0 +1,75 @@
+{
+  "status": "ACTUAL_CLASSIFIER_ENGINE_QA_ONLY",
+  "pin": {
+    "repository": "OwenElliott/image-safety-classifier-xs",
+    "revision": "54f4560bd9c5ee92d45dc30418a8f8680e80de6d",
+    "path": "onnx/image-safety-classifier-xs.onnx",
+    "bytes": 13137569,
+    "sha256": "8c28c49d9075f3ad15ebdc2961f02d5b3f99be944815b848b49c9f0e6f3fb689",
+    "labels": [
+      "NSFL",
+      "NSFW",
+      "SFW"
+    ]
+  },
+  "runtime": "1.30.0",
+  "executionProvider": "wasm",
+  "numThreads": 1,
+  "loadMs": 170.378625,
+  "checks": [
+    {
+      "syntheticRGB": 0,
+      "elapsedMs": 50.68904200000003,
+      "probabilities": {
+        "NSFL": 0.04521767050027847,
+        "NSFW": 0.23856505751609802,
+        "SFW": 0.7162173390388489
+      },
+      "candidateCategories": {
+        "gore": 0.04521767050027847,
+        "sexual_content": 0.23856505751609802,
+        "explicit_violence": null
+      },
+      "completeThreeCategoryClassifier": false,
+      "safetyConclusion": "NOT_EVALUATED"
+    },
+    {
+      "syntheticRGB": 127.5,
+      "elapsedMs": 35.71358300000003,
+      "probabilities": {
+        "NSFL": 0.026861755177378654,
+        "NSFW": 0.053573668003082275,
+        "SFW": 0.9195645451545715
+      },
+      "candidateCategories": {
+        "gore": 0.026861755177378654,
+        "sexual_content": 0.053573668003082275,
+        "explicit_violence": null
+      },
+      "completeThreeCategoryClassifier": false,
+      "safetyConclusion": "NOT_EVALUATED"
+    },
+    {
+      "syntheticRGB": 255,
+      "elapsedMs": 34.19320800000003,
+      "probabilities": {
+        "NSFL": 0.03617864102125168,
+        "NSFW": 0.07060994952917099,
+        "SFW": 0.8932113647460938
+      },
+      "candidateCategories": {
+        "gore": 0.03617864102125168,
+        "sexual_content": 0.07060994952917099,
+        "explicit_violence": null
+      },
+      "completeThreeCategoryClassifier": false,
+      "safetyConclusion": "NOT_EVALUATED"
+    }
+  ],
+  "fetchAttempts": 0,
+  "osNetworkIsolation": "NOT_VERIFIED",
+  "realContentCalibration": "NOT_RUN",
+  "signedArtifactAdmission": "NOT_ADMITTED",
+  "productMount": "NOT_MOUNTED",
+  "timestamp": "2026-10-03T12:36:14.926Z"
+}
