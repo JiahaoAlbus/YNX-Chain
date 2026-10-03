@@ -121,11 +121,11 @@ try{
  await call('mismatch',{enabled:true});assert.equal((await call('inspect')).result.connected,false);assert.equal((await call('json',{path:'/v1/account'},false)).ok,false);const restoredMismatch=await call('mismatch',{enabled:false});assert.equal((await call('inspect')).result.connected,true,JSON.stringify(restoredMismatch));
  // Repeated wrong-account veto must leave no private snapshot and preserve
  // the same original SDK account/binding when the original service returns.
- const restoredVideo=(await call('inspect')).result.videos[0];
+ const restoredSnapshot=await call('inspect');const restoredVideo=restoredSnapshot.result.videos[0];assert.ok(restoredVideo,JSON.stringify({phase:'first-original-restoration-missing-video',...restoredSnapshot}));assert.equal(restoredVideo.id,original.id);assert.equal(restoredVideo.owner,account);
  for(let attempt=0;attempt<10;attempt++) {
   const refused=await call('mismatch',{enabled:true});assert.equal(refused.result.connected,false);assert.equal(refused.result.videos.length,0);assert.equal(refused.result.revenue.length,0);assert.equal(refused.result.aiJobs.length,0);
   const denied=await call('json',{path:'/v1/account'},false);assert.equal(denied.ok,false);
-  const restored=await call('mismatch',{enabled:false});assert.equal(restored.result.connected,true,JSON.stringify({attempt,...restored}));assert.equal(restored.result.account,account);assert.equal(restored.result.binding,binding);assert.equal(restored.result.operationPending,false);assert.deepEqual(restored.result.videos[0],restoredVideo);
+  const restored=await call('mismatch',{enabled:false});assert.equal(restored.result.connected,true,JSON.stringify({attempt,...restored}));assert.equal(restored.result.account,account);assert.equal(restored.result.binding,binding);assert.equal(restored.result.operationPending,false);assert.deepEqual(restored.result.videos[0],restoredVideo,JSON.stringify({phase:'repeated-original-restoration',attempt,...restored}));
  }
  await call('holdNext');const late=call('json',{path:'/v1/account'},false);let held=false;for(let i=0;i<100;i++){if((await call('inspect')).result.held){held=true;break}await new Promise(r=>setTimeout(r,10))}assert(held);await call('cold');await call('release');const obsolete=await late;assert.equal(obsolete.ok,false);
  const signOut=await call('uiSignOut');assert.equal(signOut.result.connected,false);assert.equal(signOut.result.pending,false);assert.equal((await call('json',{path:'/v1/account'},false)).ok,false);assert.equal((await call('cold')).result.connected,false);await call('close');
