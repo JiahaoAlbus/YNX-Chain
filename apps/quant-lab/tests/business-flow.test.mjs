@@ -88,6 +88,28 @@ test('Paper intent persistence failure sends no order and disables durable works
   await app.submit('backtest');assert.equal(app.calls.at(-1).url,'/api/v1/public/research/backtests/from-market');
 });
 
+test('one in-flight research request preserves its submitted inputs and mode across double clicks and language changes',async()=>{
+  for(const saved of [false,true]){
+    const pending=deferred();const app=harness({snapshot:{access:{statefulPreview:saved}},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:saved},strategies:{},experiments:{},paper:{},audit:[]}:pending.promise});await settle();
+    app.ids.get('strategy').value='Exact original strategy';app.ids.get('fast').value='3';app.ids.get('slow').value='8';
+    const first=app.submit('backtest');await settle();assert.equal(app.ids.get('research-submit').disabled,true);assert.equal(app.ids.get('backtest').ariaBusy,'true');assert.equal(app.ids.get('research-request-status').hidden,false);
+    app.ids.get('strategy').value='Edited next draft';app.ids.get('fast').value='99';await app.submit('backtest');
+    app.ids.get('locale').onchange({target:{value:'ar'}});assert.match(app.ids.get('research-request-status').textContent,/قيد الانتظار/);
+    const posts=app.calls.filter(call=>call.options.method==='POST');assert.equal(posts.length,1);assert.equal(posts[0].url,saved?'/api/v1/backtests/from-market':'/api/v1/public/research/backtests/from-market');
+    const submitted=JSON.parse(posts[0].options.body);assert.equal(submitted.strategy.name,'Exact original strategy');assert.equal(submitted.strategy.params.fast,3);assert.match(submitted.strategy.id,/^ma-[0-9a-f-]{36}$/);
+    assert.equal(app.ids.get('latest-result').hidden,true,'an in-flight request must not invent confirmed performance');
+    pending.resolve(researchFixture('confirmed-single'));await first;
+    assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('backtest').ariaBusy,'false');assert.equal(app.ids.get('research-request-status').hidden,true);
+    assert.equal(app.ids.get('strategy').value,'Edited next draft');assert.equal(app.proofs(),0);
+  }
+});
+
+test('failed research unlocks a new explicit request without fabricating an experiment or automatic replay',async()=>{
+  let posts=0;const app=harness({snapshot:{access:{statefulPreview:false}},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:false}}:(posts++,Promise.reject(Error('Exact bounded source failure')))});await settle();
+  await app.submit('backtest');assert.equal(posts,1);assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('research-request-status').hidden,true);assert.equal(app.ids.get('latest-result').hidden,true);assert.match(app.ids.get('toast').textContent,/Exact bounded source failure/);
+  await app.submit('backtest');assert.equal(posts,2);assert.equal(app.proofs(),0);assert.equal(vm.runInContext('Object.keys(publicExperiments).length',app.context),0);
+});
+
 test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
   const experiment = {id:'public-test-result',createdAt:'2026-09-12T00:00:00Z',strategy:{Name:'Explicit synthetic UI fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2};
   const app = harness({apiResponse: async url => {

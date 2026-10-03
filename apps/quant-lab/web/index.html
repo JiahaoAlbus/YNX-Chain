@@ -117,7 +117,8 @@
                       min="0"
                   /></label>
                 </div>
-                <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
+                <button id="research-submit" class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
+                <p id="research-request-status" role="status" aria-live="polite" hidden>Backtest request pending. No result is confirmed yet.</p>
               </form>
               <div id="latest-result" hidden>
                 <h3 data-business-i18n="latestResearchTitle">Latest research result</h3>

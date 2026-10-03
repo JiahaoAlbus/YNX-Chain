@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-quant-lab",
+  "kind": "OWNED_RESEARCH_SUBMISSION_LIFECYCLE",
+  "predecessor": "123f2eec0d90c86776c5c0ee52635d41a19167ff",
+  "sourceIdentity": "Immutable commit containing this inventory",
+  "inventory": [
+    {
+      "path": "apps/quant-lab/web/app.js",
+      "bytes": 72930,
+      "sha256": "b4a110d14076ce537229c044f7e31a023be1f0aa1ab8213d01d98a1acea8c217",
+      "blob": "cc58fb90a094986e53f25775fcb81929f754e15f"
+    },
+    {
+      "path": "apps/quant-lab/web/index.html",
+      "bytes": 25271,
+      "sha256": "8ce3ee1fb6c38f05737d143b677fdfa80ad3dce10a0ab85d5f223afbbba0a950",
+      "blob": "f774e8b4efb9b03229877522477fd074de316b43"
+    },
+    {
+      "path": "apps/quant-lab/web/i18n.js",
+      "bytes": 25372,
+      "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+      "blob": "f494c458ee6249b778e688c60df1b440bd64f0b6"
+    },
+    {
+      "path": "apps/quant-lab/web/styles.css",
+      "bytes": 10510,
+      "sha256": "add12048478bc591393cc9f95c13ed54abbc3c76962e1fb93ea8b1657fb071fd",
+      "blob": "ae46e896bcbd6e76dc767c1447cab739f599ea2f"
+    }
+  ],
+  "tests": {
+    "command": "node --test apps/quant-lab/tests/business-flow.test.mjs apps/quant-lab/tests/browser.test.mjs",
+    "pass": 30,
+    "fail": 0,
+    "skips": 0,
+    "durationMs": 17998.472542
+  },
+  "boundaries": {
+    "singleInFlightPageRequest": true,
+    "capturedParametersAndMode": true,
+    "noAutomaticReplay": true,
+    "noPendingPerformanceClaim": true,
+    "serverCrossTabDeduplicationProved": false,
+    "engineAuthoritySDKPermissionsUnchanged": true
+  },
+  "releaseOwner": "wallet_release_owner A",
+  "releaseRequirement": "Coherent full runtime assets from final immutable source and accepted shared graph, not inherited cache hash strings",
+  "truth": {
+    "localQA": true,
+    "deployedPublic": false,
+    "installed": false,
+    "realMarketBacktest": false,
+    "realProviderApproval": false,
+    "realProductSession": false,
+    "realTestnetExecution": false,
+    "userAcceptance": false
+  },
+  "rollback": "Normal reviewed omit/revert and coherent rebuild by A; no deployment in this slice"
+}

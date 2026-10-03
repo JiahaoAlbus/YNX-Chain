@@ -6,6 +6,7 @@ let statefulPreview = false;
 let publicExperiments = {};
 let latestResearchMode = null;
 let latestResearchResult = null;
+let researchSubmitting = false;
 let lastToastKey = null;
 let pendingMandate = null;
 let pendingOrder = null;
@@ -157,6 +158,21 @@ const storageCopy = {
   id:'Penyimpanan browser tidak tersedia. Riset publik tetap tersedia; ruang tersimpan dan penulisan Paper memerlukan catatan pemulihan persisten.'
 };
 for (const [language, workspaceStorageUnavailable] of Object.entries(storageCopy)) Object.assign(businessCopy[language], {workspaceStorageUnavailable});
+const researchRequestCopy = {
+  en:'Backtest request pending. No result is confirmed yet.',
+  'zh-CN':'回测请求等待返回，尚未确认结果。',
+  'zh-TW':'回測請求等待返回，尚未確認結果。',
+  ja:'バックテスト要求の応答待ちです。結果はまだ確認されていません。',
+  ko:'백테스트 요청 응답을 기다립니다. 결과는 아직 확인되지 않았습니다.',
+  es:'Solicitud de backtest pendiente. Todavía no hay un resultado confirmado.',
+  fr:'Demande de backtest en attente. Aucun résultat n’est encore confirmé.',
+  de:'Backtest-Anfrage ausstehend. Noch kein Ergebnis bestätigt.',
+  pt:'Solicitação de backtest pendente. Nenhum resultado confirmado ainda.',
+  ru:'Запрос бэктеста ожидает ответа. Результат ещё не подтверждён.',
+  ar:'طلب الاختبار التاريخي قيد الانتظار. لم تُؤكد أي نتيجة بعد.',
+  id:'Permintaan backtest menunggu respons. Belum ada hasil terkonfirmasi.'
+};
+for (const [language, researchRequestPending] of Object.entries(researchRequestCopy)) Object.assign(businessCopy[language], {researchRequestPending});
 const researchResultCopy = {
   en: ["Temporary result on this page only — not saved or audited. Reloading the page discards it.", "Experiment saved and audited in this browser's Paper workspace."],
   "zh-CN": ["仅本页临时结果，未保存、未审计；重新加载页面后消失。", "实验已保存并审计于此浏览器的模拟盘工作区。"],
@@ -266,6 +282,7 @@ function applyLocale() {
   renderPortfolio();
   renderResearchStatus();
   renderRunDetails();
+  renderResearchRequestState();
   $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
   $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
   for (const id of ['reconcile','kill']) $('#'+id).disabled = !statefulPreview;
@@ -506,11 +523,14 @@ $("#locale").onchange = (e) => {
 };
 $("#backtest").onsubmit = async (e) => {
   e.preventDefault();
+  if (researchSubmitting) return;
+  researchSubmitting = true;
+  renderResearchRequestState();
   const savedWorkspace = statefulPreview;
   try {
     const body = {
       strategy: {
-        id: "ma-" + Date.now(),
+        id: "ma-" + crypto.randomUUID(),
         name: $("#strategy").value,
         family: "transparent",
         source: "quant://user/ma",
@@ -538,8 +558,17 @@ $("#backtest").onsubmit = async (e) => {
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
     toast(e.message);
+  } finally {
+    researchSubmitting = false;
+    renderResearchRequestState();
   }
 };
+function renderResearchRequestState() {
+  $('#research-submit').disabled = researchSubmitting;
+  $('#backtest').ariaBusy = String(researchSubmitting);
+  $('#research-request-status').hidden = !researchSubmitting;
+  $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : '';
+}
 $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
   if (paperSubmitting || !statefulPreview) return;

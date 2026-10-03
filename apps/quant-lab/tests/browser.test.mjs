@@ -2,6 +2,18 @@ import test from 'node:test';import assert from'node:assert/strict';import{spawn
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
 async function reserveLoopbackPort(){return await new Promise((resolve,reject)=>{const listener=net.createServer();listener.once('error',reject);listener.listen(0,'127.0.0.1',()=>{const address=listener.address();if(!address||typeof address==='string'){listener.close();reject(new Error('Unable to reserve a loopback port for Quant browser tests.'));return}listener.close(error=>error?reject(error):resolve(address.port))})})}
 test.before(async()=>{const work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-'));const port=await reserveLoopbackPort();base=`http://127.0.0.1:${port}`;evidence=path.join(repo,'tmp','quant-lab-evidence');await mkdir(evidence,{recursive:true});server=spawn('go',['run','./apps/quant-lab/server'],{cwd:repo,detached:true,env:{...process.env,YNX_QUANT_HTTP_ADDR:`127.0.0.1:${port}`,YNX_QUANT_STATE_PATH:path.join(work,'state.json')},stdio:['ignore','pipe','pipe']});let err='';server.stderr.on('data',d=>err+=d);for(let i=0;i<150;i++){try{if((await fetch(base+'/api/health')).ok)break}catch{}await new Promise(r=>setTimeout(r,200));if(i===149)throw new Error(err||'Quant browser test server did not become healthy.')}browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'})},{timeout:30_000});test.after(async()=>{await browser?.close();if(server?.pid)try{process.kill(-server.pid,'SIGTERM')}catch{}});
+test('real research form coalesces a delayed request without displaying unconfirmed results',async()=>{
+  const context=await browser.newContext({viewport:{width:390,height:844}});
+  try{
+    let posts=0,complete;const gate=new Promise(resolve=>complete=resolve);
+    await context.route('**/api/v1/backtests/from-market',async route=>{posts++;await gate;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Exact delayed market unavailable"}'})});
+    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();await page.locator('#research-request-status').waitFor({state:'visible'});
+    assert.equal(await page.locator('#research-submit').isDisabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'true');
+    await page.evaluate(()=>{document.getElementById('backtest').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))});
+    await page.selectOption('#locale','ar');assert.match(await page.locator('#research-request-status').textContent(),/قيد الانتظار/);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(posts,1);
+    complete();await page.getByText('Exact delayed market unavailable',{exact:true}).waitFor();assert.equal(await page.locator('#research-submit').isDisabled(),false);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'false');assert.equal(await page.locator('#research-request-status').isVisible(),false);assert.equal(posts,1);
+  }finally{await context.close()}
+});
 test('actual guest research stays usable when Quant browser storage is denied',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
