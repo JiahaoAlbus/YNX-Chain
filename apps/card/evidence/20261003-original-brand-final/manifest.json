@@ -121,6 +121,11 @@
       "path": "apps/card/evidence/20261003-original-brand-final/local-preview.log",
       "bytes": 44588,
       "sha256": "26af82bc336e9ea50fbc8f08fb2f8734204c2dcbcf0b8fabc1142708bfa2caa1"
+    },
+    {
+      "path": "apps/card/evidence/20261003-original-brand-final/mobile-settings-recapture.jpg",
+      "bytes": 18266,
+      "sha256": "4f570131b366bddc8dea19882a765f80756fcb047b7c61b285fae573b2593503"
     }
   ],
   "release": {
@@ -143,5 +148,17 @@
     "fiat": false,
     "productionRealPayments": false,
     "fullProductComplete": false
+  },
+  "captureCorrection": {
+    "invalidArtifact": "apps/card/evidence/20261003-original-brand-final/mobile-settings.jpg",
+    "reason": "Captured a transient scaled desktop layout after viewport change; retained, not accepted as 390px settings proof",
+    "acceptedArtifact": "apps/card/evidence/20261003-original-brand-final/mobile-settings-recapture.jpg",
+    "settingsGeometry": {
+      "width": 76,
+      "height": 40,
+      "x": 20,
+      "y": 15.5
+    },
+    "productSourceChanged": false
   }
 }

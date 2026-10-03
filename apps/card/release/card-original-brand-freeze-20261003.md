@@ -12,3 +12,6 @@ Evidence: apps/card/evidence/20261003-original-brand-final/manifest.json
 Manifest SHA-256: 2797cbe5595b478424d327135662374580da54c97e098f9eb5012d36b1aee4b8
 
 A/Root must build and publish this source with compatible runtime identity/backend and accepted Hosted application review/revoke. The prior complete integration input at 12b7bf9c remains applicable except the frontend candidate must include this successor. No owner deployment or formal artifact build was performed. Public/installed/locked/authenticated visual gates and all real approval, ACTIVE account, YNXT funding, PAN/CVV, fiat and real-payment gates remain unproven/false. Card has no native macOS project; a browser screenshot must not be called a macOS installer proof.
+
+## Capture correction
+The first final mobile settings screenshot is retained as a transient scaled-layout capture, not valid responsive proof. Use apps/card/evidence/20261003-original-brand-final/mobile-settings-recapture.jpg (18266 bytes, SHA-256 4f570131b366bddc8dea19882a765f80756fcb047b7c61b285fae573b2593503), captured after opening at 390 x 844 and observing the settings AX state. Product source is unchanged. This successor manifest replaces the earlier manifest hash: 660102d402a0a0b5756cd402547ca67e3d323671626f92a3c7f2f77ea331d624.
