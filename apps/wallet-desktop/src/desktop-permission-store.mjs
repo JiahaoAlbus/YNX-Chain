@@ -4,8 +4,10 @@ import {randomUUID} from "node:crypto";
 import path from "node:path";
 import {PrivateFilePolicy} from "./platform-private-file.mjs";
 import {readBoundedPrivateFile,PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
+import {PermissionEpoch} from "./permission-lease.mjs";
 
 const mutations=new Map();
+const epochs=new Map();
 const empty=()=>({schemaVersion:1,origins:{}});
 const refusal=()=>Object.assign(Error("Wallet account permissions cannot be verified. Existing records were retained; account access and signing are blocked."),{code:4100,data:{code:"PERMISSION_STORE_INVALID"}});
 function origin(value){
@@ -34,15 +36,18 @@ export class FilePermissionStore {
   constructor(filePath,{io=fs,filePolicy=new PrivateFilePolicy({io})}={}){
     if(!path.isAbsolute(filePath??""))throw refusal();
     this.filePath=path.resolve(filePath);this.io=io;this.filePolicy=filePolicy;
+    if(!epochs.has(this.filePath))epochs.set(this.filePath,new PermissionEpoch());
+    this.epoch=epochs.get(this.filePath);
   }
-  async grantAccount(originInput,accountInput,approvedAt){
+  authorizationLease(originInput){return this.epoch.lease(origin(originInput))}
+  async grantAccount(originInput,accountInput,approvedAt,guard){
     const key=origin(originInput),selected=account(accountInput),time=approvalTime(approvedAt);
-    return serialize(this.filePath,async()=>{const state=await this.#read();state.origins[key]={parentCapability:"eth_accounts",accounts:[selected],approvedAt:time};await this.#write(state)});
+    return serialize(this.filePath,async()=>{guard?.assert();const state=await this.#read();guard?.assert();state.origins[key]={parentCapability:"eth_accounts",accounts:[selected],approvedAt:time};await this.#write(state,guard)});
   }
-  async revoke(originInput){const key=origin(originInput);return serialize(this.filePath,async()=>{const state=await this.#read();delete state.origins[key];await this.#write(state)})}
-  async revokeAll(){return serialize(this.filePath,async()=>{await this.#read();await this.#write(empty())})}
-  async hasAccount(originInput,accountInput){const key=origin(originInput),selected=account(accountInput);return (await this.#read()).origins[key]?.accounts.includes(selected)??false}
-  async list(originInput){const record=(await this.#read()).origins[origin(originInput)];return record?[Object.freeze({...record,accounts:Object.freeze([...record.accounts])})]:[]}
+  async revoke(originInput){const key=origin(originInput);return this.epoch.revoke(key,()=>serialize(this.filePath,async()=>{const state=await this.#read();delete state.origins[key];await this.#write(state)}))}
+  async revokeAll(){return this.epoch.revoke(null,()=>serialize(this.filePath,async()=>{await this.#read();await this.#write(empty())}))}
+  async hasAccount(originInput,accountInput){const key=origin(originInput),selected=account(accountInput),lease=this.authorizationLease(key);const state=await this.#read();lease.assert();return state.origins[key]?.accounts.includes(selected)??false}
+  async list(originInput){const key=origin(originInput),lease=this.authorizationLease(key),record=(await this.#read()).origins[key];lease.assert();return record?[Object.freeze({...record,accounts:Object.freeze([...record.accounts])})]:[]}
   async #read(filePath=this.filePath){
     let handle,failed=false,stage="probe";
     try{
@@ -55,7 +60,7 @@ export class FilePermissionStore {
     }catch(error){failed=true;if(stage==="open"&&!handle&&error?.code==="ENOENT")return empty();throw refusal()}
     finally{try{await handle?.close()}catch{if(!failed)throw refusal()}}
   }
-  async #write(state){
+  async #write(state,guard){
     validate(state);const text=JSON.stringify(state,null,2)+"\n";if(Buffer.byteLength(text)>PRIVATE_FILE_MAX_BYTES)throw refusal();
     const temporary=`${this.filePath}.${randomUUID()}.tmp`;let handle,created=false;
     try{
@@ -63,9 +68,10 @@ export class FilePermissionStore {
       handle=await this.io.open(temporary,"wx",0o600);created=true;await this.filePolicy.protect(temporary);
       await handle.writeFile(text,"utf8");await handle.sync();await handle.close();handle=null;
       if(JSON.stringify(await this.#read(temporary))!==JSON.stringify(state))throw refusal();
+      guard?.assert();
       await this.filePolicy.replace(temporary,this.filePath);
       if(JSON.stringify(await this.#read())!==JSON.stringify(state))throw refusal();
-    }catch{throw refusal()}
+    }catch(error){if(error?.data?.code==="ACCOUNT_PERMISSION_REVOKED"||error?.data?.code==="WALLET_OPERATION_CANCELLED"||error?.data?.code==="WALLET_LOCKED")throw error;throw refusal()}
     finally{await handle?.close().catch(()=>{});if(created)await this.io.unlink(temporary).catch(()=>{})}
   }
 }

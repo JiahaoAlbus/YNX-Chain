@@ -58,12 +58,13 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   });
   $("#password-form").addEventListener("submit", async event => {
     event.preventDefault(); if (busy) return;
-    const token = generation, operation = mode;
+    const token = generation, intent = viewIntent, operation = mode;
     let password = $("#local-password").value, confirmation = $("#local-confirm").value;
     if (operation !== "unlock" && password !== confirmation) { setWalletCopy($("#password-result"),"The two passwords do not match."); return; }
     clear(); setBusy(true);
     try {
       const result = operation === "unlock" ? await api.unlock({ password }) : await api.setupPassword({ password, confirmation, migrateLegacy: operation === "migrate" });
+      if (intent !== viewIntent) return;
       // A successful state change may itself invalidate the UI generation; no old
       // finally may clear credentials entered in a newly opened dialog.
       if (result.ok) {
@@ -71,7 +72,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
         setWalletCopy($("#unlock-result"),operation === "unlock" ? getKeyState().locked ? "The unlock attempt finished, but Wallet is now locked." : "Wallet unlocked. Review each request before approving." : "Password protection is saved. Unlock with your local password to continue.");
       } else { if (token === generation) showError($("#password-result"),result); showError($("#unlock-result"),result); }
     } catch { if (token === generation) setWalletCopy($("#password-result"),"Wallet did not finish. Reopen the current Wallet before continuing."); }
-    finally { password = null; confirmation = null; await refreshPublicStatus(); if (token === generation) setBusy(false); }
+    finally { password = null; confirmation = null; if (intent === viewIntent) await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   $("#recover-wallet").addEventListener("click", async () => {
     if (busy) return;
@@ -118,13 +119,14 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   });
   $("#commit-recovery").addEventListener("click", async () => {
     if (busy || !previewId) return;
-    const token = generation, id = previewId; previewId = null; setBusy(true);
+    const token = generation, intent = viewIntent, id = previewId; previewId = null; setBusy(true);
     try {
       const result = await api.commitRecovery(id);
+      if (intent !== viewIntent) return;
       if (result.ok) { if (token === generation) recoverySheet.close(); setWalletCopy($("#unlock-result"),"Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed."); }
       else { if (token === generation) showError($("#recovery-result"),result); showError($("#unlock-result"),result); }
     } catch { if (token === generation) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
-    finally { await refreshPublicStatus(); if (token === generation) setBusy(false); }
+    finally { if (intent === viewIntent) await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   for (const button of doc.querySelectorAll("[data-custody-cancel]")) button.addEventListener("click", () => { cancel({ explicit: true }); void api.lock(); });
   for (const sheet of [passwordSheet, recoverySheet]) sheet.addEventListener("cancel", event => { event.preventDefault(); cancel({ explicit: true }); void api.lock(); });

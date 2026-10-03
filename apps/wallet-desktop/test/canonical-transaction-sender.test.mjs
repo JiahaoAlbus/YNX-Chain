@@ -5,6 +5,8 @@ import test from "node:test";
 import { Transaction, Wallet, toQuantity } from "ethers";
 import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wallet-service.mjs";
+import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
+import {PermissionEpoch,bindPermissionGuard} from "../src/permission-lease.mjs";
 
 // Public scalar-one fixture. All RPC calls are simulated; no network or real funds.
 const wallet = new Wallet(`0x${"1".padStart(64, "0")}`);
@@ -27,6 +29,23 @@ function fixture(t, overrides = {}) {
   t.after(() => sender.provider.destroy());
   return { sender, signer, state };
 }
+
+for(const phase of ["before-sign","after-sign","before-broadcast","unrevoked"])test(`real sender and existing lifecycle permission guard at ${phase}`,async t=>{
+  const f=fixture(t),snapshot=await f.sender.prepare(account,input()),epoch=new PermissionEpoch(),origin="https://sender-permission.invalid";
+  const life=new DesktopKeyLifecycle({focused:()=>true,authorizer:{available:()=>true,authenticate:async()=>{},method:"controlled-test"}});
+  life.setAccount(account);await life.unlock();t.after(()=>life.lock());
+  const permission=epoch.lease(origin),entered=Promise.withResolvers(),release=Promise.withResolvers();let held=false;
+  const pause=async()=>{if(!held){held=true;entered.resolve();await release.promise;}};
+  if(phase==="before-sign") {const verify=f.sender.network.verifyChain.bind(f.sender.network);f.sender.network.verifyChain=async()=>{await pause();return verify();};}
+  if(phase==="after-sign") {const sign=f.signer.signTransaction.bind(f.signer);f.signer.signTransaction=async fields=>{const signed=await sign(fields);await pause();return signed;};}
+  if(phase==="before-broadcast") {const store=f.sender.submissions.intentStore,add=store.add.bind(store);store.add=async(...args)=>{const result=await add(...args);await pause();return result;};}
+  const pending=life.run(lease=>{const guard=bindPermissionGuard(lease,permission);return guard.step(()=>f.sender.send(f.signer,snapshot,guard));}).catch(error=>error);
+  if(phase!=="unrevoked") {await entered.promise;await epoch.revoke(origin,async()=>{});release.resolve();}
+  const result=await pending;
+  if(phase==="unrevoked") {assert.equal(typeof result,"string");assert.equal(f.state.broadcasts,1);assert.equal(f.state.signs,1);}
+  else {assert.equal(result?.data?.code,"ACCOUNT_PERMISSION_REVOKED");assert.equal(f.state.broadcasts,0);assert.equal(f.state.signs,phase==="before-sign"?0:1);}
+  if(phase==="before-broadcast")assert.equal((await f.sender.submissions.list(account)).length,1,"original signed intent stays recorded; no silent re-sign or broadcast");
+});
 
 test("real signing broadcasts only the complete immutable transaction approved before signing", async t => {
   const { sender, signer, state } = fixture(t);

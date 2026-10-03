@@ -4,6 +4,7 @@ import { createProductSessionReturnURL, parseProductSessionWalletURL, signProduc
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
+import {PermissionEpoch,bindPermissionGuard} from "./permission-lease.mjs";
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
@@ -21,6 +22,8 @@ export const APPROVAL_METHODS = Object.freeze([
 ]);
 
 export class DesktopWalletAuthority {
+  #reviewLeases = new WeakMap();
+  #activeReviews = new Map();
   constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date() }) {
     this.vault = vault;
     this.permissions = permissions;
@@ -30,32 +33,34 @@ export class DesktopWalletAuthority {
     this.pending = new Map();
   }
 
-  cancelAll() { this.pending.clear(); }
+  cancelAll() {for(const pending of [...this.pending.values(),...this.#activeReviews.values()])this.#reviewLeases.get(pending)?.cancel();this.pending.clear();}
   async accountStatus() { return this.vault.status(); }
   async createAccount() { return this.vault.createAccount(); }
-  async importAccount(input) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
-  async addAccountAndSelect() { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
-  async selectAccount(account) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
-  async approveCanonicalAuthorization(request, issuedAt, expectedAccount) {
+  async importAccount(input) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
+  async addAccountAndSelect() { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
+  async selectAccount(account) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
+  async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission) {
     if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
     return this.vault.withSecret((secret, identity) => {
+      permission?.assert();
       if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
       const at = new Date(issuedAt);
       const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt, ...(request.serviceConsent ? { approvedServiceConsent: request.serviceConsent } : {}) }, at);
       return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
-    });
+    },permission);
   }
   async approveOrigin(originInput, expectedAccount = null) {
     const origin = exactHttpsOrigin(originInput);
-    const guard = this.vault.authorization?.current();
+    const permission=this.permissions.authorizationLease(origin);
+    const guard = bindPermissionGuard(this.vault.authorization?.current(),permission);
     const status = await this.vault.status();
     guard?.assert();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before connecting a DApp");
     if (expectedAccount !== null) assertReviewedAccount(status.account, expectedAccount);
     const existing = await this.permissions.hasAccount(origin, status.account);
     guard?.assert();
-    try { await this.permissions.grantAccount(origin, status.account, this.clock().toISOString()); guard?.assert(); }
-    catch (error) { if (!existing) await this.permissions.revoke(origin); throw error; }
+    try { await this.permissions.grantAccount(origin, status.account, this.clock().toISOString(),guard); guard?.assert(); }
+    catch (error) { if (!existing) await this.#undoGrant(origin,permission); throw error; }
     return Object.freeze({ origin, account: status.account });
   }
   async revokeOrigin(originInput) { const origin = exactHttpsOrigin(originInput); await this.permissions.revoke(origin); this.#clearOriginPending(origin); return Object.freeze({ origin, revoked: true }); }
@@ -64,22 +69,21 @@ export class DesktopWalletAuthority {
     const origin = exactHttpsOrigin(input?.origin);
     const method = methodName(input?.method);
     const params = Array.isArray(input?.params) ? input.params : [];
+    // Revocation itself must remain available while an older read is pending.
+    if(method === "wallet_revokePermissions") {validatePermissionRequest(params);await this.revokeOrigin(origin);return success(null);}
+    const permission=this.permissions.authorizationLease(origin);
     const status = await this.vault.status();
+    permission.assert();
     if (method === "eth_chainId") return success(YNX_EVM_CHAIN_ID);
     if (method === "net_version") return success("6423");
-    if (method === "eth_accounts") return success(await this.#approvedAccounts(origin, status));
-    if (method === "wallet_getPermissions") return success(await this.permissions.list(origin));
-    if (method === "wallet_revokePermissions") {
-      validatePermissionRequest(params);
-      await this.permissions.revoke(origin);
-      this.#clearOriginPending(origin);
-      return success(null);
-    }
+    if (method === "eth_accounts") {const accounts=await this.#approvedAccounts(origin,status);permission.assert();return success(accounts);}
+    if (method === "wallet_getPermissions") {const records=await this.permissions.list(origin);permission.assert();return success(records);}
     if (!APPROVAL_METHODS.includes(method)) throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", `Unsupported Provider method: ${method}`);
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before connecting a DApp");
     if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "ynx_requestProductSessionV2"].includes(method) && !(await this.permissions.hasAccount(origin, status.account))) {
       throw providerError(4100, "ACCOUNT_PERMISSION_REQUIRED", "The DApp has not been approved for this account");
     }
+    permission.assert();
     let normalized;
     if(method === CENTRAL_BROWSER_METHOD) {
       const challenge = parseCentralSignIn(params, origin, this.clock().getTime());
@@ -93,9 +97,12 @@ export class DesktopWalletAuthority {
     if (method === "eth_sendTransaction") {
       if (typeof this.transactionSender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
       const snapshot = await this.transactionSender.prepare(status.account, normalized.params[0]);
+      permission.assert();
       const current = await this.vault.status();
+      permission.assert();
       assertReviewedAccount(current.account, status.account);
       if (!(await this.permissions.hasAccount(origin, status.account))) throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked while preparing the transaction");
+      permission.assert();
       const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
       normalized.params = [snapshot];
       const fees = this.transactionSender.reviewDetails?.(snapshot);
@@ -106,15 +113,26 @@ export class DesktopWalletAuthority {
       throw providerError(4200, "PENDING_REQUEST_LIMIT", "Too many Wallet requests are awaiting review");
     }
     this.vault.authorization?.current().assert();
+    permission.assert();
     const id = this.requestId();
     const pending = deepFreeze({ id, origin, method, params: normalized.params, review: normalized.review, createdAt: this.clock().toISOString() });
     this.pending.set(id, pending);
+    let cancelled=false;
+    const lease=Object.freeze({assert:()=>{permission.assert();if(cancelled)throw providerError(4100,"UNKNOWN_OR_EXPIRED_REQUEST","Provider review was cancelled. Review the request again.");if(this.clock().getTime()-Date.parse(pending.createdAt)>=APPROVAL_TTL_MS)throw providerError(4100,"REQUEST_EXPIRED","Provider request expired before approval");}});
+    this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;return true;}});
     return Object.freeze({ status: "approval-required", request: pending });
   }
 
   async approve(id) {
-    const guard = this.vault.authorization?.current();
     const pending = this.#take(id);
+    this.#activeReviews.set(id,pending);
+    try {return await this.#approvePending(pending);}
+    finally {if(this.#activeReviews.get(id)===pending)this.#activeReviews.delete(id);}
+  }
+  async #approvePending(pending) {
+    const permission=this.#reviewLeases.get(pending)?.lease;
+    const guard = bindPermissionGuard(this.vault.authorization?.current(),permission);
+    guard.assert();
     const status = await this.vault.status();
     guard?.assert();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Wallet account is unavailable");
@@ -122,45 +140,51 @@ export class DesktopWalletAuthority {
     if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "ynx_requestProductSessionV2"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
       throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked before approval");
     }
+    guard.assert();
     switch (pending.method) {
       case CENTRAL_BROWSER_METHOD:
         return this.vault.withSecret((secret, identity) => {
+          guard.assert();
           assertReviewedAccount(identity.account, pending.review.account);
           return success(signCentralSignIn(pending.params[0], pending.origin, secret, this.clock().getTime()));
-        });
+        },permission);
       case "ynx_requestProductSessionV2": {
         const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,pending.params[0],this.clock());
         if(request.origin !== pending.origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
-        const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account);
+        const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account,permission);
+        guard.assert();
         return success({version:2,returnUrl:result.callbackUrl});
       }
       case "eth_requestAccounts":
       case "wallet_requestPermissions":
         { const existing = await this.permissions.hasAccount(pending.origin, status.account);
           guard?.assert();
-          try { await this.permissions.grantAccount(pending.origin, status.account, this.clock().toISOString()); guard?.assert(); }
-          catch (error) { if (!existing) await this.permissions.revoke(pending.origin); throw error; }
+          try { await this.permissions.grantAccount(pending.origin, status.account, this.clock().toISOString(),guard); guard?.assert(); }
+          catch (error) { if (!existing) await this.#undoGrant(pending.origin,this.#reviewLeases.get(pending).permission); throw error; }
         }
         return success(pending.method === "eth_requestAccounts" ? [status.account] : [{ parentCapability: "eth_accounts" }]);
       case "personal_sign":
         return this.vault.withSecret(async (secret, identity) => {
+          guard.assert();
           assertReviewedAccount(identity.account, pending.review.account);
-          return success(await walletForSecret(secret).signMessage(getBytes(pending.params[0])));
-        });
+          const signature=await walletForSecret(secret).signMessage(getBytes(pending.params[0]));guard.assert();return success(signature);
+        },permission);
       case "eth_signTypedData_v4":
         return this.vault.withSecret(async (secret, identity) => {
+          guard.assert();
           assertReviewedAccount(identity.account, pending.review.account);
           const typed = JSON.parse(pending.params[1]);
           const types = { ...typed.types };
           delete types.EIP712Domain;
-          return success(await walletForSecret(secret).signTypedData(typed.domain, types, typed.message));
-        });
+          const signature=await walletForSecret(secret).signTypedData(typed.domain, types, typed.message);guard.assert();return success(signature);
+        },permission);
       case "eth_sendTransaction":
         if (!this.transactionSender) throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction transport is unavailable");
-        return this.vault.withSecret(async (secret, identity, guard) => {
+        return this.vault.withSecret(async (secret, identity, keyGuard) => {
+          guard.assert();
           assertReviewedAccount(identity.account, pending.review.account);
-          return success(await this.transactionSender.send(walletForSecret(secret), pending.params[0], guard));
-        });
+          return success(await this.transactionSender.send(walletForSecret(secret), pending.params[0], bindPermissionGuard(keyGuard,permission)));
+        },permission);
       default:
         throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", "Provider method is not implemented");
     }
@@ -171,7 +195,11 @@ export class DesktopWalletAuthority {
     throw providerError(4001, "USER_REJECTED_REQUEST", "User rejected the request");
   }
 
-  expire(id) { return typeof id === "string" && this.pending.delete(id); }
+  expire(id) {
+    if(typeof id!=="string")return false;
+    const pending=this.pending.get(id)??this.#activeReviews.get(id);if(!pending)return false;
+    const cancelled=this.#reviewLeases.get(pending)?.cancel()??false;return this.pending.delete(id)||cancelled;
+  }
 
   pendingRequests() { return Object.freeze([...this.pending.values()]); }
 
@@ -187,15 +215,17 @@ export class DesktopWalletAuthority {
     return value;
   }
 
-  #clearOriginPending(origin) { for (const [id, request] of this.pending) if (request.origin === origin) this.pending.delete(id); }
+  async #undoGrant(origin,permission) {try{permission.assert();}catch{return;}await this.permissions.revoke(origin);}
+  #clearOriginPending(origin) { for (const [id, request] of this.pending) if (request.origin === origin) this.expire(id);for(const request of this.#activeReviews.values())if(request.origin===origin)this.#reviewLeases.get(request)?.cancel(); }
   #pruneExpired() { const now = this.clock().getTime(); for (const [id, request] of this.pending) if (now - Date.parse(request.createdAt) > APPROVAL_TTL_MS) this.pending.delete(id); }
 }
 
 export class MemoryPermissionStore {
-  constructor() { this.records = new Map(); }
-  async grantAccount(origin, account, approvedAt) { this.records.set(origin, Object.freeze({ parentCapability: "eth_accounts", accounts: [account], approvedAt })); }
-  async revoke(origin) { this.records.delete(origin); }
-  async revokeAll() { this.records.clear(); }
+  constructor() { this.records = new Map();this.epoch=new PermissionEpoch(); }
+  authorizationLease(origin){return this.epoch.lease(origin);}
+  async grantAccount(origin, account, approvedAt,guard) {guard?.assert(); this.records.set(origin, Object.freeze({ parentCapability: "eth_accounts", accounts: [account], approvedAt })); }
+  async revoke(origin) {return this.epoch.revoke(origin,()=>this.records.delete(origin));}
+  async revokeAll() {return this.epoch.revoke(null,()=>this.records.clear());}
   async hasAccount(origin, account) { return this.records.get(origin)?.accounts.includes(account) ?? false; }
   async list(origin) { const record = this.records.get(origin); return record ? [record] : []; }
 }

@@ -9,6 +9,8 @@ import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
 import { PasswordWalletVault } from "../src/password-wallet-vault.mjs";
 import { PasswordVaultFile } from "../src/password-vault-file.mjs";
 import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
+import {FilePermissionStore} from "../src/desktop-permission-store.mjs";
+import {DesktopWalletAuthority} from "../src/desktop-wallet-authority.mjs";
 import { createPasswordVault, decryptPasswordVaultRecord, unlockPasswordVault, closePasswordVaultSession } from "../src/password-vault-crypto.mjs";
 
 const PASSWORD = "independent fixture password 2026", NEXT_PASSWORD = "independent next password 2026";
@@ -34,6 +36,23 @@ async function writeLegacy(f, secrets = [SECRET, SECOND], old = THIRD) {
   await fs.writeFile(f.v2, JSON.stringify(first), { mode: 0o600 });
   if (old) await fs.writeFile(f.v1, JSON.stringify({ schemaVersion: 1, ...legacyRecord(old) }), { mode: 0o600 });
 }
+
+test("real password vault and lifecycle reject permission revoked inside awaited vault entry",async t=>{
+  const f=await fixture(t),status=await create(f),origin="https://permission-vault.invalid";
+  const permissions=new FilePermissionStore(join(f.directory,"permissions.json"));
+  await permissions.grantAccount(origin,status.account,"2026-10-04T00:00:00Z");
+  const authority=new DesktopWalletAuthority({vault:f.vault,permissions});
+  const review=await f.life.run(()=>authority.request({origin,method:"personal_sign",params:["0x01",status.account]}));
+  const entered=deferred(),release=deferred(),read=f.store.read.bind(f.store);let held=false,readCalls=0;
+  f.store.read=async(...args)=>{readCalls++;const value=await read(...args);if(readCalls===2&&!held){held=true;entered.resolve();await release.promise;}return value;};
+  // First read is approval status; second is the real vault's guarded read,
+  // after the permission read returned. No replacement vault/signing context.
+  const pending=f.life.run(()=>authority.approve(review.request.id)).catch(error=>error);
+  await entered.promise;await permissions.revoke(origin);release.resolve();
+  const result=await pending;assert.equal(result?.data?.code,"ACCOUNT_PERMISSION_REVOKED");
+  assert.equal(await permissions.hasAccount(origin,status.account),false);
+  assert.equal((await f.vault.status()).account,status.account);
+});
 
 // Run the real host filesystem. Pretending a Windows inode is POSIX does not
 // exercise another OS and incorrectly treats Windows mode bits as permissions.

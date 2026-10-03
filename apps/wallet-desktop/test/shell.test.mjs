@@ -161,13 +161,15 @@ async function sendEntryHarness() {
         addEventListener(type, listener) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(listener); },
         async emit(type) { for (const listener of listeners.get(type) ?? []) await listener({ preventDefault() {} }); },
         click() { return this.disabled ? Promise.resolve() : this.emit("click"); },
+        children: [], append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
         showModal() { this.open = true; }, close() { this.open = false; }, focus() { focused = selector; }
       };
       nodes.set(selector, node);
     }
     return nodes.get(selector);
   };
-  const document = { querySelector: get, querySelectorAll(selector) {
+  let elementId = 0;
+  const document = { querySelector: get, createElement: () => get(`fixture-element-${++elementId}`), createTextNode: text => ({textContent: text}), querySelectorAll(selector) {
     if (selector === "dialog[open]") return [...nodes].filter(([key, node]) => /sheet|review/.test(key) && node.open).map(([, node]) => node);
     if (selector.includes("input[type=") || selector === "#password-sheet input,#recovery-sheet input") return [get("#local-password"), get("#local-confirm")];
     if (selector === "[data-custody-cancel]") return [get("#custody-cancel")];
@@ -225,6 +227,34 @@ test("locked Send opens the existing password form without unlocking or preparin
   }
 });
 
+for (const outcome of ["success", "failure", "throw"]) test(`cancelled recovery ${outcome} cannot replace a newer password journey`, async () => {
+  const h = await sendEntryHarness();
+  h.account.accounts = [{account: h.account.account, ynxAccount: "public-fixture-account"}];
+  h.api.lock = async () => { h.render({ locked: true, revision: h.context.keyState.revision + 1 }); return h.context.keyState; };
+  h.api.recoveryHistory = async () => ({ok:true,value:[]});
+  h.api.prepareRecovery = async () => ({ok:true,value:{previewId:"owned-preview",account:h.account.account,resetPassword:false,recoveryRequiredAccounts:[]}});
+  await h.get("#recover-wallet").click();
+  assert.equal(h.get("#recovery-sheet").open, true);
+  h.get("#recovery-kind").value = "private-key";
+  await h.get("#recovery-form").emit("submit");
+  assert.equal(h.get("#recovery-review").hidden, false);
+  let finish, fail, statusReads = 0;
+  h.api.commitRecovery = () => new Promise((resolve,reject) => {finish=resolve;fail=reject;});
+  h.api.accountStatus = async () => {statusReads++;return {ok:true,value:h.account};};
+  const old = h.get("#commit-recovery").click();
+  await h.get("#custody-cancel").click();
+  await h.get("#open-send").click();
+  h.get("#local-password").value = "new-fixture-draft";
+  h.get("#unlock-result").textContent = "new journey notice";
+  if(outcome === "throw") fail(Error("old recovery failed"));
+  else finish(outcome === "success" ? {ok:true} : {ok:false,error:{message:"old recovery rejected"}});
+  await old;
+  assert.equal(h.get("#unlock-result").textContent,"new journey notice");
+  assert.equal(h.get("#local-password").value,"new-fixture-draft");
+  assert.equal(h.get("#password-sheet").open,true);
+  assert.equal(statusReads,0);
+});
+
 test("Send cannot bypass unavailable or in-progress unlock, including direct handler invocation", async () => {
   for (const patch of [{ unlockAvailable: false }, { authenticating: true }]) {
     const h = await sendEntryHarness(); h.render(patch);
@@ -280,6 +310,31 @@ test("a successful explicit unlock still needs a new Send click and subsequent l
   assert.equal(h.get("#prepare-transfer").disabled, true); assert.equal(h.get("#confirm-transfer").disabled, true);
   await h.get("#transfer-form").emit("submit");
   assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+
+for (const operation of ["unlock", "setup", "migrate"]) for (const outcome of ["success", "failure", "throw"]) test(`cancelled password ${operation} ${outcome} cannot publish into a newer password journey`, async () => {
+  const h = await sendEntryHarness();
+  h.account.passwordConfigured = operation === "unlock";
+  h.account.initialized = operation !== "setup";
+  let finish, fail, statusReads = 0;
+  h.api.unlock = h.api.setupPassword = () => new Promise((resolve, reject) => { finish = resolve; fail = reject; });
+  h.api.accountStatus = async () => { statusReads++; return { ok: true, value: h.account }; };
+  await h.get("#unlock-wallet").click();
+  h.get("#local-password").value = "old-fixture-password";
+  h.get("#local-confirm").value = "old-fixture-password";
+  const old = h.get("#password-form").emit("submit");
+  await h.get("#custody-cancel").click();
+  await h.get("#unlock-wallet").click();
+  h.get("#local-password").value = "new-fixture-draft";
+  h.get("#unlock-result").textContent = "new journey notice";
+  if (outcome === "throw") fail(Error("old request failed"));
+  else finish(outcome === "success" ? { ok: true } : { ok: false, error: { message: "old request rejected" } });
+  await old;
+  assert.equal(h.get("#unlock-result").textContent, "new journey notice");
+  assert.equal(h.get("#password-result").textContent, "");
+  assert.equal(h.get("#local-password").value, "new-fixture-draft");
+  assert.equal(h.get("#password-sheet").open, true);
+  assert.equal(statusReads, 0, "an obsolete operation cannot start a status refresh for the newer view");
 });
 
 test("private Product Session methods cannot alter the independent standard Provider connection", async () => {

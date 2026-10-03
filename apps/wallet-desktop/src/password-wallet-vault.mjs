@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Wallet } from "ethers";
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
 import { keyAccessError } from "./key-lifecycle.mjs";
+import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
 import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, closePasswordVaultSession } from "./password-vault-crypto.mjs";
@@ -172,8 +173,8 @@ export class PasswordWalletVault {
       await this.#publish(candidate, current.snapshot.digest, guard, true); return this.#readStatus();
     });
   }
-  async withSecret(action) {
-    const guard = this.authorization.current(), current = await this.#readUnlocked(guard), account = current.vault.activeAccount;
+  async withSecret(action, permission) {
+    const guard = bindPermissionGuard(this.authorization.current(),permission), current = await this.#readUnlocked(guard), account = current.vault.activeAccount;
     if (!account) fail("ACCOUNT_NOT_CREATED", "Create or import an account first.");
     if (guard.account !== account) throw cancelled();
     let secret;

@@ -1,4 +1,5 @@
 import { keyAccessError } from "./key-lifecycle.mjs";
+import {bindPermissionGuard} from "./permission-lease.mjs";
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -122,8 +123,8 @@ export class DesktopWalletVault {
     };
   }
 
-  async withSecret(action) {
-    const guard = this.authorization.current();
+  async withSecret(action, permission) {
+    const guard = bindPermissionGuard(this.authorization.current(),permission);
     const record = activeRecord(await guard.step(() => this.#read()));
     if (!record) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before approving this request");
     if (guard.account !== undefined && guard.account !== record.account) throw keyAccessError("WALLET_OPERATION_CANCELLED");
