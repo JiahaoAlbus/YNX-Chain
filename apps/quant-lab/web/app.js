@@ -375,6 +375,24 @@ const paperConfirmCopy = {
   id: ["Konfirmasi sinyal Paper strategi tersimpan ini?", "Simulasi saja, tanpa order Exchange atau transaksi blockchain. Jumlah dalam mikrounit bilangan bulat. Tanpa kuotasi yang dapat dieksekusi: pasar dibaca saat pengiriman, pengisian dibatasi 10% volume sumber dan batas posisi/nosional. Tanpa komisi/gas atau model slippage; bukan prakiraan termasuk biaya.", "Pratinjau berubah. Tinjau kembali masukan saat ini.", "Order simulasi dicatat"],
 };
 for (const [language, [paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded]] of Object.entries(paperConfirmCopy)) Object.assign(businessCopy[language], {paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded});
+const paperDailyLossCopy = {
+  en: ['Daily marked loss / limit', 'Paper daily loss uses cash plus marked open positions. Baseline: first accepted market mark of each UTC day, not a midnight quote. Loss of 1000 YUSD_TEST blocks new signals for that day, even after price recovery or restart. No fees/slippage; old records have no historical baseline.'],
+  'zh-CN': ['日内估值亏损 / 限额', '模拟日亏损按现金与持仓估值计算。基线为每个 UTC 日首次接受的行情，不是午夜报价。亏损达到 1000 YUSD_TEST 后当日禁止新信号，价格恢复或重启也不解除。不含费用或滑点；旧记录没有历史基线。'],
+  'zh-TW': ['日內估值虧損 / 限額', '模擬日虧損按現金與持倉估值計算。基線為每個 UTC 日首次接受的行情，非午夜報價。虧損達 1000 YUSD_TEST 後當日禁止新訊號，價格恢復或重啟不解除。不含費用或滑點；舊記錄無歷史基線。'],
+  ja: ['日次評価損 / 上限', '現金と保有評価額で計算。基準は UTC 日の最初の受理価格で、午前0時の価格ではありません。1000 YUSD_TEST の損失で当日の新規シグナルを停止し、価格回復・再起動でも解除しません。費用・滑りなし。旧記録に過去の基準はありません。'],
+  ko: ['일일 평가손실 / 한도', '현금과 보유 평가액으로 계산합니다. 기준은 UTC 날짜의 첫 수락 가격이며 자정 가격이 아닙니다. 1000 YUSD_TEST 손실 시 당일 새 신호가 차단되며 가격 회복·재시작으로 해제되지 않습니다. 비용·슬리피지는 제외하며 이전 기록에는 과거 기준이 없습니다.'],
+  es: ['Pérdida diaria valorada / límite', 'Efectivo más posiciones valoradas. Base: primer precio aceptado del día UTC, no precio de medianoche. Una pérdida de 1000 YUSD_TEST bloquea señales nuevas ese día, incluso tras recuperación o reinicio. Sin costes/deslizamiento; los registros antiguos no tienen base histórica.'],
+  fr: ['Perte quotidienne valorisée / plafond', 'Trésorerie plus positions valorisées. Base : premier prix accepté du jour UTC, pas celui de minuit. Une perte de 1000 YUSD_TEST bloque les nouveaux signaux ce jour, même après reprise ou redémarrage. Sans frais/glissement ; anciens enregistrements sans base historique.'],
+  de: ['Täglicher Bewertungsverlust / Limit', 'Bargeld plus bewertete Positionen. Basis: erster akzeptierter Kurs des UTC-Tags, kein Mitternachtskurs. 1000 YUSD_TEST Verlust sperrt neue Signale für den Tag, auch nach Kurserholung/Neustart. Ohne Gebühren/Slippage; alte Datensätze haben keine historische Basis.'],
+  pt: ['Perda diária marcada / limite', 'Caixa mais posições avaliadas. Base: primeiro preço aceito do dia UTC, não preço da meia-noite. Perda de 1000 YUSD_TEST bloqueia novos sinais no dia, mesmo após recuperação/reinício. Sem custos/slippage; registros antigos não têm base histórica.'],
+  ru: ['Дневной оценочный убыток / лимит', 'Деньги плюс оценка позиций. База — первая принятая цена дня UTC, не цена в полночь. Убыток 1000 YUSD_TEST блокирует новые сигналы до следующего дня, даже при восстановлении цены/перезапуске. Без комиссий/проскальзывания; старые записи без исторической базы.'],
+  ar: ['الخسارة اليومية المقدرة / الحد', 'النقد مع قيمة المراكز. الأساس أول سعر مقبول في يوم UTC وليس سعر منتصف الليل. خسارة 1000 YUSD_TEST تمنع الإشارات الجديدة لذلك اليوم حتى بعد تعافي السعر أو إعادة التشغيل. بلا رسوم أو انزلاق؛ السجلات القديمة بلا أساس تاريخي.'],
+  id: ['Kerugian harian bertanda / batas', 'Kas ditambah nilai posisi. Dasar: harga pertama yang diterima pada hari UTC, bukan harga tengah malam. Rugi 1000 YUSD_TEST memblokir sinyal baru hari itu, termasuk setelah pemulihan harga/restart. Tanpa biaya/slippage; catatan lama tidak memiliki dasar historis.'],
+};
+for (const [language, [paperDailyLoss, paperDailyLossLead]] of Object.entries(paperDailyLossCopy)) {
+  Object.assign(businessCopy[language], {paperDailyLoss, paperDailyLossLead});
+  businessCopy[language].paperExecutionBoundary += '\n' + paperDailyLossLead;
+}
 const scheduleCopy = {
   en:["Schedules run saved Backtest research on the service, not Paper or Testnet orders. A saved schedule is not a completed run. Refresh to read the actual result and source failures.","Start 60s research","Stop schedule","Schedule request pending","Schedule unverified — refresh to read its actual state","Start persistent 60-second research with these assumptions? No Paper or Testnet order will be placed.","Stop this saved research schedule? This does not cancel Exchange orders or move funds.","Schedule inputs or strategy changed. Review again.","Research schedule saved; execution is not yet proved.","Research schedule stopped by the service.","Not scheduled"],
   "zh-CN":["定时任务在服务端运行已保存的 Backtest 研究，不提交模拟盘或测试网订单。保存任务不等于运行完成；刷新读取实际结果和数据源错误。","启动 60 秒研究","停止定时任务","定时请求处理中","定时状态未验证，请刷新读取实际状态","按这些假设启动持续的 60 秒研究？不会提交模拟盘或测试网订单。","停止此研究定时任务？不会取消交易所订单或移动资金。","定时输入或策略已变化，请重新检查。","研究定时任务已保存，执行尚未证实。","服务已停止研究定时任务。","未设置定时任务"],
@@ -666,6 +684,9 @@ function render() {
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
     `<h3>${safe(t("paperWorkspace"))}</h3><dl><div><dt>${safe(t("paperCash"))}</dt><dd>${p.Cash ?? "—"}</dd></div><div><dt>${safe(t("paperPosition"))}</dt><dd>${p.Position ?? "—"}</dd></div><div><dt>${safe(t("paperReconciliation"))}</dt><dd>${p.ReconciliationDelta ?? "—"}</dd></div><div><dt>${safe(t("paperKill"))}</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch === true ? safe(t("riskActive")) : p.KillSwitch === false ? safe(t("riskArmed")) : "—"}</dd></div></dl>`;
+  const daily = p.DailyRisk;
+  const validDaily = daily?.Policy === 'utc_first_mark_equity_loss_micro_v1' && /^\d{4}-\d{2}-\d{2}$/.test(daily.Day) && Number.isSafeInteger(daily.Loss) && daily.Loss >= 0 && Number.isSafeInteger(daily.Limit) && daily.Limit > 0 && typeof daily.Breached === 'boolean';
+  $('#paper-state').innerHTML += `<p>${safe(t('paperDailyLossLead'))}</p><dl><dt>${safe(t('paperDailyLoss'))}</dt><dd>${validDaily ? safe(`${daily.Day} UTC · ${daily.Loss} / ${daily.Limit} YUSD_TEST_MICRO · ${daily.Breached ? t('riskActive') : t('riskArmed')}`) : '—'}</dd></dl>`;
   $("#audit-rows").innerHTML =
     (snapshot.audit || [])
       .slice()

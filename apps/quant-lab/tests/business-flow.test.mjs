@@ -15,6 +15,24 @@ const researchStatus = app => app.ids.get('latest-result').children.find(element
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+test('Paper daily loss shows only source-reported risk and explains the UTC first-mark model in all locales',async()=>{
+  const app=harness();await settle();
+  app.context.dailyFixture={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-03',Loss:1000000000,Limit:1000000000,Breached:true};
+  vm.runInContext('snapshot.paper={DailyRisk:dailyFixture};render()',app.context);
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const text=app.ids.get('paper-state').innerHTML;
+    assert.ok(text.includes(vm.runInContext('safe(t("paperDailyLoss"))',app.context)));
+    assert.ok(text.includes('1000000000 / 1000000000 YUSD_TEST_MICRO'));
+    assert.ok(vm.runInContext('t("paperExecutionBoundary")',app.context).includes(vm.runInContext('t("paperDailyLossLead")',app.context)));
+  }
+  for(const risk of [undefined,{...app.context.dailyFixture,Policy:'old_unknown'},{...app.context.dailyFixture,Loss:NaN},{...app.context.dailyFixture,Day:'<script>'}]){
+    app.context.dailyFixture=risk;vm.runInContext('snapshot.paper={DailyRisk:dailyFixture};render()',app.context);
+    assert.ok(!app.ids.get('paper-state').innerHTML.includes('1000000000 / 1000000000'));
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+});
+
 test('completed research must bind the exact submitted strategy ID, not another run with identical parameters',async()=>{
   const app=harness();await settle();
   const submitted={strategy:{id:'ma-current-request',family:'transparent',seed:7,params:{fast:3,slow:8}},assumptions:{feeBPS:10,slippageBPS:5,latencyBars:1,participationBPS:1000,trainEnd:24,walkForwardWindows:3,seed:7}};

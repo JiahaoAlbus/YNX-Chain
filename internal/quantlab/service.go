@@ -299,6 +299,15 @@ type PaperState struct {
 	ReconciliationDelta         int64
 	KillSwitch                  bool
 	UpdatedAt                   time.Time
+	// Absent legacy records retain their original integrity representation.
+	DailyRisk *PaperDailyRisk `json:"DailyRisk,omitempty"`
+}
+type PaperDailyRisk struct {
+	Policy                                   string
+	Day                                      string
+	OpeningEquity, MarkedEquity, Loss, Limit int64
+	Breached                                 bool
+	ObservedAt                               time.Time
 }
 type AuditEvent struct {
 	Sequence                                     int64
@@ -1370,6 +1379,19 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	if abs(s.state.Paper.Position+signed) > limits.MaxPosition {
 		return PaperOrder{}, ErrForbidden
 	}
+	dailyRisk, err := paperDailyRisk(s.state.Paper, price, s.cfg.Now(), limits.MaxDailyLoss)
+	if err != nil {
+		return PaperOrder{}, err
+	}
+	if dailyRisk.Breached {
+		s.state.Paper.DailyRisk = dailyRisk
+		s.audit("paper_daily_loss_blocked", "paper", hash(dailyRisk))
+		if err := s.save(); err != nil {
+			return PaperOrder{}, err
+		}
+		return PaperOrder{}, ErrForbidden
+	}
+	s.state.Paper.DailyRisk = dailyRisk
 	s.state.Sequence++
 	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}
 	if fill == amount {
@@ -1384,6 +1406,41 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	s.state.Paper.UpdatedAt = s.cfg.Now()
 	s.audit("paper_order_"+o.Status, o.ID, hash(o))
 	return o, s.save()
+}
+
+// The first accepted mark of each UTC day is its baseline, not a fabricated
+// midnight quote. Loss includes marked open positions; Paper still models no
+// execution fee/slippage. A breach is latched for that day, across instances.
+func paperDailyRisk(paper PaperState, price int64, now time.Time, limit int64) (*PaperDailyRisk, error) {
+	if price <= 0 || limit <= 0 || now.IsZero() {
+		return nil, ErrInvalid
+	}
+	day := now.UTC().Format("2006-01-02")
+	equity := new(big.Int).Mul(big.NewInt(paper.Position), big.NewInt(price))
+	equity.Quo(equity, big.NewInt(1_000_000)).Add(equity, big.NewInt(paper.Cash))
+	if !equity.IsInt64() {
+		return nil, ErrInvalid
+	}
+	const policy = "utc_first_mark_equity_loss_micro_v1"
+	risk := &PaperDailyRisk{Policy: policy, Day: day, OpeningEquity: equity.Int64(), MarkedEquity: equity.Int64(), Limit: limit, ObservedAt: now.UTC()}
+	if previous := paper.DailyRisk; previous != nil {
+		parsed, err := time.Parse("2006-01-02", previous.Day)
+		if err != nil || parsed.Format("2006-01-02") != previous.Day || previous.Policy != policy || previous.Day > day || previous.Limit != limit {
+			return nil, ErrInvalid
+		}
+		if previous.Day == day {
+			risk.OpeningEquity, risk.Breached = previous.OpeningEquity, previous.Breached
+		}
+	}
+	loss := new(big.Int).Sub(big.NewInt(risk.OpeningEquity), equity)
+	if loss.Sign() > 0 {
+		if !loss.IsInt64() {
+			return nil, ErrInvalid
+		}
+		risk.Loss = loss.Int64()
+	}
+	risk.Breached = risk.Breached || risk.Loss >= limit
+	return risk, nil
 }
 
 func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount int64) (PaperOrder, error) {
