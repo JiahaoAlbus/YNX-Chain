@@ -1,0 +1,21 @@
+PASS actual packaged Native SDK cold restore samples original authority time without private authority, signing or Wallet opening
+PASS actual packaged module uses original authority-time headers/codec and exact prepared OS port; opened is not approved
+PASS pending/unapproved Native session cannot release business proof or sign
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+true !== false
+
+    at file:///private/tmp/ynx-commerce-native-bridge-20261003/packaged-client-test.mjs:9:119 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v26.7.0

@@ -17,16 +17,18 @@ final class ApiClient {
     private final Handler main=new Handler(Looper.getMainLooper());
     private final SecureStore secure;
     private volatile boolean closed;
+    private NativeSessionBridge nativeSession;
+    void attachNative(NativeSessionBridge bridge){nativeSession=bridge;bridge.onChanged(()->{if(!closed)sessionRejected.run();});}
     private Runnable sessionRejected=()->{};
     void onSessionRejected(Runnable listener){sessionRejected=listener;}
     private void observeResponse(String method,String path,ProductSession expected,Response response)throws Exception{
         if(!rejectsSession(method,path,expected,response.status))return;
-        try{secure.rejectSession(expected);}finally{main.post(()->{if(!closed)sessionRejected.run();});}
+        try{if(nativeSession!=null)nativeSession.rejected(expected);}finally{main.post(()->{if(!closed)sessionRejected.run();});}
     }
     static boolean rejectsSession(String method,String path,ProductSession expected,int status){return status==401&&expected!=null&&!publicRoute(method,path);}
     private static boolean publicRoute(String method,String path){path=path.split("\\?",2)[0];return path.startsWith("/auth/")||(method.equals("GET")&&(path.equals("/capabilities")||path.equals("/products")||path.startsWith("/products/")||path.startsWith("/stores/")));}
     ApiClient(SecureStore secure){this.secure=secure;}
-    ProductSession session()throws Exception{secure.privacy();return ProductSession.parse(secure.get("commerce_session"),Instant.now());}
+    ProductSession session()throws Exception{secure.privacy();return nativeSession==null?null:nativeSession.session();}
     PrivacyLifecycle privacy()throws Exception{return secure.privacy();}
     void requireWritable()throws Exception{ProductSession current=session();if(current!=null)PrivacyLifecycle.requireWritable(secure,current.account);}
     private boolean current(ProductSession expected)throws Exception{if(closed)return false;ProductSession actual=session();return expected==null?actual==null:expected.same(actual);}
@@ -45,7 +47,7 @@ final class ApiClient {
         catch(Exception error){callback.done(null,error);return;}
         try{executor.execute(()->{
             JSONObject value=null;Exception error=null;
-            try{value=executeTracked(privacy(),ticket,()->current(expected)&&presentation.current()&&(ticket==null||privacy().current(ticket.account,ticket.generation)),()->network(method,path,frozen,expected),response->observeResponse(method,path,expected,response));}catch(Exception failure){error=failure;}
+            try{value=executeTracked(privacy(),ticket,()->current(expected)&&presentation.current()&&(ticket==null||privacy().current(ticket.account,ticket.generation)),networkCall(method,path,frozen,expected),response->observeResponse(method,path,expected,response));}catch(Exception failure){error=failure;}
             final JSONObject result=value;final Exception failure=error;
             main.post(()->{try{if(context(expected,generation)&&presentation.current())callback.done(result,failure);}catch(Exception ignored){}});
         });}catch(Exception error){try{privacy().notSent(ticket);}catch(Exception storage){error.addSuppressed(storage);}if(!closed)callback.done(null,error);}
@@ -60,14 +62,14 @@ final class ApiClient {
     JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{
         if(expected==null)throw new SecurityException("Active Shop account required");
         JSONObject frozen=body==null?null:new JSONObject(body.toString());
-        if(!businessMutation(method,path))return executeTracked(privacy(),null,()->current(expected)&&privacy().current(expected.account,generation),()->network(method,path,frozen,expected),response->observeResponse(method,path,expected,response));
+        if(!businessMutation(method,path))return executeTracked(privacy(),null,()->current(expected)&&privacy().current(expected.account,generation),networkCall(method,path,frozen,expected),response->observeResponse(method,path,expected,response));
         PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);return execute(method,path,frozen,expected,ticket);
     }
     private JSONObject execute(String method,String path,JSONObject body,ProductSession expected,PrivacyLifecycle.Ticket ticket)throws Exception{
-        return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),()->network(method,path,body,expected),response->observeResponse(method,path,expected,response));
+        return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),networkCall(method,path,body,expected),response->observeResponse(method,path,expected,response));
     }
     interface ContextCheck { boolean current() throws Exception; }
-    interface NetworkCall { Response send() throws Exception; }
+    interface NetworkCall { default void prepare() throws Exception {} Response send() throws Exception; }
     // The production network path uses this seam; JVM tests can drive genuine
     // admission/dispatch/result ordering without pretending to exercise Android.
     interface ResponseObserver { void received(Response response)throws Exception; }
@@ -76,6 +78,8 @@ final class ApiClient {
         boolean dispatched=false,recorded=false;
         try{
             if(!context.current()){lifecycle.notSent(ticket);throw new SecurityException("Product session changed");}
+            network.prepare();
+            if(!context.current())throw new SecurityException("Product session changed during authorization preparation");
             if(ticket!=null){lifecycle.dispatch(ticket);dispatched=true;}
             Response response=network.send();
             // Record the authoritative response even when the Activity was
@@ -114,18 +118,21 @@ final class ApiClient {
         },"shop-privacy-delete").start();
     }
     static final class Response{final int status;final JSONObject value;Response(int status,JSONObject value){this.status=status;this.value=value;}}
-    private Response network(String method,String path,JSONObject body,ProductSession expected)throws Exception{
-        boolean publicRoute=publicRoute(method,path);
-        if(!publicRoute&&expected==null)throw new SecurityException("Connect Wallet for an active Shop session");
-        URL url=new URL(BuildConfig.API_BASE_URL+"/api"+path);if(!url.getProtocol().equals("https")&&!BuildConfig.DEBUG)throw new SecurityException("release API requires HTTPS");
-        HttpURLConnection connection=(HttpURLConnection)url.openConnection();
-        try{
-            connection.setConnectTimeout(8000);connection.setReadTimeout(12000);connection.setRequestMethod(method);connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Content-Type","application/json");
-            if(expected!=null)connection.setRequestProperty("Authorization","Bearer "+expected.token);
-            if(body!=null){connection.setDoOutput(true);try(OutputStream out=connection.getOutputStream()){out.write(body.toString().getBytes(StandardCharsets.UTF_8));}}
-            int status=connection.getResponseCode();
-            try{String text=read(status>=200&&status<300?connection.getInputStream():connection.getErrorStream());return new Response(status,text.isEmpty()?new JSONObject():new JSONObject(text));}
-            catch(Exception malformed){if(status==401)return new Response(status,new JSONObject().put("error","Shop session rejected"));throw malformed;}
+    private NetworkCall networkCall(String method,String path,JSONObject body,ProductSession expected){return new NetworkCall(){private Prepared prepared;public void prepare()throws Exception{prepared=prepareNetwork(method,path,body,expected);}public Response send()throws Exception{if(prepared==null)throw new SecurityException("Request was not prepared");return sendPrepared(prepared);}};}
+    private Response network(String method,String path,JSONObject body,ProductSession expected)throws Exception{return sendPrepared(prepareNetwork(method,path,body,expected));}
+    private static final class Prepared{final URL url;final String method;final byte[] bytes;final boolean hasBody;final JSONObject proof;Prepared(URL url,String method,byte[] bytes,boolean hasBody,JSONObject proof){this.url=url;this.method=method;this.bytes=bytes;this.hasBody=hasBody;this.proof=proof;}}
+    private Prepared prepareNetwork(String method,String path,JSONObject body,ProductSession expected)throws Exception{
+        boolean publicRequest=publicRoute(method,path);if(!publicRequest&&(expected==null||!expected.nativeV2||nativeSession==null))throw new SecurityException("Canonical Native private session required");
+        String wire=body==null?"":body.toString();byte[] bytes=wire.getBytes(StandardCharsets.UTF_8);if(bytes.length>1_048_576)throw new SecurityException("Bounded exact private body required");
+        URL url=new URL(BuildConfig.API_BASE_URL+"/api"+path);if(!url.getProtocol().equals("https")&&!BuildConfig.DEBUG)throw new SecurityException("release API requires HTTPS");JSONObject proof=null;if(!publicRequest){if(!url.getProtocol().equals("https")||url.getUserInfo()!=null||url.getQuery()!=null||url.getRef()!=null||!url.getPath().equals("/api"+path))throw new SecurityException("Exact protected private API route required");proof=nativeSession.proof(method,"/api"+path,wire,expected);if(!current(expected))throw new SecurityException("Original Native request context changed");}
+        return new Prepared(url,method,bytes,body!=null,proof);
+    }
+    private Response sendPrepared(Prepared request)throws Exception{
+        URL url=request.url;String method=request.method;byte[] bytes=request.bytes;JSONObject proof=request.proof;
+        HttpURLConnection connection=(HttpURLConnection)url.openConnection();try{connection.setInstanceFollowRedirects(false);connection.setConnectTimeout(8000);connection.setReadTimeout(12000);connection.setRequestMethod(method);connection.setRequestProperty("Accept","application/json");connection.setRequestProperty("Content-Type","application/json");
+            if(proof!=null){connection.setRequestProperty("X-YNX-Product-Session-Proof-V2",proof.getString("identityHeader"));connection.setRequestProperty("X-YNX-Product-Session-Action-Proof-V2",proof.getString("actionHeader"));}
+            if(request.hasBody){connection.setDoOutput(true);connection.setFixedLengthStreamingMode(bytes.length);try(OutputStream output=connection.getOutputStream()){output.write(bytes);}}
+            int status=connection.getResponseCode();try{String text=read(status>=200&&status<300?connection.getInputStream():connection.getErrorStream());return new Response(status,text.isEmpty()?new JSONObject():new JSONObject(text));}catch(Exception malformed){if(status==401)return new Response(status,new JSONObject().put("error","Shop session rejected"));throw malformed;}
         }finally{connection.disconnect();}
     }
     void close(){closed=true;executor.shutdownNow();main.removeCallbacksAndMessages(null);}

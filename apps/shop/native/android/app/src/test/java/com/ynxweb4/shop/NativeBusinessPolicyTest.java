@@ -1,0 +1,6 @@
+package com.ynxweb4.shop;
+import org.junit.Test;import static org.junit.Assert.*;
+public final class NativeBusinessPolicyTest {
+ @Test public void actualBuyerOperationsUseOriginalNarrowScopes()throws Exception{assertEquals("[\"account:read\",\"shop:orders:write\"]",NativeProductState.canonical(NativeBusinessPolicy.scopes("POST","/api/orders/ord_original/pay-handoff")));assertEquals("[\"account:read\",\"shop:profile:write\"]",NativeProductState.canonical(NativeBusinessPolicy.scopes("GET","/api/privacy/export")));assertEquals(NativeProductState.canonical(NativeProductState.buyerScopes()),NativeProductState.canonical(NativeBusinessPolicy.scopes("POST","/api/ai/jobs/job_original/run")));}
+ @Test public void foreignSellerGatewayWrongMethodAndPathAliasesCannotRequestBuyerProof(){for(String path:new String[]{"/api/seller/stores","/v2/product-sessions/revoke","/api/orders?actor=other","/api/orders/../profile","/api/orders//ord_original","/api/orders/"})assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("POST",path));assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("DELETE","/api/profile"));assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("POST","/api/orders/ord_original/settlement"));}
+}

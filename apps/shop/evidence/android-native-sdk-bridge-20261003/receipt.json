@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "baseCommit": "8f85f5935d382a87dc6b99248603d4a83980c574",
+  "scope": "Owned Android canonical Native SDK bridge and exact business-proof preparation",
+  "sdk": {
+    "adoptedCommit": "34f58c74a79a35cb7b95fbe46e1cd4b8a51de40e",
+    "adoptedTree": "f98bd7a00c1f9bf725735b4629a5666b3fe3676e",
+    "artifactSha256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82",
+    "bytes": 225709,
+    "registrySha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2",
+    "clientSha256": "f02ac36c98ddd721a691512dc63f30e3e3205cc35ab208381433032c3660f830",
+    "gateway": "https://wallet-auth.ynxweb4.com"
+  },
+  "verification": {
+    "offlineAndroidAssembleDebug": "PASS",
+    "jvmTests": {
+      "tests": 77,
+      "failures": 0,
+      "errors": 0
+    },
+    "actualPackagedModuleControlledChecks": 5,
+    "sourceOnly": true
+  },
+  "preservedFailures": [
+    "Original cold-time QA oracle incorrectly expected zero SDK time calls; corrected to actual SDK authority-time behavior",
+    "Original malformed-return oracle expected RPC rejection; corrected to require disconnected/no session/no signing"
+  ],
+  "behavior": [
+    "Only pinned private packaged WebView receives protected ports",
+    "Canonical same SDK Gateway adapter and original response headers",
+    "Native null-account namespace remains original throughout approval and recovery; session account comes from SDK verified session",
+    "Original exact body and two SDK proof headers; no legacy Bearer authentication",
+    "Authorization prepares before durable business dispatch with a second context check",
+    "Synchronous negative authority on logout; only exact persisted original-target revoke may sign afterward",
+    "Original records and deletion IDs preserved; deletion plan retains conservative unresolved recovery on preparation failure"
+  ],
+  "notVerified": [
+    "Registered Android installed runtime/OS key protection",
+    "Actual Wallet approval/return/private business response",
+    "Cold protected-store recovery/actual server revocation ACK",
+    "Recovered public Gateway/backend runtime",
+    "Formal A release installation",
+    "macOS canonical Native integration"
+  ]
+}

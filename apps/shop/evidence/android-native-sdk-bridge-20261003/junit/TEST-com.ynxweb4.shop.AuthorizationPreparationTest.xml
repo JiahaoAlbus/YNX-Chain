@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.AuthorizationPreparationTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-03T07:59:41.617Z" hostname="HuangJiahaoMacmini" time="0.003">
+  <properties/>
+  <testcase name="preparedBusinessLossRetainsUnknownOutcome" classname="com.ynxweb4.shop.AuthorizationPreparationTest" time="0.001"/>
+  <testcase name="contextChangeDuringProofCannotDispatch" classname="com.ynxweb4.shop.AuthorizationPreparationTest" time="0.0"/>
+  <testcase name="failedProofIsNotRecordedAsDispatched" classname="com.ynxweb4.shop.AuthorizationPreparationTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.PrivacyExportTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-03T07:59:41.784Z" hostname="HuangJiahaoMacmini" time="0.001">
+  <properties/>
+  <testcase name="fileResultAfterExpiryOrAccountChangeCannotConsumePrivatePayload" classname="com.ynxweb4.shop.PrivacyExportTest" time="0.001"/>
+  <testcase name="cancelledPickerCannotConsumeANewerExportAndPayloadIsOneUse" classname="com.ynxweb4.shop.PrivacyExportTest" time="0.0"/>
+  <testcase name="replacementTokenAndLocalSignoutInvalidateThePicker" classname="com.ynxweb4.shop.PrivacyExportTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

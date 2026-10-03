@@ -1,0 +1,6 @@
+PASS actual packaged Native SDK cold restore samples original authority time without private authority, signing or Wallet opening
+PASS actual packaged module uses original authority-time headers/codec and exact prepared OS port; opened is not approved
+PASS pending/unapproved Native session cannot release business proof or sign
+PASS legacy malformed callback cannot become Native private authority
+PASS actual SDK explicit pending-attempt cancellation confirms only original local cleanup without server revocation claim
+5 packaged-module checks PASS; controlled synchronous ports/authority time, no actual OS key, Wallet approval or public server

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.PrivacyLocaleCatalogTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-03T07:59:41.906Z" hostname="HuangJiahaoMacmini" time="0.047">
+  <properties/>
+  <testcase name="everyShippedLocaleDefinesThePrivacyControlsUsedByTheActivity" classname="com.ynxweb4.shop.PrivacyLocaleCatalogTest" time="0.047"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
