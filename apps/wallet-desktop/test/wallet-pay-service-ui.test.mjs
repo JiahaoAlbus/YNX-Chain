@@ -16,6 +16,18 @@ import {payTestSecret,signedPayFixture} from "./fixture-signed-pay.mjs";
 import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
 import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
+
+for(const cancellation of ["cancel","change"])test(`mounted Pay ${cancellation} restores current controls without review, key, or payment`,async()=>{
+  const f=await harness(),nodes=new Map();let decodes=0;
+  const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api:{...f.api,invoiceReferenceQR:async()=>{decodes++;throw Error("No decoding")}},getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  get("#open-protected-pay").emit("click");await new Promise(resolve=>setImmediate(resolve));
+  const qr=get("#protected-pay-qr");get("#protected-pay-reference").value="preserved-reference";qr.emit("click");await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(get("#protected-pay-review").disabled,true);await qr.emit(cancellation);await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-review").disabled,false);assert.equal(get("#protected-pay-reference").value,"preserved-reference");
+  const statuses=f.calls.filter(c=>c.channel==="wallet:pay-status").length;await qr.emit("cancel");assert.equal(f.calls.filter(c=>c.channel==="wallet:pay-status").length,statuses);
+  qr.emit("click");get("#protected-pay-sheet").close();const before=f.calls.length;await qr.emit("cancel");assert.equal(f.calls.length,before);
+  assert.equal(decodes,0);assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);assert.equal(f.calls.filter(c=>c.channel==="wallet:pay-review").length,0);f.lifecycle.lock();
+});
 async function harness({configured=true}={}){
   const f=signedPayFixture(5),directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-service-"));let decryptions=0,posts=0,submits=0;
   const lifecycle=new DesktopKeyLifecycle({now:f.input.now,authorizer:{available:()=>true,authenticate:async()=>{},method:"controlled-test-only"},schedule:()=>null,unschedule:()=>{}});lifecycle.setFocused(true);

@@ -51,7 +51,7 @@ function clearInvoiceInput(){invoiceQR.invalidate();invoiceUI.clear()}
 document.querySelector("#open-invoice").addEventListener("click",()=>{if(!accountState?.account)return;clearInvoiceInput();invoiceSheet.showModal();document.querySelector("#invoice-reference").focus()});
 document.querySelector("#invoice-form").addEventListener("submit",event=>{event.preventDefault();void invoiceUI.check(document.querySelector("#invoice-reference").value)});
 document.querySelector("#invoice-reference").addEventListener("input",clearInvoiceInput);
-const invoiceQR=createQRFileInput({document,selector:"#invoice-qr",onClick:()=>invoiceUI.captureQRSelection(),onChange:file=>{
+const invoiceQR=createQRFileInput({document,selector:"#invoice-qr",onClick:()=>invoiceUI.captureQRSelection(),onCancel:()=>invoiceUI.clear(),onChange:file=>{
   void invoiceUI.importSelectedQR(async()=>{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw new Error("Invalid QR image");const bytes=await file.arrayBuffer();if(bytes.byteLength!==file.size)throw new Error("Changed QR image");return {mimeType:file.type,bytes}});
 }});
 invoiceSheet.addEventListener("close",clearInvoiceInput);invoiceSheet.addEventListener("cancel",clearInvoiceInput);

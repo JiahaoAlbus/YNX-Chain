@@ -4,7 +4,9 @@ import {createQRFileInput} from "./qr-file-input.mjs";
 export function createRecipientScanUI({document:doc,getContext,image}) {
   const entry=doc.querySelector("#scan-recipient"),panel=doc.querySelector("#recipient-scan-panel");
   let intent=null;
-  const chooser=createQRFileInput({document:doc,selector:"#recipient-qr-file",onChange:file=>{
+  const chooser=createQRFileInput({document:doc,selector:"#recipient-qr-file",onClick:()=>{
+    const current=getContext();intent=current.open&&!current.locked&&current.account?{...current}:null;
+  },onCancel:()=>{intent=null},onChange:file=>{
     const before=intent,after=getContext();intent=null;
     if(!before||!after.open||after.locked||after.account!==before.account||after.keyRevision!==before.keyRevision||after.draftRevision!==before.draftRevision)return;
     void image(file);

@@ -9,6 +9,11 @@ function mounted(){
   const ui=createRecipientScanUI({document,getContext:()=>({...context}),image:file=>calls.push(file)});
   return{ui,context,entry,panel,get input(){return input},calls};
 }
+
+test("cancelled picker allows a fresh click in the same Scan panel without decoding an empty selection",()=>{
+  const h=mounted();h.entry.listeners.click();h.input.listeners.click();h.input.listeners.cancel();h.input.listeners.change();assert.deepEqual(h.calls,[]);
+  h.input.listeners.click();h.input.files=[{name:"retry"}];h.input.listeners.change();assert.equal(h.calls[0].name,"retry");
+});
 test("normal Scan entry opens an image chooser without decoding, camera, signing or paying",()=>{
   const h=mounted();h.entry.listeners.click();assert.equal(h.panel.hidden,false);assert.equal(h.input.focused,true);assert.deepEqual(h.calls,[]);
   const file={type:"image/png"};h.input.files=[file];h.input.listeners.change();assert.deepEqual(h.calls,[file]);assert.equal(h.input.value,"");h.input.listeners.change();assert.equal(h.calls.length,1);

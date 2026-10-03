@@ -97,11 +97,13 @@ export function mountDesktopPayUI({document,api,getContext}){
   for(const action of ["check","settle","receipt","done"])buttons[action].addEventListener("click",()=>void ui.action(action));
   const loadHistory=async more=>{if(!more)history.replaceChildren();const records=await ui.history(more);if(!records)return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};
   buttons.history.addEventListener("click",()=>loadHistory(false));document.querySelector("#protected-pay-older").addEventListener("click",()=>loadHistory(true));
+  const qrLive=bound=>{const current=getContext();return bound&&bound.revision===qrRevision&&sheet.open&&!current.locked&&bound.account===current.account&&bound.keyRevision===current.keyRevision};
   const qrFile=createQRFileInput({document,selector:"#protected-pay-qr",
   onClick:()=>{qrRevision++;const current=getContext();qrIntent=sheet.open&&!current.locked&&current.account?{account:current.account,keyRevision:current.keyRevision,revision:qrRevision}:null;void ui.clear()},
+  onCancel:()=>{const bound=qrIntent;qrIntent=null;if(qrLive(bound))return ui.open()},
   onChange:async file=>{
     const bound=qrIntent;qrIntent=null;
-    const live=()=>{const current=getContext();return bound&&bound.revision===qrRevision&&sheet.open&&!current.locked&&bound.account===current.account&&bound.keyRevision===current.keyRevision};
+    const live=()=>qrLive(bound);
     if(!live())return;
     try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const result=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;if(!result?.ok||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())setWalletCopy(status,"QR reference read locally. Choose Review signed invoice; scanning never signs or pays.")}
     catch{if(live())setWalletCopy(status,"No supported Pay invoice QR was found. Nothing was uploaded or paid.")}

@@ -1,15 +1,17 @@
 /** A native file chooser returns to its original DOM input. Replace that input
  * on invalidation so an old selection cannot borrow a newly captured intent.
  * Decoding, account/draft checks and authority stay with the existing caller. */
-export function createQRFileInput({document,selector,onClick=()=>{},onChange}){
+export function createQRFileInput({document,selector,onClick=()=>{},onChange,onCancel=()=>{}}){
   let input=document.querySelector(selector);
   function bind(node){
     node.addEventListener("click",()=>{if(node===input)onClick()});
     node.addEventListener("change",()=>{
       const file=node.files?.[0];node.value="";
       if(node!==input)return;
+      if(!file)return onCancel();
       return onChange(file);
     });
+    node.addEventListener("cancel",()=>{node.value="";if(node===input)return onCancel()});
   }
   bind(input);
   function invalidate(){

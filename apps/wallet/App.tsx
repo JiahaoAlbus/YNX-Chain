@@ -491,8 +491,21 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
   if(inputContext.current!==contextKey){recipientInput.cancel();inputContext.current=contextKey}
   const cancelInput=()=>{recipientInput.cancel();setPasting(false);setRecipientAdded(false)};
   const dismiss=()=>{cancelInput();scope.cancel();setBusy(false);close()};
-  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true;
-    void nativeOutbox.read(account.account).then(value=>{if(current){const pending=value?.phase!=="done"?value:null;setStored(pending);setLoaded(true);if(!pending&&scannedRecipient&&operations.isActive()&&operations.isUnlocked()&&operations.selectedAccount()===account.account){setTo(scannedRecipient);setRecipientAdded(true)}}}).catch(caught=>{if(current)setError(message(caught))});return()=>{current=false;recipientInput.cancel()}
+  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true,lease:WalletOperationLease|undefined;
+    void (async()=>{try{
+      lease=scope.begin({account:account.account});const activeLease=lease;setBusy(true);
+      const value=await activeLease.step(()=>nativeOutbox.read(account.account));activeLease.assert();if(!current)return;
+      let pending=value?.phase!=="done"?value:null;
+      if(pending){
+        const recovered=await activeLease.step(()=>nativeOutbox.recover(account.account,storedChainClient(pending!.origin),activeLease.assert));
+        activeLease.assert();if(!current)return;pending=recovered?.phase!=="done"?recovered:null;
+        if(recovered?.phase==="observed"||recovered?.phase==="accepted")onSentRef.current();
+      }
+      activeLease.assert();if(!current)return;setStored(pending);setLoaded(true);
+      if(!pending&&scannedRecipient){activeLease.assert();setTo(scannedRecipient);setRecipientAdded(true)}
+    }catch(caught){if(current&&(!lease||lease.isCurrent()))setError(message(caught))}
+    finally{if(current&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}})();
+    return()=>{current=false;recipientInput.cancel();lease?.finish()}
   },[visible,account.account,scope,reload,recipientInput,scannedRecipient,operations]);
   const pasteRecipient=async()=>{
     if(!visible||!loaded||stored||review||busy)return;

@@ -12,6 +12,14 @@ function fixture(){
   return {document:{querySelector:()=>input},get input(){return input}};
 }
 
+test("cancel and empty selection never decode; detached cancellations cannot affect the current picker",()=>{
+  const f=fixture();let cancelled=0,selected=0;
+  const ui=createQRFileInput({document:f.document,selector:"#invoice-qr",onCancel:()=>cancelled++,onChange:()=>selected++});
+  f.input.emit("cancel");f.input.emit("change");assert.equal(cancelled,2);assert.equal(selected,0);
+  const old=f.input;ui.invalidate();old.emit("cancel");old.emit("change");assert.equal(cancelled,2);
+  f.input.files=[{name:"current"}];f.input.emit("change");assert.equal(selected,1);
+});
+
 test("file chooser invalidation preserves original field attributes but detaches old callbacks and selections",()=>{
   const f=fixture(),selected=[],opened=[];
   const ui=createQRFileInput({document:f.document,selector:"#invoice-qr",onClick:()=>opened.push(true),onChange:file=>selected.push(file)}),old=f.input;
