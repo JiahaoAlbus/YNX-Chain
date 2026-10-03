@@ -25,6 +25,7 @@ import (
 type paperProcessFixture struct {
 	DatabaseURL, Namespace, StatePath string
 	Online                            bool
+	ResearchOnline                    bool
 	ScheduleAt                        int64
 	HoldSchedule                      bool
 }
@@ -48,6 +49,9 @@ func TestQuantPostgresPaperProcessHelper(t *testing.T) {
 	cfg := Config{DatabaseURL: fixture.DatabaseURL, StateNamespace: fixture.Namespace, StatePath: fixture.StatePath}
 	if fixture.Online {
 		cfg.MarketData = &submissionMarket{}
+	}
+	if fixture.ResearchOnline {
+		cfg.MarketData = &replayResearchMarket{}
 	}
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM)
@@ -170,7 +174,7 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 		if err != nil || u.Scheme != "http" || u.Hostname() != "127.0.0.1" {
 			t.Fatal("invalid isolated child endpoint")
 		}
-		t.Logf("actual Quant PostgreSQL process pid=%d paperMarket=%t scheduledResearch=%t", cmd.Process.Pid, fixture.Online, fixture.ScheduleAt != 0)
+		t.Logf("actual Quant PostgreSQL process pid=%d paperMarket=%t researchMarket=%t scheduledResearch=%t", cmd.Process.Pid, fixture.Online, fixture.ResearchOnline, fixture.ScheduleAt != 0)
 		return paperProcessEndpoint{URL: endpoint, Close: closeProcess, Crash: func() { terminate(true) }}
 	case <-time.After(10 * time.Second):
 		t.Fatal("Quant child startup timeout")
