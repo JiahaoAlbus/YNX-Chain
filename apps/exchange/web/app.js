@@ -5,10 +5,10 @@ import {installExchangeLocale} from './locale.js';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');
-function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500)}
-function productApiUnavailable(){return new Error('API_UNAVAILABLE: This Exchange action needs a separate approved write scope and, for orders or withdrawals, an exact native Wallet signature. No request was sent.')}
+function toast(message){const el=$('#toast');window.YNXExchangeLocale?.forget(el);if(!window.YNXExchangeLocale?.error(el,message))el.textContent=message?.message??message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500)}
+function productApiUnavailable(){return Object.assign(new Error('API_UNAVAILABLE: This Exchange action needs a separate approved write scope and, for orders or withdrawals, an exact native Wallet signature. No request was sent.'),{code:'API_UNAVAILABLE'})}
 function showWalletFallback(show){$('#wallet-fallback').hidden=!show}
-function requireProductSession(){toast(productApiUnavailable().message);$('#private-account').scrollIntoView({block:'center'});$('#private-begin').focus();return false}
+function requireProductSession(){toast(productApiUnavailable());$('#private-account').scrollIntoView({block:'center'});$('#private-begin').focus();return false}
 const privateAccount=createExchangePrivateAccount({onState:renderPrivateAccount});
 let browserIdentity=null,browserIdentityEpoch=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityLogoutOperation=null;
 async function browserIdentityRequest(path,options={}){const response=await fetch(`/api/v1/sso/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(5000)});return {response,data:await response.json()};}
@@ -97,8 +97,8 @@ function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===
 function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function preview(){return buildOrderPreview({price:$('#price').value,amount:$('#amount').value,side:state.side,rules:state.rules,source:state.source,marketPhase:state.marketPhase})}
 function estimate(){
-  $('#reservation').textContent='—';$('#order-fees').textContent='Unavailable';$('#order-error').textContent='';
-  try{const rules=validateTradingRules(state.rules);$('#order-fees').textContent=`${rules.makerFeeBps} / ${rules.takerFeeBps} bps`;$('#order-limits').textContent=`6 decimals; price and amount 0.000001–1,000,000. Maximum notional: ${display(BigInt(rules.maxOrderNotionalMicro))} YUSD_TEST.`;if(!$('#price').value&&!$('#amount').value)return;const value=preview();$('#reservation').textContent=`${display(value.initialReservationMicro)} ${value.reservationAsset}`}catch(error){$('#order-error').textContent=error.message}
+  $('#reservation').textContent='—';$('#order-fees').textContent='Unavailable';window.YNXExchangeLocale?.forget($('#order-error'));$('#order-error').textContent='';
+  try{const rules=validateTradingRules(state.rules);$('#order-fees').textContent=`${rules.makerFeeBps} / ${rules.takerFeeBps} bps`;$('#order-limits').textContent=`6 decimals; price and amount 0.000001–1,000,000. Maximum notional: ${display(BigInt(rules.maxOrderNotionalMicro))} YUSD_TEST.`;if(!$('#price').value&&!$('#amount').value)return;const value=preview();$('#reservation').textContent=`${display(value.initialReservationMicro)} ${value.reservationAsset}`}catch(error){if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message}
 }
 function withdrawEstimate(){const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;$('#withdraw-receive').textContent='—';if(!Number.isSafeInteger(fee)||fee<0)return;try{const amount=parseMicro($('#withdraw-amount').value);if(amount>BigInt(fee))$('#withdraw-receive').textContent=`${display(amount-BigInt(fee))} YNXT`}catch{}}
 
@@ -192,7 +192,7 @@ async function reviewOrder(event){
     const rows=[['Side / type',`${value.side} / limit`],['Limit price',`${display(value.priceMicro)} YUSD_TEST`],['Amount',`${display(value.amountMicro)} YNXT`],['Notional at limit',`${display(value.notionalMicro)} YUSD_TEST`],['Single-fill maker fee',`${display(value.makerFeeMicro)} YUSD_TEST`],['Single-fill taker fee',`${display(value.takerFeeMicro)} YUSD_TEST`],['Initial reservation',`${display(value.initialReservationMicro)} ${value.reservationAsset}`],['Available venue balance',available?`${display(available.availableMicro)} ${value.reservationAsset} at last account read; not reserved`:'Unknown — Exchange account proof required'],['Wallet state',state.standardWallet?.status==='standard-connected'?'Standard connection only; not Exchange order authority':'Not connected; guest preview remains available'],['Rule source',`${value.sourceStatus} · ${new Date(value.rulesObservedAt).toLocaleString()}`]];
     for(const [label,text] of rows){const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=text;row.append(dt,dd);root.append(row)}
     $('#order-preview-dialog').showModal();
-  }catch(error){$('#order-error').textContent=error.message;toast(error.message)}finally{button.disabled=false}
+  }catch(error){if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message;toast(error)}finally{button.disabled=false}
 }
 function cancelOrder(){requireProductSession()}
 async function observeDeposit(event){event.preventDefault();requireProductSession()}
