@@ -50,6 +50,12 @@ type TxVerifier struct {
 }
 
 func (v TxVerifier) Verify(p AuthPolicy, m TxMessage, s Signatures, height uint64) error {
+	if !boundedKeys(p.Keys) || !boundedSignatures(s) || len(m.Payload) > MaxAuthMessage-512 {
+		return ErrInvalid
+	}
+	p = snapshotPolicy(p)
+	m.Payload = append([]byte(nil), m.Payload...)
+	s = snapshotSignatures(s)
 	if v.Provider == nil || !networkValid(v.Network) || m.Network != v.Network || p.Validate() != nil || p.State != HybridEnforced || height < p.EnforceHeight || height > m.ExpiryHeight || p.Account != m.Account || p.Version != m.PolicyVersion || p.KeyVersion != m.KeyVersion {
 		return ErrInvalid
 	}
@@ -120,6 +126,13 @@ func (m MigrationRequest) CanonicalBytes() ([]byte, error) {
 	return b.Bytes(), nil
 }
 func (v TxVerifier) VerifyTransition(p AuthPolicy, m MigrationRequest, s Signatures, newPossession []byte, height, expectedNonce uint64) (TransitionProof, error) {
+	if !boundedKeys(p.Keys) || !boundedSignatures(s) || len(m.NewPQKey) > 2592 || len(newPossession) > 4627 {
+		return TransitionProof{}, ErrInvalid
+	}
+	p = snapshotPolicy(p)
+	m.NewPQKey = append([]byte(nil), m.NewPQKey...)
+	s = snapshotSignatures(s)
+	newPossession = append([]byte(nil), newPossession...)
 	var zero TransitionProof
 	if v.Provider == nil || p.Validate() != nil || m.Network != v.Network || m.Account != p.Account || m.PolicyVersion != p.Version || m.KeyVersion != p.KeyVersion || height == 0 || height > m.ExpiryHeight || m.Nonce != expectedNonce {
 		return zero, ErrInvalid
@@ -192,6 +205,22 @@ type Vote struct {
 type ConsensusVerifier struct{ Provider CryptoProvider }
 
 func (v ConsensusVerifier) VerifyVote(set []Validator, vote Vote, expected Network, height uint64, round uint32, kind ConsensusKind, original []byte) (uint64, error) {
+	if len(set) > 10000 || len(original) > MaxAuthMessage-512 || len(vote.Message.OriginalSignBytes) > MaxAuthMessage-512 || !boundedSignatures(vote.Signatures) {
+		return 0, ErrInvalid
+	}
+	for _, validator := range set {
+		if !boundedKeys(validator.Keys) {
+			return 0, ErrInvalid
+		}
+	}
+	setCopy := append([]Validator(nil), set...)
+	for i := range setCopy {
+		setCopy[i].Keys = snapshotKeys(setCopy[i].Keys)
+	}
+	set = setCopy
+	vote.Message = snapshotConsensus(vote.Message)
+	vote.Signatures = snapshotSignatures(vote.Signatures)
+	original = append([]byte(nil), original...)
 	if v.Provider == nil || vote.Message.Network != expected || vote.Message.Height != height || vote.Message.Round != round || vote.Message.Kind != kind || !bytes.Equal(vote.Message.OriginalSignBytes, original) {
 		return 0, ErrInvalid
 	}
@@ -220,6 +249,31 @@ func (v ConsensusVerifier) VerifyVote(set []Validator, vote Vote, expected Netwo
 // Quorum counts each validator once only after both signatures on that same
 // vote verify. Comparison avoids multiplication overflow, preserving >2/3.
 func (v ConsensusVerifier) VerifyQuorum(set []Validator, votes []Vote, n Network, h uint64, r uint32, k ConsensusKind, original []byte) error {
+	if len(set) > 10000 || len(votes) > len(set) || len(original) > MaxAuthMessage-512 {
+		return ErrInvalid
+	}
+	for _, validator := range set {
+		if !boundedKeys(validator.Keys) {
+			return ErrInvalid
+		}
+	}
+	for _, vote := range votes {
+		if len(vote.Message.OriginalSignBytes) > MaxAuthMessage-512 || !boundedSignatures(vote.Signatures) {
+			return ErrInvalid
+		}
+	}
+	setCopy := append([]Validator(nil), set...)
+	for i := range setCopy {
+		setCopy[i].Keys = snapshotKeys(setCopy[i].Keys)
+	}
+	set = setCopy
+	votesCopy := append([]Vote(nil), votes...)
+	for i := range votesCopy {
+		votesCopy[i].Message = snapshotConsensus(votesCopy[i].Message)
+		votesCopy[i].Signatures = snapshotSignatures(votesCopy[i].Signatures)
+	}
+	votes = votesCopy
+	original = append([]byte(nil), original...)
 	var total, valid uint64
 	seenSet := map[[20]byte]bool{}
 	seenVotes := map[[20]byte]bool{}

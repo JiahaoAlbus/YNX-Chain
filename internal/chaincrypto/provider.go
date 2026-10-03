@@ -45,6 +45,12 @@ func verifyPQ(key, message, signature []byte, context string) bool {
 }
 
 func (CIRCLProvider) VerifyAccount(keys PublicKeys, message []byte, signatures Signatures) error {
+	if !boundedKeys(keys) || !boundedSignatures(signatures) || len(message) > MaxAuthMessage {
+		return ErrInvalid
+	}
+	keys = snapshotKeys(keys)
+	message = append([]byte(nil), message...)
+	signatures = snapshotSignatures(signatures)
 	// Reject lengths and encodings before expensive PQ validation.
 	if len(keys.Classical) != secp256k1.PubKeyBytesLenCompressed || len(signatures.Classical) < 8 || len(signatures.Classical) > 72 || len(message) == 0 || len(message) > MaxAuthMessage {
 		return ErrInvalid
@@ -66,6 +72,12 @@ func (CIRCLProvider) VerifyAccount(keys PublicKeys, message []byte, signatures S
 }
 
 func (CIRCLProvider) VerifyConsensus(keys PublicKeys, message []byte, signatures Signatures) error {
+	if !boundedKeys(keys) || !boundedSignatures(signatures) || len(message) > MaxAuthMessage {
+		return ErrInvalid
+	}
+	keys = snapshotKeys(keys)
+	message = append([]byte(nil), message...)
+	signatures = snapshotSignatures(signatures)
 	if len(keys.Classical) != ed25519.PublicKeySize || len(signatures.Classical) != ed25519.SignatureSize || len(message) == 0 || len(message) > MaxAuthMessage {
 		return ErrInvalid
 	}

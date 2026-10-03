@@ -1,0 +1,53 @@
+{
+  "status": "SNAPSHOT_SOURCE_SUCCESSOR_PENDING_INDEPENDENT_REVIEW",
+  "priorSourceHoldCommit": "506f304bc4b047bcdb6c12d93e56c1044478c544",
+  "originalReviewSHA256": "c5334e61ce628c492bb8d6004915dfe3b8aa931baa2400a365b8d741900530d5",
+  "originalProbeSHA256": "4c0aeda11491708ee3391eaa00b029d4525f8dc41c3052008efadee8977de184",
+  "originalProbeUnmodified": true,
+  "results": {
+    "snapshot-successor-tests.jsonl": [
+      "TestIndependentWeightedQuorumEdges",
+      "TestIndependentRequestSnapshotBeforeVerification",
+      "TestAccountANDAndExactEncodings/trailingDER",
+      "TestAccountANDAndExactEncodings/missingClassic",
+      "TestAccountANDAndExactEncodings/missingPQ",
+      "TestAccountANDAndExactEncodings/classicBad",
+      "TestAccountANDAndExactEncodings/pqBad",
+      "TestAccountANDAndExactEncodings/trailingPQ",
+      "TestAccountANDAndExactEncodings",
+      "TestTransactionCompleteBindingAndExpiry/recipient",
+      "TestTransactionCompleteBindingAndExpiry/fee",
+      "TestTransactionCompleteBindingAndExpiry/genesis",
+      "TestTransactionCompleteBindingAndExpiry/account",
+      "TestTransactionCompleteBindingAndExpiry/nonce",
+      "TestTransactionCompleteBindingAndExpiry/amount",
+      "TestTransactionCompleteBindingAndExpiry/gas",
+      "TestTransactionCompleteBindingAndExpiry/payload",
+      "TestTransactionCompleteBindingAndExpiry/chain",
+      "TestTransactionCompleteBindingAndExpiry/network",
+      "TestTransactionCompleteBindingAndExpiry/policy",
+      "TestTransactionCompleteBindingAndExpiry/key",
+      "TestTransactionCompleteBindingAndExpiry",
+      "TestMigrationRequiresActualDualProofAndImmutablePolicy",
+      "TestConsensusSameVoteANDQuorumAndDomain",
+      "TestCanonicalBoundedDeterminism",
+      "TestAuthorizedMigrationRetainsExactSignedKey",
+      "TestPublicVectors",
+      "TestDecodersRejectMalformedCanonicalBytes"
+    ],
+    "snapshot-alias-tests.jsonl": [
+      "TestMigrationSnapshotsEveryCallerAliasBeforeProvider/policyKey",
+      "TestMigrationSnapshotsEveryCallerAliasBeforeProvider/newKey",
+      "TestMigrationSnapshotsEveryCallerAliasBeforeProvider/classicalSignature",
+      "TestMigrationSnapshotsEveryCallerAliasBeforeProvider/pqSignature",
+      "TestMigrationSnapshotsEveryCallerAliasBeforeProvider",
+      "TestConsensusSnapshotsSetVoteAndOriginalBeforeProvider"
+    ]
+  },
+  "changedContract": "bounded snapshots before encoding/verification/provider calls; original proof request and all keys/signatures/message/consensus set are owned by the decision",
+  "activationApproved": false,
+  "activated": false,
+  "productionSigningPerformed": false,
+  "qaSigningPerformed": true,
+  "privateKeyPersisted": false
+}
