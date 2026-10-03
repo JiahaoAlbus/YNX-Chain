@@ -1,0 +1,13 @@
+{
+  "protectedNativeRuntimeImplementation": "not verified",
+  "realP256ProtectedKeyHandle": "not verified",
+  "atomicOSStorageAndDurableGeneration": "not verified",
+  "OSWalletDetectionDeepLinkCallback": "not verified",
+  "actualWalletExplicitApproval": "not verified",
+  "servingGatewayNativeSupport": "not verified",
+  "currentCentralActorAccountDeviceGenerationBinding": "not verified",
+  "CommerceOwnedBuyerBusinessRoute": "not executed",
+  "productUIInstallPublic": "not verified",
+  "sourceProtocolBuyer3Fixture": "3/3PASS software-only controlled loopback source",
+  "accountNullFreshNamespaceFixture": "PASS no pending/grant migration; old close is not server revocation"
+}

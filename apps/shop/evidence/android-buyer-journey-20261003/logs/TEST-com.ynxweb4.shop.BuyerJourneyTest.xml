@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ynxweb4.shop.BuyerJourneyTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-03T11:51:35.950Z" hostname="HuangJiahaoMacmini" time="0.022">
+  <properties/>
+  <testcase name="lostInvoiceAndLegacyPendingOnlyReadOriginalReferenceWithoutChangingKeys" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.009"/>
+  <testcase name="originalQueuedNativeCheckoutOnlyUsesExplicitOriginalTargetReadback" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.003"/>
+  <testcase name="legacyCheckoutCannotBecomeCanonicalOrRotateOriginalUnknownRecord" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="alreadyBoundOriginalInvoiceCanOnlyBeRead" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="canonicalCheckoutPreservesRetiredSessionAndUnknownOriginalKeyAcrossColdReopen" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="callbackIsOnlyFixedWakeHintAndCannotSupplyAccountOrderPaidOrExecution" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.0"/>
+  <testcase name="authorizationFailurePrecedesDurableCheckoutDispatchAndCannotSend" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="paidPresentationRequiresCompleteMatchingBackendSettlement" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="nativePoliciesMatchOriginalGoRoutesAndRetireMissingSettlementAlias" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="mismatchedReceiptAndFailedStoragePreserveOriginalRecovery" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.001"/>
+  <testcase name="receiptLaunchAndColdReadbackKeepOriginalInvoiceAndNeverClaimPaid" classname="com.ynxweb4.shop.BuyerJourneyTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

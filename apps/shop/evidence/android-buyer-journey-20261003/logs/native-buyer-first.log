@@ -1,0 +1,4 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/commerce [github.com/JiahaoAlbus/YNX-Chain/internal/commerce.test]
+internal/commerce/auth_native_buyer_v2_test.go:134:26: cannot use saved.Revision (variable of type string) as *string value in assignment
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce [build failed]
+FAIL

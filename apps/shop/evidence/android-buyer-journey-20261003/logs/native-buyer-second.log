@@ -1,0 +1,6 @@
+--- FAIL: TestNativeBuyerProtectedAuthorityCartCheckoutInvoiceReadback (0.46s)
+    auth_native_buyer_v2_test.go:121: original cart read 200 {"Buyer":"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf","Items":null,"Revision":"","UpdatedAt":"0001-01-01T00:00:00Z","WalletBuyer":"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"}
+        
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.236s
+FAIL

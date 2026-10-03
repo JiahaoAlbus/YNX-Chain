@@ -1,0 +1,47 @@
+{
+  "rootAdmissionSHA256": "97861b0cca9821f10888a1b035a5c655b4976343b3ab6788ac4f2679c1e7f864",
+  "original188ManifestSHA256": "63c04fe2fe0411796f488fdce0ffb315d84813af4de65510f09324fd0085f0fe",
+  "original188FilesReadBack": 188,
+  "adoptedNativeSourceCommit": "34f58c74a79a35cb7b95fbe46e1cd4b8a51de40e",
+  "adoptedNativeSourceTree": "f98bd7a00c1f9bf725735b4629a5666b3fe3676e",
+  "qaSupportingGatewaySourceCommit": "6413198530fcc89abfcc44cf010ee96228475b8b",
+  "qaSupportIsServingNode7c": false,
+  "currentActorReaderVerified": false,
+  "shopRegistryUnchangedFrom9555": true,
+  "shopRegistry": {
+    "productId": "shop",
+    "clientId": "ynx-shop-v1",
+    "displayName": "YNX Shop",
+    "applicationId": "com.ynxweb4.shop",
+    "webOrigin": "https://shop.ynxweb4.com",
+    "nativeCallback": "ynxshop://wallet-auth/callback",
+    "legacyCallbacks": [
+      "ynxshop",
+      "ynxshop://wallet-auth/callback"
+    ],
+    "scopes": [
+      "account:read",
+      "shop:orders:write",
+      "shop:profile:write",
+      "shop:seller:operate"
+    ],
+    "evmCompatible": true,
+    "sessionDurationSeconds": 240
+  },
+  "officialExampleGatewayBase": "https://wallet-auth.ynxweb4.com",
+  "gatewayConstructorPolicy": "canonical HTTPS origin normalizer; explicit approved application config fixes official base; WeakMap brand must be from same standalone bundle",
+  "actualNativeGatewayDeploymentVerified": false,
+  "artifactExports": [
+    "ProductSessionGatewayFetchAdapter",
+    "createNativeProductSessionClient"
+  ],
+  "artifactSHA256": "a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82",
+  "typeSHA256": "b52863f0496f735d3796404fa8f81219612a08b7bd30fcbdc411dc04ab4b2b08",
+  "typeGraphSHA256": {
+    "types/application-action-launcher.d.ts": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd",
+    "types/index.d.ts": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47",
+    "types/product-session-native.d.ts": "ed02eab6a995132e5af06c3d2dc4f83e01fd6cac7316d5a7e6a6cf7e089db985"
+  },
+  "sourceMutated": false,
+  "gitIndexMutated": false
+}

@@ -1,0 +1,15 @@
+PASS actual packaged Native SDK cold restore samples original authority time without private authority, signing or Wallet opening
+PASS actual packaged module uses original authority-time headers/codec and exact prepared OS port; opened is not approved
+PASS pending/unapproved Native session cannot release business proof or sign
+PASS legacy malformed callback cannot become Native private authority
+PASS actual SDK explicit pending-attempt cancellation confirms only original local cleanup without server revocation claim
+5 packaged-module checks PASS; controlled synchronous ports/authority time, no actual OS key, Wallet approval or public server
+✔ /tmp/ynx-commerce-native-bridge-20261003/packaged-client-test.mjs (51.14125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54.470417
