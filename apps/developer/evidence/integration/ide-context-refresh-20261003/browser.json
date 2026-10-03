@@ -1,0 +1,619 @@
+{
+  "passed": true,
+  "checks": [
+    "Explicit read/create/delete selection: ninth read blocks approval, unchecked paths never sent",
+    "Explicit current-context review clears old selection and requires fresh file approval without replaying a model call",
+    "Wallet-owned catalog replaces guest props; project switch clears run/draft/key; native-volume does not read old snapshot",
+    "A to B to A retires the original pending model result while permitting freshly authenticated saved-state GET",
+    "Existing plan/context/model/write approvals preserved; late apply does not mutate selected project or guest parent",
+    "Account/generation change retires old plan and delayed memory even when projectId is unchanged",
+    "Current 401 retires entire private panel without guest rebootstrap",
+    "Empty Wallet catalog guides explicit existing project import and never falls back to guest AI",
+    "Current apply preserves the run across Wallet refresh and continues owned-path test and Git one-use approvals",
+    "Cookie identity changes before click: request remains bound to displayed identity and 401 removes all private UI",
+    "Catalog refresh immediately disables all private operations and re-enables preserved same-identity draft only after success"
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "projectReads": 1,
+      "modelReads": 1,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        },
+        {
+          "action": "approve-plan"
+        },
+        {
+          "action": "approve-context",
+          "approval": "context-read-once",
+          "paths": [
+            "source-0.ts",
+            "source-1.ts",
+            "source-2.ts",
+            "source-3.ts",
+            "source-4.ts",
+            "source-5.ts",
+            "source-6.ts",
+            "source-7.ts"
+          ],
+          "createPaths": [],
+          "deletePaths": []
+        },
+        {
+          "action": "refresh-context"
+        },
+        {
+          "action": "approve-context",
+          "approval": "context-read-once",
+          "paths": [
+            "fresh.ts"
+          ],
+          "createPaths": [],
+          "deletePaths": []
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 2,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        },
+        {
+          "projectId": "project-B",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-B",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 4,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        },
+        {
+          "projectId": "project-B",
+          "method": "GET"
+        },
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-B",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 3,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        },
+        {
+          "action": "approve-plan"
+        },
+        {
+          "action": "approve-context",
+          "approval": "context-read-once",
+          "paths": [
+            "owned-a.ts"
+          ],
+          "createPaths": [],
+          "deletePaths": []
+        },
+        {
+          "action": "generate-proposal",
+          "approval": "model-request-once"
+        },
+        {
+          "action": "apply",
+          "approval": "write-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        },
+        {
+          "projectId": "project-B",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-B",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 2,
+      "modelReads": 3,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        },
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-B-2"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-B-2"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-B-2"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-B-2"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 2,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 0,
+      "healthReads": 0,
+      "runCalls": [],
+      "memoryCalls": [],
+      "deniedCalls": [],
+      "bindings": []
+    },
+    {
+      "projectReads": 2,
+      "modelReads": 1,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        },
+        {
+          "action": "approve-plan"
+        },
+        {
+          "action": "approve-context",
+          "approval": "context-read-once",
+          "paths": [
+            "owned-a.ts"
+          ],
+          "createPaths": [],
+          "deletePaths": []
+        },
+        {
+          "action": "generate-proposal",
+          "approval": "model-request-once"
+        },
+        {
+          "action": "apply",
+          "approval": "write-once"
+        },
+        {
+          "action": "run-test",
+          "approval": "execute-once",
+          "activePath": "owned-a.ts"
+        },
+        {
+          "action": "prepare-git"
+        },
+        {
+          "action": "approve-git",
+          "approval": "git-local-commit-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs/run-1",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 1,
+      "modelReads": 1,
+      "healthReads": 0,
+      "runCalls": [],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    },
+    {
+      "projectReads": 2,
+      "modelReads": 1,
+      "healthReads": 0,
+      "runCalls": [
+        {
+          "projectId": "project-A",
+          "action": "create",
+          "approval": "model-request-once"
+        }
+      ],
+      "memoryCalls": [
+        {
+          "projectId": "project-A",
+          "method": "GET"
+        }
+      ],
+      "deniedCalls": [],
+      "bindings": [
+        {
+          "path": "/runtime/models",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/memory/project-A",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        },
+        {
+          "path": "/runtime/agent/runs",
+          "identityKey": "identity-A-1"
+        }
+      ]
+    }
+  ],
+  "actualChromium": true,
+  "actualReact": true,
+  "backend": "controlled browser HTTP responses",
+  "public": false
+}

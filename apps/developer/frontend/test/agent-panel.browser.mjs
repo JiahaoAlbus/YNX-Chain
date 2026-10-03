@@ -65,6 +65,7 @@ async function harness() {
       } else {
         run = structuredClone(runs.get(path.split('/').at(-1)));
         if (body.action === 'approve-plan') run.status = 'context_review';
+        if (body.action === 'refresh-context') { run.status = 'context_review'; run.workspaceRevision++; run.plan = { ...run.plan, contextPaths: ['fresh.ts'], createPaths: [], deletePaths: [] }; run.approvedPaths = []; run.approvedCreatePaths = []; run.approvedDeletePaths = []; run.proposal = null; run.review = null; }
         if (body.action === 'approve-context') { run.status = 'proposal_generation'; run.approvedPaths = body.paths; }
         if (body.action === 'generate-proposal') { run.status = 'diff_review'; run.review = { approved: true, summary: 'reviewed', findings: [] }; }
         if (body.action === 'apply') { run.status = 'applied'; run.workspaceRevision++; state.projects.find(project => project.projectId === run.projectId).revision = run.workspaceRevision; }
@@ -110,6 +111,18 @@ try {
       assert.deepEqual(sent.paths, Array.from({length:8}, (_, i) => 'source-' + i + '.ts'));
       assert.deepEqual(sent.createPaths, []); assert.deepEqual(sent.deletePaths, []);
       checks.push('Explicit read/create/delete selection: ninth read blocks approval, unchecked paths never sent');
+      await h.page.getByRole('button', {name:'Review current project context',exact:true}).click();
+      await h.page.getByRole('checkbox', {name:'read · fresh.ts',exact:true}).waitFor();
+      assert.equal(await h.page.getByRole('checkbox').count(),1);
+      assert.equal(await h.page.getByRole('button', {name:'Approve model request once · generate + review',exact:true}).count(),0);
+      assert.equal(h.state.runCalls.at(-1).action,'refresh-context');
+      assert.equal(h.state.runCalls.at(-1).approval,undefined);
+      assert.equal(h.state.runCalls.filter(call=>call.action==='generate-proposal').length,0);
+      await h.page.getByRole('button', {name:/^Approve context once/}).click();
+      assert.deepEqual(h.state.runCalls.at(-1).paths,['fresh.ts']);
+      assert.deepEqual(h.state.runCalls.at(-1).createPaths,[]);
+      assert.deepEqual(h.state.runCalls.at(-1).deletePaths,[]);
+      checks.push('Explicit current-context review clears old selection and requires fresh file approval without replaying a model call');
     } finally { await h.close(); }
   }
   {

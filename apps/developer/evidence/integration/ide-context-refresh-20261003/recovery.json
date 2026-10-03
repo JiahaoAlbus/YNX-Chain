@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "checks": [
+    "Document reopen restores the saved run using authenticated detail, including real permissions and usage; no POST or model replay",
+    "Persisted planning/running has no approval actions; explicit GET refresh observes completion without repeating Planner",
+    "Restart interruption restores the original intent but sends another Planner request only after a new explicit approval",
+    "Lost create response offers the persisted run through a fresh list/detail read and requires a separate new-request choice before any retry",
+    "Lost apply response reads back the persisted write and refreshed project path; only the separately approved test follows",
+    "Running Coder blocks the old action; interrupted recovery exposes its saved stage and requires a fresh explicit approval",
+    "A stale action rejected as agent_run_busy reads current running detail and never retries its POST",
+    "Interrupted Git requires an explicit read-only reconciliation and shows observed HEAD/pending paths without replaying commit or asserting its prior outcome",
+    "A rejected preflight without a dispatched commit remains explicitly approvable and does not falsely require repository recovery",
+    "Restored source requires a new explicit test and can continue the saved workflow without another model request",
+    "Paged saved runs can be selected and each selection reads full detail rather than using the list summary",
+    "A delayed saved-run detail cannot enter the new account after catalog identity changes"
+  ],
+  "errors": [],
+  "actualChromium": true,
+  "actualReact": true,
+  "backend": "controlled browser HTTP responses",
+  "public": false
+}

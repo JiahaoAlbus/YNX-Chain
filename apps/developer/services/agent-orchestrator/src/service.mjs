@@ -443,6 +443,25 @@ export function createAgentOrchestrator({
         requireState(current, "plan_review");
         persist({ ...current, status: "context_review" });
         append(owner, id, "plan.approved", { approval: "explicit" });
+      } else if (body.action === "refresh-context") {
+        if (!["context_review", "proposal_generation", "diff_review"].includes(current.status))
+          throw fault("Current context can be reviewed again only before the next workspace write.", "agent_context_refresh_not_allowed", 409);
+        // Revoke prior approvals without model dispatch or workspace mutation.
+        // Retain usage, events and recoverable trash from previous operations.
+        append(owner, id, "context.review_reopened", {
+          previousRevision: current.workspaceRevision, currentRevision: workspace.revision,
+          revokedPaths: current.approvedPaths, revokedCreatePaths: current.approvedCreatePaths,
+          revokedDeletePaths: current.approvedDeletePaths,
+          discardedProposalDigest: current.proposal ? sha(stable(current.proposal)) : null,
+        });
+        persist({ ...current, status: "context_review", workspaceRevision: workspace.revision,
+          approvedPaths: [], approvedCreatePaths: [], approvedDeletePaths: [], proposal: null, review: null,
+          plan: { ...current.plan,
+            contextPaths: [...new Set([...current.plan.contextPaths, ...current.plan.createPaths])].filter(path => Object.hasOwn(workspace.files, path)),
+            createPaths: current.plan.createPaths.filter(path => !Object.hasOwn(workspace.files, path)),
+            deletePaths: current.plan.deletePaths.filter(path => Object.hasOwn(workspace.files, path)),
+          },
+        });
       } else if (body.action === "approve-context") {
         requireState(current, "context_review");
         const paths = validatePaths(body.paths, workspace.files),

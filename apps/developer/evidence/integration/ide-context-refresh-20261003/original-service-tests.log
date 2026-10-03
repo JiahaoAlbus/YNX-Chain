@@ -1,0 +1,71 @@
+✔ approved context changing before proposal prevents Coder dispatch and new saved AI request (51.212625ms)
+✔ workspace changes while semantic memory awaits prevent model dispatch (23.03ms)
+✔ workspace changes during Coder await prevent proposal and completed saved answer (22.543625ms)
+✔ only server-approved source reaches structured Coder and Reviewer attachments (24.731125ms)
+✖ explicit context refresh recovers changed files without replay and requires new approval (21.28275ms)
+✖ context refresh discards an unapplied proposal but retains history and cannot bypass a write stage (30.618125ms)
+✖ context refresh cannot overtake a running model operation (30.438917ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 4
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 257.082375
+
+✖ failing tests:
+
+test at services/agent-orchestrator/test/selected-context.test.mjs:106:1
+✖ explicit context refresh recovers changed files without replay and requires new approval (21.28275ms)
+  AssertionError [ERR_ASSERTION]: {"error":"Unknown agent action.","code":"invalid_agent_action"}
+  
+  400 !== 200
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/agent-orchestrator/test/selected-context.test.mjs:111:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/agent-orchestrator/test/selected-context.test.mjs:129:1
+✖ context refresh discards an unapplied proposal but retains history and cannot bypass a write stage (30.618125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 200
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/agent-orchestrator/test/selected-context.test.mjs:134:10)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at services/agent-orchestrator/test/selected-context.test.mjs:146:1
+✖ context refresh cannot overtake a running model operation (30.438917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 200
+  
+      at TestContext.<anonymous> (file:///private/tmp/ynx-ide-recovery-build-20261003-9w4gAk/apps/developer/services/agent-orchestrator/test/selected-context.test.mjs:152:72)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

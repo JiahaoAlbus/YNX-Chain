@@ -1,0 +1,124 @@
+✔ close interrupts a signal-ignoring Planner and late resolution cannot publish its plan (73.081125ms)
+✔ HTTP Git recovery preserves interrupted commit evidence and only observes repository state (122.686334ms)
+✔ failed HTTP reconciliation retains the original commit recovery gate for explicit retry (45.100708ms)
+✔ clean Git observation preserves uncertainty, owner scope and the original saved review without writes (9.6285ms)
+✔ pending changes and process-reported completion remain separate observations (5.438958ms)
+✔ an uninitialized repository reports the owned workspace files as pending without initializing Git (4.776833ms)
+✔ a foreign owner with the same project and revision cannot inspect another owner's run (5.188625ms)
+✔ Git recovery refuses an active operation, unrelated action, stale review or missing passing Tester evidence (4.614833ms)
+✔ workspace changes during the Git read invalidate the observation (5.718833ms)
+✔ identity revocation and service closure before inspection dispatch no Git read (16.915416ms)
+✔ agent_identity_changed during a late Git read returns no recovery metadata (24.677042ms)
+✔ agent_service_closed during a late Git read returns no recovery metadata (6.582958ms)
+✔ actual sandboxed Git recovery observes clean and pending state without commit, stage, reset or workspace saves (545.852791ms)
+✔ verified projects, Planner, approved Coder and Reviewer use exact workspace and durable existing Gateway sessions (138.591416ms)
+✔ verified admission never falls back to an old guest and missing AI store fails closed (38.83325ms)
+✔ a previous account catalog cannot authorize the same project ID after the browser changes account before POST (53.626875ms)
+✔ provider authorization failure is a service failure and keeps the valid Wallet session distinguishable (90.117083ms)
+▶ delayed request body cannot send context after account, generation or identity reference changes
+  ✔ account (51.962ms)
+  ✔ generation (38.390625ms)
+  ✔ identityReference (48.1435ms)
+  ✔ workspaceOwner (39.763209ms)
+  ✔ owner (35.687125ms)
+✔ delayed request body cannot send context after account, generation or identity reference changes (214.766417ms)
+✔ revocation cancels an in-flight model and retains only the interrupted intent without a late plan or completed answer (656.7395ms)
+✔ expiry cancels a provider that ignores the signal (181.714417ms)
+✔ an identity change during Coder generation preserves the reviewed run without a proposal or late saved answer (35.955333ms)
+✔ the production throwing isCurrent assertion aborts a quick late model result before saving (23.844834ms)
+✔ memory search receives current-identity checks and a revoked search cannot start Coder (26.276541ms)
+✔ maintenance interruption remains recorded for the unchanged verified owner (21.465083ms)
+✔ native volume projects never send their preserved import snapshot to a model (17.418042ms)
+✔ existing protected writer still blocks the approved patch write (25.479042ms)
+✔ hosted validation retries receive distinct saved conversations and preserve system plus exact retry prompt (24.212416ms)
+✔ oversized UTF-8 hosted input fails before conversation creation or model dispatch (18.466375ms)
+✔ a missing BYOK provider key is a request error and does not retire the Wallet session (17.383125ms)
+✔ Planner is durably visible before completion and read-only recovery never generates (65.547334ms)
+✔ a running Coder is visible and a second approval cannot duplicate the same run operation (21.845666ms)
+✔ a lost write response is recovered as applied without repeating the write or model approval (25.394334ms)
+✔ saved-run pagination retains owner isolation and returns older records without model calls (24.816375ms)
+✔ keyset history does not skip runs when status changes or a newer run is inserted (69.247625ms)
+✔ a killed Planner process recovers an interrupted saved intent without retrying the model (126.763625ms)
+✔ approved context changing before proposal prevents Coder dispatch and new saved AI request (122.306708ms)
+✔ workspace changes while semantic memory awaits prevent model dispatch (76.611417ms)
+✔ workspace changes during Coder await prevent proposal and completed saved answer (91.061375ms)
+✔ only server-approved source reaches structured Coder and Reviewer attachments (85.382167ms)
+✔ explicit context refresh recovers changed files without replay and requires new approval (67.195791ms)
+✔ context refresh discards an unapplied proposal but retains history and cannot bypass a write stage (79.408792ms)
+✔ context refresh cannot overtake a running model operation (58.287041ms)
+✖ context refresh reconciles removed and newly created planned paths against owned current files (28.651375ms)
+✔ agent plan, context, coder, reviewer and one-time write are persisted and hash chained (118.891084ms)
+✔ agent refuses write without approval, stale revision, and cross-owner reads (76.06275ms)
+✔ agent disconnect cancels the in-flight Planner model request (35.891666ms)
+✔ agent orchestrator migrates an existing run database for deployment review (32.945667ms)
+✔ SIGKILL after apply workspace commit reconstructs the exact run and event without another write (172.745875ms)
+✔ SIGKILL before apply workspace commit leaves interrupted intent and never fabricates a receipt (165.694916ms)
+✔ SIGKILL after restore-deleted workspace commit reconstructs the exact run and event without another write (140.283084ms)
+✔ SIGKILL before restore-deleted workspace commit leaves interrupted intent and never fabricates a receipt (118.174083ms)
+✔ failed Tester evidence insert rolls back the tested state and leaves an interrupted operation (43.266292ms)
+✔ an existing mismatched workspace receipt cannot be erased by claiming another run action (68.586917ms)
+✔ real SQLite saves and reopens encrypted complete responses with project-scoped metadata (49.302625ms)
+✔ other owners and projects cannot read, list, finish or fail a conversation (28.675083ms)
+✔ terminal responses are immutable and close/reopen marks unfinished requests interrupted (42.760084ms)
+✔ missing content key fails before opening or resetting an existing database (24.173625ms)
+✔ key permissions, symlinks, wrong lengths and wrong key bytes fail without replacing files (41.318166ms)
+✔ ciphertext cannot be moved across owner, project or conversation AAD bindings (26.220958ms)
+✔ same-process second store is refused before changing a live generation (23.376375ms)
+✔ live child owner blocks takeover; a dead child generation is interrupted on recovery (73.030167ms)
+✔ UTF-8 input and output bounds reject oversize without overwriting a pending result (183.914458ms)
+✔ owner can delete terminal conversations while live, cross-owner and cross-project records remain protected (15.09025ms)
+✔ record and byte reservations are bounded, preserve existing data and release after failure (28.736708ms)
+✔ authenticated owner quota cannot consume another owner's BYOK slot (17.437792ms)
+✔ a busy owner's backlog gets one turn before other waiting owners (2.70575ms)
+✔ queue expiry and cancellation remove only that owner's request (27.19525ms)
+✔ provider changes cannot bypass an owner's queued request capacity (1.379ms)
+✔ 100 distinct owners complete within bounded execution without identity leakage (9.721417ms)
+✔ server-owned conversation uses exact existing Gateway schema and binds response session (15.590333ms)
+✔ selected files are explicit Gateway attachments and preserve exact UTF-8 bytes (0.377708ms)
+✔ attachment limits use UTF-8 bytes, reject malformed/duplicate files and bound the encoded body (7.144292ms)
+✔ queued generation rechecks its trusted context before any upstream dispatch (0.93925ms)
+✔ existing BYOK provider receives the same approved file bytes without losing its request-only key boundary (1.083541ms)
+✔ oversized UTF-8 request is rejected before contacting the existing service (0.40325ms)
+✔ truncated, malformed, out-of-order and post-terminal answers never succeed (11.754292ms)
+✔ real HTTP fragmented UTF-8/CRLF stream completes; stalled body times out (97.672417ms)
+✔ cancellation retires a stalled injected body and does not accept partial text (1.886125ms)
+✔ bounded stream cancels oversized input before accepting completion (5.695625ms)
+✔ model catalog admits a verified Wallet without a guest cookie and accepts assertion-style isCurrent (22.76975ms)
+✔ model catalog rejects missing or stale actor binding before checking provider health (5.965042ms)
+✔ late model health cannot revive a changed Wallet catalog even when the local assertion is still current (3.90625ms)
+✔ model catalog preserves verification unavailability and never retries through guest admission (3.643584ms)
+✔ model catalog rejects sign-out during health and absent verified identity (3.129541ms)
+✔ catalog retains the explicit legacy adapter only when no Wallet verifier is configured (6.291417ms)
+✔ provider adapters use fixed endpoints and never return request-only keys (12.184042ms)
+✔ hosted adapter parses bounded SSE and reports live capacity (2.072208ms)
+✔ queue is bounded and invalid providers and credentials fail closed (1.22675ms)
+✔ client cancellation removes queued work and releases running capacity (3.81875ms)
+ℹ tests 94
+ℹ suites 0
+ℹ pass 93
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1685.940875
+
+✖ failing tests:
+
+test at services/agent-orchestrator/test/selected-context.test.mjs:159:1
+✖ context refresh reconciles removed and newly created planned paths against owned current files (28.651375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  502 !== 201
+  
+      at fixture (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/agent-orchestrator/test/selected-context.test.mjs:47:125)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/agent-orchestrator/test/selected-context.test.mjs:160:11)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 502,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

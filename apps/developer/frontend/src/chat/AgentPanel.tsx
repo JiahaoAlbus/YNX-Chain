@@ -25,6 +25,7 @@ type AgentAction =
   | "create"
   | "approve-plan"
   | "approve-context"
+  | "refresh-context"
   | "generate-proposal"
   | "revise-proposal"
   | "apply"
@@ -241,7 +242,7 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           approval: "model-request-once",
           approvalId,
         }, identityKey);
-      } else if (action === "reconcile-git") {
+      } else if (action === "reconcile-git" || action === "refresh-context") {
         next = await agentAction(run!.runId, { action }, identityKey);
       } else {
         next = await agentAction(run!.runId, {
@@ -527,7 +528,7 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           </Button>
         </>
       ) : (
-        <AgentRunView key={`${run.runId}:${run.status}`} run={run} busy={busy || recovering || !runReady || run.operation?.status === "running"} execute={execute} />
+        <AgentRunView key={`${run.runId}:${run.status}:${run.workspaceRevision}`} run={run} busy={busy || recovering || !runReady || run.operation?.status === "running"} execute={execute} />
       )}
       {error && <div className="agent-error">{error}</div>}
       <div className="honest-boundary">
@@ -598,6 +599,10 @@ function AgentRunView({
           {selection.paths.length > 8 && <p role="alert">Select no more than 8 files before approving context.</p>}
         </div>
       )}
+      {["context_review", "proposal_generation", "diff_review"].includes(run.status) && <div className="agent-proposal">
+        <small>Reviewed project revision {run.workspaceRevision}. If files have changed, review their current versions before another model request. This clears prior file approvals and any unapplied proposal; saved requests and task history remain.</small>
+        <Button disabled={busy} onClick={() => execute("refresh-context")}>Review current project context</Button>
+      </div>}
       {(run.approvedPaths.length > 0 ||
         run.approvedCreatePaths.length > 0 ||
         run.approvedDeletePaths.length > 0) && (
