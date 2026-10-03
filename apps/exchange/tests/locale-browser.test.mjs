@@ -26,6 +26,29 @@ const revokeSource=app.slice(app.indexOf('async function revokeWalletPermission(
 const privateRevokeBinding=app.split('\n').find(line=>line.includes("$('#private-disconnect').addEventListener"));
 const openOrdersRender=app.slice(app.indexOf('function renderOrders('),app.indexOf('function renderBalances('));
 const balancesRender=app.slice(app.indexOf('function renderBalances('),app.indexOf('function renderActivity('));
+const walletActions=app.slice(app.indexOf('function disconnectWallet('),app.indexOf('function openWalletChooser('));
+const walletFailure=app.slice(app.indexOf('function walletConnectionFailure('),app.indexOf('async function connectWallet('));
+
+test('actual Wallet notifications distinguish confirmed and unconfirmed outcomes across locales and preserve late result codes',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={standardWallet:null};let mode='unsupported',calls=0,pending=null;window.confirm=()=>true;function showWalletFallback(value){$('#wallet-fallback').hidden=!value}window.YNXExchangeWebWallet={connectYNX:async()=>{calls++;return {status:'standard-connected',providerKind:'ynx',account:'0x'+'1'.repeat(40),chainId:'0x1917'}},disconnect:()=>{calls++},state:()=>({status:'disconnected'}),revoke:async()=>{calls++;if(mode==='pending')return await new Promise(resolve=>pending=resolve);if(mode==='throw')throw new Error('controlled-failure');return mode==='confirmed'?{permissionRevoked:true}:{permissionRevoked:false,status:'unsupported'}}};${toast}\n${walletRender}\n${walletActions}\n${walletFailure}\n${walletConnect}\nwindow.toastLocaleQA={set(value){mode=value},connect:()=>connectWallet('ynx'),disconnect:disconnectWallet,revoke:revokeWalletPermission,pending:()=>!!pending,resume:()=>pending({permissionRevoked:false,status:'EXACT_UNCONFIRMED_CODE'}),failure:()=>walletConnectionFailure({code:'EXACT_PROVIDER_CODE'},'MetaMask'),calls:()=>calls,toast};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);const before=await page.evaluate(()=>window.toastLocaleQA.calls());await page.evaluate(locale=>window.YNXExchangeLocale.set(locale),locale);assert.equal(await page.evaluate(()=>window.toastLocaleQA.calls()),before);
+      await page.evaluate(()=>window.toastLocaleQA.connect());assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-connected']);
+      await page.evaluate(()=>window.toastLocaleQA.disconnect());assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-disconnected']);
+      await page.evaluate(async()=>{window.toastLocaleQA.set('unsupported');await window.toastLocaleQA.revoke()});assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-revoke-unconfirmed']+' (unsupported)');
+      await page.evaluate(async()=>{window.toastLocaleQA.set('throw');await window.toastLocaleQA.revoke()});assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-revoke-failed']);
+      await page.evaluate(async()=>{window.toastLocaleQA.set('confirmed');await window.toastLocaleQA.revoke()});assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-revoked']);assert.equal(await page.locator('#wallet-revoke').isEnabled(),true);
+      await page.evaluate(()=>window.toastLocaleQA.failure());assert.equal(await page.locator('#toast').innerText(),catalogs[locale]['wallet-toast-connect-failed']+' (MetaMask; EXACT_PROVIDER_CODE)');
+    }
+    await page.evaluate(()=>{window.toastLocaleQA.set('pending');void window.toastLocaleQA.revoke()});await page.waitForFunction(()=>window.toastLocaleQA.pending());await page.locator('#exchange-language').selectOption('ar');await page.evaluate(()=>window.toastLocaleQA.resume());await page.waitForFunction(text=>document.querySelector('#toast').textContent===text,catalogs.ar['wallet-toast-revoke-unconfirmed']+' (EXACT_UNCONFIRMED_CODE)');
+    await page.evaluate(()=>window.toastLocaleQA.toast({localeKey:'__proto__',message:'unknown-plain'}));await page.locator('#exchange-language').selectOption('ja');assert.equal(await page.locator('#toast').innerText(),'unknown-plain','unknown catalog key cannot revive or impersonate a confirmed outcome');
+    assert.equal(requests,0,'controlled outcomes do not prove real Wallet connection or remote revocation');
+  }finally{await browser.close()}
+});
 
 test('actual record renderers translate only authoritative domain states and retain codes without promoting unknown or reviewed withdrawals',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
