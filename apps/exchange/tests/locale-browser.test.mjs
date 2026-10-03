@@ -377,6 +377,18 @@ test('actual activity tabs and all headers use 12 locales without mutating owned
       assert.equal(current[6],catalogs[locale]['record-order-rejected']+' (rejected)');
     }
     assert.match(before,/exact-A/u);assert.match(before,/EXACT_ENGINE_CODE/u);assert.doesNotMatch(before,/foreign-B/u);assert.equal(requests,0);
+    const trade={id:'exact-trade',buyer:'A',seller:'B',buyOrderId:'exact-buy-A',sellOrderId:'exact-sell-B',priceMicro:1234567,amountMicro:2000000,buyerFeeMicro:17,sellerFeeMicro:43,sourceType:'deterministic_price_time_match',sourceDigest:'e'.repeat(64),createdAt:'2026-10-03T00:00:00Z'};
+    await page.evaluate(trade=>{activityLocaleQA.state.snapshot={trades:[trade]};activityLocaleQA.state.activity='trades';activityLocaleQA.renderActivity()},trade);
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      assert.deepEqual(await page.locator('#activity-head th').allTextContents(),['Time','Reference','Order ID','Side','Price','Amount','Fee','Source','Source digest'].map(key=>catalogs[locale][key]));
+      const values=await page.locator('#activity-body td').allTextContents();
+      assert.deepEqual(values.slice(1,4),['exact-trade','exact-buy-A','buy']);assert.equal(values[7],trade.sourceType);assert.equal(values[8],trade.sourceDigest);
+      assert.deepEqual(await page.evaluate(()=>activityLocaleQA.state.snapshot.trades[0]),trade);
+      assert.equal(await page.locator('#activity-body a,#activity-body button').count(),0);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,locale);
+    }
+    assert.equal(requests,0);
   }finally{await browser.close()}
 });
 

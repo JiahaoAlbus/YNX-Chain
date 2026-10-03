@@ -234,8 +234,9 @@ function renderActivity(){
     columns=['Time','Withdrawal ID','Asset / network','Amount','Fee','Receive','Venue status','Destination','Source digest'];
     rows=owned('withdrawals').map(w=>[time(w.createdAt),w.id,`${w.asset} / ${w.network}`,display(w.amountMicro),display(w.feeMicro),display(w.receiveMicro),window.YNXExchangeLocale?.record('withdrawal',w.status)??w.status,w.destination,w.sourceDigest]);
   }else if(state.activity==='trades'){
-    columns=['Time','Side','Price','Amount','Fee'];
-    rows=owned('trades').map(t=>[time(t.createdAt),t.buyer===state.account?'buy':'sell',display(t.priceMicro),display(t.amountMicro),display(t.buyer===state.account?t.buyerFeeMicro:t.sellerFeeMicro)]);
+    const reference=value=>typeof value==='string'&&value.trim()?value:'—';
+    columns=['Time','Reference','Order ID','Side','Price','Amount','Fee','Source','Source digest'];
+    rows=owned('trades').map(t=>[time(t.createdAt),reference(t.id),reference(t.buyer===state.account?t.buyOrderId:t.sellOrderId),t.buyer===state.account?'buy':'sell',display(t.priceMicro),display(t.amountMicro),display(t.buyer===state.account?t.buyerFeeMicro:t.sellerFeeMicro),reference(t.sourceType),reference(t.sourceDigest)]);
   }else if(state.activity==='fees'){
     columns=['Time','Kind','Asset','Exact fee','Reference'];
     rows=owned('fees').map(f=>[time(f.createdAt),f.kind,f.asset,display(f.amountMicro),f.reference]);

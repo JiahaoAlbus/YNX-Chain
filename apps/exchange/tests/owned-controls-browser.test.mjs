@@ -159,6 +159,16 @@ test('actual activity renderer exposes existing owned order history and signed l
     await page.locator('[data-activity="withdrawals"]').click();text=await page.locator('#activity-body').innerText();
     assert.match(text,/pending_wallet/u);assert.match(text,/0\.00/u);assert.equal(await page.locator('#activity-body script').count(),0);assert.equal(await page.locator('#activity-body button').count(),0);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    data.trades=[{id:'matched-trade-A-B',buyer:'A',seller:'B',buyOrderId:'buy-order-A',sellOrderId:'sell-order-B',priceMicro:2000000,amountMicro:3000000,buyerFeeMicro:17,sellerFeeMicro:43,sourceType:'deterministic_price_time_match',sourceDigest:'d'.repeat(64),createdAt:'2026-10-02T04:00:00Z'},
+      {id:'foreign-trade',buyer:'C',seller:'D',priceMicro:1,amountMicro:1,buyerFeeMicro:1,sellerFeeMicro:1,createdAt:'2026-10-02T04:00:00Z'}];
+    await page.evaluate(data=>window.activityQA.set('A',data),data);
+    await page.locator('[data-activity="trades"]').click();text=await page.locator('#activity-body').innerText();
+    assert.match(text,/matched-trade-A-B/u);assert.match(text,/buy-order-A/u);assert.doesNotMatch(text,/sell-order-B|foreign-trade/u);
+    assert.ok(text.includes('d'.repeat(64)));assert.match(text,/deterministic_price_time_match/u);assert.match(text,/0\.000017/u);
+    await page.evaluate(data=>window.activityQA.set('B',data),data);text=await page.locator('#activity-body').innerText();
+    assert.match(text,/sell-order-B/u);assert.doesNotMatch(text,/buy-order-A|foreign-trade/u);assert.match(text,/0\.000043/u);
+    assert.equal(await page.locator('#activity-body a,#activity-body button').count(),0,'venue references must not become invented Explorer links or write actions');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
     await page.locator('[data-activity="ledger"]').click();
     const original=JSON.stringify(data);await page.evaluate(data=>window.activityQA.set('B',data),data);
     assert.match(await page.locator('#activity-body').innerText(),/ledger-B/u);assert.doesNotMatch(await page.locator('#activity-body').innerText(),/ledger-A/u);
