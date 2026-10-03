@@ -1,0 +1,5 @@
+go: downloading github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+# github.com/JiahaoAlbus/YNX-Chain/internal/commerce
+internal/commerce/accounts.go:13:2: github.com/DataDog/zstd@v1.4.5: module lookup disabled by GOPROXY=off
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/commerce [setup failed]
+FAIL

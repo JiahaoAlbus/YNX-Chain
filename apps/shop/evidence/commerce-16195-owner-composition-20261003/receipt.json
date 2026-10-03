@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "commerceSource": "f4f5fad2176b99a87ef0ac8d5169d176b74ae9ee",
+  "sharedCommit": "16195c6663525b0965725a922f46f38cf7b0a004",
+  "sharedTree": "13c7016a8bbb13cc61912633f9787ef9fc9b69d2",
+  "candidateArchiveSha256": "5bc496592793fd8fd24ad993179fc623b2386bad8ec418557f956497c09f2a9d",
+  "stage": "/tmp/ynx-commerce-16195-L0p1Fk",
+  "scope": "Isolated stage only; no live shared code/module/Host/key/service changes",
+  "composition": "Exact candidate full shared source and SDK fixture closure plus current owned Commerce; original cached owner chain/consensus closure; isolated owner go.mod/sum with only Go1.25.13/xsys0.47 merge",
+  "verification": {
+    "fullCommerceWithCommerceV2": "PASS",
+    "actualSDKAndGoHTTPProfileBoundaryRace": [
+      "web PASS",
+      "android PASS",
+      "macos PASS"
+    ],
+    "offline": true,
+    "toolchain": "go1.25.13"
+  },
+  "preservedInitialFailure": "Candidate-contained xsys-only GOMODCACHE lacks Commerce consensus dependency closure. Initial offline setup failure retained, then original owner dependency cache/module composition used without downloads.",
+  "sourceReview": [
+    "Session expiry derives from original verified Session.ExpiresAt; action deadline remains separate",
+    "Confidential revalidation after awaits happens outside store lock",
+    "Original actor/account/object/membership/nonce/effect commit remains transactional"
+  ],
+  "notVerified": [
+    "Public production issuer/Gateway/central actor and registered protected backend key",
+    "Native enrollment and device approval",
+    "Formal deployment/install/private business readback"
+  ],
+  "moduleAndSourceManifestSha256": "fa7392beebb2e171b2f69f67587151a87a5690a1ad0ac845e57c29d6fe6b69a9"
+}
