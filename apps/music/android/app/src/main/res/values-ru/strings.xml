@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку.</string>
     <string name="playlist_pending">Предыдущая запись могла сохраниться. Повторите попытку для восстановления или создайте новую; сохранённые плейлисты останутся.</string>
     <string name="new_playlist">Новый плейлист</string>
+    <string name="cancel_upload_draft">Отменить черновик загрузки? Полученное сервером аудио будет сохранено.</string>
+    <string name="cancel_upload">Отменить черновик</string>
 </resources>

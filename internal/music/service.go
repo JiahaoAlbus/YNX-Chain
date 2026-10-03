@@ -43,6 +43,7 @@ type Upload struct {
 	Filename string
 }
 type TrackUpload struct {
+	RequestKey                            string
 	Title, ArtistName, Album, Description string
 	Explicit                              bool
 	Audio                                 Upload
@@ -289,6 +290,9 @@ func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
 	if err != nil {
 		return Track{}, err
 	}
+	if req.RequestKey != "" && !safeIdempotencyKey.MatchString(req.RequestKey) {
+		return Track{}, ErrInvalid
+	}
 	p, err := s.Profile(actor)
 	if err != nil || p.CreatorStatus != "active" {
 		return Track{}, ErrUnauthorized
@@ -335,14 +339,38 @@ func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
 	rights := RightsDeclaration{Basis: req.RightsBasis, Territories: req.Territories, Licensor: strings.TrimSpace(req.Licensor), EvidenceRef: strings.TrimSpace(req.EvidenceRef), AcceptedAt: s.cfg.Now().UTC()}
 	rights.DeclarationHash = hashJSON(rights)
 	track.Rights = rights
-	err = s.mutate(actor, "track_uploaded", id, track, func(st *persistentState) error { st.Tracks[id] = track; return nil })
+	// Commit content and operation together. Multipart boundaries, generated
+	// filenames, timestamps and IDs are not part of the caller's intent.
+	inputHash := hashJSON(map[string]any{"title": track.Title, "artist": track.ArtistName, "album": track.Album, "description": track.Description, "explicit": track.Explicit, "audio": track.AudioSHA256, "artwork": track.ArtworkSHA256, "artworkMIME": track.ArtworkMIME, "provenance": track.Provenance, "rights": req.RightsBasis, "territories": req.Territories, "licensor": rights.Licensor, "evidence": rights.EvidenceRef})
+	key := "upload:" + actor + ":" + req.RequestKey
+	inputKey := "upload-input:" + actor + ":" + req.RequestKey
+	out := track
+	err = s.mutate(actor, "track_uploaded", id, track, func(st *persistentState) error {
+		if req.RequestKey != "" {
+			if existingID := st.Idempotency[key]; existingID != "" {
+				existing, ok := st.Tracks[existingID]
+				if !ok || existing.Owner != actor || st.Idempotency[inputKey] != inputHash {
+					return ErrConflict
+				}
+				out = existing // Retain subsequent release and moderation state.
+				return errIdempotentReplay
+			}
+			st.Idempotency[key] = id
+			st.Idempotency[inputKey] = inputHash
+		}
+		st.Tracks[id] = track
+		return nil
+	})
 	if err != nil {
 		for _, p := range cleanup {
 			os.Remove(p)
 		}
+		if err == errIdempotentReplay {
+			return out, nil
+		}
 		return Track{}, err
 	}
-	return track, nil
+	return out, nil
 }
 
 func writeWAV(path string, r io.Reader, limit int64) (string, int64, error) {

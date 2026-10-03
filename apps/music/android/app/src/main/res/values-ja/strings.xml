@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">保存を確認できません。変更を保持しています。再試行してください。</string>
     <string name="playlist_pending">前回の作成は保存済みかもしれません。再試行して復元するか、新規作成してください。保存済みのリストは保持されます。</string>
     <string name="new_playlist">新規リスト</string>
+    <string name="cancel_upload_draft">このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。</string>
+    <string name="cancel_upload">下書きを取り消す</string>
 </resources>

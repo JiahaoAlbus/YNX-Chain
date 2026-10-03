@@ -129,6 +129,18 @@ final class FixtureProtocol:URLProtocol {
         var corrupt=wav;corrupt[20]=99
         try rejected("checksum failure accepted") { try store.storeAudio(corrupt,track:track,for:restoredA) }
         try require(try Data(contentsOf:audio)==wav,"checksum failure replaced existing audio")
+        let intent=MusicUploadIntent(key:"music-upload-\(UUID().uuidString)",title:"Original",artist:"Artist",evidence:"Owned",provenance:"Original",audioSHA256:hash)
+        try store.stageUpload(wav,intent:intent,for:restoredA)
+        var staged=stateA;staged.uploadIntent=intent;try store.save(staged,for:restoredA)
+        let reopenedStore=MusicAccountStore(root:root)
+        let (reopenedAccount,reopenedState)=try reopenedStore.select(verifiedAccount:"account-a")
+        try require(reopenedState.uploadIntent==intent,"cold restart lost pending upload identity")
+        try require(try reopenedStore.uploadData(intent,for:reopenedAccount)==wav,"cold restart lost upload bytes")
+        try rejected("changed staged audio replaced pending content") {try reopenedStore.stageUpload(corrupt,intent:intent,for:reopenedAccount)}
+        let (uploadB,_) = try reopenedStore.select(verifiedAccount:"account-b")
+        try rejected("A upload draft exposed to B") {_ = try reopenedStore.uploadData(intent,for:uploadB)}
+        try rejected("late A upload draft write after B switch") {try reopenedStore.stageUpload(wav,intent:intent,for:reopenedAccount)}
+        print("PASS durable upload drafts: original bytes and operation survive cold restart, corruption/late writes rejected, account isolation")
         let traversal=Track(id:"../outside",title:track.title,artistName:track.artistName,explicit:false,durationMillis:1000,rights:track.rights,provenance:[:],audioSha256:hash)
         try rejected("traversal accepted") { try store.storeAudio(wav,track:traversal,for:restoredA) }
         let (newB,_)=try store.select(verifiedAccount:"account-b")

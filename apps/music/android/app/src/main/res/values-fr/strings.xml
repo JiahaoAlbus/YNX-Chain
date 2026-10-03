@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Enregistrement non confirmé. Les modifications sont conservées ; réessayez.</string>
     <string name="playlist_pending">La création précédente est peut-être enregistrée. Réessayez pour la retrouver ou créez une nouvelle liste ; les listes enregistrées sont conservées.</string>
     <string name="new_playlist">Nouvelle liste</string>
+    <string name="cancel_upload_draft">Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.</string>
+    <string name="cancel_upload">Annuler le brouillon</string>
 </resources>

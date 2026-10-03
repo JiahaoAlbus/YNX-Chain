@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi.</string>
     <string name="playlist_pending">Pembuatan sebelumnya mungkin sudah tersimpan. Coba pulihkan atau buat daftar baru; daftar yang tersimpan tetap dipertahankan.</string>
     <string name="new_playlist">Daftar baru</string>
+    <string name="cancel_upload_draft">Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.</string>
+    <string name="cancel_upload">Batalkan draf</string>
 </resources>

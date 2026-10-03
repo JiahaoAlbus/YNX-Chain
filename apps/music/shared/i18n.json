@@ -84,7 +84,9 @@
       "empty_playlists": "No playlists yet",
       "playlist_save_failed": "Save not confirmed. Your changes are retained; retry.",
       "playlist_pending": "A previous creation may already be saved. Retry to recover it, or start a new playlist; any saved playlist is kept.",
-      "new_playlist": "New playlist"
+      "new_playlist": "New playlist",
+      "cancel_upload_draft": "Cancel this upload draft? Audio already received by the server will be retained.",
+      "cancel_upload": "Cancel draft"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -155,7 +157,9 @@
       "empty_playlists": "还没有歌单",
       "playlist_save_failed": "保存尚未确认，修改已保留，请重试。",
       "playlist_pending": "上次创建可能已经保存。重试可恢复原记录，也可新建歌单；已保存的歌单会保留。",
-      "new_playlist": "新建歌单"
+      "new_playlist": "新建歌单",
+      "cancel_upload_draft": "取消此上传草稿？服务端已收到的音频会保留。",
+      "cancel_upload": "取消草稿"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -226,7 +230,9 @@
       "empty_playlists": "尚無歌單",
       "playlist_save_failed": "儲存尚未確認，修改已保留，請重試。",
       "playlist_pending": "上次建立可能已儲存。重試可恢復原紀錄，也可建立新歌單；已儲存的歌單會保留。",
-      "new_playlist": "建立新歌單"
+      "new_playlist": "建立新歌單",
+      "cancel_upload_draft": "取消此上傳草稿？伺服器已收到的音訊會保留。",
+      "cancel_upload": "取消草稿"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -297,7 +303,9 @@
       "empty_playlists": "プレイリストはありません",
       "playlist_save_failed": "保存を確認できません。変更を保持しています。再試行してください。",
       "playlist_pending": "前回の作成は保存済みかもしれません。再試行して復元するか、新規作成してください。保存済みのリストは保持されます。",
-      "new_playlist": "新規リスト"
+      "new_playlist": "新規リスト",
+      "cancel_upload_draft": "このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。",
+      "cancel_upload": "下書きを取り消す"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -368,7 +376,9 @@
       "empty_playlists": "재생 목록이 없습니다",
       "playlist_save_failed": "저장이 확인되지 않았습니다. 변경 사항을 유지합니다. 다시 시도하세요.",
       "playlist_pending": "이전 생성이 저장되었을 수 있습니다. 재시도하여 복구하거나 새 목록을 만드세요. 저장된 목록은 유지됩니다.",
-      "new_playlist": "새 재생 목록"
+      "new_playlist": "새 재생 목록",
+      "cancel_upload_draft": "업로드 초안을 취소할까요? 서버가 받은 오디오는 유지됩니다.",
+      "cancel_upload": "초안 취소"
     },
     "es": {
       "app_name": "YNX Music",
@@ -439,7 +449,9 @@
       "empty_playlists": "Todavía no hay listas",
       "playlist_save_failed": "Guardado sin confirmar. Los cambios se conservan; vuelve a intentarlo.",
       "playlist_pending": "La creación anterior podría estar guardada. Reintenta para recuperarla o crea otra lista; las listas guardadas se conservan.",
-      "new_playlist": "Nueva lista"
+      "new_playlist": "Nueva lista",
+      "cancel_upload_draft": "¿Cancelar este borrador? El audio recibido por el servidor se conservará.",
+      "cancel_upload": "Cancelar borrador"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -510,7 +522,9 @@
       "empty_playlists": "Aucune liste pour le moment",
       "playlist_save_failed": "Enregistrement non confirmé. Les modifications sont conservées ; réessayez.",
       "playlist_pending": "La création précédente est peut-être enregistrée. Réessayez pour la retrouver ou créez une nouvelle liste ; les listes enregistrées sont conservées.",
-      "new_playlist": "Nouvelle liste"
+      "new_playlist": "Nouvelle liste",
+      "cancel_upload_draft": "Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.",
+      "cancel_upload": "Annuler le brouillon"
     },
     "de": {
       "app_name": "YNX Music",
@@ -581,7 +595,9 @@
       "empty_playlists": "Noch keine Listen",
       "playlist_save_failed": "Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen.",
       "playlist_pending": "Die vorige Liste könnte gespeichert sein. Erneut versuchen oder eine neue Liste erstellen; gespeicherte Listen bleiben erhalten.",
-      "new_playlist": "Neue Liste"
+      "new_playlist": "Neue Liste",
+      "cancel_upload_draft": "Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.",
+      "cancel_upload": "Entwurf abbrechen"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -652,7 +668,9 @@
       "empty_playlists": "Ainda não há listas",
       "playlist_save_failed": "Gravação não confirmada. As alterações foram mantidas; tente novamente.",
       "playlist_pending": "A criação anterior pode estar salva. Tente recuperar ou crie outra lista; as listas salvas são mantidas.",
-      "new_playlist": "Nova lista"
+      "new_playlist": "Nova lista",
+      "cancel_upload_draft": "Cancelar este rascunho? O áudio recebido pelo servidor será mantido.",
+      "cancel_upload": "Cancelar rascunho"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -723,7 +741,9 @@
       "empty_playlists": "Плейлистов пока нет",
       "playlist_save_failed": "Сохранение не подтверждено. Изменения сохранены в форме; повторите попытку.",
       "playlist_pending": "Предыдущая запись могла сохраниться. Повторите попытку для восстановления или создайте новую; сохранённые плейлисты останутся.",
-      "new_playlist": "Новый плейлист"
+      "new_playlist": "Новый плейлист",
+      "cancel_upload_draft": "Отменить черновик загрузки? Полученное сервером аудио будет сохранено.",
+      "cancel_upload": "Отменить черновик"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -794,7 +814,9 @@
       "empty_playlists": "لا توجد قوائم بعد",
       "playlist_save_failed": "لم يتأكد الحفظ. تم الاحتفاظ بالتغييرات؛ حاول مجدداً.",
       "playlist_pending": "قد تكون القائمة السابقة محفوظة. أعد المحاولة لاستعادتها أو أنشئ قائمة جديدة؛ ستبقى القوائم المحفوظة.",
-      "new_playlist": "قائمة جديدة"
+      "new_playlist": "قائمة جديدة",
+      "cancel_upload_draft": "هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.",
+      "cancel_upload": "إلغاء المسودة"
     },
     "id": {
       "app_name": "YNX Music",
@@ -865,7 +887,9 @@
       "empty_playlists": "Belum ada daftar putar",
       "playlist_save_failed": "Penyimpanan belum dikonfirmasi. Perubahan dipertahankan; coba lagi.",
       "playlist_pending": "Pembuatan sebelumnya mungkin sudah tersimpan. Coba pulihkan atau buat daftar baru; daftar yang tersimpan tetap dipertahankan.",
-      "new_playlist": "Daftar baru"
+      "new_playlist": "Daftar baru",
+      "cancel_upload_draft": "Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.",
+      "cancel_upload": "Batalkan draf"
     }
   }
 }

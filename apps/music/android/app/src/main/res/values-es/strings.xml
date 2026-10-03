@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Guardado sin confirmar. Los cambios se conservan; vuelve a intentarlo.</string>
     <string name="playlist_pending">La creación anterior podría estar guardada. Reintenta para recuperarla o crea otra lista; las listas guardadas se conservan.</string>
     <string name="new_playlist">Nueva lista</string>
+    <string name="cancel_upload_draft">¿Cancelar este borrador? El audio recibido por el servidor se conservará.</string>
+    <string name="cancel_upload">Cancelar borrador</string>
 </resources>

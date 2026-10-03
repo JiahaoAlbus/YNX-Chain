@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Speichern nicht bestätigt. Änderungen bleiben erhalten; erneut versuchen.</string>
     <string name="playlist_pending">Die vorige Liste könnte gespeichert sein. Erneut versuchen oder eine neue Liste erstellen; gespeicherte Listen bleiben erhalten.</string>
     <string name="new_playlist">Neue Liste</string>
+    <string name="cancel_upload_draft">Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.</string>
+    <string name="cancel_upload">Entwurf abbrechen</string>
 </resources>

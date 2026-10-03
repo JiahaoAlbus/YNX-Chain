@@ -242,6 +242,7 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, a string) {
 		writeJSON(w, 400, map[string]string{"error": "invalid or oversized multipart upload"})
 		return
 	}
+	defer r.MultipartForm.RemoveAll()
 	audioHeader, _, e := r.FormFile("audio")
 	if e != nil {
 		writeJSON(w, 400, map[string]string{"error": "audio is required"})
@@ -263,7 +264,7 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, a string) {
 		art = &u
 	}
 	explicit, _ := strconv.ParseBool(r.FormValue("explicit"))
-	t, e := s.service.UploadTrack(a, TrackUpload{Title: r.FormValue("title"), ArtistName: r.FormValue("artistName"), Album: r.FormValue("album"), Description: r.FormValue("description"), Explicit: explicit, Audio: audio, Artwork: art, AudioProvenance: r.FormValue("audioProvenance"), ArtworkProvenance: r.FormValue("artworkProvenance"), RightsBasis: r.FormValue("rightsBasis"), Territories: strings.FieldsFunc(r.FormValue("territories"), func(v rune) bool { return v == ',' }), Licensor: r.FormValue("licensor"), EvidenceRef: r.FormValue("evidenceRef")})
+	t, e := s.service.UploadTrack(a, TrackUpload{RequestKey: r.Header.Get("Idempotency-Key"), Title: r.FormValue("title"), ArtistName: r.FormValue("artistName"), Album: r.FormValue("album"), Description: r.FormValue("description"), Explicit: explicit, Audio: audio, Artwork: art, AudioProvenance: r.FormValue("audioProvenance"), ArtworkProvenance: r.FormValue("artworkProvenance"), RightsBasis: r.FormValue("rightsBasis"), Territories: strings.FieldsFunc(r.FormValue("territories"), func(v rune) bool { return v == ',' }), Licensor: r.FormValue("licensor"), EvidenceRef: r.FormValue("evidenceRef")})
 	resultStatus(w, t, e, http.StatusCreated)
 }
 func (s *Server) release(w http.ResponseWriter, r *http.Request, a string) {

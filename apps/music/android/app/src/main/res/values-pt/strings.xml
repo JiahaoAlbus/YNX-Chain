@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Gravação não confirmada. As alterações foram mantidas; tente novamente.</string>
     <string name="playlist_pending">A criação anterior pode estar salva. Tente recuperar ou crie outra lista; as listas salvas são mantidas.</string>
     <string name="new_playlist">Nova lista</string>
+    <string name="cancel_upload_draft">Cancelar este rascunho? O áudio recebido pelo servidor será mantido.</string>
+    <string name="cancel_upload">Cancelar rascunho</string>
 </resources>

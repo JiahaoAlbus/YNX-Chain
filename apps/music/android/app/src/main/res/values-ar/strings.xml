@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">لم يتأكد الحفظ. تم الاحتفاظ بالتغييرات؛ حاول مجدداً.</string>
     <string name="playlist_pending">قد تكون القائمة السابقة محفوظة. أعد المحاولة لاستعادتها أو أنشئ قائمة جديدة؛ ستبقى القوائم المحفوظة.</string>
     <string name="new_playlist">قائمة جديدة</string>
+    <string name="cancel_upload_draft">هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.</string>
+    <string name="cancel_upload">إلغاء المسودة</string>
 </resources>

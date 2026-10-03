@@ -171,6 +171,9 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if !bound || actor.Account == "" || owned == nil || len(owned.Playlists(actor.Account)) != 1 {
 				t.Fatal("missing original same-account playlist readback")
 			}
+			if apple && len(owned.CreatorTracks(actor.Account)) != 2 {
+				t.Fatal("missing deduplicated original upload readback")
+			}
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})
 	}

@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">儲存尚未確認，修改已保留，請重試。</string>
     <string name="playlist_pending">上次建立可能已儲存。重試可恢復原紀錄，也可建立新歌單；已儲存的歌單會保留。</string>
     <string name="new_playlist">建立新歌單</string>
+    <string name="cancel_upload_draft">取消此上傳草稿？伺服器已收到的音訊會保留。</string>
+    <string name="cancel_upload">取消草稿</string>
 </resources>

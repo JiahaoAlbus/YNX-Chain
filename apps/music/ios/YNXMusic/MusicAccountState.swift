@@ -1,7 +1,7 @@
 import Foundation
 import CryptoKit
 
-struct Track: Codable, Identifiable { let id,title,artistName:String; var album:String?; var explicit:Bool; var durationMillis:Int; var rights:Rights; var provenance:[String:String]; var audioSha256:String? }
+struct Track: Codable, Identifiable { let id,title,artistName:String; var album:String?; var explicit:Bool; var durationMillis:Int; var rights:Rights; var provenance:[String:String]; var audioSha256:String?; var owner:String?=nil; var releaseState:String?=nil }
 struct Rights:Codable { let basis,evidenceRef:String;let territories:[String] }
 struct HistoryEntry:Codable,Identifiable{var id:String{trackId+"-"+String(positionMillis)};let trackId:String;let positionMillis:Int;let completed:Bool}
 struct Listener:Codable{var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var history:[HistoryEntry]=[]}
@@ -14,7 +14,8 @@ struct MusicPlaylist:Codable,Identifiable { let id:String;var name:String;var de
 struct Snapshot:Codable { var profile=Profile();var listener=Listener();var catalog:[Track]=[];var creatorTracks:[Track]=[];var usage:[Usage]=[];var allocations:[Allocation]=[];var settlements:[Settlement]=[];var cases:[CaseRecord]=[];var aiProposals:[AIProposal]=[];var playlists:[MusicPlaylist]=[] }
 struct Usage:Codable,Identifiable{let id,trackId:String;let listenedMillis:Int}
 struct PlaylistCreation:Codable {let key:String;let name:String;let trackIds:[String]}
-struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation? }
+struct MusicUploadIntent:Codable,Equatable { let key,title,artist,evidence,provenance,audioSHA256:String }
+struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation?;var uploadIntent:MusicUploadIntent? }
 
 
 struct MusicSessionContext:Equatable, Sendable {
@@ -91,6 +92,23 @@ final class MusicAccountStore {
         return (context,stored.state)
     }
     func detach() { lock.lock(); defer{lock.unlock()}; active=nil }
+    func stageUpload(_ data:Data,intent:MusicUploadIntent,for context:MusicAccountContext)throws {
+        try Self.validateAudio(data,expectedHash:intent.audioSHA256)
+        guard data.count<=50*1024*1024 else {throw URLError(.dataLengthExceedsMaximum)}
+        lock.lock();defer{lock.unlock()};try requireCurrent(context)
+        let url=try uploadURL(intent,context);try files.createDirectory(at:url.deletingLastPathComponent(),withIntermediateDirectories:true)
+        if files.fileExists(atPath:url.path) {guard try Data(contentsOf:url)==data else{throw URLError(.cannotDecodeContentData)};return}
+        try data.write(to:url,options:.atomic)
+    }
+    func uploadData(_ intent:MusicUploadIntent,for context:MusicAccountContext)throws->Data {
+        lock.lock();defer{lock.unlock()};try requireCurrent(context)
+        let data=try Data(contentsOf:uploadURL(intent,context));try Self.validateAudio(data,expectedHash:intent.audioSHA256)
+        guard data.count<=50*1024*1024 else{throw URLError(.dataLengthExceedsMaximum)};return data
+    }
+    private func uploadURL(_ intent:MusicUploadIntent,_ context:MusicAccountContext)throws->URL {
+        guard intent.key.range(of:"^music-upload-[A-Fa-f0-9-]{36}$",options:.regularExpression) != nil else{throw URLError(.badURL)}
+        return directory(context).appendingPathComponent("UploadDrafts",isDirectory:true).appendingPathComponent(intent.key+".wav")
+    }
     func save(_ state:LocalState,for context:MusicAccountContext)throws {
         lock.lock(); defer{lock.unlock()}; try requireCurrent(context)
         let dir=directory(context); try files.createDirectory(at:dir,withIntermediateDirectories:true)
@@ -119,7 +137,7 @@ final class MusicAccountStore {
     func clear(_ context:MusicAccountContext)throws {
         lock.lock(); defer{lock.unlock()}; try requireCurrent(context)
         let dir=directory(context)
-        for name in ["music-state.json","Offline"] {
+        for name in ["music-state.json","Offline","UploadDrafts"] {
             let url=dir.appendingPathComponent(name)
             if files.fileExists(atPath:url.path) { try files.removeItem(at:url) }
         }

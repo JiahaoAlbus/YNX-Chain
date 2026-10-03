@@ -14,4 +14,6 @@
     <string name="playlist_save_failed">Save not confirmed. Your changes are retained; retry.</string>
     <string name="playlist_pending">A previous creation may already be saved. Retry to recover it, or start a new playlist; any saved playlist is kept.</string>
     <string name="new_playlist">New playlist</string>
+    <string name="cancel_upload_draft">Cancel this upload draft? Audio already received by the server will be retained.</string>
+    <string name="cancel_upload">Cancel draft</string>
 </resources>
