@@ -1,3 +1,4 @@
+import {mediaBusinessAuthorization} from './business-wire.js';
 import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
 import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL } from './product-session-sdk.js';
 const ORIGIN = 'https://creator.ynxweb4.com';
@@ -48,10 +49,9 @@ export async function restoreProductSession() {
   const browser = await productSession();
   return browser.client.restore(navigator.onLine);
 }
-export async function productAuthorization(path, method='GET') {
+export async function productAuthorization(path, method='GET', body='') {
   const browser = await productSession();
-  const {proofHeader} = await browser.createIntrospectionProof([creatorScope(path,method)]);
-  return {'X-YNX-Product-Session-Proof-V2':proofHeader};
+  return mediaBusinessAuthorization(browser,path,method.toUpperCase(),body,creatorScope(path,method));
 }
 export async function finishProductReturn(url) {
   const browser = await productSession();

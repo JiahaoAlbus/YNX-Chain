@@ -65,7 +65,7 @@ test('callback, restore and disconnect use SDK authority while private scopes re
       restore: async online => {calls.push(['restore', online]); return {status: 'network-unavailable'};},
       handleReturn: async url => {calls.push(['callback', url]); return {status: 'retry-required'};},
       disconnect: async () => {calls.push(['revoke-through-sdk']); return {status: 'disconnected'};},
-    }, createIntrospectionProof: async scopes => {calls.push(['proof', scopes]); return {proofHeader: 'device-proof'};}}),
+    }, createBusinessProofCommitment:async()=>{throw Error('Unexpected large body')},createBusinessProof: async ({requiredScopes:scopes}) => {calls.push(['proof', scopes]); return {introspection:{proofHeader: 'device-proof'},proofHeader:'action-proof'};}}),
   });
   await product.restore();
   await product.finishReturn(`${VIDEO_ORIGIN}/wallet-auth/callback?result=rejected`);

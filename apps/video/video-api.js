@@ -1,3 +1,4 @@
+import {serializeMediaBody} from './business-wire.js';
 import {VIDEO_ORIGIN} from './product-session.js';
 
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
@@ -13,9 +14,9 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
     if (needsAccount && (base.origin !== VIDEO_ORIGIN || base.pathname !== '/video/api' || base.search || base.hash)) {
       throw new Error('Private Video actions require video.ynxweb4.com.');
     }
-    const headers = {...(init.headers || {})};
+    const headers = Object.fromEntries(new Headers(init.headers));
     for (const key of Object.keys(headers)) if (/^(authorization|x-ynx-.*session.*)$/i.test(key)) delete headers[key];
-    if (mutation) headers['Idempotency-Key'] ||= requestId();
+    if (mutation) headers['idempotency-key'] ||= requestId();
     const controller = new AbortController(), signal = controller.signal;
     const cancel = () => controller.abort(init.signal.reason || new DOMException('Video request cancelled.', 'AbortError'));
     if (init.signal?.aborted) cancel(); else init.signal?.addEventListener('abort', cancel, {once: true});
@@ -30,14 +31,14 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
     });
     let reader, responseBody;
     try {
-      check();let response;
+      check();const wire=await wait(serializeMediaBody(path.split('?')[0],method,init.body,headers,signal));check();let response;
       for (let attempt = 0; attempt < 2; attempt++) {
         let proof = {};
-        try {if (needsAccount) proof = await wait(authorize(path.split('?')[0], method));}
+        try {if (needsAccount) proof = await wait(authorize(path.split('?')[0], method, wire.body));}
         catch (error) {check(); onUnauthorized(error); throw error;}
         check();
         try {
-          response = await wait(request(base.href + path, {...init, method, headers: {...headers, ...proof}, credentials: 'omit', redirect: 'error', signal}));
+          response = await wait(request(base.href + path, {...init, method, body:wire.body, headers: {...wire.headers, ...proof}, credentials: 'omit', redirect: 'error', signal}));
           break;
         } catch (error) {check(); if (attempt === 1) throw error;}
       }

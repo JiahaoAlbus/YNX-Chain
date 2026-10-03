@@ -1,3 +1,4 @@
+import {serializeMediaBody} from './business-wire.js';
 import {connectMediaWallet} from './session-events.js';
 import {dispatchPreparedProductRequest} from "./product-session.js";
 import test from "node:test";
@@ -59,7 +60,7 @@ async function app(overrides = {}) {
     restoreNativeProductReturn:async()=>null, disconnectProductSession: async () => ({ status: "disconnected" }), productAuthorization: async () => ({}),
     fetch: async () => { throw new Error("Unexpected fetch"); },
     createStandardWalletConnectState: () => ({}), reduceStandardWalletConnectState: state => state,
-    connectMediaWallet, dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
+    serializeMediaBody, connectMediaWallet, dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
     discoverWalletProviders: async () => ({candidates: []}), i18nReady: Promise.resolve(), t: key => key,
     confirm: () => false, prompt: () => null, ...overrides,
   };
@@ -120,7 +121,7 @@ test('caller cancellation aborts the request and cannot trigger automatic retry'
 test('upload hashes a stable form snapshot and cancel while hashing sends no request', async () => {
   const digest=deferred();let uploads=0,body;
   const controller=await app({crypto:{randomUUID,subtle:{digest:()=>digest.promise}},fetch:async(url,input)=>{
-    if(url.endsWith('/v1/uploads')){uploads++;body=input.body;return response({id:'owned-source',status:'processing'});}
+    if(url.endsWith('/v1/uploads')){uploads++;body=await new Request('https://creator.ynxweb4.com/',{method:'POST',body:input.body,headers:input.headers}).formData();return response({id:'owned-source',status:'processing'});}
     return response({team:[],videos:[]});
   }});
   controller.renderProductState(connected('owner-a'));
@@ -561,3 +562,4 @@ test("wrong channel identity and rejected channel reads fail closed",async()=>{
   assert.equal(await controller.refresh(),false);assert.equal(controller.element('#channel-result').textContent,'No channel loaded.');assert.equal(controller.element('#upload-form').elements.channel_id.value,'');
  }
 });
+test('shipped Creator controller sends exactly its signed multipart bytes with original boundary',async()=>{let signed,received;const controller=await app({productAuthorization:async(path,method,body)=>{signed={path,method,body};return {'X-YNX-Product-Session-Action-Proof-V2':'fresh-action'}},fetch:async(url,options)=>{received=options;return response({id:'original'})}});controller.renderProductState(connected('owner-a'));const form=new FormData();form.set('media',new Blob(['original']),'owned.mp4');form.set('title','原作品');await controller.api('/v1/uploads',{method:'POST',body:form,headers:{'Content-Type':'incorrect','Authorization':'old'}});assert.equal(received.body,signed.body);assert.equal(signed.method,'POST');assert.equal(signed.path,'/v1/uploads');assert.equal(received.headers.authorization,undefined);assert.equal(received.headers['X-YNX-Product-Session-Action-Proof-V2'],'fresh-action');const parsed=await new Request('https://creator.ynxweb4.com/',{method:'POST',headers:received.headers,body:received.body}).formData();assert.equal(parsed.get('title'),'原作品');assert.equal(await parsed.get('media').text(),'original')});

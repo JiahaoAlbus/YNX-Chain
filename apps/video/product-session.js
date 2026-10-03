@@ -1,3 +1,4 @@
+import {mediaBusinessAuthorization} from './business-wire.js';
 import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
 import {createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL} from './product-session-sdk.js';
 
@@ -70,11 +71,10 @@ export function createVideoProductSession({environment = globalThis,
       return browser.client.restore(environment.navigator?.onLine !== false);
     },
     async restore() {return (await productSession()).client.restore(environment.navigator?.onLine !== false);},
-    async authorization(path, method = 'GET') {
+    async authorization(path, method = 'GET', body = '') {
       const scope = videoScope(path, method);
       const browser = await productSession();
-      const {proofHeader} = await browser.createIntrospectionProof([scope]);
-      return {'X-YNX-Product-Session-Proof-V2': proofHeader};
+      return mediaBusinessAuthorization(browser,path,method.toUpperCase(),body,scope);
     },
     async finishReturn(url) {return (await productSession()).client.handleReturn(url);},
     async disconnect() {return (await productSession()).client.disconnect();},

@@ -143,7 +143,7 @@ function bindWalletEvents(walletState) {
 
 // Product Session v2 and the EVM provider are independent authorities.
 export const api = createVideoAPI({baseURL: API,
-  authorize: (path, method) => videoProductSession.authorization(path, method),
+  authorize: (path, method, body) => videoProductSession.authorization(path, method, body),
   onUnauthorized: () => renderProductState({status: "retry-required", message: "Your sign-in needs to be checked. Retry or sign in again."}),
 });
 const privateAPI = async (path, options = {}) => {

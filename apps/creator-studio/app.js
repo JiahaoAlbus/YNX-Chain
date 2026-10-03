@@ -1,3 +1,4 @@
+import {serializeMediaBody} from './business-wire.js';
 import {connectMediaWallet} from './session-events.js';
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
 import {atRegisteredOrigin, dispatchPreparedProductRequest, finishProductReturn, prepareProductSignIn, restoreProductSession,restoreNativeProductReturn, productAuthorization, disconnectProductSession, subscribeProductSession, announceProductSession, rememberProductReturn} from "./product-session.js";
@@ -72,11 +73,12 @@ async function api(path,opt={}){
   const processing=path==='/v1/uploads'||/^\/v1\/videos\/[^/]+\/retry-processing$/.test(path);
   const operation=beginCreatorRequest(processing?300000:15000,opt.signal);
   try{
+    const wire=await operation.wait(serializeMediaBody(path,method,opt.body,baseHeaders,operation.signal));assertCreatorSession(revision);operation.signal.throwIfAborted();
     let response;
     for(let attempt=0;attempt<2;attempt++){
-      const headers={...baseHeaders,...await operation.wait(productAuthorization(path,method))};
+      const headers={...wire.headers,...await operation.wait(productAuthorization(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
-      try{response=await operation.wait(fetch(API+path,{...opt,headers,credentials:'omit',redirect:'error',signal:operation.signal}));break}
+      try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'omit',redirect:'error',signal:operation.signal}));break}
       catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
     }
     const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));

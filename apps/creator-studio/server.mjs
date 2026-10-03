@@ -19,7 +19,7 @@ const types = {
 };
 // Explicit runtime closure: source, tests, evidence and packaging scripts stay private.
 const publicFiles = new Set([
-  'index.html', 'app.js', 'styles.css', 'enhancements.css', 'i18n.js', 'i18n/catalog.json',
+  'index.html', 'app.js', 'business-wire.js', 'styles.css', 'enhancements.css', 'i18n.js', 'i18n/catalog.json',
   'product-session.js', 'product-session-sdk.js', 'product-session-registry.json',
   'product-session-sdk-source.json', 'session-events.js', 'standard-wallet-connect-state.js',
   'wallet-auth.js', 'wallet-callback.js', 'wallet-callback.html', 'wallet-auth/callback', 'callback.css',
