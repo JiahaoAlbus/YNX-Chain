@@ -112,16 +112,16 @@ func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (Sett
 	}
 	var raw struct {
 		InvoiceID, IntentID, Merchant, PayoutAddress, TransactionHash, Status, Payer, Currency, AuditHash string
-		Amount, AmountYNXT                                                                                int64
+		Amount, AmountYNXT                                                                                json.RawMessage
 		BlockHeight, BlockNumber                                                                          uint64
 		ConfirmedAt, CreatedAt                                                                            time.Time
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&raw); err != nil {
 		return SettlementEvidence{}, fmt.Errorf("invalid Pay settlement response: %w", err)
 	}
-	amount := raw.AmountYNXT
-	if amount == 0 {
-		amount = raw.Amount
+	amount, err := paySettlementAmount(raw.AmountYNXT, raw.Amount)
+	if err != nil {
+		return SettlementEvidence{}, err
 	}
 	at := raw.ConfirmedAt
 	if at.IsZero() {
@@ -132,6 +132,29 @@ func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (Sett
 		height = raw.BlockNumber
 	}
 	return SettlementEvidence{InvoiceID: raw.InvoiceID, IntentID: raw.IntentID, Merchant: raw.Merchant, PayoutAddress: raw.PayoutAddress, TransactionHash: raw.TransactionHash, Status: raw.Status, Payer: raw.Payer, Currency: raw.Currency, AuditHash: raw.AuditHash, AmountYNXT: amount, BlockHeight: height, ConfirmedAt: at}, nil
+}
+
+// Keep presence independently from value: an explicit zero or null must not
+// be treated as an omitted alias. Both known amount representations are int64
+// YNXT values in the inherited Pay contract and must agree when both appear.
+func paySettlementAmount(current, legacy json.RawMessage) (int64, error) {
+	var result int64
+	present := false
+	for _, raw := range []json.RawMessage{current, legacy} {
+		if len(raw) == 0 {
+			continue
+		}
+		var value *int64
+		if err := json.Unmarshal(raw, &value); err != nil || value == nil || *value < 0 {
+			return 0, fmt.Errorf("%w: invalid Pay settlement amount type or range", ErrInvalidState)
+		}
+		if present && *value != result {
+			return 0, fmt.Errorf("%w: conflicting Pay settlement amount representations", ErrInvalidState)
+		}
+		result = *value
+		present = true
+	}
+	return result, nil
 }
 
 func (v HTTPPayVerifier) CreateRefund(ctx context.Context, o Order, idempotencyKey string) (RefundEvidence, error) {

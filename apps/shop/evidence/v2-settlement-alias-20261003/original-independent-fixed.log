@@ -1,0 +1,4 @@
+=== RUN   TestIndependentSettlementConflictingAmountAliasesRejected
+--- PASS: TestIndependentSettlementConflictingAmountAliasesRejected (0.29s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.820s

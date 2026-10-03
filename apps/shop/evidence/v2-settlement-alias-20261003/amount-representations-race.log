@@ -1,0 +1,32 @@
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_only
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_only
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/both_consistent
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/different
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_explicit_zero
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_explicit_zero
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_null
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_null
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/string
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/fraction
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/overflow
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/negative
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/boolean
+=== RUN   TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/both_missing
+--- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange (1.80s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_only (0.23s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_only (0.16s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/both_consistent (0.14s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/different (0.12s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_explicit_zero (0.12s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_explicit_zero (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/current_null (0.12s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/legacy_null (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/string (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/fraction (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/overflow (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/negative (0.11s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/boolean (0.12s)
+    --- PASS: TestBusinessSettlementAmountRepresentationsPresenceTypeAndRange/both_missing (0.12s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	3.282s

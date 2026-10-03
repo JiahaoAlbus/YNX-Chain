@@ -1,0 +1,21 @@
+package commerce
+import("encoding/json";"net/http";"net/http/httptest";"strings";"testing";"os";"sync/atomic";"errors";"time")
+func TestIndependentSettlementConflictingAmountAliasesRejected(t *testing.T){
+ s,buyer,order,e:=settlementFixture(t);var calls atomic.Int32
+ provider:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){if r.Method!="GET"{t.Error("observation mutated provider")};calls.Add(1);raw,_:=json.Marshal(e);var object map[string]any;json.Unmarshal(raw,&object);object["Amount"]=e.AmountYNXT+1;json.NewEncoder(w).Encode(object)}));defer provider.Close()
+ server:=NewServer(s,ServerConfig{businessV2:controlledBusinessVerifier{account:buyer,role:"buyer"},Pay:HTTPPayVerifier{BaseURL:provider.URL,APIKey:"qa"}})
+ w:=businessHTTPRequest(server,"POST","/api/orders/"+order.ID+"/confirm-payment",strings.Repeat("x",43),`{}`)
+ got,_:=s.Order(buyer,"buyer",order.ID)
+ if w.Code<400||got.Status=="paid"||got.Settlement!=nil{t.Fatalf("contradictory Amount and AmountYNXT accepted: HTTP%d status=%s calls=%d",w.Code,got.Status,calls.Load())}
+}
+func TestIndependentPaidShortcutOtherBindings(t *testing.T){
+ for _,field:=range []string{"intent","merchant","payout","currency","block","time"}{t.Run(field,func(t *testing.T){s,_,o,e:=settlementFixture(t);if _,err:=s.ConfirmSettlement(o.ID,e);err!=nil{t.Fatal(err)};bad:=e;switch field{case"intent":bad.IntentID="wrong";case"merchant":bad.Merchant="wrong";case"payout":_,bad.PayoutAddress=actor(t,9);case"currency":bad.Currency="foreign";case"block":bad.BlockHeight=0;case"time":bad.ConfirmedAt=time.Time{}};if _,err:=s.ConfirmSettlement(o.ID,bad);!errors.Is(err,ErrInvalidState){t.Fatal("paid shortcut accepted wrong binding",field,err)}})}
+}
+func TestIndependentSettlementCommitFaultFreshReadKeepsUnknown(t *testing.T){
+ s,buyer,o,e:=settlementFixture(t);var calls atomic.Int32
+ provider:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){if r.Method!="GET"{t.Error("read mutated provider")};if calls.Add(1)==1{if err:=os.Mkdir(s.path+".tmp",0700);err!=nil{t.Error(err)}};json.NewEncoder(w).Encode(e)}));defer provider.Close()
+ cfg:=ServerConfig{businessV2:controlledBusinessVerifier{account:buyer,role:"buyer"},Pay:HTTPPayVerifier{BaseURL:provider.URL,APIKey:"qa"}}
+ route:="/api/orders/"+o.ID+"/confirm-payment";w:=businessHTTPRequest(NewServer(s,cfg),"POST",route,strings.Repeat("x",43),`{}`)
+ if w.Code<400{t.Fatal("failed commit exposed success",w.Code)};if err:=os.Remove(s.path+".tmp");err!=nil{t.Fatal(err)};r,err:=Open(s.path);if err!=nil{t.Fatal(err)};oldCount:=len(r.s.BusinessEffects);if oldCount!=1{t.Fatal("unknown observation lost")}
+ w=businessHTTPRequest(NewServer(r,cfg),"POST",route,strings.Repeat("y",43),`{}`);if w.Code!=200||calls.Load()!=2||len(r.s.BusinessEffects)!=2{t.Fatal("fresh read either blocked or overwrote unknown",w.Code,calls.Load())};unknown:=0;for _,effect:=range r.s.BusinessEffects{if effect.Phase=="dispatching"{unknown++}};if unknown!=1{t.Fatal("original unknown observation rewritten",unknown)}
+}
