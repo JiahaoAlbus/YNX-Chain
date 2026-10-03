@@ -328,6 +328,26 @@ let sourceStatusState={key:'notConnected',className:'neutral',attempt:0,total:0}
 function renderSourceStatus(){const {key,className,attempt,total}=sourceStatusState;$('#source-pill').textContent=key==='reconnecting'?`${financeText(key)} ${attempt}/${total}`:financeText(key);$('#source-pill').className=`pill ${className}`}
 function sourceStatus(key,className='neutral',attempt=0,total=0){sourceStatusState={key,className,attempt,total};renderSourceStatus()}
 async function publicHealth(){for(let attempt=0;attempt<READ_RETRY_DELAYS.length;attempt++){if(attempt){sourceStatus('reconnecting','warning',attempt,READ_RETRY_DELAYS.length-1);await wait(READ_RETRY_DELAYS[attempt])}try{const response=await fetch('/health',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10_000)}),body=await response.json();if(!response.ok||body.ok!==true||body.chainId!=='ynx_6423-1'||body.portfolio!=='read-only')throw Object.assign(new Error(`Finance health check failed (${response.status})`),{status:response.status});sourceStatus(state.connected?'privateFinanceReachable':'publicFinanceReachable','live');return body}catch(error){if(error?.status||attempt===READ_RETRY_DELAYS.length-1){sourceStatus('connectionUnavailable','warning');throw error}}}throw new Error('Public connection retry exhausted.')}
+// Ordinary product response transport; proof generation remains in the shared
+// Wallet adapter. Bound response parsing too, without ever replaying a write.
+async function financeProductResponse(path,options,assertCurrent,{fetchImpl=fetch,setTimer=setTimeout,clearTimer=clearTimeout}={}){
+  const controller=new AbortController();let rejectDeadline;
+  const deadline=new Promise((_,reject)=>{rejectDeadline=reject});
+  const timer=setTimer(()=>{rejectDeadline(Object.assign(new Error('FINANCE_REQUEST_TIMEOUT: Request outcome is unconfirmed.'),{code:'FINANCE_REQUEST_TIMEOUT'}));controller.abort()},10_000);
+  const invalid=()=>Object.assign(new Error('FINANCE_RESPONSE_INVALID: The product response is not a verified document.'),{code:'FINANCE_RESPONSE_INVALID',nonRetryable:true});
+  try{return await Promise.race([(async()=>{
+    const response=await fetchImpl(path,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});assertCurrent();
+    if(response.status===204)return {response,body:null};
+    const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();
+    const exportDocument=options.responseType==='blob'&&response.ok;
+    const expected=exportDocument&&new URL(path,location.href).searchParams.get('format')==='csv'?'text/csv':'application/json';
+    if(mime!==expected||Number(response.headers.get('content-length'))>8*1024*1024)throw invalid();
+    const text=await response.text();assertCurrent();
+    if(new TextEncoder().encode(text).byteLength>8*1024*1024)throw invalid();
+    let parsed;if(mime==='application/json'){try{parsed=JSON.parse(text)}catch{throw invalid()}}
+    return {response,body:exportDocument?new Blob([text],{type:mime}):parsed};
+  })(),deadline])}finally{clearTimer(timer)}
+}
 async function api(path,options={}){
   const context=state.context,walletRevision=window.YNXFinanceWallet.getRevision();
   const assertCurrent=()=>{if(context!==state.context||walletRevision!==window.YNXFinanceWallet.getRevision())throw Object.assign(new Error('FINANCE_CONTEXT_CHANGED: Discarded a response from an older account or connection.'),{nonRetryable:true})};
@@ -336,8 +356,8 @@ async function api(path,options={}){
     if(attempt){sourceStatus('reconnecting','warning',attempt,attempts-1);await wait(READ_RETRY_DELAYS[attempt])}
     try{
       const headers={'Content-Type':'application/json',...(options.headers||{})};try{const authorization=await window.YNXFinanceWallet.requireProof(scope(path));assertCurrent();if(!authorization?.proofHeader||!authorization?.requestId)throw new Error('PRIVATE_SERVICE_DEGRADED: Fresh v2 proof is unavailable.');headers['X-YNX-Product-Session-Proof-V2']=authorization.proofHeader;headers['X-Request-ID']=authorization.requestId}catch(error){error.nonRetryable=true;throw error}
-      const response=await fetch(path,{...options,method,headers,signal:AbortSignal.timeout(10_000)});assertCurrent();if(response.status===204){sourceStatus('privateFinanceReachable','live');return null}const type=response.headers.get('content-type')||'',body=options.responseType==='blob'&&response.ok?await response.blob():type.includes('json')?JSON.parse(await response.text()):await response.text();assertCurrent();
-      if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.code=body.code;error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
+      const {response,body}=await financeProductResponse(path,{...options,method,headers},assertCurrent);assertCurrent();if(response.status===204){sourceStatus('privateFinanceReachable','live');return null}
+      if(!response.ok){const error=new Error(body?.error||`Request failed (${response.status})`);error.code=body?.code;error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
       sourceStatus('privateFinanceReachable','live');return body
     }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))sourceStatus('connectionUnavailable','warning');throw error}}
   }
