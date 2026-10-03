@@ -1,0 +1,70 @@
+{
+  "status": "LOCAL_VISION_GRAPH_QA_ONLY",
+  "runtime": "onnxruntime-web@1.30.0",
+  "provider": "wasm",
+  "threads": 1,
+  "modelSHA256": "03e61be280fb24114facd87a1e1e6b2b654aad49845686da2f930c72740914aa",
+  "modelBytes": 63267466,
+  "input": "synthetic-zero-tensor-only",
+  "loadMs": 234.43337499999996,
+  "runs": [
+    {
+      "iteration": 0,
+      "elapsedMs": 793.534042,
+      "outputs": [
+        {
+          "name": "last_hidden_state",
+          "dimensions": [
+            1,
+            196,
+            768
+          ],
+          "elements": 150528,
+          "finite": true
+        },
+        {
+          "name": "pooler_output",
+          "dimensions": [
+            1,
+            768
+          ],
+          "elements": 768,
+          "finite": true
+        }
+      ]
+    },
+    {
+      "iteration": 1,
+      "elapsedMs": 779.988042,
+      "outputs": [
+        {
+          "name": "last_hidden_state",
+          "dimensions": [
+            1,
+            196,
+            768
+          ],
+          "elements": 150528,
+          "finite": true
+        },
+        {
+          "name": "pooler_output",
+          "dimensions": [
+            1,
+            768
+          ],
+          "elements": 768,
+          "finite": true
+        }
+      ]
+    }
+  ],
+  "processRSSBytes": 463306752,
+  "fetchAttempts": 0,
+  "sessionReleased": true,
+  "osNetworkIsolation": "NOT_VERIFIED",
+  "threeCategoryAccuracy": "NOT_VERIFIED",
+  "productionClassifier": false,
+  "privateContentProcessed": false,
+  "installedOrPublicAcceptance": false
+}
