@@ -8,6 +8,19 @@ const start=app.indexOf('function validateFinanceOverview(')>=0?app.indexOf('fun
 const views=app.slice(start,app.indexOf('const formSaves='));
 const formatters=app.slice(app.indexOf('const fmt='),app.indexOf('\n\nconst wait='));
 const overview=()=>({portfolio:{account:'owned-render-fixture',balanceYnxt:0,stakedYnxt:0,asOf:'2026-10-04T00:00:00Z',activity:[],payReceipts:[],explorerStatus:{available:true},payStatus:{available:true}},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:true}},alerts:[],budgetProgress:[],support:{}});
+test('actual Finance views never normalize impossible or locale-dependent source timestamps into observed dates',async()=>{
+  const f=await fixture();try{
+    for(const timestamp of ['2026-02-30T00:00:00Z','2025-02-29T00:00:00Z','2026-04-31T00:00:00Z','10/04/2026',0,1,['2026-10-04T00:00:00Z'],'2026-10-04','2026-10-04T00:00:00']){
+      const value=overview();value.portfolio.asOf=timestamp;value.portfolio.activity=[{id:'controlled-record',type:'transfer',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp}];value.portfolio.payReceipts=[{id:'controlled-pay',amountYnxt:1,createdAt:timestamp}];
+      await f.page.evaluate(value=>overviewQA.render(value),value);
+      assert.match(await f.page.locator('#balance-source').textContent(),/dateUnavailable/);assert.match(await f.page.locator('#activity-body').textContent(),/dateUnavailable/);assert.match(await f.page.locator('#recent-receipts').textContent(),/dateUnavailable/);
+    }
+    for(const timestamp of ['2024-02-29T00:00:00Z','2026-10-04T08:00:00+08:00','2026-10-04T00:00:00.123456789Z']){
+      const value=overview();value.portfolio.asOf=timestamp;await f.page.evaluate(value=>overviewQA.render(value),value);assert.doesNotMatch(await f.page.locator('#balance-source').textContent(),/dateUnavailable/);
+    }
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('actual statement controller binds owner and selected period before rendering and recovers on retry',async()=>{
   const f=await fixture();try{
     const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf("$('#statement-form').addEventListener"));

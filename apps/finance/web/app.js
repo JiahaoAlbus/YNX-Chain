@@ -357,7 +357,12 @@ const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)]
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt=v=>Number.isSafeInteger(v)&&v>=0?new Intl.NumberFormat(window.YNXFinanceLocale?.get()||'en').format(v):financeText('unknown');
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
-const date=(v)=>v&&Number.isFinite(Date.parse(v))?new Intl.DateTimeFormat(window.YNXFinanceLocale?.get()||'en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):financeText('dateUnavailable');
+function financeTimestampValid(value){
+  if(typeof value!=='string'||!/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,9})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value))return false;
+  const calendar=new Date(value.slice(0,10)+'T00:00:00Z');
+  return Number.isFinite(calendar.getTime())&&calendar.toISOString().slice(0,10)===value.slice(0,10)&&Number.isFinite(Date.parse(value));
+}
+const date=(v)=>financeTimestampValid(v)?new Intl.DateTimeFormat(window.YNXFinanceLocale?.get()||'en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):financeText('dateUnavailable');
 
 const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
 let sourceStatusState={key:'notConnected',className:'neutral',attempt:0,total:0};
