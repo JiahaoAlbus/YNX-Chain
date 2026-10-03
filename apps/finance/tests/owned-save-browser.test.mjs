@@ -13,6 +13,28 @@ const saves=app.slice(app.indexOf('const formSaves='),app.indexOf('function rend
 const privacy=app.slice(app.indexOf('function renderPrivacy('),app.indexOf('function renderAIRecords('));
 const reportView=app.slice(app.indexOf('let statementOperation='),app.indexOf('function loadStatement('));
 const aiViewRetirement=app.slice(app.indexOf('let ownedAIGeneration='),app.indexOf('function ownedAIContext('));
+test('confirmed category save reads a new overview and ignores a delayed pre-save overview in real Chrome',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.route('**/*',route=>route.abort());
+    await page.route('https://finance-save-read.test/',route=>route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')}));
+    await page.goto('https://finance-save-read.test/');await page.addScriptTag({content:locale});
+    const workspace=app.slice(app.indexOf('let loadOperation='),app.indexOf('async function reconnect('));
+    await page.addScriptTag({content:`const state={context:1,connected:true};let browserSSOIntentGeneration=1;const dataDisabledControls=new Map();const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));window.calls=[];window.readErrors=[];window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true};const financeText=k=>YNXFinanceLocale.text(k),notify=()=>{},notifyFailure=()=>{},attestBrowserIdentityActivity=async()=>{},renderBrowserWalletIdentity=()=>true,sourceStatus=()=>{},reconcileOpaqueBrokerOwner=()=>{},workspaceDataState=value=>$('#workspace').dataset.dataState=value,render=value=>$('#categories').textContent=value.label,clearPrivateView=()=>readErrors.push('signed-out');const api=(path,options)=>new Promise((resolve,reject)=>calls.push({path,body:options?.body?JSON.parse(options.body):null,resolve,reject}));${workspace}${saves}window.beginOldRead=()=>{window.oldRead=load()};`});
+    await page.evaluate(()=>beginOldRead());await page.waitForFunction(()=>calls.length===1);
+    await page.locator('#category-form input[name=name]').fill('Saved category');
+    await page.evaluate(()=>document.querySelector('#category-form').dispatchEvent(new Event('submit',{cancelable:true})));
+    await page.waitForFunction(()=>calls.some(call=>call.path==='/api/categories'));
+    await page.evaluate(()=>{const call=calls.find(call=>call.path==='/api/categories');call.resolve({...call.body,id:'controlled-owned-category',name:call.body.name.trim(),color:call.body.color.toUpperCase(),source:'user',createdAt:'2026-10-03T00:00:00Z',updatedAt:'2026-10-03T00:00:00Z'})});
+    await page.waitForFunction(()=>calls.filter(call=>call.path==='/api/overview').length===2);
+    await page.evaluate(()=>calls.filter(call=>call.path==='/api/overview')[1].resolve({label:'Saved category — fresh response'}));
+    await page.waitForFunction(()=>!document.querySelector('#category-form').hasAttribute('aria-busy'));
+    await page.evaluate(async()=>{calls[0].resolve({label:'Stale pre-save response'});await oldRead});
+    assert.equal(await page.locator('#categories').innerText(),'Saved category — fresh response');
+    assert.deepEqual(await page.evaluate(()=>readErrors),[]);assert.equal(await page.locator('#category-form input[name=name]').inputValue(),'');
+    assert.equal(await page.evaluate(()=>calls.filter(call=>call.path==='/api/categories').length),1);
+  }finally{await browser.close()}
+});
 test('actual export button single-flights downloads and suppresses late previous-account blobs',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

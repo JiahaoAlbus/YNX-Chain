@@ -6,6 +6,21 @@ import {runInNewContext} from 'node:vm';
 const source=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const statements=source.slice(source.indexOf('let statementOperation='),source.indexOf("$('#statement-form').addEventListener"));
 const downloads=source.slice(source.indexOf('const ownedExportOperations='),source.indexOf("$('#export-json').addEventListener"));
+const workspace=source.slice(source.indexOf('let loadOperation='),source.indexOf('async function reconnect('));
+test('confirmed save can retire a pre-save workspace read without stale success or failure overriding it',async()=>{
+  for(const reject of [false,true]){
+    const calls=[],rendered=[],states=[],failures=[];
+    const scope={state:{context:1,connected:true},window:{YNXFinanceWallet:{ready:Promise.resolve(),connected:()=>true}},renderBrowserWalletIdentity:()=>true,sourceStatus:()=>{},workspaceDataState:value=>states.push(value),reconcileOpaqueBrokerOwner:()=>{},render:value=>rendered.push(value),clearPrivateView:()=>failures.push('signed-out'),notify:()=>failures.push('notify'),financeText:key=>key,api:()=>new Promise((resolve,reject)=>calls.push({resolve,reject}))};
+    runInNewContext(workspace+'globalThis.readWorkspace=load;',scope);
+    const old=scope.readWorkspace();await new Promise(setImmediate);
+    assert.equal(scope.readWorkspace(),old);assert.equal(calls.length,1);
+    const current=scope.readWorkspace({fresh:true});await new Promise(setImmediate);
+    assert.equal(calls.length,2);
+    calls[1].resolve({profile:'saved-current'});await current;
+    if(reject)calls[0].reject(Object.assign(new Error('old permission failure'),{status:401}));else calls[0].resolve({profile:'before-save'});
+    await old;assert.deepEqual(rendered,[{profile:'saved-current'}]);assert.deepEqual(states,['ready']);assert.deepEqual(failures,[]);
+  }
+});
 function fixture(){
   const form={values:[['from','2026-09-01'],['to','2026-09-30']],attributes:new Map(),setAttribute(k,v){this.attributes.set(k,v)},removeAttribute(k){this.attributes.delete(k)}};
   const panel={...form,attributes:new Map(),classList:{remove(){}}},calls=[],notices=[],rendered=[],urls=[];
