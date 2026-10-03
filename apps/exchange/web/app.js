@@ -291,16 +291,18 @@ function renderPublicMarket(){
 async function reviewOrder(event){
   event.preventDefault();const button=$('#review-order');if(button.disabled)return;button.disabled=true;
   const ownerAtReview=state.account,phaseAtReview=state.privatePhase,epochAtReview=state.previewOwnerEpoch??0;
+  const priceAtReview=$('#price').value,amountAtReview=$('#amount').value,sideAtReview=state.side;
+  const draftUnchanged=()=>$('#price').value===priceAtReview&&$('#amount').value===amountAtReview&&state.side===sideAtReview;
   try{
     // One public read refreshes rules. This does not create a preview on the
     // server, request an account, sign, or submit an order.
-    await marketFeed.retry();if(state.account!==ownerAtReview||state.privatePhase!==phaseAtReview||(state.previewOwnerEpoch??0)!==epochAtReview)return;
+    await marketFeed.retry();if(state.account!==ownerAtReview||state.privatePhase!==phaseAtReview||(state.previewOwnerEpoch??0)!==epochAtReview||!draftUnchanged())return;
     const value=preview(),root=$('#order-preview-values');root.replaceChildren();
     const available=state.privatePhase==='connected'?state.snapshot?.balances.find(b=>b.asset===value.reservationAsset):null;
     const rows=[['Side / type',`${value.side} / limit`],['Limit price',`${display(value.priceMicro)} YUSD_TEST`],['Amount',`${display(value.amountMicro)} YNXT`],['Notional at limit',`${display(value.notionalMicro)} YUSD_TEST`],['Single-fill maker fee',`${display(value.makerFeeMicro)} YUSD_TEST`],['Single-fill taker fee',`${display(value.takerFeeMicro)} YUSD_TEST`],['Initial reservation',`${display(value.initialReservationMicro)} ${value.reservationAsset}`],['Available venue balance',available?`${display(available.availableMicro)} ${value.reservationAsset} at last account read; not reserved`:'Unknown — Exchange account proof required'],['Wallet state',state.standardWallet?.status==='standard-connected'?'Standard connection only; not Exchange order authority':'Not connected; guest preview remains available'],['Rule source',`${value.sourceStatus} · ${new Date(value.rulesObservedAt).toLocaleString(document.documentElement.lang||'en')}`]];
     for(const [label,text] of rows){const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');if(window.YNXExchangeLocale){window.YNXExchangeLocale.write(dt,label);if(label==='Available venue balance'&&available)window.YNXExchangeLocale.write(dd,'balance-last-read',` · ${display(available.availableMicro)} ${value.reservationAsset}`);else if(label==='Wallet state'||(label==='Available venue balance'&&!available))window.YNXExchangeLocale.write(dd,text);else dd.textContent=text}else{dt.textContent=label;dd.textContent=text}row.append(dt,dd);root.append(row)}
     $('#order-preview-dialog').showModal();
-  }catch(error){if(state.account!==ownerAtReview||state.privatePhase!==phaseAtReview||(state.previewOwnerEpoch??0)!==epochAtReview)return;if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message;toast(error)}finally{button.disabled=false}
+  }catch(error){if(state.account!==ownerAtReview||state.privatePhase!==phaseAtReview||(state.previewOwnerEpoch??0)!==epochAtReview||!draftUnchanged())return;if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message;toast(error)}finally{button.disabled=false}
 }
 function cancelOrder(){requireProductSession()}
 async function observeDeposit(event){event.preventDefault();requireProductSession()}
