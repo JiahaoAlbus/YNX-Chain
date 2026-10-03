@@ -25,6 +25,8 @@ import (
 type paperProcessFixture struct {
 	DatabaseURL, Namespace, StatePath string
 	Online                            bool
+	ScheduleAt                        int64
+	HoldSchedule                      bool
 }
 
 // Only the test binary exposes this endpoint. Its synthetic market is explicitly
@@ -47,16 +49,48 @@ func TestQuantPostgresPaperProcessHelper(t *testing.T) {
 	if fixture.Online {
 		cfg.MarketData = &submissionMarket{}
 	}
-	handler, err := NewTenantServer(cfg, "all")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer handler.Close()
-	server := httptest.NewServer(handler)
-	defer server.Close()
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM)
 	defer signal.Stop(stop)
+	var handler http.Handler
+	if fixture.ScheduleAt != 0 {
+		cfg.Now = func() time.Time { return time.Unix(0, fixture.ScheduleAt).UTC() }
+		cfg.MarketData = fixtureMarket{bars: bars()}
+		enter, resume := make(chan struct{}), make(chan struct{})
+		if fixture.HoldSchedule {
+			cfg.MarketData = pausedScheduleMarket{fixtureMarket: fixtureMarket{bars: bars()}, enter: enter, resume: resume}
+		}
+		service, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer service.Close()
+		if fixture.HoldSchedule {
+			// Readiness is emitted only after actual RunDueSchedules has persisted
+			// its claim and reached the controlled blocked market call.
+			done := make(chan error, 1)
+			go func() { _, err := service.RunDueSchedules(); done <- err }()
+			select {
+			case <-enter:
+			case <-done:
+				t.Fatal("schedule never reached controlled market")
+			case <-time.After(5 * time.Second):
+				t.Fatal("schedule claim timeout")
+			}
+		} else if _, err := service.RunDueSchedules(); err != nil {
+			t.Fatal(err)
+		}
+		handler = NewServer(service)
+	} else {
+		tenantServer, err := NewTenantServer(cfg, "all")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tenantServer.Close()
+		handler = tenantServer
+	}
+	server := httptest.NewServer(handler)
+	defer server.Close()
 	fmt.Println("paperProcessURL=" + server.URL)
 	<-stop
 }
@@ -64,6 +98,7 @@ func TestQuantPostgresPaperProcessHelper(t *testing.T) {
 type paperProcessEndpoint struct {
 	URL   string
 	Close func()
+	Crash func()
 }
 
 func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEndpoint {
@@ -99,12 +134,25 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 		done <- cmd.Wait()
 	}()
 	var once sync.Once
-	closeProcess := func() {
+	terminate := func(crash bool) {
 		once.Do(func() {
-			_ = cmd.Process.Signal(syscall.SIGTERM)
+			if crash {
+				if err := cmd.Process.Kill(); err != nil {
+					t.Errorf("Quant child SIGKILL failed: %v", err)
+				}
+			} else {
+				_ = cmd.Process.Signal(syscall.SIGTERM)
+			}
 			select {
 			case err := <-done:
-				if err != nil {
+				if crash {
+					exit, ok := err.(*exec.ExitError)
+					if !ok {
+						t.Errorf("Quant child did not exit through SIGKILL: %v", err)
+					} else if status, ok := exit.Sys().(syscall.WaitStatus); !ok || !status.Signaled() || status.Signal() != syscall.SIGKILL {
+						t.Error("Quant child termination was not SIGKILL")
+					}
+				} else if err != nil {
 					t.Errorf("Quant child did not stop cleanly: %v", err)
 				}
 			case <-time.After(5 * time.Second):
@@ -114,6 +162,7 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 			}
 		})
 	}
+	closeProcess := func() { terminate(false) }
 	t.Cleanup(closeProcess)
 	select {
 	case endpoint := <-ready:
@@ -121,8 +170,8 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 		if err != nil || u.Scheme != "http" || u.Hostname() != "127.0.0.1" {
 			t.Fatal("invalid isolated child endpoint")
 		}
-		t.Logf("actual Quant PostgreSQL process pid=%d online=%t", cmd.Process.Pid, fixture.Online)
-		return paperProcessEndpoint{endpoint, closeProcess}
+		t.Logf("actual Quant PostgreSQL process pid=%d paperMarket=%t scheduledResearch=%t", cmd.Process.Pid, fixture.Online, fixture.ScheduleAt != 0)
+		return paperProcessEndpoint{URL: endpoint, Close: closeProcess, Crash: func() { terminate(true) }}
 	case <-time.After(10 * time.Second):
 		t.Fatal("Quant child startup timeout")
 	}
@@ -170,7 +219,7 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 		}
 		hashes[i] = experiment.Strategy.StrategyHash
 	}
-	fixture := paperProcessFixture{databaseURL, namespace, cfg.StatePath, true}
+	fixture := paperProcessFixture{DatabaseURL: databaseURL, Namespace: namespace, StatePath: cfg.StatePath, Online: true}
 	one, two := startPaperProcess(t, fixture), startPaperProcess(t, fixture)
 	client := &http.Client{Timeout: 5 * time.Second}
 	type result struct {
