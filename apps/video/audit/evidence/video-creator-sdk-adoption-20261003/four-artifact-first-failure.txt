@@ -1,0 +1,10 @@
+file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/scripts/verify-media-sdk-artifacts.mjs:9
+const sha=b=>createHash('sha256').update(b).digest('hex');const require=(x,m)=>{if(!x)throw Error(m)};
+                                                                                            ^
+
+Error: HTTP status creator-studio.manifest.json
+    at require (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/scripts/verify-media-sdk-artifacts.mjs:9:93)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/scripts/verify-media-sdk-artifacts.mjs:28:4
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v26.7.0
