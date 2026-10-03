@@ -834,10 +834,11 @@ func (s *Service) AmendOrder(session WalletSession, orderID string, req AmendOrd
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
-		return Order{}, ErrForbidden
+	original, ok := s.state.Orders[orderID]
+	if !ok {
+		return Order{}, ErrNotFound
 	}
-	if s.quantStrategyKilledLocked(session.Account, req.QuantNonceDomain) {
+	if original.Account != session.Account {
 		return Order{}, ErrForbidden
 	}
 	d := digest(struct {
@@ -848,13 +849,14 @@ func (s *Service) AmendOrder(session WalletSession, orderID string, req AmendOrd
 		if prev.Action != "order_amend" || prev.Digest != d || prev.ObjectID != orderID {
 			return Order{}, ErrConflict
 		}
-		return s.state.Orders[orderID], nil
+		return original, nil
 	}
-	original, ok := s.state.Orders[orderID]
-	if !ok {
-		return Order{}, ErrNotFound
+	// An exact authenticated replay observes the existing effect, not a new
+	// amendment. Fresh intents must still pass current risk admission.
+	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
+		return Order{}, ErrForbidden
 	}
-	if original.Account != session.Account {
+	if s.quantStrategyKilledLocked(session.Account, req.QuantNonceDomain) {
 		return Order{}, ErrForbidden
 	}
 	if req.QuantNonceDomain != "" && original.QuantNonceDomain != req.QuantNonceDomain {
