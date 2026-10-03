@@ -86,11 +86,13 @@ test('verified projects, Planner, approved Coder and Reviewer use exact workspac
   assert.equal(new Set(f.inputs.map(input => input.hostedSession)).size, 3);
   for (let index = 0; index < f.inputs.length; index++) {
     const input = f.inputs[index], wire = f.sent[index], saved = f.aiStore.get('identity-a', 'project', input.hostedSession);
-    assert.equal(saved.status, 'completed'); assert.equal(saved.context, `${input.system}\n\n${input.prompt}`);
+    const stored = input.attachments.length ? JSON.parse(saved.context) : { prompt: saved.context, attachments: [], includedContext: [], excludedContext: ['conversation', 'selected_files', 'selected_chain_records', 'selected_trust_records', 'selected_product_context'] };
+    assert.equal(saved.status, 'completed'); assert.equal(stored.prompt, `${input.system}\n\n${input.prompt}`);
+    assert.deepEqual(stored.attachments, input.attachments);
     assert.equal(saved.prompt, `YNX Code ${input.role} Agent`); assert.ok(saved.text);
     assert.notEqual(saved.id, id);
-    assert.deepEqual(wire, { session: saved.id, prompt: saved.context, outputLanguage: 'en', includedContext: [],
-      excludedContext: ['conversation', 'selected_files', 'selected_chain_records', 'selected_trust_records', 'selected_product_context'], attachments: [], productContexts: [], continueFrom: '' });
+    assert.deepEqual(wire, { session: saved.id, prompt: stored.prompt, outputLanguage: 'en', includedContext: input.attachments.length ? ['selected_files'] : [],
+      excludedContext: ['conversation', ...(!input.attachments.length ? ['selected_files'] : []), 'selected_chain_records', 'selected_trust_records', 'selected_product_context'], attachments: input.attachments, productContexts: [], continueFrom: '' });
   }
   assert.equal(f.aiStore.list('workspace-a', 'project').length, 0);
   assert.equal(f.aiStore.list('identity-b', 'project').length, 0);
@@ -276,7 +278,12 @@ test('hosted validation retries receive distinct saved conversations and preserv
   }
   assert.equal(f.inputs.length, 5); assert.equal(new Set(f.inputs.map(value => value.hostedSession)).size, 5);
   assert.deepEqual(f.inputs.map(value => value.role), ['Planner', 'Coder', 'Coder', 'Reviewer', 'Reviewer']);
-  for (const input of f.inputs) assert.equal(f.aiStore.get('identity-a', 'project', input.hostedSession).context, `${input.system}\n\n${input.prompt}`);
+  for (const input of f.inputs) {
+    const context = f.aiStore.get('identity-a', 'project', input.hostedSession).context;
+    const stored = input.attachments.length ? JSON.parse(context) : { prompt: context, attachments: [] };
+    assert.equal(stored.prompt, `${input.system}\n\n${input.prompt}`);
+    assert.deepEqual(stored.attachments, input.attachments);
+  }
   assert.match(f.inputs[2].prompt, /previous proposal failed server validation/); assert.match(f.inputs[4].prompt, /previous review failed server validation/);
 });
 

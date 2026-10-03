@@ -1,0 +1,12 @@
+✔ approved context changing before proposal prevents Coder dispatch and new saved AI request (60.80425ms)
+✔ workspace changes while semantic memory awaits prevent model dispatch (34.701375ms)
+✔ workspace changes during Coder await prevent proposal and completed saved answer (45.46575ms)
+✔ only server-approved source reaches structured Coder and Reviewer attachments (35.065375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.787917

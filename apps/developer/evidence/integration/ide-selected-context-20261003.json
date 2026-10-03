@@ -1,0 +1,59 @@
+{
+  "status": "SOURCE_ONLY",
+  "date": "2026-10-03",
+  "parentCommit": "a675aa37bff4e31b438e10cfcb18dc18a7a0e9e0",
+  "changes": {
+    "structuredApprovedProjectAttachments": true,
+    "explicitSelectedFilesDeclaration": true,
+    "noImplicitWorkspaceOrHistory": true,
+    "revisionFencedBeforeAfterAndQueuedDispatch": true,
+    "encryptedReviewedContextSaved": true,
+    "reviewerReceivesCompactGeneratedPatch": true,
+    "attachmentsLimit": 8,
+    "fileTextLimitBytes": 262144,
+    "gatewaySerializedBodyLimitBytes": 2097152
+  },
+  "verification": {
+    "serviceTests": {
+      "pass": 90,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-selected-context-20261003/service-tests.log"
+    },
+    "gatewayTests": {
+      "pass": 16,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-selected-context-20261003/gateway-tests.log"
+    },
+    "scope": "Actual loopback HTTP, SQLite, encrypted store and controlled SSE/provider fixtures; no configured production model",
+    "staticCheck": {
+      "exitCode": 0,
+      "log": "ide-selected-context-20261003/static-check.log"
+    },
+    "frontendBuild": {
+      "mode": "Reused unchanged verified inputs from a675 handoff",
+      "verifiedInputCount": 71,
+      "artifactSHA256": "b98efa26713901793ba546130a9084d31c55ec834d9a2b039049032cfd99aebc",
+      "inputs": "ide-selected-context-20261003/build-inputs.json"
+    },
+    "originalFailuresPreserved": true,
+    "fixtureCorrection": "Encrypted reviewed context now carries prompt, attachments and included/excluded declarations; assertions updated. Initial Gateway command lacked dependencies; reran in existing integrity-verified local-cache QA without installing anything."
+  },
+  "limits": {
+    "configuredProviderGeneration": false,
+    "sharedIDEBusinessProofIntegrated": false,
+    "publicIntegrated": false,
+    "fullWorkbenchJourney": "NOT_RUN",
+    "installedUserJourney": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "releaseComplete": false,
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  },
+  "contract": "AI-owned IDE_EXISTING_AI_API_CONTRACT_20261002.md and existing Gateway 2 MiB body cap; no shared registration, grants or provider configuration modified"
+}

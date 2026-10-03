@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 // Product-owned conversation data, separate from Wallet grants and SSO keys.
 // Bounded storage stops accepting new requests instead of deleting past answers.
 export const NATIVE_AI_LIMITS = Object.freeze({
-  promptBytes: 4096, contextBytes: 64 * 1024, answerBytes: 2 * 1024 * 1024,
+  promptBytes: 4096, contextBytes: 2 * 1024 * 1024, answerBytes: 2 * 1024 * 1024,
   projectRecords: 64, ownerRecords: 128, records: 2048,
   projectBytes: 16 * 1024 * 1024, ownerBytes: 64 * 1024 * 1024, bytes: 256 * 1024 * 1024,
 });

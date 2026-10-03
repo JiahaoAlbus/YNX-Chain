@@ -8,14 +8,35 @@ export function reviewedHostedPrompt(system, prompt) {
 }
 
 export function existingHostedRequest(input) {
-  return {
+  const attachments = validatedModelAttachments(input.attachments);
+  const value = {
     session: input.hostedSession,
     prompt: reviewedHostedPrompt(input.system, input.prompt),
     outputLanguage: input.outputLanguage,
-    includedContext: [],
-    excludedContext: ['conversation', 'selected_files', 'selected_chain_records', 'selected_trust_records', 'selected_product_context'],
-    attachments: [],
+    includedContext: attachments.length ? ['selected_files'] : [],
+    excludedContext: ['conversation', ...(!attachments.length ? ['selected_files'] : []), 'selected_chain_records', 'selected_trust_records', 'selected_product_context'],
+    attachments,
     productContexts: [],
     continueFrom: '',
   };
+  if (Buffer.byteLength(JSON.stringify(value)) > 2 * 1024 * 1024)
+    throw Object.assign(new Error('Selected context exceeds the existing Gateway body limit.'), { code: 'model_context_limit', status: 413 });
+  return value;
+}
+
+export function validatedModelAttachments(value = []) {
+  if (!Array.isArray(value) || value.length > 8) throw invalidAttachments();
+  const seen = new Set();
+  return value.map(file => {
+    if (!file || typeof file.id !== 'string' || !file.id.trim() || file.id.length > 120 ||
+      typeof file.name !== 'string' || !file.name.trim() || Buffer.byteLength(file.name) > 160 || seen.has(file.name) ||
+      !['text/plain', 'text/markdown', 'application/json'].includes(file.mimeType) ||
+      typeof file.text !== 'string' || !file.text.length || file.text.includes('\0') || Buffer.byteLength(file.text) > 262144)
+      throw invalidAttachments();
+    seen.add(file.name);
+    return { id: file.id, name: file.name, mimeType: file.mimeType, text: file.text };
+  });
+}
+function invalidAttachments() {
+  return Object.assign(new Error('Select at most eight supported, nonempty project files within the existing model context limits.'), { code: 'model_attachments_invalid', status: 400 });
 }

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { reviewedHostedPrompt } from "../../model-router/src/hosted-request.mjs";
+import { existingHostedRequest, validatedModelAttachments } from "../../model-router/src/hosted-request.mjs";
 import { consumerIdentityBinding, assertExpectedIdentity } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 import { inspectAgentGitRecovery } from "./git-recovery.mjs";
 
@@ -165,7 +165,7 @@ export function createAgentOrchestrator({
     );
     if (url.pathname !== "/runtime/agent/projects" && !/^\/runtime\/agent\/runs(?:\/[^/]+)?$/.test(url.pathname)) return false;
     if (closed) { json(response, 503, { error: "Agent service is closing. Reopen saved runs after it returns.", code: "agent_service_closed" }); return true; }
-    let identity, owner, modelOwner, projectIdForModel, expiryTimer, identityTimer, operation, pendingRun;
+    let identity, owner, modelOwner, projectIdForModel, expiryTimer, identityTimer, operation, pendingRun, modelContext;
     const pendingEvents = [];
     let finished = false, checking = false;
     const clientController = new AbortController(),
@@ -245,26 +245,46 @@ export function createAgentOrchestrator({
       if (workspaceStore.storageMode?.(owner, projectId) === "native-volume")
         throw fault("This project uses native workspace files. Open its native IDE Tools to review current files.", "agent_native_tools_required", 409);
     }
+    function bindModelContext(current, workspace, paths = current.approvedPaths) {
+      if (workspace.revision !== current.workspaceRevision)
+        throw fault('The approved project context changed. Review its current revision before another model request.', 'agent_context_changed', 409);
+      modelContext = { revision: workspace.revision, attachments: validatedModelAttachments(paths.map(path => ({
+        id: sha(`${current.projectId}:${workspace.revision}:${path}:${sha(workspace.files[path] || '')}`),
+        name: path, mimeType: path.endsWith('.json') ? 'application/json' : path.endsWith('.md') ? 'text/markdown' : 'text/plain',
+        text: workspace.files[path],
+      }))) };
+      return modelContext.attachments.map(file => `--- ${file.name} sha256=${sha(file.text)} bytes=${Buffer.byteLength(file.text)} (explicit attached source) ---`).join('\n');
+    }
+    function assertModelContextCurrent() {
+      if (modelContext && workspaceStore.get(owner, projectIdForModel)?.revision !== modelContext.revision)
+        throw fault('The approved project context changed during the model operation.', 'agent_context_changed', 409);
+    }
     // Every model role, including repair attempts, uses the same identity,
     // project and durable conversation admission boundary.
     const ownerModelRouter = {
       async generate(input) {
         await checkIdentity();
         assertTextProject(projectIdForModel);
+        assertModelContextCurrent();
+        input = { ...input, attachments: modelContext?.attachments || [] };
         const hosted = (input.provider || "ynx-hosted").toLowerCase() === "ynx-hosted";
         if (hosted && verifyIdentity && !aiStore)
           throw fault("Saved AI requests are not configured for this product.", "agent_ai_store_unavailable", 503);
         let conversation;
         if (hosted && aiStore) {
-          const context = reviewedHostedPrompt(input.system, input.prompt);
+          const request = existingHostedRequest({ ...input, hostedSession: '00000000-0000-4000-8000-000000000000' });
+          const context = request.attachments.length ? JSON.stringify({ prompt: request.prompt, attachments: request.attachments,
+            includedContext: request.includedContext, excludedContext: request.excludedContext }) : request.prompt;
           conversation = aiStore.create({ owner: modelOwner, projectId: projectIdForModel,
             prompt: `YNX Code ${input.role} Agent`, context, model: input.model || "qwen3:4b" });
         }
         try {
           const result = await waitForOperation(() => modelRouter.generate({ ...input, ownerId: modelOwner,
-            ...(conversation ? { hostedSession: conversation.id } : {}), signal: clientController.signal }), clientController.signal);
+            ...(conversation ? { hostedSession: conversation.id } : {}), signal: clientController.signal,
+            assertCurrent: async () => { await checkIdentity(); assertModelContextCurrent(); } }), clientController.signal);
           await checkIdentity();
           assertTextProject(projectIdForModel);
+          assertModelContextCurrent();
           if (conversation) aiStore.complete(modelOwner, projectIdForModel, conversation.id, { text: result.text, model: result.model });
           return { ...result, ...(conversation ? { conversationId: conversation.id, saved: true } : {}) };
         } catch (error) {
@@ -358,6 +378,7 @@ export function createAgentOrchestrator({
         if (!workspace)
           throw fault("Workspace not found.", "workspace_not_found", 404);
         projectIdForModel = projectId;
+        modelContext = { revision: workspace.revision, attachments: [] };
         assertTextProject(projectId);
         if (body.approval !== "model-request-once")
           throw fault(
@@ -433,6 +454,8 @@ export function createAgentOrchestrator({
             body.deletePaths || [],
             workspace.files,
           );
+        // Reject unsupported selections while the user can still edit context.
+        bindModelContext(current, workspace, paths);
         authorize(
           "read-context",
           "context-read-once",
@@ -462,12 +485,7 @@ export function createAgentOrchestrator({
           "One-time model request approval is required.",
           "model_request_approval_required",
         );
-        const context = current.approvedPaths
-            .map(
-              (path) =>
-                `--- ${path} sha256=${sha(workspace.files[path])} ---\n${workspace.files[path]}`,
-            )
-            .join("\n"),
+        const context = bindModelContext(current, workspace),
           memory = projectMemory
             ? await projectMemory
                 .search(
@@ -482,7 +500,7 @@ export function createAgentOrchestrator({
             : null,
           memoryContext =
             memory?.indexedRevision === workspace.revision
-              ? memory.results.map((result) => result.content).join("\n")
+              ? 'Semantic matches refer only to the explicitly attached approved files.'
               : "",
           generated = await generateValidatedProposal(
             ownerModelRouter,
@@ -498,7 +516,7 @@ export function createAgentOrchestrator({
           reviewed = await generateValidatedReview(
             ownerModelRouter,
             body,
-            `Review this proposed patch for correctness, security, and missing tests. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nIntent: ${current.intent}\nProposal: ${stable(proposal)}`,
+            `Review this proposed patch against the attached approved source for correctness, security, and missing tests. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nIntent: ${current.intent}\nProposal: ${stable(generated.patch)}`,
           ),
           review = reviewed.review;
         persist({
@@ -539,16 +557,11 @@ export function createAgentOrchestrator({
           "One-time model request approval is required.",
           "model_request_approval_required",
         );
-        const context = current.approvedPaths
-            .map(
-              (path) =>
-                `--- ${path} sha256=${sha(workspace.files[path])} ---\n${workspace.files[path]}`,
-            )
-            .join("\n"),
+        const context = bindModelContext(current, workspace),
           generated = await generateValidatedProposal(
             ownerModelRouter,
             body,
-            `Revise the rejected patch to satisfy the user intent and every Reviewer finding. Preserve all unrelated imports, declarations, and behavior. Prefer the smallest exact replacement. Return JSON only as {"summary":string,"edits":[{"path":string,"expectedDigest":string,"replacements":[{"find":string,"replace":string}]}],"creates":[{"path":string,"content":string}],"deletes":[{"path":string,"expectedDigest":string}]}.\nIntent: ${current.intent}\nRejected proposal: ${stable(current.proposal)}\nReviewer: ${stable(current.review)}\nApproved context:\n${context}`,
+            `Revise the rejected patch to satisfy the user intent and every Reviewer finding. Preserve all unrelated imports, declarations, and behavior. Prefer the smallest exact replacement. Return JSON only as {"summary":string,"edits":[{"path":string,"expectedDigest":string,"replacements":[{"find":string,"replace":string}]}],"creates":[{"path":string,"content":string}],"deletes":[{"path":string,"expectedDigest":string}]}.\nIntent: ${current.intent}\nRejected proposal paths: ${stable(current.proposal.files.map(file => ({path:file.path,operation:file.operation,digest:sha(file.content)})))}\nReviewer: ${stable(current.review)}\nApproved context:\n${context}`,
             workspace.files,
             current.approvedPaths,
             current.approvedCreatePaths,
@@ -559,7 +572,7 @@ export function createAgentOrchestrator({
           reviewed = await generateValidatedReview(
             ownerModelRouter,
             body,
-            `Review this revised patch against the exact user intent and approved source. Approve a minimal behavior-preserving edit when it satisfies the request. Return JSON only as {"approved":boolean,"summary":string,"findings":[string]}.\nIntent: ${current.intent}\nApproved source:\n${context}\nRevised proposal: ${stable(proposal)}`,
+            `Review this revised patch against the exact user intent and attached approved source. Approve a minimal behavior-preserving edit when it satisfies the request. Return JSON only as {"approved":boolean,"summary":string,"findings":[string]}.\nIntent: ${current.intent}\nApproved source:\n${context}\nRevised proposal: ${stable(generated.patch)}`,
           ),
           review = reviewed.review;
         persist({
@@ -783,12 +796,7 @@ export function createAgentOrchestrator({
         const fixPaths = current.approvedPaths.filter((path) =>
             Object.hasOwn(latest.files, path),
           ),
-          context = fixPaths
-            .map(
-              (path) =>
-                `--- ${path} sha256=${sha(latest.files[path])} ---\n${latest.files[path]}`,
-            )
-            .join("\n"),
+          context = bindModelContext(current, latest, fixPaths),
           generated = await generateValidatedProposal(
             ownerModelRouter,
             body,
@@ -803,7 +811,7 @@ export function createAgentOrchestrator({
           reviewed = await generateValidatedReview(
             ownerModelRouter,
             body,
-            `Review whether this fix addresses the exact Tester evidence without unrelated changes. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nFailure: ${failure.output}\nFix: ${stable(proposal)}`,
+            `Review whether this fix addresses the exact Tester evidence and attached source without unrelated changes. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nFailure: ${failure.output}\nFix: ${stable(generated.patch)}`,
           ),
           review = reviewed.review;
         persist({
@@ -1596,6 +1604,7 @@ async function generateValidatedProposal(
     try {
       return {
         coder,
+        patch: parseJson(coder.text),
         proposal: materializeProposal(
           parseJson(coder.text),
           files,

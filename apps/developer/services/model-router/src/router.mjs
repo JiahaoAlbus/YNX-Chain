@@ -1,6 +1,6 @@
 import { createFairQueue } from "./fair-queue.mjs";
 import { readHostedStream } from "./hosted-stream.mjs";
-import { existingHostedRequest } from "./hosted-request.mjs";
+import { existingHostedRequest, validatedModelAttachments } from "./hosted-request.mjs";
 import { assertExpectedIdentity, consumerIdentityBinding } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 
 const PROTOCOL = "ynx-code-model-router/v1";
@@ -126,6 +126,8 @@ export function createModelRouter({
 
   async function run(input) {
     if (input.signal?.aborted) throw abortedFault();
+    await input.assertCurrent?.();
+    if (input.signal?.aborted) throw abortedFault();
     const started = performance.now();
     const result =
       input.provider === "ynx-hosted"
@@ -238,6 +240,9 @@ function validateRequest(value) {
   if (!value || typeof value !== "object")
     throw fault("Model request is required.", "invalid_model_request", 400);
   const provider = String(value.provider || "ynx-hosted").toLowerCase();
+  const attachments = validatedModelAttachments(value.attachments);
+  if (provider === 'ynx-hosted' && attachments.length && !value.hostedSession)
+    throw fault('Selected files require a server-owned conversation.', 'model_session_invalid', 400);
   if (provider !== "ynx-hosted" && !PROVIDERS[provider])
     throw fault("AI provider is not allowlisted.", "provider_not_allowlisted", 400);
   const prompt = typeof value.prompt === "string" ? (value.hostedSession ? value.prompt : value.prompt.trim()) : "";
@@ -254,6 +259,7 @@ function validateRequest(value) {
     throw fault("A server-owned model conversation is required.", "model_session_invalid", 400);
   return {
     provider,
+    attachments,
     hostedSession: value.hostedSession,
     ownerId: typeof value.ownerId === "string" && value.ownerId.length > 0 && value.ownerId.length <= 256
       ? value.ownerId : undefined,
@@ -267,6 +273,7 @@ function validateRequest(value) {
     maxOutputTokens: Math.max(128, Math.min(Number(value.maxOutputTokens || 2048), 8192)),
     responseFormat: value.responseFormat === "json" ? "json" : undefined,
     signal: isAbortSignal(value.signal) ? value.signal : undefined,
+    assertCurrent: typeof value.assertCurrent === 'function' ? value.assertCurrent : undefined,
   };
 }
 
@@ -292,6 +299,8 @@ function abortedFault() {
 }
 
 function providerRequest(provider, spec, input) {
+  // BYOK receives the same approved files; it has no Gateway attachment schema.
+  if (input.attachments.length) input = { ...input, prompt: `${input.prompt}\n\nExplicitly approved project files:\n${JSON.stringify(input.attachments)}` };
   if (provider === "openai")
     return {
       url: spec.endpoint,
