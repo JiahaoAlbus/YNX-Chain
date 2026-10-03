@@ -8,6 +8,9 @@ export async function runGoLanguageRequest(request, options) {
     serverCandidates: ["gopls"],
     serverName: "gopls",
     serverArgs: [],
+    // An existing gopls may live in a user-owned tool directory. Admit only
+    // the resolved executable; never expose the user's Go source or cache.
+    readOnlyBinds: async (executable) => [{ host: executable, guest: "/ynx-lsp/gopls" }],
     languageId: () => "go",
     memoryBytes: 2147483648,
     // Go 1.26 reserves large virtual arenas; RLIMIT_AS causes nondeterministic
