@@ -28,6 +28,33 @@ const openOrdersRender=app.slice(app.indexOf('function renderOrders('),app.index
 const balancesRender=app.slice(app.indexOf('function renderBalances('),app.indexOf('function renderActivity('));
 const walletActions=app.slice(app.indexOf('function disconnectWallet('),app.indexOf('function openWalletChooser('));
 const walletFailure=app.slice(app.indexOf('function walletConnectionFailure('),app.indexOf('async function connectWallet('));
+const controlsRender=app.slice(app.indexOf('function renderOwnedControls('),app.indexOf('function renderBook('));
+
+test('actual controls statuses localize without write enablement or stale placeholders replacing owned support records',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();let requests=0;await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
+    await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.YNXExchangeLocale=installExchangeLocale({document});`});await page.waitForFunction(()=>window.YNXExchangeLocale);
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:'A',snapshot:null};${controlsRender}\nwindow.controlsQA={render(snapshot){state.snapshot=snapshot;renderOwnedControls()}};`});
+    const createdAt='2026-10-03T00:00:00Z';
+    const cases=[{account:'A',id:'owned-case',category:'order',status:'open',createdAt,message:'<img src=x onerror=alert(1)> exact user text'},{account:'B',id:'foreign-case',category:'security',status:'closed',createdAt,message:'FOREIGN_ONLY'}];
+    for(const locale of locales){
+      await page.locator('#exchange-language').selectOption(locale);
+      await page.evaluate(()=>window.controlsQA.render(null));
+      assert.equal(await page.locator('#security-read-state').textContent(),catalogs[locale]['controls-unverified']);assert.equal(await page.locator('#owned-support-cases').textContent(),catalogs[locale]['support-unverified']);
+      await page.evaluate(()=>window.controlsQA.render({security:{updatedAt:'not-a-time'},support:[]}));
+      assert.equal(await page.locator('#security-read-state').textContent(),catalogs[locale]['controls-read-no-time']);assert.equal(await page.locator('#owned-support-cases').textContent(),catalogs[locale]['support-empty']);
+      await page.evaluate(cases=>window.controlsQA.render({security:{updatedAt:'2026-10-03T00:00:00Z'},support:cases}),cases);
+      await page.evaluate(locale=>window.YNXExchangeLocale.set(locale),locale);
+      assert.match(await page.locator('#security-read-state').textContent(),new RegExp('^'+catalogs[locale]['controls-read-verified'].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+      assert.equal(await page.locator('#owned-support-cases article').count(),1);assert.equal(await page.locator('#owned-support-cases article p').last().textContent(),cases[0].message);
+      assert.doesNotMatch(await page.locator('#owned-support-cases').textContent(),/FOREIGN_ONLY|foreign-case/);assert.equal(await page.locator('#owned-support-cases img').count(),0);
+      assert.equal(await page.locator('#withdraw-lock').isDisabled(),true);assert.equal(await page.locator('#session-ttl').isDisabled(),true);
+    }
+    assert.equal(requests,0,'translated read results cannot request or enable writes');
+  }finally{await browser.close()}
+});
 
 test('actual Wallet notifications distinguish confirmed and unconfirmed outcomes across locales and preserve late result codes',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());

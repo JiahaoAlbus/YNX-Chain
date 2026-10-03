@@ -145,13 +145,14 @@ function rememberSupportDraft(previous,next){
   const draft=next&&supportDrafts.get(next);if(draft){$('#support-category').value=draft.category;$('#support-message').value=draft.message;supportDrafts.delete(next)}
 }
 function renderOwnedControls(){
-  const snapshot=state.snapshot,security=$('#security-read-state'),root=$('#owned-support-cases');root.replaceChildren();
-  if(!snapshot){$('#security-form').reset();$('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;security.textContent='No verified account settings. Saving controls requires a separate write approval.';root.textContent='Existing support cases are not currently verified. Restore Exchange read access to view them.';return}
+  const snapshot=state.snapshot,security=$('#security-read-state'),root=$('#owned-support-cases');window.YNXExchangeLocale?.forget(root);root.replaceChildren();
+  if(!snapshot){$('#security-form').reset();$('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;security.textContent='No verified account settings. Saving controls requires a separate write approval.';window.YNXExchangeLocale?.write(security,'controls-unverified');root.textContent='Existing support cases are not currently verified. Restore Exchange read access to view them.';window.YNXExchangeLocale?.write(root,'support-unverified');return}
   $('#withdraw-lock').disabled=true;$('#session-ttl').disabled=true;
   const asOf=Number.isFinite(Date.parse(snapshot.security.updatedAt))?new Date(snapshot.security.updatedAt).toLocaleString():'Source timestamp unavailable';
   security.textContent=`Verified read-only settings · ${asOf}. Saving controls requires a separate write approval.`;
+  window.YNXExchangeLocale?.write(security,Number.isFinite(Date.parse(snapshot.security.updatedAt))?'controls-read-verified':'controls-read-no-time',Number.isFinite(Date.parse(snapshot.security.updatedAt))?` · ${asOf}`:'');
   const cases=snapshot.support.filter(item=>item.account===state.account);
-  if(!cases.length){root.textContent='No existing support cases for this approved account.';return}
+  if(!cases.length){root.textContent='No existing support cases for this approved account.';window.YNXExchangeLocale?.write(root,'support-empty');return}
   for(const item of [...cases].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))){
     const article=document.createElement('article'),title=document.createElement('strong'),detail=document.createElement('p'),message=document.createElement('p');
     title.textContent=`${item.category} · ${item.status}`;detail.textContent=`${item.id} · ${new Date(item.createdAt).toLocaleString()}`;message.textContent=item.message;article.append(title,detail,message);root.append(article);
