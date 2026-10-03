@@ -747,6 +747,15 @@ func (s *Service) RevokeMandate(digest, actor string) (Mandate, error) {
 }
 
 func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
+	return s.RunBacktestContext(context.Background(), req)
+}
+
+// Preserve the request cancellation boundary through calculation and the
+// existing durable commit lock. This is not a session or execution grant.
+func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (Experiment, error) {
+	if err := ctx.Err(); err != nil {
+		return Experiment{}, err
+	}
 	strategy, err := normalizeResearchParameters(req.Strategy, req.Assumptions)
 	if err != nil {
 		return Experiment{}, err
@@ -813,6 +822,9 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		return Experiment{}, lockErr
 	}
 	defer release()
+	if err := ctx.Err(); err != nil {
+		return Experiment{}, err
+	}
 	if req.researchRequestKey != "" {
 		if previous, found, err := s.researchReplayLocked(req.researchRequestKey, req.researchRequestDigest); found || err != nil {
 			return previous, err
@@ -850,6 +862,13 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 }
 
 func (s *Service) RunBacktestFromMarket(strategy StrategySpec, assumptions Assumptions) (Experiment, error) {
+	return s.RunBacktestFromMarketContext(context.Background(), strategy, assumptions)
+}
+
+func (s *Service) RunBacktestFromMarketContext(ctx context.Context, strategy StrategySpec, assumptions Assumptions) (Experiment, error) {
+	if err := ctx.Err(); err != nil {
+		return Experiment{}, err
+	}
 	strategy, err := normalizeResearchParameters(strategy, assumptions)
 	if err != nil {
 		return Experiment{}, err
@@ -858,11 +877,14 @@ func (s *Service) RunBacktestFromMarket(strategy StrategySpec, assumptions Assum
 		return Experiment{}, ErrUnavailable
 	}
 	bars, source, err := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return Experiment{}, contextErr
+	}
 	if err != nil || len(bars) < 20 {
 		return Experiment{}, ErrUnavailable
 	}
 	strategy.Source = source
-	return s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: assumptions})
+	return s.RunBacktestContext(ctx, BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: assumptions})
 }
 
 func validateBacktest(r BacktestRequest) error {

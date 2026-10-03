@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -146,7 +147,7 @@ func (s *Server) publicBacktestFromMarket(w http.ResponseWriter, r *http.Request
 		return
 	}
 	defer isolated.Close()
-	result, runErr := isolated.RunBacktestFromMarket(q.Strategy, q.Assumptions)
+	result, runErr := isolated.RunBacktestFromMarketContext(r.Context(), q.Strategy, q.Assumptions)
 	respond(w, r, result, runErr, http.StatusCreated)
 }
 
@@ -329,7 +330,7 @@ func (s *Server) backtest(w http.ResponseWriter, r *http.Request) {
 	if !decodeResearch(w, r, &q) {
 		return
 	}
-	v, e := s.service.RunBacktest(q)
+	v, e := s.service.RunBacktestContext(r.Context(), q)
 	respond(w, r, v, e, 201)
 }
 func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
@@ -344,13 +345,13 @@ func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 	var v Experiment
 	var e error
 	if len(q.IdempotencyKey) == 0 {
-		v, e = s.service.RunBacktestFromMarket(q.Strategy, q.Assumptions)
+		v, e = s.service.RunBacktestFromMarketContext(r.Context(), q.Strategy, q.Assumptions)
 	} else {
 		var key string
 		if json.Unmarshal(q.IdempotencyKey, &key) != nil {
 			e = ErrInvalid
 		} else {
-			v, e = s.service.RunBacktestFromMarketOnce(q.Strategy, q.Assumptions, key)
+			v, e = s.service.RunBacktestFromMarketOnceContext(r.Context(), q.Strategy, q.Assumptions, key)
 		}
 	}
 	respond(w, r, v, e, 201)
@@ -496,7 +497,9 @@ func respond(w http.ResponseWriter, r *http.Request, v any, e error, ok int) {
 		return
 	}
 	code := 400
-	if errors.Is(e, ErrForbidden) {
+	if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+		code = http.StatusRequestTimeout
+	} else if errors.Is(e, ErrForbidden) {
 		code = 403
 	} else if errors.Is(e, ErrConflict) {
 		code = 409
@@ -508,7 +511,9 @@ func respond(w http.ResponseWriter, r *http.Request, v any, e error, ok int) {
 	if errors.As(e, &parameterError) {
 		errorCode = "invalid_research_parameters"
 	}
-	if errors.Is(e, ErrForbidden) {
+	if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+		errorCode = "request_cancelled"
+	} else if errors.Is(e, ErrForbidden) {
 		errorCode = "forbidden"
 	} else if errors.Is(e, ErrConflict) {
 		errorCode = "conflict"

@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
 )
@@ -11,6 +12,13 @@ var researchRequestKeyPattern = regexp.MustCompile(`^quant-research-[0-9a-f]{8}-
 // It uses the existing state lock/reload and atomic persistence; no matching,
 // simulation arithmetic, scheduler, capital or authority is introduced here.
 func (s *Service) RunBacktestFromMarketOnce(strategy StrategySpec, assumptions Assumptions, key string) (Experiment, error) {
+	return s.RunBacktestFromMarketOnceContext(context.Background(), strategy, assumptions, key)
+}
+
+func (s *Service) RunBacktestFromMarketOnceContext(ctx context.Context, strategy StrategySpec, assumptions Assumptions, key string) (Experiment, error) {
+	if err := ctx.Err(); err != nil {
+		return Experiment{}, err
+	}
 	if !researchRequestKeyPattern.MatchString(key) {
 		return Experiment{}, ErrInvalid
 	}
@@ -28,6 +36,11 @@ func (s *Service) RunBacktestFromMarketOnce(strategy StrategySpec, assumptions A
 		s.mu.Unlock()
 		return Experiment{}, err
 	}
+	if err := ctx.Err(); err != nil {
+		release()
+		s.mu.Unlock()
+		return Experiment{}, err
+	}
 	previous, found, err := s.researchReplayLocked(key, digest)
 	release()
 	s.mu.Unlock()
@@ -38,11 +51,14 @@ func (s *Service) RunBacktestFromMarketOnce(strategy StrategySpec, assumptions A
 		return Experiment{}, ErrUnavailable
 	}
 	bars, source, err := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000)
+	if contextErr := ctx.Err(); contextErr != nil {
+		return Experiment{}, contextErr
+	}
 	if err != nil || len(bars) < 20 {
 		return Experiment{}, ErrUnavailable
 	}
 	strategy.Source = source
-	result, err := s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: assumptions, researchRequestKey: key, researchRequestDigest: digest})
+	result, err := s.RunBacktestContext(ctx, BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: assumptions, researchRequestKey: key, researchRequestDigest: digest})
 	if err != nil {
 		return Experiment{}, err
 	}
