@@ -168,7 +168,7 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         if ([...url.searchParams].length !== new Set(url.searchParams.keys()).size || [...url.searchParams.keys()].some(name => !["state", "code", "error"].includes(name))) throw fault("Wallet callback fields are invalid.", "developer_sso_callback_invalid", 400);
         const transaction = cookie(request, TRANSACTION), pkce = retrieve("pkce", transaction);
         if (!pkce || pkce.state !== url.searchParams.get("state")) throw fault("Wallet callback state expired or did not match this browser.", "developer_sso_state_invalid", 401);
-        if (url.searchParams.has("error")) { if (pkce.intentID) await family.Logout({ intentID: pkce.intentID }); retrieve("pkce", transaction, true); redirect(response, "/", [setCookie(TRANSACTION, "", 0)]); return true; }
+        if (url.searchParams.has("error")) { if (pkce.intentID) await family.Logout({ intentID: pkce.intentID }); retrieve("pkce", transaction, true); redirect(response, "/projects", [setCookie(TRANSACTION, "", 0)]); return true; }
         const result = pkce.intentID ? await family.Redeem({ code: url.searchParams.get("code"), state: pkce.state, codeVerifier: pkce.verifier, intentID: pkce.intentID }) : await backend("token", { clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
           redirectUri: CENTRAL_IDENTITY.callback, code: url.searchParams.get("code"), state: pkce.state, codeVerifier: pkce.verifier });
         const expires = Math.min(Date.parse(result.absoluteExpiresAt || result.expiresAt), Date.parse(result.identity?.expiresAt));
@@ -188,7 +188,7 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
           db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='pkce' AND id_hash=?").run(hash(transaction));
           db.exec("COMMIT");
         } catch (error) { db.exec("ROLLBACK"); if (result.familyID) await family.Logout({ familyID: result.familyID, intentID: pkce.intentID }); throw error; }
-        redirect(response, "/", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000)), setCookie(TRANSACTION, "", 0)]); return true;
+        redirect(response, "/projects", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000)), setCookie(TRANSACTION, "", 0)]); return true;
       }
       if (path === "/runtime/identity" && request.method === "GET") {
         parentOnly(request); const id = await verifyIdentity(request);
@@ -311,7 +311,7 @@ function coreEntryFailure(response, status) {
   response.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer",
     "content-security-policy": `default-src 'none'; style-src 'nonce-${nonce}'; base-uri 'none'; frame-ancestors 'none'`,
     "x-content-type-options": "nosniff" });
-  response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX Developer · Project connection</title><style nonce="${nonce}">body{margin:0;background:#101319;color:#eef1f6;font:16px system-ui,sans-serif;line-height:1.6}main{max-width:36rem;margin:12vh auto;padding:2rem}h1{font-size:1.6rem}p{color:#bdc7d5}a{display:inline-block;margin:.5rem 1rem .5rem 0;color:#8fd8ff}</style><main><h1>${identityEnded ? "Sign in to reopen your project" : "The editor connection is unavailable"}</h1><p>Your saved projects are preserved. Return to your projects to refresh the connection. If a workspace needs recovery, use its Stop action before opening it again.</p><a href="${PARENT}/">Return to projects</a>${identityEnded ? `<a href="${PARENT}/sso/start">Sign in with YNX Wallet</a>` : ""}</main></html>`);
+  response.end(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX Developer · Project connection</title><style nonce="${nonce}">body{margin:0;background:#101319;color:#eef1f6;font:16px system-ui,sans-serif;line-height:1.6}main{max-width:36rem;margin:12vh auto;padding:2rem}h1{font-size:1.6rem}p{color:#bdc7d5}a{display:inline-block;margin:.5rem 1rem .5rem 0;color:#8fd8ff}</style><main><h1>${identityEnded ? "Sign in to reopen your project" : "The editor connection is unavailable"}</h1><p>Your saved projects are preserved. Return to your projects to refresh the connection. If a workspace needs recovery, use its Stop action before opening it again.</p><a href="${PARENT}/projects">Return to projects</a>${identityEnded ? `<a href="${PARENT}/sso/start">Sign in with YNX Wallet</a>` : ""}</main></html>`);
 }
 async function bodyBuffer(request) { const chunks = []; let bytes = 0; for await (const chunk of request) { bytes += chunk.length; if (bytes > 8192) throw fault("Identity request too large.", "body_too_large", 413); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
 async function bodyJSON(request) { try { return JSON.parse(await bodyBuffer(request)); } catch (error) { if (error.code) throw error; throw fault("Identity request must be JSON.", "invalid_json", 400); } }

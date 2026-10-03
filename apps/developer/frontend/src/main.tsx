@@ -9,7 +9,7 @@ import { NativeIDEHome } from './codeoss/NativeIDEHome';
 import { useEffect, useState } from 'react';
 import { createHostEntry } from './desktop/host-commands';
 
-const nativeHome = !window.ynxDesktopWorkspace && ['/', '/index.html'].includes(window.location.pathname);
+const nativeHome = window.location.pathname === '/projects' || !window.ynxDesktopWorkspace && ['/', '/index.html'].includes(window.location.pathname);
 function DeveloperEntry() {
   const [home, setHome] = useState(nativeHome);
   useEffect(() => {

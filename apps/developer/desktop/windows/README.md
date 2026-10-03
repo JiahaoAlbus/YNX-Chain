@@ -1,5 +1,7 @@
 # Windows hosted workspace client
 
+Current source starts ordinary use at /projects. View → Wallet projects, Guest workspace, Back, Forward and Reload connect the hosted journey in one retained WebView2 profile. Only the exact reviewed guest documents expose native v1 File/Edit commands; ordinary HTTPS/SSO/Tools/core pages remain unprivileged. Explicit Wallet Pair links from the canonical authorization document have a narrow OS-launch predicate. See docs/integration/IDE_HOSTED_DESKTOP_JOURNEY_20261003.md for source-bound checks and the remaining actual Windows/Wallet/core gates. Acceptance mode continues to enter the original root guest route.
+
 Ordinary installations accept later hosted source commits while the mounted workspace keeps the `ynx-desktop-host/v1` contract and a valid source identity. Each native file command also verifies its response contract. The strict embedded source checkpoint is an acceptance requirement, so routine compatible website updates do not disable installed File/Edit commands. Unknown command contracts still require a compatible installer.
 
 The .NET 8 WPF / WebView2 shell loads `https://developer.ynxweb4.com/`. It has no bundled Node server and no web-to-OS message or host-object bridge. Native-initiated scripts require the exact HTTPS origin, default port, approved main-document path and unchanged navigation generation. The main page cannot navigate elsewhere; sandboxed runtime preview iframes retain their existing browser-only behavior. External new windows are blocked in this shell.

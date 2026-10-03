@@ -110,7 +110,7 @@ export function NativeToolsPage() {
       if (await restore()) setConnection(`Wallet approved account ${value.account} on Chain 6423. This connection does not authorize signing or deployment.`);
     } catch (cause) { if (current()) retireWallet(); throw cause; }
   }
-  return <main className="ynx-tools-page"><header><img src="/brand/ynx-logo.png" alt="YNX" /><div><h1>YNX Tools</h1><p>Testnet development · Chain 6423</p></div><a href="/">Projects</a></header>
+  return <main className="ynx-tools-page"><header><img src="/brand/ynx-logo.png" alt="YNX" /><div><h1>YNX Tools</h1><p>Testnet development · Chain 6423</p></div>{identity && identity.expiresAt > Date.now() && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(sessionId) && <a href={`/sso/core-open?sessionId=${sessionId}`}>Return to editor</a>}<a href="/projects">Projects</a></header>
     {!identity ? <section><p>Open these tools from an active Wallet project.</p><a href="/sso/start">Sign in with YNX Wallet</a></section> : <>
       <p className="tools-account">{identity.account} · {identity.projectId}</p>
       {generating && <p role="status">Generating your reviewed plan… <button onClick={stopWaiting}>Stop waiting for AI</button></p>}

@@ -39,6 +39,7 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
   assert.equal(authorize.searchParams.get("codeChallengeMethod"), "S256"); assert.equal(authorize.searchParams.get("clientId"), CENTRAL_IDENTITY.clientId);
   const callback = `/sso/callback?code=${"c".repeat(43)}&state=${authorize.searchParams.get("state")}`;
   const signedIn = await call(callback, { cookie: transaction }); assert.equal(signedIn.status, 303);
+  assert.equal(signedIn.headers.location, "/projects");
   assert.match(tokenInput.codeVerifier, /^[A-Za-z0-9_-]{43}$/); assert.equal(tokenInput.state, authorize.searchParams.get("state"));
   assert.equal((await call(callback, { cookie: transaction })).status, 401); // one-use PKCE state
   const sessionCookie = signedIn.headers["set-cookie"][0].split(";")[0]; assert.equal(signedIn.text.includes(grant), false);

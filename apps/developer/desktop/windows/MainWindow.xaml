@@ -3,7 +3,7 @@
   <Menu DockPanel.Dock="Top">
    <MenuItem Header="_File"><MenuItem Header="_New File…" InputGestureText="Ctrl+N" Click="NewFile"/><MenuItem Header="_Open Project…" InputGestureText="Ctrl+O" Click="OpenProject"/><MenuItem Header="_Save" InputGestureText="Ctrl+S" Click="Save"/><MenuItem Header="_Export Project…" InputGestureText="Ctrl+Shift+S" Click="ExportProject"/><Separator/><MenuItem Header="E_xit" Click="Exit"/></MenuItem>
    <MenuItem Header="_Edit"><MenuItem Header="_Undo" InputGestureText="Ctrl+Z" Tag="undo" Click="Edit"/><MenuItem Header="_Redo" InputGestureText="Ctrl+Y" Tag="redo" Click="Edit"/><Separator/><MenuItem Header="Cu_t" InputGestureText="Ctrl+X" Tag="cut" Click="Edit"/><MenuItem Header="_Copy" InputGestureText="Ctrl+C" Tag="copy" Click="Edit"/><MenuItem Header="_Paste" InputGestureText="Ctrl+V" Tag="paste" Click="Edit"/><Separator/><MenuItem Header="Select _All" InputGestureText="Ctrl+A" Tag="selectAll" Click="Edit"/></MenuItem>
-   <MenuItem Header="_View"><MenuItem Header="Reload" Click="Reload"/></MenuItem>
+   <MenuItem Header="_View"><MenuItem Header="Wallet projects" Click="WalletProjects"/><MenuItem Header="Guest workspace" Click="GuestWorkspace"/><Separator/><MenuItem Header="Back" Click="Back"/><MenuItem Header="Forward" Click="Forward"/><MenuItem Header="Reload" Click="Reload"/></MenuItem>
    <MenuItem Header="_Help"><MenuItem Header="Check for Updates…" Click="CheckUpdates"/><MenuItem Header="About Testnet Preview" Click="About"/></MenuItem>
   </Menu>
   <StatusBar DockPanel.Dock="Bottom"><TextBlock x:Name="Status" Text="Opening the workspace…" TextWrapping="Wrap"/></StatusBar>

@@ -35,6 +35,26 @@ static YNXNavigationDisposition YNXNewWindowNavigation(NSURL *url, NSInteger por
     if(!trustedSource || type!=WKNavigationTypeLinkActivated || [url.absoluteString isEqualToString:@"about:blank"])return YNXNavigationCancel;
     return YNXMainNavigation(url,port,type);
 }
+static BOOL YNXHostedDocument(NSURL *url) {
+    NSString *host=url.host.lowercaseString;
+    return [url.scheme isEqualToString:@"https"] && (!url.port || url.port.integerValue==443) && !url.user.length && !url.password.length &&
+        [host containsString:@"."] && ![host hasSuffix:@".localhost"] && ![host hasSuffix:@".local"] && ![host hasSuffix:@".internal"] &&
+        [host rangeOfString:@"^[0-9.]+$" options:NSRegularExpressionSearch].location==NSNotFound && ![host containsString:@":"];
+}
+static BOOL YNXWalletProjectsURL(NSURL *url) { return YNXHostedDocument(url) && [url.host isEqualToString:@"developer.ynxweb4.com"] && [url.path isEqualToString:@"/projects"] && !url.query.length && !url.fragment.length; }
+static BOOL YNXHostedWalletPair(NSURL *url, NSURL *source, BOOL userInitiated) {
+    if(!userInitiated || !YNXHostedDocument(source) || ![source.host isEqualToString:@"wallet-auth.ynxweb4.com"] || ![source.path isEqualToString:@"/v2/browser-sessions/authorize"] ||
+       ![url.absoluteString hasPrefix:@"ynxwallet://wc?uri="] || url.fragment.length)return NO;
+    NSArray<NSURLQueryItem *> *outer=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO].queryItems;
+    if(outer.count!=1 || ![outer.firstObject.name isEqualToString:@"uri"])return NO;
+    NSString *pairing=outer.firstObject.value;
+    if(!pairing.length || pairing.length>2048 || [pairing containsString:@"%"] || [pairing rangeOfString:@"^wc:[a-f0-9]{64}@2\\?" options:NSRegularExpressionSearch].location!=0)return NO;
+    NSArray<NSURLQueryItem *> *items=[NSURLComponents componentsWithString:pairing].queryItems;NSMutableDictionary *fields=[NSMutableDictionary new];
+    for(NSURLQueryItem *item in items){if(![@[@"relay-protocol",@"symKey",@"expiryTimestamp"] containsObject:item.name] || fields[item.name] || !item.value)return NO;fields[item.name]=item.value;}
+    NSString *key=fields[@"symKey"],*expiry=fields[@"expiryTimestamp"];
+    return [fields[@"relay-protocol"] isEqualToString:@"irn"] && key.length==64 && [key rangeOfString:@"^[a-f0-9]{64}$" options:NSRegularExpressionSearch].location==0 &&
+        (!expiry || ([expiry rangeOfString:@"^[0-9]{1,12}$" options:NSRegularExpressionSearch].location==0 && expiry.longLongValue>NSDate.date.timeIntervalSince1970));
+}
 
 static SEL YNXEditSelector(NSString *command) {
     if([command isEqualToString:@"selectAll"])return @selector(selectAll:);
@@ -305,9 +325,70 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 @end
 
+// A separate ordinary browser surface: no native message handlers, injected
+// scripts, Keychain bridge, file command dispatcher or local runtime authority.
+@interface YNXHostedWorkspace : NSObject <WKNavigationDelegate, WKUIDelegate>
+@property(nonatomic,strong) NSWindow *window;
+@property(nonatomic,strong) WKWebView *webView;
+@property(nonatomic,strong) NSTextField *address;
+- (void)open;
+@end
+@implementation YNXHostedWorkspace
+- (void)open {
+    if(!_window){
+        _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(100,100,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
+        _window.releasedWhenClosed=NO;_window.title=@"YNX Developer — Wallet projects";_window.minSize=NSMakeSize(640,480);
+        WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
+        configuration.userContentController=[WKUserContentController new];
+        configuration.websiteDataStore=WKWebsiteDataStore.defaultDataStore;
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically=NO;
+        _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration];_webView.navigationDelegate=self;_webView.UIDelegate=self;
+        NSStackView *bar=[NSStackView stackViewWithViews:@[
+            [NSButton buttonWithTitle:@"Back" target:self action:@selector(back:)],
+            [NSButton buttonWithTitle:@"Forward" target:self action:@selector(forward:)],
+            [NSButton buttonWithTitle:@"Wallet projects" target:self action:@selector(projects:)],
+            [NSButton buttonWithTitle:@"Reload" target:self action:@selector(reload:)]]];
+        bar.spacing=10;_address=[NSTextField labelWithString:@"https://developer.ynxweb4.com"];_address.font=[NSFont systemFontOfSize:13];_address.lineBreakMode=NSLineBreakByTruncatingMiddle;[bar addArrangedSubview:_address];
+        NSView *content=_window.contentView;bar.translatesAutoresizingMaskIntoConstraints=NO;_webView.translatesAutoresizingMaskIntoConstraints=NO;[content addSubview:bar];[content addSubview:_webView];
+        [NSLayoutConstraint activateConstraints:@[[bar.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:12],[bar.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-12],[bar.topAnchor constraintEqualToAnchor:content.topAnchor constant:8],[bar.heightAnchor constraintEqualToConstant:30],[_webView.topAnchor constraintEqualToAnchor:bar.bottomAnchor constant:8],[_webView.leadingAnchor constraintEqualToAnchor:content.leadingAnchor],[_webView.trailingAnchor constraintEqualToAnchor:content.trailingAnchor],[_webView.bottomAnchor constraintEqualToAnchor:content.bottomAnchor]]];
+        [self projects:nil];
+    }
+    [_window makeKeyAndOrderFront:nil];
+}
+- (void)projects:(id)sender { [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:@"https://developer.ynxweb4.com/projects"]]]; }
+- (void)back:(id)sender { if(_webView.canGoBack)[_webView goBack]; }
+- (void)forward:(id)sender { if(_webView.canGoForward)[_webView goForward]; }
+- (void)reload:(id)sender { [_webView reload]; }
+- (void)webView:(WKWebView *)view decidePolicyForNavigationAction:(WKNavigationAction *)action decisionHandler:(void (^)(WKNavigationActionPolicy))reply {
+    if(action.targetFrame && !action.targetFrame.mainFrame){reply(WKNavigationActionPolicyAllow);return;}
+    if(action.sourceFrame.mainFrame && YNXHostedWalletPair(action.request.URL,action.sourceFrame.request.URL,action.navigationType==WKNavigationTypeLinkActivated)){reply(WKNavigationActionPolicyCancel);if(![NSWorkspace.sharedWorkspace openURL:action.request.URL])_address.stringValue=@"YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page.";return;}
+    reply(YNXHostedDocument(action.request.URL)?WKNavigationActionPolicyAllow:WKNavigationActionPolicyCancel);
+}
+- (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation { _address.stringValue=[NSString stringWithFormat:@"https://%@",view.URL.host?:@""];_window.title=[NSString stringWithFormat:@"YNX Developer — %@",view.URL.host?:@"Wallet projects"]; }
+- (void)webView:(WKWebView *)view didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error { _address.stringValue=@"Connection unavailable. Saved projects are retained; return to Wallet projects to retry."; }
+- (WKWebView *)webView:(WKWebView *)view createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)action windowFeatures:(WKWindowFeatures *)features {
+    if(!action.targetFrame && action.sourceFrame.mainFrame && YNXHostedWalletPair(action.request.URL,action.sourceFrame.request.URL,action.navigationType==WKNavigationTypeLinkActivated)){if(![NSWorkspace.sharedWorkspace openURL:action.request.URL])_address.stringValue=@"YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page.";return nil;}
+    if(!action.targetFrame && action.navigationType==WKNavigationTypeLinkActivated && YNXHostedDocument(action.request.URL))[view loadRequest:action.request];
+    return nil;
+}
+- (void)webView:(WKWebView *)view runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))reply {
+    NSAlert *alert=[NSAlert new];alert.messageText=view.URL.host?:@"Hosted workspace";alert.informativeText=message;[alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){reply();}];
+}
+- (void)webView:(WKWebView *)view runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))reply {
+    NSAlert *alert=[NSAlert new];alert.messageText=view.URL.host?:@"Hosted workspace";alert.informativeText=message;[alert addButtonWithTitle:@"Continue"];[alert addButtonWithTitle:@"Cancel"];[alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){reply(result==NSAlertFirstButtonReturn);}];
+}
+- (void)webView:(WKWebView *)view runOpenPanelWithParameters:(WKOpenPanelParameters *)parameters initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL *> *))reply {
+    if(!frame.mainFrame || !YNXHostedDocument(view.URL)){reply(nil);return;}
+    NSString *reviewedDocument=view.URL.absoluteString;
+    NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=YES;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;
+    [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){reply(result==NSModalResponseOK && [view.URL.absoluteString isEqualToString:reviewedDocument]?panel.URLs:nil);}];
+}
+@end
+
 @interface YNXAppDelegate : NSObject <NSApplicationDelegate, WKUIDelegate, WKNavigationDelegate>
 @property(nonatomic,strong) NSWindow *window; @property(nonatomic,strong) WKWebView *webView; @property(nonatomic,strong) YNXCommandBridge *bridge; @property(nonatomic,strong) NSTask *server; @property(nonatomic,strong) NSFileHandle *serverLog; @property(nonatomic) NSInteger port;
 @property(nonatomic,strong) YNXWorkspaceBridge *workspaceBridge;
+@property(nonatomic,strong) YNXHostedWorkspace *hostedWorkspace;
 @property(nonatomic) BOOL nativeEditPending;
 @property(nonatomic) NSUInteger workspaceRestoreAttempt;
 @property(nonatomic,strong) NSAlert *workspaceRestoreAlert;
@@ -375,11 +456,12 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     NSMenuItem *item=[menu addItemWithTitle:title action:@selector(desktopEdit:) keyEquivalent:key];
     item.target=self; item.representedObject=command; return item;
 }
-- (void)installMenus { NSMenu *main=[NSMenu new]; NSApp.mainMenu=main; NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;[app addItemWithTitle:@"About YNX Developer Testnet Preview" action:@selector(showAbout:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Check for Updates…" action:@selector(checkUpdates:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"]; NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;[file addItemWithTitle:@"New File…" action:@selector(newProject:) keyEquivalent:@"n"];[file addItemWithTitle:@"Open Project…" action:@selector(openProject:) keyEquivalent:@"o"];[file addItemWithTitle:@"Save" action:@selector(save:) keyEquivalent:@"s"];NSMenuItem *export=[file addItemWithTitle:@"Export Project…" action:@selector(exportProject:) keyEquivalent:@"s"];export.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift; NSMenuItem *editItem=[NSMenuItem new];[main addItem:editItem];NSMenu *edit=[[NSMenu alloc]initWithTitle:@"Edit"];editItem.submenu=edit;[self editItem:edit title:@"Undo" command:@"undo" key:@"z"];NSMenuItem *redo=[self editItem:edit title:@"Redo" command:@"redo" key:@"z"];redo.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;[edit addItem:[NSMenuItem separatorItem]];[self editItem:edit title:@"Cut" command:@"cut" key:@"x"];[self editItem:edit title:@"Copy" command:@"copy" key:@"c"];[self editItem:edit title:@"Paste" command:@"paste" key:@"v"];[self editItem:edit title:@"Select All" command:@"selectAll" key:@"a"]; NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;[windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];[windows addItemWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""]; }
+- (void)installMenus { NSMenu *main=[NSMenu new]; NSApp.mainMenu=main; NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;[app addItemWithTitle:@"About YNX Developer Testnet Preview" action:@selector(showAbout:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Check for Updates…" action:@selector(checkUpdates:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"]; NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;NSMenuItem *walletProjects=[file addItemWithTitle:@"Wallet projects…" action:@selector(openWalletProjects:) keyEquivalent:@""];walletProjects.target=self;[file addItem:[NSMenuItem separatorItem]];[file addItemWithTitle:@"New File…" action:@selector(newProject:) keyEquivalent:@"n"];[file addItemWithTitle:@"Open Project…" action:@selector(openProject:) keyEquivalent:@"o"];[file addItemWithTitle:@"Save" action:@selector(save:) keyEquivalent:@"s"];NSMenuItem *export=[file addItemWithTitle:@"Export Project…" action:@selector(exportProject:) keyEquivalent:@"s"];export.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift; NSMenuItem *editItem=[NSMenuItem new];[main addItem:editItem];NSMenu *edit=[[NSMenu alloc]initWithTitle:@"Edit"];editItem.submenu=edit;[self editItem:edit title:@"Undo" command:@"undo" key:@"z"];NSMenuItem *redo=[self editItem:edit title:@"Redo" command:@"redo" key:@"z"];redo.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;[edit addItem:[NSMenuItem separatorItem]];[self editItem:edit title:@"Cut" command:@"cut" key:@"x"];[self editItem:edit title:@"Copy" command:@"copy" key:@"c"];[self editItem:edit title:@"Paste" command:@"paste" key:@"v"];[self editItem:edit title:@"Select All" command:@"selectAll" key:@"a"]; NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;[windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];[windows addItemWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""]; }
 - (void)dispatchWorkbenchCommand:(NSDictionary *)detail { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)]); }
+- (void)openWalletProjects:(id)sender { if(!_hostedWorkspace)_hostedWorkspace=[YNXHostedWorkspace new];[_hostedWorkspace open]; }
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
     if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
-    if(item.action==@selector(newProject:) || item.action==@selector(openProject:) || item.action==@selector(save:) || item.action==@selector(exportProject:))return _workspaceBridge.restoreComplete;
+    if(item.action==@selector(newProject:) || item.action==@selector(openProject:) || item.action==@selector(save:) || item.action==@selector(exportProject:))return NSApp.keyWindow==_window && _workspaceBridge.restoreComplete;
     return YES;
 }
 - (void)desktopEdit:(NSMenuItem *)sender {
@@ -428,12 +510,14 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     if(view!=_webView){decisionHandler(WKNavigationActionPolicyCancel);return;}
     if(!action.targetFrame && ![self trustedFrame:action.sourceFrame]){decisionHandler(WKNavigationActionPolicyCancel);return;}
     if(action.targetFrame && !action.targetFrame.mainFrame){decisionHandler(WKNavigationActionPolicyAllow);return;}
+    if(action.navigationType==WKNavigationTypeLinkActivated && [self trustedFrame:action.sourceFrame] && YNXWalletProjectsURL(action.request.URL)){decisionHandler(WKNavigationActionPolicyCancel);[self openWalletProjects:nil];return;}
     YNXNavigationDisposition disposition=YNXMainNavigation(action.request.URL,_port,action.navigationType);
     decisionHandler(disposition==YNXNavigationAllow?WKNavigationActionPolicyAllow:WKNavigationActionPolicyCancel);
     if(disposition==YNXNavigationOpenExternal)[NSWorkspace.sharedWorkspace openURL:action.request.URL];
 }
 - (WKWebView *)webView:(WKWebView *)view createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)action windowFeatures:(WKWindowFeatures *)features {
     if(view!=_webView || action.targetFrame)return nil;
+    if(action.navigationType==WKNavigationTypeLinkActivated && [self trustedFrame:action.sourceFrame] && YNXWalletProjectsURL(action.request.URL)){[self openWalletProjects:nil];return nil;}
     YNXNavigationDisposition disposition=YNXNewWindowNavigation(action.request.URL,_port,action.navigationType,[self trustedFrame:action.sourceFrame]);
     // WKWebView otherwise silently drops target=_blank links. Keep trusted
     // local Tools in this window; public links use the system browser without

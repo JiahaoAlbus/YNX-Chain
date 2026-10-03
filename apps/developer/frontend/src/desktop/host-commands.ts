@@ -10,7 +10,7 @@ export type HostActions = {
 };
 type HostWindow = Pick<Window, "location" | "top" | "self">;
 declare global { interface Window { __ynxDesktopHost?: (input: unknown) => Promise<unknown> } }
-const trusted = (window: HostWindow) => window.top === window.self && window.location.origin === "https://developer.ynxweb4.com" && ["/", "/wallet-auth/callback"].includes(window.location.pathname);
+const trusted = (window: HostWindow) => window.top === window.self && window.location.origin === "https://developer.ynxweb4.com" && ["/", "/guest-workspace", "/wallet-auth/callback"].includes(window.location.pathname);
 // Older installed clients already poll this exact state command at startup.
 // Route that existing handshake to the retained workbench without adding a
 // native message bridge, trusting a user-agent, or replaying a file command.

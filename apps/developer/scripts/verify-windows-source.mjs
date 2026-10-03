@@ -5,11 +5,13 @@ const [project,manifest,xaml,source,app,appSource,policy,profile,acceptance] = a
 assert.match(project, /<TargetFramework>net8\.0-windows<\/TargetFramework>/); assert.match(project, /<UseWPF>true<\/UseWPF>/);
 assert.match(manifest, /requestedExecutionLevel level="asInvoker" uiAccess="false"/);
 assert.match(app, /ShutdownMode="OnMainWindowClose"/); assert.match(appSource, /--ui-acceptance/);
-for (const action of ['NewFile','OpenProject','Save','ExportProject','Reload','CheckUpdates','Edit']) assert.match(xaml,new RegExp(`Click="${action}"`));
+for (const action of ['NewFile','OpenProject','Save','ExportProject','Reload','CheckUpdates','Edit','WalletProjects','GuestWorkspace','Back','Forward']) assert.match(xaml,new RegExp(`Click="${action}"`));
 for (const command of ['selectAll','undo','redo','cut','copy','paste']) assert.ok(xaml.includes(`Tag="${command}"`));
 assert.match(source, /CoreWebView2Environment\.CreateAsync\(null, profilePath\)/);
 assert.match(source, /IsWebMessageEnabled = false/); assert.match(source, /AreHostObjectsAllowed = false/);
-assert.match(source, /NavigationStarting/); assert.match(source, /HostPolicy\.TrustedDocument\(args.Uri\)/);
+assert.match(source, /NavigationStarting/); assert.match(source, /HostPolicy\.BrowserDocument\(args.Uri\)/);
+assert.match(source, /args.IsUserInitiated && HostPolicy\.BrowserDocument/);
+assert.match(source, /!HostPolicy\.TrustedDocument\(Browser.CoreWebView2.Source\)/);
 assert.match(source, /window.top!==window.self/); assert.match(source, /awaitPromise = true/);
 assert.match(source, /Input.dispatchKeyEvent/); assert.match(source, /AssertDocument\(expected\)/);
 assert.match(policy, /uri.Port == 443/); assert.match(policy, /uri.UserInfo == ""/);

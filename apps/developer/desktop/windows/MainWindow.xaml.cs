@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
@@ -66,14 +67,29 @@ public partial class MainWindow : Window
             Browser.CoreWebView2.Settings.IsWebMessageEnabled = false;
             Browser.CoreWebView2.NavigationStarting += (_, args) =>
             {
-                if (!HostPolicy.TrustedDocument(args.Uri)) { args.Cancel = true; Status.Text = "External navigation blocked. Workspace remains open."; return; }
+                if (HostPolicy.WalletPairNavigation(Browser.CoreWebView2.Source, args.Uri, args.IsUserInitiated)) {
+                    args.Cancel = true;
+                    try { Process.Start(new ProcessStartInfo(args.Uri) { UseShellExecute = true }); }
+                    catch { Status.Text = "YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page."; }
+                    return;
+                }
+                if (!HostPolicy.BrowserDocument(args.Uri)) { args.Cancel = true; Status.Text = "This address cannot open in the hosted workspace. Saved projects are retained."; return; }
                 generation++; ready = false;
+                Status.Text = "Opening " + new Uri(args.Uri).Host + "…";
             };
-            Browser.CoreWebView2.NewWindowRequested += (_, args) => { args.Handled = true; Status.Text = "Pop-up navigation is unavailable in this workspace window."; };
+            Browser.CoreWebView2.NewWindowRequested += (_, args) => {
+                args.Handled = true;
+                if (HostPolicy.WalletPairNavigation(Browser.CoreWebView2.Source, args.Uri, args.IsUserInitiated)) {
+                    try { Process.Start(new ProcessStartInfo(args.Uri) { UseShellExecute = true }); }
+                    catch { Status.Text = "YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page."; }
+                }
+                else if (args.IsUserInitiated && HostPolicy.BrowserDocument(args.Uri)) Browser.CoreWebView2.Navigate(args.Uri);
+                else Status.Text = "Use a reviewed workspace link to open this page.";
+            };
             Browser.CoreWebView2.NavigationCompleted += NavigationCompleted;
             Browser.CoreWebView2.ProcessFailed += (_, _) => { generation++; ready = false; Status.Text = "Workspace browser stopped. Saved profile is retained. Close and reopen to retry."; };
             if (acceptance != null) Browser.CoreWebView2.ScriptDialogOpening += acceptance.ScriptDialog;
-            Browser.Source = new Uri(WorkspaceUrl);
+            Browser.Source = new Uri(acceptance == null ? WorkspaceUrl + "projects" : WorkspaceUrl);
         }
         catch (Exception error)
         {
@@ -105,6 +121,12 @@ public partial class MainWindow : Window
         try
         {
             if (!e.IsSuccess) throw new IOException("Workspace navigation failed: " + e.WebErrorStatus);
+            if (!HostPolicy.TrustedDocument(Browser.CoreWebView2.Source)) {
+                ready = false;
+                Status.Text = "Hosted workspace · " + new Uri(Browser.CoreWebView2.Source).Host;
+                CommandManager.InvalidateRequerySuggested();
+                return;
+            }
             for (var attempt = 0; attempt < 180; attempt++)
             {
                 AssertDocument(expected);
@@ -142,7 +164,7 @@ public partial class MainWindow : Window
     {
         var expected = expectedGeneration ?? generation; AssertDocument(expected);
         // Evaluates in the main frame only. No arbitrary expression is accepted from web content or native menu payloads.
-        var guarded = "(async()=>{if(window.top!==window.self||location.origin!=='https://developer.ynxweb4.com'||!['/','/wallet-auth/callback'].includes(location.pathname))throw Error('Untrusted document');return await (" + expression + ")})()";
+        var guarded = "(async()=>{if(window.top!==window.self||location.origin!=='https://developer.ynxweb4.com'||!['/','/guest-workspace','/wallet-auth/callback'].includes(location.pathname))throw Error('Untrusted document');return await (" + expression + ")})()";
         var result = await Browser.CoreWebView2.CallDevToolsProtocolMethodAsync("Runtime.evaluate", JsonSerializer.Serialize(new { expression = guarded, awaitPromise = true, returnByValue = true }));
         AssertDocument(expected);
         if (result.Length > HostPolicy.MaxProjectBytes * 8) throw new InvalidDataException("Workspace response too large.");
@@ -232,7 +254,25 @@ public partial class MainWindow : Window
     async void ExportProject(object s, RoutedEventArgs e) => await RunMenu(() => FileCommand("export-project"));
     async void Save(object s, RoutedEventArgs e) => await RunMenu(() => FileCommand("save"));
     async void Edit(object s, RoutedEventArgs e) { if (s is System.Windows.Controls.MenuItem item && item.Tag is string command) await RunMenu(() => EditCommand(command)); }
-    async void Reload(object s, RoutedEventArgs e) => await RunMenu(async () => { RequireHandled(await FileCommand("save")); Browser.Reload(); });
+    async void Reload(object s, RoutedEventArgs e) {
+        if (ready) await RunMenu(async () => { RequireHandled(await FileCommand("save")); Browser.Reload(); });
+        else if (!closing && Browser.CoreWebView2 != null) Browser.Reload();
+    }
+    async Task NavigateWorkspace(string? destination, int history = 0)
+    {
+        if (closing || Browser.CoreWebView2 == null || !await menuLock.WaitAsync(0)) return;
+        try {
+            if (ready) RequireHandled(await FileCommand("save"));
+            if (history < 0 && Browser.CoreWebView2.CanGoBack) Browser.CoreWebView2.GoBack();
+            else if (history > 0 && Browser.CoreWebView2.CanGoForward) Browser.CoreWebView2.GoForward();
+            else if (destination != null && HostPolicy.BrowserDocument(destination)) Browser.CoreWebView2.Navigate(destination);
+        } catch (Exception error) { Status.Text = error.Message; }
+        finally { menuLock.Release(); }
+    }
+    async void WalletProjects(object s, RoutedEventArgs e) => await NavigateWorkspace(WorkspaceUrl + "projects");
+    async void GuestWorkspace(object s, RoutedEventArgs e) => await NavigateWorkspace(WorkspaceUrl + "guest-workspace");
+    async void Back(object s, RoutedEventArgs e) => await NavigateWorkspace(null, -1);
+    async void Forward(object s, RoutedEventArgs e) => await NavigateWorkspace(null, 1);
     void Exit(object s, RoutedEventArgs e) => Close();
     void CheckUpdates(object s, RoutedEventArgs e) => MessageBox.Show("This Testnet Preview never downloads or installs updates automatically. A production updater must verify an owner-signed manifest and package.", "Update boundary");
     void About(object s, RoutedEventArgs e) => MessageBox.Show("Windows Testnet Preview. Not production signed or released.", "YNX Developer");

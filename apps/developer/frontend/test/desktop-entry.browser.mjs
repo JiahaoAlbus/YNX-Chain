@@ -63,6 +63,17 @@ try {
   await page.waitForFunction(async () => (await window.__ynxDesktopHost?.({ command: 'state' }))?.state?.workspaceReady);
   assert.ok(await page.evaluate(() => Object.hasOwn(JSON.parse(localStorage.getItem('ynx-code-project-v1')).files, 'reviewed.js')));
   checks.push('same-profile reload plus legacy state handshake preserves the explicitly saved new file');
+  await page.goto(origin + '/projects');
+  await page.getByRole('heading', { name: 'Your development workspace', exact: true }).waitFor();
+  const projectsEntry = await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }));
+  assert.equal(projectsEntry.status, 'blocked'); assert.equal(projectsEntry.reason, 'untrusted-document');
+  assert.equal(await page.getByRole('link', { name: 'Sign in with YNX Wallet', exact: true }).getAttribute('href'), '/sso/start');
+  assert.ok(await page.evaluate(() => Object.hasOwn(JSON.parse(localStorage.getItem('ynx-code-project-v1')).files, 'reviewed.js')));
+  await page.getByRole('link', { name: 'Guest text workspace', exact: true }).click();
+  await page.waitForURL(origin + '/guest-workspace');
+  await page.waitForFunction(async () => { const reply = await window.__ynxDesktopHost?.({ command: 'state' }); return Boolean(reply?.state?.workspaceReady && reply.state.editorReady); });
+  assert.equal((await page.evaluate(() => window.__ynxDesktopHost({ command: 'state' }))).state.projectId, project.id);
+  checks.push('explicit /projects route stays on Wallet home despite desktop state polling; guest entry reopens the preserved project with its host contract');
   await page.close();
   const damaged = await context.newPage(); damaged.on('pageerror', e => errors.push(e.message));
   await damaged.addInitScript(() => localStorage.setItem('ynx-code-project-v1', '{original damaged desktop draft'));
@@ -77,6 +88,18 @@ try {
   assert.equal((await untrusted.evaluate(() => window.__ynxDesktopHost({ command: 'state' }))).status, 'blocked');
   await untrusted.getByRole('heading', { name: 'Your development workspace', exact: true }).waitFor();
   checks.push('wrong document origin cannot activate desktop entry through a state query');
+  await untrusted.close();
+  const local = await context.newPage(); local.on('pageerror', e => errors.push(e.message));
+  await local.addInitScript(value => { localStorage.setItem('ynx-code-project-v1', JSON.stringify(value)); window.ynxDesktopWorkspace = { initialProject: value, saveProject: async () => {}, exportProject: async () => {} }; }, project);
+  const catalogReads = calls.filter(call => call.path === '/runtime/codeoss').length;
+  await local.goto(buildURL); await local.getByRole('button', { name: 'YNX Native IDE', exact: true }).click();
+  const hostedLink = local.getByRole('link', { name: 'Open Wallet projects ↗', exact: true }); await hostedLink.waitFor();
+  assert.equal(await hostedLink.getAttribute('href'), origin + '/projects');
+  assert.equal(calls.filter(call => call.path === '/runtime/codeoss').length, catalogReads);
+  assert.equal(await local.getByRole('link', { name: 'Sign in with YNX Wallet', exact: true }).count(), 0);
+  assert.equal(await local.evaluate(() => JSON.parse(localStorage.getItem('ynx-code-project-v1')).files['main.js']), project.files['main.js']);
+  checks.push('local desktop marker fixture directs native project entry to hosted projects without loopback canonical requests, synthetic sign-in or guest data adoption');
+  await local.close();
   await untrusted.close();
   assert.deepEqual(errors, []); passed = true;
 } catch (error) { failure = error.message; throw error; } finally {

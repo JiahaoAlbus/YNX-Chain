@@ -16,9 +16,15 @@ async function privateRequest(path: string, options?: RequestInit, identityKey?:
 async function coreRequest(path = "", options?: RequestInit, identityKey?: string) {
   return privateRequest(`/runtime/codeoss${path}`, options, identityKey);
 }
-export function NativeIDEPanel({ projectId: guestProjectId, projectName, revision, admitted, onOwnershipChange, guestProjectAvailable = true }: {
+type PanelProps = {
   projectId: string; projectName: string; revision: number; admitted: boolean; onOwnershipChange: (value: boolean) => void; guestProjectAvailable?: boolean;
-}) {
+};
+export function NativeIDEPanel(props: PanelProps) {
+  if (window.ynxDesktopWorkspace && window.location.protocol === 'http:' && window.location.hostname === '127.0.0.1')
+    return <section className="native-ide-panel side-section"><img className="native-brand-logo" src="/brand/ynx-logo.png" alt="YNX" /><h2>Wallet projects</h2><p>Open your Wallet projects in the hosted editor. This local project stays available.</p><a className="native-launch-link" href="https://developer.ynxweb4.com/projects" target="_blank" rel="noopener noreferrer">Open Wallet projects ↗</a><p>To copy this project, export it here, import it in the hosted guest workspace, then review the copy to your Wallet account.</p></section>;
+  return <WalletIDEPanel {...props} />;
+}
+function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admitted, onOwnershipChange, guestProjectAvailable = true }: PanelProps) {
   const [projectId, selectProject] = useState(guestProjectId);
   const requests = useRef(createRequestEpoch()).current;
   const mounted = useRef(false), verified = useRef(false), actor = useRef("");
