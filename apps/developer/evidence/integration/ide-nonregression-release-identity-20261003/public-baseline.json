@@ -1,0 +1,41 @@
+{
+  "records": [
+    {
+      "url": "https://developer.ynxweb4.com/",
+      "method": "GET",
+      "at": "2026-10-03T09:09:10.601Z",
+      "status": 200,
+      "contentLength": "362",
+      "contentType": "text/html; charset=utf-8",
+      "sha256": "29f6415d24816733b2f65105c238906e8c829b60192e08029ced3b885c1d5eba",
+      "title": "YNX Code",
+      "scriptAssets": [
+        "/assets/index-DhM3gwIM.js"
+      ]
+    },
+    {
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
+      "method": "HEAD",
+      "at": "2026-10-03T09:09:10.623Z",
+      "status": 200,
+      "contentLength": "177942906",
+      "contentType": "application/zip"
+    },
+    {
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip",
+      "method": "HEAD",
+      "at": "2026-10-03T09:09:10.624Z",
+      "status": 200,
+      "contentLength": "72538906",
+      "contentType": "application/zip"
+    }
+  ],
+  "oldManifest": {
+    "path": "release/PUBLIC_WEBSITE_PREVIEW_4.json",
+    "generatedAt": "2026-08-12T01:00:00+08:00",
+    "declaredWebCommit": "17ee9ae5bf50677a3316b0838884dd135de80599",
+    "declaredPackageCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f"
+  },
+  "remotePackageHashesReverified": false,
+  "userProfileRead": false
+}

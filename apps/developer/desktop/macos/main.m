@@ -325,6 +325,22 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 @end
 
+static NSString *YNXPackagedSource(void) {
+    NSURL *url=[NSBundle.mainBundle.resourceURL URLByAppendingPathComponent:@"build-provenance.json"];
+    NSData *data=[NSData dataWithContentsOfURL:url];
+    NSDictionary *value=data?[NSJSONSerialization JSONObjectWithData:data options:0 error:nil]:nil;
+    NSString *source=[value isKindOfClass:NSDictionary.class]?value[@"sourceCommit"]:nil;
+    if(![source isKindOfClass:NSString.class] || source.length!=40 ||
+       [source rangeOfCharacterFromSet:[[NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdef"] invertedSet]].location!=NSNotFound)
+        return @"unverified";
+    return source;
+}
+static NSString *YNXDesktopTitle(NSString *label) {
+    if(NSProcessInfo.processInfo.environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"].length)
+        return [NSString stringWithFormat:@"YNX Developer — QA — %@ — %@",label,YNXPackagedSource()];
+    return [NSString stringWithFormat:@"YNX Developer — %@",label];
+}
+
 // A separate ordinary browser surface: no native message handlers, injected
 // scripts, Keychain bridge, file command dispatcher or local runtime authority.
 @interface YNXHostedWorkspace : NSObject <WKNavigationDelegate, WKUIDelegate>
@@ -337,7 +353,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 - (void)open {
     if(!_window){
         _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(100,100,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
-        _window.releasedWhenClosed=NO;_window.title=@"YNX Developer — Wallet projects";_window.minSize=NSMakeSize(640,480);
+        _window.releasedWhenClosed=NO;_window.title=YNXDesktopTitle(@"Wallet projects");_window.minSize=NSMakeSize(640,480);
         WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
         configuration.userContentController=[WKUserContentController new];
         configuration.websiteDataStore=WKWebsiteDataStore.defaultDataStore;
@@ -364,7 +380,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     if(action.sourceFrame.mainFrame && YNXHostedWalletPair(action.request.URL,action.sourceFrame.request.URL,action.navigationType==WKNavigationTypeLinkActivated)){reply(WKNavigationActionPolicyCancel);if(![NSWorkspace.sharedWorkspace openURL:action.request.URL])_address.stringValue=@"YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page.";return;}
     reply(YNXHostedDocument(action.request.URL)?WKNavigationActionPolicyAllow:WKNavigationActionPolicyCancel);
 }
-- (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation { _address.stringValue=[NSString stringWithFormat:@"https://%@",view.URL.host?:@""];_window.title=[NSString stringWithFormat:@"YNX Developer — %@",view.URL.host?:@"Wallet projects"]; }
+- (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation { _address.stringValue=[NSString stringWithFormat:@"https://%@",view.URL.host?:@""];_window.title=YNXDesktopTitle(view.URL.host?:@"Wallet projects"); }
 - (void)webView:(WKWebView *)view didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error { _address.stringValue=@"Connection unavailable. Saved projects are retained; return to Wallet projects to retry."; }
 - (WKWebView *)webView:(WKWebView *)view createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)action windowFeatures:(WKWindowFeatures *)features {
     if(!action.targetFrame && action.sourceFrame.mainFrame && YNXHostedWalletPair(action.request.URL,action.sourceFrame.request.URL,action.navigationType==WKNavigationTypeLinkActivated)){if(![NSWorkspace.sharedWorkspace openURL:action.request.URL])_address.stringValue=@"YNX Wallet could not open. Use the pairing QR on the Wallet sign-in page.";return nil;}
@@ -405,7 +421,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     [controller addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(script,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [controller addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(availabilityScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     configuration.userContentController=controller; _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration]; _bridge=[[YNXCommandBridge alloc]initWithWebView:_webView nodeURL:self.nodeURL]; _bridge.port=_port; [controller addScriptMessageHandler:_bridge name:@"command"]; [controller addScriptMessageHandler:_bridge name:@"wallet"];
-    _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO]; _window.title=@"YNX Developer — Testnet Preview (unsigned)"; _window.contentView=_webView; if(![_window setFrameUsingName:@"YNXDeveloperTestnetPreviewMainWindow"])[_window center]; [_window setFrameAutosaveName:@"YNXDeveloperTestnetPreviewMainWindow"]; _window.restorable=YES; [_window makeKeyAndOrderFront:nil];
+    _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO]; _window.title=YNXDesktopTitle(@"Testnet Preview (unsigned)"); _window.contentView=_webView; if(![_window setFrameUsingName:@"YNXDeveloperTestnetPreviewMainWindow"])[_window center]; [_window setFrameAutosaveName:@"YNXDeveloperTestnetPreviewMainWindow"]; _window.restorable=YES; [_window makeKeyAndOrderFront:nil];
     _webView.UIDelegate=self; _webView.navigationDelegate=self; _workspaceBridge.webView=_webView; _workspaceBridge.window=_window; [controller addScriptMessageHandler:_workspaceBridge name:@"workspace"];
     [self beginWorkspaceRestore];
 }
@@ -546,7 +562,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     NSTextField *field=[[NSTextField alloc]initWithFrame:NSMakeRect(0,0,360,24)];field.stringValue=defaultText?:@"";alert.accessoryView=field;
     [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){completionHandler(result==NSAlertFirstButtonReturn?field.stringValue:nil);}];
 }
-- (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=@"Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.";[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
+- (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=[NSString stringWithFormat:@"Version: %@\nPackaged source: %@\n%@Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.",NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"]?:@"unverified",YNXPackagedSource(),NSProcessInfo.processInfo.environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"].length?@"QA profile — not the normal user profile.\n":@""];[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
     if(!_webView || !_workspaceBridge || !_workspaceBridge.restoreComplete)return NSTerminateNow;
     // Wait for the real Workbench's current snapshot and native disk ACK. A

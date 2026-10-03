@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     {
         acceptance = options;
         InitializeComponent(); Loaded += Start; Closing += Stop;
+        if (acceptance != null) Title = $"YNX Developer — QA — {HostPolicy.PackagedSource()}";
         Bind(ApplicationCommands.New, () => FileCommand("new-file"));
         Bind(ApplicationCommands.Open, () => FileCommand("import-project"));
         Bind(ApplicationCommands.Save, () => FileCommand("save"));
@@ -275,7 +276,7 @@ public partial class MainWindow : Window
     async void Forward(object s, RoutedEventArgs e) => await NavigateWorkspace(null, 1);
     void Exit(object s, RoutedEventArgs e) => Close();
     void CheckUpdates(object s, RoutedEventArgs e) => MessageBox.Show("This Testnet Preview never downloads or installs updates automatically. A production updater must verify an owner-signed manifest and package.", "Update boundary");
-    void About(object s, RoutedEventArgs e) => MessageBox.Show("Windows Testnet Preview. Not production signed or released.", "YNX Developer");
+    void About(object s, RoutedEventArgs e) => MessageBox.Show($"Windows Testnet Preview.\nVersion: {HostPolicy.PackagedVersion()}\nPackaged source: {HostPolicy.PackagedSource()}\n{(acceptance != null ? "QA profile — not the normal user profile.\n" : "")}Not production signed or released.", "YNX Developer");
     async void Stop(object? sender, CancelEventArgs e)
     {
         if (closed) return;

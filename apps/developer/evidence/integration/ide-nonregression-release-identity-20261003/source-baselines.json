@@ -1,0 +1,27 @@
+{
+  "comparisonTarget": "6b36d23a9ccbe46c0f924d6d68fa3472d759af98",
+  "baselines": [
+    {
+      "commit": "a5e4905a1d595a02479115fd28ea1fd6276677fd",
+      "tree": "e5efc7e8eb6c5ead07689de8d899bb48a0d1ea3c",
+      "ancestorOf6b36": true,
+      "deletedPaths": [],
+      "modifiedPaths": []
+    },
+    {
+      "commit": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "tree": "c1a9b084a69412f5886a7ab70f15d4fc77ab2791",
+      "ancestorOf6b36": true,
+      "deletedPaths": [],
+      "modifiedPaths": []
+    },
+    {
+      "commit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "tree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "ancestorOf6b36": true,
+      "deletedPaths": [],
+      "modifiedPaths": []
+    }
+  ],
+  "sourceRetentionProvesFullBehaviorNonRegression": false
+}

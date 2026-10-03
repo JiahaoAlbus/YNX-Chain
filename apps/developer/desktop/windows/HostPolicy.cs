@@ -40,6 +40,26 @@ internal static class HostPolicy
     public static bool EditCommand(string? command) => new[] { "selectAll", "undo", "redo", "cut", "copy", "paste" }.Contains(command);
     public static bool SafeRelativePath(string value) => value.Length is > 0 and <= 240 && !value.Contains("..") &&
         value.Split('/').All(part => part.Length > 0 && part != ".") && value.All(c => char.IsAsciiLetterOrDigit(c) || "_./ +@-".Contains(c));
+    public static string PackagedSource()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Resources", "build-provenance.json")));
+            var value = doc.RootElement.GetProperty("sourceCommit").GetString() ?? "";
+            return Regex.IsMatch(value, "^[a-f0-9]{40}$") ? value : "unverified";
+        }
+        catch (Exception) { return "unverified"; }
+    }
+    public static string PackagedVersion()
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Resources", "build-provenance.json")));
+            var value = doc.RootElement.GetProperty("version").GetString() ?? "";
+            return Regex.IsMatch(value, "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[A-Za-z0-9.-]+)?$") ? value : "unverified";
+        }
+        catch (Exception) { return "unverified"; }
+    }
     public static string RuntimeCheckpoint()
     {
         using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Resources", "build-provenance.json")));
