@@ -1,0 +1,1 @@
+latest_component_and_changed_contract_exit=0

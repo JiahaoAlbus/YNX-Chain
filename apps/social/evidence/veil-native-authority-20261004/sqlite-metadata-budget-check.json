@@ -1,0 +1,35 @@
+{
+  "schema": "ynx-social-sqlite-preallocation-qa-v1",
+  "sqlite_version": "3.53.4",
+  "sql": "SELECT COUNT(*), COALESCE(SUM(length(sealed)),0), COALESCE(MAX(length(sealed)),0), COALESCE(MAX(length(kind)),0), COALESCE(MAX(length(id)),0), COALESCE(SUM(CASE WHEN typeof(sealed)!='blob' OR length(sealed)<29 OR typeof(kind)!='text' OR typeof(id)!='text' THEN 1 ELSE 0 END),0) FROM records",
+  "checks": [
+    {
+      "name": "actual SQLite direct-length opcode avoids CAST materialization path",
+      "result": "PASS"
+    },
+    {
+      "name": "bounded BLOB passes actual metadata-only aggregate",
+      "result": "PASS"
+    },
+    {
+      "name": "oversized BLOB rejects before any payload selection",
+      "result": "PASS"
+    },
+    {
+      "name": "non-BLOB and undersized records reject using actual SQL metadata",
+      "result": "PASS"
+    },
+    {
+      "name": "too many small records reject without selecting sealed content",
+      "result": "PASS"
+    }
+  ],
+  "inspected_blob_payloads": false,
+  "length_opcode_p5": 64,
+  "cast_length_opcode_p5": 0,
+  "not_proven": [
+    "Android SQLite opcode behavior or CursorWindow",
+    "Keystore and complete VeilNativeStore runtime",
+    "trusted device proof or durable rollback anchor"
+  ]
+}

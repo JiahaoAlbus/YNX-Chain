@@ -1,0 +1,13 @@
+PASS foreign or fabricated lease cannot enter protected native scope
+PASS escaped scope and duplicate commit reject before a second effect
+PASS cross-thread scope use rejects without native effect
+PASS reentrant admission or revocation cannot mutate an active effect lease
+PASS revoke completion is ordered after protected commit and blocks later effects
+PASS revoked generation cannot be re-admitted from stale approval fixture
+PASS verified binding mismatch rejects before a native lease is issued
+PASS expiry during work prevents the final commit effect
+PASS monotonic clock rollback cannot revive an expired native lease
+PASS record budget admits bounded metadata without reading payloads
+PASS oversized single blob and aggregate allocation reject from metadata
+PASS row count, identifier, negative lengths and non-blob types reject
+PASS 12 native lease/budget contract checks; synthetic verifier only

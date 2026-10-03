@@ -1,0 +1,6 @@
+PASS actual SQLite direct-length opcode avoids CAST materialization path
+PASS bounded BLOB passes actual metadata-only aggregate
+PASS oversized BLOB rejects before any payload selection
+PASS non-BLOB and undersized records reject using actual SQL metadata
+PASS too many small records reject without selecting sealed content
+PASS 5 actual SQLite metadata checks
