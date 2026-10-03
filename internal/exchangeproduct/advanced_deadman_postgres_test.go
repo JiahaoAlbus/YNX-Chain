@@ -60,17 +60,36 @@ func TestPostgreSQLAdvancedDeadManReplayTwoProcessesAndRestart(t *testing.T) {
 			defer loaded.Close()
 			before := digest(loaded.state)
 			expected, _ := json.Marshal(terminal)
+			var terminalFields map[string]any
+			if err := json.Unmarshal(expected, &terminalFields); err != nil {
+				t.Fatal(err)
+			}
+			terminalID, _ := terminalFields["id"].(string)
+			if terminalID == "" {
+				t.Fatal("terminal effect has no stable ID")
+			}
 			client := &http.Client{Timeout: 5 * time.Second}
 			type result struct {
 				status int
 				body   []byte
 				err    error
 			}
-			call := func(base string, a testAccount, key string, amount int64) result {
+			call := func(base string, a testAccount, key string, amount int64, unsigned ...bool) result {
 				route, intent := advancedRecoveryHTTPIntent(tt.name, a, key, amount)
 				payload, err := json.Marshal(intent)
 				if err != nil {
 					return result{err: err}
+				}
+				if len(unsigned) > 0 && unsigned[0] {
+					var fields map[string]any
+					if err := json.Unmarshal(payload, &fields); err != nil {
+						return result{err: err}
+					}
+					fields["walletSignature"] = ""
+					payload, err = json.Marshal(fields)
+					if err != nil {
+						return result{err: err}
+					}
 				}
 				r, err := http.NewRequest("POST", base+route, bytes.NewReader(payload))
 				if err != nil {
@@ -107,7 +126,7 @@ func TestPostgreSQLAdvancedDeadManReplayTwoProcessesAndRestart(t *testing.T) {
 			two.Close()
 			third := startOrderReplayProcess(t, cfg)
 			check(call(third.URL, owner, key, AmountScale))
-			for _, kind := range []string{"changed", "foreign", "fresh"} {
+			for _, kind := range []string{"changed", "foreign", "fresh", "unsigned"} {
 				a, k, amount, status := owner, key, int64(AmountScale), 409
 				switch kind {
 				case "changed":
@@ -117,10 +136,15 @@ func TestPostgreSQLAdvancedDeadManReplayTwoProcessesAndRestart(t *testing.T) {
 				case "fresh":
 					k += "-fresh"
 					status = 403
+				case "unsigned":
+					status = 401
 				}
-				r := call(third.URL, a, k, amount)
+				r := call(third.URL, a, k, amount, kind == "unsigned")
 				if r.err != nil || r.status != status {
 					t.Fatal("rejected intent fence changed", kind, r.status, r.err)
+				}
+				if bytes.Contains(r.body, []byte(terminalID)) {
+					t.Fatal("rejected intent exposed terminal effect ID", kind)
 				}
 			}
 			third.Close()

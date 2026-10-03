@@ -128,3 +128,49 @@ func TestExistingAdvancedCreationReplayAfterExpiryOnlyReadsTerminalEffect(t *tes
 		})
 	}
 }
+
+func TestExistingAdvancedReplayRejectsMissingOrForeignCachedEffect(t *testing.T) {
+	for _, tt := range advancedRecoveryCases(t) {
+		for _, corruption := range []string{"missing", "foreign"} {
+			t.Run(tt.name+"/"+corruption, func(t *testing.T) {
+				s, owner, other, key, _ := expiredAdvancedRecoveryFixture(t, tt)
+				prior := s.state.Idempotency[key]
+				if corruption == "missing" {
+					prior.ObjectID = "missing-original-effect"
+					s.state.Idempotency[key] = prior
+				} else {
+					switch tt.name {
+					case "conditional":
+						effect := s.state.ConditionalOrders[prior.ObjectID]
+						effect.Account = other.account
+						s.state.ConditionalOrders[prior.ObjectID] = effect
+					case "oco":
+						effect := s.state.OCOGroups[prior.ObjectID]
+						effect.Account = other.account
+						s.state.OCOGroups[prior.ObjectID] = effect
+					case "twap":
+						effect := s.state.TWAPOrders[prior.ObjectID]
+						effect.Account = other.account
+						s.state.TWAPOrders[prior.ObjectID] = effect
+					case "scale":
+						effect := s.state.ScaleOrders[prior.ObjectID]
+						effect.Account = other.account
+						s.state.ScaleOrders[prior.ObjectID] = effect
+					case "iceberg":
+						effect := s.state.Orders[prior.ObjectID]
+						effect.Account = other.account
+						s.state.Orders[prior.ObjectID] = effect
+					}
+				}
+				before := digest(s.state)
+				got, err := tt.create(s, owner, key, AmountScale)
+				if err != ErrForbidden {
+					t.Fatal("invalid cached effect was accepted", err, got)
+				}
+				if digest(s.state) != before {
+					t.Fatal("invalid cached effect was rewritten or recreated")
+				}
+			})
+		}
+	}
+}
