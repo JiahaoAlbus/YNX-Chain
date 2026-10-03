@@ -8,7 +8,7 @@ function validateChanges(value, documents, sessionId) {
   const reviewed = [];
   for (const change of value.changes) {
     const document = documents.get(change.uri);
-    if (seen.has(change.uri) || !document || document.version !== change.version || digest(document.getText()) !== change.fullTextDigest) throw Error('A document changed or is not open. Preserve both versions and review again.');
+    if (seen.has(change.uri) || !document || document.isClosed || document.version !== change.version || digest(document.getText()) !== change.fullTextDigest) throw Error('A document changed or is not open. Preserve both versions and review again.');
     let text = change.text;
     if (Object.hasOwn(change, 'replacements')) {
       if (Object.hasOwn(change, 'text') || !Array.isArray(change.replacements) || change.replacements.length !== 1) throw Error('Use one exact reviewed selection replacement.');
@@ -27,6 +27,7 @@ function validateChanges(value, documents, sessionId) {
 async function assertWorkspacePath(documentPath, workspacePath) {
   const root = await fs.realpath(workspacePath), file = await fs.realpath(documentPath);
   if (!file.startsWith(root + path.sep)) throw Error('The reviewed file is outside this project workspace.');
+  return { realWorkspace: root, realFile: file };
 }
 async function assertWorkspaceDirectory(directoryPath, workspacePath) {
   const root = await fs.realpath(workspacePath), directory = await fs.realpath(directoryPath);

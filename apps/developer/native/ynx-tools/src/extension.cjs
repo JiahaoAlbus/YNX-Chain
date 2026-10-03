@@ -46,17 +46,33 @@ function activate(context) {
     await vscode.window.showTextDocument(target);
   });
   register('ynx.applyReviewedDiff', async () => {
+    const sessionId = process.env.YNX_CORE_SESSION_ID, workspace = process.env.YNX_CORE_WORKSPACE;
+    const assertRuntime = () => {
+      if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace || process.env.YNX_CORE_SESSION_ID !== sessionId || process.env.YNX_CORE_WORKSPACE !== workspace)
+        throw Error('The active project runtime changed. Review the changes again.');
+    };
+    assertRuntime();
     const text = await vscode.window.showInputBox({ title: 'Paste a reviewed ynx-reviewed-text/v1 change bundle', ignoreFocusOut: true }); if (!text) return;
+    assertRuntime();
     const value = JSON.parse(text), documents = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));
-    const changes = validateChanges(value, documents, process.env.YNX_CORE_SESSION_ID);
-    for (const change of changes) await assertWorkspacePath(documents.get(change.uri).uri.fsPath, process.env.YNX_CORE_WORKSPACE);
+    const changes = validateChanges(value, documents, sessionId), paths = new Map();
+    for (const change of changes) paths.set(change.uri, await assertWorkspacePath(documents.get(change.uri).uri.fsPath, workspace));
+    assertRuntime();
     // Open previews before the modal approval; no edits happen during preview.
     for (const change of changes) { const preview = await vscode.workspace.openTextDocument({ content: change.text, language: documents.get(change.uri).languageId }); await vscode.commands.executeCommand('vscode.diff', documents.get(change.uri).uri, preview.uri, 'YNX suggested change — review'); }
     if (await vscode.window.showWarningMessage('Apply these reviewed text changes? This does not execute commands or sign transactions.', { modal: true }, 'Apply reviewed changes') !== 'Apply reviewed changes') return;
-    validateChanges(value, new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc])), process.env.YNX_CORE_SESSION_ID);
-    for (const change of changes) await assertWorkspacePath(documents.get(change.uri).uri.fsPath, process.env.YNX_CORE_WORKSPACE);
-    validateChanges(value, documents, process.env.YNX_CORE_SESSION_ID);
-    const edit = new vscode.WorkspaceEdit(); for (const change of changes) { const doc = documents.get(change.uri); edit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), change.text); }
+    assertRuntime();
+    const currentDocuments = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));
+    validateChanges(value, currentDocuments, sessionId);
+    for (const change of changes) {
+      const currentPath = await assertWorkspacePath(currentDocuments.get(change.uri).uri.fsPath, workspace), reviewedPath = paths.get(change.uri);
+      if (currentPath?.realWorkspace !== reviewedPath?.realWorkspace || currentPath?.realFile !== reviewedPath?.realFile)
+        throw Error('The reviewed file or workspace path changed. Preserve both versions and review again.');
+    }
+    assertRuntime();
+    const finalDocuments = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));
+    const finalChanges = validateChanges(value, finalDocuments, sessionId);
+    const edit = new vscode.WorkspaceEdit(); for (const change of finalChanges) { const doc = finalDocuments.get(change.uri); edit.replace(doc.uri, new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length)), change.text); }
     if (!await vscode.workspace.applyEdit(edit)) throw Error('The document changed while applying. Review again; do not overwrite.');
   });
 }

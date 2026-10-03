@@ -75,3 +75,31 @@ test('starter approval is retired on runtime or displayed workspace-folder chang
  const switched=harness({answer:'Create starter',onModal:(_,env)=>{env.YNX_CORE_SESSION_ID='retired';}});await switched.commands.get('ynx.createTemplate')();assert.equal(switched.calls.length,0);assert.match(switched.errors[0],/runtime changed/);
  let moved;moved=harness({answer:'Create starter',onModal:()=>{moved.vscode.workspace.workspaceFolders=[{uri:{fsPath:'/other',toString:()=> 'file:///other'}}];}});await moved.commands.get('ynx.createTemplate')();assert.equal(moved.calls.length,0);assert.match(moved.errors[0],/folder or runtime changed/);
 });
+
+test('reviewed diff rejects workspace changes and a replacement document opened during the final path check', async () => {
+  const moved = harness({ answer: 'Apply reviewed changes', onModal: (_, env) => { env.YNX_CORE_WORKSPACE = '/'; } });
+  await moved.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(moved.calls.map(call => call.type), ['preview']); assert.match(moved.errors[0], /runtime changed/);
+  let checks = 0, reopened;
+  reopened = harness({ answer: 'Apply reviewed changes', pathGuard: async () => {
+    if (++checks === 2) {
+      const old = reopened.vscode.workspace.textDocuments[0]; old.isClosed = true;
+      reopened.vscode.workspace.textDocuments = [{ ...old, isClosed: false, version: 1, getText: () => 'newly reopened private draft' }];
+    }
+  } });
+  await reopened.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(reopened.calls.map(call => call.type), ['preview']); assert.match(reopened.errors[0], /changed/);
+});
+
+test('reviewed diff compares real file identity and refuses a symlink moved to another file inside the same project', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'ynx-native-diff-path-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const first = join(root, 'first.ts'), second = join(root, 'second.ts'), link = join(root, 'reviewed.ts');
+  await writeFile(first, 'saved draft'); await writeFile(second, 'saved draft'); await symlink(first, link);
+  const { assertWorkspacePath } = localRequire('../../../native/ynx-tools/src/guards.cjs');
+  const h = harness({ answer: 'Apply reviewed changes', workspace: root, filePath: link, pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(link); await symlink(second, link); } });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['preview']); assert.match(h.errors[0], /path changed/);
+  assert.equal(await readFile(first, 'utf8'), 'saved draft'); assert.equal(await readFile(second, 'utf8'), 'saved draft');
+});
