@@ -8,14 +8,19 @@ import { useI18n } from './i18nProvider';
 import { useSocialAppearance } from './SocialAppearance';
 import { ChatAppearanceStore, chatBackgrounds, chatCanvas, checkedChatSlot, defaultChatAppearance, effectiveChatBackground,
   type ChatAppearance, type ChatBackground, type ChatTheme } from './chatAppearance';
-import { createChatAppearanceJournal } from './chatAppearanceJournal';
+import { ChatAppearanceStorageLimitError, chatAppearanceEnvelopeLimit, createChatAppearanceJournal } from './chatAppearanceJournal';
 
 const directory = () => new Directory(Paths.document, 'ynx-social-chat-appearance-v1');
 const accountDirectory = (slot: string) => new Directory(directory(), checkedChatSlot(slot));
 const metadata = (slot: string, side: 'a' | 'b') => new File(accountDirectory(slot), `settings-${side}.json`);
 const hash = (value: string) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, value);
 const store = new ChatAppearanceStore(createChatAppearanceJournal({
-  async read(slot, side) { const file = metadata(slot, side); return file.exists ? file.textSync() : null; },
+  async read(slot, side) {
+    const file = metadata(slot, side);
+    if (!file.exists) return null;
+    if (file.size > chatAppearanceEnvelopeLimit) throw new ChatAppearanceStorageLimitError();
+    return file.textSync();
+  },
   async write(slot, side, raw) { accountDirectory(slot).create({ intermediates: true, idempotent: true }); metadata(slot, side).write(raw); },
   hash,
 }));

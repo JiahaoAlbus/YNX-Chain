@@ -1,5 +1,11 @@
 import { checkedChatSlot, parseChatAppearance, type ChatAppearancePort } from './chatAppearance';
 type Saved = { sequence: number; raw: string; sha256: string };
+// A <=80,000-character preference plus JSON escaping fits in this envelope.
+// Native consumers enforce the same byte limit BEFORE allocating file contents.
+export const chatAppearanceEnvelopeLimit = 200000;
+export class ChatAppearanceStorageLimitError extends Error {
+  constructor() { super('CHAT_APPEARANCE_STORAGE_LIMIT'); this.name = 'ChatAppearanceStorageLimitError'; }
+}
 export function createChatAppearanceJournal(port: {
   read(slot: string, side: 'a' | 'b'): Promise<string | null>;
   write(slot: string, side: 'a' | 'b', raw: string): Promise<void>;
@@ -9,17 +15,24 @@ export function createChatAppearanceJournal(port: {
     checkedChatSlot(slot);
     const records: { side: 'a' | 'b'; saved: Saved | null; present: boolean }[] = [];
     for (const side of ['a', 'b'] as const) {
-      const raw = await port.read(slot, side); let saved: Saved | null = null;
-      if (raw !== null) {
+      let raw: string | null;
+      try { raw = await port.read(slot, side); }
+      catch (error) {
+        if (!(error instanceof ChatAppearanceStorageLimitError)) throw error;
+        records.push({ side, saved: null, present: true });
+        continue;
+      }
+      let saved: Saved | null = null;
+      if (raw !== null && raw.length <= chatAppearanceEnvelopeLimit) {
         try {
           const value: unknown = JSON.parse(raw);
           if (value && typeof value === 'object') {
             const entry = value as Record<string, unknown>;
             if (Object.keys(entry).length === 3 && Number.isSafeInteger(entry.sequence) && Number(entry.sequence) > 0 &&
-                typeof entry.raw === 'string' && typeof entry.sha256 === 'string' && /^[a-f0-9]{64}$/.test(entry.sha256) &&
-                await port.hash(entry.raw) === entry.sha256) {
+                typeof entry.raw === 'string' && typeof entry.sha256 === 'string' && /^[a-f0-9]{64}$/.test(entry.sha256)) {
               parseChatAppearance(entry.raw);
-              saved = { sequence: Number(entry.sequence), raw: entry.raw, sha256: entry.sha256 };
+              if (await port.hash(entry.raw) === entry.sha256)
+                saved = { sequence: Number(entry.sequence), raw: entry.raw, sha256: entry.sha256 };
             }
           }
         } catch { /* Keep the other ORIGINAL valid slot, never repair blindly. */ }

@@ -1,0 +1,32 @@
+Starting Metro Bundler
+
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:2213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 14043ms index.ts (2737 modules)
+iOS Bundled 19527ms index.ts (2761 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-ad42fa8aa9894a90d42de3f1b4a89c99.hbc (5.8MB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-7fe96960f3eda50e9a84ba506d545a7d.hbc (5.8MB)
+
+› Files (1):
+metadata.json (368B)
+
+Exported: /tmp/social-appearance-read-budget-20261004.NMcd06/bundle

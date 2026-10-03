@@ -1,0 +1,17 @@
+✔ partial inactive slot preserves the prior valid preference and next save recovers without destroying it (0.996958ms)
+✔ both corrupt slots fail closed instead of resetting account preferences (0.153292ms)
+✔ modified bytes without their exact SHA are not accepted as the current setting (0.112375ms)
+✔ theme arrays and objects cannot impersonate a stored primitive theme (0.102ms)
+✔ oversized inactive envelope preserves exact valid settings without hashing its contents (0.355125ms)
+✔ native pre-read resource limit preserves the other valid journal side (0.103333ms)
+✔ both native resource-limited sides require recovery without a reset or write (0.126ms)
+✔ generic journal I/O errors remain errors instead of silently selecting an old side (0.071833ms)
+✔ oversized nested preference is rejected before hashing (0.260917ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 134.348291

@@ -24,7 +24,7 @@ export function parseChatAppearance(raw: string | null): ChatAppearance {
   const value: unknown = JSON.parse(raw);
   if (!value || typeof value !== 'object') throw new Error('CHAT_APPEARANCE_INVALID_STORAGE');
   const record = value as Record<string, unknown>;
-  if (record.version !== 1 || !['system', 'light', 'dark'].includes(String(record.theme)) ||
+  if (record.version !== 1 || typeof record.theme !== 'string' || !['system', 'light', 'dark'].includes(record.theme) ||
       !record.rooms || typeof record.rooms !== 'object' || Array.isArray(record.rooms) || Object.keys(record).length !== 4)
     throw new Error('CHAT_APPEARANCE_INVALID_STORAGE');
   const entries = Object.entries(record.rooms);

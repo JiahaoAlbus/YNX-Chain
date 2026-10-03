@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { createChatAppearanceJournal } from './chatAppearanceJournal';
-import { defaultChatAppearance } from './chatAppearance';
+import { ChatAppearanceStorageLimitError, chatAppearanceEnvelopeLimit, createChatAppearanceJournal } from './chatAppearanceJournal';
+import { defaultChatAppearance, parseChatAppearance } from './chatAppearance';
 const slot = 'a_' + 'a'.repeat(64);
 const hash = async (raw: string) => createHash('sha256').update(raw).digest('hex');
 test('partial inactive slot preserves the prior valid preference and next save recovers without destroying it', async () => {
@@ -27,4 +27,58 @@ test('modified bytes without their exact SHA are not accepted as the current set
   const first = JSON.stringify(defaultChatAppearance()), next = JSON.stringify({ ...defaultChatAppearance(), theme: 'dark' });
   const journal = createChatAppearanceJournal({ read: async (_, side) => side === 'a' ? JSON.stringify({ sequence: 1, raw: first, sha256: await hash(first) }) : JSON.stringify({ sequence: 2, raw: next, sha256: await hash(first) }), write: async () => {}, hash });
   assert.equal(await journal.read(slot), first);
+});
+test('theme arrays and objects cannot impersonate a stored primitive theme', () => {
+  for (const theme of [['dark'], ['system'], {}, null, 1])
+    assert.throws(() => parseChatAppearance(JSON.stringify({ ...defaultChatAppearance(), theme })), /INVALID_STORAGE/);
+  for (const theme of ['system', 'light', 'dark'])
+    assert.equal(parseChatAppearance(JSON.stringify({ ...defaultChatAppearance(), theme })).theme, theme);
+});
+test('oversized inactive envelope preserves exact valid settings without hashing its contents', async () => {
+  const original = JSON.stringify({ ...defaultChatAppearance(), theme: 'dark' });
+  const valid = JSON.stringify({ sequence: 7, raw: original, sha256: await hash(original) });
+  const seen: string[] = [];
+  const journal = createChatAppearanceJournal({
+    read: async (_, side) => side === 'a' ? ' '.repeat(chatAppearanceEnvelopeLimit + 1) : valid,
+    write: async () => { throw new Error('unexpected write'); },
+    hash: async raw => { seen.push(raw); return hash(raw); },
+  });
+  assert.equal(await journal.read(slot), original);
+  assert.deepEqual(seen, [original]);
+});
+test('native pre-read resource limit preserves the other valid journal side', async () => {
+  const original = JSON.stringify(defaultChatAppearance());
+  const valid = JSON.stringify({ sequence: 2, raw: original, sha256: await hash(original) });
+  const journal = createChatAppearanceJournal({
+    read: async (_, side) => { if (side === 'a') throw new ChatAppearanceStorageLimitError(); return valid; },
+    write: async () => { throw new Error('unexpected write'); }, hash,
+  });
+  assert.equal(await journal.read(slot), original);
+});
+test('both native resource-limited sides require recovery without a reset or write', async () => {
+  let writes = 0;
+  const journal = createChatAppearanceJournal({
+    read: async () => { throw new ChatAppearanceStorageLimitError(); },
+    write: async () => { writes++; }, hash,
+  });
+  await assert.rejects(journal.read(slot), /NEEDS_RECOVERY/);
+  await assert.rejects(journal.write(slot, JSON.stringify(defaultChatAppearance())), /NEEDS_RECOVERY/);
+  assert.equal(writes, 0);
+});
+test('generic journal I/O errors remain errors instead of silently selecting an old side', async () => {
+  const failure = new Error('storage unavailable');
+  const journal = createChatAppearanceJournal({ read: async () => { throw failure; }, write: async () => {}, hash });
+  await assert.rejects(journal.read(slot), error => error === failure);
+});
+test('oversized nested preference is rejected before hashing', async () => {
+  let hashes = 0;
+  const envelope = JSON.stringify({ sequence: 1, raw: ' '.repeat(80001), sha256: 'a'.repeat(64) });
+  assert(envelope.length < chatAppearanceEnvelopeLimit);
+  const journal = createChatAppearanceJournal({
+    read: async (_, side) => side === 'a' ? envelope : null,
+    write: async () => { throw new Error('unexpected write'); },
+    hash: async raw => { hashes++; return hash(raw); },
+  });
+  await assert.rejects(journal.read(slot), /NEEDS_RECOVERY/);
+  assert.equal(hashes, 0);
 });

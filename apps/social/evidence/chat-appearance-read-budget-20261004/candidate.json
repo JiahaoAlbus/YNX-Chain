@@ -1,0 +1,76 @@
+{
+  "kind": "SOCIAL_LOCAL_APPEARANCE_JS_EXPORT_NOT_RELEASE",
+  "baseCommit": "06d10b29485d827b655f013522f3b3fc67892d4e",
+  "sourceDelta": [
+    {
+      "path": "apps/social/src/ChatAppearanceSettings.tsx",
+      "bytes": 15543,
+      "sha256": "8ede41ef2d22429465afa06ce0d8de72687faaab40a5507f164c89b8cdf1e422"
+    },
+    {
+      "path": "apps/social/src/chatAppearance.ts",
+      "bytes": 6690,
+      "sha256": "97b2c69c3c78c15f53b95477f42ddb8a3fadf1c69f42a7c6721adfed89e41078"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceJournal.ts",
+      "bytes": 3415,
+      "sha256": "3774ee28cc04bec9d02a7da4541e0579d2295004366390f09289bf5adb0e2450"
+    },
+    {
+      "path": "apps/social/src/chatAppearanceJournal.test.ts",
+      "bytes": 5521,
+      "sha256": "502dac22b061d4ee975724db890c7a9d7ef66b0d1b5d8e086f5f877b94ea871e"
+    }
+  ],
+  "artifact": {
+    "path": "apps/social/evidence/chat-appearance-read-budget-20261004/local-js-bundles.tar.gz",
+    "bytes": 4352025,
+    "sha256": "f536183dc4612b897474dac2bd06d324f2d9bc4264906cdf667eb06f989da45f"
+  },
+  "exported": [
+    {
+      "path": "/tmp/social-appearance-read-budget-20261004.NMcd06/bundle/_expo/static/js/android/index-ad42fa8aa9894a90d42de3f1b4a89c99.hbc",
+      "bytes": 5843956,
+      "sha256": "f6b1a3a863ad77c6422e5e721d2325abd3ac4d2cff01f69088c2bca39a78ccd7"
+    },
+    {
+      "path": "/tmp/social-appearance-read-budget-20261004.NMcd06/bundle/_expo/static/js/ios/index-7fe96960f3eda50e9a84ba506d545a7d.hbc",
+      "bytes": 5839551,
+      "sha256": "5ce44dcedb0491082e215c38ffea48937d16e66a48c43a23717a43fc924452c4"
+    },
+    {
+      "path": "/tmp/social-appearance-read-budget-20261004.NMcd06/bundle/metadata.json",
+      "bytes": 368,
+      "sha256": "b544ff5df3df204e843f80e31b022ed60c4e2f7e7a20e5687135e6b357d4fe57"
+    }
+  ],
+  "checks": {
+    "focusedJournalTests": 9,
+    "typecheckExit": 0,
+    "expoAndroidIosExportExit": 0,
+    "nativeApkOrIpaBuilt": false,
+    "installedUi": "NOT_RUN",
+    "publicSourceBound": "NOT_RUN",
+    "dotAcceptance": "NOT_RUN",
+    "deployment": false,
+    "cryptoActivation": false
+  },
+  "limits": {
+    "nativeFilePreReadBytes": 200000,
+    "journalEnvelopeCharacters": 200000,
+    "nestedPreferenceCharacters": 80000
+  },
+  "preserve": [
+    "valid opposite journal side",
+    "original background images",
+    "other owners and legacy accounts/history",
+    "generic I/O errors remain errors"
+  ],
+  "evidence": [
+    "journal-tests.txt",
+    "typecheck.txt",
+    "bundle-build.txt",
+    "bundle-stage.txt"
+  ]
+}
