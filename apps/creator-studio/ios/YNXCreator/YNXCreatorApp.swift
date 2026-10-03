@@ -45,6 +45,13 @@ struct CreatorView: View {
                         ContentUnavailableView(model.text("signIn"),systemImage:"person.crop.circle",description:Text(model.text("walletAccess")))
                     } else {
                         recovery
+                        if !model.studioReady {
+                            if model.studioReadState == .loading {ProgressView(model.text("refresh"))}
+                            else {
+                                Text(model.text("retryRequired")).foregroundStyle(.secondary)
+                                Button(model.text("refresh")) {Task {await model.refresh()}}.disabled(model.busy)
+                            }
+                        } else {
                         switch section {
                         case "channel": channel
                         case "team": CreatorTeamView()
@@ -56,6 +63,7 @@ struct CreatorView: View {
                         case "assets": CreatorAssetsView()
                         case "ai": CreatorAIView()
                         default: overview
+                        }
                         }
                     }
                 }.padding(24).frame(maxWidth:960,alignment:.leading).frame(maxWidth:.infinity)
@@ -89,7 +97,7 @@ struct CreatorView: View {
                 Menu(model.text("language")) {ForEach(["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"],id:\.self) {locale in Button(Locale(identifier:locale).localizedString(forIdentifier:locale) ?? locale) {model.language(locale)}}}
                 if model.busy {ProgressView()}
                 if model.connected || model.signOutPending {
-                    Button(model.text(model.signOutPending ? "signOutRetry" : "signOut")) {Task {await model.signOut()}}.disabled(model.busy)
+                    Button(model.text(model.signOutPending ? "signOutRetry" : "signOut")) {Task {await model.signOut()}}.disabled(model.signOutPending && model.busy)
                 } else {Button(model.text("signIn")) {Task {await model.signIn()}}.buttonStyle(.borderedProminent).disabled(model.busy || model.signOutPending)}
             }
             if !model.account.isEmpty {Text(model.account).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)}

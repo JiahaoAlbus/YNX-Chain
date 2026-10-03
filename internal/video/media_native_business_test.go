@@ -33,9 +33,16 @@ func (nativeCreatorQAStreamer) Generate(context.Context, AIRequest) (AIResult, e
 	return AIResult{}, ErrForbidden
 }
 func (provider nativeCreatorQAStreamer) Stream(ctx context.Context, request AIRequest, emit func(string) error) (AIResult, error) {
-	provider.starts.Add(1)
+	start := provider.starts.Add(1)
 	if err := emit("Isolated QA first"); err != nil {
 		return AIResult{}, err
+	}
+	// The second explicit QA request exercises a running cancellation. Hold
+	// that test provider at its real partial until the original service cancels
+	// its context; an 800 ms completion race does not prove running cancellation.
+	if start == 2 {
+		<-ctx.Done()
+		return AIResult{}, ctx.Err()
 	}
 	select {
 	case <-ctx.Done():
@@ -258,6 +265,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualAIStreamRecovery        bool   `json:"actualAIStreamAndColdRecovery"`
 				ActualAICancelBoundary        bool   `json:"actualAICancelAndHumanBoundary"`
 				ActualRepeatedOriginalRestore bool   `json:"actualRepeatedOriginalRestore"`
+				ActualStudioReadiness         bool   `json:"actualStudioReadinessAndRetiredReadback"`
 				ActualNativeUploadExpiry      bool   `json:"actualNativeUploadExpiry"`
 				ActualCapturedButtonAuthority bool   `json:"actualCapturedButtonAuthority"`
 				ActualNativeHistoryExpiry     bool   `json:"actualRetainedNativeHistoryAndExpiry"`
@@ -269,7 +277,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
 			}
-			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry || !receipt.ActualNativeUploadExpiry || !receipt.ActualRepeatedOriginalRestore) {
+			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry || !receipt.ActualNativeUploadExpiry || !receipt.ActualRepeatedOriginalRestore || !receipt.ActualStudioReadiness) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
 			}
 			mu.Lock()

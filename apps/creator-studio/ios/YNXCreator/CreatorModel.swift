@@ -76,7 +76,12 @@ struct CreatorSnapshot: Decodable {
 }
 
 @MainActor final class CreatorModel: ObservableObject {
+    enum StudioReadState:String {case unread,loading,ready,failed}
     @Published var connected=false
+    @Published private(set) var studioReadState:StudioReadState = .unread
+    private(set) var studioReadFailurePhase=""
+    private var studioReadGeneration:UInt64=0
+    var studioReady:Bool {studioReadState == .ready && connected && snapshot != nil && visibleIdentity==engine?.identity && visibleEpoch==engine?.epoch}
     @Published var busy=false
     @Published var signOutPending=false
     @Published var awaitingWallet=false
@@ -114,7 +119,7 @@ struct CreatorSnapshot: Decodable {
     func text(_ key: String) -> String { catalog[locale]?[key] ?? catalog["en"]?[key] ?? key }
     func language(_ value: String) {locale=value;UserDefaults.standard.set(value,forKey:"ynx.creator.locale")}
     func number(_ value: Int) -> String {value.formatted(.number.locale(Locale(identifier:locale)))}
-    private func clear() {connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false;pendingAssetKind="";selectedAI=nil;aiStreaming=false;aiPartial="";aiCancelling=false;pendingAICancel=false;aiProviderAvailable=nil;aiSelection &+= 1}
+    private func clear() {studioReadGeneration &+= 1;studioReadState = .unread;studioReadFailurePhase="";connected=false;account="";snapshot=nil;drafts=nil;visibleIdentity=nil;visibleEpoch=nil;channelID="";pendingUploadTitle="";pendingOperation=false;pendingAssetKind="";selectedAI=nil;aiStreaming=false;aiPartial="";aiCancelling=false;pendingAICancel=false;aiProviderAvailable=nil;aiSelection &+= 1}
     private func ensure() throws -> CreatorNativeEngine {
         if let engine {return engine};let created=try makeEngine();engine=created
         created.onChange={ [weak self,weak created] in
@@ -124,6 +129,8 @@ struct CreatorSnapshot: Decodable {
             // its original draft controller so a previously acknowledged
             // operation cannot reappear from a stale in-memory snapshot.
             if self.visibleIdentity==identity,self.visibleEpoch==created.epoch,self.drafts != nil {return}
+            if self.visibleIdentity != nil {self.revision &+= 1;self.busy=false}
+            self.clear()
             do {
                 let store=try self.makeDrafts(created,identity);self.drafts=store
                 self.visibleIdentity=identity;self.visibleEpoch=created.epoch
@@ -141,7 +148,11 @@ struct CreatorSnapshot: Decodable {
         guard !busy,!signOutPending else {return}
         await auth("disconnect");guard !signOutPending else {return};await auth("connect")
     }
-    func signOut() async {await auth("disconnect")}
+    func signOut() async {
+        guard !signOutPending || !busy else {return}
+        revision &+= 1;busy=false;engine?.suspend();clear()
+        await auth("disconnect",replaceBusy:true)
+    }
     func restore() async {await auth("restore")}
     private func auth(_ method: String,args: [String:Any]=[:],replaceBusy: Bool=false) async {
         guard !busy || replaceBusy else {return};revision &+= 1;let captured=revision;busy=true;clear()
@@ -172,14 +183,26 @@ struct CreatorSnapshot: Decodable {
     func suspend() {revision &+= 1;busy=false;engine?.suspend();clear()}
     private func require(_ active: CreatorNativeEngine,_ captured: UInt64) throws {guard captured==revision,connected,engine === active else {throw CancellationError()}}
     private func refreshCaptured(_ active: CreatorNativeEngine,_ captured: UInt64) async throws {
+        try require(active,captured)
+        studioReadGeneration &+= 1;let readGeneration=studioReadGeneration
+        studioReadState = .loading;studioReadFailurePhase=""
+        var phase="original-request"
+        do {
         let data=try await CreatorHTTP.shared.accountData("/v1/studio",engine:active,guardRequest:{try self.require(active,captured)})
-        try require(active,captured);let fresh=try JSONDecoder().decode(CreatorSnapshot.self,from:data)
+        try require(active,captured);guard readGeneration==studioReadGeneration else {throw CancellationError()}
+        phase="decode";let fresh=try JSONDecoder().decode(CreatorSnapshot.self,from:data)
+        phase="validate-current-account"
         guard let identity=active.identity,(fresh.revenue ?? []).allSatisfy({Self.financialAccess(fresh,identity.account,$0)}),(fresh.payout_intents ?? []).allSatisfy({$0.Owner==identity.account}),(fresh.disputes ?? []).allSatisfy({dispute in fresh.revenue?.contains(where:{$0.id==dispute.RevenueRecordID && $0.Owner==dispute.Owner && Self.financialAccess(fresh,identity.account,$0)})==true}),(fresh.ai_jobs ?? []).allSatisfy({$0.valid(identity.account)}),
               (fresh.videos ?? []).allSatisfy({CreatorDraftState.validID($0.id) && CreatorDraftState.validID($0.channel_id) && CreatorNativeState.matches($0.owner,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$")}) else {throw CreatorHTTP.Failure.unexpectedResponse}
         snapshot=fresh
+        studioReadState = .ready;studioReadFailurePhase=""
         if let selectedAI {self.selectedAI=fresh.ai_jobs?.first(where:{$0.id==selectedAI.id})}
 
         if channelID.isEmpty {channelID=fresh.team?.first?.channel_id ?? fresh.videos?.first?.channel_id ?? ""}
+        } catch {
+            if captured==revision,readGeneration==studioReadGeneration,engine === active,connected {studioReadState = .failed;studioReadFailurePhase=phase;lastFailure=String(describing:error)}
+            throw error
+        }
     }
     func refresh() async {
         guard !busy,let active=engine else {return};busy=true;let captured=revision
