@@ -159,7 +159,7 @@ test('delayed request body cannot send context after account, generation or iden
   }
 });
 
-test('revocation cancels an in-flight model and late completion cannot persist a run or completed answer', async t => {
+test('revocation cancels an in-flight model and retains only the interrupted intent without a late plan or completed answer', async t => {
   let resolveModel, started;
   const begun = new Promise(resolve => { started = resolve; });
   const f = await fixture(t, { generate: input => { started(input); return new Promise(resolve => { resolveModel = resolve; }); } });
@@ -173,7 +173,9 @@ test('revocation cancels an in-flight model and late completion cannot persist a
   assert.equal(f.aiStore.get('identity-a', 'project', input.hostedSession).status, 'failed');
   f.setState({ owner: 'identity-a', workspaceOwner: 'workspace-a', account: 'account-a', generation: 2, identityReference: 'ref-new', expiresAt: Date.now() + 60_000 });
   await f.refreshIdentity();
-  assert.deepEqual((await (await f.get('/runtime/agent/runs?projectId=project')).json()).runs, []);
+  const runs = (await (await f.get('/runtime/agent/runs?projectId=project')).json()).runs;
+  assert.equal(runs.length, 1); assert.equal(runs[0].status, 'planning'); assert.equal(runs[0].operation.status, 'interrupted');
+  assert.equal(runs[0].plan, null); assert.equal(runs[0].proposal, null); assert.equal(runs[0].intent, 'Change the greeting export');
 });
 
 test('expiry cancels a provider that ignores the signal', async t => {

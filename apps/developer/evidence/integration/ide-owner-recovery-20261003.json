@@ -1,0 +1,142 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "2f172d67a6cbd4a57db238fa8448fb0bf99ad555",
+  "date": "2026-10-03",
+  "changes": {
+    "nativeDisplayedActorBinding": true,
+    "nativeRecoveryVisibleAfter100StoppedRecords": true,
+    "agentSavedRunReadback": true,
+    "durablePlannerIntent": true,
+    "perRunOperationMutex": true,
+    "atomicRunAndEvents": true,
+    "exactWorkspaceWriteReceiptRecovery": true,
+    "conflictingReceiptPreserved": true,
+    "explicitGitObservation": true,
+    "stableHistoryCursor": true,
+    "restoredSourceRetest": true,
+    "walletEventRetirement": true,
+    "readinessWholeBodyDeadlineMs": 3000,
+    "readinessBodyLimitBytes": 65536
+  },
+  "verification": {
+    "serviceTests": {
+      "pass": 166,
+      "fail": 0,
+      "skip": 0,
+      "log": "evidence/integration/ide-owner-recovery-20261003/service-tests.log"
+    },
+    "gatewayTests": {
+      "pass": 16,
+      "fail": 0,
+      "skip": 0,
+      "log": "evidence/integration/ide-owner-recovery-20261003/gateway-tests.log"
+    },
+    "lifecycleTests": {
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "oneReceiptConflictCaseAlsoInServiceSuite": true,
+      "log": "evidence/integration/ide-owner-recovery-20261003/lifecycle-tests.log"
+    },
+    "distinctServiceChecks": 188,
+    "browserSuites": [
+      {
+        "name": "agent-recovery",
+        "pass": true,
+        "checks": 12,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/agent-recovery-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "agent-panel",
+        "pass": true,
+        "checks": 9,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/agent-panel-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "native-panel",
+        "pass": true,
+        "checks": 14,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/native-panel-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "native-wallet",
+        "pass": true,
+        "checks": 6,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/native-wallet-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "native-tools",
+        "pass": true,
+        "checks": 1,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/native-tools-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "native-ai-cancel",
+        "pass": true,
+        "checks": null,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/native-ai-cancel-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      },
+      {
+        "name": "native-ai-history",
+        "pass": true,
+        "checks": null,
+        "receipt": "evidence/integration/ide-owner-recovery-20261003/native-ai-history-browser.json",
+        "scope": "Actual React/Chromium; controlled routes and injected provider"
+      }
+    ],
+    "typescript": {
+      "exitCode": 0,
+      "log": "evidence/integration/ide-owner-recovery-20261003/typescript.log"
+    },
+    "frontendBuild": {
+      "exitCode": 0,
+      "log": "evidence/integration/ide-owner-recovery-20261003/frontend-build.log",
+      "warning": "Existing large chunks; sourcemaps preserved"
+    },
+    "staticCheck": {
+      "exitCode": 0,
+      "log": "evidence/integration/ide-owner-recovery-20261003/static-check.log"
+    },
+    "dependencies": {
+      "mode": "Reused local cached archives after lock integrity verification; no registry request or lifecycle scripts",
+      "packages": 208,
+      "lockSHA256": "b43bbc3d61889de8c30a64d164cfa73f2ce3f24eb5fc8da399a540b16a3583ca",
+      "networkRequests": 0,
+      "packageManagerInstalls": 0,
+      "lifecycleScriptsExecuted": 0
+    },
+    "gitFixtureCorrection": "Observe the existing adapter-resolved Git executable; /usr/bin/git macOS shim emitted xcrun cache diagnostics into status output",
+    "buildCommandCorrection": "Original Vite CLI --root invocation rejected; corrected to build in frontend working directory; original CLI log retained"
+  },
+  "limits": {
+    "configuredProviderGeneration": false,
+    "sharedIDEBusinessProofIntegrated": false,
+    "publicIntegrated": false,
+    "fullWorkbenchJourney": "NOT_RUN",
+    "installedUserJourney": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "releaseComplete": false,
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  },
+  "nextOwnedWork": "Audit structured ownership for selected project-file AI context against the existing Gateway contract, then source-bound normal user-flow verification after A formal publication",
+  "externalOwners": [
+    {
+      "owner": "A",
+      "needs": [
+        "Exact IDE shared business-proof/registration tuple and eligible configuration",
+        "Formal source-bound host publication and final runtime evidence"
+      ]
+    }
+  ]
+}

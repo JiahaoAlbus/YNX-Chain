@@ -5,6 +5,7 @@ import { constants } from "node:fs";
 import { dirname } from "node:path";
 import { CENTRAL_IDENTITY, createCentralIdentityVerifier, fault } from "./central-identity.mjs";
 import { createCentralFamily } from "./central-family.mjs";
+import { consumerIdentityBinding, assertExpectedIdentity } from "./identity-consumer-binding.mjs";
 
 const PARENT = "https://developer.ynxweb4.com", COOKIE = "__Host-ynx_developer_identity", TRANSACTION = "__Host-ynx_developer_pkce";
 const random = () => randomBytes(32).toString("base64url"), hash = value => createHash("sha256").update(value).digest("hex");
@@ -195,13 +196,22 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
         json(response, 200, { connected: true, account: id.account, generation: id.generation, expiresAt: id.expiresAt, permissions: ["identity:read"], ...(grant?.csrf ? { csrf: grant.csrf } : {}) }); return true;
       }
       if (path === "/runtime/identity/import" && request.method === "POST") {
-        sameOrigin(request); const id = await verifyIdentity(request), input = await bodyJSON(request), guest = guestOwnerForRequest(request);
+        sameOrigin(request); const id = await verifyIdentity(request);
+        assertExpectedIdentity(request, id);
+        const expected = consumerIdentityBinding(id), input = await bodyJSON(request), guest = guestOwnerForRequest(request);
+        const current = await verifyIdentity(request);
+        assertExpectedIdentity(request, current);
+        if (consumerIdentityBinding(current) !== expected)
+          throw fault("Wallet identity changed. Review this project copy again.", "core_consumer_identity_changed", 401);
         if (!guest || !/^[A-Za-z0-9_-]{1,160}$/.test(input.projectId || "") || input.approval !== "copy-guest-project-once" || !/^[a-f0-9-]{36}$/.test(input.approvalId || ""))
           throw fault("Review copying this saved guest project into the current Wallet workspace first.", "developer_import_approval_required", 403);
         const original = workspaceStore.get(guest, input.projectId);
         if (!original || original.revision !== input.expectedGuestRevision) throw fault("Guest project changed. Save and review the copy again.", "revision_conflict", 409);
         if (workspaceStore.get(id.workspaceOwner, input.projectId)) throw fault("This Wallet already has this project. Existing files are preserved.", "developer_import_exists", 409);
         const { revision, updatedAt, ...payload } = original;
+        // No asynchronous work separates the final live identity assertion
+        // from the synchronous owner-scoped workspace transaction.
+        assertExpectedIdentity(request, current);
         const saved = workspaceStore.put(id.workspaceOwner, input.projectId, { expectedRevision: 0, idempotencyKey: `identity-copy-${input.approvalId}`, payload });
         json(response, 201, { copied: true, projectId: input.projectId, revision: saved.revision, originalPreserved: true }); return true;
       }

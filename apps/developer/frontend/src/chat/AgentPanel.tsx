@@ -9,10 +9,13 @@ import {
   indexProjectMemory,
   loadModelCatalog,
   loadAgentProjects,
+  listAgentRuns,
+  loadAgentRun,
   loadProjectMemoryFacts,
   loadProjectMemory,
   searchProjectMemory,
   type AgentRun,
+  type AgentRunSummary,
   type ModelCatalog,
   type ProjectMemoryFact,
   type ProjectMemoryStatus,
@@ -30,6 +33,7 @@ type AgentAction =
   | "generate-fix"
   | "prepare-git"
   | "approve-git"
+  | "reconcile-git"
   | "prepare-deployment"
   | "approve-deployment";
 
@@ -116,9 +120,14 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
   isCurrent: () => boolean; onUnauthorized: (message: string) => void;
 }) {
   const requests = useRef(createRequestEpoch()).current, mounted = useRef(false);
+  const runRequests = useRef(createRequestEpoch()).current;
+  const selectedRun = useRef<string | null | undefined>(undefined), reconciled = useRef(false);
   const previousLifecycle = useRef(lifecycleEpoch);
   const [catalog, setCatalog] = useState<ModelCatalog>();
   const [run, setRun] = useState<AgentRun>();
+  const [savedRuns, setSavedRuns] = useState<AgentRunSummary[]>([]), [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(true), [runReady, setRunReady] = useState(false), [notice, setNotice] = useState("");
+  const [uncertainCreate, setUncertainCreate] = useState(false);
   const [intent, setIntent] = useState("");
   const [provider, setProvider] = useState("ynx-hosted");
   const [model, setModel] = useState("");
@@ -139,6 +148,45 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
       requests.invalidate(); if (keyRef.current) keyRef.current.value = "";
       onUnauthorized(errorMessage(error));
     } else setError(errorMessage(error));
+  }
+
+  async function refreshSavedRuns(preferred = selectedRun.current) {
+    const captured = requests.capture(), readEpoch = runRequests.invalidate();
+    if (!current(captured)) return;
+    reconciled.current = false; setRunReady(false); setRecovering(true); setBusy(false);
+    if (keyRef.current) keyRef.current.value = "";
+    const valid = () => current(captured) && runRequests.current(readEpoch);
+    try {
+      const page = await listAgentRuns(projectId, identityKey); if (!valid()) return;
+      setSavedRuns(page.runs); setNextCursor(page.nextCursor);
+      const id = preferred === undefined ? page.runs[0]?.runId || null : preferred;
+      if (id) {
+        const value = await loadAgentRun(id, identityKey); if (!valid()) return;
+        if (value.projectId !== projectId) throw new Error("The saved run belongs to another project. Refresh the project list.");
+        selectedRun.current = value.runId; setRun(value); setProvider(value.provider); setModel(value.model); setUncertainCreate(false);
+        setSavedRuns(previous => previous.some(item => item.runId === value.runId) ? previous : [value, ...previous]);
+        if (value.workspaceRevision > revision) { onApplied(value.workspaceRevision); return; }
+      } else { selectedRun.current = null; setRun(undefined); }
+      reconciled.current = true; setRunReady(true);
+    } catch (cause) { if (valid()) handleError(cause, captured); }
+    finally { if (valid()) setRecovering(false); }
+  }
+  async function loadMoreRuns() {
+    if (nextCursor === null || recovering) return;
+    const captured = requests.capture(), readEpoch = runRequests.capture(); setRecovering(true);
+    const valid = () => current(captured) && runRequests.current(readEpoch);
+    try {
+      const page = await listAgentRuns(projectId, identityKey, nextCursor); if (!valid()) return;
+      setSavedRuns(previous => [...new Map([...previous, ...page.runs].map(item => [item.runId, item])).values()]);
+      setNextCursor(page.nextCursor);
+    } catch (cause) { if (valid()) handleError(cause, captured); }
+    finally { if (valid()) setRecovering(false); }
+  }
+  function newRequest() {
+    if (!current(requests.capture()) || recovering || busy || run?.operation?.status === "running") return;
+    runRequests.invalidate(); selectedRun.current = null; setIntent(run?.intent || intent); setRun(undefined);
+    setNotice(""); setError(""); setUncertainCreate(false); if (keyRef.current) keyRef.current.value = "";
+    reconciled.current = true; setRunReady(true);
   }
 
   const loadCatalog = async () => {
@@ -164,15 +212,20 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
   }, [projectId]);
   useEffect(() => {
     if (!enabled || previousLifecycle.current !== lifecycleEpoch) {
-      requests.invalidate(); setBusy(false); if (keyRef.current) keyRef.current.value = "";
+      requests.invalidate(); runRequests.invalidate(); reconciled.current = false; setRunReady(false); setBusy(false);
+      if (keyRef.current) keyRef.current.value = "";
     }
     previousLifecycle.current = lifecycleEpoch;
+    if (enabled) void refreshSavedRuns();
   }, [enabled, lifecycleEpoch, requests]);
 
   const execute = async (action: AgentAction) => {
-    const captured = requests.capture(); if (!current(captured)) return;
+    const captured = requests.capture(), runEpoch = runRequests.capture();
+    const valid = () => current(captured) && runRequests.current(runEpoch);
+    if (!valid() || !reconciled.current || recovering || uncertainCreate || run?.operation?.status === "running") return;
+    if (action === "approve-git" && run?.operation?.status === "interrupted" && run.operation.action === "approve-git" && run.operation.recoveryEvidence?.recheckRequired) return;
     setBusy(true);
-    setError("");
+    setError(""); setNotice("");
     try {
       const apiKey = keyRef.current?.value || undefined;
       const approvalId = crypto.randomUUID();
@@ -187,6 +240,8 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           approval: "model-request-once",
           approvalId,
         }, identityKey);
+      } else if (action === "reconcile-git") {
+        next = await agentAction(run!.runId, { action }, identityKey);
       } else {
         next = await agentAction(run!.runId, {
           action,
@@ -231,14 +286,23 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
             : {}),
         }, identityKey);
       }
-      if (!current(captured)) return;
+      if (!valid()) return;
+      selectedRun.current = next.runId;
       setRun(next);
+      setSavedRuns(previous => [next, ...previous.filter(item => item.runId !== next.runId)]);
       if (action === "apply" || action === "restore-deleted")
         onApplied(next.workspaceRevision);
     } catch (error) {
-      handleError(error, captured);
+      if (valid()) {
+        handleError(error, captured);
+        if (!unauthorized(error)) {
+          if (action === "create") setUncertainCreate(true);
+          setNotice("The request did not return a confirmed result. Read the saved state before approving another operation; it was not automatically sent again.");
+          await refreshSavedRuns(action === "create" ? undefined : selectedRun.current);
+        }
+      }
     } finally {
-      if (current(captured)) { if (keyRef.current) keyRef.current.value = ""; setBusy(false); }
+      if (valid()) { if (keyRef.current) keyRef.current.value = ""; setBusy(false); }
     }
   };
 
@@ -343,6 +407,17 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           ? `YNX hosted ${catalog.hosted.model} ready`
           : "Hosted model connection unavailable · retry or choose your own provider"}
       </div>
+      <div className="agent-fields">
+        <label>Saved runs<select aria-label="Saved runs" value={run?.runId || ""} disabled={recovering || busy} onChange={event => {
+          setError(""); setNotice(""); void refreshSavedRuns(event.target.value || null);
+        }}><option value="">New request</option>{savedRuns.map(item => <option key={item.runId} value={item.runId}>{item.intent.slice(0, 80)} · {item.status.replaceAll("_", " ")}</option>)}</select></label>
+        <Button disabled={recovering} onClick={() => { setError(""); void refreshSavedRuns(); }}>{recovering ? "Reading saved state…" : "Refresh saved state"}</Button>
+        {nextCursor !== null && <Button disabled={recovering || busy} onClick={() => void loadMoreRuns()}>Load more saved runs</Button>}
+        {(run || uncertainCreate) && <Button disabled={recovering || busy || run?.operation?.status === "running"} onClick={newRequest}>{run ? "New request from this intent" : "Review a new request from this intent"}</Button>}
+      </div>
+      {notice && <p className="agent-error" role="status">{notice}</p>}
+      {run?.operation?.status === "running" && <p className="agent-approved" role="status">{run.operation.action} is still running on the server. Refresh saved state to read its result. No operation is sent again automatically.</p>}
+      {run?.operation?.status === "interrupted" && <p className="agent-error" role="status">The last {run.operation.action} operation was interrupted{run.operation.errorCode ? ` (${run.operation.errorCode})` : ""}. Review the saved state before approving the next operation.{run.status === "planning" ? " Start a new request from this intent to explicitly request another plan." : ""}</p>}
       <details className="memory-box">
         <summary>PROJECT MEMORY {memory ? `· ${memory.chunks} chunks` : ""}</summary>
         <small>
@@ -444,14 +519,14 @@ function ProjectAgentPanel({ projectId, revision, activePath, identityKey, enabl
           />
           <Button
             variant="default"
-            disabled={busy || !providerReady || intent.trim().length < 4}
+            disabled={busy || recovering || !runReady || uncertainCreate || !providerReady || intent.trim().length < 4}
             onClick={() => execute("create")}
           >
             Approve model request once · create plan
           </Button>
         </>
       ) : (
-        <AgentRunView run={run} busy={busy} execute={execute} />
+        <AgentRunView run={run} busy={busy || recovering || !runReady || run.operation?.status === "running"} execute={execute} />
       )}
       {error && <div className="agent-error">{error}</div>}
       <div className="honest-boundary">
@@ -472,6 +547,7 @@ function AgentRunView({
   busy: boolean;
   execute: (action: AgentAction) => void;
 }) {
+  const gitRecovery = run.operation?.status === "interrupted" && run.operation.action === "approve-git" && run.operation.recoveryEvidence?.recheckRequired;
   const usage = run.usage.reportedCalls
     ? `${run.usage.inputTokens} input + ${run.usage.outputTokens} output tokens`
     : `tokens unreported (${run.usage.unreportedCalls} model calls)`;
@@ -567,8 +643,15 @@ function AgentRunView({
       )}
       {run.gitOperation && (
         <div className="agent-proposal">
+          {run.gitOperation.recovery ? <>
+            <strong>Repository state checked · {run.gitOperation.recovery.branch || "branch not set"}</strong>
+            <code>Current HEAD: {run.gitOperation.recovery.head || "none"}</code>
+            <small>{run.gitOperation.recovery.state === "clean" ? "Working tree is clean." : `${run.gitOperation.recovery.pendingChanges.length} pending changes.`} Checked {run.gitOperation.recovery.checkedAt}</small>
+            {run.gitOperation.recovery.pendingChanges.map(file => <code key={file.path}>{file.status} · {file.path}{file.originalPath ? ` ← ${file.originalPath}` : ""}</code>)}
+            <small>{run.gitOperation.recovery.previousOutcome === "process-reported-completed" ? "The prior process reported completion. This check does not prove that it produced the displayed HEAD." : "The prior operation's outcome is unknown. This is the repository state observed now."}</small>
+          </> : <>
           <strong>
-            Local Git {run.gitOperation.commit ? "commit" : "review"} ·{" "}
+            {gitRecovery ? "Saved Git review" : `Local Git ${run.gitOperation.commit ? "commit" : "review"}`} ·{" "}
             {run.gitOperation.branch || "main"}
           </strong>
           <small>
@@ -581,9 +664,10 @@ function AgentRunView({
               {file.operation} · {file.path} · {file.digest.slice(0, 12)}… · {file.bytes} bytes
             </code>
           ))}
-          {run.gitOperation.commit && (
+          {run.gitOperation.commit && !gitRecovery && (
             <code>commit · {run.gitOperation.commit}</code>
           )}
+          </>}
           <small>{run.gitOperation.boundary}</small>
         </div>
       )}
@@ -612,7 +696,7 @@ function AgentRunView({
           Approve write once
         </Button>
       )}
-      {run.status === "applied" && (
+      {(run.status === "applied" || run.status === "restored") && (
         <Button variant="default" disabled={busy} onClick={() => execute("run-test")}>
           Approve build + test once
         </Button>
@@ -628,7 +712,8 @@ function AgentRunView({
           </Button>
         </>
       )}
-      {run.status === "git_review" && (
+      {gitRecovery && <Button disabled={busy} onClick={() => execute("reconcile-git")}>Check repository and recover</Button>}
+      {run.status === "git_review" && !gitRecovery && (
         <Button
           variant="default"
           disabled={busy}
@@ -637,7 +722,7 @@ function AgentRunView({
           Approve local Git commit once
         </Button>
       )}
-      {run.status === "git_committed" && (
+      {run.status === "git_committed" && !gitRecovery && (
         <>
           <div className="agent-approved">
             Local commit created. No push, pull, PR, credential access or network
@@ -660,7 +745,7 @@ function AgentRunView({
       )}
       {run.status === "restored" && (
         <div className="agent-approved">
-          Deleted files were restored in a new workspace revision. Start a new reviewed run before further changes.
+          Deleted files were restored in a new workspace revision. Approve a new test before preparing further work.
         </div>
       )}
       {run.status === "test_failed" && (

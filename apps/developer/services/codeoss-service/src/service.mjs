@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { join, resolve, relative, sep } from "node:path";
 import { OPENVSCODE, CORE_LIMITS } from "./upstream.mjs";
 import { createCentralIdentityVerifier, fault } from "./central-identity.mjs";
+import { consumerIdentityBinding, assertExpectedIdentity } from "./identity-consumer-binding.mjs";
 
 const ID = /^[A-Za-z0-9_-]{1,160}$/;
 const LIVE = "'preparing','running','stopping','recovery-required'";
@@ -60,10 +61,10 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       throw fault("The native IDE owns this project's files. Stop and synchronize it before editing here.", "core_writer_active");
   }
 
-  async function identity(request) {
+  async function identity(request, drainRevoked = true) {
     let id;
     try { id = await verifyIdentity(request); }
-    catch (error) { if (error.status === 401 && /^[a-f0-9]{64}$/.test(error.verifiedOwner || "")) await drainOwner(error.verifiedOwner, error.verifiedIdentityReference); throw error; }
+    catch (error) { if (drainRevoked && error.status === 401 && /^[a-f0-9]{64}$/.test(error.verifiedOwner || "")) await drainOwner(error.verifiedOwner, error.verifiedIdentityReference); throw error; }
     if (!id || !/^[a-f0-9]{64}$/.test(id.owner || "") || !/^[a-f0-9]{64}$/.test(id.workspaceOwner || "") ||
       !Number.isSafeInteger(id.generation) || id.generation < 0 || typeof id.account !== "string" ||
       !Number.isFinite(id.expiresAt) || id.expiresAt <= now())
@@ -87,7 +88,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       .run(expiry, row.id, row.owner, row.workspace_owner, row.account, row.generation, row.status);
   }
 
-  async function start(id, body) {
+  async function start(id, body, revalidate) {
     if (!driver || typeof launchURL !== "function" || typeof assertProjectQuiescent !== "function") throw fault("Native IDE runtime and isolated launch proxy are not configured.", "core_runtime_unavailable", 503);
     if (!ID.test(body.projectId || "") || !Number.isSafeInteger(body.expectedRevision) ||
       body.approval !== "launch-native-ide-once") throw fault("Review this project's native IDE launch first.", "core_approval_required", 403);
@@ -100,6 +101,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     // route, never a raw OpenVSCode token URL or the parent's authentication origin.
     const url = await launchURL({ owner: id.owner, projectId: body.projectId, runtimeId, sessionId });
     validateLaunchURL(url);
+    id = await revalidate();
     id.isCurrent?.();
     if (id.expiresAt <= now()) throw fault("Wallet identity expired before launch.", "core_identity_invalid", 401);
     db.exec("BEGIN IMMEDIATE");
@@ -138,6 +140,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
           try { await file.writeFile(content); await file.sync(); } finally { await file.close(); }
         }
         await syncDirectory(source); await syncDirectory(context.projectDirectory);
+        await revalidate();
         db.prepare("INSERT INTO codeoss_projects(workspace_owner,project,directory,imported_revision) VALUES(?,?,?,?)").run(id.workspaceOwner, body.projectId, context.projectDirectory, snapshot.revision);
       } else if (existing.directory !== context.projectDirectory) {
         throw fault("Native project volume identity changed.", "core_project_volume_mismatch", 409);
@@ -147,9 +150,9 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       // Native volume is now the primary project file source. Preserve the old
       // JSON snapshot as an explicit compatibility/import record, never overwrite
       // binary/native files from a stale Monaco projection on future launches.
-      id.isCurrent?.();
+      await revalidate();
       await driver.start(context);
-      id.isCurrent?.();
+      await revalidate();
       workspaceStore.markNativeProject(id.workspaceOwner, body.projectId, token);
       db.prepare("UPDATE codeoss_projects SET adopted=1 WHERE workspace_owner=? AND project=?").run(id.workspaceOwner, body.projectId);
       db.prepare("UPDATE codeoss_sessions SET status='running' WHERE id=?").run(sessionId);
@@ -219,18 +222,40 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     try {
       const id = await identity(request);
       if (path === "/runtime/codeoss" && request.method === "GET") {
+        const identityKey = consumerIdentityBinding(id);
         const selectedProject = new URL(request.url, "http://localhost").searchParams.get("projectId");
         const project = selectedProject && ID.test(selectedProject) ? workspaceStore.get(id.workspaceOwner, selectedProject) : null;
-        const sessions = db.prepare("SELECT * FROM codeoss_sessions WHERE owner=? AND workspace_owner=? ORDER BY created_at DESC LIMIT 100").all(id.owner, id.workspaceOwner).map(publicSession);
+        // Recovery and current writers must never disappear behind newer stopped
+        // history, otherwise the only normal Stop entry becomes unreachable.
+        const live = db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND workspace_owner=? AND status IN (${LIVE}) ORDER BY created_at DESC`).all(id.owner, id.workspaceOwner);
+        const history = db.prepare("SELECT * FROM codeoss_sessions WHERE owner=? AND workspace_owner=? AND status='stopped' ORDER BY created_at DESC LIMIT 100").all(id.owner, id.workspaceOwner);
+        const sessions = [...live, ...history].map(publicSession);
         json(response, 200, { kernel: OPENVSCODE.version, license: OPENVSCODE.license, limits,
+          account: id.account, generation: id.generation, identityKey,
           capacityScope: "single-durable-broker", capacityVerified: false, sessions,
           configured: Boolean(driver && launchURL), walletProjectExists: Boolean(project), projectRevision: project?.revision || 0,
           walletProjects: workspaceStore.listProjects(id.workspaceOwner),
           nativeProjects: db.prepare("SELECT project FROM codeoss_projects WHERE workspace_owner=? AND adopted=1").all(id.workspaceOwner).map(row => row.project) });
       } else if (path === "/runtime/codeoss" && request.method === "POST") {
-        json(response, 201, { session: await start(id, await bodyJSON(request)) });
+        assertExpectedIdentity(request, id);
+        const expected = consumerIdentityBinding(id), body = await bodyJSON(request);
+        const revalidate = async () => {
+          // Revalidation during this same launch must not recursively drain it:
+          // Stop waits for launch settlement before proving absence. A rejection
+          // below records protected recovery, then normal Stop/timer can drain it.
+          const current = await identity(request, false);
+          assertExpectedIdentity(request, current);
+          if (consumerIdentityBinding(current) !== expected)
+            throw fault("Wallet identity changed. Review this project again.", "core_consumer_identity_changed", 401);
+          return current;
+        };
+        const current = await revalidate();
+        json(response, 201, { session: await start(current, body, revalidate) });
       } else if (request.method === "DELETE" && path !== "/runtime/codeoss") {
+        assertExpectedIdentity(request, id);
         const row = get(path.split("/").at(-1)); authorize(row, id);
+        // An admitted Stop must finish its recovery even if sign-out occurs
+        // while the driver is stopping; cleanup is never a new launch/write grant.
         json(response, 200, { session: await stop(row) });
       } else throw fault("Method not allowed.", "method_not_allowed", 405);
     } catch (error) { json(response, error.status || 503, { error: error.message, code: error.code || "core_unavailable" }); }

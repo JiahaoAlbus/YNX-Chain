@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { createServer } from "node:http";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createCodeOSSService } from "../src/service.mjs";
+import { consumerIdentityBinding } from "../src/identity-consumer-binding.mjs";
 
 const owner = "a".repeat(64), project = "crash-project";
 const snapshot = { name: "Crash recovery", files: { "main.js": "console.log(42)" }, folders: [], open: ["main.js"], active: "main.js" };
@@ -19,9 +20,9 @@ test("real SIGKILL before admission commit rolls back writer; after commit cold 
       const store=createWorkspaceStore({filename:${JSON.stringify(filename)}});
       ${stage === "writer-insert" ? "const claim=store.claimWriterInTransaction;store.claimWriterInTransaction=(...args)=>{claim(...args);process.kill(process.pid,'SIGKILL')};" : ""}
       const core=createCodeOSSService({filename:${JSON.stringify(join(root, "unused-legacy.sqlite"))},root:${JSON.stringify(join(root, "native"))},workspaceStore:store,
-        verifyIdentity:async()=>({owner:${JSON.stringify(owner)},workspaceOwner:${JSON.stringify(owner)},account:'ynx-a',generation:1,expiresAt:Date.now()+3600000}),
+        verifyIdentity:async()=>({owner:${JSON.stringify(owner)},workspaceOwner:${JSON.stringify(owner)},account:'ynx-a',generation:1,expiresAt:Date.now()+3600000,identityReference:'browser-a',isCurrent(){}}),
         launchURL:({sessionId})=>'https://'+sessionId+'.ynx-native.dev/',assertProjectQuiescent(){},driver:{async start(){process.kill(process.pid,'SIGKILL')}}});
-      const server=createServer((req,res)=>core.handler(req,res));server.listen(0,'127.0.0.1',async()=>{await fetch('http://127.0.0.1:'+server.address().port+'/runtime/codeoss',{method:'POST',body:JSON.stringify({projectId:${JSON.stringify(project)},expectedRevision:1,approval:'launch-native-ide-once'})});process.exit(7)});`;
+      const server=createServer((req,res)=>core.handler(req,res));server.listen(0,'127.0.0.1',async()=>{const url='http://127.0.0.1:'+server.address().port+'/runtime/codeoss',catalog=await(await fetch(url)).json();await fetch(url,{method:'POST',headers:{'x-ynx-agent-identity':catalog.identityKey},body:JSON.stringify({projectId:${JSON.stringify(project)},expectedRevision:1,approval:'launch-native-ide-once'})});process.exit(7)});`;
     const child = spawnSync(process.execPath, ["--input-type=module", "-e", script], { timeout: 10000, stdio: "pipe" }); assert.equal(child.signal, "SIGKILL", child.stderr.toString());
     store = createWorkspaceStore({ filename }); const db = store.nativeJournalDatabase();
     const expected = stage === "writer-insert" ? 0 : 1;
@@ -30,11 +31,12 @@ test("real SIGKILL before admission commit rolls back writer; after commit cold 
     if (!expected) store.assertWritable(owner, project);
     else {
       const row = db.prepare("SELECT * FROM codeoss_sessions").get(); assert.equal(row.project, project); assert.equal(row.workspace_owner, owner);
+      const identity = { owner, workspaceOwner: owner, account: "ynx-a", generation: 1, expiresAt: Date.now() + 3600000, identityReference: "browser-a", isCurrent() {} };
       const core = createCodeOSSService({ filename: join(root, "unused-legacy.sqlite"), root: join(root, "native"), workspaceStore: store,
-        verifyIdentity: async () => ({ owner, workspaceOwner: owner, account: "ynx-a", generation: 1, expiresAt: Date.now() + 3600000 }),
+        verifyIdentity: async () => identity,
         driver: { stop: async context => ({ stopped: true, neverStarted: true, runtimeId: context.runtimeId, identityDigest: context.identityDigest }) } });
       const server = createServer((req, res) => core.handler(req, res)); await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-      const stopped = await fetch(`http://127.0.0.1:${server.address().port}/runtime/codeoss/${row.id}`, { method: "DELETE" }); assert.equal(stopped.status, 200);
+      const stopped = await fetch(`http://127.0.0.1:${server.address().port}/runtime/codeoss/${row.id}`, { method: "DELETE", headers: { "x-ynx-agent-identity": consumerIdentityBinding(identity) } }); assert.equal(stopped.status, 200);
       assert.equal(db.prepare("SELECT COUNT(*) n FROM workspace_writers").get().n, 0); store.assertWritable(owner, project);
       await new Promise(resolve => server.close(resolve)); core.close();
     }

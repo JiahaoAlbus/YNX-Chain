@@ -77,6 +77,31 @@ not become remote public verification.
 
 ## Failure and recovery
 
+The AI Engineer saves its original intent before Planner dispatch. Saved-run
+lists are owner/project scoped and use an opaque creation-time cursor; active
+operations remain visible on the first page. Opening or refreshing a saved run
+performs authenticated reads only. A displayed running operation disables its
+approval controls, and the server claims a durable per-run operation before
+dispatch so a second browser cannot repeat it concurrently. Closing the service
+aborts requests before closing SQLite and fences late model results.
+
+Each final run state, its completion events and the operation completion marker
+commit in one SQLite transaction. Approved file apply/restore also save an exact
+write intent before the separate workspace database changes. After a process
+death, recovery reads the workspace's idempotency receipt and only reconstructs
+the run when both request hash and revision match. It never replays a write or
+model request. A missing receipt retains interrupted intent; a conflicting
+receipt preserves the evidence and blocks new operations. Restored files need a
+fresh test approval before further Git or deployment review.
+
+A dispatched local Git commit whose result is unknown keeps a recovery gate.
+The explicit `reconcile-git` action only reads the existing repository adapter,
+rechecks Wallet identity and workspace revision, and records observed HEAD,
+branch and pending paths. It neither repeats a commit nor infers the prior
+commit's success from the current HEAD. Failed reads retain the gate for another
+explicit attempt. A rejected preflight that never dispatched a commit does not
+claim the repository changed.
+
 Provider unavailable, 429, timeout, empty output, cancel and interruption remain
 failures. No canned result is substituted. Runs retain the reviewed plan,
 permission decisions, tool timeline, diff, test/build evidence, artifact hashes

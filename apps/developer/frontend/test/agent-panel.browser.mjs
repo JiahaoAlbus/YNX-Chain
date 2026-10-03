@@ -23,7 +23,7 @@ function runRecord(account, projectId, intent, sequence) {
     usage: { inputTokens: 0, outputTokens: 0, durationMs: 1, reportedCalls: 0, unreportedCalls: 1, cost: { amount: null, currency: null, status: 'unreported-by-provider' } }, permissions: [] };
 }
 async function harness() {
-  const page = await browser.newPage(), pending = [], runs = new Map();
+  const page = await browser.newPage(), pending = [], runs = new Map(), owners = new Map();
   page.on('pageerror', error => errors.push(error.message));
   const state = { account: 'account-A', generation: 1, identityKey: 'identity-A-1', projects: projects(), projectsStatus: 200, modelStatus: 200, nextProjects: null, nextRun: null, nextMemory: null, projectReads: 0, modelReads: 0, healthReads: 0, runCalls: [], memoryCalls: [], deniedCalls: [], bindings: [] };
   await page.route('**/runtime/**', async route => {
@@ -50,12 +50,18 @@ async function harness() {
       const projectId = decodeURIComponent(path.split('/').at(-1)); state.memoryCalls.push({ projectId, method: request.method() });
       value = { protocolVersion: 'ynx-code-memory/v1', projectId, chunks: state.account === 'account-A' ? 111 : 222, revision: 5, symbols: 0, relationships: 0, languages: [], results: [], facts: [] };
       delayed = state.nextMemory; state.nextMemory = null;
+    } else if (path === '/runtime/agent/runs' && request.method() === 'GET') {
+      value = { runs: [...runs.values()].filter(run => owners.get(run.runId) === state.account && run.projectId === url.searchParams.get('projectId')), nextCursor: null };
+    } else if (path.startsWith('/runtime/agent/runs/') && request.method() === 'GET') {
+      const id = path.split('/').at(-1);
+      if (owners.get(id) !== state.account) { status = 404; value = { error: 'Run not found.' }; }
+      else value = { run: runs.get(id) };
     } else if (path === '/runtime/agent/runs' || path.startsWith('/runtime/agent/runs/')) {
       const body = request.postDataJSON();
       state.runCalls.push({ projectId: body.projectId, action: body.action || 'create', approval: body.approval, activePath: body.activePath });
       let run;
       if (path === '/runtime/agent/runs') {
-        run = runRecord(state.account, body.projectId, body.intent, runs.size + 1); runs.set(run.runId, run);
+        run = runRecord(state.account, body.projectId, body.intent, runs.size + 1); runs.set(run.runId, run); owners.set(run.runId, state.account);
       } else {
         run = structuredClone(runs.get(path.split('/').at(-1)));
         if (body.action === 'approve-plan') run.status = 'context_review';
@@ -75,7 +81,7 @@ async function harness() {
     if (delayed) { pending.push(delayed); delayed.seen(); await delayed.wait; }
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) }).catch(error => { if (!page.isClosed()) throw error; });
   });
-  return { page, state, async open() { await page.goto(fixtureURL); }, async close() { for (const item of pending) item.release(); await page.close(); captures.push({ projectReads: state.projectReads, modelReads: state.modelReads, healthReads: state.healthReads, runCalls: state.runCalls, memoryCalls: state.memoryCalls, deniedCalls: state.deniedCalls, bindings: state.bindings }); } };
+  return { page, state, runs, async open() { await page.goto(fixtureURL); }, async close() { for (const item of pending) item.release(); await page.close(); captures.push({ projectReads: state.projectReads, modelReads: state.modelReads, healthReads: state.healthReads, runCalls: state.runCalls, memoryCalls: state.memoryCalls, deniedCalls: state.deniedCalls, bindings: state.bindings }); } };
 }
 const planButton = page => page.getByRole('button', { name: 'Approve model request once · create plan', exact: true });
 async function createPlan(page) { await page.getByLabel('Software change', { exact: true }).fill('Explain the selected owned source'); await planButton(page).click(); }
@@ -114,13 +120,13 @@ try {
       await h.open(); await h.page.getByLabel('Software change', { exact: true }).waitFor();
       const delayed = hold(); h.state.nextRun = delayed; await createPlan(h.page); await delayed.ready;
       await h.page.getByLabel('Wallet project', { exact: true }).selectOption('project-B');
+      h.runs.set('run-1', { ...h.runs.get('run-1'), plan: { ...h.runs.get('run-1').plan, summary: 'Fresh saved state from explicit GET' } });
       await h.page.getByLabel('Wallet project', { exact: true }).selectOption('project-A');
       const settled = h.page.waitForResponse(response => new URL(response.url()).pathname === '/runtime/agent/runs'); delayed.release(); await settled;
       await h.page.getByRole('button', { name: 'Retry models', exact: true }).click();
-      await h.page.getByLabel('Software change', { exact: true }).waitFor();
+      await h.page.getByText('Fresh saved state from explicit GET', { exact: true }).waitFor();
       assert.equal(await h.page.getByText('private-plan-account-A-project-A', { exact: true }).count(), 0);
-      assert.equal(await h.page.getByLabel('Software change', { exact: true }).inputValue(), '');
-      checks.push('A to B to A retires the original pending model result');
+      checks.push('A to B to A retires the original pending model result while permitting freshly authenticated saved-state GET');
     } finally { await h.close(); }
   }
   {

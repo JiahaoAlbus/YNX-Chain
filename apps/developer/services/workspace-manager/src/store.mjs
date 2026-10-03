@@ -277,6 +277,14 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
     return revisionValue(row);
   }
 
+  function mutationReceipt(ownerId, projectId, idempotencyKey) {
+    validateId(ownerId, "owner");
+    validateId(projectId, "project");
+    validateIdempotencyKey(idempotencyKey);
+    const row = mutation.get(ownerId, projectId, idempotencyKey);
+    return row ? { revision: Number(row.revision), requestHash: row.request_hash } : null;
+  }
+
   function replayedMutation(ownerId, projectId, idempotencyKey, requestHash) {
     const previous = mutation.get(ownerId, projectId, idempotencyKey);
     if (!previous) return null;
@@ -384,6 +392,7 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
     restore,
     history,
     snapshot,
+    mutationReceipt,
     close: () => db.close(),
   };
 }

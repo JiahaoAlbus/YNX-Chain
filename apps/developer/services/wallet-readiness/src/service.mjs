@@ -45,8 +45,12 @@ export function createWalletReadinessService({
     }
     owners.set(owner, ownerActive + 1);
     active++;
+    const controller = new AbortController();
+    const disconnected = () => { if (!response.writableEnded) controller.abort(); };
+    request.once?.("aborted", disconnected); response.once?.("close", disconnected);
+    if (request.aborted || response.destroyed) disconnected();
     try {
-      const gate = await readiness(fetcher, upstream);
+      const gate = await readiness(fetcher, upstream, controller.signal);
       if (readinessRoute) {
         json(response, 200, gate);
         return true;
@@ -82,9 +86,9 @@ export function createWalletReadinessService({
         method: "POST",
         headers: { accept: "application/json", "content-type": "application/json", ...(proofHeader ? { "x-ynx-product-session-proof": proofHeader } : {}) },
         body: upstreamBody,
-      });
+      }, controller.signal);
       if (deploymentRoute) {
-        const deployment = await broadcastDeployment(value.response, completed.result, chainFetcher, chain);
+        const deployment = await broadcastDeployment(value.response, completed.result, chainFetcher, chain, controller.signal);
         json(response, 200, { protocolVersion: PROTOCOL, deployment });
       } else json(response, 200, { protocolVersion: PROTOCOL, ...(introspectionRoute ? { introspection: completed.result } : { session: completed.result }) });
       return true;
@@ -96,6 +100,8 @@ export function createWalletReadinessService({
       });
       return true;
     } finally {
+      controller.abort();
+      request.removeListener?.("aborted", disconnected); response.removeListener?.("close", disconnected);
       active--;
       const next = (owners.get(owner) || 1) - 1;
       if (next) owners.set(owner, next); else owners.delete(owner);
@@ -104,11 +110,11 @@ export function createWalletReadinessService({
   return { handler, status: () => ({ protocolVersion: PROTOCOL, upstream: upstream.origin, chain:chain.origin, ideActionPublicReady, maxOwnerRequests, maxGlobalRequests, active }) };
 }
 
-async function readiness(fetcher, upstream) {
+async function readiness(fetcher, upstream, signal) {
   const [health, ready, version] = await Promise.all([
-    read(fetcher, new URL("health", upstream)),
-    read(fetcher, new URL("ready", upstream)),
-    read(fetcher, new URL("version", upstream)),
+    read(fetcher, new URL("health", upstream), undefined, signal),
+    read(fetcher, new URL("ready", upstream), undefined, signal),
+    read(fetcher, new URL("version", upstream), undefined, signal),
   ]);
   return {
     protocolVersion: PROTOCOL,
@@ -154,7 +160,7 @@ function approvedChain(value) {
   return url;
 }
 
-async function broadcastDeployment(response, introspection, fetcher, chain) {
+async function broadcastDeployment(response, introspection, fetcher, chain, signal) {
   if (introspection?.active !== true || !introspection.session) throw fault("Developer Product Session is inactive.", "deployment_session_inactive", 403);
   const session = introspection.session;
   const responseFields = ["version", "requestDigest", "productClientId", "bundleId", "callback", "sessionBinding", "account", "action", "artifactDigest", "signedTransaction", "canonicalPayloadHex", "transactionHash", "issuedAt", "expiresAt"];
@@ -175,10 +181,10 @@ async function broadcastDeployment(response, introspection, fetcher, chain) {
   if (!plainExact(transaction, envelopeFields) || !plainExact(payload, payloadFields) || canonicalJSON(transaction) !== canonicalJSON(response.signedTransaction) || transaction.version !== 1 || transaction.chainId !== 6423 || transaction.type !== "application_action" || !/^0x[0-9a-f]{40}$/.test(transaction.signer || "") || !Number.isSafeInteger(transaction.nonce) || transaction.nonce < 1 || transaction.action !== "ide_contract_deploy" || transaction.fee !== 1 || transaction.aiUnits !== 0 || transaction.payUnits !== 0 || !/^(02|03)[0-9a-f]{64}$/.test(transaction.publicKey || "") || !/^[0-9a-f]{136,144}$/.test(transaction.signature || "") || transaction.payloadHash !== sha256(JSON.stringify(payload)) || payload.requestHash !== requestHash || response.artifactDigest !== artifactDigest) {
     throw fault("Developer signed transaction was widened.", "deployment_transaction_mismatch", 403);
   }
-  await chainRead(fetcher, new URL("ide/deploy", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: raw });
+  await chainRead(fetcher, new URL("ide/deploy", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: raw }, signal);
   let receipt = null;
   for (let attempt = 0; attempt < 10 && !receipt; attempt++) {
-    const rpc = await chainRead(fetcher, new URL("evm", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: `developer-receipt-${attempt}`, method: "eth_getTransactionReceipt", params: [response.transactionHash] }) });
+    const rpc = await chainRead(fetcher, new URL("evm", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: `developer-receipt-${attempt}`, method: "eth_getTransactionReceipt", params: [response.transactionHash] }) }, signal);
     if (rpc.error) throw fault("YNX Chain rejected the receipt lookup.", "deployment_receipt_rejected", 502);
     receipt = rpc.result ?? null;
     if (!receipt && attempt < 9) await new Promise(resolve => setTimeout(resolve, 500));
@@ -187,14 +193,8 @@ async function broadcastDeployment(response, introspection, fetcher, chain) {
   return { transactionHash: response.transactionHash, artifactDigest: response.artifactDigest, account: response.account, confirmed: true, receipt };
 }
 
-async function chainRead(fetcher, url, options) {
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
-  let response;
-  try { response = await fetcher(url, { ...options, redirect: "error", signal: controller.signal }); }
-  catch { throw fault("YNX Chain is unreachable.", "deployment_chain_unreachable", 503); }
-  finally { clearTimeout(timer); }
-  const text = await response.text();
-  if (Buffer.byteLength(text) > MAX_RESPONSE) throw fault("YNX Chain response is too large.", "deployment_chain_response_too_large", 502);
+async function chainRead(fetcher, url, options, signal) {
+  const { response, text } = await boundedResponse(fetcher, url, options, signal, 8000, "deployment_chain", "YNX Chain");
   let value;
   try { value = JSON.parse(text); }
   catch { throw fault("YNX Chain returned invalid JSON.", "deployment_chain_invalid_response", 502); }
@@ -208,20 +208,71 @@ function plainExact(value, fields) {
 function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
 function hex64(value) { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
 
-async function read(fetcher, url, options = { headers: { accept: "application/json" } }) {
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 3000);
-  let response;
-  try { response = await fetcher(url, { redirect: "error", ...options, signal: controller.signal }); }
-  catch { throw fault("Wallet Gateway is unreachable.", "wallet_gateway_unreachable", 503); }
-  finally { clearTimeout(timer); }
-  const declared = Number(response.headers?.get?.("content-length") || 0);
-  if (declared > MAX_RESPONSE) throw fault("Wallet Gateway response is too large.", "wallet_response_too_large", 502);
-  const text = await response.text();
-  if (Buffer.byteLength(text) > MAX_RESPONSE) throw fault("Wallet Gateway response is too large.", "wallet_response_too_large", 502);
+async function read(fetcher, url, options = { headers: { accept: "application/json" } }, signal) {
+  const { response, text } = await boundedResponse(fetcher, url, options, signal, 3000, "wallet", "Wallet Gateway");
   let value;
   try { value = JSON.parse(text); } catch { throw fault("Wallet Gateway returned invalid JSON.", "wallet_invalid_response", 502); }
   if (!response.ok || value?.ok !== true) throw fault("Wallet Gateway rejected the request.", "wallet_gateway_rejected", 502);
   return value;
+}
+
+// Keep the deadline through the entire body. Stop accumulating at the byte
+// limit and cancel readers even when an injected fetch ignores AbortSignal.
+async function boundedResponse(fetcher, url, options, parentSignal, timeoutMs, prefix, label) {
+  const controller = new AbortController();
+  const unreachable = () => fault(`${label} is unreachable.`, prefix === "wallet" ? "wallet_gateway_unreachable" : `${prefix}_unreachable`, 503);
+  let reader, response, finished = false, rejectCancelled;
+  const cancelled = new Promise((_resolve, reject) => { rejectCancelled = reject; });
+  const stop = () => {
+    rejectCancelled(unreachable());
+    try { void reader?.cancel().catch(() => {}); } catch {}
+  };
+  const abort = () => controller.abort();
+  controller.signal.addEventListener("abort", stop, { once: true });
+  parentSignal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(abort, timeoutMs);
+  const wait = operation => Promise.race([operation, cancelled]);
+  try {
+    if (parentSignal?.aborted) abort();
+    response = await wait(Promise.resolve().then(() => {
+      controller.signal.throwIfAborted();
+      return fetcher(url, { ...options, redirect: "error", signal: controller.signal });
+    }).then(value => {
+      if (controller.signal.aborted) { void value.body?.cancel?.().catch(() => {}); throw unreachable(); }
+      return value;
+    }));
+    const tooLarge = () => fault(`${label} response is too large.`, `${prefix}_response_too_large`, 502);
+    if (Number(response.headers?.get?.("content-length") || 0) > MAX_RESPONSE) throw tooLarge();
+    let text;
+    if (response.body?.getReader) {
+      reader = response.body.getReader();
+      const chunks = []; let size = 0;
+      while (true) {
+        const part = await wait(reader.read());
+        if (part.done) break;
+        size += part.value.byteLength;
+        if (size > MAX_RESPONSE) throw tooLarge();
+        chunks.push(Buffer.from(part.value));
+      }
+      text = Buffer.concat(chunks).toString("utf8");
+    } else {
+      text = await wait(response.text());
+      if (Buffer.byteLength(text) > MAX_RESPONSE) throw tooLarge();
+    }
+    finished = true;
+    return { response, text };
+  } catch (error) {
+    if (error.status) throw error;
+    throw unreachable();
+  } finally {
+    clearTimeout(timer); parentSignal?.removeEventListener("abort", abort);
+    controller.signal.removeEventListener("abort", stop);
+    if (!finished) {
+      controller.abort();
+      try { void (reader ? reader.cancel() : response?.body?.cancel?.())?.catch(() => {}); } catch {}
+    }
+    try { reader?.releaseLock(); } catch {}
+  }
 }
 
 function boundedBody(request) {
@@ -246,5 +297,5 @@ function canonicalJSON(value) {
   return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
 }
 
-function json(response, status, value) { response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); response.end(JSON.stringify(value)); }
+function json(response, status, value) { if (response.destroyed || response.writableEnded) return; response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }); response.end(JSON.stringify(value)); }
 function fault(message, code, status) { return Object.assign(new Error(message), { code, status }); }

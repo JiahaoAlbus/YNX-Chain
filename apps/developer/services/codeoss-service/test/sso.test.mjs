@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { createDeveloperSSO } from "../src/developer-sso.mjs";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { CENTRAL_IDENTITY } from "../src/central-identity.mjs";
+import { consumerIdentityBinding } from "../src/identity-consumer-binding.mjs";
 
 test("actual consumer HTTP PKCE callback seals grants, binds stable owner, explicitly copies guest, and exchanges one-use isolated cookie", async t => {
   const root = await mkdtemp(join(tmpdir(), "ynx-sso-test-")), store = createWorkspaceStore({ filename: join(root, "workspace.sqlite") });
@@ -28,8 +29,8 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
     } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   t.after(async () => { await new Promise(resolve => server.close(resolve)); service.close(); store.close(); });
-  const call = (path, { cookie, method = "GET", body, host = "developer.ynxweb4.com", origin, contentType = "application/json" } = {}) => new Promise((resolve, reject) => {
-    const req = rawRequest({ hostname: "127.0.0.1", port: server.address().port, path, method, headers: { host, ...(cookie ? { cookie } : {}), ...(origin ? { origin } : {}), ...(body ? { "content-type": contentType } : {}) } }, res => {
+  const call = (path, { cookie, method = "GET", body, host = "developer.ynxweb4.com", origin, contentType = "application/json", identityKey } = {}) => new Promise((resolve, reject) => {
+    const req = rawRequest({ hostname: "127.0.0.1", port: server.address().port, path, method, headers: { host, ...(cookie ? { cookie } : {}), ...(origin ? { origin } : {}), ...(identityKey ? { "x-ynx-agent-identity": identityKey } : {}), ...(body ? { "content-type": contentType } : {}) } }, res => {
       let text = ""; res.on("data", chunk => { text += chunk; }); res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, text }));
     }); req.on("error", reject); req.end(body);
   });
@@ -46,7 +47,7 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
   assert.equal(store.get(verified.workspaceOwner, "project"), null); // no automatic guest adoption
   const copyBody = JSON.stringify({ projectId: "project", expectedGuestRevision: 1, approval: "copy-guest-project-once", approvalId: "12345678-1234-1234-1234-123456789012" });
   assert.equal((await call("/runtime/identity/import", { cookie: sessionCookie, method: "POST", body: copyBody, origin: "https://attacker.example" })).status, 403);
-  assert.equal((await call("/runtime/identity/import", { cookie: sessionCookie, method: "POST", body: copyBody, origin: "https://developer.ynxweb4.com" })).status, 201);
+  assert.equal((await call("/runtime/identity/import", { cookie: sessionCookie, method: "POST", body: copyBody, origin: "https://developer.ynxweb4.com", identityKey: consumerIdentityBinding(verified) })).status, 201);
   assert.deepEqual(store.get(guest, "project").files, source.files); assert.deepEqual(store.get(verified.workspaceOwner, "project").files, source.files);
   const opened = await call("/sso/core-open?sessionId=12345678-1234-1234-1234-123456789012", { cookie: sessionCookie }); assert.equal(opened.status, 200); assert.equal(opened.text.includes(grant), false);
   const ticket = opened.text.match(/name="ticket" value="([^"]+)"/)[1];

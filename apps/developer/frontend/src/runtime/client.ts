@@ -978,6 +978,17 @@ export type AgentRun = {
   provider: string;
   model: string;
   workspaceRevision: number;
+  createdAt: string;
+  updatedAt: string;
+  operation: {
+    status: "running" | "interrupted" | "finished";
+    action: string;
+    startedAt: string;
+    updatedAt: string;
+    errorCode?: string;
+    recoveryEvidence?: { recheckRequired?: boolean; [key: string]: unknown };
+  } | null;
+  events: Array<{ sequence: number; event_type: string; payload: Record<string, unknown>; created_at: string }>;
   plan: {
     summary: string;
     steps: Array<{ title: string; acceptance: string }>;
@@ -1026,6 +1037,14 @@ export type AgentRun = {
     approval?: "git-local-commit-once";
     committedAt?: string;
     commit?: string;
+    recovery?: {
+      state: "clean" | "pending-changes";
+      head: string | null;
+      branch: string | null;
+      pendingChanges: Array<{ path: string; status: string; indexStatus?: string; worktreeStatus?: string; originalPath?: string }>;
+      checkedAt: string;
+      previousOutcome: "unknown" | "process-reported-completed";
+    };
   } | null;
   deployment: {
     target: "ynx-testnet" | "web-preview";
@@ -1077,6 +1096,17 @@ export type AgentProjects = {
 };
 export async function loadAgentProjects(): Promise<AgentProjects> {
   return agentFetch("/runtime/agent/projects");
+}
+export type AgentRunSummary = Pick<AgentRun, "runId" | "projectId" | "intent" | "status" | "provider" | "model" | "createdAt" | "updatedAt" | "operation">;
+export async function listAgentRuns(projectId: string, identityKey: string, cursor?: string): Promise<{ runs: AgentRunSummary[]; nextCursor: string | null }> {
+  const query = new URLSearchParams({ projectId, limit: "50" });
+  if (cursor !== undefined) query.set("cursor", cursor);
+  const value = await agentFetch(`/runtime/agent/runs?${query}`, {}, identityKey);
+  return { runs: value.runs, nextCursor: value.nextCursor ?? null };
+}
+export async function loadAgentRun(runId: string, identityKey: string): Promise<AgentRun> {
+  const value = await agentFetch(`/runtime/agent/runs/${encodeURIComponent(runId)}`, {}, identityKey);
+  return value.run;
 }
 export async function createAgentRun(body: Record<string, unknown>, identityKey?: string): Promise<AgentRun> {
   const value = await agentFetch("/runtime/agent/runs", {

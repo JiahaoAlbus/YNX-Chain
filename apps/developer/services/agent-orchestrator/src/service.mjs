@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { reviewedHostedPrompt } from "../../model-router/src/hosted-request.mjs";
 import { consumerIdentityBinding, assertExpectedIdentity } from "../../codeoss-service/src/identity-consumer-binding.mjs";
+import { inspectAgentGitRecovery } from "./git-recovery.mjs";
 
 const PROTOCOL = "ynx-code-agent/v1",
   MAX_BODY = 640 * 1024;
@@ -48,11 +49,54 @@ export function createAgentOrchestrator({
         .some((item) => item.name === column)
     )
       db.exec(`ALTER TABLE agent_runs ADD COLUMN ${column} ${definition}`);
+  db.exec("CREATE TABLE IF NOT EXISTS agent_operations(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,operation_id TEXT NOT NULL,instance_id TEXT NOT NULL,owner_pid INTEGER NOT NULL,status TEXT NOT NULL,action TEXT NOT NULL,started_at TEXT NOT NULL,updated_at TEXT NOT NULL,error_code TEXT,PRIMARY KEY(owner_id,run_id)); CREATE INDEX IF NOT EXISTS agent_operation_status ON agent_operations(status);");
+  for (const column of ["write_intent", "recovery_evidence"])
+    if (!db.prepare("PRAGMA table_info(agent_operations)").all().some(item => item.name === column))
+      db.exec(`ALTER TABLE agent_operations ADD COLUMN ${column} TEXT`);
+  const instanceId = randomUUID();
+  let closed = false, databaseClosed = false, closePromise, resolveClose;
+  const controllers = new Set();
+  function closeWhenDrained() {
+    if (!closed || databaseClosed || controllers.size) return;
+    db.prepare("UPDATE agent_operations SET status='interrupted',updated_at=?,error_code='agent_service_closed' WHERE instance_id=? AND status='running'").run(new Date().toISOString(), instanceId);
+    databaseClosed = true; db.close(); resolveClose?.();
+  }
+  const readOperation = db.prepare("SELECT * FROM agent_operations WHERE owner_id=? AND run_id=?"),
+    claimOperation = db.prepare("INSERT INTO agent_operations(owner_id,run_id,operation_id,instance_id,owner_pid,status,action,started_at,updated_at) VALUES(?,?,?,?,?,'running',?,?,?) ON CONFLICT(owner_id,run_id) DO UPDATE SET operation_id=excluded.operation_id,instance_id=excluded.instance_id,owner_pid=excluded.owner_pid,status='running',action=excluded.action,started_at=excluded.started_at,updated_at=excluded.updated_at,error_code=NULL,write_intent=NULL,recovery_evidence=NULL WHERE agent_operations.status<>'running'"),
+    finishOperation = db.prepare("UPDATE agent_operations SET status=?,updated_at=?,error_code=? WHERE owner_id=? AND run_id=? AND operation_id=? AND status='running'");
+  function recoverOperations() {
+    for (const operation of db.prepare("SELECT * FROM agent_operations WHERE status='running'").all()) {
+      if (processAlive(Number(operation.owner_pid))) continue;
+      finishOperation.run("interrupted", new Date().toISOString(), "agent_process_interrupted", operation.owner_id, operation.run_id, operation.operation_id);
+    }
+    for (const operation of db.prepare("SELECT * FROM agent_operations WHERE status='interrupted' AND write_intent IS NOT NULL").all()) {
+      const intent = JSON.parse(operation.write_intent), row = getRun.get(operation.owner_id, operation.run_id);
+      if (!row || !workspaceStore.mutationReceipt) continue;
+      const receipt = workspaceStore.mutationReceipt(operation.owner_id, row.project_id, intent.idempotencyKey);
+      if (!receipt) continue;
+      if (receipt.requestHash !== intent.requestHash || receipt.revision !== intent.expectedRevision + 1) {
+        db.prepare("UPDATE agent_operations SET error_code='agent_write_recovery_mismatch' WHERE owner_id=? AND run_id=? AND operation_id=? AND status='interrupted'")
+          .run(operation.owner_id, operation.run_id, operation.operation_id);
+        continue;
+      }
+      atomic(() => {
+        // Recheck after obtaining the SQLite write lock: another reader may have recovered it.
+        if (readOperation.get(operation.owner_id, operation.run_id)?.write_intent !== operation.write_intent) return;
+        const value = record(getRun.get(operation.owner_id, operation.run_id), []);
+        saveRun(operation.owner_id, operation.run_id, { ...value, status: intent.targetStatus,
+          workspaceRevision: receipt.revision, trash: intent.trash,
+          ...(intent.clearReviews ? { deployment: null, gitOperation: null } : {}) });
+        appendEvent(operation.owner_id, operation.run_id, intent.event.type, { ...intent.event.payload, revision: receipt.revision });
+        db.prepare("UPDATE agent_operations SET status='finished',updated_at=?,error_code=NULL,write_intent=NULL WHERE owner_id=? AND run_id=? AND operation_id=?")
+          .run(new Date().toISOString(), operation.owner_id, operation.run_id, operation.operation_id);
+      });
+    }
+  }
   const getRun = db.prepare(
       "SELECT * FROM agent_runs WHERE owner_id=? AND run_id=?",
     ),
     listRuns = db.prepare(
-      "SELECT * FROM agent_runs WHERE owner_id=? AND project_id=? ORDER BY created_at DESC LIMIT 50",
+      "SELECT * FROM agent_runs WHERE owner_id=? AND project_id=? AND (? IS NULL OR created_at<? OR (created_at=? AND run_id<?)) ORDER BY created_at DESC,run_id DESC LIMIT ?",
     ),
     insertRun = db.prepare(
       "INSERT INTO agent_runs(owner_id,run_id,project_id,status,provider,model,intent,workspace_revision,plan,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
@@ -96,9 +140,23 @@ export function createAgentOrchestrator({
     );
     return eventHash;
   };
+  function atomic(action) {
+    const owned = !db.isTransaction;
+    if (owned) db.exec("BEGIN IMMEDIATE");
+    try { const value = action(); if (owned) db.exec("COMMIT"); return value; }
+    catch (error) { if (owned) db.exec("ROLLBACK"); throw error; }
+  }
+  function saveRun(owner, runId, value) {
+    updateRun.run(value.status, value.provider, value.model, nullable(value.plan),
+      stable(value.approvedPaths || []), stable(value.approvedCreatePaths || []), stable(value.approvedDeletePaths || []),
+      nullable(value.proposal), nullable(value.review), nullable(value.deployment), nullable(value.gitOperation),
+      stable(value.trash || []), value.workspaceRevision, new Date().toISOString(), owner, runId);
+  }
+  recoverOperations();
   const read = (owner, runId) => {
+    recoverOperations();
     const row = getRun.get(owner, runId);
-    return row ? record(row, events.all(owner, runId)) : null;
+    return row ? { ...record(row, events.all(owner, runId)), operation: operationValue(readOperation.get(owner, runId)) } : null;
   };
   async function handler(request, response) {
     const url = new URL(
@@ -106,13 +164,16 @@ export function createAgentOrchestrator({
       `http://${request.headers.host || "127.0.0.1"}`,
     );
     if (url.pathname !== "/runtime/agent/projects" && !/^\/runtime\/agent\/runs(?:\/[^/]+)?$/.test(url.pathname)) return false;
-    let identity, owner, modelOwner, projectIdForModel, expiryTimer, identityTimer;
+    if (closed) { json(response, 503, { error: "Agent service is closing. Reopen saved runs after it returns.", code: "agent_service_closed" }); return true; }
+    let identity, owner, modelOwner, projectIdForModel, expiryTimer, identityTimer, operation, pendingRun;
+    const pendingEvents = [];
     let finished = false, checking = false;
     const clientController = new AbortController(),
       abortClient = () => clientController.abort(request.maintenanceSignal?.reason || fault("The request was cancelled.", "agent_request_cancelled", 499));
     const identityChanged = () => fault("The Wallet session changed or expired. Sign in again before continuing.", "agent_identity_changed", 401);
     const sameIdentity = (value) => value && ["owner", "workspaceOwner", "account", "generation", "identityReference"].every(key => value[key] === identity[key]);
     function assertCurrent() {
+      if (closed) throw fault("Agent service is closing. Reopen saved runs after it returns.", "agent_service_closed", 503);
       if (clientController.signal.aborted) throw clientController.signal.reason || identityChanged();
       try {
         if (identity && (identity.expiresAt <= Date.now() || identity.isCurrent() === false)) throw identityChanged();
@@ -132,7 +193,54 @@ export function createAgentOrchestrator({
         clientController.abort(error); throw error;
       }
     }
-    const append = (...args) => { assertCurrent(); return appendEvent(...args); };
+    const append = (...args) => { assertCurrent(); if (pendingRun) { pendingEvents.push(args); return; } return appendEvent(...args); };
+    function persist(value) { assertCurrent(); pendingRun = value; }
+    function commitPendingResult() {
+      assertCurrent();
+      atomic(() => {
+        if (pendingRun) saveRun(owner, operation.runId, pendingRun);
+        for (const args of pendingEvents) appendEvent(...args);
+        finishOperation.run("finished", new Date().toISOString(), null, owner, operation.runId, operation.operationId);
+        db.prepare("UPDATE agent_operations SET write_intent=NULL WHERE owner_id=? AND run_id=? AND operation_id=?")
+          .run(owner, operation.runId, operation.operationId);
+      });
+      operation = null; pendingRun = null; pendingEvents.length = 0;
+    }
+    function saveWriteIntent(current, payload, intent) {
+      assertCurrent();
+      const idempotencyKey = `agent-${operation.runId}-${operation.operationId}`;
+      const value = { ...intent, idempotencyKey, expectedRevision: current.workspaceRevision,
+        requestHash: sha(`${current.workspaceRevision}:${JSON.stringify(payload)}`) };
+      db.prepare("UPDATE agent_operations SET write_intent=? WHERE owner_id=? AND run_id=? AND operation_id=? AND status='running'")
+        .run(stable(value), owner, operation.runId, operation.operationId);
+      return idempotencyKey;
+    }
+    function beginRunOperation(runId, action) {
+      assertCurrent(); recoverOperations();
+      const previous = readOperation.get(owner, runId);
+      if (previous?.write_intent) {
+        const intent = JSON.parse(previous.write_intent), row = getRun.get(owner, runId);
+        if (!workspaceStore.mutationReceipt)
+          throw fault("Saved write verification is unavailable. Preserve this run until it returns.", "agent_write_recovery_unavailable", 503);
+        const receipt = workspaceStore.mutationReceipt(owner, row.project_id, intent.idempotencyKey);
+        if (receipt && (receipt.requestHash !== intent.requestHash || receipt.revision !== intent.expectedRevision + 1))
+          throw fault("The saved workspace write receipt does not match. Preserve the run for recovery.", "agent_write_recovery_mismatch", 409);
+      }
+      if (previous?.status === "interrupted" && previous.action === "approve-git" && previous.recovery_evidence && JSON.parse(previous.recovery_evidence).recheckRequired && action !== "reconcile-git")
+        throw fault("Read the repository state before preparing another commit.", "git_recovery_required", 409);
+      const operationId = randomUUID(), now = new Date().toISOString();
+      if (!claimOperation.run(owner, runId, operationId, instanceId, process.pid, action, now, now).changes)
+        throw fault("This saved run still has an operation in progress. Refresh its status before continuing.", "agent_run_busy", 409);
+      operation = { runId, operationId, ...(action === "reconcile-git" ? { previous } : {}) };
+    }
+    function settleRunOperation(status = "finished", errorCode = null) {
+      if (!operation || databaseClosed) return;
+      finishOperation.run(status, new Date().toISOString(), errorCode, owner, operation.runId, operation.operationId);
+      if (status === "interrupted" && operation.previous?.action === "approve-git")
+        db.prepare("UPDATE agent_operations SET action='approve-git',recovery_evidence=? WHERE owner_id=? AND run_id=? AND operation_id=?")
+          .run(operation.previous.recovery_evidence, owner, operation.runId, operation.operationId);
+      operation = null;
+    }
     function assertTextProject(projectId) {
       if (workspaceStore.storageMode?.(owner, projectId) === "native-volume")
         throw fault("This project uses native workspace files. Open its native IDE Tools to review current files.", "agent_native_tools_required", 409);
@@ -170,6 +278,7 @@ export function createAgentOrchestrator({
     request.maintenanceSignal?.addEventListener("abort", abortClient, { once: true });
     const closeResponse = () => { if (!response.writableEnded) abortClient(); };
     response.once("close", closeResponse);
+    controllers.add(clientController);
     try {
       if (verifyIdentity) {
         identity = await verifyIdentity(request);
@@ -210,9 +319,18 @@ export function createAgentOrchestrator({
             url.searchParams.get("projectId"),
             "project",
           );
+          recoverOperations();
+          const cursor = decodeCursor(url.searchParams.get("cursor")),
+            limit = Math.floor(Math.max(1, Math.min(Number(url.searchParams.get("limit")) || 50, 50))),
+            rows = listRuns.all(owner, projectId, cursor?.createdAt ?? null, cursor?.createdAt ?? null, cursor?.createdAt ?? null, cursor?.runId ?? null, limit + 1),
+            page = rows.slice(0, limit),
+            live = cursor ? [] : db.prepare("SELECT r.* FROM agent_runs r JOIN agent_operations o ON o.owner_id=r.owner_id AND o.run_id=r.run_id WHERE r.owner_id=? AND r.project_id=? AND o.status='running' ORDER BY r.created_at DESC,r.run_id DESC").all(owner, projectId),
+            visible = [...new Map([...live, ...page].map(row => [row.run_id, row])).values()],
+            last = page.at(-1);
           json(response, 200, {
             protocolVersion: PROTOCOL,
-            runs: listRuns.all(owner, projectId).map((row) => record(row, [])),
+            runs: visible.map(row => ({ ...record(row, []), operation: operationValue(readOperation.get(owner, row.run_id)) })),
+            nextCursor: rows.length > limit ? Buffer.from(JSON.stringify({ createdAt: last.created_at, runId: last.run_id })).toString("base64url") : null,
           });
         }
         return true;
@@ -247,14 +365,22 @@ export function createAgentOrchestrator({
             "model_request_approval_required",
             403,
           );
-        claimApproval(
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          claimApproval(
           owner,
           body.approvalId,
           "model-network",
           runId,
           getApproval,
           insertApproval,
-        );
+          );
+          const now = new Date().toISOString();
+          insertRun.run(owner, runId, projectId, "planning", String(body.provider || "ynx-hosted"), String(body.model || ""), intent, workspace.revision, null, now, now);
+          beginRunOperation(runId, "create");
+          append(owner, runId, "permission.decision", { permission: "model-network", decision: "granted", approval: "model-request-once", approvalId: body.approvalId, requestAction: "create" });
+          db.exec("COMMIT");
+        } catch (error) { db.exec("ROLLBACK"); operation = null; throw error; }
         const model = await ownerModelRouter.generate(
             modelInput(
               body,
@@ -263,37 +389,30 @@ export function createAgentOrchestrator({
               clientController.signal,
             ),
           ),
-          plan = validatePlan(parseJson(model.text), workspace.files),
-          now = new Date().toISOString();
+          plan = validatePlan(parseJson(model.text), workspace.files);
         await checkIdentity();
-        insertRun.run(
-          owner,
-          runId,
-          projectId,
-          "plan_review",
-          model.provider,
-          model.model,
-          intent,
-          workspace.revision,
-          stable(plan),
-          now,
-          now,
-        );
+        persist({ ...read(owner, runId), status: "plan_review", provider: model.provider, model: model.model, plan });
         append(owner, runId, "planner.completed", {
           ...modelEvidence(model),
           approval: "model-request-once",
           approvalId: body.approvalId,
           plan,
         });
+        commitPendingResult();
         json(response, 201, {
           protocolVersion: PROTOCOL,
           run: read(owner, runId),
         });
         return true;
       }
-      const current = read(owner, id);
-      if (!current)
-        throw fault("Agent run not found.", "agent_run_not_found", 404);
+      let current;
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        current = read(owner, id);
+        if (!current) throw fault("Agent run not found.", "agent_run_not_found", 404);
+        beginRunOperation(id, text(body.action, 1, 64, "action"));
+        db.exec("COMMIT");
+      } catch (error) { db.exec("ROLLBACK"); operation = null; throw error; }
       projectIdForModel = current.projectId;
       assertTextProject(current.projectId);
       const workspace = workspaceStore.get(owner, current.projectId);
@@ -507,10 +626,7 @@ export function createAgentOrchestrator({
             current.events.filter(
               (event) => event.event_type === "write.applied",
             ).length + 1,
-          saved = workspaceStore.put(owner, current.projectId, {
-            expectedRevision: workspace.revision,
-            idempotencyKey: `agent-${id}-${applyAttempt}`,
-            payload: {
+          payload = {
               name: workspace.name,
               files,
               folders,
@@ -518,30 +634,26 @@ export function createAgentOrchestrator({
               active: Object.hasOwn(files, workspace.active)
                 ? workspace.active
                 : Object.keys(files).sort()[0],
-            },
-          });
+            };
         const trash = [
           ...(current.trash || []),
           ...deleted.map((file) => ({
             ...file,
-            deletedRevision: saved.revision,
+            deletedRevision: workspace.revision + 1,
           })),
         ];
+        const appliedEvent = { approval: "write-once", attempt: applyAttempt,
+          files: current.proposal.files.map(file => ({ path: file.path, operation: file.operation })) };
+        const idempotencyKey = saveWriteIntent(current, payload, { targetStatus: "applied", trash,
+          event: { type: "write.applied", payload: appliedEvent } });
+        const saved = workspaceStore.put(owner, current.projectId, { expectedRevision: workspace.revision, idempotencyKey, payload });
         persist({
           ...current,
           status: "applied",
           trash,
           workspaceRevision: saved.revision,
         });
-        append(owner, id, "write.applied", {
-          approval: "write-once",
-          attempt: applyAttempt,
-          revision: saved.revision,
-          files: current.proposal.files.map((file) => ({
-            path: file.path,
-            operation: file.operation,
-          })),
-        });
+        append(owner, id, "write.applied", { ...appliedEvent, revision: saved.revision });
       } else if (body.action === "restore-deleted") {
         requireStateOneOf(current, [
           "applied",
@@ -581,14 +693,7 @@ export function createAgentOrchestrator({
         );
         const files = { ...latest.files };
         for (const path of requested) files[path] = available.get(path).content;
-        const restoreAttempt =
-            current.events.filter(
-              (event) => event.event_type === "trash.restored",
-            ).length + 1,
-          saved = workspaceStore.put(owner, current.projectId, {
-            expectedRevision: latest.revision,
-            idempotencyKey: `agent-${id}-restore-${restoreAttempt}`,
-            payload: {
+        const payload = {
               name: latest.name,
               files,
               folders: [
@@ -600,10 +705,13 @@ export function createAgentOrchestrator({
               open: latest.open,
               active: latest.active,
             },
-          }),
           trash = (current.trash || []).filter(
             (file) => !requested.includes(file.path),
           );
+        const restoredEvent = { approval: "restore-once", files: requested.map(path => ({ path, digest: available.get(path).digest })) };
+        const idempotencyKey = saveWriteIntent(current, payload, { targetStatus: "restored", trash, clearReviews: true,
+          event: { type: "trash.restored", payload: restoredEvent } });
+        const saved = workspaceStore.put(owner, current.projectId, { expectedRevision: latest.revision, idempotencyKey, payload });
         persist({
           ...current,
           status: "restored",
@@ -612,16 +720,9 @@ export function createAgentOrchestrator({
           trash,
           workspaceRevision: saved.revision,
         });
-        append(owner, id, "trash.restored", {
-          approval: "restore-once",
-          revision: saved.revision,
-          files: requested.map((path) => ({
-            path,
-            digest: available.get(path).digest,
-          })),
-        });
+        append(owner, id, "trash.restored", { ...restoredEvent, revision: saved.revision });
       } else if (body.action === "run-test") {
-        requireState(current, "applied");
+        requireStateOneOf(current, ["applied", "restored"]);
         if (!workspaceRuntime)
           throw fault(
             "Workspace runtime is unavailable.",
@@ -810,8 +911,11 @@ export function createAgentOrchestrator({
           "One-time local Git commit approval is required.",
           "git_commit_approval_required",
         );
+        let committed;
         try {
-          const committed = await gitService.runForOwner(
+          db.prepare("UPDATE agent_operations SET recovery_evidence=? WHERE owner_id=? AND run_id=? AND operation_id=?")
+            .run(stable({ recheckRequired: true, repositoryMayHaveChanged: true }), owner, id, operation.operationId);
+          committed = await gitService.runForOwner(
             owner,
             current.projectId,
             {
@@ -849,12 +953,24 @@ export function createAgentOrchestrator({
             boundary: preview.boundary,
           });
         } catch (error) {
-          append(owner, id, "git.commit_failed", {
+          // Preserve bounded process evidence even when the Wallet was revoked after Git ran.
+          const details = error.details || {};
+          db.prepare("UPDATE agent_operations SET recovery_evidence=? WHERE owner_id=? AND run_id=? AND operation_id=?")
+            .run(stable({ recheckRequired: true, repositoryMayHaveChanged: true,
+              ...(committed || details.completedOperation === "commit-reviewed" ? { completedOperation: "commit-reviewed" } : {}),
+              ...(Number.isInteger(details.childExitCode) ? { childExitCode: details.childExitCode } : {}) }), owner, id, operation.operationId);
+          appendEvent(owner, id, "git.commit_failed", {
             previewDigest: preview.previewDigest,
             code: error.code || "git_operation_failed",
           });
           throw error;
         }
+      } else if (body.action === "reconcile-git") {
+        const recovered = await inspectAgentGitRecovery({ owner, run: { ...current, workspaceOwner: owner },
+          workspaceStore, gitService, signal: clientController.signal, assertCurrent: checkIdentity });
+        await checkIdentity();
+        persist({ ...current, ...recovered });
+        append(owner, id, "git.reconciled", recovered.gitOperation.recovery);
       } else if (body.action === "prepare-deployment") {
         requireStateOneOf(current, ["tested", "git_committed"]);
         const latest = workspaceStore.get(owner, current.projectId),
@@ -917,30 +1033,9 @@ export function createAgentOrchestrator({
         persist({ ...current, status: "deployment_approved", deployment });
         append(owner, id, "deployment.review_approved", deployment);
       } else throw fault("Unknown agent action.", "invalid_agent_action", 400);
+      commitPendingResult();
       json(response, 200, { protocolVersion: PROTOCOL, run: read(owner, id) });
       return true;
-      function persist(value) {
-        assertCurrent();
-        const now = new Date().toISOString();
-        updateRun.run(
-          value.status,
-          value.provider,
-          value.model,
-          nullable(value.plan),
-          stable(value.approvedPaths || []),
-          stable(value.approvedCreatePaths || []),
-          stable(value.approvedDeletePaths || []),
-          nullable(value.proposal),
-          nullable(value.review),
-          nullable(value.deployment),
-          nullable(value.gitOperation),
-          stable(value.trash || []),
-          value.workspaceRevision,
-          now,
-          owner,
-          id,
-        );
-      }
       function authorize(permission, expected, message, code) {
         assertCurrent();
         const granted = body.approval === expected;
@@ -976,7 +1071,8 @@ export function createAgentOrchestrator({
         if (!granted) throw fault(message, code, 403);
       }
     } catch (error) {
-      if (request.maintenanceSignal?.aborted && owner) {
+      settleRunOperation("interrupted", typeof error.code === "string" && /^[a-z][a-z0-9_]{0,95}$/.test(error.code) ? error.code : "agent_operation_failed");
+      if (!closed && request.maintenanceSignal?.aborted && owner) {
         let mayRecord = !verifyIdentity;
         if (verifyIdentity) {
           try {
@@ -996,13 +1092,37 @@ export function createAgentOrchestrator({
       });
       return true;
     } finally {
+      settleRunOperation("interrupted", "agent_request_interrupted");
       finished = true; clearTimeout(expiryTimer); clearInterval(identityTimer);
       request.removeListener("aborted", abortClient);
       response.removeListener("close", closeResponse);
       request.maintenanceSignal?.removeEventListener("abort", abortClient);
+      controllers.delete(clientController); closeWhenDrained();
     }
   }
-  return { handler, read, close: () => db.close() };
+  return { handler, read, close: () => {
+    if (!closePromise) closePromise = new Promise(resolve => { resolveClose = resolve; });
+    closed = true;
+    for (const controller of controllers) controller.abort(fault("Agent service is closing. Reopen saved runs after it returns.", "agent_service_closed", 503));
+    closeWhenDrained(); return closePromise;
+  } };
+}
+function processAlive(pid) {
+  if (!Number.isSafeInteger(pid) || pid < 1) return false;
+  try { process.kill(pid, 0); return true; } catch (error) { return error.code !== "ESRCH"; }
+}
+function operationValue(row) {
+  return row ? { status: row.status, action: row.action, startedAt: row.started_at, updatedAt: row.updated_at, ...(row.error_code ? { errorCode: row.error_code } : {}), ...(row.recovery_evidence ? { recoveryEvidence: JSON.parse(row.recovery_evidence) } : {}) } : null;
+}
+function decodeCursor(value) {
+  if (!value) return null;
+  try {
+    if (value.length > 512 || !/^[a-zA-Z0-9_-]+$/.test(value)) throw Error();
+    const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    if (!cursor || typeof cursor.createdAt !== "string" || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(cursor.createdAt) ||
+      typeof cursor.runId !== "string" || !/^[a-zA-Z0-9-]{1,128}$/.test(cursor.runId)) throw Error();
+    return cursor;
+  } catch { throw fault("Saved-run cursor is invalid.", "invalid_agent_cursor", 400); }
 }
 function validIdentity(value) {
   return value && ["owner", "workspaceOwner", "account", "identityReference"].every(key => typeof value[key] === "string" && value[key].length > 0) &&
