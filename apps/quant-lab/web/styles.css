@@ -334,6 +334,16 @@ table {
   border-collapse: collapse;
   background: var(--surface);
 }
+.paper-record-table { table-layout: fixed; min-width: 720px; }
+.paper-record-table th, .paper-record-table td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.paper-record-table th:nth-child(1) { width: 27%; }
+.paper-record-table th:nth-child(2) { width: 15%; }
+.paper-record-table th:nth-child(3) { width: 27%; }
+.paper-record-table th:nth-child(4) { width: 31%; }
+.paper-record-table small { display: block; margin-top: 6px; }
+.paper-cost-receipt { margin-top: 8px; }
+.paper-cost-receipt summary { cursor: pointer; min-height: 44px; padding-block: 8px; }
+.paper-record-region:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 th,
 td {
   text-align: left;

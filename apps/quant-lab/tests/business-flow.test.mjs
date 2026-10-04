@@ -791,6 +791,32 @@ test('unreadable saved Paper intent is retained and blocks new orders until expl
   }
 });
 
+test('stale unreadable Paper Forget never deletes a replacement before or during confirmation',async()=>{
+  const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant,hash='d'.repeat(64);
+  const valid=JSON.stringify({StrategyHash:hash,Side:'buy',Amount:2000000,IdempotencyKey:'quant-paper-11111111-1111-1111-1111-111111111111'});
+  for(const replacement of [valid,'[different unreadable bytes]'])for(const during of [false,true]){
+    let confirms=0,app;
+    app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,'{']],snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},confirmAction:()=>{confirms++;if(during)app.storage.set(key,replacement);return true}});await settle();
+    if(!during)app.storage.set(key,replacement);
+    vm.runInContext('paperForgetButton.onclick()',app.context);
+    assert.equal(app.storage.get(key),replacement);assert.equal(confirms,during?1:0);
+    assert.equal(vm.runInContext('pendingPaperInvalid',app.context),replacement!==valid);
+    if(replacement===valid)assert.equal(vm.runInContext('pendingPaperIntent.Amount',app.context),2000000);
+    else assert.equal(vm.runInContext('pendingPaperUnreadableBytes',app.context),replacement);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+  }
+});
+
+test('Paper journal read failure preserves current intent and fails closed without a write',async()=>{
+  const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant,hash='d'.repeat(64);
+  const raw=JSON.stringify({StrategyHash:hash,Side:'buy',Amount:100,IdempotencyKey:'quant-paper-12345678-1234-1234-1234-123456789abc'});let deny=false;
+  const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,raw]],snapshot:{strategies:{one:{Name:'Saved strategy',StrategyHash:hash}}},storageBoundary(operation,k){if(deny&&operation==='get'&&k===key)throw Error('Read unavailable')}});await settle();
+  deny=true;vm.runInContext('reloadPaperJournal();renderPaperSubmitControl()',app.context);
+  assert.equal(vm.runInContext('pendingPaperIntent.Amount',app.context),100);assert.equal(app.storage.get(key),raw);
+  assert.equal(app.ids.get('paper-submit').disabled,true);assert.equal(vm.runInContext('statefulPreview',app.context),false);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+});
+
 test('failed explicit Paper forgetting preserves unknown intent and disables further workspace writes',async()=>{
   const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
   const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,'{']],confirmAction:()=>true,storageBoundary(operation){if(operation==='remove')throw Error('Storage unavailable')}});await settle();
@@ -1483,6 +1509,20 @@ test('Paper confirmation binds exact inputs, discloses missing execution-cost mo
 const paperCostsV1={Policy:'adverse_price_ceil_fee_micro_v1',FeeBPS:10,SlippageBPS:5};
 const setPaperCosts = app => {app.ids.get('paper-cost-model').value='v1';app.ids.get('paper-cost-fee').value='10';app.ids.get('paper-cost-slippage').value='5';app.ids.get('paper-cost-model').emit('change');};
 const costReceipt = request => ({...paperRecord({ID:'paper-000001',Price:1000000,Status:'filled',Filled:request.Amount}),StrategyHash:request.StrategyHash,Side:request.Side,Amount:request.Amount,IdempotencyKey:request.IdempotencyKey,CostPolicy:paperCostsV1.Policy,FeeBPS:10,SlippageBPS:5,ExecutionPriceMicro:1000500,ExecutedNotionalMicro:1000500,FeeMicro:1001});
+test('Paper receipt cost disclosure is exact and localized, and legacy/invalid records never invent a model',async()=>{
+  const valid=costReceipt({StrategyHash:'d'.repeat(64),Side:'buy',Amount:1000000,IdempotencyKey:'controlled-read-only-key'}),legacy=paperRecord({ID:'paper-legacy'});
+  legacy.ID='paper-000009';const app=harness({snapshot:{paper:{Orders:[valid,legacy]}}});await settle();const before=app.calls.length;
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});const rendered=app.ids.get('paper-record-rows').innerHTML;
+    assert.equal((rendered.match(/class="paper-cost-receipt"/g)||[]).length,1);
+    for(const key of ['paperCostV1','paperCostFee','paperCostSlippage','paperCostLegacy'])assert.ok(rendered.includes(vm.runInContext(`safe(t(${JSON.stringify(key)}))`,app.context)));
+    assert.ok(rendered.includes(': 10'));assert.ok(rendered.includes(': 5'));assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+  }
+  for(const patch of [{FeeBPS:11},{CostPolicy:'unknown'},{FeeMicro:1}]){
+    app.context.badRecord={...valid,...patch};vm.runInContext('renderPaperRecords({Orders:[badRecord]})',app.context);
+    assert.doesNotMatch(app.ids.get('paper-record-rows').innerHTML,/paper-cost-receipt/);
+  }
+});
 test('Paper cost model confirmation localizes, fences changes and invalid rates, and cancellation creates no intent',async()=>{
   let message='';const app=harness({snapshot:{strategies:{saved:savedResearchStrategy()}},confirmAction:preview=>{message=preview;return false}});await settle();
   app.ids.get('paper-strategy').value='d'.repeat(64);app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';setPaperCosts(app);

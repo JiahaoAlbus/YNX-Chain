@@ -65,7 +65,7 @@ function readPendingResearchIntent() {
     return value;
   } catch { pendingResearchInvalid = true; return null; }
 }
-let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperIntent = readPendingPaperIntent();
+let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperUnreadableBytes = null, pendingPaperIntent = readPendingPaperIntent();
 let paperSubmissionLane = null;
 function paperSubmissionViewMatches(lane) {
   return paperSubmissionLane === lane && $('#paper-strategy').value === lane.intent.StrategyHash && $('#side').value === lane.intent.Side &&
@@ -79,8 +79,11 @@ function currentPaperSubmission(lane) {
 }
 function reloadPaperJournal() {
   if (!workspaceStorageAvailable) return;
+  const wasInvalid=pendingPaperInvalid,wasUnreadable=pendingPaperUnreadableBytes;
   pendingPaperInvalid = false;
-  pendingPaperIntent = readPendingPaperIntent();
+  const next=readPendingPaperIntent();
+  if(workspaceStorageAvailable)pendingPaperIntent=next;
+  else {pendingPaperInvalid=wasInvalid;pendingPaperUnreadableBytes=wasUnreadable;}
 }
 // A pending exact-key replay may retrieve an already committed receipt even
 // after a kill. The service still rejects new execution under the kill switch.
@@ -94,8 +97,10 @@ function renderPaperSubmitControl() {
 }
 function readPendingPaperIntent() {
   if (!workspaceStorageAvailable) return null;
+  let unreadableBytes=null;
   try {
     const raw=localStorage.getItem(paperPendingKey);
+    unreadableBytes=raw;pendingPaperUnreadableBytes=null;
     if(raw===null)return null;
     if(raw.length>65536)throw Error('INVALID_SAVED_PAPER_REQUEST');
     const value = JSON.parse(raw);
@@ -105,7 +110,10 @@ function readPendingPaperIntent() {
     const keys=value&&Object.keys(value).sort().join(',');
     if (value && (keys==='Amount,IdempotencyKey,Side,StrategyHash' || keys==='Amount,ExecutionCosts,IdempotencyKey,Side,StrategyHash' && validPaperCostModel(value.ExecutionCosts)) && /^quant-paper-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
     throw Error('INVALID_SAVED_PAPER_REQUEST');
-  } catch { pendingPaperInvalid=true; return null; }
+  } catch {
+    if(unreadableBytes===null){workspaceStorageAvailable=false;statefulPreview=false;return null;}
+    pendingPaperInvalid=true;pendingPaperUnreadableBytes=unreadableBytes;return null;
+  }
 }
 const supportedLocales = QuantI18n.locales;
 let locale = readPreference("ynx.quant.locale") || "en";
@@ -618,7 +626,7 @@ function renderPaperRecords(paper) {
     const attributed = valid(row) && typeof row.MarketSource === "string" && row.MarketSource.trim() !== "" && Number.isSafeInteger(row.MarketPriceMicro) && row.MarketPriceMicro === row.Price && Number.isSafeInteger(row.MarketVolumeMicro) && row.MarketVolumeMicro > 0;
     const marketSource = attributed ? row.MarketSource : "—";
     const marketTime = attributed && auditTimeValid(row.MarketObservedAt) ? row.MarketObservedAt : "—";
-    const costDetails=valid(row)&&row.CostPolicy==='adverse_price_ceil_fee_micro_v1'?`<small>${safe(t('paperCostExecution'))}: ${value(row.ExecutionPriceMicro)}</small><small>${safe(t('paperCostNotional'))}: ${value(row.ExecutedNotionalMicro===undefined?0:row.ExecutedNotionalMicro)}</small><small>${safe(t('paperCostCharged'))}: ${value(row.FeeMicro===undefined?0:row.FeeMicro)}</small>`:'';
+    const costDetails=valid(row)?row.CostPolicy==='adverse_price_ceil_fee_micro_v1'?`<small>${safe(t('paperCostExecution'))}: ${value(row.ExecutionPriceMicro)}</small><small>${safe(t('paperCostNotional'))}: ${value(row.ExecutedNotionalMicro===undefined?0:row.ExecutedNotionalMicro)}</small><small>${safe(t('paperCostCharged'))}: ${value(row.FeeMicro===undefined?0:row.FeeMicro)}</small><details class="paper-cost-receipt"><summary>${safe(t('paperCostModel'))}</summary><small>${safe(t('paperCostV1'))}</small><small>${safe(t('paperCostFee'))}: ${value(row.FeeBPS===undefined?0:row.FeeBPS)}</small><small>${safe(t('paperCostSlippage'))}: ${value(row.SlippageBPS===undefined?0:row.SlippageBPS)}</small></details>`:`<small>${safe(t('paperCostLegacy'))}</small>`:'';
     return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}${costDetails}</td><td>${value(row.Source)}<small>${safe(t("source"))}: ${value(marketSource)}</small><small>${safe(t("observed"))}: ${value(marketTime)}</small></td></tr>`;
   }).join("") : "";
 }
@@ -711,12 +719,13 @@ paperRestoreButton.onclick=()=>{
 paperForgetButton.onclick=()=>{
   if(paperSubmitting||!pendingPaperInvalid)return;
   try{
-    const forgottenBytes=localStorage.getItem(paperPendingKey);
+    const forgottenBytes=pendingPaperUnreadableBytes;
+    if(typeof forgottenBytes!=='string'||localStorage.getItem(paperPendingKey)!==forgottenBytes){reloadPaperJournal();renderPaperSubmitControl();return;}
     if(!confirm(t('paperForgetConfirm')))return;
-    if(localStorage.getItem(paperPendingKey)!==forgottenBytes){reloadPaperJournal();renderPaperSubmitControl();return;}
+    if(!pendingPaperInvalid||pendingPaperUnreadableBytes!==forgottenBytes||localStorage.getItem(paperPendingKey)!==forgottenBytes){reloadPaperJournal();renderPaperSubmitControl();return;}
     localStorage.removeItem(paperPendingKey);
     if(localStorage.getItem(paperPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
-    pendingPaperInvalid=false;pendingPaperIntent=null;toast(t('paperForgotten'),'paperForgotten');renderPaperSubmitControl();
+    pendingPaperInvalid=false;pendingPaperUnreadableBytes=null;pendingPaperIntent=null;toast(t('paperForgotten'),'paperForgotten');renderPaperSubmitControl();
   }catch{workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable');renderPaperSubmitControl();}
 };
 const researchForgetButton = document.createElement('button');

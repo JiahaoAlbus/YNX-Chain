@@ -232,6 +232,26 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     await page.screenshot({path:path.join(work,'paper-costs-recovered-en.png'),fullPage:true});
     await page.selectOption('#locale','ar');assert.ok((await page.locator('#paper-record-rows').textContent()).includes(await page.evaluate(()=>t('paperCostCharged'))));
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:path.join(work,'paper-costs-recovered-ar.png'),fullPage:true});await page.selectOption('#locale','en');
+    // Read the original service's cost receipt on small screens and with
+    // enlarged text. Native details/keyboard scrolling are read-only, not
+    // another API action or a substituted financial result.
+    for(const [width,language,enlarged] of [[320,'en',false],[390,'ar',true],[1440,'zh-CN',true]]){
+      await page.setViewportSize({width,height:900});await page.selectOption('#locale',language);
+      await page.evaluate(enlarged=>{document.documentElement.style.fontSize=enlarged?'200%':''},enlarged);
+      const region=page.locator('.paper-record-region'),disclosure=region.locator('.paper-cost-receipt'),summary=disclosure.locator('summary');
+      await summary.focus();await page.keyboard.press('Enter');assert.equal(await disclosure.evaluate(e=>e.open),true);
+      assert.ok((await disclosure.textContent()).includes(await page.evaluate(()=>t('paperCostFee')+': 10')));assert.ok((await disclosure.textContent()).includes(await page.evaluate(()=>t('paperCostSlippage')+': 5')));
+      assert.ok((await summary.boundingBox()).height>=44);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      assert.equal(await region.getAttribute('aria-labelledby'),'paper-record-heading');
+      await region.evaluate(e=>{e.scrollLeft=getComputedStyle(e).direction==='rtl'?-e.scrollWidth:e.scrollWidth});
+      const bounds=await page.locator('#paper-record-rows td:last-child').evaluate(e=>{const cell=e.getBoundingClientRect(),region=e.closest('.paper-record-region').getBoundingClientRect();return {left:cell.left,right:cell.right,regionLeft:region.left,regionRight:region.right}});
+      assert.ok(bounds.left>=bounds.regionLeft-1&&bounds.right<=bounds.regionRight+1,'source column must be reachable within the scroll region');
+      const source=await page.locator('#paper-record-rows td:last-child').textContent();assert.ok(source.includes(costOrderReceipt.MarketSource));assert.ok(source.includes(costOrderReceipt.MarketObservedAt));
+      assert.equal(costOrderPosts,2);assert.equal(await page.evaluate(()=>snapshot.paper.Orders.length),1);
+      await page.screenshot({path:path.join(work,`paper-receipt-${width}-${language}.png`),fullPage:true});
+      await summary.focus();await page.keyboard.press('Enter');assert.equal(await disclosure.evaluate(e=>e.open),false);
+    }
+    await page.evaluate(()=>{document.documentElement.style.fontSize=''});await page.setViewportSize({width:390,height:844});await page.selectOption('#locale','en');
     await otherPage.evaluate(()=>refresh());
     const otherPaperBefore=await otherPage.evaluate(()=>snapshot.paper);
     assert.equal(otherPaperBefore.Orders?.length??0,0);assert.equal(otherPaperBefore.KillSwitch,false);
@@ -353,7 +373,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
-  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png','same-workspace-late-old-response-en.png','same-workspace-new-request-pending-en.png','same-workspace-two-orders-reloaded-en.png']){
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png','paper-receipt-320-en.png','paper-receipt-390-ar.png','paper-receipt-1440-zh-CN.png','same-workspace-late-old-response-en.png','same-workspace-new-request-pending-en.png','same-workspace-two-orders-reloaded-en.png']){
     const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
   }
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:3,sameWorkspaceTabs:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));

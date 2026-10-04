@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>YNX Quant Lab</title>
-    <link rel="stylesheet" href="/styles.css?v=787977313b80f9959e649a95519e798d00d1ca6eb40b4d333fb08111dbb4d5d2" />
+    <link rel="stylesheet" href="/styles.css?v=524953257c11c5e3485a31a738e57ef06399a562b0981e0fed7692407afef7ce" />
   </head>
   <body>
     <a class="skip" href="#workspace" data-i18n="research">Research</a>
@@ -290,10 +290,10 @@
             </div>
             <aside class="inspector" id="paper-state"></aside>
           </div>
-          <h3 data-business-i18n="paperRecords">Saved simulated orders</h3>
+          <h3 id="paper-record-heading" data-business-i18n="paperRecords">Saved simulated orders</h3>
           <p class="lead" data-business-i18n="paperRecordsLead">Service records only. Price, requested quantity and filled quantity are integer micro-units. These are not Exchange orders or chain transfers.</p>
           <p id="paper-record-status" role="status" aria-live="polite"></p>
-          <div class="table-wrap"><table>
+          <div class="table-wrap paper-record-region" role="region" tabindex="0" aria-labelledby="paper-record-heading"><table class="paper-record-table">
             <thead><tr><th data-business-i18n="paperRecordIdentity">Order / strategy / time</th><th data-business-i18n="paperRecordStatus">Side / status</th><th data-business-i18n="paperRecordAmounts">Price / requested / filled</th><th data-business-i18n="paperRecordSource">Source</th></tr></thead>
             <tbody id="paper-record-rows"></tbody>
           </table></div>
@@ -392,7 +392,7 @@
     </div>
     <script src="/wallet-auth.js?v=3b8c2afa35f3af7e1810c4101af8457277dc603960526ee1f6b10f80aaec1ac0"></script>
     <script src="/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"></script>
-    <script src="/app.js?v=0b4be688c8b760c0ed07195bc5ac8aa35ddcbc4bd209a95229d58e63264f9404"></script>
+    <script src="/app.js?v=6061014f68a042ecbc5a77990ae4057cf6f9f74dc0cf493c091ee1bd4afed70d"></script>
     <script src="/ui-preferences.js" defer></script>
   </body>
 </html>
