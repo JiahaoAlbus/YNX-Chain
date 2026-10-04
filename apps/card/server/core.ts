@@ -5,6 +5,11 @@ export class RpcCoreAuthority implements CoreAuthority {
   constructor(endpoint:string){const url=new URL(endpoint);if(url.protocol!=='https:'||url.username||url.password||url.hash||url.search)throw Error('Card Core RPC must be a fixed credential-free HTTPS endpoint');this.endpoint=url.href}
   private async rpc(method:string,params:unknown[]=[]):Promise<any>{try{const response=await fetch(this.endpoint,{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params}),signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('RPC HTTP failure');const result=await response.json() as any;if(result.error||!Object.hasOwn(result,'result'))throw Error('RPC response failure');return result.result}catch{throw new CardError('CARD_CORE_UNAVAILABLE',503)}}
   async verify(intent:FundingIntent,hash:string):Promise<ChainReceipt>{
+    // Snapshot the complete funding binding before the first asynchronous read.
+    // A caller mutation must not retarget an in-flight receipt verification.
+    intent={...intent};
+    if(intent.chainId!==CHAIN||intent.status!=='pending'||!Number.isSafeInteger(intent.minConfirmations)||intent.minConfirmations<1||typeof intent.createdAt!=='string'||typeof intent.expiresAt!=='string'||!Number.isFinite(Date.parse(intent.createdAt))||!Number.isFinite(Date.parse(intent.expiresAt))||Date.parse(intent.expiresAt)<=Date.parse(intent.createdAt)||typeof intent.amountWei!=='string'||!/^[1-9][0-9]{0,77}$/.test(intent.amountWei)||BigInt(intent.amountWei)>=2n**256n)throw new CardError('INVALID_FUNDING_INTENT',400);
+    if(typeof intent.sender!=='string'||typeof intent.recipient!=='string'||!/^0x[0-9a-f]{40}$/.test(intent.sender)||!/^0x[0-9a-f]{40}$/.test(intent.recipient))throw new CardError('INVALID_FUNDING_INTENT',400);
     if(!/^0x[0-9a-fA-F]{64}$/.test(hash))throw new CardError('INVALID_TRANSACTION_HASH',400);hash=hash.toLowerCase();
     if(await this.rpc('eth_chainId')!==CHAIN)throw new CardError('WRONG_TESTNET_CHAIN');
     const tx=await this.rpc('eth_getTransactionByHash',[hash]),receipt=await this.rpc('eth_getTransactionReceipt',[hash]);

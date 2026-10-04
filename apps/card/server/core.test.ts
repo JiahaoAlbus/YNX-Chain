@@ -23,3 +23,17 @@ test('reorg during verification cannot be accepted',async t=>{const f=setup(t,{}
 test('transaction outside the accepted intent time is rejected',async t=>{const f=setup(t);f.values.eth_getBlockByNumber={...f.values.eth_getBlockByNumber,timestamp:'0x1'};await assert.rejects(f.core.verify(intent,hash),/INTENT_TIME_MISMATCH/)});
 
 test('Core endpoint rejects credentials, query, fragment and non-HTTPS configuration',()=>{for(const endpoint of ['http://core-fixture.invalid','https://user:password@core-fixture.invalid','https://core-fixture.invalid/?target=other','https://core-fixture.invalid/#target'])assert.throws(()=>new RpcCoreAuthority(endpoint))});
+
+test('invalid funding intent cannot reach RPC or permit zero-confirmation credit',async t=>{
+ const f=setup(t);
+ for(const patch of [{chainId:'0x1'},{status:'confirmed'},{minConfirmations:0},{minConfirmations:-1},{minConfirmations:1.5},{minConfirmations:NaN},{createdAt:'invalid'},{expiresAt:createdAt},{expiresAt:'invalid'},{amountWei:'0'},{amountWei:'01'},{amountWei:String(2n**256n)},{sender:'invalid'},{recipient:owner.toUpperCase()}])await assert.rejects(f.core.verify({...intent,...patch} as FundingIntent,hash),/INVALID_FUNDING_INTENT/);
+ assert.equal(f.methods.length,0);
+});
+
+test('in-flight caller mutation cannot replace original funding binding',async t=>{
+ const f=setup(t),mutable={...intent};
+ const pending=f.core.verify(mutable,hash);
+ mutable.sender=recipient;mutable.recipient=owner;mutable.amountWei='1';mutable.minConfirmations=100;mutable.expiresAt=createdAt;
+ const receipt=await pending;
+ assert.equal(receipt.from,intent.sender);assert.equal(receipt.to,intent.recipient);assert.equal(receipt.amountWei,intent.amountWei);assert.equal(receipt.confirmations,2);
+});
