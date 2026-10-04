@@ -1,0 +1,6 @@
+--- FAIL: TestVideoFirstUploadPublicationRetainsOriginal (0.12s)
+    --- FAIL: TestVideoFirstUploadPublicationRetainsOriginal/after-publish (0.06s)
+        store_publication_test.go:224: published first upload source was removed: open /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/TestVideoFirstUploadPublicationRetainsOriginalafter-publish3692303970/001/objects/vid_a0e6acf72725d15ff66c8688/original: no such file or directory
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	0.464s
+FAIL

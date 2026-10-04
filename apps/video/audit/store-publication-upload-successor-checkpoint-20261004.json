@@ -1,0 +1,193 @@
+{
+  "schema": "ynx.media.store-publication-upload-successor.v1",
+  "sourceCommit": "2cdc44a2169ec23cc62e435c84af3de96948b1b8",
+  "sourceTree": "99e6c49b7fba6a742574b129fac3fe224c935112",
+  "deltaBaseCommit": "728a2a0d0ff0176362bb819b8ecb0037e11b5ca9",
+  "priorDeliveryCommit": "fda54bfe92f8709fb5124de5d538c294e619f0e5",
+  "priorStoreRepairSourceCommit": "34c842ac98ae170c634efe8624330e4f38eefbd9",
+  "fullDeltaPaths": [
+    "internal/music/business_request.go",
+    "internal/music/server.go",
+    "internal/music/service.go",
+    "internal/music/store.go",
+    "internal/music/store_publication_test.go",
+    "internal/video/business_request.go",
+    "internal/video/service.go",
+    "internal/video/store.go",
+    "internal/video/store_publication_test.go"
+  ],
+  "sourcePins": [
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/service.go",
+      "bytes": 67376,
+      "sha256": "3cbfeb2a4ed1f8e59affd1c82b7ce74e7a60dd38266f31948242b928899e2783",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/store_publication_test.go",
+      "bytes": 8456,
+      "sha256": "2ba3e456a47d86149066cf62ca154acb3b747ec925b7890f73e75f66d62891ce",
+      "mode": "0o644"
+    }
+  ],
+  "sourceArchiveScope": "complete 9-file original Store/current/caller repair delta, not whole runtime",
+  "newFailure": {
+    "originalCodeCommit": "fda54bfe92f8709fb5124de5d538c294e619f0e5",
+    "path": "internal/video/service.go",
+    "mechanism": "first Upload RemovedPrefix on every initial record update error, including already-published UNKNOWN",
+    "rawLog": "original-red.txt",
+    "failedCases": 1,
+    "prepublicationControlPassed": true
+  },
+  "fix": "only unconfirmed-published outcome retains initial source directory; all ordinary uncommitted rejection cleanups remain unchanged; return before Scanner/Transcode",
+  "validation": [
+    {
+      "command": "GOPROXY=off GOTOOLCHAIN=local go test -race ./internal/video -run 'TestVideoFirstUploadPublicationRetainsOriginal|TestVideo.*Publication|TestVideoPublishedUnknown|TestUpload|TestAsset|TestCancelledQueuedUploadAndRetry|TestVideoBusinessPersistenceFailure' -count=1",
+      "exitCode": 0,
+      "log": "final-focused-race.txt"
+    },
+    {
+      "command": "GOPROXY=off GOTOOLCHAIN=local go vet ./internal/video",
+      "exitCode": 0,
+      "log": "vet.txt"
+    }
+  ],
+  "checkedInNewFixture": [
+    "preexisting video and media untouched in both phases",
+    "unpublished first upload removes only new directory and consumes no nonce",
+    "published first upload cold original exact bytes retained with original metadata and consumed nonce",
+    "no scanner or processing on either unconfirmed phase",
+    "replayed original published nonce rejected"
+  ],
+  "inheritedWriterEvidence": {
+    "checkpoint": "apps/video/audit/store-publication-current-checkpoint-20261004.json",
+    "sha256": "3f3d68bd98fb3a7e6a509bbc24fcb11858c945cf4f0da5b7e5fa87ae48134d74",
+    "originalFailures": 8,
+    "MusicUnchangedFromPriorRepair": true
+  },
+  "softwareCurrentAndDisposableStateOnly": true,
+  "independentSourceAdmission": "PENDING: entire updated 9-file delta plus A matching mains/factory",
+  "HostExecutionApproved": false,
+  "formalRuntimeOrWallet": "NOT_VERIFIED",
+  "processingResumeUI": "not validated by file preservation and stop checks; complete goal remains open",
+  "integration": "complete nine-file patch against original base OR two-file increment against exact prior repair, never apply both blindly; preserve A two mains/six owned hooks and shared composition",
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/final-focused-race.txt",
+      "bytes": 60,
+      "sha256": "061fc459857a7d8ee615fd44debd017ad13b9aa314674012befd0497b55e89c6"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/original-red.txt",
+      "bytes": 501,
+      "sha256": "acc88b5acbc4f675282befd80d1806e62bda87dba70489f78527089051245551"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/owned-nine-file-source.patch",
+      "bytes": 26929,
+      "sha256": "1120edf1fbc8b240262a87ddacaa3e8da7e743f12f9c169d7b37d6c3334983d6"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/owned-nine-file-source.tar.gz",
+      "bytes": 44117,
+      "sha256": "70769f24c39e0701cfc0c258932748516dad318a0d0342ad360980575769fa7a"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/video/service.go",
+      "bytes": 67376,
+      "sha256": "3cbfeb2a4ed1f8e59affd1c82b7ce74e7a60dd38266f31948242b928899e2783"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/source/internal/video/store_publication_test.go",
+      "bytes": 8456,
+      "sha256": "2ba3e456a47d86149066cf62ca154acb3b747ec925b7890f73e75f66d62891ce"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/successor-two-file.patch",
+      "bytes": 4168,
+      "sha256": "eb880c6472900b8e4481ef35c71cb7cb95c97b0f750e16d1e9f6ef22b9d8a937"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-upload-successor-20261004/vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
