@@ -10,3 +10,7 @@ header{height:auto;min-height:64px}header .header-actions{flex-wrap:wrap}.topbar
 .grid>.empty,.track-grid>.empty{min-width:0;max-width:100%}.empty,h1,h2,h3,p,.wallet-status,.wallet-summary{overflow-wrap:anywhere;hyphens:auto;min-width:0}button,.button-link,.wallet-link{overflow-wrap:anywhere;max-width:100%}
 
 .locale-controls,.locale-controls label,.locale-controls span,.locale-controls select{min-width:0;max-width:100%;overflow-wrap:anywhere}
+
+/* Keep each mobile destination compact in the existing horizontal library bar. */
+@media(max-width:760px){.shell>nav button{width:auto}}
+.playlist-recovery{grid-column:1/-1;min-width:0}.playlist-recovery .library-row>span{min-width:0;overflow-wrap:anywhere}
