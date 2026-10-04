@@ -6,7 +6,7 @@ import type { MatrixPendingIntent } from './nativeMatrixRecovery';
 const binding: MatrixBinding = { account: 'ynx1abc123', homeserverUrl: 'https://hs.example.test', userId: '@original:example.test', deviceId: 'ORIGINAL', authorityId: 'original-authority', expiresAtMs: Date.now() + 3600000 };
 const person = 'sp_' + 'a'.repeat(32);
 const room = { roomId: '!room:example.test', name: 'Private', encrypted: true, joined: true, members: [binding.userId, '@peer:example.test'] };
-function fixture() {
+function fixture(personId = person) {
   let current = binding;
   let accepted = true;
   let sendCount = 0;
@@ -24,12 +24,37 @@ function fixture() {
     async requestVerification() { return { attempt: 1 }; }, async verificationAction() {}, async logout() {},
     addListener(_event, callback) { listener = callback; return { remove() { listener = undefined; } }; }
   };
-  const consumer = new NativeMatrixConsumer(bridge, async () => { if (currentWait) await currentWait(); return current; }, async () => ({ personId: person, userId: '@peer:example.test', accepted, blocked: false, authorityId: current.authorityId }));
+  const consumer = new NativeMatrixConsumer(bridge, async () => { if (currentWait) await currentWait(); return current; }, async () => ({ personId, userId: '@peer:example.test', accepted, blocked: false, authorityId: current.authorityId }));
   return { consumer, bridge, setCurrent(value: MatrixBinding) { current = value; }, rejectPeer() { accepted = false; },
     setRestoreWait(value: () => Promise<void>) { restoreWait = value; }, setOriginals(entries: MatrixPendingIntent[]) { originalEntries = entries; },
     setCurrentWait(value: () => Promise<void>) { currentWait = value; },
     originals: () => originalEntries, count: () => sendCount, emit(event: MatrixNativeEvent) { listener?.(event); } };
 }
+
+test('native peer admission accepts the backend canonical 24-byte Base64URL public identity', async () => {
+  const id = 'sp_' + Buffer.from(Array.from({ length: 24 }, (_, i) => (i * 41 + 251) % 256)).toString('base64url');
+  assert.equal(id.length, 35);
+  assert.ok(!/^sp_[a-f0-9]{32}$/.test(id), 'regression must cover a real non-hex backend identity');
+  const f = fixture(id);
+  await f.consumer.restore(); await f.consumer.open(id);
+  assert.equal((await f.consumer.rooms()).length, 1);
+  f.rejectPeer();
+  await assert.rejects(f.consumer.open(id), /ACCEPTED_PEER/);
+  f.consumer.lock();
+});
+
+test('noncanonical public identities cannot reach native direct-room creation', async () => {
+  for (const id of ['sp_' + 'a'.repeat(31), 'sp_' + 'a'.repeat(33),
+    'sp_' + 'a'.repeat(31) + '=', 'sp_' + 'a'.repeat(31) + '/',
+    'sp_' + 'a'.repeat(31) + '+', 'sp_' + 'a'.repeat(31) + '\n', binding.account]) {
+    const f = fixture(id); let calls = 0;
+    f.bridge.directRoom = async () => { calls++; return room; };
+    await f.consumer.restore();
+    await assert.rejects(f.consumer.open(id));
+    assert.equal(calls, 0);
+    f.consumer.lock();
+  }
+});
 
 for (const failure of [false, true]) {
   test(`old logout ${failure ? 'failure' : 'completion'} cannot lock a newer restored session`, async () => {

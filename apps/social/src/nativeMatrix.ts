@@ -209,7 +209,7 @@ export class NativeMatrixConsumer {
   }
 
   private async peer(personId: string, authorityId: string) {
-    if (!/^sp_[a-f0-9]{32}$/.test(personId)) throw new Error('MATRIX_ORIGINAL_PERSON_REQUIRED');
+    if (!/^sp_[A-Za-z0-9_-]{32}$/.test(personId)) throw new Error('MATRIX_ORIGINAL_PERSON_REQUIRED');
     const epoch = this.epoch;
     let peer: MatrixPeer;
     try { peer = await this.acceptedPeer(personId); }
