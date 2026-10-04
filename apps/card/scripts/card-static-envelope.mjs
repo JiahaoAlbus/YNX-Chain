@@ -19,7 +19,7 @@ export function createCardStaticEnvelope(root,source,target){
   if(config.outputDirectory!=='dist-web'||config.buildCommand!=='npm run build:web'||canonical(config.rewrites)!==canonical(rewrites))throw new Error('CARD_ENVELOPE_CONFIGURATION_INVALID');
   const identity=JSON.parse(readFileSync(resolve(source,'runtime-identity.json'),'utf8'));
   const pair=identity.cardApiCompatibility;
-  if(identity.productId!=='ynx-card'||identity.environment!=='testnet'||identity.productionRealPayments!==false||!pair||pair.frontendSourceCommit!==identity.sourceCommit||pair.frontendSourceTree!==identity.sourceTree||pair.productionRealPayments!==false||![identity.sourceCommit,identity.sourceTree,pair.backendSourceCommit].every(value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value)))throw new Error('CARD_ENVELOPE_IDENTITY_INVALID');
+  if(identity.productId!=='ynx-card'||identity.environment!=='testnet'||identity.productionRealPayments!==false||!pair||pair.frontendSourceCommit!==identity.sourceCommit||pair.frontendSourceTree!==identity.sourceTree||(pair.productionRealPayments!==undefined&&pair.productionRealPayments!==false)||![identity.sourceCommit,identity.sourceTree,pair.backendSourceCommit].every(value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value)))throw new Error('CARD_ENVELOPE_IDENTITY_INVALID');
   envelopeFiles(source);
   mkdirSync(target,{recursive:true});
   cpSync(source,resolve(target,'dist-web'),{recursive:true});

@@ -14,7 +14,7 @@ function fixture(){
   writeFileSync(resolve(root,'vercel.json'),JSON.stringify(config));
   writeFileSync(resolve(root,'static-deploy-package.json'),JSON.stringify({name:'card-static-test',private:true}));
   const sourceCommit='a'.repeat(40),sourceTree='b'.repeat(40);
-  writeFileSync(resolve(source,'runtime-identity.json'),JSON.stringify({productId:'ynx-card',environment:'testnet',productionRealPayments:false,sourceCommit,sourceTree,cardApiCompatibility:{frontendSourceCommit:sourceCommit,frontendSourceTree:sourceTree,backendSourceCommit:sourceCommit,productionRealPayments:false}}));
+  writeFileSync(resolve(source,'runtime-identity.json'),JSON.stringify({productId:'ynx-card',environment:'testnet',productionRealPayments:false,sourceCommit,sourceTree,cardApiCompatibility:{frontendSourceCommit:sourceCommit,frontendSourceTree:sourceTree,backendSourceCommit:sourceCommit}}));
   writeFileSync(resolve(source,'index.html'),'<html lang="en">Testnet</html>');
   return {root,source,target};
 }
@@ -55,5 +55,7 @@ test('invalid identity, routes and CLI options fail closed',()=>{
   assert.throws(()=>envelopeArguments(['--source-dir=a','--source-dir=b'],f.root),/ARGUMENT/);
   assert.equal(envelopeArguments(['--output-dir=new'],f.root).envelope,resolve(f.root,'new'));
   const path=resolve(f.source,'runtime-identity.json'),identity=JSON.parse(readFileSync(path,'utf8'));identity.productionRealPayments=true;writeFileSync(path,JSON.stringify(identity));
+  assert.throws(()=>createCardStaticEnvelope(f.root,f.source,f.target),/IDENTITY/);
+  identity.productionRealPayments=false;identity.cardApiCompatibility.productionRealPayments=true;writeFileSync(path,JSON.stringify(identity));
   assert.throws(()=>createCardStaticEnvelope(f.root,f.source,f.target),/IDENTITY/);
 });
