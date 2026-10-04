@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"sort"
 	"strings"
@@ -214,22 +215,32 @@ func (h HTTPExchangeMarketData) HistoryContext(ctx context.Context, market strin
 	if e != nil || len(t.Trades) < 20 {
 		return nil, "", ErrUnavailable
 	}
-	sort.Slice(t.Trades, func(i, j int) bool { return t.Trades[i].CreatedAt.Before(t.Trades[j].CreatedAt) })
-	if len(t.Trades) > limit {
-		t.Trades = t.Trades[len(t.Trades)-limit:]
-	}
+	// Preserve tape order within an equal timestamp, rather than inventing
+	// nanosecond observations to satisfy the backtest's strict time ordering.
+	sort.SliceStable(t.Trades, func(i, j int) bool { return t.Trades[i].CreatedAt.Before(t.Trades[j].CreatedAt) })
 	bars := make([]Bar, 0, len(t.Trades))
-	var last time.Time
 	for _, trade := range t.Trades {
 		if trade.PriceMicro <= 0 || trade.AmountMicro <= 0 || trade.CreatedAt.IsZero() {
 			return nil, "", ErrUnavailable
 		}
-		at := trade.CreatedAt
-		if !at.After(last) {
-			at = last.Add(time.Nanosecond)
+		if len(bars) > 0 && bars[len(bars)-1].Time.Equal(trade.CreatedAt) {
+			bar := &bars[len(bars)-1]
+			if trade.AmountMicro > math.MaxInt64-bar.Volume {
+				return nil, "", ErrUnavailable
+			}
+			bar.High = max(bar.High, trade.PriceMicro)
+			bar.Low = min(bar.Low, trade.PriceMicro)
+			bar.Close = trade.PriceMicro
+			bar.Volume += trade.AmountMicro
+			continue
 		}
-		bars = append(bars, Bar{Time: at, Open: trade.PriceMicro, High: trade.PriceMicro, Low: trade.PriceMicro, Close: trade.PriceMicro, Volume: trade.AmountMicro})
-		last = at
+		bars = append(bars, Bar{Time: trade.CreatedAt, Open: trade.PriceMicro, High: trade.PriceMicro, Low: trade.PriceMicro, Close: trade.PriceMicro, Volume: trade.AmountMicro})
+	}
+	if len(bars) < 20 {
+		return nil, "", ErrUnavailable
+	}
+	if len(bars) > limit {
+		bars = bars[len(bars)-limit:]
 	}
 	return bars, h.BaseURL + "/v1/market-data/trades", nil
 }
@@ -243,7 +254,9 @@ func (h HTTPExchangeMarketData) Latest(market string) (MarketTick, error) {
 	}
 	latest := t.Trades[0]
 	for _, trade := range t.Trades[1:] {
-		if trade.CreatedAt.After(latest.CreatedAt) {
+		// Match the equal-time bar's close: the last fill in authoritative
+		// tape order wins, without changing its reported timestamp.
+		if !trade.CreatedAt.Before(latest.CreatedAt) {
 			latest = trade
 		}
 	}
