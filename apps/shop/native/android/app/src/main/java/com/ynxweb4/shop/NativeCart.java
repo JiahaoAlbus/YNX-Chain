@@ -22,15 +22,20 @@ final class NativeCart {
     }
     private static JSONArray items(Storage store,String account)throws Exception{String raw=store.get("cart:"+account);return raw.isEmpty()?new JSONArray():new JSONArray(raw);}
     private static boolean same(Object a,Object b)throws Exception{return a==null||b==null?a==b:WalletAuth.canonical(a).equals(WalletAuth.canonical(b));}
+    static boolean checkoutRecoveryRequired(Storage store,String account)throws Exception{
+        synchronized(store){String raw=store.get("checkout:"+account);if(raw.isEmpty())return false;JSONObject saved=new JSONObject(raw);if(!account.equals(saved.getString("account")))throw new SecurityException("Foreign checkout intent");return !"prepared".equals(saved.optString("phase"));}
+    }
+    private static void requireEditable(Storage store,String account)throws Exception{if(checkoutRecoveryRequired(store,account))throw new CheckoutIntent.UnresolvedException();}
     private static void current(Storage store,Sender sender,ProductSession expected,long generation)throws Exception{
         if(expected==null||!expected.same(sender.session())||!PrivacyLifecycle.writableGeneration(store,expected.account,generation))throw new SecurityException("Cart session or privacy generation changed");
+        requireEditable(store,expected.account);
     }
     private static void receipt(JSONObject value,String account)throws Exception{
         if(!BuyerReceipt.owned(value,account)||!value.has("Revision")||value.isNull("Revision")||!(value.get("Revision") instanceof String))throw new SecurityException("Invalid cart receipt");
         if(value.optJSONArray("Items")==null)value.put("Items",new JSONArray());
     }
     static void edit(Storage store,String account,JSONArray next)throws Exception{
-        synchronized(store){PrivacyLifecycle.requireWritable(store,account);JSONObject state=state(store,account);state.put("stamp",UUID.randomUUID().toString()).put("dirty",true);store.putAll(Map.of("cart:"+account,next.toString(),key(account),state.toString()));}
+        synchronized(store){PrivacyLifecycle.requireWritable(store,account);requireEditable(store,account);JSONObject state=state(store,account);state.put("stamp",UUID.randomUUID().toString()).put("dirty",true);store.putAll(Map.of("cart:"+account,next.toString(),key(account),state.toString()));}
     }
     // Repeated or restarted sends use the same immutable body/key. The receipt
     // records the original write, while refresh separately reads today's cart.
@@ -55,6 +60,7 @@ final class NativeCart {
     }
     static JSONObject refresh(Storage store,Sender sender,ProductSession expected,long generation)throws Exception{
         finishPending(store,sender,expected,generation);
+        synchronized(store){current(store,sender,expected,generation);}
         JSONObject remote=sender.request("GET","/cart",null,expected,generation);receipt(remote,expected.account);
         synchronized(store){
             current(store,sender,expected,generation);JSONObject state=state(store,expected.account);JSONArray local=items(store,expected.account);

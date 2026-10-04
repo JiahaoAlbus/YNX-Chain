@@ -59,7 +59,7 @@ public final class NativeCartTest {
     }
     @Test public void newCheckoutCarriesRevisionAndReceiptDoesNotEraseIdenticalReaddedDraft()throws Exception{
         Memory store=memory();Server server=new Server(store);ProductSession expected=session(store);NativeCart.refresh(store,server,expected,0);NativeCart.edit(store,A,items(1));NativeCart.sync(store,server,expected,0);
-        JSONObject address=new JSONObject().put("Line1","address");CheckoutIntent.Prepared prepared=CheckoutIntent.prepareSyncedCart(store,address,id->"shop");assertEquals(server.revision,prepared.body.getString("CartRevision"));
+        JSONObject address=new JSONObject().put("Line1","address");CheckoutIntent.Prepared prepared=CheckoutIntent.prepareSyncedCart(store,BuyerJourneyTest.session("a".repeat(64)),address,id->"shop");assertEquals(server.revision,prepared.body.getString("CartRevision"));
         NativeCart.edit(store,A,items(1));JSONObject order=new JSONObject().put("Buyer",A).put("ID","order").put("CartConsumption",new JSONObject().put("PreviousRevision",prepared.body.getString("CartRevision")).put("Revision","consumed"));assertFalse(CheckoutIntent.confirmedReceipt(store,A,prepared.body,order));assertEquals(1,new JSONArray(store.get("cart:"+A)).length());assertEquals("",store.get("checkout:"+A));
     }
     @Test public void unresolvedCheckoutCannotRotateKeyOrAcceptForeignReceipt()throws Exception{

@@ -148,7 +148,8 @@ public final class MainActivity extends Activity {
         JSONArray next=new JSONArray(source.toString());for(int i=0;i<next.length();i++){JSONObject item=next.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){if(item.getInt("Quantity")>=20)throw new IllegalStateException("Maximum quantity is 20");item.put("Quantity",item.getInt("Quantity")+1);return next;}}
         next.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));return next;
     }
-    private boolean canAddVariant(JSONObject variant){try{long inventory=variant.getLong("Inventory"),reserved=variant.getLong("Reserved");return reserved>=0&&inventory>reserved;}catch(Exception invalid){return false;}}
+    private boolean checkoutRecoveryRequired(){try{ProductSession session=api.session();return session!=null&&NativeCart.checkoutRecoveryRequired(secure,session.account);}catch(Exception invalid){return true;}}
+    private boolean canAddVariant(JSONObject variant){try{long inventory=variant.getLong("Inventory"),reserved=variant.getLong("Reserved");return !checkoutRecoveryRequired()&&reserved>=0&&inventory>reserved;}catch(Exception invalid){return false;}}
     private void addCart(JSONObject product,JSONObject variant)throws Exception{
         if(!canAddVariant(variant))throw new IllegalStateException(getString(R.string.unavailable));
         if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();ProductSession session=api.session();JSONArray next=addedCart(cart,product,variant);if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();status.setText(getString(R.string.cart_sync_local));}return;}
@@ -161,19 +162,21 @@ public final class MainActivity extends Activity {
     private void showCart(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;cancelPayPresentation();clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
-        if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
+        boolean recoveryRequired=checkoutRecoveryRequired();
+        if(hasSession()){Button sync=action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart));sync.setEnabled(!recoveryRequired);content.addView(sync);content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
+        if(recoveryRequired)content.addView(text(getString(R.string.cart_checkout_unconfirmed),14,false));
         if(cart.length()==0){content.addView(text(getString(R.string.cart_empty),15,false));return;}
         long total=0;for(int i=0;i<cart.length();i++){
             JSONObject item=cart.optJSONObject(i);if(item==null)continue;
             try{JSONObject p=findProduct(item.getString("ProductID")),variant=findVariant(p,item.getString("VariantID"));long line=variant.getLong("PriceYNXT")*item.getLong("Quantity");total+=line;content.addView(text(p.getString("Title")+" × "+item.getLong("Quantity")+" · "+formatYNXT(line),15,false));}
             catch(Exception error){content.addView(text(getString(R.string.unavailable),14,false));}
-            String productID=item.optString("ProductID"),variantID=item.optString("VariantID");content.addView(action(getString(R.string.cart_remove),()->removeCart(productID,variantID)));
+            String productID=item.optString("ProductID"),variantID=item.optString("VariantID");Button remove=action(getString(R.string.cart_remove),()->removeCart(productID,variantID));remove.setEnabled(!recoveryRequired);content.addView(remove);
         }
         content.addView(text(formatYNXT(total),24,true));
         recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));
         for(EditText field:List.of(recipient,address,city,country))content.addView(field);
         TextView unavailable=text(getString(R.string.tax_unavailable)+" · "+getString(R.string.logistics_unavailable),13,false);unavailable.setTextColor(Color.DKGRAY);content.addView(unavailable);
-        Button checkout=primary(getString(R.string.checkout));checkout.setOnClickListener(v->checkout());content.addView(checkout);
+        Button checkout=primary(getString(R.string.checkout));checkout.setEnabled(!recoveryRequired);checkout.setOnClickListener(v->checkout());content.addView(checkout);
     }
 
     private void recoverCheckout(){

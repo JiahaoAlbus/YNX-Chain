@@ -24,4 +24,26 @@ public final class BuyerJourneyTest {
   int count=new OfflineMutationQueue(m).flush(new OfflineMutationQueue.Sender(){public ProductSession session(){return current;}public JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{assertEquals("POST",method);assertEquals("/orders/intent-lookup",path);assertEquals(1,body.length());assertEquals(checkout.body.getString("IdempotencyKey"),body.getString("IdempotencyKey"));reads.incrementAndGet();return order().put("CartConsumption",new JSONObject().put("PreviousRevision","original-cart-revision").put("Revision","consumed-revision"));}},current,0);
   assertEquals(1,count);assertEquals(1,reads.get());assertEquals("",m.get("checkout:"+A));assertEquals(0,new JSONArray(m.get("offline_mutations")).length());
  }
+ @Test public void unknownCheckoutColdCartMutationsPreserveOriginalBytesAndSendNothing()throws Exception{
+  for(boolean legacy:new boolean[]{false,true}){
+   Memory m=new Memory();cart(m);ProductSession current=session("a".repeat(64));CheckoutIntent.Prepared checkout=CheckoutIntent.prepareSyncedCart(m,current,new JSONObject().put("Line1","original"),id->"store_original");CheckoutIntent.markDispatched(m,current,checkout.body);
+   if(legacy){JSONObject saved=new JSONObject(m.get("checkout:"+A));saved.remove("phase");m.put("checkout:"+A,saved.toString());}
+   Map<String,String> original=new HashMap<>(m.data);AtomicInteger sends=new AtomicInteger();
+   NativeCart.Sender sender=new NativeCart.Sender(){public ProductSession session(){return current;}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{sends.incrementAndGet();return new JSONObject().put("WalletBuyer",A).put("Buyer",A).put("Revision","new-remote").put("Items",new JSONArray());}};
+   assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.edit(m,A,new JSONArray()));assertEquals(original,m.data);
+   assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.refresh(m,sender,current,0));assertEquals(original,m.data);
+   assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.sync(m,sender,current,0));assertEquals(original,m.data);
+   NativeCart.Conflict conflict=new NativeCart.Conflict(new JSONObject().put("Buyer",A).put("Revision","another-device").put("Items",new JSONArray()),"original-stamp");
+   assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.resolve(m,sender,current,0,conflict,true));assertEquals(original,m.data);assertEquals(0,sends.get());
+   JSONObject receipt=order().put("CartConsumption",new JSONObject().put("PreviousRevision","original-cart-revision").put("Revision","consumed"));assertTrue(CheckoutIntent.confirmedReceipt(m,A,checkout.body,receipt));NativeCart.edit(m,A,new JSONArray());assertEquals("",m.get("checkout:"+A));
+  }
+ }
+
+ @Test public void checkoutDispatchDuringRemoteCartReadCannotOverwritePurchasedDraft()throws Exception{
+  Memory m=new Memory();cart(m);ProductSession current=session("a".repeat(64));CheckoutIntent.Prepared checkout=CheckoutIntent.prepareSyncedCart(m,current,new JSONObject().put("Line1","original"),id->"store_original");
+  String cart=m.get("cart:"+A),metadata=m.get(NativeCart.key(A));
+  NativeCart.Sender sender=new NativeCart.Sender(){public ProductSession session(){return current;}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{CheckoutIntent.markDispatched(m,current,checkout.body);return new JSONObject().put("Buyer",A).put("Revision","remote-after-consumption").put("Items",new JSONArray());}};
+  assertThrows(CheckoutIntent.UnresolvedException.class,()->NativeCart.refresh(m,sender,current,0));assertEquals(cart,m.get("cart:"+A));assertEquals(metadata,m.get(NativeCart.key(A)));assertEquals("unknown",new JSONObject(m.get("checkout:"+A)).getString("phase"));assertEquals(checkout.body.getString("IdempotencyKey"),new JSONObject(m.get("checkout:"+A)).getString("key"));
+ }
+
 }
