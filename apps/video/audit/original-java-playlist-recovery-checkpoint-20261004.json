@@ -1,0 +1,236 @@
+{
+  "schema": "ynx.video.original-java-playlist-recovery.checkpoint.v1",
+  "createdAt": "2026-10-04T03:50:18.958051+00:00",
+  "sourceCommit": "34f6c3af3170f21e02e4d6bca016b8365766f41e",
+  "sourceTree": "d8ca76a8e6a67caa637301c9b469159afdcb9046",
+  "inheritedCheckpoint": {
+    "path": "apps/video/audit/android-playlist-operations-recovery-checkpoint-20261004.json",
+    "bytes": 10937,
+    "sha256": "aaa0e2dab9c40c4d6fc77586ff140d07fb4c5c3e6ec7dce3b7a54e555f5f0b87"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/media-owned-source.tar.gz",
+    "bytes": 4331428,
+    "sha256": "4c2e53b78586ad46d9e65512430c766493b840a8e16dc90c78725c45025147a7",
+    "fileCount": 641
+  },
+  "javaCompiledClasses": {
+    "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/java-compiled-classes.tar.gz",
+    "bytes": 25310,
+    "sha256": "b687178070c61ef505ea85a20de5772491265ec1a0f63cc5889c97a70d58bfa0",
+    "classCount": 14
+  },
+  "javaBuildReceipt": {
+    "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/java-build-receipt.json",
+    "bytes": 4626,
+    "sha256": "57b32d97b46bf927a8fe64270c415a020f10bf9dec33468e7712a505f5266260"
+  },
+  "javaDependency": {
+    "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/json-dependency.jar",
+    "bytes": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+  },
+  "unchangedAndroidCandidate": {
+    "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/YNXVideo-android-debug.apk",
+    "bytes": 347395,
+    "sha256": "9f4c6f8e2a555f39e10091b02f5b4fdb639d5b0399826fc45f6d86608b17d78f"
+  },
+  "unchangedWebRuntime": {
+    "path": "apps/video/audit/evidence/playlist-operations-recovery-20261004/video-web-runtime.tar.gz",
+    "bytes": 637435,
+    "sha256": "e3d7a5cab4f46e779d059e4cbd683ba14d9a1f2b80104b0bd99441bb4b428096"
+  },
+  "unchangedWebRuntimeSourceCommit": "733765dcc306c7f8c04e3f7b94d4936a6b00cfde",
+  "unchangedNativeBuildPins": [
+    {
+      "platform": "android",
+      "receipt": {
+        "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-build-receipt.json",
+        "bytes": 8045,
+        "sha256": "fed2628c434aec875125d78bd5d231c63e8d665821c448b6628bc273069f970c"
+      },
+      "sourcePins": 31,
+      "currentSourcePinsGitExact": true,
+      "recompiledThisBatch": false
+    },
+    {
+      "platform": "apple",
+      "receipt": {
+        "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-build-receipt.json",
+        "bytes": 10115,
+        "sha256": "b4fcfe6e0864f639490040bbb888b7fa3b683f3d1e0267c838f99a3cbaf7db68"
+      },
+      "sourcePins": 23,
+      "currentSourcePinsGitExact": true,
+      "recompiledThisBatch": false
+    }
+  ],
+  "checks": {
+    "fullGoRacePassEvents": 450,
+    "fullGoRaceFailures": 0,
+    "vet": "PASS",
+    "compositionInputs": 682,
+    "javaVideoCompiledSourcePins": 8,
+    "javaVideoCompiledClassPins": 14,
+    "actualOriginalJavaVideoSDK": true,
+    "actualOriginalGoJavaReadback": true,
+    "coldJVMProcesses": 6,
+    "ordinaryFilePersistence": true,
+    "actualJavaOldEpochRetirement": true,
+    "lostReplyMutationDispatches": [
+      1,
+      1,
+      1
+    ],
+    "finalOriginalOwnListCount": 1,
+    "actualOSStorage": false,
+    "actualRenderedNativeUI": false,
+    "actualWalletConsent": false,
+    "actualFormalHostCurrentActor": false,
+    "productionPublished": false,
+    "installed": false,
+    "launched": false,
+    "earlierCreatorTimeoutCause": "NOT_CONFIRMED"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified",
+    "Actual Central Trust receipt and user acceptance",
+    "New native owner-appeal and pause/recovery repair independent source review pending",
+    "Earlier Creator iOS 120-second full-run timeout cause NOT_CONFIRMED; later green is recovery evidence only",
+    "Native four-kind rights record/UI independent source review pending",
+    "Actual protected shared Trust decision/read/reconciliation producer contract required before final-outcome handling",
+    "Formal Video same-own business and exact release tuple remain unverified",
+    "Independent native playlist source review pending",
+    "Independent current Web playlist and inherited native source graph review pending",
+    "Formal Video own-account login/business/cold recovery through unique A matching Host/client still unverified",
+    "New Android controller physical installed cold recovery and real Wallet/OS remain unverified"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 1057245,
+      "sha256": "3952cdc8e7ed235c819973a8cffebf25ad8bd225f4b284b85e530320ca94b581"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/combined-source-receipt.json",
+      "bytes": 195352,
+      "sha256": "cd2ef6766fc02126e37b7783bbae62de9114633cb507113572dc3559a8940194"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/final-java-compile-output.txt",
+      "bytes": 94,
+      "sha256": "548fe0205fc10b2df8027a72b771c809cb8b88a1e5578877904c1ce445f09538"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/followup.md",
+      "bytes": 2353,
+      "sha256": "85b378bde4fa8965bbe9cafb7e6f204bddda439ef3759ebd78be056d92b33478"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/initial-focused-combined-go-race.jsonl",
+      "bytes": 3621,
+      "sha256": "48b2e3865c10fe209cfb02240321bc3a5675f3efc668300d61fe7279603d6319"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/initial-focused-combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/initial-focused-combined-source-receipt.json",
+      "bytes": 195439,
+      "sha256": "f5cb0602e2c1df101380f051e543dc0430265b425311ceb1a917ece3945981fc"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/initial-java-compile-output.txt",
+      "bytes": 91,
+      "sha256": "3fcb32759ba951c51229d4ab144a22ffd32bd856ae6b5a4e6ee535f6beb9ec85"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/java-build-receipt.json",
+      "bytes": 4626,
+      "sha256": "57b32d97b46bf927a8fe64270c415a020f10bf9dec33468e7712a505f5266260"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/java-compiled-classes.tar.gz",
+      "bytes": 25310,
+      "sha256": "b687178070c61ef505ea85a20de5772491265ec1a0f63cc5889c97a70d58bfa0"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/json-dependency.jar",
+      "bytes": 78332,
+      "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/media-owned-source.tar.gz",
+      "bytes": 4331428,
+      "sha256": "4c2e53b78586ad46d9e65512430c766493b840a8e16dc90c78725c45025147a7"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/original-java-recovery-trace.json",
+      "bytes": 4427,
+      "sha256": "ab420d3ea459b62019ec4a35c1d1b6e9c9228b206752754f8cc3f00e2100f133"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/prepare-checkpoint.py",
+      "bytes": 9926,
+      "sha256": "9d9f0f32126b463d60a25f7c29c81fa39bc8fa128aa79e9a80cb3f041e43ad93"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-creator-studio-normal-product-390.png",
+      "bytes": 80965,
+      "sha256": "e3ce1243135421e99c5dbfafeea1c8d72e2c7cb58a4b0def37ccebba2f12d460"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-normal-product-390.png",
+      "bytes": 59737,
+      "sha256": "199e38b8d3bd063f7bbf104e01f501af16f582cb81950f535193716bbd2a8699"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-delete-lost-success-390.png",
+      "bytes": 100154,
+      "sha256": "54ab1f4b2a8771e93c264f1e25db156f78818eb825a812efc45ea7d9c6ef08c1"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-original-create-paused-successor-390.png",
+      "bytes": 85948,
+      "sha256": "fc5aa2e8fa5c4965d3a8a2343e88a5a514b4fd4888aa2dc89ed1229b624ac8af"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-original-create-pending-390.png",
+      "bytes": 64212,
+      "sha256": "51f15d66b92e897b142d8ac7202850594afa5c80b18b48f3edc0744eed891314"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-original-playlists-complete-1440.png",
+      "bytes": 97091,
+      "sha256": "fe53437fd16c470f6fcf55effd3a700302196e75afc90522551cbc9c78f36840"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-picker-create-pending-390.png",
+      "bytes": 39395,
+      "sha256": "6289461d53545009c1ed2b605c6673cf28076d97426805277e513cb7c9cdac7a"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/qa-video-web-remove-lost-success-390.png",
+      "bytes": 65640,
+      "sha256": "07a5ef959e749ad84e0e340f66acba4d57dbfc3a9df08165f777fdb3cc52db44"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-java-playlist-recovery-20261004/verify-checkpoint.py",
+      "bytes": 6220,
+      "sha256": "d882eb57979785a7786b88950ddffc513188a2a064e8cf98c98b1f17c2bc786e"
+    }
+  ]
+}

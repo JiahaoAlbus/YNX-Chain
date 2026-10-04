@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "34f6c3af3170f21e02e4d6bca016b8365766f41e",
+  "sourcePins": [
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "bytes": 9894,
+      "sha256": "96870acbc7c9cc9aac7aedf3364783924a9b642f5171975adacc736968005fc3",
+      "saved": "apps/video/audit/evidence/persistent-commit-red-20261004/original-VideoApi.java"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "bytes": 12038,
+      "sha256": "f4304d25eaf6229f28e7ccdb05023a93fd75b1a583a2521f214899252390c5c0",
+      "saved": "apps/video/audit/evidence/persistent-commit-red-20261004/original-VideoViewerState.java"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+      "bytes": 38861,
+      "sha256": "2fde9edf7dfcc0b2c15a5a675f4e6817e30ff9ac60c47fa0c39f7cba7d239179",
+      "saved": "apps/video/audit/evidence/persistent-commit-red-20261004/original-MainActivity.java"
+    }
+  ],
+  "scope": "Source HTTP counterexamples with fixture proof and memory-on-failed-commit; not OS or actual SDK grant",
+  "paths": [
+    "playlist-operation",
+    "playlist-create",
+    "watch-replay"
+  ],
+  "expectedOriginalFailures": 3
+}

@@ -1,0 +1,125 @@
+{
+  "schema": "ynx.video.android.original-playlist-java.v1",
+  "javaHome": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+  "jsonDependency": {
+    "path": "/tmp/ynx-music-json-20240303.jar",
+    "bytes": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+  },
+  "sourcePins": [
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "bytes": 20104,
+      "sha256": "7dd84ffcb63996298f2d4b42158410af6c0117dc3ae436c4397c8ab8d14d04fd"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "27fcff90bdff66bada14effeff69bb96517f9006b0ea650b0e144ac401147071"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "bytes": 1740,
+      "sha256": "0075b8105d7bada7361e6e37ffce43731e19fe5ea01d6ddf5fdac8458c265641"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "bytes": 9894,
+      "sha256": "96870acbc7c9cc9aac7aedf3364783924a9b642f5171975adacc736968005fc3"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "bytes": 12038,
+      "sha256": "f4304d25eaf6229f28e7ccdb05023a93fd75b1a583a2521f214899252390c5c0"
+    },
+    {
+      "path": "apps/video/scripts/android-playlist-fixture/android/content/Context.java",
+      "bytes": 2183,
+      "sha256": "4f14da38fb027c6e57fdc4e278e9b55a59c899c410ad819f06f96b231ae59dce"
+    },
+    {
+      "path": "apps/video/scripts/android-playlist-fixture/com/ynxweb4/video/NativeSessionBridge.java",
+      "bytes": 1953,
+      "sha256": "ad8256d584b7a9ba1544f2994c48796bd6f65c8d8488c25b662b592f1ee8a206"
+    },
+    {
+      "path": "apps/video/scripts/android-playlist-fixture/com/ynxweb4/video/OriginalPlaylistCheck.java",
+      "bytes": 4219,
+      "sha256": "7eea73b048712aae323ef63147601321523b39c5b7673b1b2c7cec81751e9b0e"
+    }
+  ],
+  "classPins": [
+    {
+      "path": "android/content/Context$Preferences$Editor.class",
+      "bytes": 2493,
+      "sha256": "ce81beeb94c13d74c4ba2e81a48089d70315b70fd056ebb68ffd6aad3f6fdcb7"
+    },
+    {
+      "path": "android/content/Context$Preferences.class",
+      "bytes": 1734,
+      "sha256": "8e76ab9c6efe6588c1602a5882c5b28ef5c56036e8fd37064bb209f40de13882"
+    },
+    {
+      "path": "android/content/Context.class",
+      "bytes": 1732,
+      "sha256": "f2608ef0f105a622cf7e6105c0b37f4de51664fa5a0c31bbe5bbd49ed7a7f463"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeProductState$Action.class",
+      "bytes": 407,
+      "sha256": "06cfd335f982917bde038c3f7ba34801e2c4b8601047e639fa68fb7f666c0d0f"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeProductState$Persistence.class",
+      "bytes": 389,
+      "sha256": "2e8c0e62dd12b33422e90ae764517ab3254a335d347305b5d96d61237a9a082d"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeProductState$Signer.class",
+      "bytes": 331,
+      "sha256": "b0d3c1b4e565855d4163303d67edca75c5a85a207a19cf53ebe18c4f91302a6e"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeProductState.class",
+      "bytes": 19967,
+      "sha256": "1c95b0bb6cf0e2bd5675643db9818b4b97334d6f0245a49249f8864a80ecd82a"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeSessionBridge.class",
+      "bytes": 3824,
+      "sha256": "ceb518c581b39670ea00603bb129b7ddf9368d6996fcb35f2d42510bb3bd84b8"
+    },
+    {
+      "path": "com/ynxweb4/video/NativeSessionIdentity.class",
+      "bytes": 2129,
+      "sha256": "f24b2e9db19a9ed7e0a343c7df2ae0f2b6c4abe70ec3c93cea95efc318987b5f"
+    },
+    {
+      "path": "com/ynxweb4/video/OriginalPlaylistCheck.class",
+      "bytes": 6411,
+      "sha256": "2fbb13804c8f37217f260c68ecfa775b5ed23e86ecc4e3799851b28074e6de4c"
+    },
+    {
+      "path": "com/ynxweb4/video/VideoApi$Connections.class",
+      "bytes": 337,
+      "sha256": "c27e521f7bc6ad39eb382ff33ac3dd554b1da0c1180308367ca82adbec567ffa"
+    },
+    {
+      "path": "com/ynxweb4/video/VideoApi.class",
+      "bytes": 12603,
+      "sha256": "781530aa39b9962a50cda1d228b9077568fa0ecb2169b7f0fc381e2bda8232ec"
+    },
+    {
+      "path": "com/ynxweb4/video/VideoRequestBoundary.class",
+      "bytes": 2676,
+      "sha256": "6b43ed96521be4919d97253cef3a10bc4264fbf685dcc2b8bcc10ea03383d265"
+    },
+    {
+      "path": "com/ynxweb4/video/VideoViewerState.class",
+      "bytes": 10524,
+      "sha256": "f0002cdb40d8c20e1b486a1a3c9fab7cee5575d063b5dcb9a573bc7018407641"
+    }
+  ],
+  "actualOSStorage": false,
+  "productionInstalled": false
+}

@@ -1,0 +1,29 @@
+JUnit version 4.13.2
+............
+Time: 0.045
+
+OK (12 tests)
+
+PASS original add/remove/delete successful-lost-reply cold desired-state recovery with exactly one original mutation each; retained create/history, foreign readback and late ACK veto; original viewer resume UUID/position persistence, pending playlist original request key, account-switch separation and old-content retention; shipped VideoApi/VideoMediaSource: final UTF8 body and canonical header fields, fresh proof for every Range, exact offset/count/total and EOF, late same-session restore and navigation veto, retryable503 and resource403 retain session, original401 retirement; host software transport only
+Exception in thread "main" java.lang.AssertionError: Unconfirmed write was accepted
+	at com.ynxweb4.video.NativeVideoPersistentCommitCheck.rejected(NativeVideoPersistentCommitCheck.java:13)
+	at com.ynxweb4.video.NativeVideoPersistentCommitCheck.main(NativeVideoPersistentCommitCheck.java:22)
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home/bin/java -classpath /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-native-engine-host-gW7PR1:/tmp/ynx-music-json-20240303.jar:/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/junit/junit/4.13.2/8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12/junit-4.13.2.jar:/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.hamcrest/hamcrest-core/1.3/42a25dc3219429f0e5d060061f71acb49bf010a0/hamcrest-core-1.3.jar com.ynxweb4.video.NativeVideoPersistentCommitCheck
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/video/scripts/verify-native-engine.mjs:6:383 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 7630,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0
