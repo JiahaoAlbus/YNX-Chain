@@ -1,0 +1,17 @@
+{
+  "kind": "RECEIVE_RESPONSE_DATA_AND_RENDER_INVALIDATION",
+  "testedOwnedHead": "f485e93a11a7dc77c6fcc22a382fc6c9468d8f05",
+  "sourceSha256": "0e382e0d5471f53179a716a8e4947b3625e833630e5e7ea6f56e60cda1636a7c",
+  "testSha256": "330409c58780b718a43effc4f62852a20ef0a7ab845ed6fa533713c24a208ac9",
+  "changes": ["response ok and value must be own data properties; accessors are rejected without execution", "revision rechecked before and after rendering", "clear during rendering cannot resurrect canvas visibility or success feedback"],
+  "tests": {
+    "originalSourceWithNewAssertions": {"pass": 13, "fail": 3, "exit": 1, "logSha256": "efbd84110ea5400906cd9908114b9b7307e858162e27444b29f13a9950063ceb"},
+    "receiveBoundaryGenerationAndIndependentPixels": {"pass": 23, "fail": 0, "exit": 0, "logSha256": "2d00c925cc2244d9d82bdc966beccca97a87b33d5afa782be461e3e2f66a02b8"},
+    "completeMatchingDesktop": {"pass": 1128, "fail": 0, "skipped": 0, "exit": 0, "logSha256": "c312272088db4eb23d2094c7dd07d43a921a7edd503ed09596e796a0079c0182"}
+  },
+  "sourceReadback": {"ownedFilesBeforeAndAfter": 683, "liveAndCandidateAllBytesStable": true, "beforeAndAfterSha256": "40b5479d741d889a46928c9b5fef3f63c95d68a409e1184101b0e161da3c3f2e"},
+  "unchanged": ["original receiving identity and URI", "ynx_6423-1 and YNXT", "QR quiet zone and Klein blue pixels", "original source matrix snapshot", "Native App.tsx", "accounts keys signing Pay journal and UNKNOWN", "shared SDK Host or public release"],
+  "scope": "Controlled source boundaries and independently decoded public pixels. No actual camera, OS permission, private authority, normal installed upgrade or business completion is claimed. Prior engineering DMG retains its old composition identity and does not include this successor.",
+  "remaining": ["formal source-matching release and retained-account upgrade", "A genuine protected provider and business ports", "all16 actual installed user journeys", "MONSTER"],
+  "overall": "SOURCE_REGRESSION_VERIFIED_PRODUCT_NOT_COMPLETED"
+}
