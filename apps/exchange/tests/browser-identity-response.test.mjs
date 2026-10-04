@@ -38,6 +38,24 @@ test('JSON HTTP refusal stays a refusal for the existing state machine',async()=
   const f=fixture(),p=f.scope.invoke('account');f.calls[0].resolve(response('{"code":"SSO_LOGIN_REQUIRED"}','application/problem+json',401));const result=await p;assert.equal(result.response.ok,false);assert.equal(result.response.status,401);assert.equal(result.data.code,'SSO_LOGIN_REQUIRED');
 });
 
+test('identity content-length binds decoded bytes only for identity encoding',async()=>{
+  const text=JSON.stringify({note:'é'}),bytes=Buffer.byteLength(text);
+  for(const length of [0,bytes-1,bytes+1]){
+    const f=fixture(),p=f.scope.invoke('account');f.calls[0].resolve(response(text,'application/json',200,{'content-length':String(length)}));
+    await assert.rejects(p,{code:'IDENTITY_RESPONSE_INVALID'});assert.equal(f.calls.length,1);
+  }
+  for(const encoding of ['', 'identity', 'gzip']){
+    const f=fixture(),p=f.scope.invoke('account');f.calls[0].resolve(response(text,'application/json',200,{'content-length':String(encoding==='gzip'?bytes+10:bytes),'content-encoding':encoding}));
+    assert.equal((await p).data.note,'é');
+  }
+});
+
+test('identity declared-length excess cancels before another stream read',async()=>{
+  const f=fixture();let reads=0,cancels=0,releases=0;
+  const p=f.scope.invoke('account');f.calls[0].resolve({headers:new Headers({'content-type':'application/json','content-length':'1'}),body:{getReader:()=>({read:async()=>{reads++;return {done:false,value:new Uint8Array([123,125])}},cancel(){cancels++},releaseLock(){releases++}})}});
+  await assert.rejects(p,{code:'IDENTITY_RESPONSE_INVALID'});assert.equal(reads,1);assert.equal(cancels,1);assert.equal(releases,1);
+});
+
 test('unbounded undeclared stream stops at the first over-limit chunk without text() or retry',async()=>{
   const f=fixture();let reads=0,cancels=0,releases=0;
   const value={ok:true,status:200,headers:new Headers({'content-type':'application/json'}),text(){throw Error('Unbounded text() forbidden')},body:{getReader:()=>({read:async()=>{reads++;return {done:false,value:new Uint8Array(65536)}},cancel(){cancels++;return new Promise(()=>{})},releaseLock(){releases++}})}};

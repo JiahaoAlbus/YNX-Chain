@@ -21,14 +21,14 @@ test('P0 release evidence verifies without an APK',()=>{
   assert.equal(report.connectivityBoundary.publicBusinessSuccess,false);
 });
 test('historical P0 gate cannot whitelist business API or arbitrary identity helper calls',async()=>{
-  for(const mutate of [value=>value.replace('/api/v1/sso/${path}','/api/v1/orders/${path}'),value=>value.replace("browserIdentityRequest('account')","browserIdentityRequest('orders')")]){
+  for(const mutate of [value=>value.replace('/api/v1/sso/${path}','/api/v1/orders/${path}'),value=>value.replace("browserIdentityRequest('account')","browserIdentityRequest('orders')"),value=>value+"\nvoid browserIdentityRequest('account');\n",value=>value+"\nvoid fetch('/api/v1/orders');\n"]){
     const temporary=await mkdtemp(join(tmpdir(),'ynx-exchange-p0-negative-'));
     try{
       const target=resolve(temporary,'apps/exchange');
       for(const name of ['scripts/verify-p0-release-evidence.mjs','product-release.json','mobile/contract/public-endpoint-manifest.json','mobile/src/wallet.ts','mobile/src/api.ts','mobile/App.tsx','web/app.js']){
         const path=resolve(target,name);await mkdir(dirname(path),{recursive:true});const body=await readFile(resolve(productRoot,name));await writeFile(path,name==='web/app.js'?mutate(body.toString('utf8')):body);
       }
-      assert.throws(()=>execFileSync(process.execPath,['scripts/verify-p0-release-evidence.mjs'],{cwd:target,stdio:'pipe'}),error=>/Web identity helper (?:is not|called a non-identity route)/u.test(error.stderr.toString()));
+      assert.throws(()=>execFileSync(process.execPath,['scripts/verify-p0-release-evidence.mjs'],{cwd:target,stdio:'pipe'}),error=>/Web identity (?:helper (?:is not|called a non-identity route)|call set is missing or unbounded)|web shell retains a direct product API route/u.test(error.stderr.toString()));
     }finally{await rm(temporary,{recursive:true,force:true})}
   }
 });

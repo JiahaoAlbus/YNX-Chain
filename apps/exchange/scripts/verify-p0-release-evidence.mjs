@@ -39,12 +39,16 @@ assert(mobile.includes('productSessionUnavailable().message'), 'installed UI doe
 const identityStart=web.indexOf('async function browserIdentityRequest(');
 const identityEnd=web.indexOf('\nasync function restoreBrowserIdentity(',identityStart);
 const identityHelper=web.slice(identityStart,identityEnd);
-assert(identityStart>=0&&identityEnd>identityStart&&sha256(identityHelper)==='8953bb911714c9327690c25adf02d8415cdf91e0b2ade3dd7a5b7318a1e2f328'&&web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
+assert(identityStart>=0&&identityEnd>identityStart&&sha256(identityHelper)==='07602477a4e04f8e994559f84ca6f23b1dd6c4f1507846f4be65b333a32be36c'&&web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
 const webShell=web.replace(identityHelper,'');
 const identityCalls=[...webShell.matchAll(/\bbrowserIdentityRequest\(([^,)]+)/gu)];
-assert(identityCalls.length>=4&&identityCalls.length<=8, 'Web identity call set is missing or unbounded');
+assert(identityCalls.length===3&&new Set(identityCalls.map(call=>call[1])).size===3, 'Web identity call set is missing or unbounded');
 for(const call of identityCalls)assert(["'config'","'account'","'logout'"].includes(call[1]), 'Web identity helper called a non-identity route');
-assert(webShell.includes('No request was sent.') && !webShell.includes('fetch(') && !webShell.includes('/api/'), 'web shell retains a direct product API route');
+// The venue status label describes the separately owned read module; it is
+// not a direct request. Permit that one exact display literal, not API calls.
+const venueStatusLabel='`/api/v1/config · ${value.phase}`';
+assert(webShell.split(venueStatusLabel).length===2, 'venue read status label is missing or duplicated');
+assert(webShell.includes('No request was sent.') && !webShell.includes('fetch(') && !webShell.replace(venueStatusLabel,'').includes('/api/'), 'web shell retains a direct product API route');
 
 const report = {
   schemaVersion: 1,

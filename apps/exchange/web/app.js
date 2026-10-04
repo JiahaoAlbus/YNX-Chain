@@ -25,6 +25,8 @@ async function browserIdentityRequest(path,options={}){
     const response=await fetch(`/api/v1/sso/${path}`,{...options,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal});
     const mime=(response.headers.get('content-type')||'').split(';')[0].trim().toLowerCase(),length=response.headers.get('content-length');
     if(!/^application\/(?:json|[a-z0-9.+-]+\+json)$/.test(mime)||(length!==null&&(!/^\d+$/.test(length)||Number(length)>262144)))throw invalid();
+    const encoding=(response.headers.get('content-encoding')||'').trim().toLowerCase();
+    const expectedBytes=length!==null&&(!encoding||encoding==='identity')?Number(length):null;
     if(controller.signal.aborted)throw invalid();
     const reader=response.body?.getReader();if(!reader)throw invalid();
     const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
@@ -33,8 +35,8 @@ async function browserIdentityRequest(path,options={}){
     try{
       while(true){
         const part=await reader.read();if(controller.signal.aborted)throw invalid();
-        if(part.done){text+=decoder.decode();complete=true;break;}
-        if(!(part.value instanceof Uint8Array)||part.value.byteLength>262144-bytes)throw invalid();
+        if(part.done){if(expectedBytes!==null&&bytes!==expectedBytes)throw invalid();text+=decoder.decode();complete=true;break;}
+        if(!(part.value instanceof Uint8Array)||part.value.byteLength>262144-bytes||(expectedBytes!==null&&part.value.byteLength>expectedBytes-bytes))throw invalid();
         bytes+=part.value.byteLength;text+=decoder.decode(part.value,{stream:true});
       }
     }catch{throw invalid()}finally{

@@ -3,6 +3,20 @@ import assert from 'node:assert/strict';
 import {createPrivateAccountController,validateAccountSnapshot} from '../web/private-account-controller.js';
 
 const account='ynx1'+'q'.repeat(38),origin='https://exchange.ynxweb4.com';
+// Controlled proof objects only: the real consumer now requires both SDK
+// proofs bound to the exact wire read. Never weaken it to standalone introspection.
+function readAdapter(){
+  let sequence=0;
+  return {close(){},
+    createIntrospectionProof:async()=>{throw new Error('Standalone introspection cannot authorize this business read')},
+    createBusinessProof:async input=>{
+      assert.deepEqual(input,{method:'GET',path:'/api/v1/account',body:'',requiredScopes:['exchange:read']});
+      const n=++sequence;
+      return {introspection:{proofHeader:'isolated-introspection-'+n},proofHeader:'isolated-action-'+n,body:''};
+    },
+    client:{restore:async()=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}})},
+  };
+}
 function snapshot(){
   return {
     sourceMetadata:{authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',classification:'testnet',status:'degraded_single_host',stateBackend:'file-cas-single-host',multiInstance:false,coverage:'account-ledger-orders-trades-fees-audit',asOf:new Date().toISOString()},
@@ -68,7 +82,7 @@ test('raw duplicate JSON keys cannot conceal account or amount fields and recove
   const standard={status:'connected',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
   const valid=JSON.stringify(snapshot());let raw=valid,reads=0;
   const controller=createPrivateAccountController({wallet:{getPrivateWalletContext:()=>standard},
-    createAdapter:async()=>({close(){},createIntrospectionProof:async()=>({proofHeader:'isolated-test-proof'}),client:{restore:async()=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}})}}),
+    createAdapter:async()=>readAdapter(),
     fetchImpl:async()=>{reads++;return new Response(raw,{headers:{'content-type':'application/json'}})},
   });
   try{
@@ -86,7 +100,7 @@ test('malformed refresh clears owned read data, preserves Standard Wallet and re
   const standard={provider:{},status:'connected',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
   let body=snapshot(),reads=0;
   const controller=createPrivateAccountController({wallet:{getPrivateWalletContext:()=>standard},
-    createAdapter:async()=>({close(){},createIntrospectionProof:async()=>({proofHeader:'isolated-test-proof'}),client:{restore:async()=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}})}}),
+    createAdapter:async()=>readAdapter(),
     fetchImpl:async()=>{reads++;return new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}})},
   });
   try{
@@ -96,4 +110,17 @@ test('malformed refresh clears owned read data, preserves Standard Wallet and re
     assert.equal(standard.status,'connected');assert.equal(standard.revision,1);
     body=snapshot();assert.equal((await controller.refresh()).phase,'connected');assert.equal(reads,3);
   }finally{controller.close()}
+});
+test('standalone or unbound dual proof cannot reach the owned account read',async()=>{
+  for(const mode of ['missing-business','same-proof','nonempty-body','missing-introspection','whitespace-action']){
+    let reads=0;const adapter=readAdapter();
+    if(mode==='missing-business')delete adapter.createBusinessProof;
+    else adapter.createBusinessProof=async()=>({introspection:mode==='missing-introspection'?null:{proofHeader:'isolated-introspection'},proofHeader:mode==='same-proof'?'isolated-introspection':mode==='whitespace-action'?'unsafe action':'isolated-action',body:mode==='nonempty-body'?'{}':''});
+    const controller=createPrivateAccountController({createAdapter:async()=>adapter,fetchImpl:async()=>{reads++;throw new Error('Unbound proof reached HTTP')}});
+    try{
+      const result=await controller.start(origin+'/');
+      assert.equal(result.phase,'degraded',mode);assert.equal(result.code,'ACTION_PROOF_UNAVAILABLE',mode);
+      assert.equal(result.account,null);assert.equal(result.snapshot,null);assert.equal(reads,0);
+    }finally{controller.close()}
+  }
 });

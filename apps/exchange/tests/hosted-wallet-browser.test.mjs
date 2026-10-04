@@ -38,7 +38,17 @@ test('exact-origin Exchange chooser opens Hosted Wallet without account, private
     assert.equal(await page.locator('#wallet-account').textContent(),'—');
     assert.equal(await page.locator('#wallet-details').isVisible(),false);
     await popup.close();
-    await page.getByText('Hosted Wallet approval did not complete.',{exact:false}).waitFor({timeout:5000});
+    await page.locator('#wallet-fallback').waitFor({state:'visible',timeout:5000});
+    const fallback=await page.locator('#wallet-state').textContent();
+    const localized=await page.evaluate(()=>window.YNXExchangeLocale.text('wallet-unavailable'));
+    assert.ok(fallback.startsWith(localized),'current localized unavailable message must be visible');
+    assert.match(fallback,/\(YNX Wallet Web; (?:superseded|unsupported)\)$/u);
+    assert.equal(await page.locator('#wallet-dialog').evaluate(dialog=>dialog.open),true);
+    const state=await page.evaluate(()=>window.YNXExchangeWebWallet.state());
+    assert.notEqual(state.status,'connected');assert.equal(state.account??null,null);
+    assert.equal(await page.locator('#wallet-account').textContent(),'—');
+    assert.equal(await page.locator('#wallet-details').isVisible(),false);
+    assert.equal(await page.url(),'https://exchange.ynxweb4.com/');
     assert.equal(await page.locator('#wallet-fallback a',{hasText:'Download YNX Wallet'}).count(),1);
     assert.equal(await page.locator('#wallet-fallback a',{hasText:'Use MetaMask'}).count(),1);
     assert.equal(context.pages().length,1);
