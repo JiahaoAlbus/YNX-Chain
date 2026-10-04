@@ -9,6 +9,34 @@ test("history loads account-bound older pages without discarding completed recor
   await ui.refresh();await ui.older();assert.deepEqual(requests,[null,olderHash]);assert.equal(views.at(-1).records.length,2);assert.equal(views.at(-1).nextCursor,null);
 });
 
+test("same-account refresh failure retains verified rows and their original older-page cursor",async()=>{
+  let last,fail=false;const requests=[];
+  const ui=createTransactionHistoryUI({getAccount:()=>account,render:view=>last=view,request:async cursor=>{
+    requests.push(cursor);if(fail&&cursor===null)throw Error("read unavailable");
+    return {ok:true,value:{records:[record(cursor??hash)],nextCursor:cursor?null:olderHash}};
+  }});
+  await ui.refresh();const saved=last.records;fail=true;await ui.refresh();
+  assert.equal(last.records,saved);assert.equal(last.nextCursor,olderHash);assert.equal(last.busy,false);assert.equal(last.loaded,false);assert.ok(last.error);
+  await ui.older();assert.deepEqual(requests,[null,null,olderHash]);assert.deepEqual(last.records.map(row=>row.hash),[hash,olderHash]);
+});
+
+test("a pending same-account refresh shows retained rows but does not claim a fresh successful read",async()=>{
+  let last,complete,reads=0;
+  const ui=createTransactionHistoryUI({getAccount:()=>account,render:view=>last=view,request:()=>++reads===1?Promise.resolve({ok:true,value:{records:[record()],nextCursor:olderHash}}):new Promise(resolve=>complete=resolve)});
+  await ui.refresh();const saved=last.records,pending=ui.refresh();
+  assert.equal(last.records,saved);assert.equal(last.busy,true);assert.equal(last.loaded,false);
+  complete({ok:true,value:{records:[{...record(),raw:"must not display"}],nextCursor:null}});await pending;
+  assert.equal(last.records,saved);assert.equal(last.loaded,false);assert.ok(last.error);
+});
+
+test("account change clears retained rows before refresh and cannot request an old account cursor",async()=>{
+  let last,selected=account;const requests=[];
+  const ui=createTransactionHistoryUI({getAccount:()=>selected,render:view=>last=view,request:async cursor=>{requests.push(cursor);if(selected!==account)throw Error("unavailable");return{ok:true,value:{records:[record()],nextCursor:olderHash}}}});
+  await ui.refresh();selected="0x"+"5".repeat(40);await ui.older();
+  assert.deepEqual(requests,[null]);assert.equal(last.records.length,0);assert.equal(last.nextCursor,null);
+  await ui.refresh();assert.equal(last.records.length,0);assert.ok(last.error);
+});
+
 test("all original public display fields are required before a completed transfer can be shown",async()=>{
   for(const key of Object.keys(record())){
     const value=record();delete value[key];let last;
