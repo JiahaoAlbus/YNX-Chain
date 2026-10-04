@@ -126,6 +126,17 @@
     "installedMacCopyReadback": "macos-installed-copy-identity-20261004.json",
     "fullJourneyRuntimeStatusesUnchanged": true
   },
+  "currentPlatformAccessRecheck": {
+    "recordedAt": "2026-10-04T14:17:59Z",
+    "method": "Fresh CUA getState, not a lockfile or historical screenshot",
+    "result": "Normal app and browser tab inventory returned; no system-locked response",
+    "historicalMacLockedObservationIsCurrentProof": false,
+    "limits": "Inventory alone does not prove Wallet window focus, unlocked key custody, matching installed release, normal account approval or any of the 16 real journeys. No launch, credential entry, UI takeover, signing or chain write performed.",
+    "currentNativeDefault": "App passes payIntegration=null; App SHA256 2d0a7e397d27f1387e25b111e48d8d9532f0971c3f3090959de460d06238a763",
+    "currentDesktopDefault": "composeProtectedDesktopPay boot seam exists; no admitted real boot invocation supplied",
+    "sharedOwnerObserved": "Actual latest A turn inProgress implementing Store5 approval source and launcher; operator registration source absent in existing registry. Not a configured Pay producer or Wallet activation.",
+    "journeyRuntimeStatusesUnchanged": true
+  },
   "publicMicrositeGate": {
     "requirement": "Existing public product introduction and explicit same-tab Open Web Wallet; preserve old application/deep/callback/API/download routes",
     "sharedWebRootObserved": "INTRODUCTION_NOT_PRESENT",
