@@ -16,6 +16,8 @@ const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common
 const { MenuContribution } = require('@theia/core/lib/common/menu');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
+const { WorkspaceKeybindingsContribution, ShortcutSettings } = require('./workspace-keybindings');
+const { WorkspaceService } = require('@theia/workspace/lib/browser/workspace-service');
 const { JsonSchemaPolicyStatus } = require('./json-schema-policy-status');
 const { PreferenceService } = require('@theia/core/lib/common/preferences');
 const { StatusBar } = require('@theia/core/lib/browser/status-bar/status-bar');
@@ -48,8 +50,17 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(CommandContribution).toService(UserKeybindingsContribution);
   bind(FrontendApplicationContribution).toService(UserKeybindingsContribution);
+  bind(WorkspaceKeybindingsContribution).toDynamicValue(context => new WorkspaceKeybindingsContribution(
+    context.container.get(FileService), context.container.get(EnvVariablesServer), context.container.get(EditorManager),
+    context.container.get(KeybindingRegistry), context.container.get(MessageService), context.container.get(WorkspaceService),
+  )).inSingletonScope();
+  bind(CommandContribution).toService(WorkspaceKeybindingsContribution);
+  bind(FrontendApplicationContribution).toService(WorkspaceKeybindingsContribution);
+  bind(ShortcutSettings).toDynamicValue(context => new ShortcutSettings(
+    context.container.get(UserKeybindingsContribution), context.container.get(WorkspaceKeybindingsContribution),
+  )).inSingletonScope();
   bind(WidgetFactory).toDynamicValue(context => ({ id: KEYBOARD_SHORTCUTS_ID, createWidget: () => new KeyboardShortcutsWidget(
-    context.container.get(UserKeybindingsContribution), context.container.get(KeybindingRegistry), context.container.get(CommandRegistry),
+    context.container.get(ShortcutSettings), context.container.get(KeybindingRegistry), context.container.get(CommandRegistry),
   ) }));
   bind(KeyboardShortcutsContribution).toDynamicValue(context => new KeyboardShortcutsContribution(
     context.container.get(WidgetManager), context.container.get(ApplicationShell),

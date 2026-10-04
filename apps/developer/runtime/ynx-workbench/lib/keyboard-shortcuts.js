@@ -22,12 +22,15 @@ class KeyboardShortcutsWidget extends BaseWidget {
     this.addClass('ynx-keyboard-shortcuts'); this.node.tabIndex = -1;
     this.page = 0; this.rows = [];
     const heading = element('div', undefined, 'ynx-shortcuts-heading');
-    heading.append(element('h1', 'Keyboard Shortcuts'), button('Open JSON', () => commands.executeCommand('workbench.action.openGlobalKeybindingsFile')),
+    heading.append(element('h1', 'Keyboard Shortcuts'), button('Open JSON', () => commands.executeCommand(this.target.value === 'Workspace' ? 'ynx.workbench.openWorkspaceKeybindingsFile' : 'workbench.action.openGlobalKeybindingsFile')),
       button('Refresh', () => this.refresh()));
     this.search = element('input'); this.search.type = 'search'; this.search.placeholder = 'Search commands or shortcuts'; this.search.setAttribute('aria-label', this.search.placeholder);
     this.source = element('select'); this.source.setAttribute('aria-label', 'Shortcut source');
     for (const value of ['All', 'User', 'Default', 'Workspace', 'Unassigned']) { const option = element('option', value); option.value = value; this.source.append(option); }
-    const filters = element('div', undefined, 'ynx-shortcuts-filters'); filters.append(this.search, this.source);
+    this.target = element('select'); this.target.setAttribute('aria-label', 'Save shortcuts in');
+    for (const value of ['User', 'Workspace']) { const option = element('option', value === 'Workspace' ? 'This project' : 'User settings'); option.value = value; this.target.append(option); }
+    const targetLabel = element('label', 'Save shortcuts in '); targetLabel.append(this.target);
+    const filters = element('div', undefined, 'ynx-shortcuts-filters'); filters.append(this.search, this.source, targetLabel);
     this.message = element('div', undefined, 'ynx-shortcuts-message'); this.message.setAttribute('role', 'status'); this.message.setAttribute('aria-live', 'polite');
     this.table = element('table'); this.table.setAttribute('aria-label', 'Keyboard shortcuts');
     const header = element('tr'); for (const title of ['Command', 'Shortcut', 'When', 'Source', 'Actions']) header.append(element('th', title));
@@ -36,6 +39,7 @@ class KeyboardShortcutsWidget extends BaseWidget {
     this.count = element('span'); this.previous = button('Previous', () => { this.page--; this.renderRows(); }); this.next = button('Next', () => { this.page++; this.renderRows(); });
     const footer = element('div', undefined, 'ynx-shortcuts-footer'); footer.append(this.count, this.previous, this.next);
     this.node.append(heading, filters, this.message, scroll, footer);
+    this.target.addEventListener('change', () => this.refresh());
     this.search.addEventListener('input', () => { this.page = 0; this.renderRows(); });
     this.source.addEventListener('change', () => { this.page = 0; this.renderRows(); });
     this.search.addEventListener('keydown', event => event.stopPropagation());
@@ -46,25 +50,28 @@ class KeyboardShortcutsWidget extends BaseWidget {
   async refresh() {
     const generation = this.generation = (this.generation || 0) + 1;
     try {
-      const snapshot = await this.shortcuts.snapshot();
+      const snapshot = await this.shortcuts.snapshot(this.target.value);
       if (this.isDisposed || generation !== this.generation) return;
       this.snapshot = snapshot;
       if (this.loadError) { this.message.textContent = ''; this.loadError = false; }
       const rows = [], known = new Set();
+      const entries = Object.entries(snapshot.scopes).flatMap(([source, value]) => value.entries.map((entry, index) => ({ entry, index, source })));
+      this.target.querySelector('option[value=Workspace]').disabled = !snapshot.scopes.Workspace.available;
+      if (snapshot.targetScope === 'Workspace' && !snapshot.available) this.message.textContent = 'Open a single local project to edit its shortcuts.';
       for (const command of this.commands.commands) {
         known.add(command.id);
         const label = [command.category, command.label].filter(Boolean).join(': ') || command.id;
         const bindings = this.registry.getKeybindingsForCommand(command.id);
-        if (command.id.startsWith('_') && !bindings.length && !snapshot.entries.some(entry => entry.command === command.id)) continue;
+        if (command.id.startsWith('_') && !bindings.length && !entries.some(value => value.entry.command === command.id)) continue;
         // Show the original user entries so each edit addresses its exact JSONC index.
-        snapshot.entries.forEach((entry, index) => {
-          if (entry.command === command.id) rows.push({ command: command.id, label, key: entry.key, when: entry.when, context: entry.context, args: entry.args, index, entry, source: 'User' });
+        entries.forEach(({ entry, index, source }) => {
+          if (entry.command === command.id) rows.push({ command: command.id, label, key: entry.key, when: entry.when, context: entry.context, args: entry.args, index, entry, source });
         });
-        for (const binding of bindings) if (binding.scope !== KeybindingScope.USER) rows.push({ command: command.id, label, key: binding.keybinding, when: binding.when, context: binding.context, args: binding.args, source: binding.scope === KeybindingScope.WORKSPACE ? 'Workspace' : 'Default' });
-        if (!bindings.length && !snapshot.entries.some(entry => entry.command === command.id)) rows.push({ command: command.id, label, source: 'Unassigned' });
+        for (const binding of bindings) if (binding.scope === KeybindingScope.DEFAULT) rows.push({ command: command.id, label, key: binding.keybinding, when: binding.when, context: binding.context, args: binding.args, source: binding.scope === KeybindingScope.WORKSPACE ? 'Workspace' : 'Default' });
+        if (!bindings.length && !entries.some(value => value.entry.command === command.id)) rows.push({ command: command.id, label, source: 'Unassigned' });
       }
       // Keep bindings for currently disabled/uninstalled commands visible and editable.
-      snapshot.entries.forEach((entry, index) => { if (!entry.command.startsWith('-') && !known.has(entry.command)) rows.push({ command: entry.command, label: entry.command, key: entry.key, when: entry.when, context: entry.context, args: entry.args, index, entry, source: 'User' }); });
+      entries.forEach(({ entry, index, source }) => { if (!entry.command.startsWith('-') && !known.has(entry.command)) rows.push({ command: entry.command, label: entry.command, key: entry.key, when: entry.when, context: entry.context, args: entry.args, index, entry, source }); });
       this.rows = rows.sort((a, b) => a.label.localeCompare(b.label) || (a.key || '').localeCompare(b.key || ''));
       this.renderRows();
     } catch (error) {
@@ -96,7 +103,7 @@ class KeyboardShortcutsWidget extends BaseWidget {
       actions.append(edit);
       if (row.key) actions.append(button('Add', () => this.edit(row, 'add')), button('Remove', () => this.apply({ kind: 'remove', row })));
       if (this.snapshot?.entries.some(entry => entry.command === row.command || entry.command === '-' + row.command)) actions.append(button('Reset', () => this.apply({ kind: 'reset', row })));
-      if (row.source === 'Workspace') { for (const action of actions.children) { action.disabled = true; action.title = 'This shortcut belongs to the workspace configuration.'; } }
+      if (this.snapshot?.targetScope === 'Workspace' && !this.snapshot.available) for (const action of actions.children) action.disabled = true;
       tr.append(command, key, condition, element('td', row.source), actions); this.body.append(tr);
     }
     this.count.textContent = `${rows.length} shortcuts · Page ${this.page + 1} of ${pages}`; this.previous.disabled = this.page === 0; this.next.disabled = this.page >= pages - 1;
@@ -106,7 +113,9 @@ class KeyboardShortcutsWidget extends BaseWidget {
     this.saving = true;
     this.message.textContent = 'Saving keyboard shortcuts…';
     try {
-      await this.shortcuts.change(snapshot, change);
+      const row = { ...change.row };
+      if (row.source !== snapshot.targetScope) { delete row.index; delete row.entry; }
+      await this.shortcuts.change(snapshot, { ...change, row });
       if (dialog) { dialog.close(); dialog.remove(); }
       await this.refresh(); this.message.textContent = 'Keyboard shortcuts saved.';
     } catch (error) {
@@ -152,7 +161,7 @@ class KeyboardShortcutsWidget extends BaseWidget {
     const keyLabel = element('label', 'Shortcut'); keyLabel.append(key);
     const whenLabel = element('label', 'When'); whenLabel.append(when);
     const actions = element('div', undefined, 'ynx-shortcuts-dialog-actions'); actions.append(cancel, save);
-    dialog.append(title, element('p', row.label), keyLabel, record, whenLabel, conflicts, alert, actions);
+    dialog.append(title, element('p', row.label + ' · ' + (snapshot.targetScope === 'Workspace' ? 'This project' : 'User settings')), keyLabel, record, whenLabel, conflicts, alert, actions);
     dialog.addEventListener('close', () => dialog.remove());
     this.node.append(dialog); dialog.showModal(); key.focus(); key.select(); update();
   }
