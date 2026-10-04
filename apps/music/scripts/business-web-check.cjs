@@ -7,7 +7,7 @@ const server=http.createServer((req,res)=>{if(req.url==='/health'){res.setHeader
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}/`;
  const browser=await chromium.launch({headless:true});
  try{
-  const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));await page.goto(base,{waitUntil:'networkidle'});
+  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));await page.goto(base,{waitUntil:'networkidle'});
   await page.getByRole('button',{name:'Play my library',exact:true}).click();assert.match(await page.locator('#status').innerText(),/Canonical Wallet sign-in is required|Use the installed app for the canonical device-bound sign-in/);assert.equal(requests.filter(x=>x.includes('/api/')).length,0);console.log('PASS guest private action emits zero private requests');
   await page.evaluate(async()=>{
    window.testModule=await import('./app.js');window.fixtureCalls=[];
