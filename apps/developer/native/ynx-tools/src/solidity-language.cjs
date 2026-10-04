@@ -69,7 +69,8 @@ function createSolidityLanguage(vscode, context, environment) {
         phase = 'verify';
         await reviewed.verify();
         if (capturedEpoch !== epoch || disposed) return undefined;
-        const documents = new Map(Object.keys(reviewed.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(environment.YNX_CORE_WORKSPACE, ...name.split('/')))]));
+        const workspace = environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;
+        const documents = new Map(Object.keys(reviewed.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(workspace, ...name.split('/')))]));
         if ([...documents.values()].some(doc => !doc || doc.isClosed)) return undefined;
         if (diagnostics) {
           const rows = new Map([...documents.values()].map(doc => [doc, []]));

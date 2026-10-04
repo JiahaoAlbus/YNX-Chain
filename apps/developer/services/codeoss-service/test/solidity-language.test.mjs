@@ -113,7 +113,14 @@ test('real bundled compiler serves navigation and rename providers, retires inva
   assert.ok(artifact.abi.some(row => row.name === 'ping')); assert.ok(artifact.bytecode.length > 2);
   assert.equal(openedArtifacts.length, 1); assert.equal(openedArtifacts[0].language, 'json');
   assert.equal(JSON.parse(openedArtifacts[0].content).contractName, 'Use');
+  delete environment.YNX_CORE_SESSION_ID;delete environment.YNX_CORE_WORKSPACE;
+  Object.assign(environment,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'});
+  events.change({document:documents[0]});
+  assert.equal((await providers.Definition.provideDefinition(documents[0],position)).uri.fsPath,documents[1].uri.fsPath);
+  assert.equal((await providers.Rename.prepareRename(documents[0],position)).placeholder,'fresh');
+  assert.equal((await language.compileProject()).ok,true);
   vscode.workspace.openTextDocument = openSource;
+  delete environment.YNX_WORKSPACE_MODE;
   environment.YNX_CORE_SESSION_ID = undefined;
   assert.equal(await providers.Hover.provideHover(documents[0], position), undefined);
   language.dispose();

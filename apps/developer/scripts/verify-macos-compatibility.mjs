@@ -65,6 +65,18 @@ export function inspectApp(appPath) {
     }
   }
   walk(root);
+  for (const binary of binaries) for (const slice of binary.slices) for (const dependency of slice.dependencies) {
+    if (!dependency.path.startsWith('@loader_path/')) continue;
+    const suffix = dependency.path.slice('@loader_path/'.length);
+    if (!suffix || suffix.split('/').some(part => !part || part === '.' || part === '..') || suffix.includes('\\') || suffix.includes('\0')) continue;
+    const filename = path.join(root, path.dirname(binary.path), suffix);
+    try {
+      const resolved = fs.realpathSync(filename);
+      if (resolved !== filename || !resolved.startsWith(root + path.sep) || !fs.lstatSync(resolved).isFile()) continue;
+      const target = path.relative(root, resolved);
+      if (binaries.some(item => item.path === target)) dependency.bundledPath = target;
+    } catch (error) { if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error; }
+  }
   const declaredMinimumOS = execFileSync("/usr/libexec/PlistBuddy", ["-c", "Print LSMinimumSystemVersion", path.join(root, "Contents/Info.plist")], { encoding: "utf8" }).trim();
   return { declaredMinimumOS, binaries };
 }
@@ -86,7 +98,12 @@ export function validateCompatibility(inventory, minimumOS, architecture) {
     if (compareVersions(slice.minimumOS, minimumOS) > 0) errors.push(`${label} requires ${slice.minimumOS}, above ${minimumOS}`);
     if (binary.path === requiredBinaries[0] && compareVersions(slice.minimumOS, minimumOS)) errors.push(`Native shell target ${slice.minimumOS} must equal declared ${minimumOS}`);
     for (const dependency of slice.dependencies) {
-      if (!/^\/(System\/Library|usr\/lib)\//.test(dependency.path)) errors.push(`Non-system load dependency requires an explicit bundled resolution: ${label}: ${dependency.path}`);
+      if (/^\/(System\/Library|usr\/lib)\//.test(dependency.path)) continue;
+      const suffix = dependency.path.startsWith('@loader_path/') ? dependency.path.slice('@loader_path/'.length) : '';
+      const validSuffix = suffix && !suffix.includes('\\') && !suffix.includes('\0') && !suffix.split('/').some(part => !part || part === '.' || part === '..');
+      const expected = validSuffix ? path.join(path.dirname(binary.path), suffix) : null;
+      const target = inventory.binaries.find(item => item.path === expected && item.path === dependency.bundledPath);
+      if (!target?.slices.some(targetSlice => targetSlice.architecture === slice.architecture)) errors.push(`Non-system load dependency requires an explicit bundled resolution: ${label}: ${dependency.path}`);
     }
   }
   return errors;

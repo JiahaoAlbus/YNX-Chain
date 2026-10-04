@@ -177,10 +177,8 @@ fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
 # explicit no-Team-ID ad-hoc class for every bundled Mach-O before sealing the
 # outer app.
 while IFS= read -r bundled_binary; do
-  if /usr/bin/file "$bundled_binary" | /usr/bin/grep -q 'Mach-O'; then
-    /usr/bin/codesign --force --sign - "$bundled_binary"
-  fi
-done < <(/usr/bin/find "$app/Contents/Resources" -type f -print)
+  /usr/bin/codesign --force --sign - "$bundled_binary"
+done < <(node -e 'const fs=require("fs"),path=require("path"),app=process.argv[1],inventory=JSON.parse(fs.readFileSync(path.join(app,"Contents/Resources/macos-compatibility.json")));for(const binary of inventory.binaries)if(binary.path.startsWith("Contents/Resources/"))console.log(path.join(app,binary.path));' "$app")
 node --input-type=module - "$app/Contents/Resources" <<'NODE'
 import {readFile,writeFile} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
 const resources=process.argv[2],runtime=join(resources,'runtime'),path=join(runtime,'distribution.json');let record;

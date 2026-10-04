@@ -58,6 +58,23 @@ test("unbundled dynamic libraries cannot pass merely because their minimum OS is
   assert.match(validateCompatibility(value, "13.5", "arm64").join("\n"), /Non-system load dependency/);
 });
 
+test("bundled loader paths require an exact inspected target with the requesting architecture", () => {
+  const value = inventory(), target = 'Contents/Resources/runtime/lib/libnode.dylib';
+  value.binaries.push({ path: target, slices: [slice()] });
+  const dependency = { command: 'LC_LOAD_DYLIB', path: '@loader_path/lib/libnode.dylib', bundledPath: target };
+  value.binaries[1].slices[0].dependencies.push(dependency);
+  assert.deepEqual(validateCompatibility(value, '13.5', 'arm64'), []);
+  value.binaries.at(-1).slices[0].architecture = 'x86_64';
+  assert.match(validateCompatibility(value, '13.5', 'arm64').join('\n'), /explicit bundled resolution/);
+  value.binaries.at(-1).slices[0].architecture = 'arm64';
+  for (const name of ['@rpath/libnode.dylib', '@loader_path/../libnode.dylib', '/opt/homebrew/libnode.dylib', '@loader_path/lib/missing.dylib']) {
+    dependency.path = name;
+    assert.match(validateCompatibility(value, '13.5', 'arm64').join('\n'), /explicit bundled resolution/);
+  }
+  dependency.path = '@loader_path/lib/libnode.dylib'; delete dependency.bundledPath;
+  assert.match(validateCompatibility(value, '13.5', 'arm64').join('\n'), /explicit bundled resolution/);
+});
+
 test("packaging derives clang target from plist and seals the independently replayable inventory", async () => {
   const [plist, build, verify] = await Promise.all(["../desktop/macos/Info.plist", "../scripts/package-local-macos.sh", "../scripts/verify-local-macos-package.sh"].map(p => readFile(new URL(p, import.meta.url), "utf8")));
   assert.match(plist, /LSMinimumSystemVersion<\/key><string>13\.5<\/string>/);
