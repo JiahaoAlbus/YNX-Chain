@@ -13,13 +13,14 @@ import {ImmersveSandbox} from './immersveSandbox.ts';
 import {CardProviderLifecycle,parseIssuingPrograms} from './providerLifecycle.ts';
 import {CardFinanceRead} from './cardFinanceRead.ts';
 import {originalCardRuntimeInputs,prepareOriginalCardRuntime} from './protectedStartup.ts';
+import {decodeCardStateKey} from './stateKey.ts';
 async function main(){
   const adapter=process.env.YNX_CARD_AUTH_ADAPTER_MODULE;
   if(adapter&&resolve(adapter)!==resolve(dirname(process.argv[1]??''),'sharedWalletAuth.ts'))throw Error('Card requires its pinned shared Wallet authentication consumer');
   const runtime=prepareOriginalCardRuntime(Boolean(adapter),originalCardRuntimeInputs.current);
   let wallet:WalletAuthority=unavailableWallet;
   if(adapter)wallet=runtime.bindWallet(withCardApplicationVerifier(createWalletAuthority()));
-  const encoded=process.env.YNX_CARD_STATE_KEY_BASE64??'',key=Buffer.from(encoded,'base64');if(key.length!==32||key.toString('base64')!==encoded)throw Error('Set YNX_CARD_STATE_KEY_BASE64 to a securely generated 32-byte base64 key');
+  const key=decodeCardStateKey(process.env.YNX_CARD_STATE_KEY_BASE64??'');
   const database=resolve(process.env.YNX_CARD_DATA_DIR??'.card-data','card.sqlite');let store:CardStore;try{store=new CardStore(database,key,runtime.assertCurrent)}finally{key.fill(0)}
   try{
   const rpc=process.env.YNX_CARD_CORE_RPC_URL,recipient=process.env.YNX_CARD_TESTNET_FUNDING_ADDRESS;

@@ -38,5 +38,5 @@ export class CardStore {
   }
   /** Called inside the same transaction as ledger credit. */
   claim(chain:string,hash:string,owner:string,intent:string):void{this.assertCurrent();const prior=this.db.prepare('SELECT owner,intent FROM funding_claims WHERE chain=? AND hash=?').get(chain,hash);if(prior){if(prior.owner!==owner||prior.intent!==intent)throw new CardError('TRANSACTION_ALREADY_CLAIMED');return}this.db.prepare('INSERT INTO funding_claims(chain,hash,owner,intent) VALUES(?,?,?,?)').run(chain,hash,owner,intent)}
-  close(){this.db.close();this.key.fill(0)}
+  close(){try{this.db.close()}finally{this.key.fill(0)}}
 }

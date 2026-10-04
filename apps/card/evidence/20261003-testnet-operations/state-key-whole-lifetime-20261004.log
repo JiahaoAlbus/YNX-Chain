@@ -1,0 +1,25 @@
+✔ private startup refuses missing source before state opening (0.690041ms)
+✔ public startup does not promote supplied software Wallet authority (0.172209ms)
+✔ revocation during original authentication cannot release principal (0.108583ms)
+✔ late fence refusal rolls back encrypted state and preserves cold original record (6.598ms)
+(node:49605) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ original Store clears copied disposable state key when directory creation fails (0.7325ms)
+✔ original Store clears copied disposable state key when SQLite open fails (2.241125ms)
+✔ migration failure clears only owned copy and preserves original exception despite close failure (0.125625ms)
+✔ PRAGMA failure closes acquired DB and clears copied key (0.09625ms)
+✔ success retains copied key until original close without modifying caller (0.09675ms)
+✔ original close failure still clears owned key without changing caller or masking error (0.086583ms)
+(node:49606) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ invalid-length configured state key clears disposable decoded copy before throwing (0.762208ms)
+✔ noncanonical base64 clears even an otherwise 32-byte decoded buffer (0.118917ms)
+✔ canonical disposable configured state key is retained only for caller ownership (0.076959ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.953917

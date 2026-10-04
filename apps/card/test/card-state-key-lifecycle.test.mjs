@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {stripTypeScriptTypes} from 'node:module';
+const raw=fs.readFileSync(new URL('../server/stateKey.ts',import.meta.url),'utf8');
+const body=stripTypeScriptTypes(raw.replace('export function decodeCardStateKey','function decodeCardStateKey'),{mode:'strip'});
+function capture(){const copies=[],buffers={from(...args){const b=Buffer.from(...args);copies.push(b);return b}};return {copies,decode:new Function('Buffer',body+';return decodeCardStateKey;')(buffers)}}
+test('invalid-length configured state key clears disposable decoded copy before throwing',()=>{const {copies,decode}=capture();assert.throws(()=>decode(Buffer.alloc(31,41).toString('base64')),/32-byte base64 key/);assert.equal(copies.length,1);assert.ok(copies[0].every(b=>b===0))});
+test('noncanonical base64 clears even an otherwise 32-byte decoded buffer',()=>{const {copies,decode}=capture();assert.throws(()=>decode(Buffer.alloc(32,41).toString('base64')+'\n'),/32-byte base64 key/);assert.equal(copies[0].length,32);assert.ok(copies[0].every(b=>b===0))});
+test('canonical disposable configured state key is retained only for caller ownership',()=>{const {copies,decode}=capture(),encoded=Buffer.alloc(32,41).toString('base64'),key=decode(encoded);assert.equal(key,copies[0]);assert.ok(key.every(b=>b===41));key.fill(0);assert.ok(copies[0].every(b=>b===0))});
