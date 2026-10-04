@@ -25,4 +25,13 @@
     <string name="trust_report">Denunciar</string>
     <string name="trust_dispute">Disputa de direitos</string>
     <string name="trust_appeal">Recurso do proprietário</string>
+    <string name="trust_takedown">Solicitação de retirada do proprietário</string>
+    <string name="trust_submit">Enviar solicitação</string>
+    <string name="trust_requests">Minhas solicitações de direitos</string>
+    <string name="trust_status">Estado no Music</string>
+    <string name="trust_open">Aguardando análise</string>
+    <string name="trust_reference">Referência do Trust</string>
+    <string name="trust_reference_pending">Salvo no Music. A referência do Trust ainda não foi confirmada.</string>
+    <string name="trust_outcome_pending">A referência não confirma o resultado da análise.</string>
+    <string name="trust_track_unavailable">Os detalhes da faixa não estão disponíveis</string>
 </resources>

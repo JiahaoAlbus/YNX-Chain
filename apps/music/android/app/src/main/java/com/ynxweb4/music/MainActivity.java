@@ -201,14 +201,31 @@ public final class MainActivity extends Activity {
     private void caseDialog(JSONObject track){
         if(!hasCurrentSnapshot())return;
         if(state.has("caseIntent")){status.setText(R.string.trust_pending);return;}
-        final long openedGeneration=authGeneration;final String[] kinds=MusicTrustCase.ownsTrack(state,api.account(),track.optString("id"))?new String[]{"report","dispute","appeal"}:new String[]{"report","dispute"};
-        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);Spinner kind=new Spinner(this);String[] labels=kinds.length==3?new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute),getString(R.string.trust_appeal)}:new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute)};kind.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));EditText reason=new EditText(this);reason.setHint(R.string.rights_declaration);EditText evidence=new EditText(this);evidence.setHint(R.string.rights_evidence);form.addView(kind);form.addView(reason);form.addView(evidence);
-        trackDialog(new AlertDialog.Builder(this).setTitle(R.string.rights).setView(form).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.upload,(d,w)->{
+        final long openedGeneration=authGeneration;final String[] kinds=MusicTrustCase.ownsTrack(state,api.account(),track.optString("id"))?new String[]{"report","dispute","appeal","takedown"}:new String[]{"report","dispute"};
+        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);Spinner kind=new Spinner(this);String[] labels=kinds.length==4?new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute),getString(R.string.trust_appeal),getString(R.string.trust_takedown)}:new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute)};kind.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));EditText reason=new EditText(this);reason.setHint(R.string.rights_declaration);EditText evidence=new EditText(this);evidence.setHint(R.string.rights_evidence);form.addView(kind);form.addView(reason);form.addView(evidence);
+        trackDialog(new AlertDialog.Builder(this).setTitle(R.string.rights).setView(form).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.trust_submit,(d,w)->{
             if(openedGeneration!=authGeneration||!hasCurrentSnapshot()||caseBusyGeneration==openedGeneration)return;
             try{new MusicTrustCase(api,store).stage(kinds[kind.getSelectedItemPosition()],track.optString("id"),reason.getText().toString(),evidence.getText().toString());state=store.load();retryCase(openedGeneration);}catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}
         }).show());
     }
+    private String caseTrackTitle(String id){
+        JSONObject remote=state.optJSONObject("remote");if(remote!=null)for(String field:new String[]{"creatorTracks","catalog"}){JSONArray tracks=remote.optJSONArray(field);if(tracks!=null)for(int i=0;i<tracks.length();i++){JSONObject track=tracks.optJSONObject(i);if(track!=null&&id.equals(track.optString("id")))return track.optString("title");}}
+        return getString(R.string.trust_track_unavailable);
+    }
+    private java.time.Instant caseDate(JSONObject record){try{return java.time.Instant.parse(record.optString("createdAt"));}catch(Exception ignored){return java.time.Instant.MIN;}}
+    private String caseDetails(JSONObject record){
+        String kind=record.optString("kind"),label=kind;switch(kind){case "report":label=getString(R.string.trust_report);break;case "dispute":label=getString(R.string.trust_dispute);break;case "appeal":label=getString(R.string.trust_appeal);break;case "takedown":label=getString(R.string.trust_takedown);break;}
+        String central=record.optString("centralCaseId"),status=record.optString("status");boolean linked=!central.isEmpty()&&central.length()<=256&&central.equals(central.trim());
+        return label+" · "+record.optString("id")+"\n"+caseTrackTitle(record.optString("trackId"))+"\n"+record.optString("reason")+"\n"+getString(R.string.trust_status)+": "+("open".equals(status)?getString(R.string.trust_open):status)+"\n"+(linked?getString(R.string.trust_reference)+": "+central+"\n"+getString(R.string.trust_outcome_pending):getString(R.string.trust_reference_pending));
+    }
+    private void renderCases(){
+        if(!hasCurrentSnapshot())return;JSONObject remote=state.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");if(profile==null||!api.account().equals(profile.optString("account")))return;
+        JSONArray cases=remote.optJSONArray("cases");java.util.List<JSONObject> records=new java.util.ArrayList<>();if(cases!=null)for(int i=0;i<cases.length();i++){JSONObject record=cases.optJSONObject(i);if(record!=null&&api.account().equals(record.optString("openedBy")))records.add(record);}records.sort((a,b)->{int date=caseDate(b).compareTo(caseDate(a));return date==0?a.optString("id").compareTo(b.optString("id")):date;});boolean headingShown=false;for(JSONObject record:records){
+            if(!headingShown){heading(R.string.trust_requests);headingShown=true;}content.addView(text(caseDetails(record),14));
+        }
+    }
     private void renderPendingCase(){
+        renderCases();
         JSONObject pending=state.optJSONObject("caseIntent");final long generation=authGeneration;
         if(pending!=null){
             content.addView(text(getString(R.string.trust_pending),14));JSONObject body=pending.optJSONObject("body");if(body!=null)content.addView(text(body.optString("reason"),14));

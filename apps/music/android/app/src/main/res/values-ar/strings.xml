@@ -25,4 +25,13 @@
     <string name="trust_report">إبلاغ</string>
     <string name="trust_dispute">نزاع حول الحقوق</string>
     <string name="trust_appeal">استئناف المالك</string>
+    <string name="trust_takedown">طلب إزالة من المالك</string>
+    <string name="trust_submit">إرسال الطلب</string>
+    <string name="trust_requests">طلباتي المتعلقة بالحقوق</string>
+    <string name="trust_status">الحالة في Music</string>
+    <string name="trust_open">بانتظار المراجعة</string>
+    <string name="trust_reference">مرجع Trust</string>
+    <string name="trust_reference_pending">تم الحفظ في Music. لم يتم تأكيد مرجع Trust بعد.</string>
+    <string name="trust_outcome_pending">المرجع لا يؤكد نتيجة المراجعة.</string>
+    <string name="trust_track_unavailable">تفاصيل المقطع غير متاحة</string>
 </resources>

@@ -61,6 +61,7 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			var trustConfigured bool
 			var foreignFixture bool
 			var trustReceipts atomic.Int32
+			var trustKinds sync.Map
 			var ownerRefusals atomic.Int32
 			// Explicit isolated HTTPS receipt provider, not Central Trust.
 			// Original SDK authority, actor and production HTTPS/effect gates remain.
@@ -82,7 +83,7 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				}
 				decode := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
 				decode.DisallowUnknownFields()
-				if r.Method != "POST" || r.URL.Path != "/original-case" || r.Header.Get("Authorization") != "Bearer isolated-music-trust-receipt" || r.Header.Get("X-YNX-Product-Client") != "ynx-music-v1" || decode.Decode(&input) != nil || input.Type != "open_case" || !strings.HasPrefix(input.Key, "music-trust-") || !strings.HasPrefix(input.Subject, "trk_") || input.Scope != "music.rights" || input.Action != "report" || len(input.Evidence) != 1 || input.Evidence[0].Source != "ynx-music" || input.Evidence[0].Summary != input.Purpose || input.Evidence[0].CollectedAt.IsZero() || !input.Evidence[0].Visible {
+				if r.Method != "POST" || r.URL.Path != "/original-case" || r.Header.Get("Authorization") != "Bearer isolated-music-trust-receipt" || r.Header.Get("X-YNX-Product-Client") != "ynx-music-v1" || decode.Decode(&input) != nil || input.Type != "open_case" || !strings.HasPrefix(input.Key, "music-trust-") || !strings.HasPrefix(input.Subject, "trk_") || input.Scope != "music.rights" || (input.Action != "report" && input.Action != "dispute" && input.Action != "appeal" && input.Action != "takedown") || len(input.Evidence) != 1 || input.Evidence[0].Source != "ynx-music" || input.Evidence[0].Summary != input.Purpose || input.Evidence[0].CollectedAt.IsZero() || !input.Evidence[0].Visible {
 					t.Error("isolated original Trust request contract mismatch")
 					http.Error(w, "invalid isolated provider request", 400)
 					return
@@ -91,16 +92,26 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				if platform == "android" {
 					expectedReason, expectedDigest = "Original unavailable Trust retry", "sha256:original-native-case-evidence"
 				}
+				if input.Action != "report" {
+					expectedReason = "Original native " + input.Action + " recovery"
+					expectedDigest = "sha256:original-native-" + input.Action + "-evidence"
+				}
 				if input.Purpose != expectedReason || input.Evidence[0].Digest != expectedDigest {
 					t.Error("original Trust request contents changed")
 					http.Error(w, "changed isolated evidence", 400)
 					return
 				}
-				if trustReceipts.Add(1) != 1 {
+				counter, _ := trustKinds.LoadOrStore(input.Action, &atomic.Int32{})
+				trustReceipts.Add(1)
+				if counter.(*atomic.Int32).Add(1) != 1 {
 					t.Error("original same-key Trust request dispatched twice")
 				}
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"id":"isolated-original-trust-receipt-1"}`))
+				reference := "isolated-original-trust-receipt-1"
+				if input.Action != "report" {
+					reference = "isolated-original-trust-" + input.Action + "-receipt-1"
+				}
+				_ = json.NewEncoder(w).Encode(map[string]string{"id": reference})
 			}))
 			defer trustProvider.Close()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -295,11 +306,15 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualWalletConsent                     bool `json:"actualWalletConsent"`
 				OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
 				IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+				NativeAllRightsKindsColdRecovery        bool `json:"nativeAllRightsKindsColdRecovery"`
+				NativeOriginalCaseRecordsReadback       bool `json:"nativeOriginalCaseRecordsReadback"`
 				ForeignOwnerAppealRejectedWithoutLogout bool `json:"foreignOwnerAppealRejectedWithoutLogout"`
 				OriginalPausedCaseColdSameKeyRecovery   bool `json:"originalPausedCaseColdSameKeyRecovery"`
 				JavaUpload                              struct {
 					OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
 					IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+					NativeAllRightsKindsColdRecovery        bool `json:"nativeAllRightsKindsColdRecovery"`
+					NativeOriginalCaseRecordsReadback       bool `json:"nativeOriginalCaseRecordsReadback"`
 					ForeignOwnerAppealRejectedWithoutLogout bool `json:"foreignOwnerAppealRejectedWithoutLogout"`
 					OriginalPausedCaseColdSameKeyRecovery   bool `json:"originalPausedCaseColdSameKeyRecovery"`
 				} `json:"javaUpload"`
@@ -323,10 +338,13 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Fatal("missing deduplicated original upload readback")
 			}
 			if javaUpload || apple {
-				if !foreignFixture || ownerRefusals.Load() != 1 || javaUpload && (!receipt.JavaUpload.ForeignOwnerAppealRejectedWithoutLogout || !receipt.JavaUpload.OriginalPausedCaseColdSameKeyRecovery) || apple && (!receipt.ForeignOwnerAppealRejectedWithoutLogout || !receipt.OriginalPausedCaseColdSameKeyRecovery) {
+				if !foreignFixture || ownerRefusals.Load() != 2 || javaUpload && (!receipt.JavaUpload.ForeignOwnerAppealRejectedWithoutLogout || !receipt.JavaUpload.OriginalPausedCaseColdSameKeyRecovery) || apple && (!receipt.ForeignOwnerAppealRejectedWithoutLogout || !receipt.OriginalPausedCaseColdSameKeyRecovery) {
 					t.Fatal("foreign appeal or original paused request recovery gate invalid")
 				}
-				if !trustConfigured || trustReceipts.Load() != 1 || javaUpload && (!receipt.JavaUpload.OriginalTrustConfirmedLostReplyRecovery || !receipt.JavaUpload.IsolatedTrustReceipt) || apple && (!receipt.OriginalTrustConfirmedLostReplyRecovery || !receipt.IsolatedTrustReceipt) {
+				if javaUpload && (!receipt.JavaUpload.NativeAllRightsKindsColdRecovery || !receipt.JavaUpload.NativeOriginalCaseRecordsReadback) || apple && (!receipt.NativeAllRightsKindsColdRecovery || !receipt.NativeOriginalCaseRecordsReadback) {
+					t.Fatal("original complete rights journey receipt missing")
+				}
+				if !trustConfigured || trustReceipts.Load() != 4 || javaUpload && (!receipt.JavaUpload.OriginalTrustConfirmedLostReplyRecovery || !receipt.JavaUpload.IsolatedTrustReceipt) || apple && (!receipt.OriginalTrustConfirmedLostReplyRecovery || !receipt.IsolatedTrustReceipt) {
 					t.Fatal("original Trust receipt/lost-reply recovery gate invalid")
 				}
 				snap, e := owned.Snapshot(actor.Account)
@@ -334,10 +352,27 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 					t.Fatal(e)
 				}
 				cases, ok := snap["cases"].([]music.Case)
-				if !ok || len(cases) != 1 || cases[0].CentralCaseID != "isolated-original-trust-receipt-1" {
-					t.Fatal("original Trust case duplicated or receipt missing")
+				if !ok || len(cases) != 4 {
+					t.Fatal("original rights cases missing or duplicated")
 				}
-				t.Log("original Trust success/lost-native-reply/cold-original-key replay: one original case, one isolated HTTPS provider dispatch; actual Central Trust/Wallet/install NOT_VERIFIED")
+				seen := map[string]bool{}
+				for _, record := range cases {
+					reference := "isolated-original-trust-" + record.Kind + "-receipt-1"
+					if record.Kind == "report" {
+						reference = "isolated-original-trust-receipt-1"
+					}
+					if seen[record.Kind] || record.OpenedBy != actor.Account || record.Status != "open" || record.CentralCaseID != reference {
+						t.Fatal("original case record identity/status/reference changed")
+					}
+					seen[record.Kind] = true
+				}
+				for _, kind := range []string{"report", "dispute", "appeal", "takedown"} {
+					counter, found := trustKinds.Load(kind)
+					if !found || counter.(*atomic.Int32).Load() != 1 || !seen[kind] {
+						t.Fatal("original rights kind repeated or missing")
+					}
+				}
+				t.Log("original four rights kinds/lost-native-reply/cold-original-key replay: four cases, one case and one isolated HTTPS dispatch per original request; status remains open, actual Central Trust/Wallet/install NOT_VERIFIED")
 			}
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})

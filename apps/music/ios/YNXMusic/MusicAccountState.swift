@@ -8,7 +8,7 @@ struct Listener:Codable{var favorites:[String]=[];var queue:[String]=[];var down
 struct Profile:Codable{var account="";var displayName="";var bio:String?;var explicitAllowed=false;var privateHistory=true;var creatorStatus="listener"}
 struct Allocation:Codable,Identifiable{let id:String;let amountMicros:Int}
 struct Settlement:Codable,Identifiable{let id,status,reviewUri:String;let amountMicros:Int}
-struct CaseRecord:Codable,Identifiable{let id,kind,status:String;var openedBy:String?;var trackId:String?;var reason:String?;var evidenceRef:String?;var centralCaseId:String?}
+struct CaseRecord:Codable,Identifiable{let id,kind,status:String;var openedBy:String?;var trackId:String?;var reason:String?;var evidenceRef:String?;var centralCaseId:String?;var createdAt:String?}
 struct MusicCaseIntent:Codable,Equatable {
     let key,account,kind,trackID,reason,evidenceRef:String
     func body()throws->Data {

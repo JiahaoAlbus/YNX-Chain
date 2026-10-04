@@ -25,4 +25,13 @@
     <string name="trust_report">Report</string>
     <string name="trust_dispute">Rights dispute</string>
     <string name="trust_appeal">Owner appeal</string>
+    <string name="trust_takedown">Owner takedown request</string>
+    <string name="trust_submit">Submit request</string>
+    <string name="trust_requests">My rights requests</string>
+    <string name="trust_status">Music status</string>
+    <string name="trust_open">Open for review</string>
+    <string name="trust_reference">Trust reference</string>
+    <string name="trust_reference_pending">Saved in Music. A Trust reference has not been confirmed.</string>
+    <string name="trust_outcome_pending">The reference does not confirm a review outcome.</string>
+    <string name="trust_track_unavailable">Track details are unavailable</string>
 </resources>

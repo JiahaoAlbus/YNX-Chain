@@ -25,4 +25,13 @@
     <string name="trust_report">通報</string>
     <string name="trust_dispute">権利に関する異議</string>
     <string name="trust_appeal">所有者の申し立て</string>
+    <string name="trust_takedown">所有者の削除リクエスト</string>
+    <string name="trust_submit">リクエストを送信</string>
+    <string name="trust_requests">自分の権利リクエスト</string>
+    <string name="trust_status">Music の状態</string>
+    <string name="trust_open">審査待ち</string>
+    <string name="trust_reference">Trust 参照番号</string>
+    <string name="trust_reference_pending">Music に保存済みです。Trust 参照番号は未確認です。</string>
+    <string name="trust_outcome_pending">参照番号は審査結果の確定を意味しません。</string>
+    <string name="trust_track_unavailable">楽曲の詳細を取得できません</string>
 </resources>

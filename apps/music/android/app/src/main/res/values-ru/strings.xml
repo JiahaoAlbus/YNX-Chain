@@ -25,4 +25,13 @@
     <string name="trust_report">Пожаловаться</string>
     <string name="trust_dispute">Спор о правах</string>
     <string name="trust_appeal">Апелляция владельца</string>
+    <string name="trust_takedown">Запрос владельца на удаление</string>
+    <string name="trust_submit">Отправить запрос</string>
+    <string name="trust_requests">Мои запросы о правах</string>
+    <string name="trust_status">Статус в Music</string>
+    <string name="trust_open">Ожидает рассмотрения</string>
+    <string name="trust_reference">Номер Trust</string>
+    <string name="trust_reference_pending">Сохранено в Music. Номер Trust ещё не подтверждён.</string>
+    <string name="trust_outcome_pending">Номер не подтверждает результат рассмотрения.</string>
+    <string name="trust_track_unavailable">Сведения о композиции недоступны</string>
 </resources>

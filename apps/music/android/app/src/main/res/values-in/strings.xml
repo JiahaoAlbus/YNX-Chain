@@ -25,4 +25,13 @@
     <string name="trust_report">Laporkan</string>
     <string name="trust_dispute">Sengketa hak</string>
     <string name="trust_appeal">Banding pemilik</string>
+    <string name="trust_takedown">Permintaan penghapusan oleh pemilik</string>
+    <string name="trust_submit">Kirim permintaan</string>
+    <string name="trust_requests">Permintaan hak saya</string>
+    <string name="trust_status">Status di Music</string>
+    <string name="trust_open">Menunggu peninjauan</string>
+    <string name="trust_reference">Referensi Trust</string>
+    <string name="trust_reference_pending">Tersimpan di Music. Referensi Trust belum dikonfirmasi.</string>
+    <string name="trust_outcome_pending">Referensi tidak mengonfirmasi hasil peninjauan.</string>
+    <string name="trust_track_unavailable">Detail lagu tidak tersedia</string>
 </resources>

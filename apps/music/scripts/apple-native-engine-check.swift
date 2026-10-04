@@ -98,9 +98,12 @@ import Foundation
                         case "loseCaseReply":loseCaseReply=true;value=["loseCaseReply":true]
                         case "uiForeignAppeal":
                             guard let operation=model.captureOperation(),let track=command["track"] as? String else{throw MusicNativeEngine.Failure.retired}
-                            await model.refresh(operation);let blocked = !model.prepareCase(operation,kind:"appeal",track:track,reason:"Foreign owner appeal",evidence:"")
-                            let intent=MusicCaseIntent(key:"music-trust-\(UUID().uuidString)",account:operation.account.account,kind:"appeal",trackID:track,reason:"Foreign owner appeal",evidenceRef:"")
-                            var denied=false;do{_ = try await operation.api.openCase(intent)}catch{denied=true}
+                            await model.refresh(operation);var blocked=true,denied=true
+                            for kind in ["appeal","takedown"] {
+                                blocked = !model.prepareCase(operation,kind:kind,track:track,reason:"Foreign owner appeal",evidence:"") && blocked
+                                let intent=MusicCaseIntent(key:"music-trust-\(UUID().uuidString)",account:operation.account.account,kind:kind,trackID:track,reason:"Foreign owner appeal",evidenceRef:"")
+                                do{_ = try await operation.api.openCase(intent);denied=false}catch{}
+                            }
                             await model.refresh(operation);value=["preflightBlocked":blocked,"denied":denied,"pending":model.state.caseIntent != nil,"connected":model.signedIn,"cases":model.snapshot.cases.count]
                         case "uiPauseCase":
                             guard let operation=model.captureOperation(),let intent=model.state.caseIntent else{throw MusicNativeEngine.Failure.retired}
@@ -110,9 +113,9 @@ import Foundation
                             value=["success":model.restoreCase(operation,intent:intent),"key":intent.key,"history":model.state.caseHistory?.count ?? 0]
                         case "uiCase":
                             guard let operation=model.captureOperation() else{throw MusicNativeEngine.Failure.retired}
-                            if let track=command["track"] as? String {guard model.prepareCase(operation,kind:"report",track:track,reason:"Original unavailable Apple Trust retry",evidence:"sha256:original-apple-case-evidence") else{throw MusicNativeEngine.Failure.rejected("case staging")}}
+                            if let track=command["track"] as? String {guard model.prepareCase(operation,kind:command["kind"] as? String ?? "report",track:track,reason:command["reason"] as? String ?? "Original unavailable Apple Trust retry",evidence:command["evidence"] as? String ?? "sha256:original-apple-case-evidence") else{throw MusicNativeEngine.Failure.rejected("case staging")}}
                             let key=model.state.caseIntent?.key ?? "",success=await model.retryCase(operation)
-                            await model.refresh(operation);value=["success":success,"pending":model.state.caseIntent != nil,"key":key,"cases":model.snapshot.cases.count]
+                            await model.refresh(operation);value=["success":success,"pending":model.state.caseIntent != nil,"key":key,"cases":model.snapshot.cases.count,"records":try JSONSerialization.jsonObject(with:JSONEncoder().encode(model.snapshot.cases))]
                         case "uiRelease":
                             guard let operation=model.captureOperation(),let track=model.snapshot.creatorTracks.first(where:{command["track"]==nil || $0.id==command["track"] as? String}) else{throw MusicNativeEngine.Failure.retired}
                             guard await model.perform(operation,{try await $0.release(track.id)}) != nil else{throw MusicNativeEngine.Failure.retired};await model.refresh(operation);value=["id":track.id,"catalog":model.snapshot.catalog.count]

@@ -25,4 +25,13 @@
     <string name="trust_report">檢舉</string>
     <string name="trust_dispute">權利爭議</string>
     <string name="trust_appeal">作者申訴</string>
+    <string name="trust_takedown">作者下架請求</string>
+    <string name="trust_submit">提交請求</string>
+    <string name="trust_requests">我的權利請求</string>
+    <string name="trust_status">Music 狀態</string>
+    <string name="trust_open">等待審查</string>
+    <string name="trust_reference">Trust 編號</string>
+    <string name="trust_reference_pending">已儲存至 Music，尚未確認 Trust 編號。</string>
+    <string name="trust_outcome_pending">此編號不表示已完成審查或裁決。</string>
+    <string name="trust_track_unavailable">暫時無法查看作品詳情</string>
 </resources>

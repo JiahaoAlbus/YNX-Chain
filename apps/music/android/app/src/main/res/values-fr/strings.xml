@@ -25,4 +25,13 @@
     <string name="trust_report">Signaler</string>
     <string name="trust_dispute">Litige sur les droits</string>
     <string name="trust_appeal">Recours du propriétaire</string>
+    <string name="trust_takedown">Demande de retrait du propriétaire</string>
+    <string name="trust_submit">Envoyer la demande</string>
+    <string name="trust_requests">Mes demandes relatives aux droits</string>
+    <string name="trust_status">Statut dans Music</string>
+    <string name="trust_open">En attente de révision</string>
+    <string name="trust_reference">Référence Trust</string>
+    <string name="trust_reference_pending">Enregistré dans Music. La référence Trust reste non confirmée.</string>
+    <string name="trust_outcome_pending">La référence ne confirme pas le résultat de la révision.</string>
+    <string name="trust_track_unavailable">Les détails du morceau sont indisponibles</string>
 </resources>

@@ -95,7 +95,16 @@
       "trust_owner_only": "Only the track owner can start this request.",
       "trust_report": "Report",
       "trust_dispute": "Rights dispute",
-      "trust_appeal": "Owner appeal"
+      "trust_appeal": "Owner appeal",
+      "trust_takedown": "Owner takedown request",
+      "trust_submit": "Submit request",
+      "trust_requests": "My rights requests",
+      "trust_status": "Music status",
+      "trust_open": "Open for review",
+      "trust_reference": "Trust reference",
+      "trust_reference_pending": "Saved in Music. A Trust reference has not been confirmed.",
+      "trust_outcome_pending": "The reference does not confirm a review outcome.",
+      "trust_track_unavailable": "Track details are unavailable"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -177,7 +186,16 @@
       "trust_owner_only": "只有作品作者可以发起此请求。",
       "trust_report": "举报",
       "trust_dispute": "权利争议",
-      "trust_appeal": "作者申诉"
+      "trust_appeal": "作者申诉",
+      "trust_takedown": "作者下架请求",
+      "trust_submit": "提交请求",
+      "trust_requests": "我的权利请求",
+      "trust_status": "Music 状态",
+      "trust_open": "等待审查",
+      "trust_reference": "Trust 编号",
+      "trust_reference_pending": "已保存至 Music，尚未确认 Trust 编号。",
+      "trust_outcome_pending": "此编号不表示已完成审查或裁决。",
+      "trust_track_unavailable": "暂无法查看作品详情"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -259,7 +277,16 @@
       "trust_owner_only": "只有作品作者可以發起此請求。",
       "trust_report": "檢舉",
       "trust_dispute": "權利爭議",
-      "trust_appeal": "作者申訴"
+      "trust_appeal": "作者申訴",
+      "trust_takedown": "作者下架請求",
+      "trust_submit": "提交請求",
+      "trust_requests": "我的權利請求",
+      "trust_status": "Music 狀態",
+      "trust_open": "等待審查",
+      "trust_reference": "Trust 編號",
+      "trust_reference_pending": "已儲存至 Music，尚未確認 Trust 編號。",
+      "trust_outcome_pending": "此編號不表示已完成審查或裁決。",
+      "trust_track_unavailable": "暫時無法查看作品詳情"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -341,7 +368,16 @@
       "trust_owner_only": "このリクエストは楽曲の所有者のみ開始できます。",
       "trust_report": "通報",
       "trust_dispute": "権利に関する異議",
-      "trust_appeal": "所有者の申し立て"
+      "trust_appeal": "所有者の申し立て",
+      "trust_takedown": "所有者の削除リクエスト",
+      "trust_submit": "リクエストを送信",
+      "trust_requests": "自分の権利リクエスト",
+      "trust_status": "Music の状態",
+      "trust_open": "審査待ち",
+      "trust_reference": "Trust 参照番号",
+      "trust_reference_pending": "Music に保存済みです。Trust 参照番号は未確認です。",
+      "trust_outcome_pending": "参照番号は審査結果の確定を意味しません。",
+      "trust_track_unavailable": "楽曲の詳細を取得できません"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -423,7 +459,16 @@
       "trust_owner_only": "곡 소유자만 이 요청을 시작할 수 있습니다.",
       "trust_report": "신고",
       "trust_dispute": "권리 분쟁",
-      "trust_appeal": "소유자 이의 제기"
+      "trust_appeal": "소유자 이의 제기",
+      "trust_takedown": "소유자 삭제 요청",
+      "trust_submit": "요청 제출",
+      "trust_requests": "내 권리 요청",
+      "trust_status": "Music 상태",
+      "trust_open": "검토 대기",
+      "trust_reference": "Trust 참조 번호",
+      "trust_reference_pending": "Music에 저장되었습니다. Trust 참조 번호는 미확인입니다.",
+      "trust_outcome_pending": "참조 번호는 검토 결과의 확정을 의미하지 않습니다.",
+      "trust_track_unavailable": "곡 세부 정보를 확인할 수 없습니다"
     },
     "es": {
       "app_name": "YNX Music",
@@ -505,7 +550,16 @@
       "trust_owner_only": "Solo el propietario de la pista puede iniciar esta solicitud.",
       "trust_report": "Denunciar",
       "trust_dispute": "Disputa de derechos",
-      "trust_appeal": "Apelación del propietario"
+      "trust_appeal": "Apelación del propietario",
+      "trust_takedown": "Solicitud de retirada del propietario",
+      "trust_submit": "Enviar solicitud",
+      "trust_requests": "Mis solicitudes de derechos",
+      "trust_status": "Estado en Music",
+      "trust_open": "Pendiente de revisión",
+      "trust_reference": "Referencia de Trust",
+      "trust_reference_pending": "Guardado en Music. La referencia de Trust no está confirmada.",
+      "trust_outcome_pending": "La referencia no confirma el resultado de la revisión.",
+      "trust_track_unavailable": "Los detalles de la pista no están disponibles"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -587,7 +641,16 @@
       "trust_owner_only": "Seul le propriétaire du morceau peut lancer cette demande.",
       "trust_report": "Signaler",
       "trust_dispute": "Litige sur les droits",
-      "trust_appeal": "Recours du propriétaire"
+      "trust_appeal": "Recours du propriétaire",
+      "trust_takedown": "Demande de retrait du propriétaire",
+      "trust_submit": "Envoyer la demande",
+      "trust_requests": "Mes demandes relatives aux droits",
+      "trust_status": "Statut dans Music",
+      "trust_open": "En attente de révision",
+      "trust_reference": "Référence Trust",
+      "trust_reference_pending": "Enregistré dans Music. La référence Trust reste non confirmée.",
+      "trust_outcome_pending": "La référence ne confirme pas le résultat de la révision.",
+      "trust_track_unavailable": "Les détails du morceau sont indisponibles"
     },
     "de": {
       "app_name": "YNX Music",
@@ -669,7 +732,16 @@
       "trust_owner_only": "Nur der Eigentümer des Titels kann diese Anfrage starten.",
       "trust_report": "Melden",
       "trust_dispute": "Rechtestreit",
-      "trust_appeal": "Einspruch des Eigentümers"
+      "trust_appeal": "Einspruch des Eigentümers",
+      "trust_takedown": "Entfernungsanfrage des Eigentümers",
+      "trust_submit": "Anfrage senden",
+      "trust_requests": "Meine Rechteanfragen",
+      "trust_status": "Music-Status",
+      "trust_open": "Prüfung ausstehend",
+      "trust_reference": "Trust-Referenz",
+      "trust_reference_pending": "In Music gespeichert. Eine Trust-Referenz ist noch nicht bestätigt.",
+      "trust_outcome_pending": "Die Referenz bestätigt kein Prüfergebnis.",
+      "trust_track_unavailable": "Titeldetails sind nicht verfügbar"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -751,7 +823,16 @@
       "trust_owner_only": "Somente o proprietário da faixa pode iniciar esta solicitação.",
       "trust_report": "Denunciar",
       "trust_dispute": "Disputa de direitos",
-      "trust_appeal": "Recurso do proprietário"
+      "trust_appeal": "Recurso do proprietário",
+      "trust_takedown": "Solicitação de retirada do proprietário",
+      "trust_submit": "Enviar solicitação",
+      "trust_requests": "Minhas solicitações de direitos",
+      "trust_status": "Estado no Music",
+      "trust_open": "Aguardando análise",
+      "trust_reference": "Referência do Trust",
+      "trust_reference_pending": "Salvo no Music. A referência do Trust ainda não foi confirmada.",
+      "trust_outcome_pending": "A referência não confirma o resultado da análise.",
+      "trust_track_unavailable": "Os detalhes da faixa não estão disponíveis"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -833,7 +914,16 @@
       "trust_owner_only": "Только владелец композиции может создать этот запрос.",
       "trust_report": "Пожаловаться",
       "trust_dispute": "Спор о правах",
-      "trust_appeal": "Апелляция владельца"
+      "trust_appeal": "Апелляция владельца",
+      "trust_takedown": "Запрос владельца на удаление",
+      "trust_submit": "Отправить запрос",
+      "trust_requests": "Мои запросы о правах",
+      "trust_status": "Статус в Music",
+      "trust_open": "Ожидает рассмотрения",
+      "trust_reference": "Номер Trust",
+      "trust_reference_pending": "Сохранено в Music. Номер Trust ещё не подтверждён.",
+      "trust_outcome_pending": "Номер не подтверждает результат рассмотрения.",
+      "trust_track_unavailable": "Сведения о композиции недоступны"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -915,7 +1005,16 @@
       "trust_owner_only": "يمكن لمالك المقطع فقط بدء هذا الطلب.",
       "trust_report": "إبلاغ",
       "trust_dispute": "نزاع حول الحقوق",
-      "trust_appeal": "استئناف المالك"
+      "trust_appeal": "استئناف المالك",
+      "trust_takedown": "طلب إزالة من المالك",
+      "trust_submit": "إرسال الطلب",
+      "trust_requests": "طلباتي المتعلقة بالحقوق",
+      "trust_status": "الحالة في Music",
+      "trust_open": "بانتظار المراجعة",
+      "trust_reference": "مرجع Trust",
+      "trust_reference_pending": "تم الحفظ في Music. لم يتم تأكيد مرجع Trust بعد.",
+      "trust_outcome_pending": "المرجع لا يؤكد نتيجة المراجعة.",
+      "trust_track_unavailable": "تفاصيل المقطع غير متاحة"
     },
     "id": {
       "app_name": "YNX Music",
@@ -997,7 +1096,16 @@
       "trust_owner_only": "Hanya pemilik lagu yang dapat memulai permintaan ini.",
       "trust_report": "Laporkan",
       "trust_dispute": "Sengketa hak",
-      "trust_appeal": "Banding pemilik"
+      "trust_appeal": "Banding pemilik",
+      "trust_takedown": "Permintaan penghapusan oleh pemilik",
+      "trust_submit": "Kirim permintaan",
+      "trust_requests": "Permintaan hak saya",
+      "trust_status": "Status di Music",
+      "trust_open": "Menunggu peninjauan",
+      "trust_reference": "Referensi Trust",
+      "trust_reference_pending": "Tersimpan di Music. Referensi Trust belum dikonfirmasi.",
+      "trust_outcome_pending": "Referensi tidak mengonfirmasi hasil peninjauan.",
+      "trust_track_unavailable": "Detail lagu tidak tersedia"
     }
   }
 }
