@@ -1,0 +1,18 @@
+{
+  "kind": "READ_ONLY_INSTALLED_WALLET_PUBLIC_PACKAGE_INVENTORY",
+  "publicReadback": "/tmp/ynx-wallet-installed-copies-public-identity-20261004.json",
+  "publicReadbackSha256": "1b9c02fb991347b359ebac2e170683fd11f732cd5b6a1bd188cf79e9cb666cdf",
+  "applications": [
+    {"path": "/Applications/YNX Wallet.app", "version": "0.6.4", "bundleId": "com.ynxweb4.wallet.macos", "embeddedSourceClaim": "e1945298b843385f9d8d44fd1ccff99c29815ece", "asarSha256": "68252ab0f219d8240e4fffcbe8bebb88857966cee601499e049815cfb5a083ff"},
+    {"path": "/Applications/YNX Wallet 2.app", "version": "0.6.8", "bundleId": "com.ynxweb4.wallet.macos", "embeddedSourceClaim": "6f332753baae5deaf6b05c8276b20a02cc4887c5", "asarSha256": "c5693825a4c620453fd5fcd8f922b09a26a02c0c769cbb345ee291be2192d969"},
+    {"path": "/Applications/YNX Wallet 0.6.3 QA.app", "version": "0.6.3", "bundleId": "com.ynxweb4.wallet.macos", "embeddedSourceClaim": null, "asarSha256": "86a07abfb423a4165aaf974abb17df3260f7a2f61e9f14217946ec10286e3657"},
+    {"path": "/Applications/YNX Wallet 0.6.4 Testnet QA.app", "version": "0.6.4", "bundleId": "com.ynxweb4.wallet.macos", "embeddedSourceClaim": "e1945298b843385f9d8d44fd1ccff99c29815ece", "asarSha256": "68252ab0f219d8240e4fffcbe8bebb88857966cee601499e049815cfb5a083ff"},
+    {"path": "/Applications/YNX Wallet Password V3 3c93 QA.app", "version": "0.6.3", "bundleId": "com.ynxweb4.wallet.passwordv3.qa.3c93", "embeddedSourceClaim": null, "asarSha256": "e06953738a8ddc7fb09bb7de4949821c77e809c63f5cb668a8c852414ad5b211"}
+  ],
+  "signatureDisplay": "All five show ad-hoc signatures without TeamIdentifier; display is not signature validity, notarization or formal release verification.",
+  "interpretation": "Four applications share the production bundle identifier. Name or protocol alone cannot identify the correct installed acceptance target. Embedded source claim and ASAR hash do not by themselves verify every installed runtime byte against Git.",
+  "safety": {"started": false, "installedUninstalledOrRenamed": false, "launchServicesChanged": false, "accountsKeysOrUserDataRead": false},
+  "requiredBeforeUpgrade": ["exact installed app path and actual bytes", "normal human-selected original account copy and signing identity", "publisher-provided higher-version matching artifact", "original keys and UNKNOWN retained", "explicit protocol return targets the accepted installed app"],
+  "historicalQACopiesAreNotCanonicalAcceptance": true,
+  "overall": "PUBLIC_PACKAGE_IDENTITIES_OBSERVED_ACCOUNT_AND_UPGRADE_NOT_VERIFIED"
+}
