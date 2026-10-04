@@ -1,0 +1,33 @@
+{
+  "schema": "ynx.media.shared-source-review-intake.v1",
+  "readAt": "2026-10-04T08:23:42.177607+00:00",
+  "independentReport": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media-sso-current-successor-independent-review/REPORT.md",
+    "sha256": "17471450b1f32a7a9e38e5ba1e04b6be5c28477175851a32b84e7b27665087c2",
+    "readScope": "Complete report"
+  },
+  "exactSharedSuccessor": {
+    "manifestSHA256": "a5ae233bf9f63c1ef9ef31539206a23a947091b0f1bf9d81e98ed657d71efd03",
+    "contentRoot": "8bb70f6433539686a0e0606e4ef6c872d86dc188b6cc74f9658358d27ce1a801",
+    "listedFiles": 4504,
+    "goClosureMembers": 146
+  },
+  "limitedResult": "Prior specific SSO after-network/publication source-current P2 CLOSED for exact successor only",
+  "independentExecution": "Six original/necessary targets and two audit boundary targets passed race; independent execution, not rerun or borrowed from owned engineering",
+  "ownedSource": "5126b0ef314a54afcbc9f5c944e757abfea7f97e",
+  "ownedMatchingSourceArchiveSHA256": "825574f6bd72f68178d31afca2c5d4a76e9b56992a7d03ba5375ee9e3aaeba12",
+  "ownedMainEngineering": "Preserved 3fe9 main preparation and captured SSO mount; focused four-package race, two builds and two main vet retained in unified checkpoint, not re-run for review metadata",
+  "priorHoldsPreserved": [
+    "Old report1ed339645ee7319cf9a7242f332b370995f9e573141d04ddfad9c9af6ebd9a78 remains historical SOURCE_HOLD",
+    "Original aa924/root9316 aggregate mismatch and source refusal failures remain immutable"
+  ],
+  "remaining": {
+    "productionRegistrationCurrentActorFeeds": "NOT_SUPPLIED",
+    "realPersonPrivateBusiness": "NOT_VERIFIED",
+    "musicSameProviderFinalityAndUnknownReconciliation": "NOT_IMPLEMENTED by Shared successor",
+    "nativeAppIdentityAndExistingAccount": "NOT_VERIFIED; duplicate bundle versions and locked Mac require original owner reconciliation and real unlock",
+    "formalHostInstallation": "NO_VALID_LIVE_JOB_HANDLE; A reports old local SSH255 with remote uploader/partial UNKNOWN, no restore evidence; do not reupload/retry or clean partial state"
+  },
+  "formalActivation": false,
+  "goalComplete": false
+}
