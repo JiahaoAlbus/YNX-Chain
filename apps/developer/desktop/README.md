@@ -15,7 +15,7 @@ dirty-file handling; saved layout is preserved when a window closes during
 startup. Recent-folder records are written only after a native folder selection
 has produced a matching live backend and project-profile binding.
 
-The default theme is YNX Klein, with a `#002FA7` accent and dark editor surfaces.
+The default theme is YNX Klein, with a `#002FA7` accent, neutral charcoal `#1E1F22` editor surfaces, and consistent blue actions and selections.
 Existing user theme preferences remain authoritative. Source and current
 package evidence are recorded in
 `../docs/integration/LOCAL_DESKTOP_KLEIN_CHECKPOINT_20261005.json`. This particular

@@ -77,7 +77,7 @@ static NSString *YNXLocalHTMLEscape(NSString *text) {
     return [escaped stringByReplacingOccurrencesOfString:@"'" withString:@"&#39;"];
 }
 static NSString *YNXLocalStatusPage(NSString *title,NSString *message) {
-    return [NSString stringWithFormat:@"<!doctype html><meta charset=utf-8><meta name=color-scheme content=dark><style>html{background:#10131C;color:#E8ECF5}body{font:16px -apple-system;margin:0;padding:48px;line-height:1.6}h1{font-size:24px;color:#E8ECF5;border-left:4px solid #002FA7;padding-left:16px}p{max-width:760px;overflow-wrap:anywhere}a,:focus-visible{color:#7399FF}</style><h1>%@</h1><p>%@</p>",YNXLocalHTMLEscape(title),YNXLocalHTMLEscape(message)];
+    return [NSString stringWithFormat:@"<!doctype html><meta charset=utf-8><meta name=color-scheme content=dark><style>html{background:#111214;color:#E8ECF5}body{font:16px -apple-system;margin:0;padding:48px;line-height:1.6}h1{font-size:24px;color:#E8ECF5;border-left:4px solid #002FA7;padding-left:16px}p{max-width:760px;overflow-wrap:anywhere}a,:focus-visible{color:#7399FF}</style><h1>%@</h1><p>%@</p>",YNXLocalHTMLEscape(title),YNXLocalHTMLEscape(message)];
 }
 static NSDictionary *YNXLocalAppearancePayload(id value) {
     if(![value isKindOfClass:NSDictionary.class])return nil;
@@ -550,12 +550,12 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalAppearanceScript(),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     _webView=[[WKWebView alloc]initWithFrame:NSMakeRect(0,0,1440,900) configuration:configuration];
-    _webView.underPageBackgroundColor=YNXLocalBackgroundColor(@"#10131C");
+    _webView.underPageBackgroundColor=YNXLocalBackgroundColor(@"#111214");
     _webView.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;
     _webView.UIDelegate=self;_webView.navigationDelegate=self;
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
     _window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
-    _window.backgroundColor=YNXLocalBackgroundColor(@"#10131C");
+    _window.backgroundColor=YNXLocalBackgroundColor(@"#111214");
     NSString *project=_localWorkspace;
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;

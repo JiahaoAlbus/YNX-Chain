@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "scope": "Theme-only real workbench observation. Old sealed Workbench 0.3.15 plus Brand 0.1.6 overlay; not a final application build or native Cocoa acceptance.",
+  "brandVersion": "0.1.6",
+  "theme": "YNX Klein",
+  "themeSha256": "ba209f211523275730f2e7c16184cf6424b4b0ec94977c66d3fb691850988bca",
+  "observed": {
+    "editorBackground": "rgb(30, 31, 34)",
+    "statusBarBackground": "rgb(0, 47, 167)",
+    "listActiveSelectionBackground": "#002fa7"
+  },
+  "screenshot": "/private/tmp/ynx-neutral-klein-default-theme-20261005.png",
+  "runtimeObservation": "/private/tmp/ynx-atomic-editing-workbench-Aav688/runtime.json",
+  "themeOverlayTreeSha256": "e4fbd4b0e49811965b50b8b8d10361cd5969c7e22bddedff55f3dd1b6752caa5",
+  "changes": [
+    "Neutral charcoal surfaces replace blue-grey backgrounds.",
+    "Klein accent is consistent in selection, menus, quick input, buttons, active activity icon, progress and status.",
+    "Native startup background matches neutral titlebar.",
+    "Existing user themes and profiles are retained."
+  ],
+  "releaseState": {
+    "newNativePackageBuilt": false,
+    "installed": false,
+    "published": false
+  }
+}
