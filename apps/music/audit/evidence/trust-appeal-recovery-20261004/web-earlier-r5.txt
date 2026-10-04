@@ -1,0 +1,7 @@
+PASS guest private action emits zero private requests
+PASS title search permits legitimate punctuation in the query
+PASS original playlist edit/reorder/add, failed draft retained, PUT then GET readback, Library view retained
+PASS profile business save preserves explicit biography
+Error: Please use browser.newContext()
+    at BrowserContext.newPage (/Users/huangjiahao/.codex/worktrees/android-installed-gate-main-20261001/apps/finance/node_modules/playwright-core/lib/client/browserContext.js:266:13)
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/business-web-check.cjs:43:649

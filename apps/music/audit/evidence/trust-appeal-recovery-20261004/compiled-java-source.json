@@ -1,0 +1,221 @@
+{
+  "schema": "ynx.music.android.actual-java-upload.v1",
+  "javaHome": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+  "jsonDependency": {
+    "path": "/tmp/ynx-music-json-20240303.jar",
+    "bytes": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+  },
+  "sourcePins": [
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicIO.java",
+      "bytes": 1529,
+      "sha256": "7eec2e2efde88be7f71c8ed1ce40b1fbe38830cd5491fb79ac2554830b83e6a8"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicUpload.java",
+      "bytes": 3957,
+      "sha256": "49024f0640475b04209529419d4c505672f2fdd7be40085295c25de8294261f7"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "bytes": 15046,
+      "sha256": "838851d531b49a3337f8f540e22b0da336f3ff3d2a90e6104f6039733aee7a8a"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "bytes": 21647,
+      "sha256": "9725a4742d7bbaddbf0ce8d815d53b328604ffadd68caab4a42b5f0b54f258fc"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java",
+      "bytes": 20097,
+      "sha256": "ba4341435a4b56bffd410827af1c29bcbfe85cc4e82d2767f5c618740c653025"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "671e6a9034b21be014bbaa5470be3d721c96b53c808f323efefd5295f567edda"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicReadBoundary.java",
+      "bytes": 965,
+      "sha256": "13e9d07e540e509defa156928829906b59f52b158cfc754d626a4f5e6ce043c9"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicLibraryWriter.java",
+      "bytes": 1583,
+      "sha256": "aa58e43ca2a5953dfb3dd5a69ed4c26728556a6caa3f25403039f9fa664328be"
+    },
+    {
+      "path": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicTrustCase.java",
+      "bytes": 3705,
+      "sha256": "700a4ce37703b02c9e4c6ac42cf8ddfb00cdebe2a8fed47ebd614b0c116c6e12"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/android/content/Context.java",
+      "bytes": 1106,
+      "sha256": "01e829b3a9f10ec999d4aa20ba810b10631c8c7df73155bd40aa1d460297ff43"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/SecureStore.java",
+      "bytes": 443,
+      "sha256": "ccc58ff4882aa5a1d752b49f7109627642c623a15c82e3200ffff98ddde5334a"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/CentralContracts.java",
+      "bytes": 355,
+      "sha256": "f9ace71e4f7f8a66cfd04ff0a5e53fa72b8e0ac8d82610e8d91d1cf9861fbfff"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/BuildConfig.java",
+      "bytes": 136,
+      "sha256": "ee580386179c0cf56c38ead3ac28d6023ccaae2338a2807da8e9a0b2a6a21b5d"
+    },
+    {
+      "path": "apps/music/scripts/native-store-fixture/com/ynxweb4/music/MusicCacheFieldCheck.java",
+      "bytes": 7262,
+      "sha256": "dd4ac0dc47cc6a68e2ecc56373d27b1ae481e01c0f1158b9d0bd82d9d1a4fbaf"
+    },
+    {
+      "path": "apps/music/scripts/android-upload-fixture/com/ynxweb4/music/NativeSessionBridge.java",
+      "bytes": 2190,
+      "sha256": "94208ee053568a3aef46e30ad9bd864351d3fc20a8bfe96b0ef69dcb7e162cd2"
+    },
+    {
+      "path": "apps/music/scripts/android-upload-fixture/com/ynxweb4/music/OriginalUploadCheck.java",
+      "bytes": 19905,
+      "sha256": "0919cee82ad642fe792770b0afd39a39af68652c49d3e412d08e922d40a5b432"
+    }
+  ],
+  "classPins": [
+    {
+      "path": "android/content/Context$Preferences$Editor.class",
+      "bytes": 1127,
+      "sha256": "3b0a24e9cf72d1e38be164709d92287d7741dcd64c639f88c0ac2ea52b2817f2"
+    },
+    {
+      "path": "android/content/Context$Preferences.class",
+      "bytes": 1034,
+      "sha256": "76c0dd3af6c45872ce1109cda0a9a7e55104b113d3d5c03331d34907771e5043"
+    },
+    {
+      "path": "android/content/Context.class",
+      "bytes": 1722,
+      "sha256": "40a5567356b3dc9971bcdcb31b6d9339e75e1eb9f8c4b3280ca3b5eea641c70c"
+    },
+    {
+      "path": "com/ynxweb4/music/BuildConfig.class",
+      "bytes": 446,
+      "sha256": "9773679716b48e1f4bf60e53fa5ca1bf82f117040f1626f6c7919b7839b5f534"
+    },
+    {
+      "path": "com/ynxweb4/music/CentralContracts.class",
+      "bytes": 533,
+      "sha256": "942451a7921b138013887ad603192387566e3142832846077c5fbb6211e1be8b"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicApi.class",
+      "bytes": 17854,
+      "sha256": "b4cff0f6e26a7b2c861c4c3db3e8c555266d56e0402b2e1ff6cb5201f5937942"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicCacheFieldCheck.class",
+      "bytes": 10547,
+      "sha256": "cb4c1917cf17adb98e561e9019e076daa7966dbb7f447cf8a00e27af4e87bfcc"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicIO$Guard.class",
+      "bytes": 278,
+      "sha256": "65708092a17b27c7c87e4f886e3c82fbeb577009aa0d105eb8095b5fbc4688ef"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicIO.class",
+      "bytes": 2304,
+      "sha256": "8d7219ad8ea899bc52f517b4e38ed99792f426682a329534b2bb567ee13230c4"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicLibraryWriter$Completion.class",
+      "bytes": 298,
+      "sha256": "9b2e5f0e408bfba1aa7ba518423dc41c2c0c8bba86df3a8e4dd9ead362eabfdd"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicLibraryWriter.class",
+      "bytes": 3185,
+      "sha256": "0b52ed41a69561440aacb206daada0f1f3a1c9dac262c66fc36360899f70aaf0"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicReadBoundary$Publication.class",
+      "bytes": 322,
+      "sha256": "a7d43b065c5c360471d9c6e93cbd672bf3a4f30a0fc6e5804d82dd483cb21c09"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicReadBoundary$State.class",
+      "bytes": 1229,
+      "sha256": "8b0b3ef6c097d1233891cc5127b854ae3b05a074768193d38a76b1a4fe7880ef"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicReadBoundary.class",
+      "bytes": 1225,
+      "sha256": "51a39182235756e5fcc17eac956016d2c5b00c0cf61e4f8cb6c0ff1e3c8f0e77"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicStore.class",
+      "bytes": 20452,
+      "sha256": "5e6b53aeaf2b4904e8ffbe1f81940c685e9c85b2f347d28fdf5a6b8716e964a0"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicTrustCase.class",
+      "bytes": 4919,
+      "sha256": "1028fc9d71f270c173ed44c887d42da05badaad67865eadc3e27ef57b50f483e"
+    },
+    {
+      "path": "com/ynxweb4/music/MusicUpload.class",
+      "bytes": 5174,
+      "sha256": "4dc444611e1d2995349b521f3d204e6e5069877f7a826b98d0a42f61a504dfe2"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeProductState$Action.class",
+      "bytes": 407,
+      "sha256": "ec2ee21ef148bbf259e5c55e60d709e19f662b2ee2de40272d8ea4e8275906f4"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeProductState$Persistence.class",
+      "bytes": 389,
+      "sha256": "a75b5c2c26f5d02e777cd959aeeb7b5b0197ec4ea8621cc31cd629c27a558c0e"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeProductState$Signer.class",
+      "bytes": 331,
+      "sha256": "7eeeed84fcbb55607f941393ee5aff9d0418c03099cb560f6eebf4d9934c7c94"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeProductState.class",
+      "bytes": 19978,
+      "sha256": "37adff59f2978f04a0a7fba676b9547d037a3f94d87ce214370cd88f0cb4022a"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeSessionBridge.class",
+      "bytes": 4036,
+      "sha256": "435956f0c67e025d90c3ae04f8c560396222610aee19ce1b10998f879422fc06"
+    },
+    {
+      "path": "com/ynxweb4/music/NativeSessionIdentity.class",
+      "bytes": 2129,
+      "sha256": "51b01dacc2d70cd0cb0a8edea28cb87e861fa31c0337af3e0d9f6df87c749b86"
+    },
+    {
+      "path": "com/ynxweb4/music/OriginalUploadCheck.class",
+      "bytes": 20662,
+      "sha256": "efb54067eef635263b67bacaa5ac67e56303c0636e2d2c3f969c29382ca73b48"
+    },
+    {
+      "path": "com/ynxweb4/music/SecureStore.class",
+      "bytes": 695,
+      "sha256": "33b3ae2130e69a4e86db7929d7d6aad4e1909537aac70f875112d34898fa210a"
+    }
+  ],
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "productionInstalled": false
+}

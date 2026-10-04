@@ -1,0 +1,29 @@
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/android-upload-fixture/com/ynxweb4/music/OriginalUploadCheck.java:76: error: method openCase in class MusicApi cannot be applied to given types;
+        for(int attempt=0;attempt<2;attempt++){boolean unavailable=false;try{newestApi.openCase("report",track.getString("id"),"Original unavailable Trust retry","sha256:original-native-case-evidence");}catch(Exception expected){unavailable=true;}check(unavailable,"unconfigured original Trust was reported successful");}
+                                                                                      ^
+  required: JSONObject,String
+  found:    String,String,String,String
+  reason: actual and formal argument lists differ in length
+1 error
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: /Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home/bin/javac -classpath /tmp/ynx-music-json-20240303.jar -d /tmp/ynx-music-trust-intent-java-20261004 /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicIO.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicUpload.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/NativeSessionIdentity.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicReadBoundary.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicLibraryWriter.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicTrustCase.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/native-store-fixture/android/content/Context.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/native-store-fixture/com/ynxweb4/music/SecureStore.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/native-store-fixture/com/ynxweb4/music/CentralContracts.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/native-store-fixture/com/ynxweb4/music/BuildConfig.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/android-upload-fixture/com/ynxweb4/music/NativeSessionBridge.java /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/android-upload-fixture/com/ynxweb4/music/OriginalUploadCheck.java
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/music/scripts/compile-android-upload-check.mjs:5:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 39507,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0

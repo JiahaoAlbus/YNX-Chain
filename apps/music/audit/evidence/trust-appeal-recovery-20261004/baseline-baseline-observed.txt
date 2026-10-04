@@ -1,0 +1,1 @@
+BASELINE: foreign-owner appeal durably accepted locally; pending blocks successor. Cache-only observation; SDK/server permission not claimed. Source ac02f69af77c0b85b42e8a9b76431ac703a5a507.

@@ -1,0 +1,10 @@
+/tmp/ynx-music-trust-appeal-swift-r2-20261004/OriginalMusicModel.swift:460:68: warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+458 |         }
+459 |         let duration=Double(track.durationMillis)/1000
+460 |         completion=NotificationCenter.default.addObserver(forName:.AVPlayerItemDidPlayToEndTime,object:item,queue:.main) { [weak self] _ in
+    |                                                                    `- warning: 'AVPlayerItemDidPlayToEndTime' was deprecated in macOS 27.0: Use AVPlayerItem.didPlayToEndTimeNotification instead. [#DeprecatedDeclaration]
+461 |             Task { @MainActor [weak self] in
+462 |                 guard let self,self.generation==playGeneration,self.isCurrent else { return }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+{"binary":"/tmp/ynx-music-trust-appeal-swift-r2-20261004/apple-music-engine-check","bytes":1766648,"sha256":"674903cf5f612fbcd2e740645c334324012ff7a567f8a402f5662f17ae7607c7","sourcePins":10}

@@ -1,0 +1,77 @@
+{
+  "javaHome": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+  "jsonDependency": {
+    "path": "/tmp/ynx-music-json-20240303.jar",
+    "bytes": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+  },
+  "sourcePins": [
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicIO.java",
+      "sha256": "7eec2e2efde88be7f71c8ed1ce40b1fbe38830cd5491fb79ac2554830b83e6a8"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicUpload.java",
+      "sha256": "49024f0640475b04209529419d4c505672f2fdd7be40085295c25de8294261f7"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicApi.java",
+      "sha256": "838851d531b49a3337f8f540e22b0da336f3ff3d2a90e6104f6039733aee7a8a"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "sha256": "112b46e20416ebbdaccbd40d6fae7c7c260fb47f0a84fb71c6c72406441be4ce"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/NativeProductState.java",
+      "sha256": "ba4341435a4b56bffd410827af1c29bcbfe85cc4e82d2767f5c618740c653025"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/NativeSessionIdentity.java",
+      "sha256": "671e6a9034b21be014bbaa5470be3d721c96b53c808f323efefd5295f567edda"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicReadBoundary.java",
+      "sha256": "13e9d07e540e509defa156928829906b59f52b158cfc754d626a4f5e6ce043c9"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicLibraryWriter.java",
+      "sha256": "aa58e43ca2a5953dfb3dd5a69ed4c26728556a6caa3f25403039f9fa664328be"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/native-store-fixture/android/content/Context.java",
+      "sha256": "01e829b3a9f10ec999d4aa20ba810b10631c8c7df73155bd40aa1d460297ff43"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/native-store-fixture/com/ynxweb4/music/SecureStore.java",
+      "sha256": "ccc58ff4882aa5a1d752b49f7109627642c623a15c82e3200ffff98ddde5334a"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/native-store-fixture/com/ynxweb4/music/CentralContracts.java",
+      "sha256": "f9ace71e4f7f8a66cfd04ff0a5e53fa72b8e0ac8d82610e8d91d1cf9861fbfff"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/native-store-fixture/com/ynxweb4/music/BuildConfig.java",
+      "sha256": "ee580386179c0cf56c38ead3ac28d6023ccaae2338a2807da8e9a0b2a6a21b5d"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/android-upload-fixture/com/ynxweb4/music/NativeSessionBridge.java",
+      "sha256": "f956b8d6f9c8205b7579c668387c8aed7e97b93bf61fde9f18cc3ee37d7a5776"
+    },
+    {
+      "path": "frozen-source/apps/music/android/app/src/main/java/com/ynxweb4/music/MusicTrustCase.java",
+      "sha256": "d96caa0c96b566e3a8065e49bbce66c6a6983424a7a6fd98b08415f9bef55cc5"
+    },
+    {
+      "path": "probes/com/ynxweb4/music/IndependentCacheCheck.java",
+      "sha256": "8f1bd15d2112e04dc549705e0637707e4ce7e6aa2e8528fd6ef776b1d7d7e4c5"
+    },
+    {
+      "path": "frozen-source/apps/music/scripts/native-store-fixture/com/ynxweb4/music/MusicCacheFieldCheck.java",
+      "sha256": "f6c883076a9985fd2e6633d870ef974b1126fcf2806f17fe13845e7c3d37ad04"
+    }
+  ],
+  "probeSHA256": "8f1bd15d2112e04dc549705e0637707e4ce7e6aa2e8528fd6ef776b1d7d7e4c5",
+  "authClassesOnlyCompiledNeverConstructed": true,
+  "noNetwork": true
+}

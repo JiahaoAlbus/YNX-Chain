@@ -1,0 +1,11 @@
+PASS guest private action emits zero private requests
+PASS title search permits legitimate punctuation in the query
+PASS original playlist edit/reorder/add, failed draft retained, PUT then GET readback, Library view retained
+PASS profile business save preserves explicit biography
+locator.click: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('link', { name: 'Creator', exact: true })[22m
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/business-web-check.cjs:41:60 {
+  name: 'TimeoutError'
+}

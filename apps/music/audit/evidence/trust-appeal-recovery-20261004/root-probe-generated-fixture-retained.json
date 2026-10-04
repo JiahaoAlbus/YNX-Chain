@@ -1,0 +1,62 @@
+{
+  "origin": "original independent ordinary cache probe generated 5 disposable fixture directories",
+  "retainedAt": "/tmp/ynx-music-trust-appeal-root-probe-fixture-state-20261004",
+  "actualSDKAuthority": false,
+  "files": [
+    {
+      "path": "cache-10555229969213190063/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/music-state.json",
+      "bytes": 969,
+      "sha256": "42b831924d036daf91679bd7639ce5f15f6fd38a431b21193020d75af1e308fa"
+    },
+    {
+      "path": "cache-10555229969213190063/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/offline/trk_aaaaaaaaaaaaaaaaaaaaaaaa.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    },
+    {
+      "path": "cache-14063147506575855589/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/music-state.json",
+      "bytes": 1072,
+      "sha256": "feeee977b1497e819a1ddb18b240a1a3b912f2eba720aa1eadae07603c7ac1c1"
+    },
+    {
+      "path": "cache-14063147506575855589/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/offline/trk_aaaaaaaaaaaaaaaaaaaaaaaa.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    },
+    {
+      "path": "cache-14063147506575855589/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/upload-drafts/music-upload-6738cd0a-a42d-43b5-9070-269f88f74b7a.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    },
+    {
+      "path": "cache-15006628261643126860/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/music-state.json",
+      "bytes": 795,
+      "sha256": "e8da9d3d0f797713637448a316adf128b47f68c4549b573a7560546c9041c293"
+    },
+    {
+      "path": "cache-15006628261643126860/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/offline/trk_aaaaaaaaaaaaaaaaaaaaaaaa.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    },
+    {
+      "path": "cache-15634172837048952253/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/music-state.json",
+      "bytes": 911,
+      "sha256": "324fb2d944a789e94acdc35b0123b74dc43ba8823452f656d026db1d8405cad2"
+    },
+    {
+      "path": "cache-15634172837048952253/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/offline/trk_aaaaaaaaaaaaaaaaaaaaaaaa.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    },
+    {
+      "path": "cache-16003066500514738988/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/music-state.json",
+      "bytes": 635,
+      "sha256": "13843dc39e91df232a80544bb0d859a59fa99b1e3a9c9a763b5c1df8c4fe4f31"
+    },
+    {
+      "path": "cache-16003066500514738988/music-accounts/2181a1f326776e90443a6c7d6a5eacfe44cab29be788647e9b1320266530e2c2/offline/trk_aaaaaaaaaaaaaaaaaaaaaaaa.wav",
+      "bytes": 44,
+      "sha256": "d176e0626d1980ae56e2a509cc2c17ad9331bbd1b4a1887210516d9d90f11f8c"
+    }
+  ]
+}
