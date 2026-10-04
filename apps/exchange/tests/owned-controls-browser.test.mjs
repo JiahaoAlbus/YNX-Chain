@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
-import {formatMicro} from '../web/market-data.js';
+import {formatMicro,parseMarketDocument} from '../web/market-data.js';
 import {locales} from '../web/locale.js';
 
 // Actual product HTML/render functions, controlled account read input only.
@@ -12,7 +12,9 @@ const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
-const identity=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+// The extracted consumer needs its actual owned parser dependency too; do
+// not silently replace it with permissive JSON.parse in this DOM fixture.
+const identity='const MAX_MARKET_DOCUMENT_BYTES=8*1024*1024;const invalid=()=>new Error("controlled-parser-invalid");'+parseMarketDocument.toString()+';'+app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
 const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));

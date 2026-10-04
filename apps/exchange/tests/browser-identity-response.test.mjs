@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
+import {parseMarketDocument} from '../web/market-data.js';
 
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const source=app.slice(app.indexOf('async function browserIdentityRequest('),app.indexOf('\nasync function restoreBrowserIdentity('));
@@ -11,7 +12,7 @@ const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {
 const response=(text,mime='application/json',status=200,extra={})=>new Response(text,{status,headers:{'content-type':mime,...extra}});
 function fixture(){
   const calls=[],timers=new Map();let next=0;
-  const scope={AbortController,TextDecoder,Uint8Array,fetch:(path,options)=>{const p=deferred();calls.push({path,options,...p});return p.promise},setTimeout:(fn,ms)=>{timers.set(++next,{fn,ms});return next},clearTimeout:id=>timers.delete(id)};
+  const scope={AbortController,TextDecoder,Uint8Array,parseMarketDocument,fetch:(path,options)=>{const p=deferred();calls.push({path,options,...p});return p.promise},setTimeout:(fn,ms)=>{timers.set(++next,{fn,ms});return next},clearTimeout:id=>timers.delete(id)};
   runInNewContext(source+';this.invoke=browserIdentityRequest',scope);return {scope,calls,timers};
 }
 test('exact identity-only routes settle through stalled fetch/body and never replay a logout',async()=>{
@@ -56,6 +57,13 @@ test('identity declared-length excess cancels before another stream read',async(
   await assert.rejects(p,{code:'IDENTITY_RESPONSE_INVALID'});assert.equal(reads,1);assert.equal(cancels,1);assert.equal(releases,1);
 });
 
+test('duplicate identity fields, escaped aliases and excessive nesting cannot hide an unverified identity',async()=>{
+  for(const text of ['{"account":"A","account":"B"}','{"enabled":false,"enabl\\u0065d":true}','{"nested":{"csrfToken":"A","csrfToken":"B"}}','{"value":'+'['.repeat(65)+'0'+']'.repeat(65)+'}']){
+    const f=fixture(),p=f.scope.invoke('account');f.calls[0].resolve(response(text));await assert.rejects(p,{code:'IDENTITY_RESPONSE_INVALID'});assert.equal(f.calls.length,1);assert.equal(f.timers.size,0);
+  }
+  const f=fixture(),p=f.scope.invoke('account');f.calls[0].resolve(response('{"left":{"code":"A"},"right":{"code":"B"},"note":"é"}'));assert.equal((await p).data.note,'é');
+});
+
 test('unbounded undeclared stream stops at the first over-limit chunk without text() or retry',async()=>{
   const f=fixture();let reads=0,cancels=0,releases=0;
   const value={ok:true,status:200,headers:new Headers({'content-type':'application/json'}),text(){throw Error('Unbounded text() forbidden')},body:{getReader:()=>({read:async()=>{reads++;return {done:false,value:new Uint8Array(65536)}},cancel(){cancels++;return new Promise(()=>{})},releaseLock(){releases++}})}};
@@ -86,16 +94,21 @@ test('installed Chrome native response streams enforce the product bound without
     const context=await browser.newContext(),page=await context.newPage(),errors=[];let network=0;
     page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',route=>{network++;return route.abort()});
     await page.setContent('<main>Exchange identity stream controlled verification</main>');
-    await page.addScriptTag({content:source+';window.checkIdentityStream=browserIdentityRequest'});
+    await page.addScriptTag({content:'const MAX_MARKET_DOCUMENT_BYTES=8*1024*1024;const invalid=()=>new Error("controlled-parser-invalid");'+parseMarketDocument.toString()+';'+source+';window.checkIdentityStream=browserIdentityRequest'});
     const result=await page.evaluate(async()=>{
       let calls=0,pulls=0,cancels=0;
       window.fetch=async()=>{calls++;return new Response(new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(65536))},cancel(){cancels++}},{highWaterMark:0}),{headers:{'content-type':'application/json'}})};
       let code;try{await window.checkIdentityStream('account')}catch(e){code=e.code}
       window.fetch=async()=>{calls++;const bytes=new TextEncoder().encode('{"code":"SSO_LOGIN_REQUIRED","note":"é"}');return new Response(new ReadableStream({start(controller){for(const byte of bytes)controller.enqueue(new Uint8Array([byte]));controller.close()}}),{status:401,headers:{'content-type':'application/json'}})};
       const refusal=await window.checkIdentityStream('account');
-      return {code,pulls,cancels,calls,status:refusal.response.status,note:refusal.data.note,url:location.href};
+      const duplicateCodes=[];
+      for(const text of ['{"account":"A","account":"B"}','{"enabled":false,"enabl\\u0065d":true}','{"nested":{"csrfToken":"A","csrfToken":"B"}}','{"value":'+'['.repeat(65)+'0'+']'.repeat(65)+'}']){
+        window.fetch=async()=>{calls++;return new Response(text,{headers:{'content-type':'application/json'}})};
+        try{await window.checkIdentityStream('account');duplicateCodes.push('ACCEPTED')}catch(error){duplicateCodes.push(error.code)}
+      }
+      return {code,pulls,cancels,calls,duplicateCodes,status:refusal.response.status,note:refusal.data.note,url:location.href};
     });
-    assert.deepEqual(result,{code:'IDENTITY_RESPONSE_INVALID',pulls:5,cancels:1,calls:2,status:401,note:'é',url:'about:blank'});
+    assert.deepEqual(result,{code:'IDENTITY_RESPONSE_INVALID',pulls:5,cancels:1,calls:6,duplicateCodes:Array(4).fill('IDENTITY_RESPONSE_INVALID'),status:401,note:'é',url:'about:blank'});
     assert.equal(network,0);assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
   }finally{await browser.close()}
 });

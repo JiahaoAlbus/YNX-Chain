@@ -1,4 +1,4 @@
-import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-data.js?v=77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7';
+import {createMarketFeed,formatMicro,aggregateRetainedCandles,parseMarketDocument} from './market-data.js?v=77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7';
 import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
 import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
@@ -43,7 +43,7 @@ async function browserIdentityRequest(path,options={}){
       controller.signal.removeEventListener('abort',cancel);
       if(!complete)cancel();try{reader.releaseLock()}catch{}
     }
-    let data;try{data=JSON.parse(text)}catch{throw invalid()}
+    let data;try{data=parseMarketDocument(text)}catch{throw invalid()}
     if(!data||typeof data!=='object'||Array.isArray(data))throw invalid();
     return {response,data};
   })()])}catch(error){controller.abort();throw error}finally{clearTimeout(timer)}

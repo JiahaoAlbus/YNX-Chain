@@ -39,7 +39,7 @@ assert(mobile.includes('productSessionUnavailable().message'), 'installed UI doe
 const identityStart=web.indexOf('async function browserIdentityRequest(');
 const identityEnd=web.indexOf('\nasync function restoreBrowserIdentity(',identityStart);
 const identityHelper=web.slice(identityStart,identityEnd);
-assert(identityStart>=0&&identityEnd>identityStart&&sha256(identityHelper)==='07602477a4e04f8e994559f84ca6f23b1dd6c4f1507846f4be65b333a32be36c'&&web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
+assert(identityStart>=0&&identityEnd>identityStart&&sha256(identityHelper)==='0581a11a9666bca4719219734c04c4983060403c1cfe378281313ec144af430c'&&web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
 const webShell=web.replace(identityHelper,'');
 const identityCalls=[...webShell.matchAll(/\bbrowserIdentityRequest\(([^,)]+)/gu)];
 assert(identityCalls.length===3&&new Set(identityCalls.map(call=>call[1])).size===3, 'Web identity call set is missing or unbounded');
