@@ -50,8 +50,13 @@ export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawRe
     try {
       const result = await requestCode(account);
       if (current !== revision) return;
-      if (result?.ok !== true) throw new Error("Receiving account unavailable");
-      draw(canvas, result.value, account);
+      if (ownValue(result, "ok") !== true) throw new Error("Receiving account unavailable");
+      const value = ownValue(result, "value");
+      if (current !== revision) return;
+      draw(canvas, value, account);
+      // Rendering or a supplied adapter may invalidate Receive synchronously.
+      // A retired request cannot make the canvas visible or publish success.
+      if (current !== revision) return;
       canvas.hidden = false;
       setWalletCopy(status,"Scan with a Wallet that supports YNX Testnet.");
     } catch {

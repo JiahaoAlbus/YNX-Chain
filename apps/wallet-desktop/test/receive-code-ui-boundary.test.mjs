@@ -73,6 +73,18 @@ test("a truthy non-boolean IPC success cannot display a receiving code", async (
   assert.equal(draws, 0); assert.equal(canvas.hidden, true);
   assert.match(status.textContent, /unavailable/);
 });
+for (const field of ["ok", "value"]) test(`receive response accessor ${field} is rejected without execution or drawing`, async () => {
+  let reads=0,draws=0;const response={ok:true,value:code()},saved=response[field];
+  Object.defineProperty(response,field,{get(){reads++;return saved;},enumerable:true});
+  const canvas={},status={textContent:""};
+  const ui=createReceiveCodeUI({canvas,status,requestCode:async()=>response,draw(){draws++;}});
+  await ui.refresh(account);assert.equal(reads,0);assert.equal(draws,0);assert.equal(canvas.hidden,true);assert.match(status.textContent,/unavailable/);
+});
+test("clear during rendering cannot resurrect a closed receiving code or its success feedback",async()=>{
+  const canvas={},status={textContent:""};let ui;
+  ui=createReceiveCodeUI({canvas,status,requestCode:async()=>({ok:true,value:code()}),draw(){ui.clear();}});
+  await ui.refresh(account);assert.equal(canvas.hidden,true);assert.equal(canvas.width,1);assert.equal(status.textContent,"");
+});
 test("invalid matrix remains hidden and reopening retries through the original request adapter", async () => {
   let calls = 0; const canvas = {}, status = {textContent: ""};
   const ui = createReceiveCodeUI({canvas, status, requestCode: async expected => {
