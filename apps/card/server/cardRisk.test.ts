@@ -44,3 +44,15 @@ test('risk classification never mutates balances, merchant history or controls',
   const input={...base,previous:[prior('DECLINED')]},before=JSON.stringify(input);
   assert.equal(risk(input),undefined);assert.equal(JSON.stringify(input),before);
 });
+test('optional merchant allowlist is enforced and explicit deny always wins',()=>{
+  assert.equal(risk({...base,controls:{...controls,allowedMerchants:['demo']}}),undefined);
+  assert.equal(risk({...base,controls:{...controls,allowedMerchants:['another']}}),'MERCHANT_BLOCKED');
+  assert.equal(risk({...base,controls:{...controls,allowedMerchants:['demo'],blockedMerchants:['demo']}}),'MERCHANT_BLOCKED');
+  assert.equal(risk({...base,controls:{...controls,allowedMerchants:[]}}),undefined);
+});
+test('emergency block precedes spend and attempt budgets but cannot unfreeze a card',()=>{
+  const input={...base,availableWei:'0',previous:Array.from({length:3},()=>prior('DECLINED')),controls:{...controls,emergencyBlock:true}};
+  assert.equal(risk(input),'EMERGENCY_BLOCK');
+  assert.equal(risk({...input,status:'FROZEN'}),'CARD_FROZEN');
+  assert.equal(risk({...input,status:'CLOSED'}),'CARD_CLOSED');
+});

@@ -7,6 +7,8 @@ import type {Locale} from './i18n';
 import {CardBusinessClient,type CardPrivateIdentity,type CardStatementView} from './cardBusinessClient';
 import {canonicalCardOperationInput,parsePendingCardOperation,parseTestnetYnxt,type PendingCardOperation,type TestnetOperation} from './cardOperationJournal';
 import {cardOperationsCopy} from './cardOperationsCopy';
+import {buildTestnetSpendControls} from './cardSpendControls';
+import {cardSpendControlsCopy} from './cardSpendControlsCopy';
 import {cardOperationAvailabilityText,cardPendingOtherCardText,cardLocalRecoveryWriteText} from './cardOperationAvailabilityCopy';
 type Props={client:CardBusinessClient;identity:CardPrivateIdentity;statement:CardStatementView;locale:Locale;onUpdated:()=>void};
 type Journal={pending:PendingCardOperation|null;history:PendingCardOperation[]};
@@ -23,6 +25,8 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
   const ready=scopedState&&journal!==null&&valid();
   const [kind,setKind]=useState<TestnetOperation|null>(null),[amount,setAmount]=useState(''),[reference,setReference]=useState(''),[event,setEvent]=useState<Record<string,unknown>|null>(null);
   const [canRetry,setCanRetry]=useState(false);
+  const [allowedMerchants,setAllowedMerchants]=useState(''),[emergencyBlock,setEmergencyBlock]=useState(false);
+  const controlsCopy=cardSpendControlsCopy[locale];
   const read=async()=>Platform.OS==='web'?window.localStorage.getItem(storageKey):SecureStore.getItemAsync(storageKey);
   const write=async(value:Journal)=>{
     try{
@@ -59,7 +63,7 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
     try{
       let resourceId=card.id,input:Record<string,unknown>={};
       if(kind==='topup-intent'||kind==='authorization'||kind==='capture'||kind==='reverse'||kind==='refund')input.amountWei=parseTestnetYnxt(amount);
-      if(kind==='controls')input={maxSingleWei:parseTestnetYnxt(amount)};
+      if(kind==='controls')input=buildTestnetSpendControls(amount,allowedMerchants,emergencyBlock);
       if(kind==='authorization')input={...input,simulation:true,merchant:{id:'testnet-sandbox',name:'SIMULATED MERCHANT',mcc:'5812',country:'YN',channel:'online',recurring:false}};
       if(kind==='capture'||kind==='reverse'||kind==='refund'){if(!/^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(reference))throw Error();resourceId=reference;}
       if(kind==='topup-confirm'){const [intentId,txHash,...extra]=reference.trim().split(/\s+/);if(extra.length||!intentId||!txHash||!/^0x[0-9a-f]{64}$/.test(txHash))throw Error();resourceId=intentId;input={txHash};}
@@ -75,7 +79,7 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
     <Text accessibilityRole="header" style={styles.heading}>{copy[0]}</Text><Text>{copy[20]}</Text>
     {!recoveryAvailable?<Text accessibilityLiveRegion="polite">{cardOperationAvailabilityText(locale)}</Text>:null}
     {scopedState&&localWriteFailure?<Text accessibilityLiveRegion="polite">{cardLocalRecoveryWriteText(locale)}</Text>:null}
-    <View style={styles.actions}>{actions.map(action=><View key={action}>{button(copy[label(action)]!,()=>{setKind(action);setAmount('');setReference('');},disabled||card.status==='CLOSED'&&action!=='recover'||['authorization','topup-intent'].includes(action)&&card.status!=='ACTIVE')}</View>)}</View>
+    <View style={styles.actions}>{actions.map(action=><View key={action}>{button(copy[label(action)]!,()=>{setKind(action);setAmount('');setReference('');setAllowedMerchants(Array.isArray(card.controls?.allowedMerchants)?card.controls.allowedMerchants.join(', '):'');setEmergencyBlock(card.controls?.emergencyBlock===true);},disabled||card.status==='CLOSED'&&action!=='recover'||['authorization','topup-intent'].includes(action)&&card.status!=='ACTIVE')}</View>)}</View>
     {scopedState&&notice!==null?<Text accessibilityLiveRegion="polite">{copy[notice]}</Text>:null}{scopedState&&busy?<Text>{copy[23]}</Text>:null}
     {ready&&journal?.pending?<View><Text>{copy[16]}</Text><Text selectable>{journal.pending.cardId} · {journal.pending.kind} · {journal.pending.key}</Text>{journal.pending.cardId!==card.id?<Text>{cardPendingOtherCardText(locale)}</Text>:null}{button(copy[17]!,()=>void readBack(),!recoveryAvailable||busy||blocked||journal.pending.cardId!==card.id)}{canRetry?button(retryLabels[locale],()=>void retryOriginal(),!recoveryAvailable||busy||blocked||journal.pending.cardId!==card.id):null}</View>:null}
     <Text accessibilityRole="header">{copy[21]}</Text>{(valid()?statement.events:[]).map(item=><View key={String(item.id)}>{button(`${String(item.occurredAt)} · ${String(item.name)}`,()=>setEvent(item))}</View>)}
@@ -85,6 +89,11 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
         <Text selectable>{card.alias} · {card.id}</Text>
         {event?<Text selectable>{JSON.stringify(event,null,2)}</Text>:<>
           {kind&&['topup-intent','authorization','capture','reverse','refund','controls'].includes(kind)?<><Text>{copy[11]}</Text><TextInput accessibilityLabel={copy[11]} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" style={styles.input}/></>:null}
+          {kind==='controls'?<>
+            <Text>{controlsCopy[4]}</Text>
+            <Text>{controlsCopy[0]}</Text><TextInput accessibilityLabel={controlsCopy[0]} accessibilityHint={controlsCopy[1]} value={allowedMerchants} onChangeText={setAllowedMerchants} autoCapitalize="none" autoCorrect={false} editable={!disabled} style={styles.input}/><Text>{controlsCopy[1]}</Text>
+            <Pressable accessibilityRole="switch" accessibilityLabel={controlsCopy[2]} accessibilityHint={controlsCopy[3]} accessibilityState={{checked:emergencyBlock,disabled}} disabled={disabled} onPress={()=>setEmergencyBlock(value=>!value)} style={[styles.button,disabled&&styles.disabled]}><Text style={styles.buttonText}>{controlsCopy[2]}: {emergencyBlock?'●':'○'}</Text></Pressable><Text>{controlsCopy[3]}</Text>
+          </>:null}
           {kind&&['topup-confirm','capture','reverse','refund'].includes(kind)?<><Text>{copy[12]}</Text><TextInput accessibilityLabel={copy[12]} value={reference} onChangeText={setReference} autoCapitalize="none" style={styles.input}/></>:null}
           {kind==='topup-confirm'?<Text>intent_id 0x…</Text>:null}
           {button(copy[14]!,()=>void perform(),disabled)}

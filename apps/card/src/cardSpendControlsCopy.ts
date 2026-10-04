@@ -1,0 +1,15 @@
+import type {Locale} from './i18n';
+export const cardSpendControlsCopy:Record<Locale,readonly [string,string,string,string,string]>={
+  en:['Allowed simulated merchant IDs','Comma-separated IDs. Empty permits any simulated merchant unless denied by another control.','Emergency block','Decline new simulated authorizations. Existing holds can still be captured or reversed.','Optional single-transaction limit. Leave empty to keep the current limit.'],
+  'zh-CN':['允许的模拟商户 ID','用逗号分隔；留空允许所有模拟商户，但其他限制仍有效。','紧急阻断','拒绝新的模拟授权；已有挂账仍可扣款或撤销。','可选单笔限额；留空保留当前限额。'],
+  'zh-TW':['允許的模擬商戶 ID','以逗號分隔；留空允許所有模擬商戶，其他限制仍有效。','緊急阻斷','拒絕新的模擬授權；已有掛帳仍可扣款或撤銷。','選填單筆限額；留空保留目前限額。'],
+  ja:['許可する模擬加盟店 ID','カンマ区切り。空欄は他の制限に反しない模擬加盟店を許可します。','緊急ブロック','新しい模擬承認を拒否します。既存の保留は確定・取消可能です。','任意の取引上限。空欄で現在の上限を維持します。'],
+  ko:['허용할 모의 가맹점 ID','쉼표로 구분합니다. 비워두면 다른 제한이 없는 모의 가맹점을 허용합니다.','긴급 차단','새 모의 승인을 거절합니다. 기존 보류는 매입 또는 취소할 수 있습니다.','선택적 건별 한도. 비워두면 현재 한도를 유지합니다.'],
+  es:['IDs de comercios simulados permitidos','Separados por comas. Vacío permite comercios simulados sujetos a los demás controles.','Bloqueo de emergencia','Rechaza nuevas autorizaciones simuladas. Las retenciones existentes pueden capturarse o revertirse.','Límite por operación opcional. Vacío conserva el límite actual.'],
+  fr:['Identifiants des marchands simulés autorisés','Séparés par des virgules. Vide autorise les marchands simulés sous réserve des autres contrôles.','Blocage urgent','Refuse les nouvelles autorisations simulées. Les réservations existantes restent capturables ou annulables.','Plafond facultatif par opération. Vide conserve le plafond actuel.'],
+  de:['Erlaubte simulierte Händler-IDs','Kommagetrennt. Leer erlaubt simulierte Händler vorbehaltlich anderer Regeln.','Notfallsperre','Lehnt neue simulierte Autorisierungen ab. Bestehende Reservierungen können gebucht oder freigegeben werden.','Optionales Transaktionslimit. Leer behält das aktuelle Limit bei.'],
+  pt:['IDs de comerciantes simulados permitidos','Separados por vírgulas. Vazio permite comerciantes simulados sujeitos aos outros controles.','Bloqueio de emergência','Recusa novas autorizações simuladas. Reservas existentes ainda podem ser capturadas ou revertidas.','Limite opcional por operação. Vazio mantém o limite atual.'],
+  ru:['Разрешённые ID условных продавцов','Через запятую. Пустой список разрешает условных продавцов с учётом остальных правил.','Экстренная блокировка','Отклоняет новые условные авторизации. Существующие резервы можно списать или отменить.','Необязательный лимит операции. Пустое поле сохраняет текущий лимит.'],
+  ar:['معرّفات التجار المحاكين المسموحين','مفصولة بفواصل. الحقل الفارغ يسمح بالتجار المحاكين وفق بقية الضوابط.','حظر طارئ','يرفض التفويضات المحاكاة الجديدة. يمكن تحصيل الحجوزات الحالية أو عكسها.','حد اختياري لكل عملية. اتركه فارغاً للإبقاء على الحد الحالي.'],
+  id:['ID merchant simulasi yang diizinkan','Pisahkan dengan koma. Kosong mengizinkan merchant simulasi sesuai kontrol lainnya.','Blokir darurat','Menolak otorisasi simulasi baru. Penahanan yang ada tetap dapat ditangkap atau dibalik.','Batas transaksi opsional. Kosong mempertahankan batas saat ini.'],
+};
