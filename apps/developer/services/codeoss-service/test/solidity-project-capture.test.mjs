@@ -48,4 +48,7 @@ test('actual registered project command copies only after unchanged-source revie
  const module={exports:{}};vm.runInNewContext(await readFile(new URL('../../../native/ynx-tools/src/extension.cjs',import.meta.url),'utf8'),{module,require:name=>name==='vscode'?h.vscode:require('../../../native/ynx-tools/src/'+name.slice(2)),process:{env:h.environment},Buffer});module.exports.activate({subscriptions:[]});
  await commands.get('ynx.copySolidityProject')();assert.deepEqual(errors,[]);assert.deepEqual(calls.map(item=>item.kind),['copy','open']);assert.equal(JSON.parse(calls[0].value).sources['PinCheck.sol'].documentVersion,3);assert.match(calls[1].value,/^https:\/\/developer\.ynxweb4\.com\/native-tools\?sessionId=[a-f0-9-]+#compile$/);assert.doesNotMatch(calls[1].value,/unsaved|source|sha256/);
  calls.length=0;h.vscode.window.showInformationMessage=async()=>{h.documents[0].version++;return'Copy project sources';};await commands.get('ynx.copySolidityProject')();assert.equal(calls.length,0);assert.match(errors[0],/changed during review/);
+ errors.length=0;delete h.environment.YNX_CORE_SESSION_ID;delete h.environment.YNX_CORE_WORKSPACE;
+ Object.assign(h.environment,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:h.root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'});
+ await commands.get('ynx.copySolidityProject')();assert.equal(calls.length,0);assert.match(errors[0],/Online Tools requires a connected YNX project/);
 });
