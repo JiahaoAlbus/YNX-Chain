@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
-import {createNativeContractUI} from "../src/native-contract-ui.mjs";
 const address = "0x"+"1".repeat(40);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 test("actual mounted contract entry, lookup, method selection, read and close use only the public IPC", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const source = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  const uiSource = await readFile(new URL("../src/native-contract-ui.mjs", import.meta.url), "utf8");
   const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map(match => match[1]));
   const nodes = new Map(), calls = [];
   const element = () => ({value: "", textContent: "", hidden: false, disabled: false, open: false, children: [], listeners: new Map(),
@@ -26,7 +26,15 @@ test("actual mounted contract entry, lookup, method selection, read and close us
   const document = {querySelector: get, getElementById: id => get("#"+id), createElement: element};
   const start = source.indexOf("const contractSheet ="), end = source.indexOf("let paymentDraftRevision", start);
   assert.ok(start >= 0 && end > start);
-  runInNewContext(source.match(/function copyUI\([^\n]+/)[0]+"\n"+source.slice(start, end), {document, window: {ynxWallet: api}, createNativeContractUI, accountState: null, keyState: {locked: true, revision: 1}});
+  // Production ESM UI and renderer run in the same renderer realm. The prior
+  // fixture injected a host-realm controller, so its ordinary-object boundary
+  // correctly rejected VM-created requests before IPC. Mount the exact UI in
+  // the same VM and copy public IPC results into that realm like contextBridge.
+  assert.match(uiSource, /export function createNativeContractUI/);
+  runInNewContext(uiSource.replace("export function createNativeContractUI", "function createNativeContractUI")+
+    "\nwindow.ynxWallet.nativeContract=async input=>JSON.parse(JSON.stringify(await hostNativeContract(input)));\n"+
+    source.match(/function copyUI\([^\n]+/)[0]+"\n"+source.slice(start, end),
+    {document, window: {ynxWallet: {}}, hostNativeContract: api.nativeContract.bind(api), accountState: null, keyState: {locked: true, revision: 1}});
   get("#contract-mode").value = "bft"; get("#contract-address").value = address;
   await get("#open-contracts").emit("click"); assert.equal(get("#contract-sheet").open, true);
   await get("#lookup-contract").emit("click");
